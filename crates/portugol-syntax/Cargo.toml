@@ -1,0 +1,9 @@
+[package]
+name = "portugol-syntax"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Lexer, parser e AST da linguagem Portugol 2.0"
+
+[dependencies]
+logos = "0.16"

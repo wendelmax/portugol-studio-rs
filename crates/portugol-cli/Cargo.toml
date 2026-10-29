@@ -1,0 +1,9 @@
+[package]
+name = "portugol-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "CLI de validação sintática do Portugol"
+
+[dependencies]
+portugol-syntax = { path = "../portugol-syntax" }
