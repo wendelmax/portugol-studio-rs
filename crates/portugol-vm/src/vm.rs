@@ -125,6 +125,13 @@ impl<'a> Vm<'a> {
         self
     }
 
+    /// Desliga o acesso à rede (Internet e ServicosWeb falham como sem
+    /// conexão). Usado nos testes de regressão.
+    pub fn offline(mut self) -> Self {
+        self.ctx.offline = true;
+        self
+    }
+
     /// Relógio simulado a partir de `epoch_ms` (ms desde 1970 UTC): `aguarde`
     /// não dorme e `tempo_decorrido`/Calendario ficam determinísticos.
     pub fn with_simulated_time(mut self, epoch_ms: u64) -> Self {

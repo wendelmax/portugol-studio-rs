@@ -56,9 +56,40 @@ export const LIBRARIES: Record<string, string[]> = {
     "numero_elementos", "numero_linhas", "numero_colunas", "sorteia",
     "aguarde", "tempo_decorrido", "obter_diretorio_usuario",
   ],
+  Arquivos: [
+    "MODO_LEITURA", "MODO_ESCRITA", "MODO_ACRESCENTAR", "abrir_arquivo",
+    "fechar_arquivo", "fim_arquivo", "ler_linha", "escrever_linha",
+    "substituir_texto", "arquivo_existe", "apagar_arquivo",
+    "selecionar_arquivo", "listar_pastas", "listar_arquivos",
+    "listar_arquivos_por_tipo", "criar_pasta",
+  ],
+  Objetos: [
+    "TIPO_INTEIRO", "TIPO_CADEIA", "TIPO_CARACTER", "TIPO_REAL", "TIPO_LOGICO",
+    "TIPO_OBJETO", "TIPO_VETOR", "criar_objeto", "criar_objeto_via_json",
+    "criar_objeto_via_xml", "atribuir_propriedade",
+    "obter_propriedade_tipo_inteiro", "obter_propriedade_tipo_real",
+    "obter_propriedade_tipo_logico", "obter_propriedade_tipo_caracter",
+    "obter_propriedade_tipo_cadeia", "obter_propriedade_tipo_objeto",
+    "obter_propriedade_tipo_inteiro_em_vetor",
+    "obter_propriedade_tipo_real_em_vetor",
+    "obter_propriedade_tipo_logico_em_vetor",
+    "obter_propriedade_tipo_caracter_em_vetor",
+    "obter_propriedade_tipo_cadeia_em_vetor",
+    "obter_propriedade_tipo_objeto_em_vetor", "obter_tamanho_vetor_propriedade",
+    "liberar_objeto", "liberar", "obter_json", "contem_propriedade",
+    "tipo_propriedade",
+  ],
+  Internet: [
+    "definir_tempo_limite", "obter_texto", "baixar_imagem",
+    "endereco_disponivel",
+  ],
+  ServicosWeb: [
+    "OBTER", "PUBLICAR", "ATUALIZAR", "EXCLUIR", "obter_dados", "excluir_dados",
+    "publicar_dados", "atualizar_dados", "abrir_conexao", "adicionar_cabecalho",
+    "adicionar_parametros", "fazer_requisicao",
+  ],
   // Reconhecidas pela análise, mas ainda sem implementação na VM.
-  Arquivos: [], Graficos: [], Internet: [], Mouse: [],
-  Objetos: [], ServicosWeb: [], Sons: [], Teclado: [],
+  Graficos: [], Mouse: [], Sons: [], Teclado: [],
 };
 
 const keywordSet = new Set(KEYWORDS);

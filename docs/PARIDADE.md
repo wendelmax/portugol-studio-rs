@@ -28,9 +28,9 @@ Legenda: ✅ feito · 🟡 parcial · ⬜ falta · ➖ não se aplica
 | Util | 7 | ✅ | |
 | Calendario | 11 + 19 constantes | ✅ | |
 | Arquivos | 13 | ✅ | `selecionar_arquivo` usa o diálogo da IDE; no terminal gera erro |
-| Objetos | 23 | ⬜ | |
-| Internet | 5 | ⬜ | |
-| ServicosWeb | 8 | ⬜ | |
+| Objetos | 22 + 7 constantes | ✅ | JSON no formato do Jackson; XML como o `XmlMapper` |
+| Internet | 4 | ✅ | |
+| ServicosWeb | 8 + 4 constantes | ✅ | |
 | Graficos | 56 | ⬜ | janela de desenho na IDE |
 | Teclado | 5 | ⬜ | depende da janela gráfica |
 | Mouse | 8 | ⬜ | depende da janela gráfica |

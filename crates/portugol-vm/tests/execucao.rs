@@ -648,3 +648,143 @@ fn arquivo_inexistente_usa_mensagem_do_original() {
         error.message
     );
 }
+
+#[test]
+fn biblioteca_objetos() {
+    let output = saida(
+        r#"
+        programa {
+            inclua biblioteca Objetos --> o
+            funcao inicio() {
+                inteiro p = o.criar_objeto_via_json("{\"nome\": \"Ana\", \"idade\": 20, \"altura\": 1.65, \"notas\": [7, 8.5], \"end\": {\"cidade\": \"Itajaí\"}}")
+                escreva(o.obter_propriedade_tipo_cadeia(p, "nome"), " ", o.obter_propriedade_tipo_inteiro(p, "idade"), " ",
+                        o.obter_propriedade_tipo_real(p, "altura"), " ", o.obter_tamanho_vetor_propriedade(p, "notas"), " ",
+                        o.obter_propriedade_tipo_real_em_vetor(p, "notas", 1), " ", o.tipo_propriedade(p, "end"), "\n")
+                inteiro en = o.obter_propriedade_tipo_objeto(p, "end")
+                o.atribuir_propriedade(en, "uf", "SC")
+                o.atribuir_propriedade(p, "ativo", verdadeiro)
+                escreva(o.obter_json(p), "\n")
+                inteiro x = o.criar_objeto_via_xml("<pessoa id=\"3\"><nome>Bia</nome><fone>1</fone><fone>2</fone></pessoa>")
+                escreva(o.obter_propriedade_tipo_cadeia(x, "id"), o.obter_propriedade_tipo_cadeia(x, "nome"),
+                        o.obter_tamanho_vetor_propriedade(x, "fone"), " ", o.contem_propriedade(x, "idade"))
+            }
+        }
+        "#,
+    );
+    assert_eq!(
+        output,
+        "Ana 20 1.65 2 8.5 6\n\
+         {\n  \"nome\" : \"Ana\",\n  \"idade\" : 20,\n  \"altura\" : 1.65,\n  \"notas\" : [ 7, 8.5 ],\n  \
+         \"end\" : {\n    \"cidade\" : \"Itajaí\",\n    \"uf\" : \"SC\"\n  },\n  \"ativo\" : true\n}\n\
+         3Bia2 falso"
+    );
+}
+
+#[test]
+fn objetos_erro_de_tipo_usa_mensagem_do_original() {
+    let error = erro(
+        r#"
+        programa {
+            inclua biblioteca Objetos --> o
+            funcao inicio() {
+                inteiro p = o.criar_objeto_via_json("{\"n\": 1}")
+                escreva(o.obter_propriedade_tipo_real(p, "n"))
+            }
+        }
+        "#,
+    );
+    assert!(
+        error
+            .message
+            .starts_with("O tipo da propriedade informada não corresponde")
+    );
+}
+
+/// Servidor HTTP mínimo para os testes de Internet/ServicosWeb. Responde:
+/// `/texto` (duas linhas), `/vazio`, `/404` e `/eco` (método, cabeçalho
+/// `X-Teste` e corpo recebidos).
+fn http_server() -> String {
+    use std::io::{BufRead, BufReader, Read, Write};
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = format!("http://{}", listener.local_addr().unwrap());
+    std::thread::spawn(move || {
+        for stream in listener.incoming().flatten() {
+            let mut reader = BufReader::new(stream.try_clone().unwrap());
+            let mut request_line = String::new();
+            reader.read_line(&mut request_line).unwrap();
+            let mut parts = request_line.split_whitespace();
+            let method = parts.next().unwrap_or("").to_string();
+            let path = parts.next().unwrap_or("").to_string();
+            let (mut length, mut header) = (0usize, String::new());
+            loop {
+                let mut line = String::new();
+                reader.read_line(&mut line).unwrap();
+                let line = line.trim_end();
+                if line.is_empty() {
+                    break;
+                }
+                let lower = line.to_lowercase();
+                if let Some(v) = lower.strip_prefix("content-length:") {
+                    length = v.trim().parse().unwrap_or(0);
+                }
+                if lower.starts_with("x-teste:") {
+                    header = line[8..].trim().to_string();
+                }
+            }
+            let mut body = vec![0; length];
+            reader.read_exact(&mut body).unwrap();
+            let (status, content) = match path.as_str() {
+                "/texto" => ("200 OK", "olá\nmundo".to_string()),
+                "/vazio" => ("200 OK", String::new()),
+                "/eco" => (
+                    "200 OK",
+                    format!("{method}|{header}|\n{}", String::from_utf8_lossy(&body)),
+                ),
+                _ => ("404 Not Found", "nada".to_string()),
+            };
+            let mut stream = stream;
+            let _ = write!(
+                stream,
+                "HTTP/1.1 {status}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{content}",
+                content.len()
+            );
+        }
+    });
+    address
+}
+
+#[test]
+fn bibliotecas_internet_e_servicos_web() {
+    let url = http_server();
+    let output = saida(&format!(
+        r#"
+        programa {{
+            inclua biblioteca Internet --> net
+            inclua biblioteca ServicosWeb --> ws
+            funcao inicio() {{
+                escreva(net.obter_texto("{url}/texto"), "|")
+                escreva(net.endereco_disponivel("{url}/texto"), net.endereco_disponivel("{url}/404"), "|")
+                escreva(ws.obter_dados("{url}/404"), "|")
+                escreva(ws.publicar_dados("{url}/eco", "{{\"a\":1}}"), "|")
+                ws.abrir_conexao("{url}/eco")
+                ws.adicionar_cabecalho("X-Teste", "sim")
+                ws.adicionar_parametros("corpo")
+                escreva(ws.fazer_requisicao(ws.ATUALIZAR), "|", ws.fazer_requisicao(ws.OBTER))
+            }}
+        }}
+        "#
+    ));
+    assert_eq!(
+        output,
+        "olá\nmundo|verdadeirofalso|Requisição falhou: código HTTP: 404|\
+         POST||{\"a\":1}|PUT|sim|corpo|GET|sim|"
+    );
+
+    let error = erro(&format!(
+        r#"programa {{ inclua biblioteca Internet --> net funcao inicio() {{ escreva(net.obter_texto("{url}/vazio")) }} }}"#
+    ));
+    assert_eq!(
+        error.message,
+        format!("Não foi possível obter o conteúdo de {url}/vazio")
+    );
+}

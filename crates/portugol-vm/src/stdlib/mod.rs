@@ -7,7 +7,10 @@
 
 mod arquivos;
 mod calendario;
+mod internet;
 mod matematica;
+mod objetos;
+mod servicos_web;
 mod texto;
 mod tipos;
 mod util;
@@ -39,6 +42,11 @@ pub struct NativeContext {
     pub(crate) work_dir: PathBuf,
     pub(crate) host: Box<dyn Host>,
     pub(crate) files: arquivos::OpenFiles,
+    pub(crate) objects: objetos::Objects,
+    pub(crate) internet: internet::Internet,
+    pub(crate) web: servicos_web::WebServices,
+    /// Sem acesso à rede: Internet e ServicosWeb falham como sem conexão.
+    pub(crate) offline: bool,
 }
 
 impl NativeContext {
@@ -58,6 +66,10 @@ impl NativeContext {
             work_dir: std::env::current_dir().unwrap_or_default(),
             host: Box::new(NoHost),
             files: arquivos::OpenFiles::default(),
+            objects: objetos::Objects::default(),
+            internet: internet::Internet::default(),
+            web: servicos_web::WebServices::default(),
+            offline: false,
         }
     }
 
@@ -137,6 +149,9 @@ pub fn native(library: &str, name: &str) -> Option<NativeFn> {
         "Arquivos" => arquivos::function(name),
         "Calendario" => calendario::function(name),
         "Matematica" => matematica::function(name),
+        "Objetos" => objetos::function(name),
+        "Internet" => internet::function(name),
+        "ServicosWeb" => servicos_web::function(name),
         "Texto" => texto::function(name),
         "Tipos" => tipos::function(name),
         "Util" => util::function(name),
@@ -149,6 +164,8 @@ pub fn constant(library: &str, name: &str) -> Option<Value> {
         ("Matematica", "PI") => Some(Value::Real(std::f64::consts::PI)),
         ("Calendario", name) => calendario::constant(name),
         ("Arquivos", name) => arquivos::constant(name),
+        ("Objetos", name) => objetos::constant(name),
+        ("ServicosWeb", name) => servicos_web::constant(name),
         _ => None,
     }
 }

@@ -74,6 +74,7 @@ fn main() {
         let _ = Vm::new(&module, &mut io)
             .with_seed(42)
             .with_simulated_time(1_704_110_400_000)
+            .offline()
             .step(2_000_000);
         if !io.lines.is_empty() {
             std::fs::write(&target, io.lines.join("\n") + "\n").unwrap();

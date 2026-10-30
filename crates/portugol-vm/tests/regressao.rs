@@ -86,6 +86,7 @@ fn report(source: &str, input: &str, dir: &Path) -> String {
     let outcome = Vm::new(&module, &mut io)
         .with_seed(SEED)
         .with_simulated_time(EPOCH_MS)
+        .offline()
         .with_working_dir(dir)
         .step(BUDGET);
     out.push_str("# saída\n");

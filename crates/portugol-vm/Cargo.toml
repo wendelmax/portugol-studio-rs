@@ -10,6 +10,10 @@ portugol-syntax = { path = "../portugol-syntax" }
 portugol-bytecode = { path = "../portugol-bytecode" }
 regex = "1"
 libm = "0.2"
+serde_json = { version = "1", features = ["preserve_order"] }
+roxmltree = "0.20"
+ureq = "2"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "bmp"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 
 [dev-dependencies]

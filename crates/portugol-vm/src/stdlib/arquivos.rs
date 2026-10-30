@@ -66,7 +66,7 @@ pub fn constant(name: &str) -> Option<Value> {
 }
 
 /// `programa.resolverCaminho` + `getAbsolutePath`.
-fn resolve(ctx: &NativeContext, path: &str) -> PathBuf {
+pub(super) fn resolve(ctx: &NativeContext, path: &str) -> PathBuf {
     let path = Path::new(path);
     let full = if path.is_absolute() {
         path.to_path_buf()
