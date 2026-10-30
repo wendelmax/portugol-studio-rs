@@ -40,7 +40,7 @@ dados densos (como o Sniffnet), não para um editor de código completo.
 ```
 crates/
   portugol-syntax/     # lexer, parser, AST, spans, diagnósticos         (feito)
-  portugol-hir/        # símbolos, escopos, tipos, análise semântica
+  portugol-semantics/  # símbolos, escopos, tipos, análise semântica    (feito)
   portugol-bytecode/   # compilador AST -> bytecode + source map
   portugol-vm/         # máquina virtual com step/breakpoints
   portugol-stdlib/     # Matematica, Texto, Util, Tipos, Calendario, Arquivos
@@ -79,8 +79,29 @@ Portar de `core/.../analise/semantica`:
 - constantes, vetores/matrizes e parâmetros por referência (`&`);
 - avisos (variável não inicializada, símbolo global ocultado etc.).
 
-Saída: HIR (high-level IR) + `Vec<Diagnostic>` reutilizando o mesmo tipo da
-sintaxe.
+Saída atual: `Vec<Diagnostic>` com códigos `sem.*`, reutilizando o tipo da
+sintaxe. A HIR anotada com tipos fica para a fase 3, quando o compilador de
+bytecode precisar dela.
+
+Implementação (`crates/portugol-semantics`):
+
+- `types.rs`: `Ty`, tabelas de compatibilidade (atribuição, binária, unária,
+  composta) portadas de `TabelaCompatibilidadeTiposPortugol.java`;
+- `symbols.rs`: `Symbol`, `FunctionInfo`, `ScopeTable` com escopos léxicos;
+- `analyzer.rs`: passagem única na ordem do Java — includes → pré-registro de
+  funções → globais → corpos de funções → comandos soltos no topo.
+
+Decisões:
+
+- `Ty::Unknown` para retornos de bibliotecas ainda não modeladas: não gera
+  diagnóstico e se propaga de forma permissiva. Só a inclusão e o alias da
+  biblioteca são validados.
+- `inicio` só é exigida quando o arquivo tem bloco `programa` explícito.
+- Retorno obrigatório usa fluxo conservador (`retorne`; `se/senao` com ambos
+  retornando; `escolha` com `caso contrario` e todos os casos retornando).
+- Atribuição replica a ordem do Java para o diagnóstico de "não inicializada"
+  (`a = a + 1` com `a` sem valor é erro).
+- Funções de biblioteca aceitam vetores/matrizes inteiros como argumento.
 
 ### Runtime: por que bytecode
 
@@ -155,7 +176,7 @@ com o nível de paridade desejado.
 |---|---|---|
 | 0. Especificação e corpus | gramática, exemplos, testes dourados | 1 semana |
 | 1. Sintaxe | lexer, parser, AST, diagnósticos | **concluída** |
-| 2. Semântica | símbolos, tipos, checagens | 3–4 semanas |
+| 2. Semântica | símbolos, tipos, checagens | **concluída** |
 | 3. Runtime | bytecode, VM, stdlib de console | 4–6 semanas |
 | 4. IDE MVP | Tauri, CodeMirror, abas, console, run | 3–4 semanas |
 | 5. Depurador | breakpoints, step, inspeção | 2–3 semanas |

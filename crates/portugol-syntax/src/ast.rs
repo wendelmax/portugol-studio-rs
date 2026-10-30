@@ -7,6 +7,9 @@ pub struct Program {
     pub includes: Vec<Include>,
     pub items: Vec<Item>,
     pub span: Span,
+    /// Indica se o arquivo declarou explicitamente um bloco `programa { }`.
+    /// Trechos soltos (extensão aceita pelo parser) não precisam de `inicio`.
+    pub has_program_block: bool,
 }
 
 #[allow(clippy::large_enum_variant)]

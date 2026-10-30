@@ -1,6 +1,10 @@
 [workspace]
 resolver = "2"
-members = ["crates/portugol-syntax", "crates/portugol-cli"]
+members = [
+    "crates/portugol-syntax",
+    "crates/portugol-semantics",
+    "crates/portugol-cli",
+]
 
 [workspace.package]
 version = "0.1.0"

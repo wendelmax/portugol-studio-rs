@@ -3,7 +3,8 @@ name = "portugol-cli"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "CLI de validação sintática do Portugol"
+description = "CLI de validação sintática e semântica do Portugol"
 
 [dependencies]
 portugol-syntax = { path = "../portugol-syntax" }
+portugol-semantics = { path = "../portugol-semantics" }

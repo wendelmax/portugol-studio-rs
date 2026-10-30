@@ -34,6 +34,7 @@ impl<'a> Parser<'a> {
     pub fn parse_file(mut self) -> (Program, Vec<Diagnostic>) {
         let mut includes = Vec::new();
         let mut items = Vec::new();
+        let mut has_program_block = false;
         let mut guard = 0usize;
 
         while !self.at(TokenKind::Eof) {
@@ -48,6 +49,7 @@ impl<'a> Parser<'a> {
             }
 
             if self.at(TokenKind::Programa) {
+                has_program_block = true;
                 self.bump();
                 self.parse_program_body(&mut includes, &mut items);
             } else if !self.parse_item(&mut includes, &mut items) {
@@ -59,6 +61,7 @@ impl<'a> Parser<'a> {
             includes,
             items,
             span: Span::new(0, self.source.len() as u32),
+            has_program_block,
         };
         (program, self.diagnostics)
     }

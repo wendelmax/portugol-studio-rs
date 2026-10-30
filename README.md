@@ -4,9 +4,11 @@ Port do [Portugol Studio](https://github.com/UNIVALI-LITE/Portugol-Studio) (Java
 para **Rust**, com a IDE desktop em **Tauri v2** e o núcleo da linguagem em crates
 Rust independentes.
 
-> Status: **fase 1 concluída** — lexer, parser e AST do Portugol 2.0, com
-> 194 dos 196 arquivos `.por` do repositório original analisados sem erros.
-> Os 2 restantes são exemplos com erros de sintaxe no próprio arquivo original.
+> Status: **fases 1 e 2 concluídas** — lexer, parser, AST e análise semântica
+> do Portugol 2.0. Todos os programas de exemplo completos do repositório
+> original passam; os erros restantes estão em trechos da ajuda (fragmentos que
+> usam variáveis não declaradas) e em 2 exemplos com erros de sintaxe no próprio
+> arquivo original.
 
 ## Por que Tauri (e não iced)?
 
@@ -31,8 +33,9 @@ referência de arquitetura (separação núcleo/GUI), não como dependência.
 ```
 portugol-studio-rs/
 ├── crates/
-│   ├── portugol-syntax/   # lexer (logos), parser, AST, diagnósticos ✅
-│   └── portugol-cli/      # validador sintático de .por ✅
+│   ├── portugol-syntax/    # lexer (logos), parser, AST, diagnósticos ✅
+│   ├── portugol-semantics/ # símbolos, escopos, tipos, checagens ✅
+│   └── portugol-cli/       # validador de .por (sintaxe + semântica) ✅
 ├── apps/
 │   └── desktop/           # Tauri v2 + frontend (próxima fase)
 └── docs/
@@ -47,7 +50,11 @@ Requisitos: Rust 1.85+ (edição 2024).
 cargo test
 cargo run -p portugol-cli -- caminho/para/arquivo.por
 cargo run -p portugol-cli -- --quiet caminho/para/diretorio
+cargo run -p portugol-cli -- --syntax-only arquivo.por   # só sintaxe
 ```
+
+A análise semântica só roda quando o arquivo não tem erro de sintaxe, para
+evitar diagnósticos em cascata.
 
 O CLI aceita UTF-8 e cai automaticamente para ISO-8859-1 (os exemplos históricos
 do Portugol Studio usam Latin-1).
@@ -63,18 +70,37 @@ cargo run -p portugol-syntax --example tokens -- arquivo.por
 Fonte: `ide/src/main/assets` do repositório original (196 arquivos `.por`).
 
 ```
-196 arquivo(s), 2 com erro(s), 2 erro(s), 0 aviso(s)
+196 arquivo(s), 7 com erro(s), 31 erro(s), 117 aviso(s)
 ```
 
-Os dois erros são defeitos reais no código de exemplo original:
+Sintaxe — dois defeitos reais no código de exemplo original:
 
 - `bibliotecas/tipos/logico.por`: `caso` sem expressão antes de `}`.
 - `jogos/arkanoid.por`: parâmetro `real` sem nome.
 
+Semântica — 29 erros, todos em `ajuda/recursos/exemplos/` (fragmentos de
+documentação, não programas completos):
+
+- 27 × `sem.symbol-not-declared`: trechos que usam variáveis declaradas fora do
+  fragmento;
+- 1 × `sem.redeclared`: `declaracoes/variavel/exemplo1.por` redeclara `var4`;
+- 1 × `sem.incompatible-types`: `operacoes_logicas/nao/exemplo1.por` usa
+  `nao 5 < 4`. No original `nao` liga mais forte que os operadores binários
+  (`expressao(31)` no parser ANTLR), então a expressão é `(nao 5) < 4` e também
+  é inválida lá.
+
+Os avisos (contados, mas não listados pelo CLI) seguem o Java: conversão
+implícita `inteiro ↔ real`, símbolo global ocultado e vetor/matriz que poderia
+ter menos dimensões.
+
+A suíte `crates/portugol-semantics/tests/analisador.rs` espelha os 34 casos de
+`AnalisadorSemanticoTest.java` e acrescenta casos para constantes, retorno
+obrigatório, aridade, conversões, referência, bibliotecas e vetores/matrizes.
+
 ## Roadmap
 
 1. **Sintaxe** ✅ — lexer, parser, AST, diagnósticos com spans, recuperação de erro.
-2. **Semântica** — tabela de símbolos, escopos, tipos, constantes, checagens.
+2. **Semântica** ✅ — tabela de símbolos, escopos, tipos, constantes, checagens.
 3. **Runtime** — compilação para bytecode + VM, bibliotecas padrão de console.
 4. **IDE** — Tauri v2, CodeMirror 6, abas, árvore de arquivos, console, execução.
 5. **Depurador** — breakpoints, step, inspeção de variáveis (via VM).

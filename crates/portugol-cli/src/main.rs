@@ -3,6 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+use portugol_semantics::analyze;
 use portugol_syntax::{Severity, parse};
 
 fn main() -> ExitCode {
@@ -15,10 +16,12 @@ fn main() -> ExitCode {
 
     let mut paths = Vec::new();
     let mut quiet = false;
+    let mut syntax_only = false;
 
     for arg in &args {
         match arg.as_str() {
             "-q" | "--quiet" => quiet = true,
+            "--syntax-only" => syntax_only = true,
             _ => paths.push(PathBuf::from(arg)),
         }
     }
@@ -51,13 +54,23 @@ fn main() -> ExitCode {
         };
 
         let result = parse(&source);
-        let errors = result
-            .diagnostics
+        let mut diagnostics = result.diagnostics;
+
+        // Com erro de sintaxe a AST pode estar incompleta; a semântica geraria
+        // diagnósticos em cascata. Só roda quando a sintaxe está limpa.
+        if !syntax_only
+            && !diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.severity == Severity::Error)
+        {
+            diagnostics.extend(analyze(&result.program));
+        }
+
+        let errors = diagnostics
             .iter()
             .filter(|d| d.severity == Severity::Error)
             .count();
-        let warnings = result
-            .diagnostics
+        let warnings = diagnostics
             .iter()
             .filter(|d| d.severity == Severity::Warning)
             .count();
@@ -68,7 +81,7 @@ fn main() -> ExitCode {
         if errors > 0 {
             failed += 1;
             println!("{}: {} erro(s)", file.display(), errors);
-            for diagnostic in &result.diagnostics {
+            for diagnostic in &diagnostics {
                 println!(
                     "  {}",
                     diagnostic.render(&source, &file.display().to_string())
@@ -101,6 +114,7 @@ fn print_usage() {
          \n\
          Opções:\n\
            -q, --quiet   só mostra arquivos com erro\n\
+           --syntax-only só valida a sintaxe (desliga a análise semântica)\n\
            -h, --help    mostra esta ajuda"
     );
 }

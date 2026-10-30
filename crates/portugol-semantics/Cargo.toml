@@ -1,0 +1,9 @@
+[package]
+name = "portugol-semantics"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Análise semântica do Portugol 2.0"
+
+[dependencies]
+portugol-syntax = { path = "../portugol-syntax" }
