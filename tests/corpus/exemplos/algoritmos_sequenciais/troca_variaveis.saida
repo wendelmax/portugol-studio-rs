@@ -1,0 +1,9 @@
+# diagnósticos
+# saída
+Variáveis antes da troca: 
+A = 5; B = 3
+
+Variáveis após a troca: 
+A = 3; B = 5
+# resultado
+fim

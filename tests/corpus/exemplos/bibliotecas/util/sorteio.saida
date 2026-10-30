@@ -1,0 +1,5 @@
+# diagnósticos
+# saída
+Informe um valor inicial: Informe um valor final: Informe quantos valores deseja sortear: 
+# resultado
+erro 53:21: O valor mínimo (5) é maior do que o valor máximo (3)

@@ -1,0 +1,4 @@
+# diagnósticos
+erro syntax.expected-identifier 193:134 esperava nome do parâmetro, encontrado ')'
+# resultado
+não executado

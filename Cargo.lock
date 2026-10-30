@@ -2335,6 +2335,7 @@ dependencies = [
 name = "portugol-vm"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "portugol-bytecode",
  "portugol-semantics",
  "portugol-syntax",

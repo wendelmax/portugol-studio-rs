@@ -90,7 +90,10 @@ fn executa_com_leia_e_saida() {
     handle.send_input("21".to_string());
     assert_eq!(
         collect_until_finished(&rx),
-        [Event::Output("42".into()), Event::Finished(RunOutcome::Finished)]
+        [
+            Event::Output("42".into()),
+            Event::Finished(RunOutcome::Finished)
+        ]
     );
     handle.join();
 }
@@ -168,7 +171,11 @@ fn erro_de_execucao_tem_posicao_e_pilha() {
 #[test]
 fn programa_com_erro_nao_executa() {
     let (observer, _rx) = recorder();
-    let Err(errors) = start("programa { funcao inicio() { x = 1 } }", Vec::new(), observer) else {
+    let Err(errors) = start(
+        "programa { funcao inicio() { x = 1 } }",
+        Vec::new(),
+        observer,
+    ) else {
         panic!("não deveria executar");
     };
     assert_eq!(errors[0].code, "sem.symbol-not-declared");

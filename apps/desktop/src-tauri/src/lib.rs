@@ -70,7 +70,9 @@ struct EventSink {
 
 impl RunObserver for EventSink {
     fn output(&self, text: &str) {
-        let _ = self.app.emit("run:output", OutputEvent { id: self.id, text });
+        let _ = self
+            .app
+            .emit("run:output", OutputEvent { id: self.id, text });
     }
 
     fn clear(&self) {
@@ -138,7 +140,10 @@ fn stop(runs: State<'_, Runs>, id: u32) {
 fn read_file(path: String) -> Result<String, String> {
     let bytes = std::fs::read(&path).map_err(|e| format!("não foi possível ler {path}: {e}"))?;
     Ok(match String::from_utf8(bytes) {
-        Ok(text) => text.strip_prefix('\u{feff}').map(str::to_string).unwrap_or(text),
+        Ok(text) => text
+            .strip_prefix('\u{feff}')
+            .map(str::to_string)
+            .unwrap_or(text),
         Err(error) => error.into_bytes().iter().map(|&b| b as char).collect(),
     })
 }

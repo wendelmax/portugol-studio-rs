@@ -1,0 +1,21 @@
+# diagnósticos
+erro sem.symbol-not-declared 1:1 o símbolo "variavel1" não foi declarado
+erro sem.symbol-not-declared 1:14 o símbolo "variavel2" não foi declarado
+erro sem.symbol-not-declared 2:1 o símbolo "variavel1" não foi declarado
+erro sem.symbol-not-declared 2:14 o símbolo "variavel2" não foi declarado
+erro sem.symbol-not-declared 3:1 o símbolo "variavel1" não foi declarado
+erro sem.symbol-not-declared 3:14 o símbolo "variavel2" não foi declarado
+erro sem.symbol-not-declared 4:1 o símbolo "variavel1" não foi declarado
+erro sem.symbol-not-declared 4:14 o símbolo "variavel2" não foi declarado
+erro sem.symbol-not-declared 5:1 o símbolo "variavel1" não foi declarado
+erro sem.symbol-not-declared 5:14 o símbolo "variavel2" não foi declarado
+erro sem.symbol-not-declared 6:1 o símbolo "variavel1" não foi declarado
+erro sem.symbol-not-declared 6:13 o símbolo "variavel2" não foi declarado
+erro sem.symbol-not-declared 7:1 o símbolo "variavel1" não foi declarado
+erro sem.symbol-not-declared 7:14 o símbolo "variavel2" não foi declarado
+erro sem.symbol-not-declared 8:1 o símbolo "variavel1" não foi declarado
+erro sem.symbol-not-declared 8:14 o símbolo "variavel2" não foi declarado
+erro sem.symbol-not-declared 9:1 o símbolo "variavel1" não foi declarado
+erro sem.symbol-not-declared 10:1 o símbolo "variavel1" não foi declarado
+# resultado
+não executado

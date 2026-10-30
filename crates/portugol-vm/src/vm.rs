@@ -113,6 +113,13 @@ impl<'a> Vm<'a> {
         self
     }
 
+    /// Relógio simulado a partir de `epoch_ms` (ms desde 1970 UTC): `aguarde`
+    /// não dorme e `tempo_decorrido`/Calendario ficam determinísticos.
+    pub fn with_simulated_time(mut self, epoch_ms: u64) -> Self {
+        self.ctx.simulate_time(epoch_ms);
+        self
+    }
+
     /// Parâmetros recebidos por `funcao inicio(cadeia params[])`.
     pub fn with_args(mut self, args: Vec<String>) -> Self {
         self.args = args;

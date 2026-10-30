@@ -1,0 +1,6 @@
+# diagnósticos
+aviso sem.conversion 3:15 o valor do tipo "inteiro" será convertido para "real"
+# saída
+-4
+# resultado
+fim

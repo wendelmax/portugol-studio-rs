@@ -1,0 +1,9 @@
+# diagnósticos
+# saída
+Vetor antes da ordenação:
+66 100 10 63 67 63 16 99 69 60 
+
+Vetor após a ordenação:
+10 16 60 63 63 66 67 69 99 100 
+# resultado
+fim

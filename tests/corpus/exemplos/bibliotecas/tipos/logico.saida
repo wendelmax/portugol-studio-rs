@@ -1,0 +1,4 @@
+# diagnósticos
+erro syntax.expected-expression 67:4 esperava uma expressão, encontrado '}'
+# resultado
+não executado

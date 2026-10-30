@@ -1,0 +1,9 @@
+# diagnósticos
+# saída
+Vetor na ordem original:
+66 100 10 63 67 63 16 99 69 60 
+
+Vetor na ordem inversa:
+60 69 99 16 63 67 63 10 100 66 
+# resultado
+fim

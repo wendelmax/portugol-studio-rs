@@ -1,0 +1,6 @@
+# diagnósticos
+aviso sem.conversion 101:13 o valor do tipo "real" será convertido para "inteiro"
+# saída
+
+# resultado
+erro 74:3: A função "Graficos.iniciar_modo_grafico" ainda não está disponível nesta versão.

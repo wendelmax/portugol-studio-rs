@@ -1,0 +1,21 @@
+# diagnósticos
+aviso sem.shadowed 331:31 o parâmetro "nome_arquivo" oculta um símbolo global de mesmo nome
+aviso sem.conversion 1034:23 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 1252:165 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 1252:169 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 1266:165 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 1266:169 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 1283:24 o valor do tipo "real" será convertido para "inteiro"
+aviso sem.conversion 1283:66 o valor do tipo "real" será convertido para "inteiro"
+aviso sem.conversion 1746:55 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 1746:60 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 1746:65 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 1746:70 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 1832:55 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 1832:60 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 1832:65 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 1832:70 o valor do tipo "inteiro" será convertido para "real"
+# saída
+
+# resultado
+erro 1878:3: A função "Graficos.iniciar_modo_grafico" ainda não está disponível nesta versão.

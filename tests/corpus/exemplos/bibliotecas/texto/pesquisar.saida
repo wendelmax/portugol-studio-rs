@@ -1,0 +1,10 @@
+# diagnósticos
+# saída
+A posição do texto "CA" na palavra "MACACO" é: 2
+A posição do texto "CA" na palavra "MACACA" é: 4
+A posição do texto "CA" na palavra "macaca" é: -1
+
+A frase "MACACO GOSTA DE BANANA" possui a letra 'A' nas seguintes posições:
+1 3 11 17 19 21 
+# resultado
+fim

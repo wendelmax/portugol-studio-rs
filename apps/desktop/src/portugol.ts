@@ -43,12 +43,21 @@ export const LIBRARIES: Record<string, string[]> = {
     "logico_para_inteiro", "logico_para_caracter", "real_para_cadeia",
     "real_para_inteiro",
   ],
+  Calendario: [
+    "DIA_DOMINGO", "DIA_SEGUNDA_FEIRA", "DIA_TERCA_FEIRA", "DIA_QUARTA_FEIRA",
+    "DIA_QUINTA_FEIRA", "DIA_SEXTA_FEIRA", "DIA_SABADO", "MES_JANEIRO",
+    "MES_FEVEREIRO", "MES_MARCO", "MES_ABRIL", "MES_MAIO", "MES_JUNHO",
+    "MES_JULHO", "MES_AGOSTO", "MES_SETEMBRO", "MES_OUTUBRO", "MES_NOVEMBRO",
+    "MES_DEZEMBRO", "dia_mes_atual", "dia_semana_atual", "mes_atual", "ano_atual",
+    "hora_atual", "minuto_atual", "segundo_atual", "milisegundo_atual",
+    "dia_semana_completo", "dia_semana_curto", "dia_semana_abreviado",
+  ],
   Util: [
     "numero_elementos", "numero_linhas", "numero_colunas", "sorteia",
     "aguarde", "tempo_decorrido", "obter_diretorio_usuario",
   ],
   // Reconhecidas pela análise, mas ainda sem implementação na VM.
-  Arquivos: [], Calendario: [], Graficos: [], Internet: [], Mouse: [],
+  Arquivos: [], Graficos: [], Internet: [], Mouse: [],
   Objetos: [], ServicosWeb: [], Sons: [], Teclado: [],
 };
 

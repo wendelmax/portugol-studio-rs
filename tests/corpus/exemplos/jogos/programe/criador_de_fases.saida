@@ -1,0 +1,7 @@
+# diagnósticos
+aviso sem.shadowed 213:31 o parâmetro "nome_arquivo" oculta um símbolo global de mesmo nome
+aviso sem.shadowed 286:31 o parâmetro "nome_arquivo" oculta um símbolo global de mesmo nome
+# saída
+
+# resultado
+erro 787:14: A função "Graficos.carregar_imagem" ainda não está disponível nesta versão.

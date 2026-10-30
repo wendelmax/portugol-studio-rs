@@ -1,0 +1,4 @@
+# diagnósticos
+erro sem.incompatible-types 6:10 a operação unária não aceita o tipo "inteiro"
+# resultado
+não executado

@@ -1,0 +1,21 @@
+# diagnósticos
+aviso sem.conversion 28:14 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 30:15 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 31:15 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 33:17 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 294:18 o valor do tipo "real" será convertido para "inteiro"
+aviso sem.conversion 295:18 o valor do tipo "real" será convertido para "inteiro"
+aviso sem.conversion 299:18 o valor do tipo "real" será convertido para "inteiro"
+aviso sem.conversion 300:18 o valor do tipo "real" será convertido para "inteiro"
+aviso sem.conversion 304:18 o valor do tipo "real" será convertido para "inteiro"
+aviso sem.conversion 305:18 o valor do tipo "real" será convertido para "inteiro"
+aviso sem.conversion 313:13 o valor do tipo "real" será convertido para "inteiro"
+aviso sem.conversion 326:21 o valor do tipo "real" será convertido para "inteiro"
+aviso sem.conversion 328:14 o valor do tipo "real" será convertido para "inteiro"
+aviso sem.conversion 330:14 o valor do tipo "real" será convertido para "inteiro"
+aviso sem.conversion 357:19 o valor do tipo "real" será convertido para "inteiro"
+aviso sem.conversion 359:12 o valor do tipo "real" será convertido para "inteiro"
+# saída
+
+# resultado
+erro 392:3: A função "Graficos.iniciar_modo_grafico" ainda não está disponível nesta versão.

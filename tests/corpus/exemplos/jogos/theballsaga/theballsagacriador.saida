@@ -1,0 +1,14 @@
+# diagnósticos
+aviso sem.shadowed 222:46 o parâmetro "nome_arquivo" oculta um símbolo global de mesmo nome
+aviso sem.shadowed 224:11 a declaração de "linhas" oculta um símbolo global de mesmo nome
+aviso sem.shadowed 238:31 o parâmetro "nome_arquivo" oculta um símbolo global de mesmo nome
+aviso sem.shadowed 268:31 o parâmetro "nome_arquivo" oculta um símbolo global de mesmo nome
+aviso sem.shadowed 280:14 a declaração de "prop" oculta um símbolo global de mesmo nome
+aviso sem.shadowed 344:48 o parâmetro "linhas" oculta um símbolo global de mesmo nome
+aviso sem.shadowed 983:55 o parâmetro "linhas" oculta um símbolo global de mesmo nome
+aviso sem.shadowed 996:73 o parâmetro "linhas" oculta um símbolo global de mesmo nome
+aviso sem.shadowed 1009:20 a declaração de "prop" oculta um símbolo global de mesmo nome
+# saída
+
+# resultado
+erro 58:21: A função "Graficos.criar_cor" ainda não está disponível nesta versão.

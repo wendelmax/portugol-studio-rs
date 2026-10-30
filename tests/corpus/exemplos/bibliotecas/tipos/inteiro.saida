@@ -1,0 +1,14 @@
+# diagnósticos
+# saída
+Este valor é o número decimal: 101
+Este valor é o número binário: 5
+Este valor é o número hexadecimal: 257
+
+Número convertido em inteiro: 1431
+Número convertido em real: 1431.5
+
+Valor covertido para cadeia em binário: 00000000000000000000101100101111
+Valor covertido para cadeia em decimal: 2863
+Valor covertido para cadeia em hexadecimal: 00000B2F
+# resultado
+fim

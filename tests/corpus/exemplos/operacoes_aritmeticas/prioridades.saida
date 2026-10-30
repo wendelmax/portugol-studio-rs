@@ -1,0 +1,8 @@
+# diagnósticos
+# saída
+Operação: 5 + 4 * 2 = 13.0
+Operação: (5 + 4) * 2 = 18.0
+Operação: 1 + 2 / 3 * 4 = 3.6666666666666665
+Operação: (1 + 2) / (3 * 4) = 0.25
+# resultado
+fim

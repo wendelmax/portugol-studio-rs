@@ -1,0 +1,4 @@
+# diagnósticos
+erro sem.redeclared 7:8 o símbolo "var4" já foi declarado neste escopo
+# resultado
+não executado

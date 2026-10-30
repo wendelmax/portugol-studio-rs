@@ -1,0 +1,10 @@
+# diagnósticos
+# saída
+
+Número binário informado: Maria
+
+Número binário com 8 bits: 000Maria
+Número binário com 16 bits: 00000000000Maria
+Número binário com 32 bits: 000000000000000000000000000Maria
+# resultado
+fim

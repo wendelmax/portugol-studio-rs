@@ -1,0 +1,12 @@
+# diagnósticos
+aviso sem.conversion 135:24 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 138:24 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 141:24 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 144:24 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 147:24 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 150:24 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 169:18 o valor do tipo "real" será convertido para "inteiro"
+# saída
+
+# resultado
+erro 83:3: A função "Graficos.iniciar_modo_grafico" ainda não está disponível nesta versão.

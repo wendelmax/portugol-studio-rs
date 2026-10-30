@@ -1,0 +1,12 @@
+# diagnósticos
+aviso sem.vector-could-be-variable 26:9 o vetor "formatos" possui apenas um elemento e poderia ser uma variável
+aviso sem.conversion 99:15 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 200:66 o valor do tipo "real" será convertido para "inteiro"
+aviso sem.conversion 200:94 o valor do tipo "real" será convertido para "inteiro"
+aviso sem.conversion 828:10 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 829:11 o valor do tipo "inteiro" será convertido para "real"
+aviso sem.conversion 830:20 o valor do tipo "real" será convertido para "inteiro"
+# saída
+
+# resultado
+erro 48:22: A função "Graficos.criar_cor" ainda não está disponível nesta versão.

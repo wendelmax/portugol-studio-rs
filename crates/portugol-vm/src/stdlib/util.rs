@@ -1,7 +1,5 @@
 //! `Util.java`.
 
-use std::time::Duration;
-
 use super::{NativeContext, NativeFn, arity, int};
 use crate::value::Value;
 
@@ -67,19 +65,19 @@ fn sorteia(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
     )?))
 }
 
-fn aguarde(_: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
+fn aguarde(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
     arity(args, 1, "aguarde")?;
     let ms = int(&args[0])?;
     if ms < 0 {
         return Err("O intervalo de espera não pode ser negativo".to_string());
     }
-    std::thread::sleep(Duration::from_millis(ms as u64));
+    ctx.sleep(ms as u64);
     Ok(Value::Void)
 }
 
 fn tempo_decorrido(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
     arity(args, 0, "tempo_decorrido")?;
-    Ok(Value::Int(ctx.start.elapsed().as_millis() as i32))
+    Ok(Value::Int(ctx.elapsed_ms() as i32))
 }
 
 fn obter_diretorio_usuario(_: &mut NativeContext, args: &[Value]) -> Result<Value, String> {

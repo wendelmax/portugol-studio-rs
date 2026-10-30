@@ -1,0 +1,6 @@
+# diagnósticos
+aviso sem.vector-could-be-variable 340:11 o vetor "formatos_suportados" possui apenas um elemento e poderia ser uma variável
+# saída
+
+# resultado
+erro 103:3: A função "Graficos.iniciar_modo_grafico" ainda não está disponível nesta versão.

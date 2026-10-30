@@ -5,21 +5,33 @@
 //! de interface gráfica (Graficos, Teclado, Mouse, Sons) ficam para a fase de
 //! paridade; chamá-las gera um erro de execução claro.
 
+mod calendario;
 mod matematica;
 mod texto;
 mod tipos;
 mod util;
 
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crate::value::Value;
 
 pub type NativeFn = fn(&mut NativeContext, &[Value]) -> Result<Value, String>;
 
+/// Relógio das funções de tempo (`aguarde`, `tempo_decorrido`, Calendario).
+enum Clock {
+    Real(Instant),
+    /// Tempo simulado em milissegundos desde o início, a partir de um instante
+    /// fixo; `aguarde` só avança o contador. Torna testes determinísticos.
+    Simulated {
+        elapsed_ms: u64,
+        epoch_ms: u64,
+    },
+}
+
 /// Estado compartilhado pelas funções nativas.
 pub struct NativeContext {
     rng: u64,
-    pub(crate) start: Instant,
+    clock: Clock,
 }
 
 impl NativeContext {
@@ -35,7 +47,49 @@ impl NativeContext {
         NativeContext {
             // xorshift não aceita estado zero.
             rng: seed | 1,
-            start: Instant::now(),
+            clock: Clock::Real(Instant::now()),
+        }
+    }
+
+    /// Troca o relógio real por um simulado que começa em `epoch_ms`
+    /// (milissegundos desde 1970-01-01 UTC).
+    pub fn simulate_time(&mut self, epoch_ms: u64) {
+        self.clock = Clock::Simulated {
+            elapsed_ms: 0,
+            epoch_ms,
+        };
+    }
+
+    /// Milissegundos desde o início da execução.
+    pub(crate) fn elapsed_ms(&self) -> u64 {
+        match &self.clock {
+            Clock::Real(start) => start.elapsed().as_millis() as u64,
+            Clock::Simulated { elapsed_ms, .. } => *elapsed_ms,
+        }
+    }
+
+    /// Instante atual em milissegundos desde 1970-01-01 UTC.
+    pub(crate) fn now_ms(&self) -> u64 {
+        match &self.clock {
+            Clock::Real(_) => SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|d| d.as_millis() as u64)
+                .unwrap_or(0),
+            Clock::Simulated {
+                elapsed_ms,
+                epoch_ms,
+            } => epoch_ms + elapsed_ms,
+        }
+    }
+
+    pub(crate) fn is_simulated(&self) -> bool {
+        matches!(self.clock, Clock::Simulated { .. })
+    }
+
+    pub(crate) fn sleep(&mut self, ms: u64) {
+        match &mut self.clock {
+            Clock::Real(_) => std::thread::sleep(Duration::from_millis(ms)),
+            Clock::Simulated { elapsed_ms, .. } => *elapsed_ms += ms,
         }
     }
 
@@ -70,6 +124,7 @@ impl Default for NativeContext {
 
 pub fn native(library: &str, name: &str) -> Option<NativeFn> {
     match library {
+        "Calendario" => calendario::function(name),
         "Matematica" => matematica::function(name),
         "Texto" => texto::function(name),
         "Tipos" => tipos::function(name),
@@ -81,6 +136,7 @@ pub fn native(library: &str, name: &str) -> Option<NativeFn> {
 pub fn constant(library: &str, name: &str) -> Option<Value> {
     match (library, name) {
         ("Matematica", "PI") => Some(Value::Real(std::f64::consts::PI)),
+        ("Calendario", name) => calendario::constant(name),
         _ => None,
     }
 }

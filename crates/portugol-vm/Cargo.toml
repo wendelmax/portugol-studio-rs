@@ -8,6 +8,7 @@ description = "Máquina virtual e bibliotecas padrão de console do Portugol 2.0
 [dependencies]
 portugol-syntax = { path = "../portugol-syntax" }
 portugol-bytecode = { path = "../portugol-bytecode" }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 
 [dev-dependencies]
 portugol-semantics = { path = "../portugol-semantics" }
