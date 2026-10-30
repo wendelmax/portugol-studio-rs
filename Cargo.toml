@@ -5,6 +5,18 @@ members = [
     "crates/portugol-semantics",
     "crates/portugol-bytecode",
     "crates/portugol-vm",
+    "crates/portugol-service",
+    "crates/portugol-cli",
+    "apps/desktop/src-tauri",
+]
+# A IDE depende de webkit2gtk/Tauri; fica fora do `cargo build`/`cargo test`
+# padrão. Use `-p portugol-desktop` ou `npm run tauri` em apps/desktop.
+default-members = [
+    "crates/portugol-syntax",
+    "crates/portugol-semantics",
+    "crates/portugol-bytecode",
+    "crates/portugol-vm",
+    "crates/portugol-service",
     "crates/portugol-cli",
 ]
 

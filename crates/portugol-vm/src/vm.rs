@@ -119,6 +119,13 @@ impl<'a> Vm<'a> {
         self
     }
 
+    /// Usa um sinalizador de interrupção criado fora da VM (por exemplo,
+    /// antes de mover a execução para outra thread).
+    pub fn with_interrupt(mut self, interrupt: Arc<AtomicBool>) -> Self {
+        self.interrupt = interrupt;
+        self
+    }
+
     /// Sinalizador para interromper a execução a partir de outra thread.
     pub fn interrupt_handle(&self) -> Arc<AtomicBool> {
         Arc::clone(&self.interrupt)
@@ -527,7 +534,7 @@ impl<'a> Vm<'a> {
                 }
             }
             Op::Read(ty) => {
-                let line = self.io.read_line();
+                let line = self.io.read_line(ty);
                 let value = parse_input(ty, line)?;
                 self.push(value);
             }

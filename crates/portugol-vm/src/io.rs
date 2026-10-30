@@ -4,10 +4,13 @@
 use std::collections::VecDeque;
 use std::io::{BufRead, Write};
 
+use portugol_bytecode::ValueType;
+
 pub trait Io {
     fn write(&mut self, text: &str);
     /// Uma linha digitada, sem o terminador. `None` quando a entrada acabou.
-    fn read_line(&mut self) -> Option<String>;
+    /// `expected` é o tipo da variável do `leia`, útil como dica na interface.
+    fn read_line(&mut self, expected: ValueType) -> Option<String>;
     fn clear(&mut self) {}
 }
 
@@ -22,7 +25,7 @@ impl Io for StdIo {
         let _ = out.flush();
     }
 
-    fn read_line(&mut self) -> Option<String> {
+    fn read_line(&mut self, _expected: ValueType) -> Option<String> {
         let mut line = String::new();
         match std::io::stdin().lock().read_line(&mut line) {
             Ok(0) | Err(_) => None,
@@ -56,7 +59,7 @@ impl Io for BufferIo {
         self.output.push_str(text);
     }
 
-    fn read_line(&mut self) -> Option<String> {
+    fn read_line(&mut self, _expected: ValueType) -> Option<String> {
         self.input.pop_front()
     }
 
