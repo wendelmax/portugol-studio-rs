@@ -138,5 +138,6 @@ Detalhes, estimativas e riscos em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md).
 
 ## Licença
 
-O projeto original é **GPL-3.0**. Este port é uma obra derivada e permanece
-GPL-3.0 (`GPL-3.0-only`).
+O Portugol Studio original é distribuído sob a **LGPL-3.0**. Este port é uma
+obra derivada e usa a mesma licença (`LGPL-3.0-only`); o texto está em
+[`LICENSE`](LICENSE). Os exemplos em `tests/corpus` vêm do projeto original.

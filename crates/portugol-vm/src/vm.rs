@@ -113,6 +113,18 @@ impl<'a> Vm<'a> {
         self
     }
 
+    /// Pasta usada como base para caminhos relativos (a do programa, na IDE).
+    pub fn with_working_dir(mut self, dir: impl Into<std::path::PathBuf>) -> Self {
+        self.ctx.work_dir = dir.into();
+        self
+    }
+
+    /// Recursos que dependem do ambiente (diálogos, gráficos, som...).
+    pub fn with_host(mut self, host: Box<dyn crate::host::Host>) -> Self {
+        self.ctx.host = host;
+        self
+    }
+
     /// Relógio simulado a partir de `epoch_ms` (ms desde 1970 UTC): `aguarde`
     /// não dorme e `tempo_decorrido`/Calendario ficam determinísticos.
     pub fn with_simulated_time(mut self, epoch_ms: u64) -> Self {

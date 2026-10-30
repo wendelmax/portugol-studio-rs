@@ -33,6 +33,46 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "publisher": "Portugol Studio RS",
+    "copyright": "Baseado no Portugol Studio (UNIVALI). LGPL-3.0.",
+    "category": "Education",
+    "shortDescription": "IDE para a linguagem Portugol",
+    "longDescription": "Ambiente para aprender programação em Portugol: editor, análise de erros, execução e console. Port em Rust do Portugol Studio.",
+    "licenseFile": "../../../LICENSE",
+    "fileAssociations": [
+      {
+        "ext": [
+          "por"
+        ],
+        "name": "Programa Portugol",
+        "description": "Programa Portugol",
+        "role": "Editor",
+        "mimeType": "text/x-portugol"
+      }
+    ],
+    "windows": {
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "http://timestamp.digicert.com",
+      "nsis": {
+        "languages": [
+          "PortugueseBR",
+          "English"
+        ],
+        "displayLanguageSelector": false,
+        "installMode": "currentUser"
+      },
+      "wix": {
+        "language": "pt-BR"
+      }
+    },
+    "linux": {
+      "deb": {
+        "section": "education"
+      }
+    },
+    "macOS": {
+      "minimumSystemVersion": "10.15"
+    }
   }
 }

@@ -1,0 +1,127 @@
+name: Release
+
+# Gera os instaladores quando uma tag v* é enviada (ex.: git tag v0.1.0 &&
+# git push origin v0.1.0) ou manualmente. O release fica como rascunho para
+# revisão. Assinatura: veja docs/DISTRIBUICAO.md.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  instaladores:
+    name: ${{ matrix.nome }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - nome: Windows x64
+            os: windows-latest
+            args: ""
+          - nome: Linux x64
+            os: ubuntu-22.04
+            args: ""
+          - nome: macOS Apple Silicon
+            os: macos-latest
+            args: --target aarch64-apple-darwin
+          - nome: macOS Intel
+            os: macos-latest
+            args: --target x86_64-apple-darwin
+    runs-on: ${{ matrix.os }}
+    env:
+      # Assinatura no Windows (uma das duas opções; sem nenhuma, o instalador
+      # sai sem assinatura).
+      WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+      WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SIGNING_ENDPOINT: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+      AZURE_SIGNING_ACCOUNT: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+      AZURE_CERTIFICATE_PROFILE: ${{ secrets.AZURE_CERTIFICATE_PROFILE }}
+      # Assinatura e notarização no macOS (usadas pelo tauri-action).
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependências do sistema (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ runner.os == 'macOS' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Dependências do frontend
+        working-directory: apps/desktop
+        run: npm ci
+
+      # Opção 1: certificado .pfx (OV/EV) em base64 no secret WINDOWS_CERTIFICATE.
+      - name: Assinatura Windows com certificado .pfx
+        if: runner.os == 'Windows' && env.WINDOWS_CERTIFICATE != ''
+        shell: pwsh
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP "certificado.pfx"
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE))
+          $senha = ConvertTo-SecureString -String $env:WINDOWS_CERTIFICATE_PASSWORD -Force -AsPlainText
+          $cert = Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $senha
+          Remove-Item $pfx
+          $config = @{ bundle = @{ windows = @{ certificateThumbprint = $cert.Thumbprint } } } | ConvertTo-Json -Depth 5 -Compress
+          Set-Content -Path apps/desktop/src-tauri/tauri.assinatura.json -Value $config
+          "TAURI_SIGN_CONFIG=--config src-tauri/tauri.assinatura.json" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      # Opção 2: Azure Trusted Signing (assinatura na nuvem, sem arquivo .pfx).
+      - name: Assinatura Windows com Azure Trusted Signing
+        if: runner.os == 'Windows' && env.WINDOWS_CERTIFICATE == '' && env.AZURE_CLIENT_ID != ''
+        shell: pwsh
+        run: |
+          cargo install trusted-signing-cli --locked
+          $cmd = "trusted-signing-cli -e $env:AZURE_SIGNING_ENDPOINT -a $env:AZURE_SIGNING_ACCOUNT -c $env:AZURE_CERTIFICATE_PROFILE -d Portugol-Studio %1"
+          $config = @{ bundle = @{ windows = @{ signCommand = $cmd } } } | ConvertTo-Json -Depth 5 -Compress
+          Set-Content -Path apps/desktop/src-tauri/tauri.assinatura.json -Value $config
+          "TAURI_SIGN_CONFIG=--config src-tauri/tauri.assinatura.json" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Gerar instaladores
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: apps/desktop
+          tagName: ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}-dev', github.run_number) }}
+          releaseName: Portugol Studio RS ${{ github.ref_type == 'tag' && github.ref_name || 'build de desenvolvimento' }}
+          releaseBody: |
+            Instaladores para Windows (.msi e .exe), Linux (.deb, .rpm e .AppImage) e macOS (.dmg).
+            Veja o README para a lista de recursos e o que ainda falta em relação ao Portugol Studio original.
+          releaseDraft: true
+          prerelease: ${{ github.ref_type != 'tag' }}
+          args: ${{ matrix.args }} ${{ env.TAURI_SIGN_CONFIG }}
+
+      - name: Verificar assinatura (Windows)
+        if: runner.os == 'Windows' && (env.WINDOWS_CERTIFICATE != '' || env.AZURE_CLIENT_ID != '')
+        shell: pwsh
+        run: |
+          $arquivos = Get-ChildItem -Recurse target/release/bundle -Include *.exe,*.msi
+          foreach ($a in $arquivos) {
+            $s = Get-AuthenticodeSignature $a.FullName
+            Write-Host "$($a.Name): $($s.Status)"
+            if ($s.Status -ne 'Valid') { throw "$($a.Name) não está assinado corretamente" }
+          }

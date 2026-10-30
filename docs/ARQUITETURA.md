@@ -248,9 +248,10 @@ Paridade funcional completa: **6–9 meses**.
 | Performance em programas grandes | bytecode + análise sob demanda |
 | WebView inconsistente | testar nos 3 SOs; evitar APIs específicas |
 | Escopo grande demais | portar por camadas, com MVP executável cedo |
-| Licença | manter GPL-3.0 e atribuição ao projeto original |
+| Licença | manter LGPL-3.0 e atribuição ao projeto original |
 
 ## 8. Licença
 
-O Portugol Studio original é GPL-3.0. O port é obra derivada; todo o código
-deve permanecer GPL-3.0 (`GPL-3.0-only`) com atribuição ao projeto original.
+O Portugol Studio original é LGPL-3.0 (`LICENSE.md` no repositório original).
+O port é obra derivada e usa a mesma licença (`LGPL-3.0-only`), com atribuição
+ao projeto original.

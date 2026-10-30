@@ -1,5 +1,16 @@
 # diagnósticos
 # saída
 
+ texto original 
+O portugol é uma IDE muito maneira
+O portugol contém vários exemplos interessantes
+O portugol é realizado no LITE
+
+
+ texto modificado 
+O Portugol Studio é uma IDE muito maneira
+O Portugol Studio contém vários exemplos interessantes
+O Portugol Studio é realizado no LITE
+
 # resultado
-erro 34:55: A constante "Arquivos.MODO_ESCRITA" ainda não está disponível nesta versão.
+fim

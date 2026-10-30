@@ -1,0 +1,3 @@
+O Portugol Studio é uma IDE muito maneira
+O Portugol Studio contém vários exemplos interessantes
+O Portugol Studio é realizado no LITE

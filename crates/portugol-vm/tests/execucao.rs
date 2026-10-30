@@ -583,3 +583,68 @@ fn erro_aponta_a_linha_e_a_pilha_de_chamadas() {
     let names: Vec<_> = error.trace.iter().map(|(name, _)| name.as_str()).collect();
     assert_eq!(names, ["f", "inicio", "<programa>"]);
 }
+
+#[test]
+fn biblioteca_arquivos() {
+    let dir = std::env::temp_dir().join(format!("portugol-arquivos-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let source = r#"
+        programa {
+            inclua biblioteca Arquivos --> a
+            funcao inicio() {
+                inteiro f = a.abrir_arquivo("sub/notas.txt", a.MODO_ESCRITA)
+                a.escrever_linha("primeira", f)
+                a.escrever_linha("segunda", f)
+                a.fechar_arquivo(f)
+                f = a.abrir_arquivo("sub/notas.txt", a.MODO_ACRESCENTAR)
+                a.escrever_linha("terceira", f)
+                a.fechar_arquivo(f)
+                f = a.abrir_arquivo("sub/notas.txt", a.MODO_LEITURA)
+                escreva(f, ":")
+                enquanto (nao a.fim_arquivo(f)) {
+                    cadeia linha = a.ler_linha(f)
+                    se (linha != "") { escreva(" ", linha) }
+                }
+                a.fechar_arquivo(f)
+                cadeia nomes[3]
+                a.listar_arquivos("sub", nomes)
+                escreva(" | ", nomes[0], " [", nomes[1], "]")
+                escreva(" | ", a.arquivo_existe("sub/notas.txt"))
+                a.apagar_arquivo("sub/notas.txt")
+                escreva(" ", a.arquivo_existe("sub/notas.txt"))
+            }
+        }
+    "#;
+    let ast = parse(source).program;
+    let module = portugol_bytecode::compile(&ast).unwrap();
+    let mut io = BufferIo::default();
+    Vm::new(&module, &mut io)
+        .with_working_dir(&dir)
+        .run()
+        .unwrap();
+    let _ = std::fs::remove_dir_all(&dir);
+    assert_eq!(
+        io.output,
+        "9: primeira segunda terceira | notas.txt [] | verdadeiro falso"
+    );
+}
+
+#[test]
+fn arquivo_inexistente_usa_mensagem_do_original() {
+    let error = erro(
+        r#"
+        programa {
+            inclua biblioteca Arquivos --> a
+            funcao inicio() { a.abrir_arquivo("/nao/existe.txt", a.MODO_LEITURA) }
+        }
+        "#,
+    );
+    assert!(
+        error
+            .message
+            .starts_with("Não foi possível abrir o arquivo")
+            && error.message.ends_with("para leitura"),
+        "{}",
+        error.message
+    );
+}

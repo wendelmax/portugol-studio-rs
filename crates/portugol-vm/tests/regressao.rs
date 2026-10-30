@@ -42,8 +42,16 @@ fn collect(dir: &Path, files: &mut Vec<PathBuf>) {
     }
 }
 
+/// Pasta de trabalho dos programas (Arquivos); aparece como `<pasta>` nas
+/// saídas para que sejam iguais em qualquer máquina.
+fn work_dir() -> PathBuf {
+    let dir = std::env::temp_dir().join(format!("portugol-regressao-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).expect("criar pasta temporária");
+    dir
+}
+
 /// Relatório textual de uma execução, no formato dos `.saida`.
-fn report(source: &str, input: &str) -> String {
+fn report(source: &str, input: &str, dir: &Path) -> String {
     let mut out = String::new();
     let result = parse(source);
     let mut diagnostics = result.diagnostics;
@@ -78,6 +86,7 @@ fn report(source: &str, input: &str) -> String {
     let outcome = Vm::new(&module, &mut io)
         .with_seed(SEED)
         .with_simulated_time(EPOCH_MS)
+        .with_working_dir(dir)
         .step(BUDGET);
     out.push_str("# saída\n");
     out.push_str(&io.output);
@@ -85,6 +94,10 @@ fn report(source: &str, input: &str) -> String {
         out.push('\n');
     }
     out.push_str("# resultado\n");
+    let outcome = outcome.map_err(|mut error| {
+        error.message = error.message.replace(&dir.display().to_string(), "<pasta>");
+        error
+    });
     match outcome {
         Ok(Status::Finished) => out.push_str("fim\n"),
         Ok(Status::Running) => out.push_str("limite de instruções\n"),
@@ -109,11 +122,12 @@ fn corpus_do_portugol_studio() {
 
     let update = std::env::var_os("PORTUGOL_ATUALIZAR").is_some();
     let mut failures = Vec::new();
+    let dir = work_dir();
 
     for file in &files {
         let source = std::fs::read_to_string(file).expect("ler .por");
         let input = std::fs::read_to_string(file.with_extension("entrada")).unwrap_or_default();
-        let actual = report(&source, &input);
+        let actual = report(&source, &input, &dir);
         let expected_path = file.with_extension("saida");
 
         if update {
@@ -130,6 +144,7 @@ fn corpus_do_portugol_studio() {
         }
     }
 
+    let _ = std::fs::remove_dir_all(&dir);
     assert!(
         failures.is_empty(),
         "{} de {} programas mudaram de comportamento \

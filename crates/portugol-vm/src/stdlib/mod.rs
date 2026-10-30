@@ -5,14 +5,17 @@
 //! de interface gráfica (Graficos, Teclado, Mouse, Sons) ficam para a fase de
 //! paridade; chamá-las gera um erro de execução claro.
 
+mod arquivos;
 mod calendario;
 mod matematica;
 mod texto;
 mod tipos;
 mod util;
 
+use std::path::PathBuf;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+use crate::host::{Host, NoHost};
 use crate::value::Value;
 
 pub type NativeFn = fn(&mut NativeContext, &[Value]) -> Result<Value, String>;
@@ -32,6 +35,10 @@ enum Clock {
 pub struct NativeContext {
     rng: u64,
     clock: Clock,
+    /// Base dos caminhos relativos (no original, a pasta do programa).
+    pub(crate) work_dir: PathBuf,
+    pub(crate) host: Box<dyn Host>,
+    pub(crate) files: arquivos::OpenFiles,
 }
 
 impl NativeContext {
@@ -48,6 +55,9 @@ impl NativeContext {
             // xorshift não aceita estado zero.
             rng: seed | 1,
             clock: Clock::Real(Instant::now()),
+            work_dir: std::env::current_dir().unwrap_or_default(),
+            host: Box::new(NoHost),
+            files: arquivos::OpenFiles::default(),
         }
     }
 
@@ -124,6 +134,7 @@ impl Default for NativeContext {
 
 pub fn native(library: &str, name: &str) -> Option<NativeFn> {
     match library {
+        "Arquivos" => arquivos::function(name),
         "Calendario" => calendario::function(name),
         "Matematica" => matematica::function(name),
         "Texto" => texto::function(name),
@@ -137,6 +148,7 @@ pub fn constant(library: &str, name: &str) -> Option<Value> {
     match (library, name) {
         ("Matematica", "PI") => Some(Value::Real(std::f64::consts::PI)),
         ("Calendario", name) => calendario::constant(name),
+        ("Arquivos", name) => arquivos::constant(name),
         _ => None,
     }
 }
@@ -185,6 +197,13 @@ fn int(value: &Value) -> Result<i32, String> {
         Value::Int(v) => Ok(*v),
         Value::Char(c) => Ok(*c as i32),
         other => Err(expected("inteiro", other)),
+    }
+}
+
+fn text_array(value: &Value) -> Result<crate::value::ArrayRef, String> {
+    match value {
+        Value::Array(array) => Ok(array.clone()),
+        other => Err(expected("vetor de cadeias", other)),
     }
 }
 

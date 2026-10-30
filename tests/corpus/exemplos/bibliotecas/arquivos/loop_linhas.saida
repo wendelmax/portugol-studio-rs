@@ -2,4 +2,4 @@
 # saída
 
 # resultado
-erro 66:64: A constante "Arquivos.MODO_LEITURA" ainda não está disponível nesta versão.
+erro 66:28: Não foi possível abrir o arquivo '<pasta>/placar.txt' para leitura
