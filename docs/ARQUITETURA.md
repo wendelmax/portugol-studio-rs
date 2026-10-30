@@ -41,9 +41,8 @@ dados densos (como o Sniffnet), não para um editor de código completo.
 crates/
   portugol-syntax/     # lexer, parser, AST, spans, diagnósticos         (feito)
   portugol-semantics/  # símbolos, escopos, tipos, análise semântica    (feito)
-  portugol-bytecode/   # compilador AST -> bytecode + source map
-  portugol-vm/         # máquina virtual com step/breakpoints
-  portugol-stdlib/     # Matematica, Texto, Util, Tipos, Calendario, Arquivos
+  portugol-bytecode/   # instruções + compilador AST -> bytecode         (feito)
+  portugol-vm/         # VM, E/S e bibliotecas de console (stdlib/)      (feito)
   portugol-service/    # fachada usada pelo Tauri (parse/analyze/run/debug)
 apps/
   desktop/
@@ -116,11 +115,58 @@ compilar a AST para **bytecode** com:
 
 Isso também melhora desempenho e isola o runtime do parser.
 
+#### Como está implementado (fase 3)
+
+O original não interpreta: ele traduz o Portugol para Java
+(`execucao/gerador/GeradorCodigoJava.java`) e roda na JVM. A semântica de
+execução a reproduzir é, portanto, a do Java gerado.
+
+- `portugol-bytecode`: `Op` é um `enum` Rust (não bytes). Cada `Function` tem
+  `code`, `spans` paralelos (mapa de fonte) e `locals` com nome/tipo de cada
+  slot, já pensando no inspetor de variáveis. Uma função sintética
+  `<programa>` inicializa as globais em ordem, roda comandos soltos e chama
+  `inicio`.
+- O compilador só usa tipos estáticos onde o destino é conhecido
+  (declaração, atribuição, parâmetro, retorno, `leia`) para emitir
+  `Convert`; as operações são resolvidas pela VM pelas tags dos valores.
+- Alvos de escrita (`v[i] += x`, `m[i][j]++`) avaliam vetor e índices uma vez,
+  em temporários, na ordem do Java.
+- `portugol-vm`: VM de pilha com quadros explícitos e execução em fatias
+  (`Vm::step(n)`), sinal de interrupção (`interrupt_handle`) e erro com pilha
+  de chamadas. E/S passa pelo trait `Io` (`StdIo`, `BufferIo`; a IDE terá a
+  sua).
+- Parâmetro `&` guarda um `Reference` (slot da pilha, global ou elemento);
+  vetores e matrizes são `Rc<RefCell<..>>` compartilhados, como arrays Java.
+
+Comportamentos do original mantidos de propósito:
+
+| Comportamento | Origem no Java |
+|---|---|
+| `inteiro` de 32 bits com *wrap-around* | `int` |
+| `real` impresso como `1.0`, `1.0E7`, `1.0E-4` | `Double.toString` |
+| `"x" + verdadeiro` dá `"xtrue"` | `StringBuilder.append(boolean)` |
+| divisão/resto inteiro por zero é erro; real dá `Infinity` | `ArithmeticException` |
+| `real -> inteiro` trunca e satura | cast `(int)` |
+| `escolha` cai no próximo caso sem `pare` | `switch` |
+| `leia` lê uma linha; inteiro via `Integer.parseInt` (sem espaços) | `AbaConsole` |
+| `Tipos.cadeia_e_logico` aceita "começa com verdadeiro ou termina com falso" | regex `^verdadeiro\|falso$` |
+| `inicio(cadeia params[])` recebe os parâmetros de execução | opções de execução da IDE |
+
+Diferença deliberada: `caracter + caracter` concatena (a análise semântica
+tipa como `cadeia`; no Java gerado isso somaria os códigos e não compilaria).
+
+Desempenho: ~7 ns por instrução da VM (laço de 10 milhões de iterações em
+~1,2 s; `fib(30)` em ~0,4 s), na faixa do CPython. Próximos passos se
+necessário para jogos: instruções tipadas a partir dos tipos estáticos,
+superinstruções (`LoadLocal+PushInt+Lt+JumpIfFalse`) e quadros sem `Vec`
+genérico.
+
 ### Bibliotecas padrão
 
 | Biblioteca original | Estratégia no port |
 |---|---|
-| Matematica, Texto, Util, Tipos, Calendario | Rust puro |
+| Matematica, Texto, Util, Tipos | Rust puro (**feito**, `portugol-vm/src/stdlib`) |
+| Calendario | Rust puro |
 | Arquivos | `std::fs` com sandbox por workspace |
 | Internet, ServicosWeb | `reqwest` + runtime async |
 | Sons | `rodio` |
@@ -177,7 +223,7 @@ com o nível de paridade desejado.
 | 0. Especificação e corpus | gramática, exemplos, testes dourados | 1 semana |
 | 1. Sintaxe | lexer, parser, AST, diagnósticos | **concluída** |
 | 2. Semântica | símbolos, tipos, checagens | **concluída** |
-| 3. Runtime | bytecode, VM, stdlib de console | 4–6 semanas |
+| 3. Runtime | bytecode, VM, stdlib de console | **concluída** |
 | 4. IDE MVP | Tauri, CodeMirror, abas, console, run | 3–4 semanas |
 | 5. Depurador | breakpoints, step, inspeção | 2–3 semanas |
 | 6. Paridade | gráficos/jogos, ajuda, plugins, packaging | 2–4 meses |

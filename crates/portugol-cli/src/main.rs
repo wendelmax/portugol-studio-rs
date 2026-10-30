@@ -1,3 +1,5 @@
+mod run;
+
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -8,6 +10,10 @@ use portugol_syntax::{Severity, parse};
 
 fn main() -> ExitCode {
     let args: Vec<String> = env::args().skip(1).collect();
+
+    if args.first().is_some_and(|arg| arg == "executar") {
+        return run::main(&args[1..]);
+    }
 
     if args.is_empty() || args.iter().any(|arg| arg == "-h" || arg == "--help") {
         print_usage();
@@ -107,12 +113,14 @@ fn main() -> ExitCode {
 
 fn print_usage() {
     println!(
-        "portugol-parse 0.1.0\n\
+        "portugol 0.1.0\n\
          \n\
          Uso:\n\
-           portugol-parse [opções] <arquivo.por | diretório>...\n\
+           portugol [opções] <arquivo.por | diretório>...   valida os arquivos\n\
+           portugol executar [--bytecode] <arquivo.por> [-- parâmetros...]\n\
+                                                    executa um programa\n\
          \n\
-         Opções:\n\
+         Opções da validação:\n\
            -q, --quiet   só mostra arquivos com erro\n\
            --syntax-only só valida a sintaxe (desliga a análise semântica)\n\
            -h, --help    mostra esta ajuda"
@@ -134,7 +142,7 @@ fn collect_files(path: &Path, files: &mut Vec<PathBuf>) {
 
 /// Os exemplos históricos do Portugol Studio estão em ISO-8859-1; aceitamos
 /// UTF-8 (com ou sem BOM) e caímos para Latin-1 quando necessário.
-fn read_source(path: &Path) -> std::io::Result<String> {
+pub(crate) fn read_source(path: &Path) -> std::io::Result<String> {
     let bytes = fs::read(path)?;
 
     match String::from_utf8(bytes.clone()) {

@@ -3,8 +3,14 @@ name = "portugol-cli"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "CLI de validação sintática e semântica do Portugol"
+description = "CLI do Portugol: validação (sintaxe + semântica) e execução de programas"
+
+[[bin]]
+name = "portugol"
+path = "src/main.rs"
 
 [dependencies]
 portugol-syntax = { path = "../portugol-syntax" }
 portugol-semantics = { path = "../portugol-semantics" }
+portugol-bytecode = { path = "../portugol-bytecode" }
+portugol-vm = { path = "../portugol-vm" }

@@ -1,0 +1,9 @@
+[package]
+name = "portugol-bytecode"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Conjunto de instruções e compilador AST -> bytecode do Portugol 2.0"
+
+[dependencies]
+portugol-syntax = { path = "../portugol-syntax" }

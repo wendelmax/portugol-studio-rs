@@ -1,0 +1,13 @@
+[package]
+name = "portugol-vm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Máquina virtual e bibliotecas padrão de console do Portugol 2.0"
+
+[dependencies]
+portugol-syntax = { path = "../portugol-syntax" }
+portugol-bytecode = { path = "../portugol-bytecode" }
+
+[dev-dependencies]
+portugol-semantics = { path = "../portugol-semantics" }

@@ -3,6 +3,8 @@ resolver = "2"
 members = [
     "crates/portugol-syntax",
     "crates/portugol-semantics",
+    "crates/portugol-bytecode",
+    "crates/portugol-vm",
     "crates/portugol-cli",
 ]
 
