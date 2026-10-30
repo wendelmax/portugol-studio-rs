@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Portugol Studio</title>
+  </head>
+  <body>
+    <header class="toolbar">
+      <div class="group">
+        <button id="btn-new" title="Novo (Ctrl+N)">Novo</button>
+        <button id="btn-open" title="Abrir (Ctrl+O)">Abrir</button>
+        <button id="btn-save" title="Salvar (Ctrl+S)">Salvar</button>
+        <button id="btn-save-as" title="Salvar como (Ctrl+Shift+S)">Salvar como</button>
+      </div>
+      <div class="group">
+        <button id="btn-run" class="primary" title="Executar (Shift+F6 ou Ctrl+Enter)">▶ Executar</button>
+        <button id="btn-stop" title="Parar (Shift+F7)" disabled>■ Parar</button>
+        <label class="args" title="Parâmetros recebidos por funcao inicio(cadeia params[])">
+          Parâmetros
+          <input id="args" type="text" spellcheck="false" placeholder="separados por espaço" />
+        </label>
+      </div>
+      <label class="theme">
+        Tema
+        <select id="theme">
+          <option value="system">Sistema</option>
+          <option value="light">Claro</option>
+          <option value="dark">Escuro</option>
+        </select>
+      </label>
+    </header>
+
+    <nav id="tabs" class="tabs" role="tablist"></nav>
+
+    <main class="workspace">
+      <section id="editor" class="editor"></section>
+      <div id="splitter" class="splitter" role="separator" aria-orientation="horizontal"></div>
+      <section class="panel">
+        <div class="panel-tabs" role="tablist">
+          <button id="tab-console" class="active" role="tab">Console</button>
+          <button id="tab-messages" role="tab">Mensagens <span id="message-count"></span></button>
+          <button id="btn-clear" class="right" title="Limpar o console">Limpar</button>
+        </div>
+        <div id="console" class="console" tabindex="0">
+          <pre id="console-output"></pre>
+          <form id="console-form" class="console-input" hidden>
+            <span id="console-hint"></span>
+            <input id="console-input" type="text" spellcheck="false" autocomplete="off" />
+          </form>
+        </div>
+        <ul id="messages" class="messages" hidden></ul>
+      </section>
+    </main>
+
+    <footer class="statusbar">
+      <span id="status">Pronto</span>
+      <span id="cursor"></span>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
