@@ -96,6 +96,9 @@ fn report(source: &str, input: &str, dir: &Path) -> String {
     out.push_str("# resultado\n");
     let outcome = outcome.map_err(|mut error| {
         error.message = error.message.replace(&dir.display().to_string(), "<pasta>");
+        if cfg!(windows) {
+            error.message = error.message.replace('\\', "/");
+        }
         error
     });
     match outcome {

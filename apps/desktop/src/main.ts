@@ -349,7 +349,11 @@ async function runProgram() {
   showPanel("console");
   output.replaceChildren();
   try {
-    runId = await api.run(view.state.doc.toString(), parseArgs($<HTMLInputElement>("args").value));
+    runId = await api.run(
+      view.state.doc.toString(),
+      parseArgs($<HTMLInputElement>("args").value),
+      tab.path,
+    );
     setRunning(true);
     setStatus("Executando…");
   } catch (errors) {

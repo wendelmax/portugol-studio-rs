@@ -2,7 +2,7 @@ use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use portugol_service::{Level, RunObserver, RunOutcome, check, start};
+use portugol_service::{Level, RunObserver, RunOptions, RunOutcome, check, start};
 
 #[derive(Debug, Clone, PartialEq)]
 enum Event {
@@ -80,7 +80,7 @@ fn executa_com_leia_e_saida() {
             leia(n)
             escreva(n * 2)
         } }"#,
-        Vec::new(),
+        RunOptions::default(),
         observer,
     )
     .unwrap();
@@ -103,7 +103,7 @@ fn limpa_descarta_saida_anterior() {
     let (observer, rx) = recorder();
     start(
         r#"programa { funcao inicio() { escreva("a") limpa() escreva("b") } }"#,
-        Vec::new(),
+        RunOptions::default(),
         observer,
     )
     .unwrap()
@@ -123,7 +123,7 @@ fn parar_laco_infinito_e_leia() {
     let (observer, rx) = recorder();
     let handle = start(
         "programa { funcao inicio() { enquanto (verdadeiro) { } } }",
-        Vec::new(),
+        RunOptions::default(),
         observer,
     )
     .unwrap();
@@ -135,7 +135,7 @@ fn parar_laco_infinito_e_leia() {
     let (observer, rx) = recorder();
     let handle = start(
         "programa { funcao inicio() { cadeia s leia(s) } }",
-        Vec::new(),
+        RunOptions::default(),
         observer,
     )
     .unwrap();
@@ -149,7 +149,7 @@ fn erro_de_execucao_tem_posicao_e_pilha() {
     let (observer, rx) = recorder();
     start(
         "programa {\n funcao inicio() {\n  inteiro z = 0\n  escreva(1 / z)\n }\n}",
-        Vec::new(),
+        RunOptions::default(),
         observer,
     )
     .unwrap()
@@ -173,7 +173,7 @@ fn programa_com_erro_nao_executa() {
     let (observer, _rx) = recorder();
     let Err(errors) = start(
         "programa { funcao inicio() { x = 1 } }",
-        Vec::new(),
+        RunOptions::default(),
         observer,
     ) else {
         panic!("não deveria executar");

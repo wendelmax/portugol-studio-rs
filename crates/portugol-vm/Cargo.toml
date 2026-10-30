@@ -9,6 +9,7 @@ description = "Máquina virtual e bibliotecas padrão de console do Portugol 2.0
 portugol-syntax = { path = "../portugol-syntax" }
 portugol-bytecode = { path = "../portugol-bytecode" }
 regex = "1"
+libm = "0.2"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 
 [dev-dependencies]

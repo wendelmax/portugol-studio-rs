@@ -16,7 +16,7 @@ use serde::Serialize;
 
 use portugol_bytecode::ValueType;
 use portugol_syntax::{Diagnostic, Severity};
-use portugol_vm::{Io, Vm};
+use portugol_vm::{FileFilter, Host, Io, Vm};
 
 use crate::position::{LineIndex, Position};
 use crate::{DiagnosticInfo, analyze, describe};
@@ -32,6 +32,36 @@ pub trait RunObserver: Send + Sync + 'static {
     /// O programa parou num `leia`; `expected` é o nome do tipo esperado.
     fn input_requested(&self, expected: &'static str);
     fn finished(&self, outcome: RunOutcome);
+    /// Diálogo de `Arquivos.selecionar_arquivo`. Bloqueia a thread da VM até
+    /// o usuário escolher; `None` quando cancela.
+    fn select_file(&self, filters: &[FileFilter], accept_all: bool) -> Option<String> {
+        let _ = (filters, accept_all);
+        None
+    }
+}
+
+/// Opções de uma execução.
+#[derive(Debug, Clone, Default)]
+pub struct RunOptions {
+    /// Parâmetros de `funcao inicio(cadeia params[])`.
+    pub args: Vec<String>,
+    /// Base dos caminhos relativos da biblioteca Arquivos (a pasta do
+    /// programa, como no original). `None` usa a pasta atual do processo.
+    pub working_dir: Option<std::path::PathBuf>,
+}
+
+struct ServiceHost {
+    observer: Arc<dyn RunObserver>,
+}
+
+impl Host for ServiceHost {
+    fn select_file(
+        &mut self,
+        filters: &[FileFilter],
+        accept_all: bool,
+    ) -> Result<Option<String>, String> {
+        Ok(self.observer.select_file(filters, accept_all))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -89,7 +119,7 @@ impl RunHandle {
 /// voltam como diagnósticos e nada é executado.
 pub fn start(
     source: &str,
-    args: Vec<String>,
+    options: RunOptions,
     observer: Arc<dyn RunObserver>,
 ) -> Result<RunHandle, Vec<DiagnosticInfo>> {
     let index = LineIndex::new(source);
@@ -125,10 +155,16 @@ pub fn start(
                 output: Arc::clone(&output),
                 input: input_rx,
             };
-            let result = Vm::new(&module, &mut io)
-                .with_args(args)
+            let mut vm = Vm::new(&module, &mut io)
+                .with_args(options.args)
                 .with_interrupt(Arc::clone(&flag))
-                .run();
+                .with_host(Box::new(ServiceHost {
+                    observer: Arc::clone(&observer),
+                }));
+            if let Some(dir) = options.working_dir {
+                vm = vm.with_working_dir(dir);
+            }
+            let result = vm.run();
 
             done.store(true, Ordering::Relaxed);
             let _ = flusher.join();

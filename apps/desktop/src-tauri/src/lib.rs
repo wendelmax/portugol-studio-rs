@@ -21,7 +21,10 @@ use std::sync::{Arc, Mutex};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
-use portugol_service::{DiagnosticInfo, RunHandle, RunObserver, RunOutcome};
+use portugol_service::{
+    DiagnosticInfo, FileFilter, RunHandle, RunObserver, RunOptions, RunOutcome,
+};
+use tauri_plugin_dialog::DialogExt;
 
 #[derive(Default)]
 struct Runs {
@@ -89,6 +92,22 @@ impl RunObserver for EventSink {
         );
     }
 
+    fn select_file(&self, filters: &[FileFilter], accept_all: bool) -> Option<String> {
+        let mut dialog = self.app.dialog().file().set_title("Selecionar arquivo");
+        for filter in filters {
+            let extensions: Vec<&str> = filter.extensions.iter().map(String::as_str).collect();
+            dialog = dialog.add_filter(&filter.description, &extensions);
+        }
+        if accept_all {
+            dialog = dialog.add_filter("Todos os arquivos", &["*"]);
+        }
+        // Chamado da thread da VM, nunca da thread principal.
+        dialog
+            .blocking_pick_file()
+            .and_then(|path| path.into_path().ok())
+            .map(|path| path.display().to_string())
+    }
+
     fn finished(&self, outcome: RunOutcome) {
         let _ = self.app.emit(
             "run:finished",
@@ -112,6 +131,7 @@ fn run(
     runs: State<'_, Runs>,
     source: String,
     args: Vec<String>,
+    path: Option<String>,
 ) -> Result<u32, Vec<DiagnosticInfo>> {
     let id = runs.next_id.fetch_add(1, Ordering::Relaxed) + 1;
     let mut current = runs.current.lock().unwrap_or_else(|e| e.into_inner());
@@ -119,7 +139,13 @@ fn run(
         previous.stop();
     }
     let observer = Arc::new(EventSink { app, id });
-    let handle = portugol_service::start(&source, args, observer)?;
+    // Como no original, caminhos relativos partem da pasta do programa.
+    let working_dir = path
+        .as_deref()
+        .and_then(|p| std::path::Path::new(p).parent())
+        .map(std::path::Path::to_path_buf);
+    let options = RunOptions { args, working_dir };
+    let handle = portugol_service::start(&source, options, observer)?;
     *current = Some((id, handle));
     Ok(id)
 }

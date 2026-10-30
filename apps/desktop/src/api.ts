@@ -33,7 +33,8 @@ export type RunOutcome =
 export const check = (source: string) => invoke<DiagnosticInfo[]>("check", { source });
 
 /** Id da execução; rejeita com a lista de erros se o programa não compila. */
-export const run = (source: string, args: string[]) => invoke<number>("run", { source, args });
+export const run = (source: string, args: string[], path: string | null) =>
+  invoke<number>("run", { source, args, path });
 
 export const sendInput = (id: number, line: string) => invoke<void>("send_input", { id, line });
 

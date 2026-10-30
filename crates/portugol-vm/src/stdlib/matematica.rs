@@ -1,4 +1,8 @@
 //! `Matematica.java`.
+//!
+//! As funções usam o crate `libm` (port do musl, derivado do fdlibm, o mesmo
+//! do `StrictMath` do Java) em vez da `libm` do sistema, para que os
+//! resultados sejam idênticos em Windows, Linux e macOS.
 
 use super::{NativeContext, NativeFn, arity, int, real};
 use crate::value::Value;
@@ -21,12 +25,15 @@ pub fn function(name: &str) -> Option<NativeFn> {
 
 fn potencia(_: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
     arity(args, 2, "potencia")?;
-    Ok(Value::Real(real(&args[0])?.powf(real(&args[1])?)))
+    Ok(Value::Real(libm::pow(real(&args[0])?, real(&args[1])?)))
 }
 
 fn raiz(_: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
     arity(args, 2, "raiz")?;
-    Ok(Value::Real(real(&args[0])?.powf(1.0 / real(&args[1])?)))
+    Ok(Value::Real(libm::pow(
+        real(&args[0])?,
+        1.0 / real(&args[1])?,
+    )))
 }
 
 fn arredondar(_: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
@@ -46,27 +53,29 @@ fn java_round(value: f64) -> f64 {
     if value.is_nan() {
         return 0.0;
     }
-    ((value + 0.5).floor() as i64) as f64
+    (libm::floor(value + 0.5) as i64) as f64
 }
 
 fn logaritmo(_: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
     arity(args, 2, "logaritmo")?;
-    Ok(Value::Real(real(&args[0])?.ln() / real(&args[1])?.ln()))
+    Ok(Value::Real(
+        libm::log(real(&args[0])?) / libm::log(real(&args[1])?),
+    ))
 }
 
 fn seno(_: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
     arity(args, 1, "seno")?;
-    Ok(Value::Real(real(&args[0])?.sin()))
+    Ok(Value::Real(libm::sin(real(&args[0])?)))
 }
 
 fn cosseno(_: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
     arity(args, 1, "cosseno")?;
-    Ok(Value::Real(real(&args[0])?.cos()))
+    Ok(Value::Real(libm::cos(real(&args[0])?)))
 }
 
 fn tangente(_: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
     arity(args, 1, "tangente")?;
-    Ok(Value::Real(real(&args[0])?.tan()))
+    Ok(Value::Real(libm::tan(real(&args[0])?)))
 }
 
 fn valor_absoluto(_: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
