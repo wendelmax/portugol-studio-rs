@@ -4,12 +4,17 @@ Port do [Portugol Studio](https://github.com/UNIVALI-LITE/Portugol-Studio) (Java
 para **Rust**, com a IDE desktop em **Tauri v2** e o núcleo da linguagem em crates
 Rust independentes.
 
-> Status: **fases 1, 2 e 3 concluídas** — lexer, parser, AST, análise
-> semântica, compilador para bytecode e máquina virtual com as bibliotecas de
-> console (Util, Matematica, Texto, Tipos). Todos os programas de exemplo completos do repositório
-> original passam; os erros restantes estão em trechos da ajuda (fragmentos que
-> usam variáveis não declaradas) e em 2 exemplos com erros de sintaxe no próprio
-> arquivo original.
+> Status: **fases 1–4 concluídas** — lexer, parser, AST, análise semântica,
+> compilador para bytecode, máquina virtual e IDE desktop (Tauri v2 + CodeMirror 6).
+> Todas as bibliotecas de linguagem estão portadas, exceto **Sons**; Graficos,
+> Teclado e Mouse funcionam na VM (a janela na IDE está em andamento). O corpus
+> completo do original é validado por regressão com um host gráfico headless;
+> os erros restantes estão em trechos da ajuda e em 2 exemplos com defeito no
+> próprio arquivo original.
+
+O ambiente de desenvolvimento é fixado com [mise](https://mise.jdx.dev)
+(`mise install` instala Rust, Node e o JDK 8 usado nos testes diferenciais;
+`mise exec -- <comando>` roda qualquer comando com essas versões).
 
 ## Por que Tauri (e não iced)?
 
@@ -37,20 +42,25 @@ portugol-studio-rs/
 │   ├── portugol-syntax/    # lexer (logos), parser, AST, diagnósticos ✅
 │   ├── portugol-semantics/ # símbolos, escopos, tipos, checagens ✅
 │   ├── portugol-bytecode/  # instruções e compilador AST -> bytecode ✅
-│   ├── portugol-vm/        # máquina virtual, E/S, bibliotecas de console ✅
+│   ├── portugol-vm/        # VM, E/S, bibliotecas padrão e protocolo gráfico ✅
 │   └── portugol-cli/       # `portugol`: valida e executa .por ✅
 ├── apps/
-│   └── desktop/           # Tauri v2 + frontend (próxima fase)
+│   └── desktop/           # Tauri v2 + frontend CodeMirror 6 ✅
 └── docs/
     └── ARQUITETURA.md     # plano de port e decisões técnicas
 ```
 
 ## Como validar
 
-Requisitos: Rust 1.85+ (edição 2024).
+Requisitos: Rust 1.85+ (edição 2024). Com `mise install`, as versões exatas
+ficam disponíveis e os comandos abaixo podem ser usados diretamente (ou prefixe
+com `mise exec --`).
 
 ```bash
-cargo test
+cargo test --workspace
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test -p portugol-vm --test regressao   # corpus completo (host gráfico headless)
+cd apps/desktop && npm run build             # frontend da IDE
 cargo run -p portugol-cli -- caminho/para/arquivo.por
 cargo run -p portugol-cli -- --quiet caminho/para/diretorio
 cargo run -p portugol-cli -- --syntax-only arquivo.por   # só sintaxe
@@ -108,15 +118,12 @@ obrigatório, aridade, conversões, referência, bibliotecas e vetores/matrizes.
 ### Execução
 
 `cargo run --release -p portugol-vm --example corpus -- <dir>` executa todos os
-exemplos sem entrada e com limite de 20 milhões de instruções:
-
-```
-  91  executou até o fim
-  54  parou no leia (sem entrada)
-  40  biblioteca ainda não portada (Graficos, Teclado, Mouse, Sons, Arquivos...)
-   4  limite de instruções (laço de jogo/espera)
-   7  não analisado (erros de sintaxe/semântica acima)
-```
+exemplos sem entrada e com limite de instruções (programas que esperam entrada
+ou tecla param antes do fim). A validação completa é
+`cargo test -p portugol-vm --test regressao`: ela roda o corpus com entradas
+gravadas, diretório de trabalho por exemplo, tempo simulado e um host gráfico
+headless que conta e resume os quadros. As saídas esperadas ficam em arquivos
+`.saida` ao lado de cada `.por`.
 
 Nenhum exemplo termina em erro de execução inesperado. A semântica de execução
 segue o Java gerado pelo original (inteiro de 32 bits, `Double.toString`,
@@ -129,10 +136,10 @@ fluxo, referências, vetores/matrizes, `leia`, bibliotecas e interrupção.
 
 1. **Sintaxe** ✅ — lexer, parser, AST, diagnósticos com spans, recuperação de erro.
 2. **Semântica** ✅ — tabela de símbolos, escopos, tipos, constantes, checagens.
-3. **Runtime** ✅ — compilação para bytecode + VM, bibliotecas padrão de console.
-4. **IDE** — Tauri v2, CodeMirror 6, abas, árvore de arquivos, console, execução.
+3. **Runtime** ✅ — compilação para bytecode + VM e todas as bibliotecas (Sons falta).
+4. **IDE** ✅ — Tauri v2, CodeMirror 6, abas, árvore de arquivos, console, execução.
 5. **Depurador** — breakpoints, step, inspeção de variáveis (via VM).
-6. **Paridade** — gráficos/jogos, ajuda, plugins, instalador e atualização.
+6. **Paridade** — janela gráfica na IDE, ajuda, editor de temas, instaladores.
 
 Detalhes, estimativas e riscos em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md).
 

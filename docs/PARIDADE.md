@@ -5,6 +5,11 @@ Atualize esta tabela junto com cada recurso entregue.
 
 Legenda: ✅ feito · 🟡 parcial · ⬜ falta · ➖ não se aplica
 
+O protocolo de quadros e o contrato `Host` estão em
+`crates/portugol-vm/src/graphics.rs` e `host.rs`; a suíte de regressão usa um
+host headless que captura os quadros, então os exemplos gráficos do corpus já
+são executados e validados sem tela.
+
 ## Linguagem e execução
 
 | Recurso | Estado | Observações |
@@ -31,9 +36,9 @@ Legenda: ✅ feito · 🟡 parcial · ⬜ falta · ➖ não se aplica
 | Objetos | 22 + 7 constantes | ✅ | JSON no formato do Jackson; XML como o `XmlMapper` |
 | Internet | 4 | ✅ | |
 | ServicosWeb | 8 + 4 constantes | ✅ | |
-| Graficos | 56 | ⬜ | janela de desenho na IDE |
-| Teclado | 5 | ⬜ | depende da janela gráfica |
-| Mouse | 8 | ⬜ | depende da janela gráfica |
+| Graficos | 56 | 🟡 | na VM: formas, texto, imagens, gradiente, rotação e quadros; falta a janela na IDE |
+| Teclado | 5 | 🟡 | na VM via `InputState`; eventos dependem da janela |
+| Mouse | 8 | 🟡 | na VM via `InputState`; eventos dependem da janela |
 | Sons | 17 | ⬜ | |
 
 ## IDE
