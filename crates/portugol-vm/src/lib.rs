@@ -14,6 +14,7 @@
 //! assert_eq!(io.output, "2");
 //! ```
 
+pub mod graphics;
 pub mod host;
 pub mod io;
 pub mod stdlib;

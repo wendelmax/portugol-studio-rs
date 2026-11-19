@@ -1,5 +1,7 @@
 # diagnósticos
 # saída
 
+# gráficos
+1 quadro(s), resumo 2ef5713c1092712c
 # resultado
-erro 40:3: A função "Graficos.iniciar_modo_grafico" ainda não está disponível nesta versão.
+erro 34:3: Não foi possível obter o conteúdo de https://robohash.org/pbkgklsq.png

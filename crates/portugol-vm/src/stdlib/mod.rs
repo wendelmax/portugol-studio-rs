@@ -7,10 +7,13 @@
 
 mod arquivos;
 mod calendario;
+mod fontes;
+mod graficos;
 mod internet;
 mod matematica;
 mod objetos;
 mod servicos_web;
+mod teclado_mouse;
 mod texto;
 mod tipos;
 mod util;
@@ -47,6 +50,9 @@ pub struct NativeContext {
     pub(crate) web: servicos_web::WebServices,
     /// Sem acesso à rede: Internet e ServicosWeb falham como sem conexão.
     pub(crate) offline: bool,
+    pub(crate) graphics: graficos::Graphics,
+    /// Sinal de interrupção da VM, para esperas como `ler_tecla`.
+    pub(crate) interrupt: std::sync::Arc<std::sync::atomic::AtomicBool>,
 }
 
 impl NativeContext {
@@ -70,7 +76,13 @@ impl NativeContext {
             internet: internet::Internet::default(),
             web: servicos_web::WebServices::default(),
             offline: false,
+            graphics: graficos::Graphics::default(),
+            interrupt: Default::default(),
         }
+    }
+
+    pub(crate) fn reseed(&mut self, seed: u64) {
+        self.rng = seed | 1;
     }
 
     /// Troca o relógio real por um simulado que começa em `epoch_ms`
@@ -151,6 +163,9 @@ pub fn native(library: &str, name: &str) -> Option<NativeFn> {
         "Matematica" => matematica::function(name),
         "Objetos" => objetos::function(name),
         "Internet" => internet::function(name),
+        "Graficos" => graficos::function(name),
+        "Teclado" => teclado_mouse::teclado(name),
+        "Mouse" => teclado_mouse::mouse(name),
         "ServicosWeb" => servicos_web::function(name),
         "Texto" => texto::function(name),
         "Tipos" => tipos::function(name),
@@ -166,6 +181,9 @@ pub fn constant(library: &str, name: &str) -> Option<Value> {
         ("Arquivos", name) => arquivos::constant(name),
         ("Objetos", name) => objetos::constant(name),
         ("ServicosWeb", name) => servicos_web::constant(name),
+        ("Graficos", name) => graficos::constant(name),
+        ("Teclado", name) => teclado_mouse::teclado_constant(name),
+        ("Mouse", name) => teclado_mouse::mouse_constant(name),
         _ => None,
     }
 }
@@ -209,9 +227,12 @@ fn real(value: &Value) -> Result<f64, String> {
     }
 }
 
+/// Inteiro para parâmetros `int` de bibliotecas. Um `real` é truncado, como
+/// o cast `(int)` que o Java gerado pelo original insere na chamada.
 fn int(value: &Value) -> Result<i32, String> {
     match value {
         Value::Int(v) => Ok(*v),
+        Value::Real(v) => Ok(*v as i32),
         Value::Char(c) => Ok(*c as i32),
         other => Err(expected("inteiro", other)),
     }

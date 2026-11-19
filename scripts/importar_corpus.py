@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-"""Copia os .por do Portugol Studio original para tests/corpus, em UTF-8.
+"""Copia os exemplos do Portugol Studio original para tests/corpus.
 
 Uso: python3 scripts/importar_corpus.py <caminho do Portugol-Studio>
 
-Os exemplos originais estão em ISO-8859-1 (alguns em UTF-8). A estrutura de
-pastas a partir de ide/src/main/assets é preservada.
+Os .por originais estão em ISO-8859-1 (alguns em UTF-8) e são gravados em
+UTF-8. Os demais arquivos (imagens, sons, fontes, fases de jogos) são copiados
+como estão, porque os programas os carregam por caminhos relativos. A
+estrutura de pastas a partir de ide/src/main/assets é preservada.
 """
+
+import shutil
 
 import pathlib
 import sys
@@ -15,6 +19,11 @@ def main() -> None:
     origem = pathlib.Path(sys.argv[1]) / "ide" / "src" / "main" / "assets"
     destino = pathlib.Path(__file__).resolve().parent.parent / "tests" / "corpus"
     total = 0
+    for arquivo in sorted(origem.rglob("*")):
+        if arquivo.is_file() and arquivo.suffix != ".por" and "exemplos" in arquivo.parts:
+            alvo = destino / arquivo.relative_to(origem)
+            alvo.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(arquivo, alvo)
     for arquivo in sorted(origem.rglob("*.por")):
         dados = arquivo.read_bytes()
         try:

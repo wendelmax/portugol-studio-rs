@@ -179,17 +179,19 @@ fn ler_linha(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
         ));
     }
     let reader = file.reader.as_mut().expect("aberto para leitura");
-    let mut line = String::new();
-    match reader.read_line(&mut line) {
+    let mut bytes = Vec::new();
+    match reader.read_until(b'\n', &mut bytes) {
         Ok(0) => {
             file.eof = true;
             Ok(Value::str(""))
         }
         Ok(_) => {
-            while line.ends_with('\n') || line.ends_with('\r') {
-                line.pop();
+            while bytes.last().is_some_and(|b| *b == b'\n' || *b == b'\r') {
+                bytes.pop();
             }
-            Ok(Value::str(line))
+            // Como o `InputStreamReader` do Java: bytes inválidos em UTF-8
+            // viram o caractere de substituição, sem erro.
+            Ok(Value::str(String::from_utf8_lossy(&bytes).into_owned()))
         }
         Err(_) => Err(format!(
             "Não foi possível ler a próxima linha do arquivo '{}'",

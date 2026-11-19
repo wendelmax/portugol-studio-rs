@@ -9,4 +9,4 @@ aviso sem.conversion 830:20 o valor do tipo "real" será convertido para "inteir
 # saída
 
 # resultado
-erro 48:22: A função "Graficos.criar_cor" ainda não está disponível nesta versão.
+erro 731:13: A função "Sons.carregar_som" ainda não está disponível nesta versão.

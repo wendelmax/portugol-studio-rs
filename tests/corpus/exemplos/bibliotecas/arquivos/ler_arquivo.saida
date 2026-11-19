@@ -1,5 +1,15 @@
 # diagnósticos
 # saída
-
+Linha 1:   1| Jo�o    | 1250 pontos
+Linha 2:   2| Julia   | 1157 pontos
+Linha 3:   3| Rafael  |  981 pontos
+Linha 4:   4| Alisson |  965 pontos
+Linha 5:   5| Marcos  |  810 pontos
+Linha 6:   6| Maria   |  805 pontos
+Linha 7:   7| J�ssica |  756 pontos
+Linha 8:   8| Paulo   |  732 pontos
+Linha 9:   9| Gustavo |  640 pontos
+Linha 10:  10| Luiz    |  500 pontos
+Linha 11: 
 # resultado
-erro 65:28: Não foi possível abrir o arquivo '<pasta>/placar.txt' para leitura
+fim

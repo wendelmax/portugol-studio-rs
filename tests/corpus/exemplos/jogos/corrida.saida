@@ -2,4 +2,4 @@
 # saída
 
 # resultado
-erro 193:3: A função "Graficos.iniciar_modo_grafico" ainda não está disponível nesta versão.
+erro 208:17: A função "Sons.carregar_som" ainda não está disponível nesta versão.

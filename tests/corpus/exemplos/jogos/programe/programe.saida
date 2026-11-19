@@ -17,5 +17,7 @@ aviso sem.conversion 1832:65 o valor do tipo "inteiro" será convertido para "re
 aviso sem.conversion 1832:70 o valor do tipo "inteiro" será convertido para "real"
 # saída
 
+# gráficos
+21265 quadro(s), resumo f5e0507a61d8687e
 # resultado
-erro 1878:3: A função "Graficos.iniciar_modo_grafico" ainda não está disponível nesta versão.
+limite de instruções

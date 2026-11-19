@@ -2,5 +2,7 @@
 aviso sem.conversion 171:19 o valor do tipo "inteiro" será convertido para "real"
 # saída
 
+# gráficos
+1 quadro(s), resumo e426d250f054d429
 # resultado
-erro 136:3: A função "Graficos.iniciar_modo_grafico" ainda não está disponível nesta versão.
+erro 158:20: A função "Sons.carregar_som" ainda não está disponível nesta versão.

@@ -85,6 +85,10 @@ impl<'a> Vm<'a> {
             .map(|n| stdlib::constant(&n.library, &n.name))
             .collect();
 
+        let interrupt = Arc::new(AtomicBool::new(false));
+        let mut ctx = NativeContext::new();
+        ctx.interrupt = Arc::clone(&interrupt);
+
         let entry = &module.functions[module.entry as usize];
         let stack = vec![Value::Void; entry.locals.len()];
 
@@ -101,15 +105,15 @@ impl<'a> Vm<'a> {
             strings,
             natives,
             consts,
-            ctx: NativeContext::new(),
-            interrupt: Arc::new(AtomicBool::new(false)),
+            ctx,
+            interrupt,
             args: Vec::new(),
         }
     }
 
     /// Fixa a semente do gerador de números aleatórios (útil em testes).
     pub fn with_seed(mut self, seed: u64) -> Self {
-        self.ctx = NativeContext::with_seed(seed);
+        self.ctx.reseed(seed);
         self
     }
 
@@ -148,6 +152,7 @@ impl<'a> Vm<'a> {
     /// Usa um sinalizador de interrupção criado fora da VM (por exemplo,
     /// antes de mover a execução para outra thread).
     pub fn with_interrupt(mut self, interrupt: Arc<AtomicBool>) -> Self {
+        self.ctx.interrupt = Arc::clone(&interrupt);
         self.interrupt = interrupt;
         self
     }

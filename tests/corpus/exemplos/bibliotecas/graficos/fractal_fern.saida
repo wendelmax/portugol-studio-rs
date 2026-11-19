@@ -2,5 +2,7 @@
 aviso sem.conversion 76:26 o valor do tipo "real" será convertido para "inteiro"
 # saída
 
+# gráficos
+1 quadro(s), resumo aa0bda89fb6e49d1
 # resultado
-erro 39:3: A função "Graficos.iniciar_modo_grafico" ainda não está disponível nesta versão.
+erro 58:13: A janela do modo gráfico foi fechada.

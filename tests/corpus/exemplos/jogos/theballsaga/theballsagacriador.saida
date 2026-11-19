@@ -10,5 +10,7 @@ aviso sem.shadowed 996:73 o parâmetro "linhas" oculta um símbolo global de mes
 aviso sem.shadowed 1009:20 a declaração de "prop" oculta um símbolo global de mesmo nome
 # saída
 
+# gráficos
+10 quadro(s), resumo ac425681dcfeabda
 # resultado
-erro 58:21: A função "Graficos.criar_cor" ainda não está disponível nesta versão.
+limite de instruções

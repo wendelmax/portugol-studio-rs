@@ -540,7 +540,9 @@ fn sorteia_respeita_o_intervalo() {
 }
 
 #[test]
-fn biblioteca_grafica_ainda_nao_disponivel() {
+fn biblioteca_grafica_sem_host() {
+    // A biblioteca está implementada, mas precisa de um host com janela.
+    // Sem host, a abertura falha com a mensagem padrão de recurso indisponível.
     let error = erro(
         r#"
         programa {
@@ -550,9 +552,7 @@ fn biblioteca_grafica_ainda_nao_disponivel() {
         "#,
     );
     assert!(
-        error
-            .message
-            .contains("\"Graficos.iniciar_modo_grafico\" ainda não está disponível"),
+        error.message.contains("modo gráfico"),
         "{}",
         error.message
     );

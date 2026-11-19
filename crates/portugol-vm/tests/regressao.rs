@@ -2,7 +2,8 @@
 //! Studio original).
 //!
 //! Para cada `programa.por` existe um `programa.saida` com os diagnósticos, a
-//! saída do programa e como a execução terminou. Um `programa.entrada`
+//! saída do programa, um resumo dos quadros desenhados (Graficos) e como a
+//! execução terminou. Um `programa.entrada`
 //! opcional fornece as linhas lidas pelo `leia`. A execução é determinística:
 //! semente fixa, relógio simulado e limite de instruções.
 //!
@@ -16,10 +17,12 @@
 
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 
 use portugol_syntax::span::line_col;
 use portugol_syntax::{Severity, parse};
-use portugol_vm::{BufferIo, Status, Vm};
+use portugol_vm::graphics::{InputState, WindowCommand};
+use portugol_vm::{BufferIo, Host, Status, Vm};
 
 /// Limite por programa; jogos com laço infinito param aqui.
 const BUDGET: usize = 2_000_000;
@@ -42,12 +45,70 @@ fn collect(dir: &Path, files: &mut Vec<PathBuf>) {
     }
 }
 
-/// Pasta de trabalho dos programas (Arquivos); aparece como `<pasta>` nas
-/// saídas para que sejam iguais em qualquer máquina.
-fn work_dir() -> PathBuf {
+/// Cópia do corpus numa pasta temporária: os programas rodam a partir da
+/// própria pasta (como na IDE) e podem gravar arquivos sem sujar o
+/// repositório. O caminho aparece como `<pasta>` nas saídas.
+fn copy_corpus() -> PathBuf {
     let dir = std::env::temp_dir().join(format!("portugol-regressao-{}", std::process::id()));
-    std::fs::create_dir_all(&dir).expect("criar pasta temporária");
+    copy_dir(&corpus_dir(), &dir);
     dir
+}
+
+fn copy_dir(from: &Path, to: &Path) {
+    std::fs::create_dir_all(to).expect("criar pasta temporária");
+    for entry in std::fs::read_dir(from).expect("ler corpus").flatten() {
+        let target = to.join(entry.file_name());
+        if entry.path().is_dir() {
+            copy_dir(&entry.path(), &target);
+        } else {
+            std::fs::copy(entry.path(), &target).expect("copiar arquivo do corpus");
+        }
+    }
+}
+
+/// Janela gráfica sem tela: aceita os quadros, conta e resume o conteúdo.
+/// Teclado e mouse nunca recebem eventos; esperar uma tecla dá erro.
+#[derive(Default)]
+struct Frames {
+    count: usize,
+    hash: u64,
+}
+
+struct Headless {
+    frames: Arc<Mutex<Frames>>,
+    input: Arc<InputState>,
+}
+
+impl Host for Headless {
+    fn graphics_open(&mut self, _: i32, _: i32) -> Result<(), String> {
+        Ok(())
+    }
+
+    fn graphics_present(&mut self, frame: Vec<u8>) -> Result<(), String> {
+        let mut frames = self.frames.lock().unwrap();
+        frames.count += 1;
+        // FNV-1a: o mesmo programa gera os mesmos quadros em qualquer máquina.
+        for byte in frame {
+            frames.hash = (frames.hash ^ byte as u64).wrapping_mul(0x100_0000_01b3);
+        }
+        Ok(())
+    }
+
+    fn graphics_snapshot(&mut self, _: Vec<u8>, width: i32, height: i32) -> Result<Vec<u8>, String> {
+        Ok(vec![0; (width * height * 4) as usize])
+    }
+
+    fn graphics_window(&mut self, _: WindowCommand) -> Result<(), String> {
+        Ok(())
+    }
+
+    fn screen_size(&mut self) -> Result<(i32, i32), String> {
+        Ok((1920, 1080))
+    }
+
+    fn input(&mut self) -> Option<Arc<InputState>> {
+        Some(Arc::clone(&self.input))
+    }
 }
 
 /// Relatório textual de uma execução, no formato dos `.saida`.
@@ -82,8 +143,19 @@ fn report(source: &str, input: &str, dir: &Path) -> String {
         }
     };
 
+    let frames = Arc::new(Mutex::new(Frames {
+        count: 0,
+        hash: 0xcbf2_9ce4_8422_2325,
+    }));
+    let keyboard = Arc::new(InputState::default());
+    keyboard.close();
+    let host = Headless {
+        frames: Arc::clone(&frames),
+        input: keyboard,
+    };
     let mut io = BufferIo::new(input);
     let outcome = Vm::new(&module, &mut io)
+        .with_host(Box::new(host))
         .with_seed(SEED)
         .with_simulated_time(EPOCH_MS)
         .offline()
@@ -93,6 +165,10 @@ fn report(source: &str, input: &str, dir: &Path) -> String {
     out.push_str(&io.output);
     if !io.output.ends_with('\n') {
         out.push('\n');
+    }
+    let frames = frames.lock().unwrap();
+    if frames.count > 0 {
+        let _ = writeln!(out, "# gráficos\n{} quadro(s), resumo {:016x}", frames.count, frames.hash);
     }
     out.push_str("# resultado\n");
     let outcome = outcome.map_err(|mut error| {
@@ -126,12 +202,13 @@ fn corpus_do_portugol_studio() {
 
     let update = std::env::var_os("PORTUGOL_ATUALIZAR").is_some();
     let mut failures = Vec::new();
-    let dir = work_dir();
+    let copy = copy_corpus();
 
     for file in &files {
         let source = std::fs::read_to_string(file).expect("ler .por");
         let input = std::fs::read_to_string(file.with_extension("entrada")).unwrap_or_default();
-        let actual = report(&source, &input, &dir);
+        let program_dir = copy.join(file.strip_prefix(corpus_dir()).unwrap()).parent().unwrap().to_path_buf();
+        let actual = report(&source, &input, &program_dir);
         let expected_path = file.with_extension("saida");
 
         if update {
@@ -148,7 +225,7 @@ fn corpus_do_portugol_studio() {
         }
     }
 
-    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::remove_dir_all(&copy);
     assert!(
         failures.is_empty(),
         "{} de {} programas mudaram de comportamento \

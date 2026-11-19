@@ -1,5 +1,7 @@
 # diagnósticos
 # saída
 
+# gráficos
+1536 quadro(s), resumo 5b44e4fa45d27e3b
 # resultado
-erro 84:3: A função "Graficos.iniciar_modo_grafico" ainda não está disponível nesta versão.
+limite de instruções

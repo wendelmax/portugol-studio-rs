@@ -1,5 +1,7 @@
 # diagnósticos
 # saída
 
+# gráficos
+1 quadro(s), resumo 431bc7b39880d87d
 # resultado
-erro 2010:3: A função "Graficos.iniciar_modo_grafico" ainda não está disponível nesta versão.
+erro 2019:20: A janela do modo gráfico foi fechada.

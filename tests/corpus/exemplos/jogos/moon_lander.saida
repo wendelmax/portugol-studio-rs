@@ -2,4 +2,4 @@
 # saída
 
 # resultado
-erro 1283:32: A função "Graficos.carregar_imagem" ainda não está disponível nesta versão.
+erro 1305:17: A função "Sons.carregar_som" ainda não está disponível nesta versão.

@@ -1,5 +1,7 @@
 # diagnósticos
 # saída
-
+Linha 1:   1| Jo�o    | 1250 pontos
+Linha 2:   2| Julia   | 1157 pontos
+Linha 3:   3| Rafael  |  981 pontos
 # resultado
-erro 65:28: Não foi possível abrir o arquivo '<pasta>/placar.txt' para leitura
+fim
