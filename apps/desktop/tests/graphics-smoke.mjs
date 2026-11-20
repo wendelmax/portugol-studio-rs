@@ -41,12 +41,16 @@ const program = String.raw`programa {
 }`;
 
 const app = spawn(process.argv[2] ?? "target/debug/portugol-desktop", [], {
-  env: { ...process.env, GDK_BACKEND: "x11" },
+  env: {
+    ...process.env,
+    GDK_BACKEND: "x11",
+    WEBKIT_DISABLE_COMPOSITING_MODE: "1",
+  },
   stdio: ["ignore", "inherit", "inherit"],
 });
 
 function xdotool(...args) {
-  return execFileSync("xdotool", args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+  return execFileSync("xdotool", args, { encoding: "utf8", timeout: 3000, stdio: ["ignore", "pipe", "ignore"] });
 }
 
 function windowByTitle(title) {
@@ -57,8 +61,28 @@ function windowByTitle(title) {
   }
 }
 
+function mainWindow() {
+  const named = windowByTitle("^Portugol Studio$");
+  if (named) return named;
+  // O título exposto pelo GTK pode variar com o gerenciador de janelas.
+  // O Xvfb é exclusivo do teste e a IDE é sua única janela grande.
+  try {
+    const [screenWidth, screenHeight] = xdotool("getdisplaygeometry").trim().split(/\s+/).map(Number);
+    return xdotool("search", "--onlyvisible", "--name", ".*").trim().split("\n").find((id) => {
+      const size = xdotool("getwindowgeometry", "--shell", id);
+      const width = Number(size.match(/^WIDTH=(\d+)/m)?.[1]);
+      const height = Number(size.match(/^HEIGHT=(\d+)/m)?.[1]);
+      return width >= 640 && height >= 480 && (width < screenWidth || height < screenHeight);
+    });
+  } catch {
+    return "";
+  }
+}
+
 function pixel(window) {
-  const bytes = execFileSync("import", ["-window", window, "-crop", "1x1+50+40", "-depth", "8", "rgb:-"]);
+  const bytes = execFileSync("import", ["-window", window, "-crop", "1x1+50+40", "-depth", "8", "rgb:-"], {
+    timeout: 3000,
+  });
   return [...bytes.slice(0, 3)].join(",");
 }
 
@@ -75,10 +99,11 @@ async function waitFor(label, read, accept = Boolean) {
 }
 
 try {
-  const main = await waitFor("A IDE não abriu", () => windowByTitle("^Portugol Studio$"));
-  xdotool("windowfocus", "--sync", main);
+  const main = await waitFor("A IDE não abriu", mainWindow);
+  console.log("Janela principal identificada:", main);
+  xdotool("windowfocus", main);
   const copy = (text) => execFileSync("xclip", ["-selection", "clipboard", "-i"], {
-    input: text, stdio: ["pipe", "ignore", "ignore"],
+    input: text, timeout: 3000, stdio: ["pipe", "ignore", "ignore"],
   });
   await waitFor("O editor não recebeu o programa", async () => {
     xdotool("key", "ctrl+n");
@@ -89,21 +114,29 @@ try {
     copy("Verificação da área de transferência");
     xdotool("key", "ctrl+a", "ctrl+c");
     await delay(150);
-    const copied = execFileSync("xclip", ["-selection", "clipboard", "-o"], { encoding: "utf8" });
+    const copied = execFileSync("xclip", ["-selection", "clipboard", "-o"], { encoding: "utf8", timeout: 3000 });
     return copied.trimEnd() === program.trimEnd();
   });
+  console.log("Programa colado e conferido no editor.");
   xdotool("key", "shift+F6");
   const graphics = await waitFor(
     "Janela gráfica não encontrada", () => windowByTitle("^Portugol Verificacao Grafica$"),
   );
   assert.equal(await waitFor("Primeiro quadro", () => pixel(graphics), (rgb) => rgb === "255,136,0"), "255,136,0");
   await delay(200);
-  xdotool("windowfocus", "--sync", graphics, "key", "l");
+  xdotool("windowfocus", graphics, "key", "l");
   assert.equal(await waitFor("Evento de teclado", () => pixel(graphics), (rgb) => rgb === "255,0,255"), "255,0,255");
   await delay(200);
   xdotool("mousemove", "--window", graphics, "50", "40", "click", "1");
   assert.equal(await waitFor("Mouse e captura RGBA", () => pixel(graphics), (rgb) => rgb === "0,255,0"), "0,255,0");
   console.log("Janela gráfica verificada com renderização, teclado, mouse e captura RGBA.");
+} catch (error) {
+  try {
+    console.error(execFileSync("xwininfo", ["-root", "-tree"], { encoding: "utf8", timeout: 3000 }));
+  } catch (displayError) {
+    console.error(displayError.message);
+  }
+  throw error;
 } finally {
   app.kill();
 }
