@@ -6,73 +6,109 @@
     <title>Portugol Studio</title>
   </head>
   <body>
-    <header class="toolbar">
-      <div class="group">
-        <button id="btn-new" title="Novo (Ctrl+N)">Novo</button>
-        <button id="btn-open" title="Abrir (Ctrl+O)">Abrir</button>
-        <button id="btn-save" title="Salvar (Ctrl+S)">Salvar</button>
-        <button id="btn-save-as" title="Salvar como (Ctrl+Shift+S)">Salvar como</button>
-      </div>
-      <div class="group">
-        <button id="btn-run" class="primary" title="Executar (Shift+F6 ou Ctrl+Enter)">▶ Executar</button>
-        <button id="btn-stop" title="Parar (Shift+F7)" disabled>■ Parar</button>
-        <label class="args" title="Parâmetros recebidos por funcao inicio(cadeia params[])">
-          Parâmetros
-          <input id="args" type="text" spellcheck="false" placeholder="separados por espaço" />
-        </label>
-      </div>
-      <div class="group" id="debug-controls" title="Durante a execução, clique na margem esquerda para criar pontos de parada">
-        <button id="btn-debug-pause" title="Pausar (F9)" disabled>⏸ Pausar</button>
-        <button id="btn-debug-continue" title="Continuar (F5)" disabled>▶ Continuar</button>
-        <button id="btn-debug-step-over" title="Passo por cima (F10)" disabled>↷ Passo</button>
-        <button id="btn-debug-step-into" title="Entrar na função (F11)" disabled>↳ Entrar</button>
-        <button id="btn-debug-step-out" title="Sair da função (Shift+F11)" disabled>↰ Sair</button>
-      </div>
-      <label class="theme">
-        Tema
-        <select id="theme">
-          <option value="system">Sistema</option>
-          <option value="light">Claro</option>
-          <option value="dark">Escuro</option>
-        </select>
-      </label>
-    </header>
+    <nav id="tabs" class="tabs" aria-label="Abas"></nav>
 
-    <nav id="tabs" class="tabs" role="tablist"></nav>
-
-    <main class="workspace">
-      <section id="editor" class="editor"></section>
-      <div id="splitter" class="splitter" role="separator" aria-orientation="horizontal"></div>
-      <section class="panel">
-        <div class="panel-tabs" role="tablist">
-          <button id="tab-console" class="active" role="tab">Console</button>
-          <button id="tab-messages" role="tab">Mensagens <span id="message-count"></span></button>
-          <button id="tab-debug" role="tab">Depuração</button>
-          <button id="btn-clear" class="right" title="Limpar o console">Limpar</button>
-        </div>
-        <div id="console" class="console" tabindex="0">
-          <pre id="console-output"></pre>
-          <form id="console-form" class="console-input" hidden>
-            <span id="console-hint"></span>
-            <input id="console-input" type="text" spellcheck="false" autocomplete="off" />
-          </form>
-        </div>
-        <ul id="messages" class="messages" hidden></ul>
-        <div id="debug" class="debug" hidden>
-          <div class="debug-col">
-            <h3>Pilha de chamadas</h3>
-            <ol id="debug-stack"></ol>
-          </div>
-          <div class="debug-col">
-            <h3>Variáveis</h3>
-            <table id="debug-vars">
-              <thead><tr><th>Nome</th><th>Tipo</th><th>Valor</th><th>Escopo</th></tr></thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </div>
+    <main id="home" class="home">
+      <section class="home-actions">
+        <img src="./src-tauri/icons/128x128.png" alt="" width="96" height="96" />
+        <h1>Portugol Studio</h1>
+        <button id="home-new" class="primary">Novo arquivo</button>
+        <button id="home-open">Abrir arquivo</button>
+        <section id="recent" aria-labelledby="recent-title" hidden>
+          <h2 id="recent-title">Arquivos recentes</h2>
+          <div id="recent-files"></div>
+        </section>
+        <button id="home-shortcuts">Atalhos de teclado (F11)</button>
+      </section>
+      <section class="home-examples">
+        <h2>Exemplos</h2>
+        <input id="example-search" type="search" placeholder="Buscar exemplos" aria-label="Buscar exemplos" />
+        <div id="examples"></div>
+        <p id="examples-empty" role="status" hidden>Nenhum exemplo encontrado.</p>
       </section>
     </main>
+
+    <main id="code" class="code" hidden>
+      <aside class="code-toolbar" aria-label="Comandos do editor">
+        <button id="btn-run" class="primary" title="Executar (Shift+F6 ou Ctrl+Enter)">▶ Executar</button>
+        <button id="btn-debug" title="Depurar (Shift+F5)">Depurar</button>
+        <button id="btn-stop" title="Interromper (Shift+F7)" disabled>■ Interromper</button>
+        <hr />
+        <button id="btn-save" title="Salvar (Ctrl+S)">Salvar</button>
+        <button id="btn-save-as" title="Salvar como (Ctrl+Shift+S)">Salvar como</button>
+        <button id="btn-open" title="Abrir (Ctrl+O)">Abrir</button>
+      </aside>
+      <div class="workspace">
+        <header class="toolbar">
+          <label class="args" title="Parâmetros recebidos por funcao inicio(cadeia params[])">
+            Parâmetros
+            <input id="args" type="text" spellcheck="false" placeholder="separados por espaço" />
+          </label>
+          <div class="group" id="debug-controls" title="Durante a execução, clique na margem esquerda para criar pontos de parada">
+            <button id="btn-debug-pause" title="Pausar (F9)" disabled>⏸ Pausar</button>
+            <button id="btn-debug-continue" title="Continuar (F5)" disabled>▶ Continuar</button>
+            <button id="btn-debug-step-over" title="Passo por cima (F10)" disabled>↷ Passo</button>
+            <button id="btn-debug-step-into" title="Entrar na função (Alt+F11)" disabled>↳ Entrar</button>
+            <button id="btn-debug-step-out" title="Sair da função (Shift+F11)" disabled>↰ Sair</button>
+          </div>
+          <label class="font-size" for="editor-font">Fonte
+            <input id="editor-font" type="number" min="10" max="50" value="12" />
+          </label>
+          <label class="theme">
+            Tema
+            <select id="theme">
+              <option value="system">Sistema</option>
+              <option value="light">Claro</option>
+              <option value="dark">Escuro</option>
+            </select>
+          </label>
+        </header>
+
+        <section id="editor" class="editor"></section>
+        <div id="splitter" class="splitter" role="separator" aria-orientation="horizontal"></div>
+        <section class="panel">
+          <div class="panel-tabs" role="tablist">
+            <button id="tab-console" class="active" role="tab">Console</button>
+            <button id="tab-messages" role="tab">Mensagens <span id="message-count"></span></button>
+            <button id="tab-debug" role="tab">Depuração</button>
+            <div id="console-tools" class="right">
+              <label class="font-size" for="console-font">Fonte
+                <input id="console-font" type="number" min="10" max="50" value="12" />
+              </label>
+              <button id="btn-copy" title="Copiar a saída do console">Copiar</button>
+              <button id="btn-clear" title="Limpar o console">Limpar</button>
+            </div>
+          </div>
+          <div id="console" class="console" tabindex="0">
+            <pre id="console-output"></pre>
+            <form id="console-form" class="console-input" hidden>
+              <span id="console-hint"></span>
+              <input id="console-input" type="text" spellcheck="false" autocomplete="off" />
+            </form>
+          </div>
+          <ul id="messages" class="messages" hidden></ul>
+          <div id="debug" class="debug" hidden>
+            <div class="debug-col">
+              <h3>Pilha de chamadas</h3>
+              <ol id="debug-stack"></ol>
+            </div>
+            <div class="debug-col">
+              <h3>Variáveis</h3>
+              <table id="debug-vars">
+                <thead><tr><th>Nome</th><th>Tipo</th><th>Valor</th><th>Escopo</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <dialog id="shortcuts" aria-labelledby="shortcuts-title">
+      <h2 id="shortcuts-title">Atalhos de teclado</h2>
+      <dl id="shortcut-list"></dl>
+      <form method="dialog"><button>Fechar</button></form>
+    </dialog>
 
     <footer class="statusbar">
       <span id="status">Pronto</span>

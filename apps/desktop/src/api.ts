@@ -51,8 +51,8 @@ export interface DebugInfo {
 export const check = (source: string) => invoke<DiagnosticInfo[]>("check", { source });
 
 /** Id da execução; rejeita com a lista de erros se o programa não compila. */
-export const run = (source: string, args: string[], path: string | null, breakpoints: number[] = []) =>
-  invoke<number>("run", { source, args, path, breakpoints });
+export const run = (source: string, args: string[], path: string | null, breakpoints: number[] = [], pauseOnStart = false) =>
+  invoke<number>("run", { source, args, path, breakpoints, pauseOnStart });
 
 export const sendInput = (id: number, line: string) => invoke<void>("send_input", { id, line });
 

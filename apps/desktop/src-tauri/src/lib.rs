@@ -146,6 +146,7 @@ fn run(
     args: Vec<String>,
     path: Option<String>,
     breakpoints: Vec<u32>,
+    pause_on_start: Option<bool>,
 ) -> Result<u32, Vec<DiagnosticInfo>> {
     let id = runs.next_id.fetch_add(1, Ordering::Relaxed) + 1;
     let mut current = runs.current.lock().unwrap_or_else(|e| e.into_inner());
@@ -162,6 +163,7 @@ fn run(
         args,
         working_dir,
         breakpoints,
+        pause_on_start: pause_on_start.unwrap_or_default(),
     };
     let handle = portugol_service::start(&source, options, observer)?;
     *current = Some((id, handle));

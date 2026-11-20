@@ -78,6 +78,8 @@ pub struct RunOptions {
     pub working_dir: Option<std::path::PathBuf>,
     /// Linhas (base 1) com ponto de parada.
     pub breakpoints: Vec<u32>,
+    /// Solicita uma pausa antes da primeira instrução.
+    pub pause_on_start: bool,
 }
 
 struct ServiceHost {
@@ -236,6 +238,9 @@ pub fn start(
         })
     };
     debug.set_breakpoints(breakpoints);
+    if options.pause_on_start {
+        debug.request_pause();
+    }
     let handle_debug = debug.clone();
 
     let thread = thread::Builder::new()

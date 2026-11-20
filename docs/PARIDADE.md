@@ -49,19 +49,19 @@ são executados e validados sem tela.
 | Autocompletar (`PSAutoCompletion`) | ✅ | palavras, snippets, funções de bibliotecas |
 | Erros ao digitar e painel de mensagens (`AbaMensagemCompilador`) | ✅ | |
 | Abas de arquivos, abrir, salvar, salvar como | ✅ | |
-| Console com entrada (`AbaConsole`) | ✅ | |
-| Depuração na IDE (`AbaDepuracao`, `Depurador`) | ✅ | gutter de breakpoints, barra de comandos, pilha e variáveis |
+| Console com entrada (`AbaConsole`) | ✅ | entrada, limpar, copiar e ajustar fonte |
+| Depuração na IDE (`AbaDepuracao`, `Depurador`) | ✅ | gutter de breakpoints, início pausado com Shift+F5, pilha e variáveis |
 | Localizar e substituir (`PSFindReplace`) | ✅ | Ctrl+F do CodeMirror |
-| Atalhos do original (`TelaAtalhos`) | ✅ | |
-| Temas claro/escuro (`TelaEditarTemas`) | 🟡 | claro, escuro e do sistema; sem editor de temas |
+| Atalhos do original (`TelaAtalhos`) | 🟡 | tela F11, execução, arquivos, abas e próxima instrução; atalhos restantes ainda divergem |
+| Temas claro/escuro (`TelaEditarTemas`) | 🟡 | claro, escuro e do sistema com paletas do editor; falta editor de temas |
 | Expandir editor (Shift+Esc) | ✅ | |
-| Tela inicial com exemplos (`AbaInicial`, `PainelExemplos`) | ⬜ | |
+| Tela inicial com exemplos (`AbaInicial`, `PainelExemplos`) | 🟡 | Abrir/Novo, até seis recentes, busca, três categorias de exemplos executáveis no console e tela de atalhos; faltam ajuda, dicas e Sobre |
 | Ajuda da linguagem e das bibliotecas (`abaAjuda`, `assets/ajuda`) | ⬜ | |
 | Árvore estrutural (variáveis e funções do programa) | ⬜ | |
 | Renomear símbolo (`TelaRenomearSimbolo`) | ⬜ | |
 | Formatador de código (`editor/formatador`) | ⬜ | |
 | Exercícios com correção automática (`assets/exercicios`, módulo `checker`) | ⬜ | |
-| Tamanho da fonte do editor | ⬜ | |
+| Tamanho da fonte do editor | ✅ | ajuste de 10 a 50, salvo localmente |
 | Dicas de interface (`TelaDicas`) | ⬜ | |
 | Sobre / licenças (`Sobre`, `TelaLicencas`) | ⬜ | |
 | Verificação de atualizações (`TelaAtualizacoes`) | ⬜ | updater do Tauri |

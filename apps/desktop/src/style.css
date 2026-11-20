@@ -11,6 +11,16 @@
   --ok: #1b7f3b;
   --input-echo: #2563eb;
   --tab-active: #ffffff;
+  --editor-bg: #fafafa;
+  --editor-line: #eeeff1;
+  --editor-selection: #cfe3ff;
+  --editor-gutter: #52616b;
+  --syntax-keyword: #0000ff;
+  --syntax-type: #008080;
+  --syntax-number: #6400c8;
+  --syntax-string: #dc009c;
+  --syntax-comment: #606f76;
+  --syntax-operator: #353b45;
   --mono: "JetBrains Mono", "Cascadia Code", "Fira Code", Consolas, "DejaVu Sans Mono", monospace;
   color-scheme: light;
 }
@@ -19,33 +29,55 @@
    sistema quando o seletor está em "Sistema". */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #1b1e24;
-    --surface: #23272e;
-    --border: #353b45;
-    --text: #d7dce4;
-    --muted: #8b95a5;
-    --accent: #4d8bf5;
-    --error: #ef6b6b;
-    --warning: #e5a53a;
-    --ok: #5fc27e;
-    --input-echo: #7fb0ff;
-    --tab-active: #282c34;
+    --bg: #121e24;
+    --surface: #263238;
+    --border: #445056;
+    --text: #cdcdcd;
+    --muted: #a8b5bc;
+    --accent: #45bdff;
+    --accent-text: #121e24;
+    --error: #ff756e;
+    --warning: #ffc200;
+    --ok: #00efc0;
+    --input-echo: #45bdff;
+    --tab-active: #3a464c;
+    --editor-bg: #263238;
+    --editor-line: #2f393c;
+    --editor-selection: #404e51;
+    --editor-gutter: #8fa2ae;
+    --syntax-keyword: #f1433c;
+    --syntax-type: #45beff;
+    --syntax-number: #00f0c0;
+    --syntax-string: #ffc200;
+    --syntax-comment: #8b9ba3;
+    --syntax-operator: #e8e2b7;
     color-scheme: dark;
   }
 }
 
 :root[data-theme="dark"] {
-  --bg: #1b1e24;
-  --surface: #23272e;
-  --border: #353b45;
-  --text: #d7dce4;
-  --muted: #8b95a5;
-  --accent: #4d8bf5;
-  --error: #ef6b6b;
-  --warning: #e5a53a;
-  --ok: #5fc27e;
-  --input-echo: #7fb0ff;
-  --tab-active: #282c34;
+  --bg: #121e24;
+  --surface: #263238;
+  --border: #445056;
+  --text: #cdcdcd;
+  --muted: #a8b5bc;
+  --accent: #45bdff;
+  --accent-text: #121e24;
+  --error: #ff756e;
+  --warning: #ffc200;
+  --ok: #00efc0;
+  --input-echo: #45bdff;
+  --tab-active: #3a464c;
+  --editor-bg: #263238;
+  --editor-line: #2f393c;
+  --editor-selection: #404e51;
+  --editor-gutter: #8fa2ae;
+  --syntax-keyword: #f1433c;
+  --syntax-type: #45beff;
+  --syntax-number: #00f0c0;
+  --syntax-string: #ffc200;
+  --syntax-comment: #8b9ba3;
+  --syntax-operator: #e8e2b7;
   color-scheme: dark;
 }
 
@@ -209,6 +241,22 @@ select {
 
 .editor .cm-editor {
   height: 100%;
+  background: var(--editor-bg);
+}
+
+.editor .cm-gutters {
+  background: var(--editor-bg);
+  color: var(--editor-gutter);
+}
+
+.editor .cm-activeLine,
+.editor .cm-activeLineGutter {
+  background: var(--editor-line);
+}
+
+.editor .cm-editor .cm-selectionBackground,
+.editor .cm-editor.cm-focused .cm-selectionBackground {
+  background: var(--editor-selection);
 }
 
 .editor .cm-scroller {
@@ -464,4 +512,172 @@ select {
 
 .debug-col td:last-child {
   color: var(--muted);
+}
+
+/* Tela inicial e barra de comandos */
+.home {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: minmax(170px, 260px) minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+  padding: clamp(16px, 4vw, 48px);
+}
+
+.home-actions,
+.home-examples {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.home-actions {
+  justify-items: center;
+}
+
+.home-actions button {
+  width: 100%;
+}
+
+.home h1,
+.home h2 {
+  margin: 0;
+}
+
+.home h1 {
+  font-size: 22px;
+}
+
+.home h2 {
+  font-size: 16px;
+}
+
+#examples details {
+  border-top: 1px solid var(--border);
+  padding: 8px 0;
+}
+
+#examples summary {
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+#examples button {
+  display: block;
+  margin: 4px 0 4px 16px;
+  text-align: left;
+}
+
+.code {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.code .workspace {
+  min-width: 0;
+}
+
+.code-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-right: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.code-toolbar button {
+  text-align: left;
+}
+
+.code-toolbar hr {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.tab {
+  flex-shrink: 0;
+  background: transparent;
+}
+
+.tab.active {
+  box-shadow: inset 0 -2px #d7a600;
+}
+
+.file-tab > button:first-child {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+#recent {
+  width: 100%;
+  min-width: 0;
+}
+
+#recent-files {
+  display: grid;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+#recent-files button {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+#shortcuts {
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 20px;
+  max-height: calc(100% - 24px);
+}
+
+#shortcuts::backdrop {
+  background: rgb(0 0 0 / 55%);
+}
+
+#shortcuts h2 {
+  margin-top: 0;
+}
+
+#shortcut-list {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+}
+
+#shortcut-list dd {
+  margin: 0;
+}
+
+.editor .cm-scroller {
+  font-size: var(--editor-font, 12px);
+}
+
+.console,
+.console pre,
+.console-input input {
+  font-family: "DejaVu Sans Mono", var(--mono);
+  font-size: var(--console-font, 12px);
+}
+
+.font-size,
+#console-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.font-size input {
+  width: 4.5em;
 }

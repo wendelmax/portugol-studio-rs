@@ -222,3 +222,28 @@ fn programa_com_erro_nao_executa() {
     };
     assert_eq!(errors[0].code, "sem.symbol-not-declared");
 }
+
+#[test]
+fn depuracao_inicia_pausada_sem_ponto_de_parada() {
+    let (observer, rx) = recorder();
+    let handle = start(
+        "programa { funcao inicio() { escreva(42) } }",
+        RunOptions {
+            pause_on_start: true,
+            ..RunOptions::default()
+        },
+        observer,
+    )
+    .expect("compilar");
+    let Event::Paused(info) = next(&rx) else {
+        panic!("esperava pausa antes da primeira instrução");
+    };
+    assert_eq!(info.stack[0].function, "inicio");
+    handle.continue_run();
+    let events = collect_until_finished(&rx);
+    assert!(matches!(
+        events.last(),
+        Some(Event::Finished(RunOutcome::Finished))
+    ));
+    handle.join();
+}
