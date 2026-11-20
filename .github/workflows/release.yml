@@ -1,19 +1,27 @@
 name: Release
 
-# Gera os instaladores quando uma tag v* é enviada (ex.: git tag v0.1.0 &&
-# git push origin v0.1.0) ou manualmente. O release fica como rascunho para
-# revisão. Assinatura: veja docs/DISTRIBUICAO.md.
+# Gera os instaladores e publica um release em rascunho quando uma tag v* é
+# enviada (ex.: git tag v0.1.0 && git push origin v0.1.0) ou quando o workflow
+# é disparado manualmente. Assinatura é opcional: veja docs/DISTRIBUICAO.md.
 
 on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag do release (ex.: v0.2.0). Vazia usa v<número>-dev"
+        required: false
+        type: string
 
 permissions:
   contents: write
 
 jobs:
   instaladores:
+    # O release criado pela action cria a tag v* no repositório; sem este
+    # filtro, um disparo manual causaria outro disparo por push de tag.
+    if: github.actor != 'github-actions[bot]'
     name: ${{ matrix.nome }}
     strategy:
       fail-fast: false
@@ -33,23 +41,24 @@ jobs:
             args: --target x86_64-apple-darwin
     runs-on: ${{ matrix.os }}
     env:
-      # Assinatura no Windows (uma das duas opções; sem nenhuma, o instalador
-      # sai sem assinatura).
-      WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
-      WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      AZURE_SIGNING_ENDPOINT: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
-      AZURE_SIGNING_ACCOUNT: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
-      AZURE_CERTIFICATE_PROFILE: ${{ secrets.AZURE_CERTIFICATE_PROFILE }}
-      # Assinatura e notarização no macOS (usadas pelo tauri-action).
-      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      # Os secrets são lidos aqui e exportados com os nomes que o Tauri espera
+      # apenas quando não estão vazios. Exportar uma variável vazia faz o
+      # bundler tentar importar um certificado inexistente (e falhar).
+      WINDOWS_CERTIFICATE_SECRET: ${{ secrets.WINDOWS_CERTIFICATE }}
+      WINDOWS_CERTIFICATE_PASSWORD_SECRET: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+      AZURE_CLIENT_ID_SECRET: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_TENANT_ID_SECRET: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SIGNING_ENDPOINT_SECRET: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+      AZURE_SIGNING_ACCOUNT_SECRET: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+      AZURE_CERTIFICATE_PROFILE_SECRET: ${{ secrets.AZURE_CERTIFICATE_PROFILE }}
+      APPLE_CERTIFICATE_SECRET: ${{ secrets.APPLE_CERTIFICATE }}
+      APPLE_CERTIFICATE_PASSWORD_SECRET: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_SIGNING_IDENTITY_SECRET: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_ID_SECRET: ${{ secrets.APPLE_ID }}
+      APPLE_PASSWORD_SECRET: ${{ secrets.APPLE_PASSWORD }}
+      APPLE_TEAM_ID_SECRET: ${{ secrets.APPLE_TEAM_ID }}
+      RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag || format('v{0}-dev', github.run_number) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -77,12 +86,12 @@ jobs:
 
       # Opção 1: certificado .pfx (OV/EV) em base64 no secret WINDOWS_CERTIFICATE.
       - name: Assinatura Windows com certificado .pfx
-        if: runner.os == 'Windows' && env.WINDOWS_CERTIFICATE != ''
+        if: runner.os == 'Windows' && env.WINDOWS_CERTIFICATE_SECRET != ''
         shell: pwsh
         run: |
           $pfx = Join-Path $env:RUNNER_TEMP "certificado.pfx"
-          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE))
-          $senha = ConvertTo-SecureString -String $env:WINDOWS_CERTIFICATE_PASSWORD -Force -AsPlainText
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_SECRET))
+          $senha = ConvertTo-SecureString -String $env:WINDOWS_CERTIFICATE_PASSWORD_SECRET -Force -AsPlainText
           $cert = Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $senha
           Remove-Item $pfx
           $config = @{ bundle = @{ windows = @{ certificateThumbprint = $cert.Thumbprint } } } | ConvertTo-Json -Depth 5 -Compress
@@ -91,14 +100,27 @@ jobs:
 
       # Opção 2: Azure Trusted Signing (assinatura na nuvem, sem arquivo .pfx).
       - name: Assinatura Windows com Azure Trusted Signing
-        if: runner.os == 'Windows' && env.WINDOWS_CERTIFICATE == '' && env.AZURE_CLIENT_ID != ''
+        if: runner.os == 'Windows' && env.WINDOWS_CERTIFICATE_SECRET == '' && env.AZURE_CLIENT_ID_SECRET != ''
         shell: pwsh
         run: |
           cargo install trusted-signing-cli --locked
-          $cmd = "trusted-signing-cli -e $env:AZURE_SIGNING_ENDPOINT -a $env:AZURE_SIGNING_ACCOUNT -c $env:AZURE_CERTIFICATE_PROFILE -d Portugol-Studio %1"
+          $cmd = "trusted-signing-cli -e $env:AZURE_SIGNING_ENDPOINT_SECRET -a $env:AZURE_SIGNING_ACCOUNT_SECRET -c $env:AZURE_CERTIFICATE_PROFILE_SECRET -d Portugol-Studio %1"
           $config = @{ bundle = @{ windows = @{ signCommand = $cmd } } } | ConvertTo-Json -Depth 5 -Compress
           Set-Content -Path apps/desktop/src-tauri/tauri.assinatura.json -Value $config
           "TAURI_SIGN_CONFIG=--config src-tauri/tauri.assinatura.json" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      # Sem certificado, nenhuma variável APPLE_* é definida e o Tauri gera um
+      # .dmg sem assinatura nem notarização (instalável após abrir com botão
+      # direito → Abrir no macOS).
+      - name: Assinatura macOS
+        if: runner.os == 'macOS' && env.APPLE_CERTIFICATE_SECRET != ''
+        run: |
+          echo "APPLE_CERTIFICATE=$APPLE_CERTIFICATE_SECRET" >> "$GITHUB_ENV"
+          echo "APPLE_CERTIFICATE_PASSWORD=$APPLE_CERTIFICATE_PASSWORD_SECRET" >> "$GITHUB_ENV"
+          echo "APPLE_SIGNING_IDENTITY=$APPLE_SIGNING_IDENTITY_SECRET" >> "$GITHUB_ENV"
+          echo "APPLE_ID=$APPLE_ID_SECRET" >> "$GITHUB_ENV"
+          echo "APPLE_PASSWORD=$APPLE_PASSWORD_SECRET" >> "$GITHUB_ENV"
+          echo "APPLE_TEAM_ID=$APPLE_TEAM_ID_SECRET" >> "$GITHUB_ENV"
 
       - name: Gerar instaladores
         uses: tauri-apps/tauri-action@v0
@@ -106,17 +128,19 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: apps/desktop
-          tagName: ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}-dev', github.run_number) }}
-          releaseName: Portugol Studio RS ${{ github.ref_type == 'tag' && github.ref_name || 'build de desenvolvimento' }}
+          tagName: ${{ env.RELEASE_TAG }}
+          releaseName: Portugol Studio RS ${{ env.RELEASE_TAG }}
           releaseBody: |
-            Instaladores para Windows (.msi e .exe), Linux (.deb, .rpm e .AppImage) e macOS (.dmg).
-            Veja o README para a lista de recursos e o que ainda falta em relação ao Portugol Studio original.
+            Instaladores para Windows (.exe e .msi), Linux (.deb, .rpm e .AppImage)
+            e macOS (.dmg para Apple Silicon e Intel).
+            Veja o README para a lista de recursos e o que ainda falta em relação
+            ao Portugol Studio original.
           releaseDraft: true
           prerelease: ${{ github.ref_type != 'tag' }}
           args: ${{ matrix.args }} ${{ env.TAURI_SIGN_CONFIG }}
 
       - name: Verificar assinatura (Windows)
-        if: runner.os == 'Windows' && (env.WINDOWS_CERTIFICATE != '' || env.AZURE_CLIENT_ID != '')
+        if: runner.os == 'Windows' && (env.WINDOWS_CERTIFICATE_SECRET != '' || env.AZURE_CLIENT_ID_SECRET != '')
         shell: pwsh
         run: |
           $arquivos = Get-ChildItem -Recurse target/release/bundle -Include *.exe,*.msi

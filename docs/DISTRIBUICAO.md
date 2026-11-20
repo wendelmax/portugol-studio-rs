@@ -25,7 +25,13 @@ Os instaladores são gerados pelo workflow
    publique em *Releases* no GitHub.
 
 Também dá para rodar o workflow manualmente (*Actions → Release → Run
-workflow*); nesse caso o release sai como pré-lançamento `v<número>-dev`.
+workflow*). Sem preencher nada, o release sai como pré-lançamento
+`v<número>-dev`; o campo **Tag** permite escolher o nome (por exemplo
+`v0.2.0-rc1`). O workflow gera quatro jobs: Windows x64, Linux x64 e macOS
+Apple Silicon e Intel.
+
+Nenhum secret é obrigatório. Sem certificados, os instaladores são gerados e
+publicados sem assinatura; configure os secrets abaixo para assinar.
 
 ## Assinatura no Windows
 
@@ -88,9 +94,9 @@ o aviso para alguns usuários, até acumular downloads.
 
 ## Assinatura e notarização no macOS
 
-Sem assinatura e notarização, o macOS bloqueia o app ("não pode ser aberto
-porque o desenvolvedor não pode ser verificado"). Requer uma conta no Apple
-Developer Program.
+Sem assinatura e notarização (o padrão, quando não há secrets), o macOS bloqueia
+o app na primeira abertura: use o botão direito → **Abrir**. Para distribuir sem
+esse aviso é preciso uma conta no Apple Developer Program.
 
 1. Crie um certificado **Developer ID Application** e exporte como `.p12`.
 2. Gere uma *app-specific password* em appleid.apple.com.
