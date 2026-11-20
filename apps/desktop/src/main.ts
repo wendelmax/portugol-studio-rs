@@ -5,6 +5,8 @@
 // Alt+←/→ troca de aba, Shift+Esc expande o editor.
 
 import "./style.css";
+import license from "../../../LICENSE?raw";
+import { version } from "../package.json";
 
 import { EditorState, Compartment, RangeSet, StateEffect, StateField, type Extension } from "@codemirror/state";
 import {
@@ -16,13 +18,14 @@ import {
   syntaxHighlighting, HighlightStyle, bracketMatching, indentOnInput,
 } from "@codemirror/language";
 import { linter, lintGutter, type Diagnostic } from "@codemirror/lint";
-import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
+import { openSearchPanel, searchKeymap, highlightSelectionMatches } from "@codemirror/search";
 import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from "@codemirror/autocomplete";
 import { tags } from "@lezer/highlight";
 import { open as openDialog, save as saveDialog, ask } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import { mountExamples } from "./examples";
+import { icon, mountIcons } from "./icons";
 import { mountOutline, symbolKindLabels } from "./outline";
 import { portugol } from "./portugol";
 import * as api from "./api";
@@ -55,11 +58,11 @@ const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
 function themeChoice(): ThemeChoice {
   try {
     const saved = localStorage.getItem(THEME_KEY);
-    if (saved === "light" || saved === "dark") return saved;
+    if (saved === "light" || saved === "dark" || saved === "system") return saved;
   } catch {
     // Sem armazenamento local: fica no padrão.
   }
-  return "system";
+  return "dark";
 }
 
 const isDark = () => {
@@ -116,8 +119,8 @@ const breakpoints = StateField.define<Set<number>>({
 
 const breakpointMarker = new (class extends GutterMarker {
   toDOM() {
-    const dot = document.createElement("span");
-    dot.className = "cm-breakpoint";
+    const dot = icon("pequeno/bug");
+    dot.classList.add("cm-breakpoint");
     dot.title = "Ponto de parada — clique para remover";
     return dot;
   }
@@ -333,7 +336,7 @@ function renderTabs() {
   const bar = $("tabs");
   const home = document.createElement("button");
   home.className = "tab" + (activeId === 0 ? " active" : "");
-  home.textContent = "Início";
+  home.append(icon("pequeno/light_pix"), "Portugol Studio");
   home.title = "Tela inicial (Alt+Home)";
   home.setAttribute("aria-current", String(activeId === 0));
   home.onclick = () => activate(0);
@@ -374,6 +377,7 @@ function renderTabs() {
         e.stopPropagation();
         void closeTab(tab.id);
       };
+      name.prepend(icon("pequeno/light_pix"));
       el.append(name, close);
       name.onclick = () => activate(tab.id);
       el.onauxclick = (e) => e.button === 1 && void closeTab(tab.id);
@@ -417,7 +421,9 @@ function renderRecent() {
   $("recent").hidden = recent.length === 0;
   $("recent-files").replaceChildren(...recent.map((path) => {
     const button = document.createElement("button");
-    button.textContent = path.split(/[\\/]/).pop() ?? path;
+    const name = document.createElement("span");
+    name.textContent = path.split(/[\\/]/).pop() ?? path;
+    button.append(icon("grande/file"), name);
     button.title = path;
     button.onclick = () => void openFile(path).catch((error) => setStatus(String(error), "error"));
     return button;
@@ -518,8 +524,8 @@ function appendConsole(text: string, className?: string) {
 }
 
 function setRunning(running: boolean) {
-  $<HTMLButtonElement>("btn-run").disabled = running;
-  $<HTMLButtonElement>("btn-debug").disabled = running;
+  $<HTMLButtonElement>("btn-run").disabled = running && paused === null;
+  $<HTMLButtonElement>("btn-debug").disabled = running && paused === null;
   $<HTMLButtonElement>("btn-stop").disabled = !running;
   $<HTMLButtonElement>("btn-debug-pause").disabled = !running || paused !== null;
   for (const id of [
@@ -646,6 +652,14 @@ async function runProgram(pauseOnStart = false) {
   }
 }
 
+function runOrContinue() {
+  return paused ? debugCommand(api.debugContinue) : runProgram();
+}
+
+function stepOrStart() {
+  return paused ? debugCommand(api.debugStepOver) : runProgram(true);
+}
+
 async function stopProgram() {
   if (runId !== null) await api.stop(runId);
 }
@@ -684,9 +698,10 @@ function renderMessages() {
       const where = document.createElement("span");
       where.className = "where";
       where.textContent = `${d.start.line}:${d.start.column}`;
-      const kind = document.createElement("span");
-      kind.className = "kind";
-      kind.textContent = d.severity === "error" ? "erro" : "aviso";
+      const kind = icon(d.severity === "error" ? "pequeno/exclamation" : "pequeno/warning");
+      kind.classList.add("kind");
+      kind.title = d.severity === "error" ? "Erro" : "Aviso";
+      item.setAttribute("aria-label", `${kind.title}, linha ${d.start.line}, coluna ${d.start.column}: ${d.message}`);
       const message = document.createElement("span");
       message.textContent = d.message;
       item.append(where, kind, message);
@@ -817,6 +832,7 @@ function toggleExpanded() {
   panel.hidden = hidden;
   $("splitter").hidden = hidden;
   $("code").classList.toggle("expanded", hidden);
+  $("btn-unexpand").hidden = !hidden;
 }
 
 // ---------------------------------------------------------------------------
@@ -826,15 +842,42 @@ function toggleExpanded() {
 $("home-new").onclick = () => newTab();
 $("home-open").onclick = () => void openFiles();
 $("btn-open").onclick = () => void openFiles();
-$("btn-utilities").onclick = toggleUtilities;
+const editorOptions = $<HTMLDetailsElement>("editor-options");
+const consoleOptions = $<HTMLDetailsElement>("console-tools");
+
+function centerCode() {
+  if (activeTab()) {
+    view.dispatch({ effects: EditorView.scrollIntoView(view.state.selection.main.head, { y: "center" }) });
+    view.focus();
+  }
+}
+
+function editorMenuAction(id: string, action: () => unknown) {
+  $(id).onclick = () => {
+    editorOptions.open = false;
+    action();
+  };
+}
+editorMenuAction("editor-search", () => openSearchPanel(view));
+editorMenuAction("editor-center", centerCode);
+editorMenuAction("editor-expand", toggleExpanded);
+editorMenuAction("btn-utilities", toggleUtilities);
+$("btn-unexpand").onclick = toggleExpanded;
+
+document.addEventListener("click", (event) => {
+  if (!(event.target instanceof Node)) return;
+  for (const options of [editorOptions, consoleOptions]) {
+    if (options.open && !options.contains(event.target)) options.open = false;
+  }
+});
 $("utilities-close").onclick = () => {
   showUtilities(false);
   view.focus();
 };
 $("btn-save").onclick = () => void save();
 $("btn-save-as").onclick = () => void save(true);
-$("btn-run").onclick = () => void runProgram();
-$("btn-debug").onclick = () => void runProgram(true);
+$("btn-run").onclick = () => void runOrContinue();
+$("btn-debug").onclick = () => void stepOrStart();
 $("btn-stop").onclick = () => void stopProgram();
 $("btn-debug-pause").onclick = () => { if (runId !== null) void api.debugPause(runId); };
 $("btn-debug-continue").onclick = () => void debugCommand(api.debugContinue);
@@ -872,9 +915,9 @@ const shortcuts: {
   action: () => unknown;
 }[] = [
   { label: "Shift+F6 / Ctrl+Enter", command: "Executar", matches: (e) =>
-    (e.shiftKey && e.key === "F6") || ((e.ctrlKey || e.metaKey) && e.key === "Enter"), action: runProgram },
+    (e.shiftKey && e.key === "F6") || ((e.ctrlKey || e.metaKey) && e.key === "Enter"), action: runOrContinue },
   { label: "Shift+F5", command: "Depurar", matches: (e) => e.shiftKey && e.key === "F5",
-    action: () => runProgram(true) },
+    action: stepOrStart },
   { label: "Shift+F7", command: "Interromper", matches: (e) => e.shiftKey && e.key === "F7", action: stopProgram },
   { label: "F9", command: "Pausar", matches: (e) => !e.shiftKey && e.key === "F9",
     action: () => { if (runId !== null) void api.debugPause(runId); } },
@@ -887,11 +930,15 @@ const shortcuts: {
   { label: "Shift+F11", command: "Sair da função", matches: (e) => e.shiftKey && e.key === "F11",
     action: () => debugCommand(api.debugStepOut) },
   { label: "F1", command: "Ajuda", matches: (e) => e.key === "F1", action: () => activate(helpId) },
+  { label: "F12", command: "Sobre", matches: (e) => e.key === "F12", action: () =>
+    $<HTMLDialogElement>("about").showModal() },
   { label: "F11", command: "Atalhos de teclado", matches: (e) => !e.altKey && !e.shiftKey && e.key === "F11",
     action: showShortcuts },
   { label: "Alt+Home", command: "Tela inicial", matches: (e) => e.altKey && e.key === "Home", action: () => activate(0) },
   { label: "Alt+←", command: "Aba anterior", matches: (e) => e.altKey && e.key === "ArrowLeft", action: () => cycleTab(-1) },
   { label: "Alt+→", command: "Próxima aba", matches: (e) => e.altKey && e.key === "ArrowRight", action: () => cycleTab(1) },
+  { label: "Shift+Pause", command: "Centralizar código-fonte",
+    matches: (e) => e.shiftKey && e.key === "Pause", action: centerCode },
   { label: "Shift+Esc", command: "Expandir/restaurar editor",
     matches: (e) => e.shiftKey && e.key === "Escape", action: toggleExpanded },
 ];
@@ -909,6 +956,11 @@ fileShortcut("N", false, "Novo arquivo", () => newTab());
 fileShortcut("O", false, "Abrir arquivo", openFiles);
 fileShortcut("S", false, "Salvar", () => save());
 fileShortcut("S", true, "Salvar como", () => save(true));
+fileShortcut("E", false, "Parâmetros de execução", () => {
+  if (!activeTab()) return;
+  editorOptions.open = true;
+  $("args").focus();
+});
 fileShortcut("B", false, "Painel Utilitários", toggleUtilities);
 fileShortcut("L", false, "Buscar na estrutura", () => {
   if (!activeTab()) return;
@@ -948,10 +1000,20 @@ for (const { label, command } of [...shortcuts, { label: "Ctrl+F", command: "Loc
   $("shortcut-list").append(term, description);
 }
 $("home-shortcuts").onclick = showShortcuts;
+$("home-about").onclick = () => $<HTMLDialogElement>("about").showModal();
 $("home-help").onclick = $("btn-help").onclick = () => activate(helpId);
 
 window.addEventListener("keydown", (e) => {
-  if (e.defaultPrevented || shortcutDialog.open) return;
+  if (e.defaultPrevented || document.querySelector("dialog[open]")) return;
+  if (e.key === "Escape" && !e.shiftKey) {
+    const menu = [editorOptions, consoleOptions].find((options) => options.open);
+    if (menu) {
+      e.preventDefault();
+      menu.open = false;
+      menu.querySelector("summary")?.focus();
+      return;
+    }
+  }
   const shortcut = shortcuts.find(({ matches }) => matches(e));
   if (!shortcut) return;
   e.preventDefault();
@@ -960,7 +1022,14 @@ window.addEventListener("keydown", (e) => {
 
 // Confirma antes de fechar a janela com alterações não salvas.
 void runListeners.catch((error) => setStatus(String(error), "error"));
-void getCurrentWindow().onCloseRequested(async (event) => {
+const appWindow = getCurrentWindow();
+function windowAction(action: () => Promise<void>) {
+  void action().catch((error) => setStatus(String(error), "error"));
+}
+$("window-min").onclick = () => windowAction(() => appWindow.minimize());
+$("window-max").onclick = () => windowAction(() => appWindow.toggleMaximize());
+$("window-close").onclick = () => windowAction(() => appWindow.close());
+void appWindow.onCloseRequested(async (event) => {
   const current = activeTab();
   if (current) current.state = view.state;
   const dirty = tabs.filter(isDirty);
@@ -1017,6 +1086,10 @@ async function openHelp() {
   }
   if (activeId === helpId) help?.focusSearch();
 }
+$("home-version").textContent = `v${version}`;
+$("about-version").textContent = `Versão ${version}`;
+$("about-license").textContent = license;
+mountIcons();
 renderRecent();
 mountExamples((source, file) => newTab(source, null, file));
 activate(0);

@@ -1,3 +1,5 @@
+import { icon } from "./icons";
+
 const sources = import.meta.glob<string>(
   "../../../tests/corpus/exemplos/{entrada_saida,operacoes_aritmeticas,vetores_matrizes}/*.por",
   { eager: true, query: "?raw", import: "default" },
@@ -30,7 +32,7 @@ export function mountExamples(openExample: (source: string, file: string) => voi
     );
     const group = document.createElement("details");
     const summary = document.createElement("summary");
-    summary.textContent = title;
+    summary.append(icon("pequeno/folder_closed"), title);
     group.append(summary);
     group.open = directory === "entrada_saida";
 
