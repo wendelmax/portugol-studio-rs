@@ -14,7 +14,7 @@
 //! |---|---|---|
 //! | 1 | carregar imagem | uid `u32`, largura `u32`, altura `u32`, RGBA |
 //! | 2 | liberar imagem | uid `u32` |
-//! | 3 | carregar fonte | nome, `u32` + bytes TTF |
+//! | 3 | carregar fonte | nome, estilo `u8` (1 itálico, 2 negrito), `u32` + bytes TTF |
 //! | 10 | limpar | largura `i32`, altura `i32` (preenche com a pintura atual) |
 //! | 11 | cor | ARGB `u32` (remove o gradiente) |
 //! | 12 | gradiente | tipo `u8`, ARGB `u32`, ARGB `u32` |

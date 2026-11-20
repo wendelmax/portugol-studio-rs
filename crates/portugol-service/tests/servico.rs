@@ -247,3 +247,52 @@ fn depuracao_inicia_pausada_sem_ponto_de_parada() {
     ));
     handle.join();
 }
+
+#[test]
+fn executa_graficos_com_o_host_da_ide() {
+    use portugol_service::{Host, graphics, start_with_host};
+    use std::sync::Mutex;
+
+    struct HostGrafico(Arc<Mutex<Vec<&'static str>>>);
+
+    impl Host for HostGrafico {
+        fn graphics_open(&mut self, width: i32, height: i32) -> Result<(), String> {
+            assert_eq!((width, height), (640, 480));
+            self.0.lock().unwrap().push("abriu");
+            Ok(())
+        }
+
+        fn graphics_present(&mut self, frame: Vec<u8>) -> Result<(), String> {
+            assert_eq!(frame.first(), Some(&graphics::op::LOAD_FONT));
+            assert_eq!(frame[frame.len() - 9], graphics::op::POINT);
+            self.0.lock().unwrap().push("desenhou");
+            Ok(())
+        }
+
+        fn graphics_close(&mut self) {
+            self.0.lock().unwrap().push("fechou");
+        }
+    }
+
+    let (observer, rx) = recorder();
+    let operations = Arc::new(Mutex::new(Vec::new()));
+    let host_operations = Arc::clone(&operations);
+    start_with_host(
+        r"programa {
+            inclua biblioteca Graficos --> g
+            funcao inicio() {
+                g.iniciar_modo_grafico(falso)
+                g.desenhar_ponto(2, 3)
+                g.renderizar()
+                g.encerrar_modo_grafico()
+            }
+        }",
+        RunOptions::default(),
+        observer,
+        move |_| Box::new(HostGrafico(host_operations)),
+    )
+    .expect("compilar")
+    .join();
+    assert!(matches!(next(&rx), Event::Finished(RunOutcome::Finished)));
+    assert_eq!(*operations.lock().unwrap(), ["abriu", "desenhou", "fechou"]);
+}

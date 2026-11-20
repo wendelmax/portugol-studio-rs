@@ -36,9 +36,9 @@ são executados e validados sem tela.
 | Objetos | 22 + 7 constantes | ✅ | JSON no formato do Jackson; XML como o `XmlMapper` |
 | Internet | 4 | ✅ | |
 | ServicosWeb | 8 + 4 constantes | ✅ | |
-| Graficos | 56 | 🟡 | na VM: formas, texto, imagens, gradiente, rotação e quadros; falta a janela na IDE |
-| Teclado | 5 | 🟡 | na VM via `InputState`; eventos dependem da janela |
-| Mouse | 8 | 🟡 | na VM via `InputState`; eventos dependem da janela |
+| Graficos | 56 | 🟡 | janela Tauri e Canvas com formas, fontes, imagens, gradientes, rotação e captura RGBA; falta validação interativa nas plataformas |
+| Teclado | 5 | 🟡 | eventos da janela alimentam `InputState`; falta validação interativa |
+| Mouse | 8 | 🟡 | eventos da janela alimentam `InputState`; falta validação interativa |
 | Sons | 17 | ⬜ | |
 
 ## IDE
