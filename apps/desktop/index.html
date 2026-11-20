@@ -18,6 +18,7 @@
           <h2 id="recent-title">Arquivos recentes</h2>
           <div id="recent-files"></div>
         </section>
+        <button id="home-help">Ajuda (F1)</button>
         <button id="home-shortcuts">Atalhos de teclado (F11)</button>
       </section>
       <section class="home-examples">
@@ -37,6 +38,8 @@
         <button id="btn-save" title="Salvar (Ctrl+S)">Salvar</button>
         <button id="btn-save-as" title="Salvar como (Ctrl+Shift+S)">Salvar como</button>
         <button id="btn-open" title="Abrir (Ctrl+O)">Abrir</button>
+        <hr />
+        <button id="btn-help" title="Ajuda (F1)">Ajuda</button>
       </aside>
       <div class="workspace">
         <header class="toolbar">
@@ -102,6 +105,15 @@
           </div>
         </section>
       </div>
+    </main>
+
+    <main id="help" class="help" hidden>
+      <aside class="help-sidebar" aria-label="Tópicos de ajuda">
+        <input id="help-search" type="search" placeholder="Buscar na ajuda" aria-label="Buscar na ajuda" />
+        <nav id="help-topics" aria-label="Tópicos"></nav>
+        <p id="help-empty" role="status" hidden>Nenhum tópico encontrado.</p>
+      </aside>
+      <article id="help-article" class="help-article" tabindex="-1"></article>
     </main>
 
     <dialog id="shortcuts" aria-labelledby="shortcuts-title">

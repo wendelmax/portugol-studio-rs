@@ -55,8 +55,8 @@ são executados e validados sem tela.
 | Atalhos do original (`TelaAtalhos`) | 🟡 | tela F11, execução, arquivos, abas e próxima instrução; atalhos restantes ainda divergem |
 | Temas claro/escuro (`TelaEditarTemas`) | 🟡 | claro, escuro e do sistema com paletas do editor; falta editor de temas |
 | Expandir editor (Shift+Esc) | ✅ | |
-| Tela inicial com exemplos (`AbaInicial`, `PainelExemplos`) | 🟡 | Abrir/Novo, até seis recentes, busca, três categorias de exemplos executáveis no console e tela de atalhos; faltam ajuda, dicas e Sobre |
-| Ajuda da linguagem e das bibliotecas (`abaAjuda`, `assets/ajuda`) | ⬜ | |
+| Tela inicial com exemplos (`AbaInicial`, `PainelExemplos`) | 🟡 | Abrir/Novo, até seis recentes, busca, três categorias de exemplos executáveis no console e tela de atalhos; inclui ajuda; faltam dicas e Sobre |
+| Ajuda da linguagem e das bibliotecas (`abaAjuda`, `assets/ajuda`) | ✅ | aba F1, busca, tópicos e diagramas da versão 2.7.5, abertura de exemplos e referências das bibliotecas |
 | Árvore estrutural (variáveis e funções do programa) | ⬜ | |
 | Renomear símbolo (`TelaRenomearSimbolo`) | ⬜ | |
 | Formatador de código (`editor/formatador`) | ⬜ | |
