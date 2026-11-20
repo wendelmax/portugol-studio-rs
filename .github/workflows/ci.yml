@@ -36,13 +36,13 @@ jobs:
 
   ide:
     name: IDE (frontend + Tauri)
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Dependências do sistema
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xvfb xdotool xclip imagemagick x11-utils
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf xvfb xdotool xclip imagemagick x11-utils dbus-x11
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -52,6 +52,8 @@ jobs:
         with:
           components: clippy
       - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
       - name: Frontend
         working-directory: apps/desktop
         run: |
@@ -65,4 +67,4 @@ jobs:
         run: cargo build -p portugol-desktop --features tauri/custom-protocol --config 'profile.dev.package."*".opt-level=0'
       - name: Janela gráfica nativa
         timeout-minutes: 2
-        run: xvfb-run -a -s "-screen 0 1280x900x24" node apps/desktop/tests/graphics-smoke.mjs
+        run: xvfb-run -a -s "-screen 0 1280x900x24" dbus-run-session -- node apps/desktop/tests/graphics-smoke.mjs
