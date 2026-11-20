@@ -2,12 +2,13 @@
 //! pela confirmação da webview. Quadros e capturas passam pelo IPC binário.
 
 use std::collections::HashMap;
+use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::{Duration, Instant};
 
 use portugol_service::{
-    FileFilter, Host, RunObserver,
+    FileFilter, Host, RunObserver, Sound,
     graphics::{InputState, WindowCommand},
 };
 use serde::Deserialize;
@@ -17,7 +18,7 @@ use tauri::{
     ipc::{InvokeBody, Request, Response},
 };
 
-use super::Runs;
+use super::{Runs, audio::AudioOutput};
 
 const POLL: Duration = Duration::from_millis(50);
 const FRAME_TIMEOUT: Duration = Duration::from_secs(15);
@@ -163,7 +164,7 @@ pub fn graphics_input(window: WebviewWindow, events: Vec<InputEvent>) -> Result<
     Ok(())
 }
 
-pub struct GraphicsHost {
+pub struct DesktopHost {
     app: AppHandle,
     id: u32,
     observer: Arc<dyn RunObserver>,
@@ -171,9 +172,10 @@ pub struct GraphicsHost {
     window: Option<(WebviewWindow, Arc<Session>)>,
     size: (i32, i32),
     windowed_size: Option<(i32, i32)>,
+    audio: AudioOutput,
 }
 
-impl GraphicsHost {
+impl DesktopHost {
     pub fn new(
         app: AppHandle,
         id: u32,
@@ -188,6 +190,7 @@ impl GraphicsHost {
             window: None,
             size: (640, 480),
             windowed_size: None,
+            audio: AudioOutput::default(),
         }
     }
 
@@ -252,7 +255,11 @@ impl GraphicsHost {
     }
 }
 
-impl Host for GraphicsHost {
+impl Host for DesktopHost {
+    fn load_sound(&mut self, path: &Path) -> Result<Box<dyn Sound>, String> {
+        self.audio.load(path)
+    }
+
     fn select_file(
         &mut self,
         filters: &[FileFilter],
@@ -347,7 +354,7 @@ impl Host for GraphicsHost {
     }
 }
 
-impl Drop for GraphicsHost {
+impl Drop for DesktopHost {
     fn drop(&mut self) {
         self.graphics_close();
     }

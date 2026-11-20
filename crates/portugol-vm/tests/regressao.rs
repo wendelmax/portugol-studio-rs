@@ -18,11 +18,13 @@
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use portugol_syntax::span::line_col;
 use portugol_syntax::{Severity, parse};
 use portugol_vm::graphics::{InputState, WindowCommand};
-use portugol_vm::{BufferIo, Host, Status, Vm};
+use portugol_vm::{BufferIo, Host, Sound, Status, Vm};
+use rodio::{Decoder, Source};
 
 /// Limite por programa; jogos com laço infinito param aqui.
 const BUDGET: usize = 2_000_000;
@@ -79,7 +81,48 @@ struct Headless {
     input: Arc<InputState>,
 }
 
+struct SilentClip {
+    duration: Duration,
+    position: Duration,
+}
+
+impl Sound for SilentClip {
+    fn play(&mut self, _looping: bool) -> Result<(), String> {
+        Ok(())
+    }
+
+    fn pause(&mut self) {}
+
+    fn stop(&mut self) {}
+
+    fn duration(&self) -> Duration {
+        self.duration
+    }
+
+    fn position(&self) -> Duration {
+        self.position
+    }
+
+    fn seek(&mut self, position: Duration) -> Result<(), String> {
+        self.position = position.min(self.duration);
+        Ok(())
+    }
+
+    fn set_gain(&mut self, _gain: f32) {}
+}
+
 impl Host for Headless {
+    fn load_sound(&mut self, path: &Path) -> Result<Box<dyn Sound>, String> {
+        let file = std::fs::File::open(path).map_err(|error| error.to_string())?;
+        let source = Decoder::try_from(file).map_err(|error| error.to_string())?;
+        let samples_per_second =
+            u64::from(source.channels().get()) * u64::from(source.sample_rate().get());
+        Ok(Box::new(SilentClip {
+            duration: Duration::from_secs_f64(source.count() as f64 / samples_per_second as f64),
+            position: Duration::ZERO,
+        }))
+    }
+
     fn graphics_open(&mut self, _: i32, _: i32) -> Result<(), String> {
         Ok(())
     }
@@ -117,7 +160,7 @@ impl Host for Headless {
 }
 
 /// Relatório textual de uma execução, no formato dos `.saida`.
-fn report(source: &str, input: &str, dir: &Path) -> String {
+fn report(source: &str, input: &str, dir: &Path, user: &Path) -> String {
     let mut out = String::new();
     let result = parse(source);
     let mut diagnostics = result.diagnostics;
@@ -165,6 +208,7 @@ fn report(source: &str, input: &str, dir: &Path) -> String {
         .with_simulated_time(EPOCH_MS)
         .offline()
         .with_working_dir(dir)
+        .with_user_dir(user)
         .step(BUDGET);
     out.push_str("# saída\n");
     out.push_str(&io.output);
@@ -181,7 +225,10 @@ fn report(source: &str, input: &str, dir: &Path) -> String {
     }
     out.push_str("# resultado\n");
     let outcome = outcome.map_err(|mut error| {
-        error.message = error.message.replace(&dir.display().to_string(), "<pasta>");
+        error.message = error
+            .message
+            .replace(&dir.display().to_string(), "<pasta>")
+            .replace(&user.display().to_string(), "<usuário>");
         if cfg!(windows) {
             error.message = error.message.replace('\\', "/");
         }
@@ -212,6 +259,8 @@ fn corpus_do_portugol_studio() {
     let update = std::env::var_os("PORTUGOL_ATUALIZAR").is_some();
     let mut failures = Vec::new();
     let copy = copy_corpus();
+    let user = copy.join(".usuario");
+    std::fs::create_dir_all(&user).expect("criar diretório do usuário temporário");
 
     for file in &files {
         let source = std::fs::read_to_string(file).expect("ler .por");
@@ -221,7 +270,7 @@ fn corpus_do_portugol_studio() {
             .parent()
             .unwrap()
             .to_path_buf();
-        let actual = report(&source, &input, &program_dir);
+        let actual = report(&source, &input, &program_dir, &user);
         let expected_path = file.with_extension("saida");
 
         if update {

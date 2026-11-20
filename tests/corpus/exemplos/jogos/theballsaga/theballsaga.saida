@@ -39,5 +39,7 @@ aviso sem.conversion 1938:17 o valor do tipo "real" será convertido para "intei
 aviso sem.conversion 1938:55 o valor do tipo "real" será convertido para "inteiro"
 # saída
 
+# gráficos
+1 quadro(s), resumo f84e89b75e78b92a
 # resultado
-erro 360:17: A função "Sons.carregar_som" ainda não está disponível nesta versão.
+erro 172:11: A janela do modo gráfico foi fechada.

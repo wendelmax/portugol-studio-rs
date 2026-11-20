@@ -5,7 +5,9 @@
 //! A implementação padrão de cada método devolve um erro dizendo que o
 //! recurso não está disponível neste ambiente.
 
+use std::path::Path;
 use std::sync::Arc;
+use std::time::Duration;
 
 use crate::graphics::{InputState, WindowCommand};
 
@@ -17,7 +19,25 @@ pub struct FileFilter {
     pub extensions: Vec<String>,
 }
 
+/// Um clipe de áudio carregado para o programa atual. Soltar o clipe interrompe
+/// a reprodução e libera os recursos do host.
+pub trait Sound {
+    fn play(&mut self, looping: bool) -> Result<(), String>;
+    fn pause(&mut self);
+    fn stop(&mut self);
+    fn duration(&self) -> Duration;
+    fn position(&self) -> Duration;
+    fn seek(&mut self, position: Duration) -> Result<(), String>;
+    fn set_gain(&mut self, gain: f32);
+}
+
 pub trait Host {
+    /// Decodifica um clipe a partir de um caminho já resolvido pelo Portugol.
+    fn load_sound(&mut self, path: &Path) -> Result<Box<dyn Sound>, String> {
+        let _ = path;
+        Err(unavailable("a reprodução de áudio"))
+    }
+
     /// Diálogo de seleção de arquivo. `Ok(None)` quando o usuário cancela.
     fn select_file(
         &mut self,

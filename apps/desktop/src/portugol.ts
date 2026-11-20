@@ -88,8 +88,12 @@ export const LIBRARIES: Record<string, string[]> = {
     "publicar_dados", "atualizar_dados", "abrir_conexao", "adicionar_cabecalho",
     "adicionar_parametros", "fazer_requisicao",
   ],
-  // Reconhecidas pela análise, mas ainda sem implementação na VM.
-  Graficos: [], Mouse: [], Sons: [], Teclado: [],
+  Sons: [
+    "carregar_som", "liberar_som", "reproduzir_som", "pausar_som", "interromper_som",
+    "obter_tamanho_musica", "obter_posicao_atual_musica", "definir_posicao_atual_musica",
+    "definir_volume", "definir_volume_reproducao", "obter_volume", "obter_volume_reproducao",
+  ],
+  Graficos: [], Mouse: [], Teclado: [],
 };
 
 const keywordSet = new Set(KEYWORDS);

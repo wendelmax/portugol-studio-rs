@@ -1,9 +1,8 @@
 //! Bibliotecas padrão de console, portadas de
 //! `core/.../nucleo/bibliotecas` do Portugol Studio.
 //!
-//! As mensagens de erro reproduzem as do original. Bibliotecas que dependem
-//! de interface gráfica (Graficos, Teclado, Mouse, Sons) ficam para a fase de
-//! paridade; chamá-las gera um erro de execução claro.
+//! As bibliotecas de janela e áudio usam o host da execução para acessar
+//! o ambiente do usuário.
 
 mod arquivos;
 mod calendario;
@@ -13,6 +12,7 @@ mod internet;
 mod matematica;
 mod objetos;
 mod servicos_web;
+mod sons;
 mod teclado_mouse;
 mod texto;
 mod tipos;
@@ -43,6 +43,7 @@ pub struct NativeContext {
     clock: Clock,
     /// Base dos caminhos relativos (no original, a pasta do programa).
     pub(crate) work_dir: PathBuf,
+    pub(crate) user_dir: Option<PathBuf>,
     pub(crate) host: Box<dyn Host>,
     pub(crate) files: arquivos::OpenFiles,
     pub(crate) objects: objetos::Objects,
@@ -51,6 +52,7 @@ pub struct NativeContext {
     /// Sem acesso à rede: Internet e ServicosWeb falham como sem conexão.
     pub(crate) offline: bool,
     pub(crate) graphics: graficos::Graphics,
+    pub(crate) sounds: sons::Sounds,
     /// Sinal de interrupção da VM, para esperas como `ler_tecla`.
     pub(crate) interrupt: std::sync::Arc<std::sync::atomic::AtomicBool>,
 }
@@ -70,6 +72,7 @@ impl NativeContext {
             rng: seed | 1,
             clock: Clock::Real(Instant::now()),
             work_dir: std::env::current_dir().unwrap_or_default(),
+            user_dir: None,
             host: Box::new(NoHost),
             files: arquivos::OpenFiles::default(),
             objects: objetos::Objects::default(),
@@ -77,6 +80,7 @@ impl NativeContext {
             web: servicos_web::WebServices::default(),
             offline: false,
             graphics: graficos::Graphics::default(),
+            sounds: sons::Sounds::default(),
             interrupt: Default::default(),
         }
     }
@@ -167,6 +171,7 @@ pub fn native(library: &str, name: &str) -> Option<NativeFn> {
         "Teclado" => teclado_mouse::teclado(name),
         "Mouse" => teclado_mouse::mouse(name),
         "ServicosWeb" => servicos_web::function(name),
+        "Sons" => sons::function(name),
         "Texto" => texto::function(name),
         "Tipos" => tipos::function(name),
         "Util" => util::function(name),

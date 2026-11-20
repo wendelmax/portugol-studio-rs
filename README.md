@@ -7,8 +7,8 @@ Rust independentes.
 > Status: **fases 1–5 concluídas** — lexer, parser, AST, análise semântica,
 > compilador para bytecode, máquina virtual, IDE desktop (Tauri v2 + CodeMirror 6)
 > e depurador com pontos de parada, passo a passo e inspeção de variáveis.
-> Todas as bibliotecas de linguagem estão portadas, exceto **Sons**; Graficos,
-> Teclado e Mouse têm integração com a janela gráfica da IDE. O corpus
+> Todas as bibliotecas de linguagem estão portadas. Graficos, Teclado e Mouse
+> usam a janela gráfica da IDE, e Sons usa o dispositivo de áudio do sistema. O corpus
 > completo do original é validado por regressão com um host gráfico headless;
 > os erros restantes estão em trechos da ajuda e em 2 exemplos com defeito no
 > próprio arquivo original.
@@ -54,9 +54,10 @@ portugol-studio-rs/
 
 ## Como validar
 
-Requisitos: Rust 1.85+ (edição 2024). Com `mise install`, as versões exatas
-ficam disponíveis e os comandos abaixo podem ser usados diretamente (ou prefixe
-com `mise exec --`).
+Use `mise install` para instalar as versões de Rust e Node do projeto. Os
+comandos abaixo podem ser usados diretamente ou com `mise exec --`. Para
+compilar a IDE no Linux, instale também as dependências de desenvolvimento
+do WebKitGTK 4.1 e do ALSA (`libasound2-dev` no Ubuntu).
 
 ```bash
 cargo test --workspace
@@ -161,7 +162,7 @@ controle em `portugol_vm::debug::DebugControl`, usado diretamente nos testes
 
 1. **Sintaxe** ✅ — lexer, parser, AST, diagnósticos com spans, recuperação de erro.
 2. **Semântica** ✅ — tabela de símbolos, escopos, tipos, constantes, checagens.
-3. **Runtime** ✅ — compilação para bytecode + VM e todas as bibliotecas (Sons falta).
+3. **Runtime** ✅ — compilação para bytecode + VM e bibliotecas, com janela e áudio fornecidos pelo host.
 4. **IDE** ✅ — Tauri v2, CodeMirror 6, abas, árvore de arquivos, console, execução.
 5. **Depurador** ✅ — pontos de parada, passo a passo, pilha e inspeção de variáveis.
 6. **Paridade** — janela gráfica e ajuda integradas à IDE, editor de temas e demais lacunas no [inventário](docs/PARIDADE.md).

@@ -207,6 +207,13 @@ impl<'a> Vm<'a> {
         self
     }
 
+    /// Diretório devolvido por `Util.obter_diretorio_usuario` nesta execução.
+    /// Permite isolar as gravações dos exemplos na suíte de regressão.
+    pub fn with_user_dir(mut self, dir: impl Into<std::path::PathBuf>) -> Self {
+        self.ctx.user_dir = Some(dir.into());
+        self
+    }
+
     /// Recursos que dependem do ambiente (diálogos, gráficos, som...).
     pub fn with_host(mut self, host: Box<dyn crate::host::Host>) -> Self {
         self.ctx.host = host;
