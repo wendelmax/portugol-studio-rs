@@ -29,12 +29,22 @@
             <h2 id="recent-title">Arquivos recentes</h2>
             <div id="recent-files"></div>
           </section>
+          <section id="home-preview" aria-labelledby="example-title" hidden>
+            <h2 id="example-title"></h2>
+            <p id="example-description"></p>
+            <img id="example-image" alt="" hidden />
+            <p id="example-error" role="alert" hidden></p>
+            <div class="example-actions">
+              <button id="example-open" class="primary">Explorar exemplo</button>
+              <button id="example-back">Voltar</button>
+            </div>
+          </section>
         </div>
         <span id="home-version"></span>
       </section>
       <section class="home-examples">
         <h2>Exemplos</h2>
-        <input id="example-search" type="search" placeholder="Buscar exemplos" aria-label="Buscar exemplos" />
+        <input id="example-search" type="search" disabled placeholder="Buscar exemplos" aria-label="Buscar exemplos" />
         <div id="examples"></div>
         <p id="examples-empty" role="status" hidden>Nenhum exemplo encontrado.</p>
       </section>

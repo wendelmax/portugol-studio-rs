@@ -594,6 +594,49 @@ select {
   text-align: left;
 }
 
+#examples details details {
+  margin-inline-start: 12px;
+}
+
+#examples button[aria-current="true"] {
+  background: var(--tab-active);
+  border-color: var(--accent);
+}
+
+.home-brand.has-preview > img,
+.home-brand.has-preview > #recent {
+  display: none;
+}
+
+#home-preview {
+  width: min(620px, 100%);
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+#home-preview h2 {
+  font-size: 18px;
+}
+
+#home-preview img {
+  display: block;
+  max-width: 100%;
+  max-height: 260px;
+  object-fit: contain;
+  margin: 12px auto;
+}
+
+#example-error {
+  color: var(--error);
+}
+
+.example-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+}
+
 .home-links {
   display: flex;
   justify-content: space-between;
