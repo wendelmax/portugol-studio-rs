@@ -49,13 +49,14 @@ são executados e validados sem tela.
 | Autocompletar (`PSAutoCompletion`) | ✅ | palavras, snippets, funções de bibliotecas |
 | Erros ao digitar e painel de mensagens (`AbaMensagemCompilador`) | ✅ | |
 | Abas de arquivos, abrir, salvar, salvar como | ✅ | |
-| Console com entrada (`AbaConsole`) | ✅ | entrada, limpar, copiar e ajustar fonte |
+| Console com entrada (`AbaConsole`) | ✅ | entrada e engrenagem para limpar, copiar e ajustar fonte |
 | Depuração na IDE (`AbaDepuracao`, `Depurador`) | ✅ | gutter de breakpoints, início pausado com Shift+F5, pilha e variáveis |
 | Localizar e substituir (`PSFindReplace`) | ✅ | Ctrl+F do CodeMirror |
 | Atalhos do original (`TelaAtalhos`) | 🟡 | tela F11, execução, arquivos, abas e próxima instrução; atalhos restantes ainda divergem |
 | Temas claro/escuro (`TelaEditarTemas`) | 🟡 | claro, escuro e do sistema com paletas do editor; falta editor de temas |
-| Expandir editor (Shift+Esc) | ✅ | |
-| Tela inicial com exemplos (`AbaInicial`, `PainelExemplos`) | 🟡 | Abrir/Novo, até seis recentes, busca, três categorias de exemplos executáveis no console e tela de atalhos; inclui ajuda; faltam dicas e Sobre |
+| Moldura e barra de comandos | ✅ | moldura de 5px, controles nativos, área de arraste, abas com ícone e barra lateral com ícones da versão 2.7.5 |
+| Expandir editor (Shift+Esc) | ✅ | barra horizontal compacta e botão de restauração |
+| Tela inicial com exemplos (`AbaInicial`, `PainelExemplos`) | 🟡 | Abrir/Novo, até seis recentes, busca, três categorias de exemplos executáveis no console e tela de atalhos; inclui ajuda; inclui Sobre; faltam dicas |
 | Ajuda da linguagem e das bibliotecas (`abaAjuda`, `assets/ajuda`) | ✅ | aba F1, busca, tópicos e diagramas da versão 2.7.5, abertura de exemplos e referências das bibliotecas |
 | Árvore estrutural (variáveis e funções do programa) | ✅ | painel redimensionável com busca, filtros, navegação à declaração e inspetor de depuração |
 | Renomear símbolo (`TelaRenomearSimbolo`) | ⬜ | |
@@ -63,7 +64,7 @@ são executados e validados sem tela.
 | Exercícios com correção automática (`assets/exercicios`, módulo `checker`) | ⬜ | |
 | Tamanho da fonte do editor | ✅ | ajuste de 10 a 50, salvo localmente |
 | Dicas de interface (`TelaDicas`) | ⬜ | |
-| Sobre / licenças (`Sobre`, `TelaLicencas`) | ⬜ | |
+| Sobre / licenças (`Sobre`, `TelaLicencas`) | ✅ | diálogo F12, versão, origem e texto da licença |
 | Verificação de atualizações (`TelaAtualizacoes`) | ⬜ | updater do Tauri |
 | Relatar bug (`TelaRelatarBug`) | ⬜ | link para as issues do GitHub |
 | Plugins (`plugins`, `PainelPlugins`) | ➖ | plugins do original são classes Java; exigiria outro modelo de extensão |
