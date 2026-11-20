@@ -185,6 +185,22 @@ pub fn start(
     options: RunOptions,
     observer: Arc<dyn RunObserver>,
 ) -> Result<RunHandle, Vec<DiagnosticInfo>> {
+    let host_observer = Arc::clone(&observer);
+    start_with_host(source, options, observer, |_| {
+        Box::new(ServiceHost {
+            observer: host_observer,
+        })
+    })
+}
+
+/// Executa com um host próprio, construído na thread da VM. A flag recebida
+/// pela fábrica permite interromper operações do host que aguardam a interface.
+pub fn start_with_host(
+    source: &str,
+    options: RunOptions,
+    observer: Arc<dyn RunObserver>,
+    make_host: impl FnOnce(Arc<AtomicBool>) -> Box<dyn Host> + Send + 'static,
+) -> Result<RunHandle, Vec<DiagnosticInfo>> {
     let index = LineIndex::new(source);
     let (diagnostics, program) = analyze(source);
     let Some(program) = program else {
@@ -261,13 +277,12 @@ pub fn start(
                 .with_args(options.args)
                 .with_interrupt(Arc::clone(&flag))
                 .with_debug(debug)
-                .with_host(Box::new(ServiceHost {
-                    observer: Arc::clone(&observer),
-                }));
+                .with_host(make_host(Arc::clone(&flag)));
             if let Some(dir) = options.working_dir {
                 vm = vm.with_working_dir(dir);
             }
             let result = vm.run();
+            drop(vm);
 
             done.store(true, Ordering::Relaxed);
             let _ = flusher.join();

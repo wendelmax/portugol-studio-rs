@@ -8,7 +8,7 @@ Rust independentes.
 > compilador para bytecode, máquina virtual, IDE desktop (Tauri v2 + CodeMirror 6)
 > e depurador com pontos de parada, passo a passo e inspeção de variáveis.
 > Todas as bibliotecas de linguagem estão portadas, exceto **Sons**; Graficos,
-> Teclado e Mouse funcionam na VM (a janela na IDE está em andamento). O corpus
+> Teclado e Mouse têm integração com a janela gráfica da IDE. O corpus
 > completo do original é validado por regressão com um host gráfico headless;
 > os erros restantes estão em trechos da ajuda e em 2 exemplos com defeito no
 > próprio arquivo original.
@@ -164,7 +164,7 @@ controle em `portugol_vm::debug::DebugControl`, usado diretamente nos testes
 3. **Runtime** ✅ — compilação para bytecode + VM e todas as bibliotecas (Sons falta).
 4. **IDE** ✅ — Tauri v2, CodeMirror 6, abas, árvore de arquivos, console, execução.
 5. **Depurador** ✅ — pontos de parada, passo a passo, pilha e inspeção de variáveis.
-6. **Paridade** — janela gráfica na IDE, ajuda, editor de temas, instaladores.
+6. **Paridade** — janela gráfica e ajuda integradas à IDE, editor de temas e demais lacunas no [inventário](docs/PARIDADE.md).
 
 Detalhes, estimativas e riscos em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md).
 

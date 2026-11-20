@@ -16,6 +16,8 @@
 //! `run:output` (`text`), `run:clear`, `run:input` (`expected`),
 //! `run:paused` (`info`) e `run:finished` (`outcome`).
 
+mod graphics;
+
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -153,7 +155,11 @@ fn run(
     if let Some((_, previous)) = current.take() {
         previous.stop();
     }
-    let observer = Arc::new(EventSink { app, id });
+    let observer: Arc<dyn RunObserver> = Arc::new(EventSink {
+        app: app.clone(),
+        id,
+    });
+    let host_observer = Arc::clone(&observer);
     // Como no original, caminhos relativos partem da pasta do programa.
     let working_dir = path
         .as_deref()
@@ -165,7 +171,14 @@ fn run(
         breakpoints,
         pause_on_start: pause_on_start.unwrap_or_default(),
     };
-    let handle = portugol_service::start(&source, options, observer)?;
+    let handle = portugol_service::start_with_host(&source, options, observer, move |interrupt| {
+        Box::new(graphics::GraphicsHost::new(
+            app,
+            id,
+            host_observer,
+            interrupt,
+        ))
+    })?;
     *current = Some((id, handle));
     Ok(id)
 }
@@ -234,6 +247,7 @@ pub fn run_app() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(Runs::default())
+        .manage(graphics::GraphicsWindows::default())
         .invoke_handler(tauri::generate_handler![
             check,
             run,
@@ -245,6 +259,9 @@ pub fn run_app() {
             debug_step_into,
             debug_step_out,
             debug_set_breakpoints,
+            graphics::graphics_next,
+            graphics::graphics_reply,
+            graphics::graphics_input,
             read_file,
             write_file
         ])

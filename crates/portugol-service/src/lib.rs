@@ -14,10 +14,11 @@ use serde::Serialize;
 
 use portugol_syntax::{Diagnostic, Severity, parse};
 
-pub use portugol_vm::FileFilter;
+pub use portugol_vm::{FileFilter, Host, graphics};
 pub use position::Position;
 pub use run::{
     DebugFrameInfo, DebugInfo, DebugVarInfo, RunHandle, RunObserver, RunOptions, RunOutcome, start,
+    start_with_host,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
