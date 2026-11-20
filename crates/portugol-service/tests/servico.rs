@@ -296,3 +296,48 @@ fn executa_graficos_com_o_host_da_ide() {
     assert!(matches!(next(&rx), Event::Finished(RunOutcome::Finished)));
     assert_eq!(*operations.lock().unwrap(), ["abriu", "desenhou", "fechou"]);
 }
+
+#[test]
+fn arvore_estrutural_inclui_bibliotecas_escopos_e_posicoes_utf16() {
+    use portugol_service::{SymbolKind, inspect};
+
+    let source = r#"programa {
+        inclua biblioteca Matematica --> mat
+        const inteiro LIMITE = 2
+        funcao inicio() {
+            // 😀
+            cadeia nome = "Portugol"
+            para (inteiro i = 0; i < LIMITE; i++) {
+                real medidas[2][3]
+            }
+        }
+    }"#;
+    let result = inspect(source);
+    assert!(
+        result
+            .diagnostics
+            .iter()
+            .all(|d| d.severity != Level::Error)
+    );
+    assert_eq!(result.symbols[0].name, "Matematica → mat");
+    assert_eq!(result.symbols[0].kind, SymbolKind::Library);
+    assert_eq!(result.symbols[1].kind, SymbolKind::Constant);
+    let function = &result.symbols[2];
+    assert_eq!(function.kind, SymbolKind::Function);
+    assert_eq!(function.name, "inicio");
+    assert_eq!(
+        function
+            .children
+            .iter()
+            .map(|s| s.name.as_str())
+            .collect::<Vec<_>>(),
+        ["nome", "i", "medidas"]
+    );
+    assert_eq!(function.children[2].kind, SymbolKind::Matrix);
+    assert_eq!(function.children[2].ty, "real");
+    let before_name = source.split_once("nome").unwrap().0;
+    assert_eq!(
+        function.children[0].position.offset as usize,
+        before_name.encode_utf16().count()
+    );
+}

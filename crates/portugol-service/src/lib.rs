@@ -7,6 +7,7 @@
 //!
 //! Não depende do Tauri: a camada da janela só traduz os eventos.
 
+mod outline;
 mod position;
 mod run;
 
@@ -14,6 +15,7 @@ use serde::Serialize;
 
 use portugol_syntax::{Diagnostic, Severity, parse};
 
+pub use outline::{SymbolInfo, SymbolKind};
 pub use portugol_vm::{FileFilter, Host, graphics};
 pub use position::Position;
 pub use run::{
@@ -39,26 +41,54 @@ pub struct DiagnosticInfo {
     pub end: Position,
 }
 
-/// Analisa o código como a IDE faz a cada edição. A semântica só roda
-/// quando não há erro de sintaxe, para não gerar erros em cascata.
+#[derive(Serialize)]
+pub struct Inspection {
+    pub diagnostics: Vec<DiagnosticInfo>,
+    pub symbols: Vec<SymbolInfo>,
+}
+
+/// Analisa o código como a IDE faz a cada edição.
 pub fn check(source: &str) -> Vec<DiagnosticInfo> {
-    let (diagnostics, _) = analyze(source);
+    let parsed = analyze_source(source);
     let index = position::LineIndex::new(source);
+    present_diagnostics(&index, &parsed.diagnostics)
+}
+
+/// Retorna também a estrutura da AST recuperada pelo parser durante a edição.
+pub fn inspect(source: &str) -> Inspection {
+    let parsed = analyze_source(source);
+    let index = position::LineIndex::new(source);
+    Inspection {
+        diagnostics: present_diagnostics(&index, &parsed.diagnostics),
+        symbols: outline::outline(&parsed.program, &index),
+    }
+}
+
+fn present_diagnostics(
+    index: &position::LineIndex,
+    diagnostics: &[Diagnostic],
+) -> Vec<DiagnosticInfo> {
     diagnostics
         .iter()
-        .map(|diagnostic| describe(&index, diagnostic))
+        .map(|diagnostic| describe(index, diagnostic))
         .collect()
+}
+
+fn analyze_source(source: &str) -> portugol_syntax::ParseResult {
+    let mut parsed = parse(source);
+    if !parsed.has_errors() {
+        parsed
+            .diagnostics
+            .extend(portugol_semantics::analyze(&parsed.program));
+    }
+    parsed
 }
 
 /// Sintaxe + semântica; devolve também a AST quando não há erros.
 pub(crate) fn analyze(source: &str) -> (Vec<Diagnostic>, Option<portugol_syntax::Program>) {
-    let result = parse(source);
-    let mut diagnostics = result.diagnostics;
-    if !has_errors(&diagnostics) {
-        diagnostics.extend(portugol_semantics::analyze(&result.program));
-    }
-    let program = (!has_errors(&diagnostics)).then_some(result.program);
-    (diagnostics, program)
+    let parsed = analyze_source(source);
+    let program = (!parsed.has_errors()).then_some(parsed.program);
+    (parsed.diagnostics, program)
 }
 
 pub(crate) fn describe(index: &position::LineIndex, diagnostic: &Diagnostic) -> DiagnosticInfo {
@@ -73,8 +103,4 @@ pub(crate) fn describe(index: &position::LineIndex, diagnostic: &Diagnostic) -> 
         start: index.position(diagnostic.span.start),
         end: index.position(diagnostic.span.end.max(diagnostic.span.start)),
     }
-}
-
-fn has_errors(diagnostics: &[Diagnostic]) -> bool {
-    diagnostics.iter().any(|d| d.severity == Severity::Error)
 }

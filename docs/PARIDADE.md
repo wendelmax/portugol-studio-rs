@@ -57,7 +57,7 @@ são executados e validados sem tela.
 | Expandir editor (Shift+Esc) | ✅ | |
 | Tela inicial com exemplos (`AbaInicial`, `PainelExemplos`) | 🟡 | Abrir/Novo, até seis recentes, busca, três categorias de exemplos executáveis no console e tela de atalhos; inclui ajuda; faltam dicas e Sobre |
 | Ajuda da linguagem e das bibliotecas (`abaAjuda`, `assets/ajuda`) | ✅ | aba F1, busca, tópicos e diagramas da versão 2.7.5, abertura de exemplos e referências das bibliotecas |
-| Árvore estrutural (variáveis e funções do programa) | ⬜ | |
+| Árvore estrutural (variáveis e funções do programa) | ✅ | painel redimensionável com busca, filtros, navegação à declaração e inspetor de depuração |
 | Renomear símbolo (`TelaRenomearSimbolo`) | ⬜ | |
 | Formatador de código (`editor/formatador`) | ⬜ | |
 | Exercícios com correção automática (`assets/exercicios`, módulo `checker`) | ⬜ | |

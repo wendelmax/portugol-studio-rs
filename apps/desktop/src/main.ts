@@ -23,6 +23,7 @@ import { open as openDialog, save as saveDialog, ask } from "@tauri-apps/plugin-
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import { mountExamples } from "./examples";
+import { mountOutline, symbolKindLabels } from "./outline";
 import { portugol } from "./portugol";
 import * as api from "./api";
 
@@ -42,6 +43,7 @@ interface Tab {
   /** Texto da última gravação, para saber se há alterações. */
   saved: string;
   diagnostics: api.DiagnosticInfo[];
+  symbols: api.SymbolInfo[];
 }
 
 // Tema: "system" segue o sistema operacional; a escolha fica salva.
@@ -171,14 +173,16 @@ function toCodeMirror(info: api.DiagnosticInfo, length: number): Diagnostic {
 
 const portugolLinter = linter(
   async (view) => {
-    const source = view.state.doc.toString();
-    const diagnostics = await api.check(source);
+    const doc = view.state.doc;
     const tab = activeTab();
-    if (tab && view.state.doc.toString() === source) {
+    const { diagnostics, symbols } = await api.inspect(doc.toString());
+    if (tab && tab === activeTab() && view.state.doc === doc) {
       tab.diagnostics = diagnostics;
+      tab.symbols = symbols;
       renderMessages();
+      outline.show(symbols);
     }
-    return diagnostics.map((d) => toCodeMirror(d, view.state.doc.length));
+    return diagnostics.map((d) => toCodeMirror(d, doc.length));
   },
   { delay: 350 },
 );
@@ -267,6 +271,7 @@ function newTab(text = TEMPLATE, path: string | null = null, exampleName?: strin
     state: EditorState.create({ doc: text, extensions: extensions() }),
     saved: text,
     diagnostics: [],
+    symbols: [],
   };
   tabs.push(tab);
   activate(tab.id);
@@ -297,6 +302,7 @@ function activate(id: number) {
   ] });
   renderTabs();
   renderMessages();
+  outline.show(tab.symbols, current !== tab);
   renderCursor();
   view.focus();
 }
@@ -522,6 +528,11 @@ function setRunning(running: boolean) {
     $<HTMLButtonElement>(id).disabled = paused === null;
   }
   if (!running) inputForm.hidden = true;
+  $("debug-vars").hidden = paused === null || paused.variables.length === 0;
+  $("inspector-empty").hidden = !$("debug-vars").hidden;
+  $("inspector-empty").textContent = paused
+    ? "Nenhuma variável neste ponto."
+    : "Pause a execução para inspecionar as variáveis.";
 }
 
 /** Linhas (base 1) dos pontos de parada no estado do editor. */
@@ -543,6 +554,7 @@ function setPaused(info: api.DebugInfo | null) {
   setRunning(runId !== null);
   if (info) {
     renderDebug(info);
+    showUtilities(true);
     showPanel("debug");
     if (activeId === runTabId) goTo(info.position.offset);
     setStatus(`Pausado na linha ${info.position.line}.`);
@@ -568,7 +580,11 @@ function renderDebug(info: api.DebugInfo) {
     const li = document.createElement("li");
     li.textContent = `${frame.function} — linha ${frame.position.line}:${frame.position.column}`;
     if (index === 0) li.className = "current";
-    li.onclick = () => goTo(frame.position.offset);
+    li.onclick = () => {
+      if (runTabId === null || !tabs.some(({ id }) => id === runTabId)) return;
+      if (activeId !== runTabId) activate(runTabId);
+      goTo(frame.position.offset);
+    };
     return li;
   }));
   const body = document.querySelector<HTMLTableSectionElement>("#debug-vars tbody")!;
@@ -768,11 +784,39 @@ $("splitter").addEventListener("pointerdown", (start) => {
   splitter.addEventListener("pointerup", () => splitter.removeEventListener("pointermove", move), { once: true });
 });
 
+const utilities = $("utilities");
+const utilitiesSplitter = $("utilities-splitter");
+const outline = mountOutline(goTo);
+
+function showUtilities(visible: boolean) {
+  if (visible && $("code").classList.contains("expanded")) toggleExpanded();
+  utilities.hidden = utilitiesSplitter.hidden = !visible;
+  $("btn-utilities").setAttribute("aria-expanded", String(visible));
+}
+
+function toggleUtilities() {
+  if (activeTab()) showUtilities(utilities.hidden === true);
+}
+
+utilitiesSplitter.addEventListener("pointerdown", (start) => {
+  utilitiesSplitter.setPointerCapture(start.pointerId);
+  const width = utilities.offsetWidth;
+  const move = (event: PointerEvent) => {
+    const next = Math.min(window.innerWidth * 0.55, Math.max(210, width + start.clientX - event.clientX));
+    utilities.style.width = `${next}px`;
+  };
+  utilitiesSplitter.addEventListener("pointermove", move);
+  utilitiesSplitter.addEventListener("lostpointercapture", () => {
+    utilitiesSplitter.removeEventListener("pointermove", move);
+  }, { once: true });
+});
+
 function toggleExpanded() {
   if (!activeTab()) return;
   const hidden = !panel.hidden;
   panel.hidden = hidden;
   $("splitter").hidden = hidden;
+  $("code").classList.toggle("expanded", hidden);
 }
 
 // ---------------------------------------------------------------------------
@@ -782,6 +826,11 @@ function toggleExpanded() {
 $("home-new").onclick = () => newTab();
 $("home-open").onclick = () => void openFiles();
 $("btn-open").onclick = () => void openFiles();
+$("btn-utilities").onclick = toggleUtilities;
+$("utilities-close").onclick = () => {
+  showUtilities(false);
+  view.focus();
+};
 $("btn-save").onclick = () => void save();
 $("btn-save-as").onclick = () => void save(true);
 $("btn-run").onclick = () => void runProgram();
@@ -860,11 +909,34 @@ fileShortcut("N", false, "Novo arquivo", () => newTab());
 fileShortcut("O", false, "Abrir arquivo", openFiles);
 fileShortcut("S", false, "Salvar", () => save());
 fileShortcut("S", true, "Salvar como", () => save(true));
+fileShortcut("B", false, "Painel Utilitários", toggleUtilities);
+fileShortcut("L", false, "Buscar na estrutura", () => {
+  if (!activeTab()) return;
+  showUtilities(true);
+  outline.focus();
+});
 fileShortcut("Q", false, "Fechar aba", () => closeTab(activeId));
 fileShortcut("Q", true, "Fechar todas as abas", async () => {
   for (const tab of [...tabs]) if (!(await closeTab(tab.id))) return;
   if (helpOpen) await closeTab(helpId);
 });
+
+for (const [key, ty] of Object.entries({ I: "inteiro", C: "caracter", R: "real", A: "cadeia", L: "logico", V: "vazio" })) {
+  shortcuts.push({
+    label: `Alt+Shift+${key}`, command: `Filtrar tipo ${ty}`,
+    matches: (e) => e.altKey && e.shiftKey && e.code === `Key${key}`,
+    action: () => { if (activeTab()) { showUtilities(true); outline.filterType(ty); } },
+  });
+}
+
+const symbolShortcuts = { A: "variable", E: "array", M: "matrix", F: "function", T: "constant" } as const;
+for (const [key, kind] of Object.entries(symbolShortcuts)) {
+  fileShortcut(key, true, `Filtrar ${symbolKindLabels[kind].toLowerCase()}`, () => {
+    if (!activeTab()) return;
+    showUtilities(true);
+    outline.filterKind(kind);
+  });
+}
 
 for (const { label, command } of [...shortcuts, { label: "Ctrl+F", command: "Localizar e substituir" }]) {
   const term = document.createElement("dt");

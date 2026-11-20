@@ -760,3 +760,112 @@ select {
 .help-article dt {
   font-family: var(--mono);
 }
+
+.utilities {
+  width: min(350px, 38vw);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+}
+
+.utilities header,
+.outline,
+.inspector {
+  padding: 8px;
+}
+
+.utilities header,
+.outline-filters,
+.outline-row,
+.outline-symbol {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.utilities header {
+  justify-content: space-between;
+  background: var(--tab-active);
+}
+
+.utilities h2,
+.utilities h3 {
+  margin: 0;
+  font-size: 13px;
+}
+
+#utilities-splitter {
+  cursor: col-resize;
+  width: 15px;
+  height: auto;
+  flex: 0 0 15px;
+}
+
+.code.expanded #utilities-splitter,
+.code.expanded #utilities {
+  display: none;
+}
+
+.outline {
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.outline-filters select {
+  min-width: 0;
+  max-width: 50%;
+}
+
+.outline-results,
+.inspector {
+  overflow: auto;
+}
+
+.outline ul {
+  list-style: none;
+  margin: 0;
+  padding-inline-start: 14px;
+}
+
+.outline > .outline-results > ul {
+  padding-inline-start: 0;
+}
+
+.outline-symbol,
+.outline-expand {
+  border-color: transparent;
+  background: transparent;
+  text-align: start;
+  padding: 3px 4px;
+}
+
+.outline-symbol {
+  min-width: 0;
+}
+
+.outline-symbol span:nth-child(2) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.outline-kind,
+.outline-symbol small,
+#outline-empty,
+#inspector-empty {
+  color: var(--muted);
+}
+
+.outline-kind {
+  font-size: 11px;
+}
+
+.inspector {
+  border-top: 1px solid var(--border);
+  max-height: 42%;
+  min-height: 64px;
+}
