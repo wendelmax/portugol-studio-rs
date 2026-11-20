@@ -47,7 +47,7 @@ são executados e validados sem tela.
 |---|---|---|
 | Editor com realce de sintaxe (`PSTextArea`) | ✅ | CodeMirror 6 |
 | Autocompletar (`PSAutoCompletion`) | ✅ | palavras, snippets, funções de bibliotecas |
-| Erros ao digitar e painel de mensagens (`AbaMensagemCompilador`) | ✅ | |
+| Erros ao digitar e painel de mensagens (`AbaMensagemCompilador`) | ✅ | tabela com ícones, linha e mensagem. Faixa lateral de diagnósticos clicável |
 | Abas de arquivos, abrir, salvar, salvar como | ✅ | |
 | Console com entrada (`AbaConsole`) | ✅ | entrada e engrenagem para limpar, copiar e ajustar fonte |
 | Depuração na IDE (`AbaDepuracao`, `Depurador`) | ✅ | gutter de breakpoints, início pausado com Shift+F5, pilha e variáveis |

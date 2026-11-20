@@ -24,6 +24,7 @@ import { tags } from "@lezer/highlight";
 import { open as openDialog, save as saveDialog, ask } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
+import { renderDiagnostics } from "./diagnostics";
 import { mountExamples } from "./examples";
 import { icon, mountIcons } from "./icons";
 import { mountOutline, symbolKindLabels } from "./outline";
@@ -681,42 +682,7 @@ function goTo(offset: number) {
 }
 
 function renderMessages() {
-  const tab = activeTab();
-  const list = $("messages");
-  const diagnostics = tab?.diagnostics ?? [];
-  const errors = diagnostics.filter((d) => d.severity === "error").length;
-  $("message-count").textContent = errors ? String(errors) : "";
-  if (diagnostics.length === 0) {
-    const empty = document.createElement("li");
-    empty.className = "empty";
-    empty.textContent = "Nenhum problema encontrado.";
-    list.replaceChildren(empty);
-    return;
-  }
-  list.replaceChildren(
-    ...diagnostics.map((d) => {
-      const item = document.createElement("li");
-      item.className = d.severity;
-      const where = document.createElement("span");
-      where.className = "where";
-      where.textContent = `${d.start.line}:${d.start.column}`;
-      const kind = icon(d.severity === "error" ? "pequeno/exclamation" : "pequeno/warning");
-      kind.classList.add("kind");
-      kind.title = d.severity === "error" ? "Erro" : "Aviso";
-      item.setAttribute("aria-label", `${kind.title}, linha ${d.start.line}, coluna ${d.start.column}: ${d.message}`);
-      const message = document.createElement("span");
-      message.textContent = d.message;
-      item.append(where, kind, message);
-      if (d.help) {
-        const help = document.createElement("span");
-        help.className = "help";
-        help.textContent = `— ${d.help}`;
-        item.append(help);
-      }
-      item.onclick = () => goTo(d.start.offset);
-      return item;
-    }),
-  );
+  renderDiagnostics(activeTab()?.diagnostics ?? [], view.state.doc.lines, goTo);
 }
 
 function routeRunEvent(id: number, handle: () => void) {
