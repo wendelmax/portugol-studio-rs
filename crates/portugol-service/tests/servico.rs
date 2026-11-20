@@ -2,13 +2,14 @@ use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use portugol_service::{Level, RunObserver, RunOptions, RunOutcome, check, start};
+use portugol_service::{DebugInfo, Level, RunObserver, RunOptions, RunOutcome, check, start};
 
 #[derive(Debug, Clone, PartialEq)]
 enum Event {
     Output(String),
     Clear,
     Input(&'static str),
+    Paused(DebugInfo),
     Finished(RunOutcome),
 }
 
@@ -23,6 +24,9 @@ impl RunObserver for Recorder {
     }
     fn input_requested(&self, expected: &'static str) {
         let _ = self.0.lock().unwrap().send(Event::Input(expected));
+    }
+    fn paused(&self, info: DebugInfo) {
+        let _ = self.0.lock().unwrap().send(Event::Paused(info));
     }
     fn finished(&self, outcome: RunOutcome) {
         let _ = self.0.lock().unwrap().send(Event::Finished(outcome));
@@ -166,6 +170,44 @@ fn erro_de_execucao_tem_posicao_e_pilha() {
     assert_eq!(message, "Foi efetuada uma divisão por zero.");
     assert_eq!(start.line, 4);
     assert_eq!(trace[0].function, "inicio");
+}
+
+#[test]
+fn depurador_pausa_continua_e_termina() {
+    let source = "programa { funcao inicio() {\n inteiro x = 1\n escreva(x)\n} }";
+    let (observer, rx) = recorder();
+    let options = RunOptions {
+        breakpoints: vec![3], // a linha do escreva
+        ..RunOptions::default()
+    };
+    let handle = start(source, options, observer).expect("compilar");
+
+    let Event::Paused(info) = next(&rx) else {
+        panic!("esperava uma pausa no depurador");
+    };
+    assert_eq!(info.position.line, 3);
+    assert_eq!(info.stack[0].function, "inicio");
+    let x = info
+        .variables
+        .iter()
+        .find(|v| v.name == "x")
+        .expect("variável x");
+    assert_eq!(x.value, "1");
+    assert_eq!(x.scope, "local");
+
+    handle.continue_run();
+    let events = collect_until_finished(&rx);
+    assert!(
+        events
+            .iter()
+            .any(|event| matches!(event, Event::Output(text) if text == "1")),
+        "saída: {events:?}"
+    );
+    assert!(matches!(
+        events.last(),
+        Some(Event::Finished(RunOutcome::Finished))
+    ));
+    handle.join();
 }
 
 #[test]

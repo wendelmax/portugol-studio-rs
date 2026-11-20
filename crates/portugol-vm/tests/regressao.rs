@@ -94,7 +94,12 @@ impl Host for Headless {
         Ok(())
     }
 
-    fn graphics_snapshot(&mut self, _: Vec<u8>, width: i32, height: i32) -> Result<Vec<u8>, String> {
+    fn graphics_snapshot(
+        &mut self,
+        _: Vec<u8>,
+        width: i32,
+        height: i32,
+    ) -> Result<Vec<u8>, String> {
         Ok(vec![0; (width * height * 4) as usize])
     }
 
@@ -168,7 +173,11 @@ fn report(source: &str, input: &str, dir: &Path) -> String {
     }
     let frames = frames.lock().unwrap();
     if frames.count > 0 {
-        let _ = writeln!(out, "# gráficos\n{} quadro(s), resumo {:016x}", frames.count, frames.hash);
+        let _ = writeln!(
+            out,
+            "# gráficos\n{} quadro(s), resumo {:016x}",
+            frames.count, frames.hash
+        );
     }
     out.push_str("# resultado\n");
     let outcome = outcome.map_err(|mut error| {
@@ -207,7 +216,11 @@ fn corpus_do_portugol_studio() {
     for file in &files {
         let source = std::fs::read_to_string(file).expect("ler .por");
         let input = std::fs::read_to_string(file.with_extension("entrada")).unwrap_or_default();
-        let program_dir = copy.join(file.strip_prefix(corpus_dir()).unwrap()).parent().unwrap().to_path_buf();
+        let program_dir = copy
+            .join(file.strip_prefix(corpus_dir()).unwrap())
+            .parent()
+            .unwrap()
+            .to_path_buf();
         let actual = report(&source, &input, &program_dir);
         let expected_path = file.with_extension("saida");
 

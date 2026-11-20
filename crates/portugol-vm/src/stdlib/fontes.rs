@@ -21,10 +21,22 @@ pub const UNDERLINE: u8 = 4;
 pub const BUILTIN_FAMILY: &str = "PortugolSans";
 
 static BUILTIN: [(&[u8], u8); 4] = [
-    (include_bytes!("../../assets/fontes/LiberationSans-Regular.ttf"), 0),
-    (include_bytes!("../../assets/fontes/LiberationSans-Bold.ttf"), BOLD),
-    (include_bytes!("../../assets/fontes/LiberationSans-Italic.ttf"), ITALIC),
-    (include_bytes!("../../assets/fontes/LiberationSans-BoldItalic.ttf"), BOLD | ITALIC),
+    (
+        include_bytes!("../../assets/fontes/LiberationSans-Regular.ttf"),
+        0,
+    ),
+    (
+        include_bytes!("../../assets/fontes/LiberationSans-Bold.ttf"),
+        BOLD,
+    ),
+    (
+        include_bytes!("../../assets/fontes/LiberationSans-Italic.ttf"),
+        ITALIC,
+    ),
+    (
+        include_bytes!("../../assets/fontes/LiberationSans-BoldItalic.ttf"),
+        BOLD | ITALIC,
+    ),
 ];
 
 /// Bytes das fontes embutidas e o estilo de cada uma, para enviar à janela.
@@ -66,7 +78,11 @@ impl Fonts {
     }
 
     fn font(&mut self, family: &str, style: u8) -> FontArc {
-        if let Some(loaded) = self.loaded.iter().find(|f| f.family.eq_ignore_ascii_case(family)) {
+        if let Some(loaded) = self
+            .loaded
+            .iter()
+            .find(|f| f.family.eq_ignore_ascii_case(family))
+        {
             return loaded.font.clone();
         }
         self.ensure_builtin();

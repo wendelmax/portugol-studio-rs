@@ -89,12 +89,24 @@ pub fn teclado_constant(name: &str) -> Option<Value> {
             // TECLA_0..9, TECLA_NUM_0..9 e TECLA_F1..F12.
             let rest = name.strip_prefix("TECLA_")?;
             if let Some(digit) = rest.strip_prefix("NUM_") {
-                return digit.parse::<i32>().ok().filter(|d| (0..=9).contains(d)).map(|d| Value::Int(96 + d));
+                return digit
+                    .parse::<i32>()
+                    .ok()
+                    .filter(|d| (0..=9).contains(d))
+                    .map(|d| Value::Int(96 + d));
             }
             if let Some(f) = rest.strip_prefix('F') {
-                return f.parse::<i32>().ok().filter(|n| (1..=12).contains(n)).map(|n| Value::Int(111 + n));
+                return f
+                    .parse::<i32>()
+                    .ok()
+                    .filter(|n| (1..=12).contains(n))
+                    .map(|n| Value::Int(111 + n));
             }
-            return rest.parse::<i32>().ok().filter(|d| (0..=9).contains(d)).map(|d| Value::Int(48 + d));
+            return rest
+                .parse::<i32>()
+                .ok()
+                .filter(|d| (0..=9).contains(d))
+                .map(|d| Value::Int(48 + d));
         }
     };
     Some(Value::Int(code))
@@ -116,12 +128,16 @@ fn tecla_pressionada(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, S
     if !(0..525).contains(&code) {
         return Err("Você tentou acessar um índice de vetor ou matriz inválido.".into());
     }
-    Ok(Value::Bool(ctx.host.input().is_some_and(|i| i.is_key_down(code))))
+    Ok(Value::Bool(
+        ctx.host.input().is_some_and(|i| i.is_key_down(code)),
+    ))
 }
 
 fn alguma_tecla_pressionada(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
     arity(args, 0, "alguma_tecla_pressionada")?;
-    Ok(Value::Bool(ctx.host.input().is_some_and(|i| i.any_key_down())))
+    Ok(Value::Bool(
+        ctx.host.input().is_some_and(|i| i.any_key_down()),
+    ))
 }
 
 fn wait_result(result: Wait) -> Result<Value, String> {
@@ -134,7 +150,10 @@ fn wait_result(result: Wait) -> Result<Value, String> {
 
 fn ler_tecla(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
     arity(args, 0, "ler_tecla")?;
-    let input = ctx.host.input().ok_or_else(|| unavailable("a leitura do teclado"))?;
+    let input = ctx
+        .host
+        .input()
+        .ok_or_else(|| unavailable("a leitura do teclado"))?;
     wait_result(input.wait_key(&ctx.interrupt))
 }
 
@@ -148,19 +167,28 @@ fn botao_pressionado(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, S
     arity(args, 1, "botao_pressionado")?;
     let button = int(&args[0])?;
     if !(0..3).contains(&button) {
-        return Err(format!("O código '{button}' não é um código de botão válido"));
+        return Err(format!(
+            "O código '{button}' não é um código de botão válido"
+        ));
     }
-    Ok(Value::Bool(ctx.host.input().is_some_and(|i| i.is_button_down(button))))
+    Ok(Value::Bool(
+        ctx.host.input().is_some_and(|i| i.is_button_down(button)),
+    ))
 }
 
 fn algum_botao_pressionado(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
     arity(args, 0, "algum_botao_pressionado")?;
-    Ok(Value::Bool(ctx.host.input().is_some_and(|i| i.any_button_down())))
+    Ok(Value::Bool(
+        ctx.host.input().is_some_and(|i| i.any_button_down()),
+    ))
 }
 
 fn ler_botao(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
     arity(args, 0, "ler_botao")?;
-    let input = ctx.host.input().ok_or_else(|| unavailable("a leitura do mouse"))?;
+    let input = ctx
+        .host
+        .input()
+        .ok_or_else(|| unavailable("a leitura do mouse"))?;
     wait_result(input.wait_button(&ctx.interrupt))
 }
 
@@ -171,11 +199,18 @@ fn position(
     pick: fn((i32, i32)) -> i32,
 ) -> Result<Value, String> {
     arity(args, 0, name)?;
-    Ok(Value::Int(ctx.host.input().map_or(0, |i| pick(i.mouse_position()))))
+    Ok(Value::Int(
+        ctx.host.input().map_or(0, |i| pick(i.mouse_position())),
+    ))
 }
 
 /// Sem janela gráfica não há cursor a alterar; como no original, nada acontece.
-fn cursor(ctx: &mut NativeContext, args: &[Value], name: &str, visible: bool) -> Result<Value, String> {
+fn cursor(
+    ctx: &mut NativeContext,
+    args: &[Value],
+    name: &str,
+    visible: bool,
+) -> Result<Value, String> {
     arity(args, 0, name)?;
     let _ = ctx
         .host

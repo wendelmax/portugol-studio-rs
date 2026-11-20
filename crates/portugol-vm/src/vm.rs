@@ -10,7 +10,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use portugol_bytecode::{Module, Op, ValueType};
 use portugol_syntax::Span;
+use portugol_syntax::ast::Type;
 
+use crate::debug::{DebugControl, DebugFrame, DebugVariable, PausedInfo};
 use crate::io::Io;
 use crate::stdlib::{self, NativeContext, NativeFn};
 use crate::value::{Matrix, Reference, Value};
@@ -53,6 +55,7 @@ pub struct Vm<'a> {
     ctx: NativeContext,
     interrupt: Arc<AtomicBool>,
     args: Vec<String>,
+    debug: Option<DebugControl>,
 }
 
 /// Executa o programa até o fim.
@@ -61,6 +64,86 @@ pub fn run(module: &Module, io: &mut dyn Io) -> Result<(), RuntimeError> {
 }
 
 type Exec<T> = Result<T, String>;
+
+/// Nome do tipo mostrado no inspetor, incluindo dimensões e `&`.
+fn type_label(ty: Type, dims: u8, by_ref: bool) -> String {
+    let mut label = String::new();
+    if by_ref {
+        label.push('&');
+    }
+    label.push_str(ty.as_str());
+    for _ in 0..dims {
+        label.push_str("[]");
+    }
+    label
+}
+
+/// Texto de um valor escalar no inspetor.
+fn debug_scalar(value: &Value) -> String {
+    match value {
+        Value::Void => "<vazio>".to_string(),
+        Value::Ref(_) => "[referência]".to_string(),
+        Value::Array(_) => "[vetor]".to_string(),
+        Value::Matrix(_) => "[matriz]".to_string(),
+        other => other.display(),
+    }
+}
+
+/// Acrescenta uma variável ao inspetor, expandindo vetores e matrizes.
+fn debug_value(
+    out: &mut Vec<DebugVariable>,
+    name: &str,
+    ty: &str,
+    value: &Value,
+    scope: &'static str,
+    max_items: usize,
+) {
+    match value {
+        Value::Array(cells) => {
+            let cells = cells.borrow();
+            let element_ty = ty.strip_suffix("[]").unwrap_or(ty);
+            out.push(DebugVariable {
+                name: name.to_string(),
+                ty: ty.to_string(),
+                value: format!("{} elemento(s)", cells.len()),
+                scope,
+            });
+            for (index, cell) in cells.iter().take(max_items).enumerate() {
+                out.push(DebugVariable {
+                    name: format!("{name}[{index}]"),
+                    ty: element_ty.to_string(),
+                    value: debug_scalar(cell),
+                    scope,
+                });
+            }
+        }
+        Value::Matrix(matrix) => {
+            let matrix = matrix.borrow();
+            let element_ty = ty.strip_suffix("[]").unwrap_or(ty);
+            out.push(DebugVariable {
+                name: name.to_string(),
+                ty: ty.to_string(),
+                value: format!("{}x{}", matrix.rows, matrix.cols),
+                scope,
+            });
+            let cols = matrix.cols.max(1);
+            for (index, cell) in matrix.data.iter().take(max_items).enumerate() {
+                out.push(DebugVariable {
+                    name: format!("{name}[{},{}]", index / cols, index % cols),
+                    ty: element_ty.to_string(),
+                    value: debug_scalar(cell),
+                    scope,
+                });
+            }
+        }
+        _ => out.push(DebugVariable {
+            name: name.to_string(),
+            ty: ty.to_string(),
+            value: debug_scalar(value),
+            scope,
+        }),
+    }
+}
 
 impl<'a> Vm<'a> {
     pub fn new(module: &'a Module, io: &'a mut dyn Io) -> Self {
@@ -108,6 +191,7 @@ impl<'a> Vm<'a> {
             ctx,
             interrupt,
             args: Vec::new(),
+            debug: None,
         }
     }
 
@@ -149,6 +233,13 @@ impl<'a> Vm<'a> {
         self
     }
 
+    /// Liga o depurador. A VM passa a parar nos pontos de parada e a responder
+    /// aos comandos de passo; `info` é publicada antes de cada pausa.
+    pub fn with_debug(mut self, debug: DebugControl) -> Self {
+        self.debug = Some(debug);
+        self
+    }
+
     /// Usa um sinalizador de interrupção criado fora da VM (por exemplo,
     /// antes de mover a execução para outra thread).
     pub fn with_interrupt(mut self, interrupt: Arc<AtomicBool>) -> Self {
@@ -182,6 +273,20 @@ impl<'a> Vm<'a> {
                 self.sync(frame);
                 return Err(self.error("O programa foi interrompido.".to_string()));
             }
+            if let Some(debug) = &self.debug {
+                let function = &module.functions[frame.function as usize];
+                let span = function.spans.get(frame.ip).copied().unwrap_or_default();
+                // As instruções sintéticas de entrada usam o trecho de todo o
+                // programa; parar nelas não corresponde a nenhuma linha útil.
+                let synthetic = frame.function == module.entry && span == function.span;
+                if !synthetic && debug.should_pause(self.frames.len(), span) {
+                    let info = self.debug_info(&frame);
+                    if !debug.pause_and_wait(&info) {
+                        self.sync(frame);
+                        return Err(self.error("O programa foi interrompido.".to_string()));
+                    }
+                }
+            }
             let op = code[frame.ip];
             frame.ip += 1;
             match self.exec(op, &mut frame) {
@@ -213,6 +318,68 @@ impl<'a> Vm<'a> {
         let frame = self.frames.last()?;
         let function = &self.module.functions[frame.function as usize];
         function.spans.get(frame.ip.saturating_sub(1)).copied()
+    }
+
+    /// Estado exposto ao depurador no ponto de parada.
+    fn debug_info(&self, frame: &Frame) -> PausedInfo {
+        const MAX_ITEMS: usize = 100;
+
+        let function = &self.module.functions[frame.function as usize];
+        let span = function
+            .spans
+            .get(frame.ip)
+            .copied()
+            .unwrap_or(function.span);
+
+        let mut stack = vec![DebugFrame {
+            function: function.name.clone(),
+            offset: span.start,
+        }];
+        for caller in self.frames.iter().rev().skip(1) {
+            let caller_function = &self.module.functions[caller.function as usize];
+            let offset = caller_function
+                .spans
+                .get(caller.ip.saturating_sub(1))
+                .copied()
+                .unwrap_or(caller_function.span)
+                .start;
+            stack.push(DebugFrame {
+                function: caller_function.name.clone(),
+                offset,
+            });
+        }
+
+        let mut variables = Vec::new();
+        for (info, value) in self.module.globals.iter().zip(self.globals.iter()) {
+            debug_value(
+                &mut variables,
+                &info.name,
+                &type_label(info.ty, info.dims, false),
+                value,
+                "global",
+                MAX_ITEMS,
+            );
+        }
+        for (slot, info) in function.locals.iter().enumerate() {
+            if info.name.is_empty() {
+                continue; // temporário do compilador
+            }
+            let value = &self.stack[frame.base + slot];
+            debug_value(
+                &mut variables,
+                &info.name,
+                &type_label(info.ty, info.dims, info.by_ref),
+                value,
+                "local",
+                MAX_ITEMS,
+            );
+        }
+
+        PausedInfo {
+            span,
+            stack,
+            variables,
+        }
     }
 
     fn error(&self, message: String) -> RuntimeError {

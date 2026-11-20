@@ -56,13 +56,20 @@ pub mod op {
 /// Comandos de janela de Graficos e Mouse.
 #[derive(Debug, Clone, PartialEq)]
 pub enum WindowCommand {
-    Resize { width: i32, height: i32 },
+    Resize {
+        width: i32,
+        height: i32,
+    },
     Title(String),
     Minimize,
     Restore,
     Decorations(bool),
     FullScreen(bool),
-    Icon { width: u32, height: u32, rgba: Vec<u8> },
+    Icon {
+        width: u32,
+        height: u32,
+        rgba: Vec<u8>,
+    },
     CursorVisible(bool),
 }
 
@@ -189,7 +196,11 @@ impl InputState {
     }
 
     pub fn is_button_down(&self, button: i32) -> bool {
-        self.lock().buttons.get(button as usize).copied().unwrap_or(false)
+        self.lock()
+            .buttons
+            .get(button as usize)
+            .copied()
+            .unwrap_or(false)
     }
 
     pub fn any_button_down(&self) -> bool {

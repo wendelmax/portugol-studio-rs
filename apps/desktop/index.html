@@ -21,6 +21,13 @@
           <input id="args" type="text" spellcheck="false" placeholder="separados por espaço" />
         </label>
       </div>
+      <div class="group" id="debug-controls" title="Durante a execução, clique na margem esquerda para criar pontos de parada">
+        <button id="btn-debug-pause" title="Pausar (F9)" disabled>⏸ Pausar</button>
+        <button id="btn-debug-continue" title="Continuar (F5)" disabled>▶ Continuar</button>
+        <button id="btn-debug-step-over" title="Passo por cima (F10)" disabled>↷ Passo</button>
+        <button id="btn-debug-step-into" title="Entrar na função (F11)" disabled>↳ Entrar</button>
+        <button id="btn-debug-step-out" title="Sair da função (Shift+F11)" disabled>↰ Sair</button>
+      </div>
       <label class="theme">
         Tema
         <select id="theme">
@@ -40,6 +47,7 @@
         <div class="panel-tabs" role="tablist">
           <button id="tab-console" class="active" role="tab">Console</button>
           <button id="tab-messages" role="tab">Mensagens <span id="message-count"></span></button>
+          <button id="tab-debug" role="tab">Depuração</button>
           <button id="btn-clear" class="right" title="Limpar o console">Limpar</button>
         </div>
         <div id="console" class="console" tabindex="0">
@@ -50,6 +58,19 @@
           </form>
         </div>
         <ul id="messages" class="messages" hidden></ul>
+        <div id="debug" class="debug" hidden>
+          <div class="debug-col">
+            <h3>Pilha de chamadas</h3>
+            <ol id="debug-stack"></ol>
+          </div>
+          <div class="debug-col">
+            <h3>Variáveis</h3>
+            <table id="debug-vars">
+              <thead><tr><th>Nome</th><th>Tipo</th><th>Valor</th><th>Escopo</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
       </section>
     </main>
 

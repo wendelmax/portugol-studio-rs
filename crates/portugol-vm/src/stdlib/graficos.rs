@@ -107,8 +107,16 @@ pub fn function(name: &str) -> Option<NativeFn> {
         "fechar_janela" => encerrar_modo_grafico,
         "minimizar_janela" => |c, a| window(c, a, "minimizar_janela", |_| WindowCommand::Minimize),
         "restaurar_janela" => |c, a| window(c, a, "restaurar_janela", |_| WindowCommand::Restore),
-        "ocultar_borda_janela" => |c, a| window(c, a, "ocultar_borda_janela", |_| WindowCommand::Decorations(false)),
-        "exibir_borda_janela" => |c, a| window(c, a, "exibir_borda_janela", |_| WindowCommand::Decorations(true)),
+        "ocultar_borda_janela" => |c, a| {
+            window(c, a, "ocultar_borda_janela", |_| {
+                WindowCommand::Decorations(false)
+            })
+        },
+        "exibir_borda_janela" => |c, a| {
+            window(c, a, "exibir_borda_janela", |_| {
+                WindowCommand::Decorations(true)
+            })
+        },
         "definir_dimensoes_janela" => definir_dimensoes_janela,
         "definir_titulo_janela" => definir_titulo_janela,
         "entrar_modo_tela_cheia" => entrar_modo_tela_cheia,
@@ -232,7 +240,8 @@ fn definir_dimensoes_janela(ctx: &mut NativeContext, args: &[Value]) -> Result<V
     arity(args, 2, "definir_dimensoes_janela")?;
     require_window(ctx)?;
     let (width, height) = (int(&args[0])?, int(&args[1])?);
-    ctx.host.graphics_window(WindowCommand::Resize { width, height })?;
+    ctx.host
+        .graphics_window(WindowCommand::Resize { width, height })?;
     ctx.graphics.width = width;
     ctx.graphics.height = height;
     Ok(Value::Void)
@@ -390,7 +399,11 @@ fn renderizar_imagem(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, S
     arity(args, 2, "renderizar_imagem")?;
     let (width, height) = (int(&args[0])?, int(&args[1])?);
     if width <= 0 || height <= 0 {
-        return Err("Width (".to_string() + &width.to_string() + ") and height (" + &height.to_string() + ") cannot be <= 0");
+        return Err("Width (".to_string()
+            + &width.to_string()
+            + ") and height ("
+            + &height.to_string()
+            + ") cannot be <= 0");
     }
     let frame = ctx.graphics.take_frame();
     let rgba = ctx.host.graphics_snapshot(frame, width, height)?;
@@ -445,7 +458,9 @@ fn criar_cor(_: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
     if [r, g, b].iter().any(|c| !(0..=255).contains(c)) {
         return Err("Erro ao criar a cor, os valor dos tons deve estar entre 0 e 255".into());
     }
-    Ok(Value::Int((0xFF00_0000_u32 | ((r as u32) << 16) | ((g as u32) << 8) | b as u32) as i32))
+    Ok(Value::Int(
+        (0xFF00_0000_u32 | ((r as u32) << 16) | ((g as u32) << 8) | b as u32) as i32,
+    ))
 }
 
 fn obter_rgb(_: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
@@ -465,27 +480,53 @@ fn obter_rgb(_: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
 
 fn desenhar_retangulo(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
     arity(args, 6, "desenhar_retangulo")?;
-    let (x, y, w, h) = (int(&args[0])?, int(&args[1])?, int(&args[2])?, int(&args[3])?);
+    let (x, y, w, h) = (
+        int(&args[0])?,
+        int(&args[1])?,
+        int(&args[2])?,
+        int(&args[3])?,
+    );
     let (round, fill) = (boolean(&args[4])?, boolean(&args[5])?);
     let g = &mut ctx.graphics;
-    g.begin(op::RECT)?.i32(x).i32(y).i32(w).i32(h).u8(round as u8).u8(fill as u8);
+    g.begin(op::RECT)?
+        .i32(x)
+        .i32(y)
+        .i32(w)
+        .i32(h)
+        .u8(round as u8)
+        .u8(fill as u8);
     g.rotation_tail(x + (w >> 1), y + (h >> 1));
     Ok(Value::Void)
 }
 
 fn desenhar_elipse(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
     arity(args, 5, "desenhar_elipse")?;
-    let (x, y, w, h) = (int(&args[0])?, int(&args[1])?, int(&args[2])?, int(&args[3])?);
+    let (x, y, w, h) = (
+        int(&args[0])?,
+        int(&args[1])?,
+        int(&args[2])?,
+        int(&args[3])?,
+    );
     let fill = boolean(&args[4])?;
     let g = &mut ctx.graphics;
-    g.begin(op::ELLIPSE)?.i32(x).i32(y).i32(w).i32(h).u8(fill as u8);
+    g.begin(op::ELLIPSE)?
+        .i32(x)
+        .i32(y)
+        .i32(w)
+        .i32(h)
+        .u8(fill as u8);
     g.rotation_tail(x + (w >> 1), y + (h >> 1));
     Ok(Value::Void)
 }
 
 fn desenhar_linha(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
     arity(args, 4, "desenhar_linha")?;
-    let (x1, y1, x2, y2) = (int(&args[0])?, int(&args[1])?, int(&args[2])?, int(&args[3])?);
+    let (x1, y1, x2, y2) = (
+        int(&args[0])?,
+        int(&args[1])?,
+        int(&args[2])?,
+        int(&args[3])?,
+    );
     let g = &mut ctx.graphics;
     g.begin(op::LINE)?.i32(x1).i32(y1).i32(x2).i32(y2);
     g.rotation_tail(x1 + ((x1 - x2).abs() >> 1), y1 + ((y1 - y2).abs() >> 1));
@@ -637,7 +678,10 @@ fn new_frame(ctx: &mut NativeContext, pixels: RgbaImage, delay_cs: i32) -> Frame
 
 /// O primeiro endereço livre a partir do fim, como no `CacheImagens`.
 fn add_picture(ctx: &mut NativeContext, picture: Picture) -> Result<Value, String> {
-    let Some(index) = (0..MAX_IMAGES).rev().find(|&i| ctx.graphics.images[i].is_none()) else {
+    let Some(index) = (0..MAX_IMAGES)
+        .rev()
+        .find(|&i| ctx.graphics.images[i].is_none())
+    else {
         return Err("O número máximo de imagens que podem ser carregadas foi atingido".into());
     };
     ctx.graphics.images[index] = Some(picture);
@@ -719,7 +763,9 @@ fn liberar_imagem(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, Stri
     arity(args, 1, "liberar_imagem")?;
     let address = int(&args[0])?;
     let g = &mut ctx.graphics;
-    if let Some(slot) = usize::try_from(address).ok().and_then(|i| g.images.get_mut(i))
+    if let Some(slot) = usize::try_from(address)
+        .ok()
+        .and_then(|i| g.images.get_mut(i))
         && let Some(picture) = slot.take()
     {
         for frame in picture.frames {
@@ -827,7 +873,12 @@ fn transformar_imagem(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, 
 fn transformar_porcao_imagem(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
     arity(args, 9, "transformar_porcao_imagem")?;
     let pixels = current_pixels(ctx, int(&args[0])?)?;
-    let (x, y, w, h) = (int(&args[1])?, int(&args[2])?, int(&args[3])?, int(&args[4])?);
+    let (x, y, w, h) = (
+        int(&args[1])?,
+        int(&args[2])?,
+        int(&args[3])?,
+        int(&args[4])?,
+    );
     if w <= 0 || h <= 0 {
         return Err(format!("Width ({w}) and height ({h}) cannot be <= 0"));
     }
@@ -838,13 +889,25 @@ fn transformar_porcao_imagem(ctx: &mut NativeContext, args: &[Value]) -> Result<
             *pixel = *pixels.get_pixel(sx as u32, sy as u32);
         }
     }
-    let transformed = transform(part, boolean(&args[5])?, boolean(&args[6])?, int(&args[7])?, int(&args[8])?);
+    let transformed = transform(
+        part,
+        boolean(&args[5])?,
+        boolean(&args[6])?,
+        int(&args[7])?,
+        int(&args[8])?,
+    );
     let picture = still(ctx, transformed);
     add_picture(ctx, picture)
 }
 
 /// Chroma key, espelhamento e rotação, nessa ordem, como no original.
-fn transform(mut pixels: RgbaImage, flip_h: bool, flip_v: bool, degrees: i32, ignored: i32) -> RgbaImage {
+fn transform(
+    mut pixels: RgbaImage,
+    flip_h: bool,
+    flip_v: bool,
+    degrees: i32,
+    ignored: i32,
+) -> RgbaImage {
     if ignored != 0 {
         let key = (ignored as u32 & 0x00FF_FFFF).to_be_bytes();
         for pixel in pixels.pixels_mut() {
@@ -870,12 +933,16 @@ fn transform(mut pixels: RgbaImage, flip_h: bool, flip_v: bool, degrees: i32, ig
 fn rotate(source: &RgbaImage, angle: f64) -> RgbaImage {
     let (w, h) = (source.width() as f64, source.height() as f64);
     let (sin, cos) = angle.sin_cos();
-    let corners = [(0.0, 0.0), (w, 0.0), (w, h), (0.0, h)].map(|(x, y)| (x * cos - y * sin, x * sin + y * cos));
+    let corners = [(0.0, 0.0), (w, 0.0), (w, h), (0.0, h)]
+        .map(|(x, y)| (x * cos - y * sin, x * sin + y * cos));
     let min_x = corners.iter().map(|c| c.0).fold(0.0, f64::min);
     let min_y = corners.iter().map(|c| c.1).fold(0.0, f64::min);
     let max_x = corners.iter().map(|c| c.0).fold(f64::MIN, f64::max);
     let max_y = corners.iter().map(|c| c.1).fold(f64::MIN, f64::max);
-    let (out_w, out_h) = ((max_x - min_x).round().max(1.0) as u32, (max_y - min_y).round().max(1.0) as u32);
+    let (out_w, out_h) = (
+        (max_x - min_x).round().max(1.0) as u32,
+        (max_y - min_y).round().max(1.0) as u32,
+    );
     let mut out = RgbaImage::new(out_w, out_h);
     for (px, py, pixel) in out.enumerate_pixels_mut() {
         // Ponto de destino de volta à origem (rotação inversa).
@@ -897,7 +964,12 @@ fn sample(source: &RgbaImage, x: f64, y: f64) -> Rgba<u8> {
             source.get_pixel(ix as u32, iy as u32).0.map(f64::from)
         }
     };
-    let (a, b, c, d) = (get(x0, y0), get(x0 + 1.0, y0), get(x0, y0 + 1.0), get(x0 + 1.0, y0 + 1.0));
+    let (a, b, c, d) = (
+        get(x0, y0),
+        get(x0 + 1.0, y0),
+        get(x0, y0 + 1.0),
+        get(x0 + 1.0, y0 + 1.0),
+    );
     let mut out = [0u8; 4];
     for i in 0..4 {
         let top = a[i] * (1.0 - fx) + b[i] * fx;
@@ -916,7 +988,10 @@ fn redimensionar_imagem(ctx: &mut NativeContext, args: &[Value]) -> Result<Value
         return Err("Impossível transformar imagem para estas dimensões".into());
     }
     let source = picture(ctx, address)?;
-    let (ow, oh) = (source.frames[0].pixels.width() as f64, source.frames[0].pixels.height() as f64);
+    let (ow, oh) = (
+        source.frames[0].pixels.width() as f64,
+        source.frames[0].pixels.height() as f64,
+    );
     if h == 0 && w != 0 {
         h = (oh * (w as f64 / ow)) as i32;
     } else if h != 0 && w == 0 {
@@ -925,8 +1000,11 @@ fn redimensionar_imagem(ctx: &mut NativeContext, args: &[Value]) -> Result<Value
     if w <= 0 || h <= 0 {
         return Err("Impossível transformar imagem para estas dimensões".into());
     }
+    // O original usa VALUE_INTERPOLATION_BICUBIC do Java. Catmull-Rom é o
+    // filtro cúbico do `image` e, ao contrário de Lanczos3, não depende de
+    // `sin`: produz exatamente os mesmos pixels no Windows, Linux e macOS.
     let filter = if quality {
-        image::imageops::FilterType::Lanczos3
+        image::imageops::FilterType::CatmullRom
     } else {
         image::imageops::FilterType::Nearest
     };
@@ -934,7 +1012,12 @@ fn redimensionar_imagem(ctx: &mut NativeContext, args: &[Value]) -> Result<Value
     let resized: Vec<(RgbaImage, i32)> = source
         .frames
         .iter()
-        .map(|f| (image::imageops::resize(&*f.pixels, w as u32, h as u32, filter), f.delay_cs))
+        .map(|f| {
+            (
+                image::imageops::resize(&*f.pixels, w as u32, h as u32, filter),
+                f.delay_cs,
+            )
+        })
         .collect();
     let frames = resized
         .into_iter()
@@ -992,7 +1075,10 @@ fn obter_quadro_gif(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, St
     let index = int(&args[1])?;
     let picture = gif(ctx, int(&args[0])?)?;
     let count = picture.frames.len();
-    let Some(frame) = usize::try_from(index).ok().and_then(|i| picture.frames.get(i)) else {
+    let Some(frame) = usize::try_from(index)
+        .ok()
+        .and_then(|i| picture.frames.get(i))
+    else {
         return Err(format!(
             "O índice do quadro é invalido. Esta imagem GIF possui apenas {count} quadros"
         ));

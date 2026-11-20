@@ -8,12 +8,13 @@
 //! | `run`          | compila e executa; devolve o id da execução        |
 //! | `send_input`   | responde a um `leia`                               |
 //! | `stop`         | interrompe a execução                              |
+//! | `debug_*`      | pausa, continua, passos e pontos de parada         |
 //! | `read_file`    | lê `.por` em UTF-8 ou ISO-8859-1                   |
 //! | `write_file`   | grava em UTF-8                                     |
 //!
 //! Eventos emitidos durante uma execução (todos com `id`):
-//! `run:output` (`text`), `run:clear`, `run:input` (`expected`) e
-//! `run:finished` (`outcome`).
+//! `run:output` (`text`), `run:clear`, `run:input` (`expected`),
+//! `run:paused` (`info`) e `run:finished` (`outcome`).
 
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
@@ -22,7 +23,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
 use portugol_service::{
-    DiagnosticInfo, FileFilter, RunHandle, RunObserver, RunOptions, RunOutcome,
+    DebugInfo, DiagnosticInfo, FileFilter, RunHandle, RunObserver, RunOptions, RunOutcome,
 };
 use tauri_plugin_dialog::DialogExt;
 
@@ -64,6 +65,12 @@ struct InputEvent {
 struct FinishedEvent {
     id: u32,
     outcome: RunOutcome,
+}
+
+#[derive(Clone, Serialize)]
+struct PausedEvent {
+    id: u32,
+    info: DebugInfo,
 }
 
 struct EventSink {
@@ -108,6 +115,12 @@ impl RunObserver for EventSink {
             .map(|path| path.display().to_string())
     }
 
+    fn paused(&self, info: DebugInfo) {
+        let _ = self
+            .app
+            .emit("run:paused", PausedEvent { id: self.id, info });
+    }
+
     fn finished(&self, outcome: RunOutcome) {
         let _ = self.app.emit(
             "run:finished",
@@ -132,6 +145,7 @@ fn run(
     source: String,
     args: Vec<String>,
     path: Option<String>,
+    breakpoints: Vec<u32>,
 ) -> Result<u32, Vec<DiagnosticInfo>> {
     let id = runs.next_id.fetch_add(1, Ordering::Relaxed) + 1;
     let mut current = runs.current.lock().unwrap_or_else(|e| e.into_inner());
@@ -144,7 +158,11 @@ fn run(
         .as_deref()
         .and_then(|p| std::path::Path::new(p).parent())
         .map(std::path::Path::to_path_buf);
-    let options = RunOptions { args, working_dir };
+    let options = RunOptions {
+        args,
+        working_dir,
+        breakpoints,
+    };
     let handle = portugol_service::start(&source, options, observer)?;
     *current = Some((id, handle));
     Ok(id)
@@ -158,6 +176,36 @@ fn send_input(runs: State<'_, Runs>, id: u32, line: String) {
 #[tauri::command]
 fn stop(runs: State<'_, Runs>, id: u32) {
     runs.with_current(id, RunHandle::stop);
+}
+
+#[tauri::command]
+fn debug_pause(runs: State<'_, Runs>, id: u32) {
+    runs.with_current(id, RunHandle::pause);
+}
+
+#[tauri::command]
+fn debug_continue(runs: State<'_, Runs>, id: u32) {
+    runs.with_current(id, RunHandle::continue_run);
+}
+
+#[tauri::command]
+fn debug_step_over(runs: State<'_, Runs>, id: u32) {
+    runs.with_current(id, RunHandle::step_over);
+}
+
+#[tauri::command]
+fn debug_step_into(runs: State<'_, Runs>, id: u32) {
+    runs.with_current(id, RunHandle::step_into);
+}
+
+#[tauri::command]
+fn debug_step_out(runs: State<'_, Runs>, id: u32) {
+    runs.with_current(id, RunHandle::step_out);
+}
+
+#[tauri::command]
+fn debug_set_breakpoints(runs: State<'_, Runs>, id: u32, source: String, lines: Vec<u32>) {
+    runs.with_current(id, |handle| handle.set_breakpoints(&lines, &source));
 }
 
 /// Os exemplos históricos do Portugol Studio estão em ISO-8859-1; aceitamos
@@ -185,7 +233,18 @@ pub fn run_app() {
         .plugin(tauri_plugin_dialog::init())
         .manage(Runs::default())
         .invoke_handler(tauri::generate_handler![
-            check, run, send_input, stop, read_file, write_file
+            check,
+            run,
+            send_input,
+            stop,
+            debug_pause,
+            debug_continue,
+            debug_step_over,
+            debug_step_into,
+            debug_step_out,
+            debug_set_breakpoints,
+            read_file,
+            write_file
         ])
         .run(tauri::generate_context!())
         .expect("erro ao iniciar a IDE");

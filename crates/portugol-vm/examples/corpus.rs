@@ -46,7 +46,12 @@ impl Host for Headless {
         Ok(())
     }
 
-    fn graphics_snapshot(&mut self, _: Vec<u8>, width: i32, height: i32) -> Result<Vec<u8>, String> {
+    fn graphics_snapshot(
+        &mut self,
+        _: Vec<u8>,
+        width: i32,
+        height: i32,
+    ) -> Result<Vec<u8>, String> {
         Ok(vec![0; (width * height * 4) as usize])
     }
 

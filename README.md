@@ -4,8 +4,9 @@ Port do [Portugol Studio](https://github.com/UNIVALI-LITE/Portugol-Studio) (Java
 para **Rust**, com a IDE desktop em **Tauri v2** e o núcleo da linguagem em crates
 Rust independentes.
 
-> Status: **fases 1–4 concluídas** — lexer, parser, AST, análise semântica,
-> compilador para bytecode, máquina virtual e IDE desktop (Tauri v2 + CodeMirror 6).
+> Status: **fases 1–5 concluídas** — lexer, parser, AST, análise semântica,
+> compilador para bytecode, máquina virtual, IDE desktop (Tauri v2 + CodeMirror 6)
+> e depurador com pontos de parada, passo a passo e inspeção de variáveis.
 > Todas as bibliotecas de linguagem estão portadas, exceto **Sons**; Graficos,
 > Teclado e Mouse funcionam na VM (a janela na IDE está em andamento). O corpus
 > completo do original é validado por regressão com um host gráfico headless;
@@ -42,7 +43,8 @@ portugol-studio-rs/
 │   ├── portugol-syntax/    # lexer (logos), parser, AST, diagnósticos ✅
 │   ├── portugol-semantics/ # símbolos, escopos, tipos, checagens ✅
 │   ├── portugol-bytecode/  # instruções e compilador AST -> bytecode ✅
-│   ├── portugol-vm/        # VM, E/S, bibliotecas padrão e protocolo gráfico ✅
+│   ├── portugol-vm/        # VM, E/S, bibliotecas, protocolo gráfico e depurador ✅
+│   ├── portugol-service/   # fachada usada pela IDE (check/run/debug) ✅
 │   └── portugol-cli/       # `portugol`: valida e executa .por ✅
 ├── apps/
 │   └── desktop/           # Tauri v2 + frontend CodeMirror 6 ✅
@@ -132,13 +134,33 @@ segue o Java gerado pelo original (inteiro de 32 bits, `Double.toString`,
 A suíte `crates/portugol-vm/tests/execucao.rs` cobre aritmética, conversões,
 fluxo, referências, vetores/matrizes, `leia`, bibliotecas e interrupção.
 
+### Depuração
+
+Na IDE, clique na margem esquerda do editor para criar/remover pontos de parada
+e executar com `Shift+F6`. A VM para antes da instrução da linha marcada e abre
+o painel **Depuração**, com a pilha de chamadas e as variáveis (globais, locais e
+elementos de vetores/matrizes). Controles:
+
+| Ação | Botão | Atalho |
+|---|---|---|
+| Pausar na próxima instrução | Pausar | `F9` |
+| Continuar até o próximo ponto de parada | Continuar | `F5` |
+| Passo por cima (não entra em funções) | Passo | `F10` |
+| Entrar na função chamada | Entrar | `F11` |
+| Voltar ao chamador | Sair | `Shift+F11` |
+
+Pontos de parada podem ser alterados durante a execução. O núcleo expõe o
+controle em `portugol_vm::debug::DebugControl`, usado diretamente nos testes
+(`crates/portugol-vm/tests/debug.rs`) e pela fachada `portugol-service`
+(`crates/portugol-service/tests/servico.rs`).
+
 ## Roadmap
 
 1. **Sintaxe** ✅ — lexer, parser, AST, diagnósticos com spans, recuperação de erro.
 2. **Semântica** ✅ — tabela de símbolos, escopos, tipos, constantes, checagens.
 3. **Runtime** ✅ — compilação para bytecode + VM e todas as bibliotecas (Sons falta).
 4. **IDE** ✅ — Tauri v2, CodeMirror 6, abas, árvore de arquivos, console, execução.
-5. **Depurador** — breakpoints, step, inspeção de variáveis (via VM).
+5. **Depurador** ✅ — pontos de parada, passo a passo, pilha e inspeção de variáveis.
 6. **Paridade** — janela gráfica na IDE, ajuda, editor de temas, instaladores.
 
 Detalhes, estimativas e riscos em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md).

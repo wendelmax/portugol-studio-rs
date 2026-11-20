@@ -48,7 +48,12 @@ pub trait Host {
 
     /// Desenha as operações num quadro fora da tela e devolve os pixels RGBA
     /// (`renderizar_imagem`).
-    fn graphics_snapshot(&mut self, frame: Vec<u8>, width: i32, height: i32) -> Result<Vec<u8>, String> {
+    fn graphics_snapshot(
+        &mut self,
+        frame: Vec<u8>,
+        width: i32,
+        height: i32,
+    ) -> Result<Vec<u8>, String> {
         let _ = (frame, width, height);
         Err(unavailable("o modo gráfico"))
     }
