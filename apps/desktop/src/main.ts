@@ -13,15 +13,16 @@ import {
 } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import {
-  syntaxHighlighting, defaultHighlightStyle, bracketMatching, indentOnInput,
+  syntaxHighlighting, HighlightStyle, bracketMatching, indentOnInput,
 } from "@codemirror/language";
 import { linter, lintGutter, type Diagnostic } from "@codemirror/lint";
 import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
 import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from "@codemirror/autocomplete";
-import { oneDark } from "@codemirror/theme-one-dark";
+import { tags } from "@lezer/highlight";
 import { open as openDialog, save as saveDialog, ask } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
+import { mountExamples } from "./examples";
 import { portugol } from "./portugol";
 import * as api from "./api";
 
@@ -36,6 +37,7 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 interface Tab {
   id: number;
   path: string | null;
+  exampleName?: string;
   state: EditorState;
   /** Texto da última gravação, para saber se há alterações. */
   saved: string;
@@ -62,7 +64,16 @@ const isDark = () => {
   const choice = themeChoice();
   return choice === "dark" || (choice === "system" && darkQuery.matches);
 };
-const editorTheme = (): Extension => (isDark() ? oneDark : syntaxHighlighting(defaultHighlightStyle));
+const editorColors = syntaxHighlighting(HighlightStyle.define([
+  { tag: tags.keyword, color: "var(--syntax-keyword)" },
+  { tag: [tags.typeName, tags.namespace], color: "var(--syntax-type)" },
+  { tag: [tags.number, tags.bool], color: "var(--syntax-number)" },
+  { tag: tags.string, color: "var(--syntax-string)" },
+  { tag: tags.comment, color: "var(--syntax-comment)" },
+  { tag: tags.operator, color: "var(--syntax-operator)" },
+]));
+const darkEditor = EditorView.theme({}, { dark: true });
+const editorTheme = (): Extension => isDark() ? darkEditor : [];
 
 /** Destaque da linha onde ocorreu o erro de execução. */
 const setRuntimeError = StateEffect.define<{ from: number; to: number } | null>();
@@ -187,6 +198,7 @@ function extensions(): Extension[] {
     highlightSelectionMatches(),
     EditorState.tabSize.of(4),
     portugol(),
+    editorColors,
     theme.of(editorTheme()),
     lintGutter(),
     portugolLinter,
@@ -231,7 +243,7 @@ let nextTabId = 1;
 const activeTab = () => tabs.find((t) => t.id === activeId);
 
 function tabName(tab: Tab): string {
-  if (!tab.path) return "Sem título";
+  if (!tab.path) return tab.exampleName ?? "Sem título";
   return tab.path.split(/[\\/]/).pop() ?? tab.path;
 }
 
@@ -240,12 +252,13 @@ function isDirty(tab: Tab): boolean {
   return text !== tab.saved;
 }
 
-function newTab(text = TEMPLATE, path: string | null = null): Tab {
+function newTab(text = TEMPLATE, path: string | null = null, exampleName?: string): Tab {
   const tab: Tab = {
     id: nextTabId++,
     path,
+    exampleName,
     state: EditorState.create({ doc: text, extensions: extensions() }),
-    saved: path ? text : TEMPLATE,
+    saved: text,
     diagnostics: [],
   };
   tabs.push(tab);
@@ -257,10 +270,21 @@ function activate(id: number) {
   const current = activeTab();
   if (current) current.state = view.state;
   const tab = tabs.find((t) => t.id === id);
-  if (!tab) return;
+  if (!tab && id !== 0) return;
   activeId = id;
+  $("home").hidden = Boolean(tab);
+  $("code").hidden = !tab;
+  if (!tab) {
+    renderTabs();
+    $("cursor").textContent = "";
+    $<HTMLButtonElement>("home-new").focus();
+    return;
+  }
   view.setState(tab.state);
-  view.dispatch({ effects: theme.reconfigure(editorTheme()) });
+  view.dispatch({ effects: [
+    theme.reconfigure(editorTheme()),
+    setDebugLine.of(tab.id === runTabId ? paused?.position.line ?? null : null),
+  ] });
   renderTabs();
   renderMessages();
   renderCursor();
@@ -278,21 +302,33 @@ async function closeTab(id: number): Promise<boolean> {
   }
   const index = tabs.indexOf(tab);
   tabs.splice(index, 1);
-  if (tabs.length === 0) newTab();
-  else if (id === activeId) activate(tabs[Math.max(0, index - 1)].id);
+  if (id === activeId) activate(tabs[Math.max(0, index - 1)]?.id ?? 0);
   else renderTabs();
   return true;
 }
 
 function renderTabs() {
   const bar = $("tabs");
+  const home = document.createElement("button");
+  home.className = "tab" + (activeId === 0 ? " active" : "");
+  home.textContent = "Início";
+  home.title = "Tela inicial (Alt+Home)";
+  home.setAttribute("aria-current", String(activeId === 0));
+  home.onclick = () => activate(0);
+  const add = document.createElement("button");
+  add.className = "tab";
+  add.textContent = "+";
+  add.title = "Novo arquivo (Ctrl+N)";
+  add.setAttribute("aria-label", "Novo arquivo");
+  add.onclick = () => newTab();
   bar.replaceChildren(
+    home,
     ...tabs.map((tab) => {
       const el = document.createElement("div");
-      el.className = "tab" + (tab.id === activeId ? " active" : "");
+      el.className = "file-tab tab" + (tab.id === activeId ? " active" : "");
       el.title = tab.path ?? "Arquivo ainda não salvo";
-      el.setAttribute("role", "tab");
-      const name = document.createElement("span");
+      const name = document.createElement("button");
+      name.setAttribute("aria-current", String(tab.id === activeId));
       name.textContent = tabName(tab);
       if (isDirty(tab)) name.className = "dirty";
       const close = document.createElement("button");
@@ -304,16 +340,18 @@ function renderTabs() {
         void closeTab(tab.id);
       };
       el.append(name, close);
-      el.onclick = () => activate(tab.id);
+      name.onclick = () => activate(tab.id);
       el.onauxclick = (e) => e.button === 1 && void closeTab(tab.id);
       return el;
     }),
+    add,
   );
   const tab = activeTab();
   document.title = tab ? `${tabName(tab)} — Portugol Studio` : "Portugol Studio";
 }
 
 function renderCursor() {
+  if (activeId === 0) return;
   const head = view.state.selection.main.head;
   const line = view.state.doc.lineAt(head);
   $("cursor").textContent = `Linha ${line.number}, coluna ${head - line.from + 1}`;
@@ -325,24 +363,65 @@ function renderCursor() {
 
 const FILTERS = [{ name: "Programa Portugol", extensions: ["por"] }];
 
+const RECENT_KEY = "portugol.recent";
+
+function loadRecent(): string[] {
+  try {
+    const saved: unknown = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]");
+    if (Array.isArray(saved)) return saved.filter((path): path is string => typeof path === "string").slice(0, 6);
+  } catch {
+    // A lista continua funcionando nesta sessão quando o armazenamento está indisponível.
+  }
+  return [];
+}
+
+let recent = loadRecent();
+
+function renderRecent() {
+  $("recent").hidden = recent.length === 0;
+  $("recent-files").replaceChildren(...recent.map((path) => {
+    const button = document.createElement("button");
+    button.textContent = path.split(/[\\/]/).pop() ?? path;
+    button.title = path;
+    button.onclick = () => void openFile(path).catch((error) => setStatus(String(error), "error"));
+    return button;
+  }));
+}
+
+function rememberFile(path: string) {
+  recent = [path, ...recent.filter((entry) => entry !== path)].slice(0, 6);
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
+  } catch {
+    // A lista em memória permanece disponível.
+  }
+  renderRecent();
+}
+
+async function openFile(path: string) {
+  const existing = tabs.find((tab) => tab.path === path);
+  if (existing) {
+    activate(existing.id);
+  } else {
+    const text = await api.readFile(path);
+    const current = activeTab();
+    if (current && !current.path && !current.exampleName && !isDirty(current) && tabs.length === 1) {
+      tabs = [];
+    }
+    newTab(text, path);
+  }
+  rememberFile(path);
+}
+
 async function openFiles() {
-  const selected = await openDialog({ multiple: true, filters: FILTERS });
-  if (!selected) return;
-  for (const path of Array.isArray(selected) ? selected : [selected]) {
-    const existing = tabs.find((t) => t.path === path);
-    if (existing) {
-      activate(existing.id);
-      continue;
+  try {
+    const selected = await openDialog({ multiple: true, filters: FILTERS });
+    if (!selected) return;
+    for (const path of Array.isArray(selected) ? selected : [selected]) {
+      await openFile(path);
     }
-    try {
-      const text = await api.readFile(path);
-      const current = activeTab();
-      // Reaproveita a aba "Sem título" intocada.
-      if (current && !current.path && !isDirty(current) && tabs.length === 1) tabs = [];
-      newTab(text, path);
-    } catch (error) {
-      setStatus(String(error), "error");
-    }
+  } catch (error) {
+    setStatus(String(error), "error");
   }
 }
 
@@ -351,7 +430,7 @@ async function save(as = false): Promise<boolean> {
   if (!tab) return false;
   let path = tab.path;
   if (!path || as) {
-    path = await saveDialog({ filters: FILTERS, defaultPath: tab.path ?? "programa.por" });
+    path = await saveDialog({ filters: FILTERS, defaultPath: tab.path ?? tab.exampleName ?? "programa.por" });
     if (!path) return false;
     if (!path.endsWith(".por")) path += ".por";
   }
@@ -364,6 +443,7 @@ async function save(as = false): Promise<boolean> {
   }
   tab.path = path;
   tab.saved = text;
+  rememberFile(path);
   renderTabs();
   setStatus(`Salvo em ${path}`, "ok");
   return true;
@@ -374,6 +454,8 @@ async function save(as = false): Promise<boolean> {
 // ---------------------------------------------------------------------------
 
 let runId: number | null = null;
+let runTabId: number | null = null;
+let pendingEvents: { id: number; handle: () => void }[] | null = null;
 let paused: api.DebugInfo | null = null;
 const output = $("console-output");
 const consoleBox = $("console");
@@ -401,6 +483,7 @@ function appendConsole(text: string, className?: string) {
 
 function setRunning(running: boolean) {
   $<HTMLButtonElement>("btn-run").disabled = running;
+  $<HTMLButtonElement>("btn-debug").disabled = running;
   $<HTMLButtonElement>("btn-stop").disabled = !running;
   $<HTMLButtonElement>("btn-debug-pause").disabled = !running || paused !== null;
   for (const id of [
@@ -420,18 +503,18 @@ function breakpointLines(state: EditorState): number[] {
 
 /** Pontos de parada podem mudar enquanto o programa está em execução. */
 function syncBreakpoints(state: EditorState) {
-  if (runId === null) return;
+  if (runId === null || activeId !== runTabId) return;
   void api.debugSetBreakpoints(runId, state.doc.toString(), breakpointLines(state)).catch(() => {});
 }
 
 function setPaused(info: api.DebugInfo | null) {
   paused = info;
-  view.dispatch({ effects: setDebugLine.of(info?.position.line ?? null) });
+  if (activeId === runTabId) view.dispatch({ effects: setDebugLine.of(info?.position.line ?? null) });
   setRunning(runId !== null);
   if (info) {
     renderDebug(info);
     showPanel("debug");
-    goTo(info.position.offset);
+    if (activeId === runTabId) goTo(info.position.offset);
     setStatus(`Pausado na linha ${info.position.line}.`);
   }
 }
@@ -475,8 +558,8 @@ function parseArgs(text: string): string[] {
   return [...text.matchAll(/"([^"]*)"|(\S+)/g)].map((m) => m[1] ?? m[2]);
 }
 
-async function runProgram() {
-  if (runId !== null) return;
+async function runProgram(pauseOnStart = false) {
+  if (runId !== null || pendingEvents !== null) return;
   const tab = activeTab();
   if (!tab) return;
   view.dispatch({ effects: setRuntimeError.of(null) });
@@ -484,20 +567,36 @@ async function runProgram() {
   paused = null;
   showPanel("console");
   output.replaceChildren();
+  const source = view.state.doc.toString();
+  const args = parseArgs($<HTMLInputElement>("args").value);
+  const lines = breakpointLines(view.state);
+  const events: { id: number; handle: () => void }[] = [];
+  pendingEvents = events;
+  runTabId = tab.id;
+  $<HTMLButtonElement>("btn-run").disabled = true;
+  $<HTMLButtonElement>("btn-debug").disabled = true;
   try {
-    runId = await api.run(
-      view.state.doc.toString(),
-      parseArgs($<HTMLInputElement>("args").value),
-      tab.path,
-      breakpointLines(view.state),
-    );
+    await runListeners;
+    const id = await api.run(source, args, tab.path, lines, pauseOnStart);
+    runId = id;
     setRunning(true);
     setStatus("Executando…");
+    for (const event of events) {
+      if (event.id === runId) event.handle();
+    }
   } catch (errors) {
-    tab.diagnostics = errors as api.DiagnosticInfo[];
-    renderMessages();
-    showPanel("messages");
-    setStatus("O programa contém erros e não pode ser executado.", "error");
+    runTabId = null;
+    setRunning(false);
+    if (Array.isArray(errors)) {
+      tab.diagnostics = errors;
+      renderMessages();
+      showPanel("messages");
+      setStatus("O programa contém erros e não pode ser executado.", "error");
+    } else {
+      setStatus(String(errors), "error");
+    }
+  } finally {
+    pendingEvents = null;
   }
 }
 
@@ -510,6 +609,7 @@ function showPanel(which: "console" | "messages" | "debug") {
     $(`tab-${name}`).classList.toggle("active", which === name);
     $(name).hidden = which !== name;
   }
+  $("console-tools").hidden = which !== "console";
 }
 
 function goTo(offset: number) {
@@ -556,47 +656,58 @@ function renderMessages() {
   );
 }
 
-void api.listenRun({
+function routeRunEvent(id: number, handle: () => void) {
+  if (id === runId) handle();
+  else if (pendingEvents) pendingEvents.push({ id, handle });
+}
+
+const runListeners = api.listenRun({
   output(id, text) {
-    if (id === runId) appendConsole(text);
+    routeRunEvent(id, () => appendConsole(text));
   },
   clear(id) {
-    if (id === runId) output.replaceChildren();
+    routeRunEvent(id, () => output.replaceChildren());
   },
   input(id, expected) {
-    if (id !== runId) return;
-    $("console-hint").textContent = `leia (${expected}):`;
-    inputForm.hidden = false;
-    inputField.value = "";
-    inputField.focus();
-    consoleBox.scrollTop = consoleBox.scrollHeight;
+    routeRunEvent(id, () => {
+      $("console-hint").textContent = `leia (${expected}):`;
+      inputForm.hidden = false;
+      inputField.value = "";
+      if (activeTab()) inputField.focus();
+      consoleBox.scrollTop = consoleBox.scrollHeight;
+    });
   },
   paused(id, info) {
-    if (id === runId) setPaused(info);
+    routeRunEvent(id, () => setPaused(info));
   },
   finished(id, outcome) {
-    if (id !== runId) return;
-    runId = null;
-    paused = null;
-    view.dispatch({ effects: setDebugLine.of(null) });
-    setRunning(false);
-    if (outcome.status === "finished") {
-      appendConsole("\nPrograma finalizado.\n", "info");
-      setStatus("Programa finalizado.", "ok");
-    } else if (outcome.status === "stopped") {
-      appendConsole("\nPrograma interrompido.\n", "info");
-      setStatus("Programa interrompido.");
-    } else {
-      const { start, message, trace } = outcome;
-      let text = `\nErro na linha ${start.line}, coluna ${start.column}: ${message}\n`;
-      for (const frame of trace.slice(1, -1)) {
-        text += `  chamado em ${frame.function} (linha ${frame.line})\n`;
+    routeRunEvent(id, () => {
+      const isRunTab = activeId === runTabId;
+      runId = null;
+      runTabId = null;
+      paused = null;
+      if (isRunTab) view.dispatch({ effects: setDebugLine.of(null) });
+      setRunning(false);
+      if (outcome.status === "finished") {
+        appendConsole("\nPrograma finalizado.\n", "info");
+        setStatus("Programa finalizado.", "ok");
+      } else if (outcome.status === "stopped") {
+        appendConsole("\nPrograma interrompido.\n", "info");
+        setStatus("Programa interrompido.");
+      } else {
+        const { start, message, trace } = outcome;
+        let text = `\nErro na linha ${start.line}, coluna ${start.column}: ${message}\n`;
+        for (const frame of trace.slice(1, -1)) {
+          text += `  chamado em ${frame.function} (linha ${frame.line})\n`;
+        }
+        appendConsole(text, "error");
+        setStatus(`Erro de execução na linha ${start.line}.`, "error");
+        if (isRunTab) {
+          view.dispatch({ effects: setRuntimeError.of({ from: start.offset, to: outcome.end.offset }) });
+          goTo(start.offset);
+        }
       }
-      appendConsole(text, "error");
-      setStatus(`Erro de execução na linha ${start.line}.`, "error");
-      view.dispatch({ effects: setRuntimeError.of({ from: start.offset, to: outcome.end.offset }) });
-      goTo(start.offset);
-    }
+    });
   },
 });
 
@@ -628,6 +739,7 @@ $("splitter").addEventListener("pointerdown", (start) => {
 });
 
 function toggleExpanded() {
+  if (!activeTab()) return;
   const hidden = !panel.hidden;
   panel.hidden = hidden;
   $("splitter").hidden = hidden;
@@ -637,11 +749,13 @@ function toggleExpanded() {
 // Botões e atalhos
 // ---------------------------------------------------------------------------
 
-$("btn-new").onclick = () => newTab();
+$("home-new").onclick = () => newTab();
+$("home-open").onclick = () => void openFiles();
 $("btn-open").onclick = () => void openFiles();
 $("btn-save").onclick = () => void save();
 $("btn-save-as").onclick = () => void save(true);
 $("btn-run").onclick = () => void runProgram();
+$("btn-debug").onclick = () => void runProgram(true);
 $("btn-stop").onclick = () => void stopProgram();
 $("btn-debug-pause").onclick = () => { if (runId !== null) void api.debugPause(runId); };
 $("btn-debug-continue").onclick = () => void debugCommand(api.debugContinue);
@@ -649,47 +763,98 @@ $("btn-debug-step-over").onclick = () => void debugCommand(api.debugStepOver);
 $("btn-debug-step-into").onclick = () => void debugCommand(api.debugStepInto);
 $("btn-debug-step-out").onclick = () => void debugCommand(api.debugStepOut);
 $("btn-clear").onclick = () => output.replaceChildren();
+$("btn-copy").onclick = async () => {
+  try {
+    await navigator.clipboard.writeText(output.textContent ?? "");
+    setStatus("Saída copiada.", "ok");
+  } catch (error) {
+    setStatus(String(error), "error");
+  }
+};
 $("tab-console").onclick = () => showPanel("console");
 $("tab-messages").onclick = () => showPanel("messages");
 $("tab-debug").onclick = () => showPanel("debug");
 
 function cycleTab(step: number) {
-  const index = tabs.findIndex((t) => t.id === activeId);
-  activate(tabs[(index + step + tabs.length) % tabs.length].id);
+  const ids = [0, ...tabs.map((tab) => tab.id)];
+  activate(ids[(ids.indexOf(activeId) + step + ids.length) % ids.length]);
 }
 
+const shortcutDialog = $<HTMLDialogElement>("shortcuts");
+
+function showShortcuts() {
+  if (!shortcutDialog.open) shortcutDialog.showModal();
+}
+
+const shortcuts: {
+  label: string;
+  command: string;
+  matches: (event: KeyboardEvent) => boolean;
+  action: () => unknown;
+}[] = [
+  { label: "Shift+F6 / Ctrl+Enter", command: "Executar", matches: (e) =>
+    (e.shiftKey && e.key === "F6") || ((e.ctrlKey || e.metaKey) && e.key === "Enter"), action: runProgram },
+  { label: "Shift+F5", command: "Depurar", matches: (e) => e.shiftKey && e.key === "F5",
+    action: () => runProgram(true) },
+  { label: "Shift+F7", command: "Interromper", matches: (e) => e.shiftKey && e.key === "F7", action: stopProgram },
+  { label: "F9", command: "Pausar", matches: (e) => !e.shiftKey && e.key === "F9",
+    action: () => { if (runId !== null) void api.debugPause(runId); } },
+  { label: "F5", command: "Continuar", matches: (e) => !e.shiftKey && e.key === "F5",
+    action: () => debugCommand(api.debugContinue) },
+  { label: "Shift+F9 / F10", command: "Próxima instrução",
+    matches: (e) => (e.shiftKey && e.key === "F9") || e.key === "F10", action: () => debugCommand(api.debugStepOver) },
+  { label: "Alt+F11", command: "Entrar na função", matches: (e) => e.altKey && !e.shiftKey && e.key === "F11",
+    action: () => debugCommand(api.debugStepInto) },
+  { label: "Shift+F11", command: "Sair da função", matches: (e) => e.shiftKey && e.key === "F11",
+    action: () => debugCommand(api.debugStepOut) },
+  { label: "F11", command: "Atalhos de teclado", matches: (e) => !e.altKey && !e.shiftKey && e.key === "F11",
+    action: showShortcuts },
+  { label: "Alt+Home", command: "Tela inicial", matches: (e) => e.altKey && e.key === "Home", action: () => activate(0) },
+  { label: "Alt+←", command: "Aba anterior", matches: (e) => e.altKey && e.key === "ArrowLeft", action: () => cycleTab(-1) },
+  { label: "Alt+→", command: "Próxima aba", matches: (e) => e.altKey && e.key === "ArrowRight", action: () => cycleTab(1) },
+  { label: "Shift+Esc", command: "Expandir/restaurar editor",
+    matches: (e) => e.shiftKey && e.key === "Escape", action: toggleExpanded },
+];
+
+function fileShortcut(key: string, shift: boolean, command: string, action: () => unknown) {
+  shortcuts.push({
+    label: shift ? `Ctrl+Shift+${key}` : `Ctrl+${key}`,
+    command,
+    matches: (e) => (e.ctrlKey || e.metaKey) && e.shiftKey === shift && e.key.toUpperCase() === key,
+    action,
+  });
+}
+
+fileShortcut("N", false, "Novo arquivo", () => newTab());
+fileShortcut("O", false, "Abrir arquivo", openFiles);
+fileShortcut("S", false, "Salvar", () => save());
+fileShortcut("S", true, "Salvar como", () => save(true));
+fileShortcut("Q", false, "Fechar aba", () => closeTab(activeId));
+fileShortcut("Q", true, "Fechar todas as abas", async () => {
+  for (const tab of [...tabs]) if (!(await closeTab(tab.id))) break;
+});
+
+for (const { label, command } of [...shortcuts, { label: "Ctrl+F", command: "Localizar e substituir" }]) {
+  const term = document.createElement("dt");
+  const shortcut = document.createElement("kbd");
+  const description = document.createElement("dd");
+  shortcut.textContent = label;
+  description.textContent = command;
+  term.append(shortcut);
+  $("shortcut-list").append(term, description);
+}
+$("home-shortcuts").onclick = showShortcuts;
+
 window.addEventListener("keydown", (e) => {
-  const ctrl = e.ctrlKey || e.metaKey;
-  const key = e.key.toLowerCase();
-  const actions: [boolean, () => unknown][] = [
-    [e.shiftKey && e.key === "F6", runProgram],
-    [ctrl && e.key === "Enter", runProgram],
-    [e.shiftKey && e.key === "F7", stopProgram],
-    [e.key === "F9", () => { if (runId !== null) void api.debugPause(runId); }],
-    [!e.shiftKey && e.key === "F5", () => void debugCommand(api.debugContinue)],
-    [e.shiftKey && e.key === "F11", () => void debugCommand(api.debugStepOut)],
-    [e.key === "F10", () => void debugCommand(api.debugStepOver)],
-    [e.key === "F11", () => void debugCommand(api.debugStepInto)],
-    [ctrl && !e.shiftKey && key === "n", () => newTab()],
-    [ctrl && key === "o", openFiles],
-    [ctrl && e.shiftKey && key === "s", () => save(true)],
-    [ctrl && !e.shiftKey && key === "s", () => save()],
-    [ctrl && !e.shiftKey && key === "q", () => closeTab(activeId)],
-    [ctrl && e.shiftKey && key === "q", async () => {
-      for (const tab of [...tabs]) if (!(await closeTab(tab.id))) break;
-    }],
-    [e.altKey && e.key === "ArrowRight", () => cycleTab(1)],
-    [e.altKey && e.key === "ArrowLeft", () => cycleTab(-1)],
-    [e.shiftKey && e.key === "Escape", toggleExpanded],
-  ];
-  const action = actions.find(([match]) => match);
-  if (action) {
-    e.preventDefault();
-    void action[1]();
-  }
+  if (e.defaultPrevented || shortcutDialog.open) return;
+  const shortcut = shortcuts.find(({ matches }) => matches(e));
+  if (!shortcut) return;
+  e.preventDefault();
+  void shortcut.action();
 });
 
 // Confirma antes de fechar a janela com alterações não salvas.
+void runListeners.catch((error) => setStatus(String(error), "error"));
 void getCurrentWindow().onCloseRequested(async (event) => {
   const current = activeTab();
   if (current) current.state = view.state;
@@ -706,6 +871,33 @@ const themeSelect = $<HTMLSelectElement>("theme");
 themeSelect.value = themeChoice();
 themeSelect.onchange = () => applyTheme(themeSelect.value as ThemeChoice);
 
-newTab();
+for (const id of ["editor-font", "console-font"]) {
+  const input = $<HTMLInputElement>(id);
+  const key = `portugol.${id}`;
+  const applyFontSize = () => {
+    const size = Math.round(Math.max(10, Math.min(50, input.valueAsNumber || 12)));
+    input.value = String(size);
+    document.documentElement.style.setProperty(`--${id}`, `${size}px`);
+    return input.value;
+  };
+  try {
+    input.value = localStorage.getItem(key) ?? input.value;
+  } catch {
+    // O ajuste manual permanece disponível.
+  }
+  applyFontSize();
+  input.onchange = () => {
+    const value = applyFontSize();
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      // A preferência vale nesta sessão.
+    }
+  };
+}
+
+renderRecent();
+mountExamples((source, file) => newTab(source, null, file));
+activate(0);
 applyTheme(themeChoice());
 showPanel("console");

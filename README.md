@@ -145,9 +145,12 @@ elementos de vetores/matrizes). Controles:
 |---|---|---|
 | Pausar na próxima instrução | Pausar | `F9` |
 | Continuar até o próximo ponto de parada | Continuar | `F5` |
-| Passo por cima (não entra em funções) | Passo | `F10` |
-| Entrar na função chamada | Entrar | `F11` |
+| Passo por cima (não entra em funções) | Passo | `Shift+F9` ou `F10` |
+| Entrar na função chamada | Entrar | `Alt+F11` |
 | Voltar ao chamador | Sair | `Shift+F11` |
+
+Para começar pausado antes da primeira instrução, use **Depurar** ou `Shift+F5`.
+A lista de atalhos abre com `F11`.
 
 Pontos de parada podem ser alterados durante a execução. O núcleo expõe o
 controle em `portugol_vm::debug::DebugControl`, usado diretamente nos testes
