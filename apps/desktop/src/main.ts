@@ -42,6 +42,7 @@ interface Tab {
   id: number;
   path: string | null;
   exampleName?: string;
+  examplePath?: string;
   state: EditorState;
   /** Texto da última gravação, para saber se há alterações. */
   saved: string;
@@ -266,11 +267,12 @@ function isDirty(tab: Tab): boolean {
   return text !== tab.saved;
 }
 
-function newTab(text = TEMPLATE, path: string | null = null, exampleName?: string): Tab {
+function newTab(text = TEMPLATE, path: string | null = null, exampleName?: string, examplePath?: string): Tab {
   const tab: Tab = {
     id: nextTabId++,
     path,
     exampleName,
+    examplePath,
     state: EditorState.create({ doc: text, extensions: extensions() }),
     saved: text,
     diagnostics: [],
@@ -629,7 +631,7 @@ async function runProgram(pauseOnStart = false) {
   $<HTMLButtonElement>("btn-debug").disabled = true;
   try {
     await runListeners;
-    const id = await api.run(source, args, tab.path, lines, pauseOnStart);
+    const id = await api.run(source, args, tab.path ?? tab.examplePath ?? null, lines, pauseOnStart);
     runId = id;
     setRunning(true);
     setStatus("Executando…");
@@ -1091,7 +1093,7 @@ $("about-version").textContent = `Versão ${version}`;
 $("about-license").textContent = license;
 mountIcons();
 renderRecent();
-mountExamples((source, file) => newTab(source, null, file));
+mountExamples((source, file, workPath) => newTab(source, null, file, workPath));
 activate(0);
 applyTheme(themeChoice());
 showPanel("console");

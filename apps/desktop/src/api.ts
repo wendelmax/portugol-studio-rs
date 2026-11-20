@@ -85,6 +85,14 @@ export const readFile = (path: string) => invoke<string>("read_file", { path });
 
 export const writeFile = (path: string, text: string) => invoke<void>("write_file", { path, text });
 
+export type CatalogEntry =
+  | { kind: "folder"; name: string; entries: CatalogEntry[] }
+  | { kind: "file"; name: string; file: string; description: string; preview: string | null };
+
+export const exampleCatalog = () => invoke<CatalogEntry[]>("example_catalog");
+export const openExample = (file: string) => invoke<{ source: string; workPath: string }>("open_example", { file });
+export const examplePreview = (file: string) => invoke<ArrayBuffer>("example_preview", { file });
+
 export interface RunEvents {
   output(id: number, text: string): void;
   clear(id: number): void;

@@ -21,12 +21,13 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost https://ipc.localhost; style-src 'self' 'unsafe-inline'; img-src 'self' data:",
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost https://ipc.localhost; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:",
       "devCsp": null
     }
   },
   "bundle": {
     "active": true,
+    "resources": { "../../../tests/corpus/exemplos/": "exemplos/" },
     "targets": "all",
     "icon": [
       "icons/32x32.png",
