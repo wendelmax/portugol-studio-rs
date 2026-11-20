@@ -102,7 +102,8 @@ try {
   const main = await waitFor("A IDE não abriu", mainWindow);
   console.log("Janela principal identificada:", main);
   xdotool("windowfocus", main);
-  const copy = (text) => execFileSync("xclip", ["-selection", "clipboard", "-i"], {
+  const selection = ["-selection", "clipboard", "-target", "UTF8_STRING"];
+  const copy = (text) => execFileSync("xclip", [...selection, "-i"], {
     input: text, timeout: 3000, stdio: ["pipe", "ignore", "ignore"],
   });
   await waitFor("O editor não recebeu o programa", async () => {
@@ -111,11 +112,17 @@ try {
     copy(program);
     xdotool("key", "ctrl+a", "ctrl+v");
     await delay(250);
-    copy("Verificação da área de transferência");
+    copy("verificacao-do-teste");
     xdotool("key", "ctrl+a", "ctrl+c");
     await delay(150);
-    const copied = execFileSync("xclip", ["-selection", "clipboard", "-o"], { encoding: "utf8", timeout: 3000 });
-    return copied.trimEnd() === program.trimEnd();
+    try {
+      const copied = execFileSync("xclip", [...selection, "-o"], {
+        encoding: "utf8", timeout: 3000, stdio: ["ignore", "pipe", "ignore"],
+      });
+      return copied.trimEnd() === program.trimEnd();
+    } catch {
+      return false;
+    }
   });
   console.log("Programa colado e conferido no editor.");
   xdotool("key", "shift+F6");
