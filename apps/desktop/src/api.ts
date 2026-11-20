@@ -48,7 +48,22 @@ export interface DebugInfo {
   variables: DebugVar[];
 }
 
-export const check = (source: string) => invoke<DiagnosticInfo[]>("check", { source });
+export type SymbolKind = "library" | "function" | "constant" | "variable" | "parameter" | "array" | "matrix";
+
+export interface SymbolInfo {
+  name: string;
+  kind: SymbolKind;
+  ty: string;
+  position: Position;
+  children: SymbolInfo[];
+}
+
+export interface Inspection {
+  diagnostics: DiagnosticInfo[];
+  symbols: SymbolInfo[];
+}
+
+export const inspect = (source: string) => invoke<Inspection>("inspect", { source });
 
 /** Id da execução; rejeita com a lista de erros se o programa não compila. */
 export const run = (source: string, args: string[], path: string | null, breakpoints: number[] = [], pauseOnStart = false) =>

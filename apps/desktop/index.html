@@ -40,6 +40,7 @@
         <button id="btn-open" title="Abrir (Ctrl+O)">Abrir</button>
         <hr />
         <button id="btn-help" title="Ajuda (F1)">Ajuda</button>
+        <button id="btn-utilities" title="Painel Utilitários (Ctrl+B)" aria-controls="utilities" aria-expanded="false">Utilitários</button>
       </aside>
       <div class="workspace">
         <header class="toolbar">
@@ -95,16 +96,35 @@
               <h3>Pilha de chamadas</h3>
               <ol id="debug-stack"></ol>
             </div>
-            <div class="debug-col">
-              <h3>Variáveis</h3>
-              <table id="debug-vars">
-                <thead><tr><th>Nome</th><th>Tipo</th><th>Valor</th><th>Escopo</th></tr></thead>
-                <tbody></tbody>
-              </table>
-            </div>
           </div>
         </section>
       </div>
+      <div id="utilities-splitter" class="splitter" role="separator" aria-orientation="vertical" hidden></div>
+      <aside id="utilities" class="utilities" aria-labelledby="utilities-title" hidden>
+        <header>
+          <h2 id="utilities-title"># Painel Utilitários</h2>
+          <button id="utilities-close" aria-label="Fechar painel Utilitários">×</button>
+        </header>
+        <section class="outline" aria-label="Árvore estrutural">
+          <input id="outline-search" type="search" placeholder="Buscar na estrutura" aria-label="Buscar na estrutura (Ctrl+L)" />
+          <div class="outline-filters">
+            <select id="outline-type" aria-label="Tipo de dado"><option value="">Todos os tipos</option></select>
+            <select id="outline-kind" aria-label="Tipo de símbolo"><option value="">Todos os símbolos</option></select>
+          </div>
+          <div class="outline-results">
+            <ul id="outline-tree"></ul>
+            <p id="outline-empty" role="status">O programa ainda não tem símbolos.</p>
+          </div>
+        </section>
+        <section id="variable-inspector" class="inspector" aria-labelledby="inspector-title">
+          <h3 id="inspector-title">Inspetor de variáveis</h3>
+          <p id="inspector-empty">Pause a execução para inspecionar as variáveis.</p>
+          <table id="debug-vars" hidden>
+            <thead><tr><th>Nome</th><th>Tipo</th><th>Valor</th><th>Escopo</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </section>
+      </aside>
     </main>
 
     <main id="help" class="help" hidden>

@@ -139,6 +139,11 @@ fn check(source: String) -> Vec<DiagnosticInfo> {
     portugol_service::check(&source)
 }
 
+#[tauri::command]
+fn inspect(source: String) -> portugol_service::Inspection {
+    portugol_service::inspect(&source)
+}
+
 /// Inicia uma execução, parando a anterior se ainda estiver rodando.
 #[tauri::command]
 fn run(
@@ -250,6 +255,7 @@ pub fn run_app() {
         .manage(graphics::GraphicsWindows::default())
         .invoke_handler(tauri::generate_handler![
             check,
+            inspect,
             run,
             send_input,
             stop,
