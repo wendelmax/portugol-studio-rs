@@ -80,8 +80,11 @@ fn tempo_decorrido(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, Str
     Ok(Value::Int(ctx.elapsed_ms() as i32))
 }
 
-fn obter_diretorio_usuario(_: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
+fn obter_diretorio_usuario(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
     arity(args, 0, "obter_diretorio_usuario")?;
+    if let Some(dir) = &ctx.user_dir {
+        return Ok(Value::str(dir.to_string_lossy().into_owned()));
+    }
     std::env::var("HOME")
         .or_else(|_| std::env::var("USERPROFILE"))
         .map(Value::str)

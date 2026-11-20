@@ -16,6 +16,7 @@
 //! `run:output` (`text`), `run:clear`, `run:input` (`expected`),
 //! `run:paused` (`info`) e `run:finished` (`outcome`).
 
+mod audio;
 mod catalog;
 mod graphics;
 
@@ -178,7 +179,7 @@ fn run(
         pause_on_start: pause_on_start.unwrap_or_default(),
     };
     let handle = portugol_service::start_with_host(&source, options, observer, move |interrupt| {
-        Box::new(graphics::GraphicsHost::new(
+        Box::new(graphics::DesktopHost::new(
             app,
             id,
             host_observer,

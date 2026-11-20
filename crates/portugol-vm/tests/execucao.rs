@@ -784,3 +784,101 @@ fn bibliotecas_internet_e_servicos_web() {
         format!("Não foi possível obter o conteúdo de {url}/vazio")
     );
 }
+
+#[test]
+fn sons_controlam_reproducao_posicao_e_volume() {
+    use portugol_vm::{Host, Sound};
+    use std::cell::RefCell;
+    use std::path::Path;
+    use std::rc::Rc;
+    use std::time::Duration;
+
+    struct Audio(Rc<RefCell<Vec<String>>>);
+    struct Reproduction {
+        events: Rc<RefCell<Vec<String>>>,
+        position: Duration,
+    }
+    impl Host for Audio {
+        fn load_sound(&mut self, path: &Path) -> Result<Box<dyn Sound>, String> {
+            assert!(path.ends_with("batida.mp3"));
+            self.0.borrow_mut().push("carregar".into());
+            Ok(Box::new(Reproduction {
+                events: Rc::clone(&self.0),
+                position: Duration::ZERO,
+            }))
+        }
+    }
+    impl Sound for Reproduction {
+        fn play(&mut self, looping: bool) -> Result<(), String> {
+            self.events
+                .borrow_mut()
+                .push(format!("reproduzir:{looping}"));
+            Ok(())
+        }
+        fn pause(&mut self) {
+            self.events.borrow_mut().push("pausar".into());
+        }
+        fn stop(&mut self) {
+            self.events.borrow_mut().push("interromper".into());
+        }
+        fn duration(&self) -> Duration {
+            Duration::from_millis(900)
+        }
+        fn position(&self) -> Duration {
+            self.position
+        }
+        fn seek(&mut self, position: Duration) -> Result<(), String> {
+            self.position = position;
+            Ok(())
+        }
+        fn set_gain(&mut self, gain: f32) {
+            self.events.borrow_mut().push(format!("ganho:{gain:.3}"));
+        }
+    }
+    impl Drop for Reproduction {
+        fn drop(&mut self) {
+            self.events.borrow_mut().push("liberar".into());
+        }
+    }
+
+    let source = r#"programa {
+        inclua biblioteca Sons --> s
+        funcao inicio() {
+            inteiro som = s.carregar_som("batida.mp3")
+            inteiro mesmo = s.carregar_som("batida.mp3")
+            escreva(som == mesmo, " ", s.obter_tamanho_musica(som), " ")
+            inteiro tocando = s.reproduzir_som(som, verdadeiro)
+            escreva(tocando == som, " ")
+            s.definir_posicao_atual_musica(tocando, 250)
+            escreva(s.obter_posicao_atual_musica(tocando), " ")
+            s.pausar_som(tocando)
+            s.definir_volume(50)
+            s.definir_volume_reproducao(tocando, 50)
+            escreva(s.obter_volume(), " ", s.obter_volume_reproducao(tocando), " ")
+            s.interromper_som(tocando)
+            s.liberar_som(som)
+            escreva(s.obter_volume_reproducao(tocando))
+        }
+    }"#;
+    let module = portugol_bytecode::compile(&parse(source).program).unwrap();
+    let mut io = BufferIo::default();
+    let events = Rc::new(RefCell::new(Vec::new()));
+    Vm::new(&module, &mut io)
+        .with_host(Box::new(Audio(Rc::clone(&events))))
+        .run()
+        .unwrap();
+    assert_eq!(io.output, "verdadeiro 900 verdadeiro 250 50 50 -1");
+    assert_eq!(
+        *events.borrow(),
+        [
+            "carregar",
+            "ganho:1.000",
+            "reproduzir:true",
+            "pausar",
+            "ganho:0.125",
+            "ganho:0.016",
+            "interromper",
+            "liberar",
+        ]
+    );
+}

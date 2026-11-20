@@ -39,7 +39,7 @@ são executados e validados sem tela.
 | Graficos | 56 | 🟡 | janela Tauri e Canvas com formas, fontes, imagens, gradientes, rotação e captura RGBA; desenho e captura RGBA verificados no Linux; falta teste interativo em Windows e macOS |
 | Teclado | 5 | 🟡 | eventos da janela alimentam `InputState`; verificado no Linux |
 | Mouse | 8 | 🟡 | eventos da janela alimentam `InputState`; verificado no Linux |
-| Sons | 17 | ⬜ | |
+| Sons | 12 | ✅ | MP3 e WAV, reprodução simultânea de clipes, pausa, posição e volume no host da IDE |
 
 ## IDE
 

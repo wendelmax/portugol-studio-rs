@@ -16,7 +16,7 @@ use serde::Serialize;
 use portugol_syntax::{Diagnostic, Severity, parse};
 
 pub use outline::{SymbolInfo, SymbolKind};
-pub use portugol_vm::{FileFilter, Host, graphics};
+pub use portugol_vm::{FileFilter, Host, Sound, graphics};
 pub use position::Position;
 pub use run::{
     DebugFrameInfo, DebugInfo, DebugVarInfo, RunHandle, RunObserver, RunOptions, RunOutcome, start,
