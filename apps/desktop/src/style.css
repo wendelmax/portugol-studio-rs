@@ -377,3 +377,91 @@ select {
 .cm-runtime-error {
   background: color-mix(in srgb, var(--error) 18%, transparent);
 }
+
+/* Depuração: pontos de parada e linha corrente */
+.cm-breakpoint-gutter {
+  width: 18px;
+}
+
+.cm-breakpoint {
+  display: block;
+  width: 10px;
+  height: 10px;
+  margin: 4px auto 0;
+  border-radius: 50%;
+  background: var(--error);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--error) 45%, transparent);
+}
+
+.cm-debug-line {
+  background: color-mix(in srgb, var(--warning) 22%, transparent);
+}
+
+/* Painel de depuração */
+.debug {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 16px;
+  overflow: auto;
+  padding: 8px 12px;
+}
+
+.debug-col {
+  min-width: 0;
+  flex: 1 1 50%;
+}
+
+.debug-col h3 {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.debug-col ol {
+  margin: 0;
+  padding-left: 22px;
+  font-family: var(--mono);
+}
+
+.debug-col li {
+  padding: 2px 0;
+  cursor: pointer;
+}
+
+.debug-col li:hover {
+  color: var(--accent);
+}
+
+.debug-col li.current {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.debug-col table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.debug-col th,
+.debug-col td {
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.debug-col th {
+  color: var(--muted);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-weight: 600;
+}
+
+.debug-col td:last-child {
+  color: var(--muted);
+}

@@ -16,7 +16,9 @@ use portugol_syntax::{Diagnostic, Severity, parse};
 
 pub use portugol_vm::FileFilter;
 pub use position::Position;
-pub use run::{RunHandle, RunObserver, RunOptions, RunOutcome, start};
+pub use run::{
+    DebugFrameInfo, DebugInfo, DebugVarInfo, RunHandle, RunObserver, RunOptions, RunOutcome, start,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]

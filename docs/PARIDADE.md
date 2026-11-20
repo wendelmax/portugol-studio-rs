@@ -20,8 +20,8 @@ são executados e validados sem tela.
 | `escreva`, `leia`, `limpa`, `sorteia` | ✅ | |
 | Parâmetros de execução (`inicio(cadeia params[])`) | ✅ | |
 | Mensagens de erro de execução | ✅ | mesmas mensagens do original |
-| Depurador: pontos de parada, passo a passo | ⬜ | a VM já executa em fatias e tem mapa de fonte |
-| Inspetor de variáveis, vetores e matrizes | ⬜ | `locals` do bytecode já guardam nome e tipo |
+| Depurador: pontos de parada, passo a passo | ✅ | pausa antes de cada instrução; continue, step into/over/out e pausa manual |
+| Inspetor de variáveis, vetores e matrizes | ✅ | globais, locais, pilha de chamadas e elementos expandidos |
 
 ## Bibliotecas
 
@@ -50,6 +50,7 @@ são executados e validados sem tela.
 | Erros ao digitar e painel de mensagens (`AbaMensagemCompilador`) | ✅ | |
 | Abas de arquivos, abrir, salvar, salvar como | ✅ | |
 | Console com entrada (`AbaConsole`) | ✅ | |
+| Depuração na IDE (`AbaDepuracao`, `Depurador`) | ✅ | gutter de breakpoints, barra de comandos, pilha e variáveis |
 | Localizar e substituir (`PSFindReplace`) | ✅ | Ctrl+F do CodeMirror |
 | Atalhos do original (`TelaAtalhos`) | ✅ | |
 | Temas claro/escuro (`TelaEditarTemas`) | 🟡 | claro, escuro e do sistema; sem editor de temas |

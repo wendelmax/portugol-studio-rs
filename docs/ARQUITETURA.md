@@ -161,6 +161,29 @@ necessário para jogos: instruções tipadas a partir dos tipos estáticos,
 superinstruções (`LoadLocal+PushInt+Lt+JumpIfFalse`) e quadros sem `Vec`
 genérico.
 
+#### Como está implementado (fase 5)
+
+`portugol_vm::debug::DebugControl` é compartilhado entre a thread da IDE e a
+thread da VM. A VM verifica o controle antes de cada instrução: se o span da
+instrução estiver dentro de um ponto de parada, ou se houve pedido de pausa,
+publica um `PausedInfo` (span, pilha e variáveis) e bloqueia numa `Condvar`.
+O callback de publicação roda com o bloqueio do controle tomado, o que fecha a
+janela de corrida entre avisar a IDE e registrar a espera: um comando enviado
+pela IDE só é processado depois que a VM está efetivamente parada.
+
+Comandos: `Continue` segue até o próximo ponto de parada, `StepInto` para na
+primeira instrução fora do comando corrente (entrando em chamadas), `StepOver`
+ignora quadros mais profundos e `StepOut` só para em um chamador. A comparação
+com o span inteiro da linha evita parar várias vezes nas instruções de um mesmo
+comando; o quadro sintético `<programa>` é ignorado porque usa o span de todo o
+arquivo.
+
+O inspetor lê globais de `Module::globals` e locais de `Function::locals`
+usando `base` do quadro corrente; vetores e matrizes são expandidos até 100
+elementos. `portugol-service` converte spans em posições UTF-16 do editor e
+expõe `RunHandle::{pause, continue_run, step_*, set_breakpoints}`; a camada
+Tauri traduz isso em comandos `debug_*` e no evento `run:paused`.
+
 ### Bibliotecas padrão
 
 | Biblioteca original | Estratégia no port |
@@ -189,24 +212,24 @@ genérico.
 
 ```rust
 #[tauri::command]
-fn parse(source: String) -> ParseResult;
+fn check(source: String) -> Vec<DiagnosticInfo>;
 
 #[tauri::command]
-fn analyze(path: String, source: String) -> AnalysisResult;
+fn run(source: String, args: Vec<String>, path: Option<String>, breakpoints: Vec<u32>) -> u32;
 
 #[tauri::command]
-fn run(path: String) -> RunHandle;
+fn send_input(id: u32, line: String);
 
 #[tauri::command]
-fn debug_step(session: SessionId, action: DebugAction) -> DebugState;
+fn stop(id: u32);
+
+#[tauri::command]
+fn debug_continue(id: u32); // também debug_pause, debug_step_*, debug_set_breakpoints
 ```
 
-Eventos para output em streaming:
-
-```rust
-app.emit("run:stdout", OutputChunk { session, text })?;
-app.emit("run:diagnostics", diagnostics)?;
-```
+Eventos de uma execução (todos com `id`): `run:output`, `run:clear`,
+`run:input`, `run:paused` e `run:finished`. Diagnósticos são entregues pelo
+próprio `check`, sem evento separado.
 
 ### Editor e análise incremental
 
@@ -224,8 +247,8 @@ com o nível de paridade desejado.
 | 1. Sintaxe | lexer, parser, AST, diagnósticos | **concluída** |
 | 2. Semântica | símbolos, tipos, checagens | **concluída** |
 | 3. Runtime | bytecode, VM, stdlib de console | **concluída** |
-| 4. IDE MVP | Tauri, CodeMirror, abas, console, run | 3–4 semanas |
-| 5. Depurador | breakpoints, step, inspeção | 2–3 semanas |
+| 4. IDE MVP | Tauri, CodeMirror, abas, console, run | **concluída** |
+| 5. Depurador | breakpoints, step, inspeção | **concluída** |
 | 6. Paridade | gráficos/jogos, ajuda, plugins, packaging | 2–4 meses |
 
 MVP utilizável (editar, analisar e executar programas de console): **~3 meses**.

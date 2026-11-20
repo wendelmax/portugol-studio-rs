@@ -6,9 +6,9 @@
 
 import "./style.css";
 
-import { EditorState, Compartment, StateEffect, StateField, type Extension } from "@codemirror/state";
+import { EditorState, Compartment, RangeSet, StateEffect, StateField, type Extension } from "@codemirror/state";
 import {
-  EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter,
+  EditorView, GutterMarker, gutter, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter,
   drawSelection, highlightSpecialChars, Decoration, type DecorationSet,
 } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
@@ -81,6 +81,71 @@ const runtimeError = StateField.define<DecorationSet>({
   provide: (field) => EditorView.decorations.from(field),
 });
 
+/** Offsets dos pontos de parada; acompanham as edições do documento. */
+const toggleBreakpoint = StateEffect.define<number>();
+const breakpoints = StateField.define<Set<number>>({
+  create: () => new Set<number>(),
+  update(value, tr) {
+    let next = value;
+    for (const effect of tr.effects) {
+      if (effect.is(toggleBreakpoint)) {
+        next = new Set(next);
+        if (next.has(effect.value)) next.delete(effect.value);
+        else next.add(effect.value);
+      }
+    }
+    if (!tr.docChanged) return next;
+    const mapped = new Set<number>();
+    for (const pos of next) mapped.add(tr.changes.mapPos(pos, -1));
+    return mapped;
+  },
+});
+
+const breakpointMarker = new (class extends GutterMarker {
+  toDOM() {
+    const dot = document.createElement("span");
+    dot.className = "cm-breakpoint";
+    dot.title = "Ponto de parada — clique para remover";
+    return dot;
+  }
+})();
+
+const breakpointGutter = gutter({
+  class: "cm-breakpoint-gutter",
+  markers: (view) => {
+    const positions = [...view.state.field(breakpoints)]
+      .map((pos) => view.state.doc.lineAt(Math.min(pos, view.state.doc.length)).from)
+      .sort((a, b) => a - b);
+    return RangeSet.of(positions.map((pos) => breakpointMarker.range(pos)));
+  },
+  initialSpacer: () => breakpointMarker,
+  domEventHandlers: {
+    mousedown(view, line, event) {
+      if ((event as MouseEvent).button !== 0) return false;
+      view.dispatch({ effects: toggleBreakpoint.of(line.from) });
+      syncBreakpoints(view.state);
+      return true;
+    },
+  },
+});
+
+/** Destaque da linha onde a VM está parada no depurador. */
+const setDebugLine = StateEffect.define<number | null>();
+const debugLine = StateField.define<DecorationSet>({
+  create: () => Decoration.none,
+  update(value, tr) {
+    for (const effect of tr.effects) {
+      if (effect.is(setDebugLine)) {
+        if (effect.value === null) return Decoration.none;
+        const line = tr.state.doc.line(Math.max(1, Math.min(effect.value, tr.state.doc.lines)));
+        return Decoration.set([Decoration.line({ class: "cm-debug-line" }).range(line.from)]);
+      }
+    }
+    return tr.docChanged ? Decoration.none : value.map(tr.changes);
+  },
+  provide: (field) => EditorView.decorations.from(field),
+});
+
 function toCodeMirror(info: api.DiagnosticInfo, length: number): Diagnostic {
   const from = Math.min(info.start.offset, length);
   const to = Math.min(Math.max(info.end.offset, from + 1), length);
@@ -126,6 +191,9 @@ function extensions(): Extension[] {
     lintGutter(),
     portugolLinter,
     runtimeError,
+    breakpoints,
+    breakpointGutter,
+    debugLine,
     keymap.of([
       ...closeBracketsKeymap, ...defaultKeymap, ...searchKeymap,
       ...historyKeymap, ...completionKeymap, indentWithTab,
@@ -306,6 +374,7 @@ async function save(as = false): Promise<boolean> {
 // ---------------------------------------------------------------------------
 
 let runId: number | null = null;
+let paused: api.DebugInfo | null = null;
 const output = $("console-output");
 const consoleBox = $("console");
 const inputForm = $<HTMLFormElement>("console-form");
@@ -333,7 +402,72 @@ function appendConsole(text: string, className?: string) {
 function setRunning(running: boolean) {
   $<HTMLButtonElement>("btn-run").disabled = running;
   $<HTMLButtonElement>("btn-stop").disabled = !running;
+  $<HTMLButtonElement>("btn-debug-pause").disabled = !running || paused !== null;
+  for (const id of [
+    "btn-debug-continue", "btn-debug-step-over", "btn-debug-step-into", "btn-debug-step-out",
+  ]) {
+    $<HTMLButtonElement>(id).disabled = paused === null;
+  }
   if (!running) inputForm.hidden = true;
+}
+
+/** Linhas (base 1) dos pontos de parada no estado do editor. */
+function breakpointLines(state: EditorState): number[] {
+  return [...state.field(breakpoints)]
+    .map((pos) => state.doc.lineAt(Math.min(pos, state.doc.length)).number)
+    .sort((a, b) => a - b);
+}
+
+/** Pontos de parada podem mudar enquanto o programa está em execução. */
+function syncBreakpoints(state: EditorState) {
+  if (runId === null) return;
+  void api.debugSetBreakpoints(runId, state.doc.toString(), breakpointLines(state)).catch(() => {});
+}
+
+function setPaused(info: api.DebugInfo | null) {
+  paused = info;
+  view.dispatch({ effects: setDebugLine.of(info?.position.line ?? null) });
+  setRunning(runId !== null);
+  if (info) {
+    renderDebug(info);
+    showPanel("debug");
+    goTo(info.position.offset);
+    setStatus(`Pausado na linha ${info.position.line}.`);
+  }
+}
+
+async function debugCommand(command: (id: number) => Promise<void>) {
+  if (runId === null || paused === null) return;
+  const id = runId;
+  view.dispatch({ effects: setDebugLine.of(null) });
+  paused = null;
+  setRunning(true);
+  setStatus("Executando…");
+  try {
+    await command(id);
+  } catch {
+    // A execução pode ter terminado enquanto o comando era enviado.
+  }
+}
+
+function renderDebug(info: api.DebugInfo) {
+  $("debug-stack").replaceChildren(...info.stack.map((frame, index) => {
+    const li = document.createElement("li");
+    li.textContent = `${frame.function} — linha ${frame.position.line}:${frame.position.column}`;
+    if (index === 0) li.className = "current";
+    li.onclick = () => goTo(frame.position.offset);
+    return li;
+  }));
+  const body = document.querySelector<HTMLTableSectionElement>("#debug-vars tbody")!;
+  body.replaceChildren(...info.variables.map((variable) => {
+    const row = document.createElement("tr");
+    for (const text of [variable.name, variable.ty, variable.value, variable.scope]) {
+      const cell = document.createElement("td");
+      cell.textContent = text;
+      row.append(cell);
+    }
+    return row;
+  }));
 }
 
 function parseArgs(text: string): string[] {
@@ -346,6 +480,8 @@ async function runProgram() {
   const tab = activeTab();
   if (!tab) return;
   view.dispatch({ effects: setRuntimeError.of(null) });
+  view.dispatch({ effects: setDebugLine.of(null) });
+  paused = null;
   showPanel("console");
   output.replaceChildren();
   try {
@@ -353,6 +489,7 @@ async function runProgram() {
       view.state.doc.toString(),
       parseArgs($<HTMLInputElement>("args").value),
       tab.path,
+      breakpointLines(view.state),
     );
     setRunning(true);
     setStatus("Executando…");
@@ -368,11 +505,11 @@ async function stopProgram() {
   if (runId !== null) await api.stop(runId);
 }
 
-function showPanel(which: "console" | "messages") {
-  $("tab-console").classList.toggle("active", which === "console");
-  $("tab-messages").classList.toggle("active", which === "messages");
-  consoleBox.hidden = which !== "console";
-  $("messages").hidden = which !== "messages";
+function showPanel(which: "console" | "messages" | "debug") {
+  for (const name of ["console", "messages", "debug"]) {
+    $(`tab-${name}`).classList.toggle("active", which === name);
+    $(name).hidden = which !== name;
+  }
 }
 
 function goTo(offset: number) {
@@ -434,9 +571,14 @@ void api.listenRun({
     inputField.focus();
     consoleBox.scrollTop = consoleBox.scrollHeight;
   },
+  paused(id, info) {
+    if (id === runId) setPaused(info);
+  },
   finished(id, outcome) {
     if (id !== runId) return;
     runId = null;
+    paused = null;
+    view.dispatch({ effects: setDebugLine.of(null) });
     setRunning(false);
     if (outcome.status === "finished") {
       appendConsole("\nPrograma finalizado.\n", "info");
@@ -501,9 +643,15 @@ $("btn-save").onclick = () => void save();
 $("btn-save-as").onclick = () => void save(true);
 $("btn-run").onclick = () => void runProgram();
 $("btn-stop").onclick = () => void stopProgram();
+$("btn-debug-pause").onclick = () => { if (runId !== null) void api.debugPause(runId); };
+$("btn-debug-continue").onclick = () => void debugCommand(api.debugContinue);
+$("btn-debug-step-over").onclick = () => void debugCommand(api.debugStepOver);
+$("btn-debug-step-into").onclick = () => void debugCommand(api.debugStepInto);
+$("btn-debug-step-out").onclick = () => void debugCommand(api.debugStepOut);
 $("btn-clear").onclick = () => output.replaceChildren();
 $("tab-console").onclick = () => showPanel("console");
 $("tab-messages").onclick = () => showPanel("messages");
+$("tab-debug").onclick = () => showPanel("debug");
 
 function cycleTab(step: number) {
   const index = tabs.findIndex((t) => t.id === activeId);
@@ -517,6 +665,11 @@ window.addEventListener("keydown", (e) => {
     [e.shiftKey && e.key === "F6", runProgram],
     [ctrl && e.key === "Enter", runProgram],
     [e.shiftKey && e.key === "F7", stopProgram],
+    [e.key === "F9", () => { if (runId !== null) void api.debugPause(runId); }],
+    [!e.shiftKey && e.key === "F5", () => void debugCommand(api.debugContinue)],
+    [e.shiftKey && e.key === "F11", () => void debugCommand(api.debugStepOut)],
+    [e.key === "F10", () => void debugCommand(api.debugStepOver)],
+    [e.key === "F11", () => void debugCommand(api.debugStepInto)],
     [ctrl && !e.shiftKey && key === "n", () => newTab()],
     [ctrl && key === "o", openFiles],
     [ctrl && e.shiftKey && key === "s", () => save(true)],

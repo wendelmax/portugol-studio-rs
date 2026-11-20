@@ -1,5 +1,6 @@
 //! Conversão de offsets em bytes (spans do núcleo) para posições do editor.
 
+use portugol_syntax::Span;
 use serde::Serialize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -39,6 +40,21 @@ impl<'a> LineIndex<'a> {
             line_starts,
             line_starts_utf16,
         }
+    }
+
+    /// Trecho em bytes que cobre uma linha inteira (base 1). Usado para
+    /// converter pontos de parada do editor em spans do bytecode.
+    pub fn line_span(&self, line: u32) -> Span {
+        let index = (line as usize)
+            .saturating_sub(1)
+            .min(self.line_starts.len().saturating_sub(1));
+        let start = self.line_starts[index] as u32;
+        let end = self
+            .line_starts
+            .get(index + 1)
+            .copied()
+            .unwrap_or(self.source.len()) as u32;
+        Span::new(start, end)
     }
 
     pub fn position(&self, byte_offset: u32) -> Position {
