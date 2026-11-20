@@ -681,3 +681,82 @@ select {
 .font-size input {
   width: 4.5em;
 }
+
+.help {
+  display: grid;
+  grid-template-columns: minmax(200px, 25%) minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+
+.help-sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 12px;
+  gap: 12px;
+  border-right: 1px solid var(--border);
+}
+
+.help-sidebar nav {
+  overflow: auto;
+}
+
+.help-sidebar h2 {
+  margin: 12px 0 4px;
+  font-size: 14px;
+}
+
+.help-sidebar button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border-color: transparent;
+}
+
+.help-sidebar button[aria-current="true"] {
+  background: var(--tab-active);
+  border-color: var(--accent);
+}
+
+.help-article {
+  overflow: auto;
+  background: var(--surface);
+  padding: 16px clamp(16px, 5vw, 64px) 32px;
+  line-height: 1.55;
+  font-size: 14px;
+}
+
+.help-article a {
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.help-article img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.help-article pre {
+  overflow: auto;
+  border: 1px solid var(--border);
+  background: var(--editor-bg);
+  padding: 12px;
+  font-family: var(--mono);
+}
+
+.help-article table {
+  border-collapse: collapse;
+}
+
+.help-article td,
+.help-article th {
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+}
+
+.help-article dt {
+  font-family: var(--mono);
+}

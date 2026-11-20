@@ -228,16 +228,23 @@ function applyTheme(choice: ThemeChoice) {
   if (choice === "system") delete document.documentElement.dataset.theme;
   else document.documentElement.dataset.theme = choice;
   view.dispatch({ effects: theme.reconfigure(editorTheme()) });
+  help?.refreshTheme();
 }
 
-darkQuery.addEventListener("change", () => view.dispatch({ effects: theme.reconfigure(editorTheme()) }));
+darkQuery.addEventListener("change", () => {
+  view.dispatch({ effects: theme.reconfigure(editorTheme()) });
+  help?.refreshTheme();
+});
 
 // ---------------------------------------------------------------------------
 // Abas
 // ---------------------------------------------------------------------------
 
 let tabs: Tab[] = [];
-let activeId = 0;
+const homeId = 0;
+const helpId = -1;
+let activeId = homeId;
+let helpOpen = false;
 let nextTabId = 1;
 
 const activeTab = () => tabs.find((t) => t.id === activeId);
@@ -270,14 +277,17 @@ function activate(id: number) {
   const current = activeTab();
   if (current) current.state = view.state;
   const tab = tabs.find((t) => t.id === id);
-  if (!tab && id !== 0) return;
+  if (!tab && id !== homeId && id !== helpId) return;
   activeId = id;
-  $("home").hidden = Boolean(tab);
+  if (id === helpId) helpOpen = true;
+  $("home").hidden = id !== homeId;
+  $("help").hidden = id !== helpId;
   $("code").hidden = !tab;
   if (!tab) {
     renderTabs();
     $("cursor").textContent = "";
-    $<HTMLButtonElement>("home-new").focus();
+    if (id === helpId) void openHelp();
+    else $<HTMLButtonElement>("home-new").focus();
     return;
   }
   view.setState(tab.state);
@@ -292,6 +302,12 @@ function activate(id: number) {
 }
 
 async function closeTab(id: number): Promise<boolean> {
+  if (id === helpId) {
+    helpOpen = false;
+    if (activeId === helpId) activate(tabs[tabs.length - 1]?.id ?? homeId);
+    else renderTabs();
+    return true;
+  }
   const tab = tabs.find((t) => t.id === id);
   if (!tab) return true;
   if (isDirty(tab)) {
@@ -321,8 +337,21 @@ function renderTabs() {
   add.title = "Novo arquivo (Ctrl+N)";
   add.setAttribute("aria-label", "Novo arquivo");
   add.onclick = () => newTab();
+  const helpTab = document.createElement("div");
+  helpTab.className = "file-tab tab" + (activeId === helpId ? " active" : "");
+  const helpButton = document.createElement("button");
+  helpButton.textContent = "Ajuda";
+  helpButton.setAttribute("aria-current", String(activeId === helpId));
+  helpButton.onclick = () => activate(helpId);
+  const closeHelp = document.createElement("button");
+  closeHelp.className = "close";
+  closeHelp.textContent = "×";
+  closeHelp.setAttribute("aria-label", "Fechar ajuda");
+  closeHelp.onclick = () => void closeTab(helpId);
+  helpTab.append(helpButton, closeHelp);
   bar.replaceChildren(
     home,
+    ...(helpOpen ? [helpTab] : []),
     ...tabs.map((tab) => {
       const el = document.createElement("div");
       el.className = "file-tab tab" + (tab.id === activeId ? " active" : "");
@@ -347,11 +376,12 @@ function renderTabs() {
     add,
   );
   const tab = activeTab();
-  document.title = tab ? `${tabName(tab)} — Portugol Studio` : "Portugol Studio";
+  const title = tab ? tabName(tab) : activeId === helpId ? "Ajuda" : "";
+  document.title = title ? `${title} — Portugol Studio` : "Portugol Studio";
 }
 
 function renderCursor() {
-  if (activeId === 0) return;
+  if (!activeTab()) return;
   const head = view.state.selection.main.head;
   const line = view.state.doc.lineAt(head);
   $("cursor").textContent = `Linha ${line.number}, coluna ${head - line.from + 1}`;
@@ -776,7 +806,7 @@ $("tab-messages").onclick = () => showPanel("messages");
 $("tab-debug").onclick = () => showPanel("debug");
 
 function cycleTab(step: number) {
-  const ids = [0, ...tabs.map((tab) => tab.id)];
+  const ids = [homeId, ...(helpOpen ? [helpId] : []), ...tabs.map((tab) => tab.id)];
   activate(ids[(ids.indexOf(activeId) + step + ids.length) % ids.length]);
 }
 
@@ -807,6 +837,7 @@ const shortcuts: {
     action: () => debugCommand(api.debugStepInto) },
   { label: "Shift+F11", command: "Sair da função", matches: (e) => e.shiftKey && e.key === "F11",
     action: () => debugCommand(api.debugStepOut) },
+  { label: "F1", command: "Ajuda", matches: (e) => e.key === "F1", action: () => activate(helpId) },
   { label: "F11", command: "Atalhos de teclado", matches: (e) => !e.altKey && !e.shiftKey && e.key === "F11",
     action: showShortcuts },
   { label: "Alt+Home", command: "Tela inicial", matches: (e) => e.altKey && e.key === "Home", action: () => activate(0) },
@@ -831,7 +862,8 @@ fileShortcut("S", false, "Salvar", () => save());
 fileShortcut("S", true, "Salvar como", () => save(true));
 fileShortcut("Q", false, "Fechar aba", () => closeTab(activeId));
 fileShortcut("Q", true, "Fechar todas as abas", async () => {
-  for (const tab of [...tabs]) if (!(await closeTab(tab.id))) break;
+  for (const tab of [...tabs]) if (!(await closeTab(tab.id))) return;
+  if (helpOpen) await closeTab(helpId);
 });
 
 for (const { label, command } of [...shortcuts, { label: "Ctrl+F", command: "Localizar e substituir" }]) {
@@ -844,6 +876,7 @@ for (const { label, command } of [...shortcuts, { label: "Ctrl+F", command: "Loc
   $("shortcut-list").append(term, description);
 }
 $("home-shortcuts").onclick = showShortcuts;
+$("home-help").onclick = $("btn-help").onclick = () => activate(helpId);
 
 window.addEventListener("keydown", (e) => {
   if (e.defaultPrevented || shortcutDialog.open) return;
@@ -896,6 +929,22 @@ for (const id of ["editor-font", "console-font"]) {
   };
 }
 
+let help: ReturnType<typeof import("./help").mountHelp> | undefined;
+let helpLoading: Promise<void> | undefined;
+
+async function openHelp() {
+  if (!help) {
+    helpLoading ??= import("./help").then(({ mountHelp }) => {
+      help = mountHelp((source, file) => newTab(source, null, file));
+    }).catch((error) => {
+      $("help-article").textContent = "Não foi possível carregar a ajuda.";
+      setStatus(String(error), "error");
+      helpLoading = undefined;
+    });
+    await helpLoading;
+  }
+  if (activeId === helpId) help?.focusSearch();
+}
 renderRecent();
 mountExamples((source, file) => newTab(source, null, file));
 activate(0);
