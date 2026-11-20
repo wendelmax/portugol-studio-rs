@@ -17,9 +17,7 @@ fn span_of(source: &str, snippet: &str) -> Span {
         .find(snippet)
         .unwrap_or_else(|| panic!("trecho não encontrado: {snippet}"));
     let start = source[..at].rfind('\n').map_or(0, |p| p + 1);
-    let end = source[at..]
-        .find('\n')
-        .map_or(source.len(), |p| at + p);
+    let end = source[at..].find('\n').map_or(source.len(), |p| at + p);
     Span::new(start as u32, end as u32)
 }
 
@@ -53,7 +51,10 @@ impl Session {
 
 /// Executa num thread próprio: a VM bloqueia dentro de `step` enquanto o
 /// depurador está pausado, então os comandos precisam vir de outro thread.
-fn spawn(source: &str, control: DebugControl) -> thread::JoinHandle<(Result<Status, String>, String)> {
+fn spawn(
+    source: &str,
+    control: DebugControl,
+) -> thread::JoinHandle<(Result<Status, String>, String)> {
     let ast = parse(source).program;
     let module = compile(&ast).expect("compilar");
     thread::spawn(move || {
@@ -178,9 +179,24 @@ programa {
     let vm = spawn(source, session.control.clone());
 
     let paused = session.wait();
-    assert!(paused.variables.iter().any(|v| v.name == "v" && v.value == "2 elemento(s)"));
-    assert!(paused.variables.iter().any(|v| v.name == "v[0]" && v.value == "7"));
-    assert!(paused.variables.iter().any(|v| v.name == "v[1]" && v.value == "8"));
+    assert!(
+        paused
+            .variables
+            .iter()
+            .any(|v| v.name == "v" && v.value == "2 elemento(s)")
+    );
+    assert!(
+        paused
+            .variables
+            .iter()
+            .any(|v| v.name == "v[0]" && v.value == "7")
+    );
+    assert!(
+        paused
+            .variables
+            .iter()
+            .any(|v| v.name == "v[1]" && v.value == "8")
+    );
 
     session.command(DebugCommand::Continue);
     let (status, _) = vm.join().unwrap();

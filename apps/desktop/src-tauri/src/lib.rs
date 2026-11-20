@@ -116,7 +116,9 @@ impl RunObserver for EventSink {
     }
 
     fn paused(&self, info: DebugInfo) {
-        let _ = self.app.emit("run:paused", PausedEvent { id: self.id, info });
+        let _ = self
+            .app
+            .emit("run:paused", PausedEvent { id: self.id, info });
     }
 
     fn finished(&self, outcome: RunOutcome) {

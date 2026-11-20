@@ -551,11 +551,7 @@ fn biblioteca_grafica_sem_host() {
         }
         "#,
     );
-    assert!(
-        error.message.contains("modo gráfico"),
-        "{}",
-        error.message
-    );
+    assert!(error.message.contains("modo gráfico"), "{}", error.message);
 }
 
 // --- execução em fatias ------------------------------------------------
