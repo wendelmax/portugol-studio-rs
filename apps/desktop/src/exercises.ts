@@ -1,5 +1,13 @@
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { checkExercise, inspectExercise, listExercises, readFile, type Exercise } from "./api";
+import {
+  createExerciseProgress,
+  createValidatedExerciseGrader,
+  exerciseIdentity,
+  exerciseOptionLabel,
+  exerciseResultSummary,
+  exerciseRevisionStatus,
+} from "./exercise-progress";
 
 export interface ExerciseDocument {
   exercise: Exercise;
@@ -22,17 +30,27 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
   const loadError = document.querySelector<HTMLElement>("#exercise-error")!;
   const results = document.querySelector<HTMLDialogElement>("#exercise-results")!;
   const summary = document.querySelector<HTMLElement>("#exercise-summary")!;
+  const revisionStatus = document.querySelector<HTMLElement>("#exercise-revision")!;
   const failures = document.querySelector<HTMLUListElement>("#exercise-failures")!;
   const hints = document.querySelector<HTMLElement>("#exercise-hints")!;
   const hintItems = hints.querySelector("ul")!;
   let pending: Promise<Exercise[]> | null = null;
   let catalog: Exercise[] = [];
   let attempt = 0;
+  const progress = createExerciseProgress();
 
   function showExercise() {
     const exercise = catalog.find(({ id }) => id === Number(list.value));
     statement.textContent = exercise ? `${exercise.statement}\n\nCasos de teste: ${exercise.cases}` : "";
     solve.disabled = !exercise;
+  }
+
+  function renderCatalog() {
+    list.replaceChildren(...catalog.map(({ id }) => new Option(
+      exerciseOptionLabel(`Exercício ${id}`, progress.hasPassed(`builtin:${id}`)),
+      String(id),
+    )));
+    showExercise();
   }
 
   list.onchange = showExercise;
@@ -64,12 +82,14 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
   async function browse() {
     loadError.hidden = true;
     chooser.showModal();
-    if (catalog.length) return;
+    if (catalog.length) {
+      renderCatalog();
+      return;
+    }
     statement.textContent = "Carregando exercícios…";
     try {
       catalog = await (pending ??= listExercises());
-      list.replaceChildren(...catalog.map(({ id }) => new Option(`Exercício ${id}`, String(id))));
-      showExercise();
+      renderCatalog();
     } catch {
       pending = null;
       statement.textContent = "Não foi possível carregar os exercícios.";
@@ -79,16 +99,23 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
   async function grade({ exercise, name, contents }: ExerciseDocument, source: string) {
     const id = ++attempt;
     summary.textContent = `Corrigindo ${name}…`;
+    revisionStatus.textContent = "Validando esta revisão do código…";
     failures.replaceChildren();
     hints.hidden = true;
     hintItems.replaceChildren();
     results.showModal();
     try {
-      const result = await checkExercise(exercise.id, source, contents);
+      const identity = await exerciseIdentity(exercise.id, contents);
+      const grade = createValidatedExerciseGrader(
+        (gradedSource) => checkExercise(exercise.id, gradedSource, contents),
+        progress,
+        identity,
+        () => id === attempt,
+      );
+      const { evaluation: result, result: progressResult } = await grade(source);
       if (id !== attempt) return;
-      summary.textContent = result.total
-        ? `${result.passed} de ${result.total} casos aprovados.`
-        : result.hints.length ? "Análise estática concluída." : "A análise estática não encontrou observações.";
+      summary.textContent = exerciseResultSummary(result, progressResult);
+      revisionStatus.textContent = exerciseRevisionStatus(progressResult);
       for (const failure of result.failures) {
         const item = document.createElement("li");
         item.textContent = failure;
@@ -103,6 +130,7 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
     } catch (message) {
       if (id === attempt) {
         summary.textContent = typeof message === "string" ? message : "Não foi possível corrigir a solução.";
+        revisionStatus.textContent = "A correção não terminou; o progresso não foi alterado.";
       }
     }
   }
