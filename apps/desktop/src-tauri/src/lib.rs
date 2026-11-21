@@ -171,6 +171,18 @@ async fn export_portugol_rs(source: String) -> Result<portugol_service::RustExpo
 }
 
 #[tauri::command]
+fn rust_toolchain_available() -> bool {
+    portugol_service::rust_toolchain_available()
+}
+
+#[tauri::command]
+async fn run_portugol_rs(source: String) -> Result<portugol_service::PortugolRsRunResult, String> {
+    tauri::async_runtime::spawn_blocking(move || portugol_service::run_portugol_rs(&source))
+        .await
+        .map_err(|error| error.to_string())?
+}
+
+#[tauri::command]
 fn format_source(source: String) -> Option<Vec<portugol_service::TextEdit>> {
     portugol_service::format_source(&source)
 }
@@ -414,6 +426,8 @@ pub fn run_app() {
             inspect_portugol_rs,
             export_rust,
             export_portugol_rs,
+            rust_toolchain_available,
+            run_portugol_rs,
             format_source,
             include_library,
             exercise_catalog,
