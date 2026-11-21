@@ -28,7 +28,7 @@ import { open as openDialog, save as saveDialog, ask } from "@tauri-apps/plugin-
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import { renderDiagnostics } from "./diagnostics";
-import { mappedPreviewSegments, sourceDiagnostic } from "./source-map-ui";
+import { mappedPreviewSegments, sourceDiagnostic, sourceMapLinks, type SourceMapLink } from "./source-map-ui";
 import { mountExamples } from "./examples";
 import { mountExercises, readExercise, type ExerciseDocument } from "./exercises";
 import { portugolFolding } from "./folding";
@@ -323,6 +323,7 @@ function extensions(language: SourceLanguage): Extension[] {
       if (update.docChanged) renderTabs();
       if (update.docChanged && learningMode === "bridge" && activeTab()?.language !== "rust") scheduleRustExport();
       if (update.selectionSet || update.docChanged) renderCursor();
+      if (update.selectionSet || update.docChanged) renderMappingGutter();
       if (centerActive && update.selectionSet) {
         queueMicrotask(() => {
           if (centerActive && view.state === update.state) centerSelection();
@@ -370,6 +371,8 @@ let helpOpen = false;
 let nextTabId = 1;
 let rustExportTimer: number | undefined;
 let rustExportGeneration = 0;
+let rustMappingLinks: SourceMapLink[] = [];
+let rustMappingState: "idle" | "generating" | "ready" | "error" = "idle";
 let definitionNavigationGeneration = 0;
 let learningMode: LearningMode = loadLearningMode();
 let selectedLearningConceptId = "variables";
@@ -449,6 +452,7 @@ function activate(id: number) {
   if (tab.language === "rust") view.dispatch(setDiagnostics(view.state, []));
   renderTabs();
   $<HTMLElement>("rust-preview").hidden = learningMode !== "bridge" || tab.language === "rust";
+  renderMappingGutter();
   renderMessages();
   outline.show(tab.symbols, current !== tab);
   updateLibraryButtons(tab.symbols);
@@ -2417,6 +2421,7 @@ function applyLearningMode(mode: LearningMode, persist = true) {
   const preview = $<HTMLElement>("rust-preview");
   const bridgeEnabled = mode === "bridge" && activeTab()?.language !== "rust";
   preview.hidden = !bridgeEnabled;
+  renderMappingGutter();
   $<HTMLButtonElement>("btn-rust").setAttribute("aria-pressed", String(bridgeEnabled));
   if (bridgeEnabled) {
     if (activeTab()) scheduleRustExport();
@@ -2524,6 +2529,9 @@ function scheduleRustExport() {
   const generation = ++rustExportGeneration;
   if (rustExportTimer !== undefined) window.clearTimeout(rustExportTimer);
   const status = $<HTMLElement>("rust-status");
+  rustMappingLinks = [];
+  rustMappingState = "generating";
+  renderMappingGutter();
   status.textContent = "Atualizando tradução…";
   delete status.dataset.error;
   $<HTMLButtonElement>("rust-copy").disabled = true;
@@ -2539,6 +2547,8 @@ function scheduleRustExport() {
         : await api.exportRust(view.state.doc.toString());
     } catch (error) {
       if (generation !== rustExportGeneration) return;
+      rustMappingState = "error";
+      renderMappingGutter();
       status.textContent = "Falha ao solicitar a tradução: " + String(error);
       status.dataset.error = "true";
       $<HTMLButtonElement>("rust-copy").disabled = true;
@@ -2553,6 +2563,8 @@ function scheduleRustExport() {
     const save = $<HTMLButtonElement>("rust-save");
     if (result.code !== null) {
       const segments = mappedPreviewSegments(result.code, result.sourceMap);
+      rustMappingLinks = sourceMapLinks(result.sourceMap);
+      rustMappingState = "ready";
       output.replaceChildren();
       let cursor = 0;
       for (const segment of segments) {
@@ -2561,6 +2573,8 @@ function scheduleRustExport() {
         const mapped = document.createElement("button");
         mapped.type = "button";
         mapped.className = "rust-mapped-segment";
+        mapped.dataset.sourceLine = String(segment.sourceLine);
+        mapped.dataset.generatedLine = String(segment.generatedLine);
         mapped.textContent = result.code.slice(segment.from, segment.to);
         mapped.title = segment.quality === "approximate"
           ? `Localização aproximada: linha ${segment.sourceLine} da origem`
@@ -2576,6 +2590,8 @@ function scheduleRustExport() {
       $<HTMLButtonElement>("rust-detach").disabled = false;
       delete status.dataset.error;
     } else {
+      rustMappingLinks = [];
+      rustMappingState = "ready";
       output.textContent = "";
       const diagnostic = result.diagnostic;
       status.textContent = diagnostic
@@ -2585,7 +2601,60 @@ function scheduleRustExport() {
       $<HTMLButtonElement>("rust-detach").disabled = true;
       status.dataset.error = "true";
     }
+    renderMappingGutter();
   }, 220);
+}
+
+function renderMappingGutter() {
+  const gutter = $<HTMLElement>("rust-mapping-gutter");
+  const preview = $<HTMLElement>("rust-preview");
+  const tab = activeTab();
+  const visible = Boolean(tab && tab.language !== "rust" && learningMode === "bridge" && !preview.hidden);
+  gutter.hidden = !visible;
+  if (!visible) return;
+
+  const sourceLine = view.state.doc.lineAt(view.state.selection.main.head).number;
+  const status = $<HTMLElement>("rust-mapping-status");
+  const links = $<HTMLElement>("rust-mapping-links");
+  links.replaceChildren();
+  if (rustMappingState === "generating" || rustMappingState === "idle") {
+    status.textContent = "Atualizando mapa…";
+    return;
+  }
+  if (rustMappingState === "error") {
+    status.textContent = "Mapeamento indisponível.";
+    return;
+  }
+
+  const currentLineLinks = rustMappingLinks.filter((link) => link.sourceLine === sourceLine);
+  if (!currentLineLinks.length) {
+    status.textContent = `Linha ${sourceLine} sem correspondência direta.`;
+    return;
+  }
+  status.textContent = `Linha ${sourceLine}`;
+  for (const link of currentLineLinks) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.testid = `mapping-link-source-${link.sourceLine}-rust-${link.generatedLine}`;
+    button.dataset.quality = link.quality;
+    button.textContent = `L${link.sourceLine} ↔ L${link.generatedLine}`;
+    button.title = link.quality === "approximate"
+      ? `Localização aproximada: linha ${link.sourceLine} em Portugol para linha ${link.generatedLine} em Rust`
+      : `Ir da linha ${link.sourceLine} em Portugol para a linha ${link.generatedLine} em Rust`;
+    button.setAttribute("aria-label", button.title);
+    button.onclick = () => focusRustMapping(link);
+    links.append(button);
+  }
+}
+
+function focusRustMapping(link: SourceMapLink) {
+  const output = $<HTMLElement>("rust-output");
+  const mapped = [...output.querySelectorAll<HTMLButtonElement>(".rust-mapped-segment")]
+    .find((button) => button.dataset.sourceLine === String(link.sourceLine)
+      && button.dataset.generatedLine === String(link.generatedLine));
+  if (!mapped) return;
+  mapped.scrollIntoView({ block: "center", inline: "nearest" });
+  mapped.focus();
 }
 
 function cycleTab(step: number) {
