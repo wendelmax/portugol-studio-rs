@@ -4,6 +4,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 
 const moduleUrl = new URL("../src/ownership-lab.ts", import.meta.url);
 const fixtureRoot = new URL("./fixtures/ownership/", import.meta.url);
@@ -119,7 +120,7 @@ test("cada fixture compilável executa com a saída documentada e move falha no 
     const directory = mkdtempSync(join(tmpdir(), "ownership-lab-"));
     try {
       const executable = join(directory, process.platform === "win32" ? "scenario.exe" : "scenario");
-      const result = spawnSync("rustc", [fixturePath.pathname, "--edition=2021", "-o", executable], { encoding: "utf8" });
+      const result = spawnSync("rustc", [fileURLToPath(fixturePath), "--edition=2021", "-o", executable], { encoding: "utf8" });
       if (scenario.expected === "compile-error") {
         assert.notEqual(result.status, 0, `${id}: rustc deveria rejeitar a fixture`);
         assert.match(result.stderr, /borrow of moved value|value borrowed here after move/i);

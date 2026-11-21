@@ -13,7 +13,9 @@
   - `npm run build` — PASS, TypeScript e Vite concluídos; Vite emitiu aviso preexistente de chunk IDE acima de 500 kB.
   - `cargo test -p portugol-desktop --lib workspace::tests::` — BLOCKED antes de compilar o crate: faltam as bibliotecas de sistema `webkit2gtk-4.1` e `javascriptcoregtk-4.1` no Linux; a CI precisa validar os testes Rust. Foram incluídos casos de sucesso, rejeição de entradas inválidas/symlink, colisão e rollback após falha parcial.
   - `PKG_CONFIG_PATH=/tmp/ft10-pkgconfig cargo check -p portugol-desktop --tests` — PASS (checagem de tipos; metadados pkg-config temporários apenas contornam a descoberta das bibliotecas nativas e não executam os testes nem linkam a aplicação).
+  - `PKG_CONFIG_PATH=/tmp/ft10-pkgconfig cargo clippy -p portugol-desktop --all-targets -- -D warnings` — PASS.
   - `PKG_CONFIG_PATH=/tmp/ft10-pkgconfig cargo test -p portugol-desktop --lib workspace::tests:: --no-run` — BLOCKED no link: as bibliotecas reais WebKitGTK/JSC continuam ausentes; os testes compilaram na checagem de tipos, mas não puderam ser executados localmente.
+  - CI do commit `15340af` — FAIL: assert do teste de rollback esperava texto antigo, Clippy/trait de identidade de arquivo não compilava no Windows e o teste de fixture de ownership passava caminho POSIX no Windows; correções estão nesta revisão.
   - Revisão independente — os quatro findings Important e dois Minor foram corrigidos com testes/regressões correspondentes; sem findings pendentes conhecidos.
   - `cargo fmt --all -- --check` — PASS.
   - `git diff --check` — PASS.

@@ -1,10 +1,13 @@
 #[cfg(test)]
 mod tests {
     use super::{
-        WorkspaceEntry, WorkspaceSession, copy_selected_files,
-        copy_selected_files_from_dir_with_hook, copy_selected_files_with_hook, create_source_file,
-        delete_relative_file, list_entries, open_selected_file_with_hook, read_relative_file,
-        rename_relative_file, restore_saved_workspace, save_last_workspace,
+        WorkspaceEntry, copy_selected_files, copy_selected_files_with_hook, create_source_file,
+        delete_relative_file, list_entries, read_relative_file, rename_relative_file,
+        restore_saved_workspace, save_last_workspace,
+    };
+    #[cfg(unix)]
+    use super::{
+        WorkspaceSession, copy_selected_files_from_dir_with_hook, open_selected_file_with_hook,
     };
     use std::fs;
     use std::path::Path;
@@ -255,7 +258,7 @@ mod tests {
             },
         );
 
-        assert!(result.unwrap_err().contains("substituída"));
+        assert!(result.unwrap_err().contains("não corresponde mais"));
         assert_eq!(
             fs::read_to_string(destination.0.join("projeto/nao-apagar.txt")).unwrap(),
             "substituta"
@@ -277,13 +280,18 @@ mod tests {
         let directory =
             cap_std::fs::Dir::open_ambient_dir(&root, cap_std::ambient_authority()).unwrap();
 
-        let result = open_selected_file_with_hook(&directory, "programa.por", |_| {
+        fs::write(root.join("outro.por"), "outro conteúdo").unwrap();
+        let result = open_selected_file_with_hook(&directory, &root, "programa.por", |_| {
             fs::remove_file(root.join("programa.por")).unwrap();
-            symlink(outside.0.join("segredo.por"), root.join("programa.por")).unwrap();
+            symlink(root.join("outro.por"), root.join("programa.por")).unwrap();
             Ok(())
         });
 
         assert!(result.is_err());
+        assert_eq!(
+            fs::read_to_string(root.join("outro.por")).unwrap(),
+            "outro conteúdo"
+        );
         assert_eq!(
             fs::read_to_string(outside.0.join("segredo.por")).unwrap(),
             "segredo"
@@ -1027,7 +1035,10 @@ fn copy_selected_files_from_dir_with_hook(
     let selected_paths: BTreeSet<_> = selected_paths.iter().cloned().collect();
     let mut inputs = Vec::with_capacity(selected_paths.len());
     for relative in &selected_paths {
-        inputs.push((relative.clone(), open_selected_file(source, relative)?));
+        inputs.push((
+            relative.clone(),
+            open_selected_file(source, &source_root_path, relative)?,
+        ));
     }
 
     let destination =
@@ -1102,13 +1113,15 @@ fn copy_selected_files_from_dir_with_hook(
 
 fn open_selected_file(
     source: &cap_std::fs::Dir,
+    source_root_path: &Path,
     relative: &str,
 ) -> Result<cap_std::fs::File, String> {
-    open_selected_file_with_hook(source, relative, |_| Ok(()))
+    open_selected_file_with_hook(source, source_root_path, relative, |_| Ok(()))
 }
 
 fn open_selected_file_with_hook(
     source: &cap_std::fs::Dir,
+    source_root_path: &Path,
     relative: &str,
     mut after_metadata: impl FnMut(&Path) -> Result<(), String>,
 ) -> Result<cap_std::fs::File, String> {
@@ -1126,6 +1139,7 @@ fn open_selected_file_with_hook(
     let mut current = source
         .try_clone()
         .map_err(|error| format!("Não foi possível acessar o projeto: {error}"))?;
+    let mut checked_path = source_root_path.to_path_buf();
     for (index, component) in components.iter().enumerate() {
         let Component::Normal(name) = component else {
             return Err("O caminho do arquivo é inválido.".into());
@@ -1133,6 +1147,7 @@ fn open_selected_file_with_hook(
         let metadata = current
             .symlink_metadata(name)
             .map_err(|_| "O arquivo não está mais disponível.".to_string())?;
+        checked_path.push(name);
         if metadata.file_type().is_symlink() {
             return Err("Links simbólicos não podem ser exportados.".into());
         }
@@ -1148,9 +1163,15 @@ fn open_selected_file_with_hook(
                 .open(name)
                 .map_err(|_| "O arquivo selecionado não pode ser lido.".to_string())?;
             let opened_metadata = file
-                .metadata()
+                .try_clone()
+                .map(cap_std::fs::File::into_std)
+                .and_then(|file| file.metadata())
                 .map_err(|_| "O arquivo selecionado não pode ser lido.".to_string())?;
-            if !same_file_identity(&metadata, &opened_metadata) {
+            let path_metadata = fs::symlink_metadata(&checked_path)
+                .map_err(|_| "O arquivo selecionado mudou durante a validação.".to_string())?;
+            if path_metadata.file_type().is_symlink()
+                || !same_file_identity(&path_metadata, &opened_metadata)
+            {
                 return Err(
                     "O arquivo mudou durante a validação. Atualize o Explorador e tente novamente."
                         .into(),
@@ -1165,12 +1186,17 @@ fn open_selected_file_with_hook(
         let opened = current
             .open_dir(name)
             .map_err(|_| "A subpasta selecionada não está mais disponível.".to_string())?;
-        if !same_file_identity(
-            &metadata,
-            &opened
-                .dir_metadata()
-                .map_err(|_| "A subpasta selecionada não está mais disponível.".to_string())?,
-        ) {
+        let opened_metadata = opened
+            .try_clone()
+            .map_err(|_| "A subpasta selecionada não está mais disponível.".to_string())?
+            .into_std_file()
+            .metadata()
+            .map_err(|_| "A subpasta selecionada não está mais disponível.".to_string())?;
+        let path_metadata = fs::symlink_metadata(&checked_path)
+            .map_err(|_| "A subpasta selecionada mudou durante a validação.".to_string())?;
+        if path_metadata.file_type().is_symlink()
+            || !same_file_identity(&path_metadata, &opened_metadata)
+        {
             return Err(
                 "A pasta mudou durante a validação. Atualize o Explorador e tente novamente."
                     .into(),
@@ -1263,13 +1289,14 @@ fn path_matches_directory_handle(path: &Path, directory: &cap_std::fs::Dir) -> b
     if metadata.file_type().is_symlink() || !metadata.is_dir() {
         return false;
     }
-    let Ok(handle_metadata) = directory.dir_metadata() else {
+    let Ok(handle_metadata) = directory
+        .try_clone()
+        .map(|directory| directory.into_std_file())
+        .and_then(|directory| directory.metadata())
+    else {
         return false;
     };
-    same_file_identity(
-        &handle_metadata,
-        &cap_std::fs::Metadata::from_just_metadata(metadata),
-    )
+    same_file_identity(&metadata, &handle_metadata)
 }
 
 fn same_directory_identity(
@@ -1285,25 +1312,29 @@ fn same_directory_identity(
     }
     let Ok(actual) = parent
         .open_dir(name)
-        .and_then(|directory| directory.dir_metadata())
+        .and_then(|directory| directory.into_std_file().metadata())
     else {
         return false;
     };
-    let Ok(expected) = expected.dir_metadata() else {
+    let Ok(expected) = expected
+        .try_clone()
+        .map(|directory| directory.into_std_file())
+        .and_then(|directory| directory.metadata())
+    else {
         return false;
     };
     same_file_identity(&actual, &expected)
 }
 
 #[cfg(unix)]
-fn same_file_identity(left: &cap_std::fs::Metadata, right: &cap_std::fs::Metadata) -> bool {
-    use cap_std::fs::MetadataExt;
+fn same_file_identity(left: &std::fs::Metadata, right: &std::fs::Metadata) -> bool {
+    use std::os::unix::fs::MetadataExt;
     left.dev() == right.dev() && left.ino() == right.ino()
 }
 
 #[cfg(windows)]
-fn same_file_identity(left: &cap_std::fs::Metadata, right: &cap_std::fs::Metadata) -> bool {
-    use cap_std::fs::MetadataExt;
+fn same_file_identity(left: &std::fs::Metadata, right: &std::fs::Metadata) -> bool {
+    use std::os::windows::fs::MetadataExt;
     matches!(
         (
             left.volume_serial_number(),
@@ -1317,7 +1348,7 @@ fn same_file_identity(left: &cap_std::fs::Metadata, right: &cap_std::fs::Metadat
 }
 
 #[cfg(not(any(unix, windows)))]
-fn same_file_identity(_left: &cap_std::fs::Metadata, _right: &cap_std::fs::Metadata) -> bool {
+fn same_file_identity(_left: &std::fs::Metadata, _right: &std::fs::Metadata) -> bool {
     false
 }
 
