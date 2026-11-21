@@ -58,6 +58,6 @@ Run the focused test, then `npm test`; both must pass.
 
 Run `npm run build`, `cargo fmt --all -- --check`, and `git diff --check`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Commit the verified UI-only FT-06 slice.

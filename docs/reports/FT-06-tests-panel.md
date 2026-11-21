@@ -1,6 +1,6 @@
 # Relatório de implementação — FEAT-TESTS-EMPTY-001
 
-- Branch / commit: `feat/tests-empty-state` / pendente de commit.
+- Branch / commit: `feat/tests-empty-state` / `6af1fbeaca8de04d68b9447802339fc9ce6dc636`.
 - Escopo e IDs (UI/UC/FT/AC): UI-018, UI-020, UC-11, FT-06, AC-12, AC-17.
 - Estado anterior (evidência path/linha): `apps/desktop/index.html` já tinha Console, Mensagens, Depuração e Aprender, sem aba Testes; `apps/desktop/src/panel-tabs.ts` não incluía `tests`.
 - Arquivos alterados: `apps/desktop/index.html`, `apps/desktop/src/main.ts`, `apps/desktop/src/panel-tabs.ts`, `apps/desktop/src/style.css`, `apps/desktop/tests/tests-panel.test.mjs`, `docs/PARIDADE.md`, `docs/reports/FT-06-tests-panel.md`, `docs/superpowers/plans/2026-11-21-tests-panel-empty-state.md`, `docs/superpowers/specs/2026-11-21-tests-panel-empty-state-design.md`.
