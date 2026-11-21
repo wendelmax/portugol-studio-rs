@@ -44,3 +44,20 @@ features:
     limitations:
       - "Preferência global em localStorage até existir WorkspaceStore"
       - "FT-02 não possui runner Gherkin; transição visual requer smoke/E2E posterior"
+  - id: FEAT-LEARN-002
+    title: Cartões de conceitos para Beginner e Bridge
+    ui: [UI-023, UI-024]
+    useCases: [UC-13]
+    backend: [learning-content::conceptsForMode, learning-content::resolveConceptForMode]
+    tauriIpc: []
+    scenarios: [FT-05]
+    acceptance:
+      - "conceitos são selecionados explicitamente; nenhuma detecção informal por texto/posição"
+      - "Beginner oferece fundamentos Portugol e Bridge inclui comparações Rust editoriais"
+      - "ownership explica movimento e distingue o exemplo editorial da tradução atual"
+      - "abrir ou estudar um cartão não registra progresso"
+    implementationStatus: implemented
+    testStatus: automated_partial
+    limitations:
+      - "Conteúdo é estático/local; ainda não há currículo versionado ou autoria de professor"
+      - "FT-05 não possui runner Gherkin nem teste DOM/E2E configurado"

@@ -149,9 +149,10 @@
         <div id="splitter" class="splitter" role="separator" aria-orientation="horizontal"></div>
         <section class="panel">
           <div class="panel-tabs" role="tablist">
-            <button id="tab-console" class="active" role="tab">Console</button>
-            <button id="tab-messages" role="tab">Mensagens <span id="message-count"></span></button>
-            <button id="tab-debug" role="tab">Depuração</button>
+            <button id="tab-console" class="active" role="tab" aria-selected="true" aria-controls="console">Console</button>
+            <button id="tab-messages" role="tab" aria-selected="false" aria-controls="messages">Mensagens <span id="message-count"></span></button>
+            <button id="tab-debug" role="tab" aria-selected="false" aria-controls="debug">Depuração</button>
+            <button id="tab-learning" role="tab" aria-selected="false" aria-controls="learning-panel">Aprender</button>
             <details id="console-tools" class="options right">
               <summary title="Opções do console" aria-label="Opções do console"><span data-icon="pequeno/gear_in"></span></summary>
               <div class="options-menu">
@@ -163,21 +164,21 @@
               </div>
             </details>
           </div>
-          <div id="console" class="console" tabindex="0">
+          <div id="console" class="console" role="tabpanel" aria-labelledby="tab-console" tabindex="0">
             <pre id="console-output"></pre>
             <form id="console-form" class="console-input" hidden>
               <span id="console-hint"></span>
               <input id="console-input" type="text" spellcheck="false" autocomplete="off" />
             </form>
           </div>
-          <section id="messages" class="messages" aria-label="Mensagens do compilador" hidden>
+          <section id="messages" class="messages" role="tabpanel" aria-labelledby="tab-messages" aria-label="Mensagens do compilador" hidden>
             <p id="no-diagnostics">Nenhum problema encontrado.</p>
             <table id="diagnostic-table" hidden>
               <thead><tr><th scope="col" aria-label="Tipo"></th><th scope="col">Linha</th><th scope="col">Mensagem</th></tr></thead>
               <tbody></tbody>
             </table>
           </section>
-          <div id="debug" class="debug" hidden>
+          <div id="debug" class="debug" role="tabpanel" aria-labelledby="tab-debug" hidden>
           <div class="group" id="debug-controls" title="Durante a execução, clique na margem esquerda para criar pontos de parada">
             <button id="btn-debug-pause" title="Pausar (F9)" disabled>⏸ Pausar</button>
             <button id="btn-debug-continue" title="Continuar (F5)" disabled>▶ Continuar</button>
@@ -190,6 +191,35 @@
               <ol id="debug-stack"></ol>
             </div>
           </div>
+          <section id="learning-panel" class="learning-panel" role="tabpanel" aria-labelledby="tab-learning" hidden>
+            <header class="learning-heading">
+              <div>
+                <h2>Aprender programação</h2>
+                <p id="learning-mode-description"></p>
+              </div>
+              <span id="learning-provenance">Conceito selecionado manualmente</span>
+            </header>
+            <label class="learning-concept-picker" for="learning-concept">Conceito para estudar
+              <select id="learning-concept" data-testid="learning-concept"></select>
+            </label>
+            <article class="learning-card" aria-live="polite">
+              <h3 id="learning-title"></h3>
+              <p id="learning-definition"></p>
+              <div class="learning-examples">
+                <section>
+                  <h4>Portugol</h4>
+                  <p id="learning-portugol-caption"></p>
+                  <pre><code id="learning-portugol-code"></code></pre>
+                </section>
+                <section id="learning-rust-example" hidden>
+                  <h4>Rust — comparação didática</h4>
+                  <p id="learning-rust-caption"></p>
+                  <pre><code id="learning-rust-code"></code></pre>
+                </section>
+              </div>
+            </article>
+            <p class="learning-no-progress">Estudar um conceito não registra progresso de exercício.</p>
+          </section>
         </section>
       </div>
       <div id="utilities-splitter" class="splitter" role="separator" aria-orientation="vertical" hidden></div>
