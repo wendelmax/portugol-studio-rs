@@ -6,8 +6,13 @@ use std::io::{BufRead, Write};
 
 use portugol_bytecode::ValueType;
 
+use crate::value::Value;
+
 pub trait Io {
     fn write(&mut self, text: &str);
+    fn write_value(&mut self, value: &Value) {
+        self.write(&value.display());
+    }
     /// Uma linha digitada, sem o terminador. `None` quando a entrada acabou.
     /// `expected` é o tipo da variável do `leia`, útil como dica na interface.
     fn read_line(&mut self, expected: ValueType) -> Option<String>;

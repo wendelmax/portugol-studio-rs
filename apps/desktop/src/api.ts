@@ -66,6 +66,16 @@ export interface Inspection {
 export const formatSource = (source: string) =>
   invoke<{ from: number; to: number; insert: string }[] | null>("format_source", { source });
 
+export interface Exercise {
+  id: number;
+  statement: string;
+  cases: number;
+}
+
+export const listExercises = () => invoke<Exercise[]>("exercise_catalog");
+export const checkExercise = (id: number, source: string) =>
+  invoke<{ total: number; passed: number; failures: string[] }>("check_exercise", { id, source });
+
 export const renameTarget = (source: string, offset: number) =>
   invoke<{ name: string; occurrences: number }>("rename_target", { source, offset });
 

@@ -28,6 +28,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import { renderDiagnostics } from "./diagnostics";
 import { mountExamples } from "./examples";
+import { mountExercises } from "./exercises";
 import { portugolFolding } from "./folding";
 import { icon, mountIcons } from "./icons";
 import { mountOutline, symbolKindLabels } from "./outline";
@@ -47,6 +48,7 @@ interface Tab {
   path: string | null;
   exampleName?: string;
   examplePath?: string;
+  exercise?: api.Exercise;
   state: EditorState;
   /** Texto da última gravação, para saber se há alterações. */
   saved: string;
@@ -281,12 +283,13 @@ function isDirty(tab: Tab): boolean {
   return text !== tab.saved;
 }
 
-function newTab(text = TEMPLATE, path: string | null = null, exampleName?: string, examplePath?: string): Tab {
+function newTab(text = TEMPLATE, path: string | null = null, exampleName?: string, examplePath?: string, exercise?: api.Exercise): Tab {
   const tab: Tab = {
     id: nextTabId++,
     path,
     exampleName,
     examplePath,
+    exercise,
     state: EditorState.create({ doc: text, extensions: extensions() }),
     saved: text,
     diagnostics: [],
@@ -307,6 +310,7 @@ function activate(id: number) {
   $("home").hidden = id !== homeId;
   $("help").hidden = id !== helpId;
   $("code").hidden = !tab;
+  $("editor-exercise").hidden = !tab?.exercise;
   if (!tab) {
     renderTabs();
     $("cursor").textContent = "";
@@ -905,6 +909,19 @@ function editorMenuAction(id: string, action: () => unknown) {
     action();
   };
 }
+const exercises = mountExercises((exercise) => {
+  const source = `/*
+${exercise.statement.replaceAll("*/", "* /")}
+*/
+
+${TEMPLATE}`;
+  newTab(source, null, `Exercício ${exercise.id}`, undefined, exercise);
+});
+$("home-exercises").onclick = exercises.browse;
+editorMenuAction("editor-exercise", () => {
+  const exercise = activeTab()?.exercise;
+  if (exercise) void exercises.grade(exercise, view.state.doc.toString());
+});
 editorMenuAction("editor-search", () => openSearchPanel(view));
 editorMenuAction("editor-rename", renameSelection);
 editorMenuAction("editor-format", formatCode);

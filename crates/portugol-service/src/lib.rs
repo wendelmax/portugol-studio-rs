@@ -7,6 +7,7 @@
 //!
 //! Não depende do Tauri: a camada da janela só traduz os eventos.
 
+mod exercises;
 mod outline;
 mod position;
 mod rename;
@@ -16,6 +17,7 @@ use serde::Serialize;
 
 use portugol_syntax::{Diagnostic, Severity, parse};
 
+pub use exercises::{Exercise, ExerciseResult, check_exercise, exercises};
 pub use outline::{SymbolInfo, SymbolKind};
 pub use portugol_vm::{FileFilter, Host, Sound, graphics};
 pub use position::Position;

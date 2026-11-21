@@ -1338,3 +1338,22 @@ body {
 .theme-operator { color: var(--syntax-operator); }
 .theme-number { color: var(--syntax-number); }
 .theme-string { color: var(--syntax-string); }
+
+
+#exercises,
+#exercise-results {
+  width: min(620px, calc(100% - 24px));
+}
+
+#exercise-statement {
+  white-space: pre-wrap;
+}
+
+#exercise-failures:empty {
+  display: none;
+}
+
+#home-exercises {
+  align-self: start;
+  margin-block-start: 6px;
+}
