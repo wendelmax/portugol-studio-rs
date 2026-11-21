@@ -87,10 +87,13 @@ impl Parser {
         if self.is_keyword("se") {
             return self.conditional();
         }
+        if self.is_keyword("enquanto") {
+            return self.while_loop();
+        }
         if let Kind::Ident(keyword) = &self.current().kind {
             if matches!(
                 keyword.as_str(),
-                "enquanto" | "faca" | "para" | "escolha" | "leia"
+                "faca" | "para" | "escolha" | "leia" | "pare" | "continue"
             ) {
                 return self.fail(
                     "pors.unsupported-construct",
@@ -310,6 +313,25 @@ impl Parser {
                 then_branch,
                 else_branch,
             },
+            span: to_hir_span(start.join(end)),
+        })
+    }
+
+    fn while_loop(&mut self) -> Result<hir::Stmt, Vec<Diagnostic>> {
+        let start = self.advance().span;
+        self.expect(Kind::LParen, "Esperado `(` após enquanto")?;
+        let condition = self.expression(0)?;
+        self.expect(Kind::RParen, "Esperado `)` após condição")?;
+        if condition.ty != hir::Type::Boolean {
+            return self.fail(
+                "pors.condition-type",
+                "A condição de enquanto deve ser logica",
+                syntax_span(condition.span),
+            );
+        }
+        let (body, end) = self.block(false)?;
+        Ok(hir::Stmt {
+            kind: hir::StmtKind::While { condition, body },
             span: to_hir_span(start.join(end)),
         })
     }

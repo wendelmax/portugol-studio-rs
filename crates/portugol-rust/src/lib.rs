@@ -125,7 +125,7 @@ pub fn export_portugol_rs(source: &str) -> Result<String, Vec<Diagnostic>> {
 /// Gera Rust para Portugol-RS e preserva os spans HIR de origem.
 pub fn export_portugol_rs_with_map(source: &str) -> Result<GeneratedRust, Vec<Diagnostic>> {
     let hir = portugol_rs_frontend::lower(source)?;
-    Ok(codegen::render_with_map(&hir))
+    Ok(codegen::render_pors_with_map(&hir))
 }
 
 #[cfg(test)]
@@ -760,6 +760,33 @@ mod tests {
         let source =
             "funcao inicio() { seja mutavel idade: inteiro = 16; idade += 1; escreva(idade); }";
         assert_rust_output(export_portugol_rs(source).unwrap(), "17");
+    }
+
+    #[test]
+    fn exports_and_executes_portugol_rs_while_with_source_maps() {
+        let source = "funcao inicio() { seja mutavel i: inteiro = 0; enquanto (i < 3) { escreva(i); i += 1; } }";
+        let generated = export_portugol_rs_with_map(source).unwrap();
+        assert!(generated.code.contains("while (pt_i) < (3_i32) {"));
+        for snippet in ["enquanto (i < 3)", "i < 3", "escreva(i)"] {
+            let start = source.find(snippet).unwrap() as u32;
+            assert!(
+                generated.mappings.iter().any(|mapping| {
+                    mapping.source.is_some_and(|range| range.start == start)
+                        && mapping.quality == SourceMapQuality::Exact
+                }),
+                "missing mapping for {snippet}"
+            );
+        }
+        assert_rust_output(generated.code, "012");
+    }
+
+    #[test]
+    fn adds_string_budget_only_to_portugol_rs_codegen() {
+        let pors = export_portugol_rs("funcao inicio() { escreva(\"olá\"); }").unwrap();
+        assert!(pors.contains("__pors_account"));
+        assert!(pors.contains("__pors_concat"));
+        let classic = export(SOURCE).unwrap();
+        assert!(!classic.contains("__pors_account"));
     }
 
     #[test]

@@ -22,10 +22,65 @@ fn compiles_and_runs_supported_portugol_rs_with_real_rustc() {
 }
 
 #[test]
-fn rejects_portugol_rs_constructs_outside_the_supported_subset() {
-    let error = run_portugol_rs("funcao inicio() { enquanto (verdadeiro) { } }").unwrap_err();
+fn tracks_string_literals_clones_and_concatenation_without_changing_values() {
+    let result = run_portugol_rs(
+        "funcao inicio() { seja origem: cadeia = \"Olá\"; seja resultado: cadeia = origem + \" mundo\"; escreva(resultado); }",
+    )
+    .unwrap();
+    assert!(
+        matches!(result, portugol_service::PortugolRsRunResult::Executed { stdout, exit_code: Some(0), .. } if stdout == "Olá mundo")
+    );
+}
 
-    assert!(error.contains("enquanto"));
+#[test]
+fn charges_character_concatenation_to_the_string_budget() {
+    let result =
+        run_portugol_rs("funcao inicio() { seja texto: cadeia = 'a' + 'b'; escreva(texto); }")
+            .unwrap();
+    assert!(
+        matches!(result, portugol_service::PortugolRsRunResult::Executed { stdout, exit_code: Some(0), .. } if stdout == "ab")
+    );
+}
+
+#[test]
+fn stops_an_infinite_portugol_rs_loop_with_a_typed_runtime_limit() {
+    let result = run_portugol_rs("funcao inicio() { enquanto (verdadeiro) { } }").unwrap();
+    assert!(matches!(
+        result,
+        portugol_service::PortugolRsRunResult::RuntimeLimit {
+            reason: portugol_service::PortugolRsRuntimeLimitReason::Time,
+            ..
+        }
+    ));
+}
+
+#[test]
+fn caps_combined_runtime_output() {
+    let result =
+        run_portugol_rs("funcao inicio() { enquanto (verdadeiro) { escreva(123); } }").unwrap();
+    match result {
+        portugol_service::PortugolRsRunResult::RuntimeLimit {
+            stdout,
+            stderr,
+            reason: portugol_service::PortugolRsRuntimeLimitReason::Output,
+        } => {
+            assert!(stdout.len() + stderr.len() <= 1_048_576);
+            assert!(!stdout.is_empty());
+        }
+        other => panic!("esperava limite combinado de saída, recebido {other:?}"),
+    }
+}
+
+#[test]
+fn limits_cumulative_pors_string_allocations() {
+    let result = run_portugol_rs("funcao inicio() { seja mutavel texto: cadeia = \"x\"; enquanto (verdadeiro) { texto += texto; } }").unwrap();
+    assert!(matches!(
+        result,
+        portugol_service::PortugolRsRunResult::RuntimeLimit {
+            reason: portugol_service::PortugolRsRuntimeLimitReason::StringMemory,
+            ..
+        }
+    ));
 }
 
 #[test]

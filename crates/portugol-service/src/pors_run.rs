@@ -1,7 +1,11 @@
 use std::fs;
+use std::io::Read;
 use std::path::PathBuf;
-use std::process::Command;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::process::{Child, Command, Stdio};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex, mpsc};
+use std::thread;
+use std::time::{Duration, Instant};
 
 use serde::Serialize;
 use serde_json::Value;
@@ -11,6 +15,9 @@ use portugol_rust::{GeneratedRust, SourceMapQuality as RustSourceMapQuality, Sou
 
 static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(1);
 const MAX_SOURCE_BYTES: usize = 1_048_576;
+const MAX_RUNTIME_OUTPUT_BYTES: usize = 1_048_576;
+const RUNTIME_LIMIT: Duration = Duration::from_secs(3);
+const STRING_BUDGET_EXIT_CODE: i32 = 78;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(
@@ -28,6 +35,19 @@ pub enum PortugolRsRunResult {
         diagnostics: Vec<PortugolRsCompileDiagnostic>,
         stderr: String,
     },
+    RuntimeLimit {
+        stdout: String,
+        stderr: String,
+        reason: PortugolRsRuntimeLimitReason,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PortugolRsRuntimeLimitReason {
+    Time,
+    Output,
+    StringMemory,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -154,12 +174,181 @@ fn compile_and_run_generated(
     }
 
     let execution = Command::new(&executable_path)
-        .output()
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
         .map_err(|error| format!("Não foi possível executar o programa compilado: {error}"))?;
+    let execution = supervise(execution)?;
+    let stdout = String::from_utf8_lossy(&execution.stdout).into_owned();
+    let stderr = String::from_utf8_lossy(&execution.stderr).into_owned();
+    if let Some(reason) = execution.limit {
+        return Ok(PortugolRsRunResult::RuntimeLimit {
+            stdout,
+            stderr,
+            reason,
+        });
+    }
     Ok(PortugolRsRunResult::Executed {
-        stdout: String::from_utf8_lossy(&execution.stdout).into_owned(),
-        stderr: String::from_utf8_lossy(&execution.stderr).into_owned(),
-        exit_code: execution.status.code(),
+        stdout,
+        stderr,
+        exit_code: execution.status,
+    })
+}
+
+struct SupervisedOutput {
+    stdout: Vec<u8>,
+    stderr: Vec<u8>,
+    status: Option<i32>,
+    limit: Option<PortugolRsRuntimeLimitReason>,
+}
+
+fn supervise(mut child: Child) -> Result<SupervisedOutput, String> {
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or("stdout do processo não foi capturado")?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or("stderr do processo não foi capturado")?;
+    let (sender, receiver) = mpsc::channel::<(bool, Vec<u8>)>();
+    let captured = Arc::new(AtomicUsize::new(0));
+    let exceeded = Arc::new(AtomicBool::new(false));
+    let pipe_error = Arc::new(Mutex::new(None));
+    let out_thread = pipe_reader(
+        stdout,
+        true,
+        sender.clone(),
+        captured.clone(),
+        exceeded.clone(),
+        pipe_error.clone(),
+    );
+    let err_thread = pipe_reader(
+        stderr,
+        false,
+        sender,
+        captured,
+        exceeded.clone(),
+        pipe_error.clone(),
+    );
+    let started = Instant::now();
+    let mut stdout_bytes = Vec::new();
+    let mut stderr_bytes = Vec::new();
+    let mut limit = None;
+    let status = loop {
+        while let Ok((is_stdout, bytes)) = receiver.try_recv() {
+            if is_stdout {
+                stdout_bytes.extend(bytes);
+            } else {
+                stderr_bytes.extend(bytes);
+            }
+        }
+        if exceeded.load(Ordering::Relaxed) {
+            limit = Some(PortugolRsRuntimeLimitReason::Output);
+            let _ = child.kill();
+            break child
+                .wait()
+                .map_err(|error| format!("Não foi possível recolher o processo: {error}"))?
+                .code();
+        }
+        if pipe_error
+            .lock()
+            .expect("erro do pipe deve estar acessível")
+            .is_some()
+        {
+            let _ = child.kill();
+            let _ = child.wait();
+            break None;
+        }
+        if started.elapsed() >= RUNTIME_LIMIT {
+            limit = Some(PortugolRsRuntimeLimitReason::Time);
+            let _ = child.kill();
+            break child
+                .wait()
+                .map_err(|error| format!("Não foi possível recolher o processo: {error}"))?
+                .code();
+        }
+        if let Some(status) = child
+            .try_wait()
+            .map_err(|error| format!("Não foi possível acompanhar o processo: {error}"))?
+        {
+            break status.code();
+        }
+        thread::sleep(Duration::from_millis(5));
+    };
+    out_thread
+        .join()
+        .map_err(|_| "A captura de stdout falhou inesperadamente.".to_string())?;
+    err_thread
+        .join()
+        .map_err(|_| "A captura de stderr falhou inesperadamente.".to_string())?;
+    if let Some(error) = pipe_error
+        .lock()
+        .expect("erro do pipe deve estar acessível")
+        .take()
+    {
+        return Err(error);
+    }
+    while let Ok((is_stdout, bytes)) = receiver.try_recv() {
+        if is_stdout {
+            stdout_bytes.extend(bytes);
+        } else {
+            stderr_bytes.extend(bytes);
+        }
+    }
+    if limit.is_none() && status == Some(STRING_BUDGET_EXIT_CODE) {
+        limit = Some(PortugolRsRuntimeLimitReason::StringMemory);
+    }
+    Ok(SupervisedOutput {
+        stdout: stdout_bytes,
+        stderr: stderr_bytes,
+        status,
+        limit,
+    })
+}
+
+fn pipe_reader<R: Read + Send + 'static>(
+    mut pipe: R,
+    is_stdout: bool,
+    sender: mpsc::Sender<(bool, Vec<u8>)>,
+    captured: Arc<AtomicUsize>,
+    exceeded: Arc<AtomicBool>,
+    pipe_error: Arc<Mutex<Option<String>>>,
+) -> thread::JoinHandle<()> {
+    thread::spawn(move || {
+        let mut buffer = [0u8; 8192];
+        loop {
+            let read = match pipe.read(&mut buffer) {
+                Ok(read) => read,
+                Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+                Err(error) => {
+                    *pipe_error
+                        .lock()
+                        .expect("erro do pipe deve estar acessível") = Some(format!(
+                        "Não foi possível capturar a saída do processo: {error}"
+                    ));
+                    break;
+                }
+            };
+            if read == 0 {
+                break;
+            }
+            let previous = captured.fetch_add(read, Ordering::Relaxed);
+            let allowed = read.min(MAX_RUNTIME_OUTPUT_BYTES.saturating_sub(previous));
+            if allowed < read {
+                exceeded.store(true, Ordering::Relaxed);
+            }
+            if allowed > 0
+                && sender
+                    .send((is_stdout, buffer[..allowed].to_vec()))
+                    .is_err()
+            {
+                break;
+            }
+            if allowed < read {
+                break;
+            }
+        }
     })
 }
 
@@ -392,6 +581,9 @@ mod tests {
             super::PortugolRsRunResult::Executed { .. } => {
                 panic!("código Rust inválido não deveria executar")
             }
+            super::PortugolRsRunResult::RuntimeLimit { .. } => {
+                panic!("rejeição de compilação não deveria atingir limite de runtime")
+            }
         }
     }
 
@@ -406,5 +598,15 @@ mod tests {
         assert_eq!(value["status"], "executed");
         assert_eq!(value["exitCode"], 0);
         assert!(value.get("exit_code").is_none());
+
+        let limited = super::PortugolRsRunResult::RuntimeLimit {
+            stdout: "parcial".into(),
+            stderr: String::new(),
+            reason: super::PortugolRsRuntimeLimitReason::StringMemory,
+        };
+        let value = serde_json::to_value(limited).unwrap();
+        assert_eq!(value["status"], "runtime_limit");
+        assert_eq!(value["reason"], "string_memory");
+        assert_eq!(value["stdout"], "parcial");
     }
 }

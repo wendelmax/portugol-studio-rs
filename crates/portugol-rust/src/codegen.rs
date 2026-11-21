@@ -8,12 +8,23 @@ use crate::{
 };
 
 pub(crate) fn render_with_map(program: &Program) -> GeneratedRust {
+    render(program, false)
+}
+
+pub(crate) fn render_pors_with_map(program: &Program) -> GeneratedRust {
+    render(program, true)
+}
+
+fn render(program: &Program, pors: bool) -> GeneratedRust {
     let mut output = String::from("use std::io::{self, Write};\n\n");
     output.push_str(JAVA_DOUBLE_HELPER);
+    if pors {
+        output.push_str("\nthread_local! { static __PORS_STRING_BYTES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) }; }\nfn __pors_account(len: usize) { __PORS_STRING_BYTES.with(|used| { let next = used.get().saturating_add(len); if next > 16 * 1024 * 1024 { std::process::exit(78); } used.set(next); }); }\nfn __pors_string(value: &str) -> String { __pors_account(value.len()); value.to_owned() }\nfn __pors_char(value: char) -> String { __pors_account(value.len_utf8()); value.to_string() }\nfn __pors_concat(left: &str, right: &str) -> String { let len = left.len().saturating_add(right.len()); __pors_account(len); let mut value = String::with_capacity(len); value.push_str(left); value.push_str(right); value }\n");
+    }
     output.push_str("\nfn main() {\n");
     let body_start = output.len();
     let mut mappings = Vec::new();
-    render_statements(&program.body, program, 1, &mut output, &mut mappings);
+    render_statements(&program.body, program, 1, &mut output, &mut mappings, pors);
     let body_end = output.len();
     output.push_str("}\n");
     if body_start > 0 {
@@ -49,6 +60,7 @@ fn render_statements(
     depth: usize,
     output: &mut String,
     mappings: &mut Vec<SourceMapSegment>,
+    pors: bool,
 ) {
     let indent = "    ".repeat(depth);
     for statement in statements {
@@ -71,7 +83,7 @@ fn render_statements(
                 ));
                 let initializer = initializer.as_ref().map(|value| {
                     output.push_str(" = ");
-                    push_expr(output, mappings, value, program, true);
+                    push_expr(output, mappings, value, program, true, pors);
                 });
                 if initializer.is_none() {
                     output.push_str(&format!(" = {};", default_value(map_type(declaration.ty))));
@@ -95,16 +107,23 @@ fn render_statements(
                     };
                     if let Some(method) = method {
                         output.push_str(&format!("{indent}{name} = ({name}).{method}("));
-                        push_expr(output, mappings, value, program, false);
+                        push_expr(output, mappings, value, program, false, pors);
                         output.push_str(");\n");
                         record_statement_mapping(mappings, start, output.len(), statement);
                         continue;
                     }
                 }
                 if ty == Type::String && *op == AssignOp::Add {
-                    output.push_str(&format!("{indent}{name} = format!(\"{{}}{{}}\", {name}, "));
-                    push_expr(output, mappings, value, program, true);
-                    output.push_str(");\n");
+                    if pors {
+                        output.push_str(&format!("{indent}{name} = __pors_concat(&{name}, "));
+                        push_expr(output, mappings, value, program, false, pors);
+                        output.push_str(".as_str());\n");
+                    } else {
+                        output
+                            .push_str(&format!("{indent}{name} = format!(\"{{}}{{}}\", {name}, "));
+                        push_expr(output, mappings, value, program, true, pors);
+                        output.push_str(");\n");
+                    }
                     record_statement_mapping(mappings, start, output.len(), statement);
                     continue;
                 }
@@ -120,7 +139,7 @@ fn render_statements(
                     AssignOp::BitOr => "|=",
                 };
                 output.push_str(&format!("{indent}{name} {assignment_op} "));
-                push_expr(output, mappings, value, program, *op == AssignOp::Set);
+                push_expr(output, mappings, value, program, *op == AssignOp::Set, pors);
                 output.push_str(";\n");
             }
             StmtKind::Write(values) => {
@@ -131,7 +150,7 @@ fn render_statements(
                     .collect();
                 for (temp, value) in temps.iter().zip(values) {
                     output.push_str(&format!("{indent}let {temp} = "));
-                    push_expr(output, mappings, value, program, true);
+                    push_expr(output, mappings, value, program, true, pors);
                     output.push_str(";\n");
                 }
                 for (temp, value) in temps.iter().zip(values) {
@@ -152,16 +171,23 @@ fn render_statements(
                 else_branch,
             } => {
                 output.push_str(&format!("{indent}if "));
-                push_expr(output, mappings, condition, program, false);
+                push_expr(output, mappings, condition, program, false, pors);
                 output.push_str(" {\n");
-                render_statements(then_branch, program, depth + 1, output, mappings);
+                render_statements(then_branch, program, depth + 1, output, mappings, pors);
                 output.push_str(&format!("{indent}}}"));
                 if let Some(else_branch) = else_branch {
                     output.push_str(" else {\n");
-                    render_statements(else_branch, program, depth + 1, output, mappings);
+                    render_statements(else_branch, program, depth + 1, output, mappings, pors);
                     output.push_str(&format!("{indent}}}"));
                 }
                 output.push('\n');
+            }
+            StmtKind::While { condition, body } => {
+                output.push_str(&format!("{indent}while "));
+                push_expr(output, mappings, condition, program, false, pors);
+                output.push_str(" {\n");
+                render_statements(body, program, depth + 1, output, mappings, pors);
+                output.push_str(&format!("{indent}}}\n"));
             }
         }
         record_statement_mapping(mappings, start, output.len(), statement);
@@ -179,7 +205,7 @@ enum ExpressionPart {
     Nested(MappedExpression),
 }
 
-fn render_expr(expr: &Expr, program: &Program) -> MappedExpression {
+fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedExpression {
     let parts = match &expr.kind {
         ExprKind::Binding(id) => vec![ExpressionPart::Text(rust_ident(
             &binding_info(program, *id).source_name,
@@ -190,15 +216,19 @@ fn render_expr(expr: &Expr, program: &Program) -> MappedExpression {
         ExprKind::Integer(value) => vec![ExpressionPart::Text(format!("{value}_i32"))],
         ExprKind::Real(value) => vec![ExpressionPart::Text(format_real(*value))],
         ExprKind::Boolean(value) => vec![ExpressionPart::Text(value.to_string())],
-        ExprKind::String(value) => vec![ExpressionPart::Text(format!("String::from({value:?})"))],
+        ExprKind::String(value) => vec![ExpressionPart::Text(if pors {
+            format!("__pors_string({value:?})")
+        } else {
+            format!("String::from({value:?})")
+        })],
         ExprKind::Character(value) => vec![ExpressionPart::Text(format!("{value:?}"))],
         ExprKind::Parenthesized(inner) => vec![
             ExpressionPart::Text("(".to_owned()),
-            ExpressionPart::Nested(render_expr(inner, program)),
+            ExpressionPart::Nested(render_expr(inner, program, pors)),
             ExpressionPart::Text(")".to_owned()),
         ],
         ExprKind::Unary { op, operand } => {
-            let nested = render_expr(operand, program);
+            let nested = render_expr(operand, program, pors);
             match (op, expr.ty) {
                 (UnaryOp::Negate, Type::Integer) => vec![
                     ExpressionPart::Text("(".to_owned()),
@@ -222,17 +252,29 @@ fn render_expr(expr: &Expr, program: &Program) -> MappedExpression {
         ExprKind::Binary { op, left, right } => {
             let left_type = left.ty;
             let right_type = right.ty;
-            let left = render_expr(left, program);
-            let right = render_expr(right, program);
+            let left = render_expr(left, program, pors);
+            let right = render_expr(right, program, pors);
             if *op == BinaryOp::Add
                 && ((left_type == Type::String && right_type == Type::String)
                     || (left_type == Type::Character && right_type == Type::Character))
             {
                 vec![
-                    ExpressionPart::Text("format!(\"{}{}\", ".to_owned()),
-                    ExpressionPart::Nested(left),
+                    ExpressionPart::Text(if pors {
+                        "__pors_concat(".to_owned()
+                    } else {
+                        "format!(\"{}{}\", ".to_owned()
+                    }),
+                    ExpressionPart::Nested(if pors {
+                        pors_string_view(left, left_type)
+                    } else {
+                        left
+                    }),
                     ExpressionPart::Text(", ".to_owned()),
-                    ExpressionPart::Nested(right),
+                    ExpressionPart::Nested(if pors {
+                        pors_string_view(right, right_type)
+                    } else {
+                        right
+                    }),
                     ExpressionPart::Text(")".to_owned()),
                 ]
             } else if expr.ty == Type::Integer
@@ -262,6 +304,22 @@ fn render_expr(expr: &Expr, program: &Program) -> MappedExpression {
         }
     };
     compose_expression(parts, expr.span)
+}
+
+fn pors_string_view(value: MappedExpression, ty: Type) -> MappedExpression {
+    let (prefix, suffix) = if ty == Type::Character {
+        ("__pors_char(", ").as_str()")
+    } else {
+        ("(", ").as_str()")
+    };
+    compose_expression(
+        vec![
+            ExpressionPart::Text(prefix.to_owned()),
+            ExpressionPart::Nested(value),
+            ExpressionPart::Text(suffix.to_owned()),
+        ],
+        Span::default(),
+    )
 }
 
 fn wrap_expression(expression: MappedExpression, prefix: &str, suffix: &str) -> MappedExpression {
@@ -309,9 +367,19 @@ fn compose_expression(parts: Vec<ExpressionPart>, span: Span) -> MappedExpressio
     MappedExpression { code, mappings }
 }
 
-fn owned_value(expr: &Expr, program: &Program) -> MappedExpression {
-    let value = render_expr(expr, program);
+fn owned_value(expr: &Expr, program: &Program, pors: bool) -> MappedExpression {
+    let value = render_expr(expr, program, pors);
     if expr.ty == Type::String {
+        if pors {
+            return compose_expression(
+                vec![
+                    ExpressionPart::Text("__pors_string((".to_owned()),
+                    ExpressionPart::Nested(value),
+                    ExpressionPart::Text(").as_str())".to_owned()),
+                ],
+                expr.span,
+            );
+        }
         compose_expression(
             vec![
                 ExpressionPart::Text("(".to_owned()),
@@ -331,11 +399,12 @@ fn push_expr(
     expr: &Expr,
     program: &Program,
     owned: bool,
+    pors: bool,
 ) {
     let expression = if owned {
-        owned_value(expr, program)
+        owned_value(expr, program, pors)
     } else {
-        render_expr(expr, program)
+        render_expr(expr, program, pors)
     };
     let offset = output.len() as u32;
     output.push_str(&expression.code);

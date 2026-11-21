@@ -116,6 +116,10 @@ pub enum StmtKind {
         then_branch: Vec<Stmt>,
         else_branch: Option<Vec<Stmt>>,
     },
+    While {
+        condition: Expr,
+        body: Vec<Stmt>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]

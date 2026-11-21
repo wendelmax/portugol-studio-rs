@@ -12,8 +12,8 @@ test("Rust export API exposes generated and source editor ranges", () => {
   assert.match(api, /interface RustExport[\s\S]*sourceMap: SourceMapInfo\[\]/);
 });
 
-test("PORS run API distinguishes execution from typed compiler diagnostics", () => {
-  assert.match(api, /status: "executed"[\s\S]*status: "compile_error"[\s\S]*diagnostics: PortugolRsCompileDiagnostic\[\]/);
+test("PORS run API distinguishes execution, compiler diagnostics and runtime limits", () => {
+  assert.match(api, /status: "executed"[\s\S]*status: "compile_error"[\s\S]*diagnostics: PortugolRsCompileDiagnostic\[\][\s\S]*status: "runtime_limit"[\s\S]*reason: "time" \| "output" \| "string_memory"/);
 });
 
 test("mapped diagnostics and preview segments require source mappings and label approximate locations", () => {
@@ -55,6 +55,10 @@ test("overlapping preview mappings prefer the narrowest source segment", () => {
 test("PORS run response is discarded when its tab or document revision changes", () => {
   assert.match(main, /activeTab\(\) !== tab \|\| view\.state\.doc !== documentState/);
   assert.match(main, /result\.status === "executed"/);
+  assert.match(main, /result\.status === "runtime_limit"/);
+  assert.match(main, /tempo máximo de 3 segundos/);
+  assert.match(main, /limite de saída de 1 MiB/);
+  assert.match(main, /limite de memória para cadeias de 16 MiB/);
   assert.match(main, /result\.diagnostics\.map\(sourceDiagnostic\)/);
   assert.match(main, /mapped\.onclick = \(\) => goTo\(segment\.sourceOffset\)/);
 });

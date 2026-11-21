@@ -233,6 +233,10 @@ fn collect_portugol_rs_statements(
                     collect_portugol_rs_statements(else_branch, declarations, occurrences);
                 }
             }
+            StmtKind::While { condition, body } => {
+                collect_portugol_rs_expression(condition, occurrences);
+                collect_portugol_rs_statements(body, declarations, occurrences);
+            }
         }
     }
 }
