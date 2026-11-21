@@ -72,6 +72,7 @@
         <button id="btn-stop" title="Interromper a execução ou depuração (Shift+F7)" aria-label="Interromper" disabled>
           <span data-icon="grande/stop"></span>
         </button>
+        <button id="btn-rust" title="Comparar e exportar este programa para Rust" aria-label="Ver tradução para Rust">Rust</button>
         <hr />
         <button id="btn-save" title="Salvar (Ctrl+S)" aria-label="Salvar"><span data-icon="grande/save"></span></button>
         <button id="btn-save-as" title="Salvar como (Ctrl+Shift+S)" aria-label="Salvar como"><span data-icon="grande/save_as"></span></button>
@@ -87,6 +88,18 @@
       <div class="workspace">
         <div class="editor-area">
           <section id="editor" class="editor"></section>
+          <aside id="rust-preview" class="rust-preview" aria-label="Prévia de código Rust" hidden>
+            <header>
+              <h2>Rust gerado</h2>
+              <div>
+                <button id="rust-copy" disabled>Copiar</button>
+                <button id="rust-save" disabled>Salvar .rs</button>
+                <button id="rust-close" aria-label="Fechar prévia Rust">×</button>
+              </div>
+            </header>
+            <p id="rust-status" role="status" aria-live="polite">Preparando tradução…</p>
+            <pre id="rust-output" tabindex="0" aria-label="Código Rust gerado"></pre>
+          </aside>
           <aside class="error-strip" aria-label="Diagnósticos por linha"><div id="error-strip"></div></aside>
           <details id="editor-options" class="options editor-options">
             <summary title="Opções do editor" aria-label="Opções do editor"><span data-icon="pequeno/gear_in"></span></summary>

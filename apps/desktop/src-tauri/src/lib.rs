@@ -151,6 +151,13 @@ fn inspect(source: String) -> portugol_service::Inspection {
 }
 
 #[tauri::command]
+async fn export_rust(source: String) -> Result<portugol_service::RustExport, String> {
+    tauri::async_runtime::spawn_blocking(move || portugol_service::export_rust(&source))
+        .await
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
 fn format_source(source: String) -> Option<Vec<portugol_service::TextEdit>> {
     portugol_service::format_source(&source)
 }
@@ -360,6 +367,7 @@ pub fn run_app() {
         .invoke_handler(tauri::generate_handler![
             check,
             inspect,
+            export_rust,
             format_source,
             include_library,
             exercise_catalog,

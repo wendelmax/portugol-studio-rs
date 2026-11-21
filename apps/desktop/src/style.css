@@ -1274,6 +1274,50 @@ body {
   display: flex;
 }
 
+.rust-preview {
+  flex: 0 0 min(44%, 720px);
+  min-width: 250px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.rust-preview[hidden] { display: none; }
+
+.rust-preview header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.rust-preview header h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rust-preview header div { display: flex; gap: 6px; }
+.rust-preview header button { padding: 4px 8px; }
+.rust-preview #rust-status { margin: 0; padding: 6px 10px; color: var(--muted); font-size: 12px; }
+.rust-preview #rust-status[data-error="true"] { color: var(--error, #d73a49); }
+.rust-preview pre {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 10px;
+  overflow: auto;
+  color: var(--editor-text);
+  background: var(--editor-bg);
+  font: 13px/1.5 var(--mono);
+  white-space: pre;
+  tab-size: 4;
+}
+
 .editor-options {
   position: absolute;
   top: 3px;

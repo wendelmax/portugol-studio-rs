@@ -101,6 +101,13 @@ export const checkUpdates = () => invoke<UpdateInfo>("check_updates");
 
 export const inspect = (source: string) => invoke<Inspection>("inspect", { source });
 
+export interface RustExport {
+  code: string | null;
+  diagnostic: DiagnosticInfo | null;
+}
+
+export const exportRust = (source: string) => invoke<RustExport>("export_rust", { source });
+
 /** Id da execução; rejeita com a lista de erros se o programa não compila. */
 export const run = (source: string, args: string[], path: string | null, breakpoints: number[] = [], pauseOnStart = false) =>
   invoke<number>("run", { source, args, path, breakpoints, pauseOnStart });

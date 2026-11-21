@@ -2651,6 +2651,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "portugol-rust"
+version = "0.1.0"
+dependencies = [
+ "portugol-semantics",
+ "portugol-syntax",
+]
+
+[[package]]
 name = "portugol-semantics"
 version = "0.1.0"
 dependencies = [
@@ -2662,6 +2670,7 @@ name = "portugol-service"
 version = "0.1.0"
 dependencies = [
  "portugol-bytecode",
+ "portugol-rust",
  "portugol-semantics",
  "portugol-syntax",
  "portugol-vm",

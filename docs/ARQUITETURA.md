@@ -135,6 +135,9 @@ execução a reproduzir é, portanto, a do Java gerado.
   (`Vm::step(n)`), sinal de interrupção (`interrupt_handle`) e erro com pilha
   de chamadas. E/S passa pelo trait `Io` (`StdIo`, `BufferIo`; a IDE terá a
   sua).
+- `portugol-rust`: lowering tipado e geração de Rust somente para o subconjunto
+  descrito em `docs/PORTUGOL-RUST.md`; retorna diagnóstico com span no primeiro
+  recurso sem suporte e não participa da execução clássica.
 - Parâmetro `&` guarda um `Reference` (slot da pilha, global ou elemento);
   vetores e matrizes são `Rc<RefCell<..>>` compartilhados, como arrays Java.
 
