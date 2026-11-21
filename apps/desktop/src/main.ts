@@ -252,7 +252,18 @@ function extensions(): Extension[] {
     breakpoints,
     breakpointGutter,
     debugLine,
+    EditorView.domEventHandlers({
+      click(event, editor) {
+        const mouse = event as MouseEvent;
+        if (mouse.button !== 0 || (!mouse.ctrlKey && !mouse.metaKey)) return false;
+        const offset = editor.posAtCoords({ x: mouse.clientX, y: mouse.clientY });
+        if (offset === null) return false;
+        void goToDeclarationAt(offset, true);
+        return false;
+      },
+    }),
     keymap.of([
+      { key: "F12", run: () => { void goToDeclarationAt(view.state.selection.main.head); return true; } },
       ...closeBracketsKeymap, ...defaultKeymap, ...editorSearchKeys,
       ...historyKeymap, ...completionKeymap, ...foldKeymap, indentWithTab,
     ]),
@@ -302,6 +313,7 @@ let helpOpen = false;
 let nextTabId = 1;
 let rustExportTimer: number | undefined;
 let rustExportGeneration = 0;
+let definitionNavigationGeneration = 0;
 let learningMode: LearningMode = loadLearningMode();
 let selectedLearningConceptId = "variables";
 let ownershipScenarioId: OwnershipScenarioId = "move";
@@ -1138,8 +1150,32 @@ async function renameAt(offset: number) {
   }
 }
 
+async function goToDeclarationAt(offset: number, quiet = false) {
+  const tab = activeTab();
+  if (!tab) return;
+  const doc = view.state.doc;
+  const request = ++definitionNavigationGeneration;
+  try {
+    const location = await api.resolveSymbol(doc.toString(), offset);
+    if (request !== definitionNavigationGeneration || activeTab() !== tab || view.state.doc !== doc) return;
+    view.dispatch({
+      selection: { anchor: location.start.offset, head: location.end.offset },
+      effects: EditorView.scrollIntoView(location.start.offset, { y: "center" }),
+    });
+    view.focus();
+  } catch (error) {
+    if (!quiet && request === definitionNavigationGeneration && activeTab() === tab && view.state.doc === doc) {
+      setStatus(typeof error === "string" ? error : "Não foi possível ir à declaração.", "error");
+    }
+  }
+}
+
 function renameSelection() {
   return renameAt(view.state.selection.main.from);
+}
+
+function goToDeclarationSelection() {
+  return goToDeclarationAt(view.state.selection.main.head);
 }
 
 async function formatCode() {
@@ -1182,6 +1218,7 @@ editorMenuAction("editor-exercise", () => {
   if (exercise) void exercises.grade(exercise, view.state.doc.toString());
 });
 editorMenuAction("editor-search", () => openSearchPanel(view));
+editorMenuAction("editor-definition", goToDeclarationSelection);
 editorMenuAction("editor-rename", renameSelection);
 editorMenuAction("editor-format", formatCode);
 editorMenuAction("editor-center", toggleCenterSource);
@@ -1378,7 +1415,7 @@ const shortcuts: {
   { label: "Ctrl+Alt+F", command: "Formatar código-fonte",
     matches: (e) => (e.ctrlKey || e.metaKey) && e.altKey && !e.shiftKey && e.code === "KeyF", action: formatCode },
   { label: "F3", command: "Dicas de interface", matches: (e) => e.key === "F3", action: () => tips.open() },
-  { label: "F12", command: "Sobre", matches: (e) => e.key === "F12", action: () =>
+  { label: "F12", command: "Sobre (fora do editor); ir à declaração (no editor)", matches: (e) => e.key === "F12", action: () =>
     $<HTMLDialogElement>("about").showModal() },
   { label: "F11", command: "Atalhos de teclado", matches: (e) => !e.altKey && !e.shiftKey && e.key === "F11",
     action: showShortcuts },

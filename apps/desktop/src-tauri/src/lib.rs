@@ -200,6 +200,11 @@ fn rename_target(source: String, offset: u32) -> Result<portugol_service::Rename
 }
 
 #[tauri::command]
+fn resolve_symbol(source: String, offset: u32) -> Result<portugol_service::SymbolLocation, String> {
+    portugol_service::resolve_symbol(&source, offset)
+}
+
+#[tauri::command]
 fn rename_symbol(
     source: String,
     offset: u32,
@@ -375,6 +380,7 @@ pub fn run_app() {
             inspect_exercise,
             rename_target,
             rename_symbol,
+            resolve_symbol,
             open_project_page,
             updates::check_updates,
             alerts::project_alerts,
