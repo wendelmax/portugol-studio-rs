@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/portugol-syntax",
     "crates/portugol-hir",
+    "crates/portugol-rs-frontend",
     "crates/portugol-rust",
     "crates/portugol-semantics",
     "crates/portugol-bytecode",
@@ -16,6 +17,7 @@ members = [
 default-members = [
     "crates/portugol-syntax",
     "crates/portugol-hir",
+    "crates/portugol-rs-frontend",
     "crates/portugol-semantics",
     "crates/portugol-bytecode",
     "crates/portugol-vm",

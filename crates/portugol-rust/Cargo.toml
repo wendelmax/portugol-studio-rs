@@ -10,3 +10,4 @@ portugol-syntax = { path = "../portugol-syntax" }
 portugol-semantics = { path = "../portugol-semantics" }
 
 portugol-hir = { path = "../portugol-hir" }
+portugol-rs-frontend = { path = "../portugol-rs-frontend" }
