@@ -17,6 +17,7 @@ são executados e validados sem tela.
 | Sintaxe completa do Portugol 2.0 | ✅ | 194/196 exemplos; os 2 restantes têm erro no próprio arquivo |
 | Análise semântica | ✅ | casos do `AnalisadorSemanticoTest.java` portados |
 | Execução (tipos, operadores, vetores, matrizes, funções, referência) | ✅ | semântica do Java gerado pelo original |
+| Execução do subset Portugol-RS (`.pors`) | 🟡 | compila somente o Rust gerado pela gramática suportada via `rustc`; stdout, stderr e código de saída reais. Sem entrada interativa, depuração, interrupção, loops ou execução de `.rs`; requer toolchain Rust instalada. |
 | `escreva`, `leia`, `limpa`, `sorteia` | ✅ | |
 | Parâmetros de execução (`inicio(cadeia params[])`) | ✅ | |
 | Mensagens de erro de execução | ✅ | mesmas mensagens do original |

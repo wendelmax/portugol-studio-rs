@@ -41,6 +41,7 @@ import { detectSourceLanguage, ensureSourceExtension, type SourceLanguage } from
 import { semanticSymbolLanguage } from "./semantic-symbol-actions";
 import { collectWorkspaceFiles, flattenWorkspaceEntries, workspaceFileKind, workspaceRenameFileName, workspaceSourceFileName, type WorkspaceEntry } from "./workspace-explorer";
 import { workspaceExportStatus } from "./workspace-export-state";
+import { canDebugSource, canRunSource } from "./runtime-capabilities";
 import { applyWorkspaceRenameToTabs, deleteWorkspaceFileFlow, prepareWorkspaceRename } from "./workspace-file-actions";
 import { conceptsForMode, resolveConceptForMode } from "./learning-content";
 import { loadLearningMode, saveLearningMode, type LearningMode } from "./learning-mode";
@@ -461,19 +462,35 @@ function syncLanguageControls(tab: Tab) {
   const semanticLanguage = semanticSymbolLanguage(tab.language);
   const pors = semanticLanguage === "portugol-rs";
   const rustFile = tab.language === "rust";
-  const reason = rustFile ? "Execução Rust não configurada nesta versão." : "O Portugol-RS ainda não possui execução e depuração integradas.";
+  const busy = runId !== null || pendingEvents !== null || porsRunPending;
   for (const id of ["btn-run", "btn-debug", "btn-debug-pause", "btn-debug-continue", "btn-debug-step-over", "btn-debug-step-into", "btn-debug-step-out"]) {
     const button = $<HTMLButtonElement>(id);
-    button.disabled = (pors || rustFile) || (id === "btn-debug-pause"
+    const isRun = id === "btn-run";
+    const runtimeUnavailable = isRun
+      ? !canRunSource(tab.language, rustcAvailable)
+      : !canDebugSource(tab.language);
+    const stateDisabled = id === "btn-debug-pause"
       ? runId === null || paused !== null
       : id === "btn-run" || id === "btn-debug"
-        ? (runId !== null || pendingEvents !== null) && paused === null
-        : paused === null);
+        ? busy && paused === null
+        : paused === null;
+    button.disabled = runtimeUnavailable || stateDisabled;
     button.dataset.defaultTitle ??= button.title;
-    if (pors || rustFile) button.title = reason;
+    const unavailableReason = rustFile
+      ? "Execução e depuração Rust ainda não estão configuradas."
+      : pors && isRun && rustcAvailable !== true
+        ? "Instale a toolchain Rust para executar arquivos .pors."
+        : pors && !isRun
+          ? "Depuração Portugol-RS ainda não está disponível."
+          : "";
+    if (unavailableReason) button.title = unavailableReason;
+    else if (pors && isRun) button.title = "Compilar e executar o subset suportado com rustc";
     else button.title = button.dataset.defaultTitle;
-    button.setAttribute("aria-description", pors || rustFile ? reason : "");
+    button.setAttribute("aria-description", unavailableReason);
   }
+  const args = $<HTMLInputElement>("args");
+  args.disabled = pors || rustFile;
+  args.title = pors ? "Parâmetros ainda não são suportados em Portugol-RS." : rustFile ? "Parâmetros Rust não estão configurados." : "";
   const format = $<HTMLButtonElement>("editor-format");
   format.disabled = pors || rustFile;
   format.title = rustFile ? "Formatador Rust não configurado." : pors ? "Formatador clássico indisponível para Portugol-RS." : "Formatar código-fonte";
@@ -1433,6 +1450,8 @@ async function save(as = false): Promise<boolean> {
 let runId: number | null = null;
 let runTabId: number | null = null;
 let pendingEvents: { id: number; handle: () => void }[] | null = null;
+let rustcAvailable: boolean | null = null;
+let porsRunPending = false;
 let paused: api.DebugInfo | null = null;
 const output = $("console-output");
 const consoleBox = $("console");
@@ -1459,15 +1478,18 @@ function appendConsole(text: string, className?: string) {
 }
 
 function setRunning(running: boolean) {
-  const unsupported = activeTab()?.language !== "portugol";
-  $<HTMLButtonElement>("btn-run").disabled = unsupported || (running && paused === null);
-  $<HTMLButtonElement>("btn-debug").disabled = unsupported || (running && paused === null);
-  $<HTMLButtonElement>("btn-stop").disabled = !running;
-  $<HTMLButtonElement>("btn-debug-pause").disabled = unsupported || !running || paused !== null;
+  const language = activeTab()?.language;
+  const canRun = language !== undefined && canRunSource(language, rustcAvailable);
+  const canDebug = language !== undefined && canDebugSource(language);
+  const isBusy = running && paused === null;
+  $<HTMLButtonElement>("btn-run").disabled = !canRun || isBusy;
+  $<HTMLButtonElement>("btn-debug").disabled = !canDebug || isBusy;
+  $<HTMLButtonElement>("btn-stop").disabled = !running || runId === null;
+  $<HTMLButtonElement>("btn-debug-pause").disabled = !canDebug || !running || paused !== null;
   for (const id of [
     "btn-debug-continue", "btn-debug-step-over", "btn-debug-step-into", "btn-debug-step-out",
   ]) {
-    $<HTMLButtonElement>(id).disabled = unsupported || paused === null;
+    $<HTMLButtonElement>(id).disabled = !canDebug || paused === null;
   }
   if (!running) inputForm.hidden = true;
   $("debug-vars").hidden = paused === null || paused.variables.length === 0;
@@ -1551,15 +1573,54 @@ function parseArgs(text: string): string[] {
 }
 
 async function runProgram(pauseOnStart = false) {
-  if (runId !== null || pendingEvents !== null) return;
+  if (runId !== null || pendingEvents !== null || porsRunPending) return;
   const tab = activeTab();
   if (!tab) return;
-  if (tab.language !== "portugol") {
-    if (tab.language === "rust") {
-      setStatus("Execução e depuração Rust ainda não estão configuradas.");
+  if (tab.language === "rust") {
+    setStatus("Execução e depuração Rust ainda não estão configuradas.");
+    return;
+  }
+  if (tab.language === "portugol-rs") {
+    if (pauseOnStart) {
+      setStatus("Depuração Portugol-RS ainda não está disponível.");
       return;
     }
-    setStatus("O Portugol-RS ainda não possui execução e depuração integradas.");
+    if (rustcAvailable !== true) {
+      setStatus("Instale a toolchain Rust para executar arquivos .pors.", "error");
+      return;
+    }
+    const documentState = view.state.doc;
+    const source = documentState.toString();
+    view.dispatch({ effects: setRuntimeError.of(null) });
+    view.dispatch({ effects: setDebugLine.of(null) });
+    paused = null;
+    showPanel("console");
+    output.replaceChildren();
+    porsRunPending = true;
+    runTabId = tab.id;
+    setRunning(true);
+    setStatus("Compilando e executando com rustc…");
+    try {
+      const result = await api.runPortugolRs(source);
+      if (activeTab() !== tab || view.state.doc !== documentState) return;
+      if (result.stdout) appendConsole(result.stdout);
+      if (result.stderr) appendConsole(result.stderr, "error");
+      setStatus(
+        result.exitCode === 0
+          ? "Programa Portugol-RS finalizado com rustc."
+          : `Programa Portugol-RS terminou com código ${result.exitCode ?? "desconhecido"}.`,
+        result.exitCode === 0 ? "ok" : "error",
+      );
+    } catch (error) {
+      if (activeTab() === tab && view.state.doc === documentState) {
+        appendConsole(String(error) + "\n", "error");
+        setStatus("Não foi possível compilar ou executar o Portugol-RS.", "error");
+      }
+    } finally {
+      porsRunPending = false;
+      runTabId = null;
+      setRunning(runId !== null);
+    }
     return;
   }
   view.dispatch({ effects: setRuntimeError.of(null) });
@@ -2519,6 +2580,8 @@ function availablePaletteCommands() {
     if (command === "Paleta de comandos") return false;
     if (command === "Sobre (fora do editor); ir à declaração (no editor)") return false;
     if (tabCommands.has(command) && !tab) return false;
+    if (command === "Executar" && tab?.language === "portugol-rs" && rustcAvailable !== true) return false;
+    if (command === "Parâmetros de execução" && tab && tab.language !== "portugol") return false;
     if (tab?.language === "rust" && rustUnsupportedCommands.has(command)) return false;
     if (debugCommands.has(command) && !isDebugCommandAvailable(command, tab?.language ?? null, runId !== null, paused !== null)) return false;
     return true;
@@ -2911,6 +2974,19 @@ activate(0);
 applyTheme(themeChoice());
 showPanel("console");
 showUtilities(true);
+void api.rustToolchainAvailable().then((available) => {
+  rustcAvailable = available;
+  const tab = activeTab();
+  if (!tab) return;
+  syncLanguageControls(tab);
+  if (tab.language === "portugol-rs" && !available) {
+    setStatus("Instale a toolchain Rust para executar arquivos .pors.", "error");
+  }
+}).catch(() => {
+  rustcAvailable = false;
+  const tab = activeTab();
+  if (tab) syncLanguageControls(tab);
+});
 const tips = mountTips(themeEditor.open);
 $("home-tips").onclick = tips.open;
 
