@@ -2,6 +2,13 @@
 
 use std::collections::HashMap;
 
+mod hir;
+
+/// Baixa o subconjunto clássico suportado para a HIR tipada compartilhada.
+pub fn lower_to_hir(source: &str) -> Result<portugol_hir::Program, Diagnostic> {
+    hir::lower(source)
+}
+
 use portugol_syntax::ast::{
     AssignOp, Assignment, BinOp, Declarations, Declarator, Expr as AstExpr, Function, Item,
     Program, Stmt as AstStmt, Type, UnaryOp,

@@ -9,3 +9,4 @@ description = "Lowering didático de um subconjunto de Portugol para Rust"
 portugol-syntax = { path = "../portugol-syntax" }
 portugol-semantics = { path = "../portugol-semantics" }
 
+portugol-hir = { path = "../portugol-hir" }
