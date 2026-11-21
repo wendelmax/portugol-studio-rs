@@ -47,3 +47,11 @@ test("aba Aprender identifica seleção manual, deixa exemplos Rust inicialmente
   assert.match(html, /id="learning-rust-example" hidden/);
   assert.match(html, /Estudar um conceito não registra progresso/);
 });
+
+test("todas as abas resolvem para o ID real de seu painel", async () => {
+  const { panelContentId } = await import(new URL("../src/panel-tabs.ts", import.meta.url).href);
+  assert.deepEqual(
+    ["console", "messages", "debug", "learning"].map(panelContentId),
+    ["console", "messages", "debug", "learning-panel"],
+  );
+});

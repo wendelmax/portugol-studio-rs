@@ -33,6 +33,7 @@ import { portugolFolding } from "./folding";
 import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
 import { mountOutline, symbolKindLabels } from "./outline";
+import { panelContentId, type PanelName } from "./panel-tabs";
 import { LIBRARIES, portugol, SNIPPETS } from "./portugol";
 import { conceptsForMode, resolveConceptForMode } from "./learning-content";
 import { loadLearningMode, saveLearningMode, type LearningMode } from "./learning-mode";
@@ -748,11 +749,11 @@ function renderLearningPanel() {
   }
 }
 
-function showPanel(which: "console" | "messages" | "debug" | "learning") {
-  for (const name of ["console", "messages", "debug", "learning"]) {
+function showPanel(which: PanelName) {
+  for (const name of ["console", "messages", "debug", "learning"] as const) {
     $(`tab-${name}`).classList.toggle("active", which === name);
     $(`tab-${name}`).setAttribute("aria-selected", String(which === name));
-    $(name).hidden = which !== name;
+    $(panelContentId(name)).hidden = which !== name;
   }
   $("console-tools").hidden = which !== "console";
   if (which === "learning") renderLearningPanel();
