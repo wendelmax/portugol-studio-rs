@@ -1,35 +1,41 @@
+import { BUILTIN_THEMES, THEME_COLOR_FIELDS, type Base, type Colors, type Theme } from "./theme-presets";
+
 const fields = {
   "--frame": "Moldura e tela inicial",
   "--bg": "Fundo da janela",
   "--surface": "Painéis",
   "--border": "Bordas",
   "--text": "Texto",
+  "--muted": "Texto secundário",
   "--accent": "Destaque",
+  "--accent-text": "Texto do destaque",
+  "--error": "Erros",
+  "--warning": "Avisos",
+  "--ok": "Sucesso",
+  "--input-echo": "Entrada digitada",
+  "--tab-active": "Aba selecionada",
+  "--home-border": "Borda da tela inicial",
+  "--home-title-text": "Título da tela inicial",
+  "--examples-surface": "Painel de exemplos",
   "--console-surface": "Console",
   "--editor-bg": "Fundo do editor",
   "--editor-text": "Identificadores",
   "--editor-caret": "Cursor",
+  "--editor-error": "Linha com erro",
   "--editor-line": "Linha atual",
   "--editor-selection": "Seleção",
   "--editor-gutter": "Números de linha",
   "--syntax-keyword": "Palavras reservadas",
   "--syntax-type": "Tipos",
-  "--syntax-number": "Números e valores lógicos",
+  "--syntax-function": "Funções",
+  "--syntax-logical": "Valores lógicos",
+  "--syntax-number": "Números",
   "--syntax-string": "Cadeias e caracteres",
   "--syntax-comment": "Comentários",
   "--syntax-operator": "Operadores",
 } as const;
 
-type Color = keyof typeof fields;
-type Base = "light" | "dark";
-type Colors = Partial<Record<Color, string>>;
-interface Theme {
-  name: string;
-  base: Base;
-  colors: Colors;
-}
-
-const colorKeys = Object.keys(fields) as Color[];
+const colorKeys = [...THEME_COLOR_FIELDS];
 const storeKey = "portugol.customThemes";
 const validColor = (value: unknown): value is string => typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value);
 const key = (name: string) => `custom:${name}`;
@@ -54,6 +60,9 @@ function readThemes(): Map<string, Theme> {
 
 const themes = readThemes();
 export const customTheme = (choice: string) => themes.get(choice);
+export function themeProfile(choice: string): Theme | undefined {
+  return BUILTIN_THEMES[choice] ?? customTheme(choice);
+}
 
 export function applyThemeColors(element: HTMLElement, colors: Colors = {}) {
   for (const field of colorKeys) {
@@ -76,19 +85,21 @@ export function mountThemeEditor(select: HTMLSelectElement, apply: (choice: stri
   let colors: Colors = {};
 
   function syncChoices() {
-    select.querySelector("optgroup")?.remove();
+    select.querySelector('[data-custom-themes]')?.remove();
     if (!themes.size) return;
     const group = document.createElement("optgroup");
     group.label = "Personalizados";
+    group.dataset.customThemes = "";
     for (const [id, theme] of themes) group.append(new Option(theme.name, id));
     select.append(group);
   }
 
   function load(theme?: Theme) {
     name.value = theme?.name ?? "";
-    base.value = theme?.base ?? (document.documentElement.matches('[data-theme="dark"]') ||
-      (select.value === "system" && matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light");
-    colors = { ...theme?.colors };
+    base.value = theme?.base ?? themeProfile(select.value)?.base ??
+      (document.documentElement.matches('[data-theme="dark"]') ||
+        (select.value === "system" && matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light");
+    colors = { ...(theme?.colors ?? themeProfile(select.value)?.colors) };
     remove.disabled = !theme;
     error.hidden = true;
     render();

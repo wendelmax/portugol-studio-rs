@@ -1,7 +1,7 @@
 [
   {
     "title": "Troca de Tema",
-    "description": "O Portugol Studio contém 2 temas disponíveis: o Tema Escuro e o Tema Portugol. Você pode trocar o tema ao apertar o botão \"Trocar Tema\" abaixo, ou em uma aba de programa, ir na engrenagem no canto superior direito da tela do código.",
+    "description": "Escolha entre os temas Portugol, Dark, Sistema, GitHub Light, GitHub Dark, One Dark Pro, Dracula, Catppuccin Mocha e Night Owl. Você também pode criar temas personalizados no editor de temas, acessível pelo botão \"Trocar Tema\" abaixo ou pela engrenagem no canto superior direito da tela do código.",
     "image": "tela1.gif"
   },
   {

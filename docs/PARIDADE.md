@@ -54,7 +54,7 @@ são executados e validados sem tela.
 | Autocompletar bibliotecas | ✅ | opções, assinaturas e descrições da mesma referência usada pela ajuda |
 | Localizar e substituir (`PSFindReplace`) | ✅ | diálogo Ctrl+F com direção, palavra inteira, maiúsculas, expressões regulares e substituição em lote |
 | Atalhos do original (`TelaAtalhos`) | ✅ | tela F11, atalhos de edição, depuração, arquivos, abas, filtros e centralização |
-| Temas claro/escuro (`TelaEditarTemas`) | ✅ | claro, escuro, sistema e perfis personalizados com prévia |
+| Temas claro/escuro (`TelaEditarTemas`) | ✅ | Portugol, Dark, Sistema, seis presets inspirados em temas populares do VS Code e perfis personalizados editáveis com prévia; troca funciona offline. Referências: [ranking do Marketplace](https://www.vsxatlas.com/rankings?category=Themes&registry=marketplace) e [GitHub Theme oficial](https://marketplace.visualstudio.com/items?itemName=GitHub.github-vscode-theme) |
 | Moldura e barra de comandos | ✅ | moldura de 5px, controles nativos, área de arraste, abas com ícone e barra lateral com ícones da versão 2.7.5 |
 | Expandir editor (Shift+Esc) | ✅ | barra horizontal compacta e botão de restauração |
 | Tela inicial com exemplos (`AbaInicial`, `PainelExemplos`) | 🟡 | Abrir/Novo, até seis recentes, 119 exemplos com busca, descrição, imagens e cópia de trabalho com recursos, acesso às dicas e links do rodapé |

@@ -1,5 +1,5 @@
 import { mountTips } from "./tips";
-import { applyThemeColors, customTheme, mountThemeEditor } from "./themes";
+import { applyThemeColors, mountThemeEditor, themeProfile } from "./themes";
 // IDE: abas de arquivos, editor CodeMirror, console e execução.
 //
 // Atalhos seguem o Portugol Studio original (TelaAtalhos.java):
@@ -65,7 +65,7 @@ const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
 function themeChoice(): string {
   try {
     const saved = localStorage.getItem(THEME_KEY);
-    if (saved === "light" || saved === "dark" || saved === "system" || (saved && customTheme(saved))) return saved;
+    if (saved === "light" || saved === "dark" || saved === "system" || (saved && themeProfile(saved))) return saved;
   } catch {
     // Sem armazenamento local: fica no padrão.
   }
@@ -74,7 +74,7 @@ function themeChoice(): string {
 
 let appliedTheme = themeChoice();
 const isDark = () => {
-  const choice = customTheme(appliedTheme)?.base ?? appliedTheme;
+  const choice = themeProfile(appliedTheme)?.base ?? appliedTheme;
   return choice === "dark" || (choice === "system" && darkQuery.matches);
 };
 const editorColors = syntaxHighlighting(HighlightStyle.define([
@@ -268,8 +268,8 @@ function applyTheme(choice: string) {
     // Ignora: a escolha vale só para esta sessão.
   }
   if (choice === "system") delete document.documentElement.dataset.theme;
-  else document.documentElement.dataset.theme = customTheme(choice)?.base ?? choice;
-  applyThemeColors(document.documentElement, customTheme(choice)?.colors);
+  else document.documentElement.dataset.theme = themeProfile(choice)?.base ?? choice;
+  applyThemeColors(document.documentElement, themeProfile(choice)?.colors);
   view.dispatch({ effects: theme.reconfigure(editorTheme()) });
   help?.refreshTheme();
 }
