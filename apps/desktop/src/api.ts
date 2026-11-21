@@ -155,6 +155,7 @@ export interface WorkspaceFile {
 }
 
 export const openWorkspace = () => invoke<WorkspaceListing | null>("workspace_open");
+export const restoreWorkspace = () => invoke<WorkspaceListing | null>("workspace_restore");
 export const readWorkspaceFile = (workspaceId: string, relativePath: string) =>
   invoke<WorkspaceFile>("workspace_read_file", { workspaceId, relativePath });
 export const writeWorkspaceFile = (workspaceId: string, relativePath: string, source: string) =>

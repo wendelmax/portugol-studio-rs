@@ -659,6 +659,22 @@ async function openWorkspaceFolder() {
   }
 }
 
+async function restoreWorkspaceOnStartup() {
+  const request = ++workspaceRequest;
+  try {
+    const restored = await api.restoreWorkspace();
+    if (request !== workspaceRequest || !restored) return;
+    workspaceState = restored;
+    selectedWorkspacePath = null;
+    expandedWorkspaceFolders.clear();
+    setWorkspaceExplorerVisible(true);
+    renderWorkspaceExplorer();
+    setStatus(`Última pasta reaberta: ${restored.name}`, "ok");
+  } catch (error) {
+    if (request === workspaceRequest) setStatus(String(error), "error");
+  }
+}
+
 async function openWorkspaceFile(entry: Extract<WorkspaceEntry, { kind: "file" }>) {
   const selected = workspaceState;
   if (!selected) return;
@@ -834,6 +850,7 @@ $("workspace-tree").addEventListener("keydown", (event) => {
 });
 
 renderWorkspaceExplorer();
+void restoreWorkspaceOnStartup();
 
 const RECENT_KEY = "portugol.recent";
 

@@ -58,7 +58,7 @@ são executados e validados sem tela.
 | Temas claro/escuro (`TelaEditarTemas`) | ✅ | Portugol, Dark, Sistema, seis presets inspirados em temas populares do VS Code e perfis personalizados editáveis com prévia; troca funciona offline. Referências: [ranking do Marketplace](https://www.vsxatlas.com/rankings?category=Themes&registry=marketplace) e [GitHub Theme oficial](https://marketplace.visualstudio.com/items?itemName=GitHub.github-vscode-theme) |
 | Moldura e barra de comandos | ✅ | moldura de 5px, controles nativos, área de arraste, abas com ícone e barra lateral com ícones da versão 2.7.5 |
 | Expandir editor (Shift+Esc) | ✅ | barra horizontal compacta e botão de restauração |
-| Explorador de pasta para projetos (`.por`, `.pors`, `.pex`) | 🟡 | árvore navegável com teclado, abertura e salvamento escopado; cria arquivos `.por` e `.pors` na raiz com validação e sem sobrescrever; renomear, excluir e restaurar workspace ainda pendentes |
+| Explorador de pasta para projetos (`.por`, `.pors`, `.pex`) | 🟡 | árvore navegável com teclado, abertura e salvamento escopado, criação segura de `.por`/`.pors` e restauração da última pasta; renomear e excluir ainda pendentes |
 | Tela inicial com exemplos (`AbaInicial`, `PainelExemplos`) | 🟡 | Abrir/Novo, até seis recentes, 119 exemplos com busca, descrição, imagens e cópia de trabalho com recursos, acesso às dicas e links do rodapé |
 | Ajuda da linguagem e das bibliotecas (`abaAjuda`, `assets/ajuda`) | ✅ | aba F1, busca, tópicos e diagramas da versão 2.7.5, abertura de exemplos e referências das bibliotecas |
 | Árvore estrutural (variáveis e funções do programa) | ✅ | painel redimensionável com busca, engrenagem de filtros, navegação, inspetor e inclusão de bibliotecas e modelos |
