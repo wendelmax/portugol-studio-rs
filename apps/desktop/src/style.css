@@ -1094,7 +1094,7 @@ select {
   flex: 0 0 240px;
   flex-direction: column;
   min-width: 180px;
-  max-width: 300px;
+  max-width: none;
   min-height: 0;
   border-right: 1px solid var(--border);
   background: var(--bg);
@@ -1303,6 +1303,10 @@ select {
 }
 
 .code.expanded #workspace-explorer {
+  display: none;
+}
+
+.code.expanded #workspace-explorer-splitter {
   display: none;
 }
 
@@ -1533,6 +1537,13 @@ dialog h2 {
   width: 15px;
   height: auto;
   flex: 0 0 15px;
+}
+
+#workspace-explorer-splitter {
+  cursor: col-resize;
+  width: 9px;
+  height: auto;
+  flex: 0 0 9px;
 }
 
 .code.expanded #utilities-splitter,
@@ -2136,6 +2147,11 @@ body {
   background: var(--border);
 }
 
+.splitter:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 .splitter::after {
   content: "";
   display: block;
@@ -2145,7 +2161,8 @@ body {
   background: radial-gradient(circle, var(--muted) 1px, transparent 1px) center / 5px 5px repeat-x;
 }
 
-#utilities-splitter::after {
+#utilities-splitter::after,
+#workspace-explorer-splitter::after {
   width: 100%;
   height: 56px;
   position: relative;

@@ -67,7 +67,7 @@
         <header class="workspace-explorer-header">
           <h2 id="workspace-title">Explorador</h2>
           <div class="workspace-explorer-actions">
-            <button id="workspace-new-file" title="Novo arquivo .por ou .pors" aria-label="Novo arquivo" disabled>＋</button>
+            <button id="workspace-new-file" title="Novo arquivo .por, .pors ou .rs" aria-label="Novo arquivo" disabled>＋</button>
             <button id="workspace-open-folder" title="Abrir outra pasta" aria-label="Abrir outra pasta"><span data-icon="pequeno/folder_closed"></span></button>
           </div>
         </header>
@@ -75,6 +75,7 @@
         <ul id="workspace-tree" role="tree" aria-label="Arquivos do projeto" data-testid="project-tree"></ul>
         <p id="workspace-tree-state" class="workspace-tree-state" role="status" aria-live="polite">Abra uma pasta para navegar pelos arquivos do projeto.</p>
       </aside>
+      <div id="workspace-explorer-splitter" class="splitter" role="separator" aria-label="Redimensionar Explorador" aria-controls="workspace-explorer" aria-orientation="vertical" aria-valuemin="180" aria-valuemax="420" aria-valuenow="240" aria-keyshortcuts="ArrowLeft ArrowRight Home End" title="Arraste ou use as setas; Home e End definem os limites" tabindex="0" hidden></div>
       <aside class="code-toolbar" aria-label="Comandos do editor">
         <button id="btn-explorer" title="Mostrar ou ocultar o explorador (Ctrl+Shift+E)" aria-label="Explorador" aria-expanded="false">
           <span data-icon="pequeno/folder_closed"></span>
@@ -164,8 +165,8 @@
             </div>
           </details>
         </div>
-        <div id="splitter" class="splitter" role="separator" aria-orientation="horizontal"></div>
-        <section class="panel">
+        <div id="splitter" class="splitter" role="separator" aria-label="Redimensionar painel inferior" aria-controls="bottom-panel" aria-orientation="horizontal" aria-valuemin="90" aria-valuemax="600" aria-valuenow="220" aria-keyshortcuts="ArrowUp ArrowDown Home End" title="Arraste ou use as setas; Home e End definem os limites" tabindex="0"></div>
+        <section id="bottom-panel" class="panel">
           <div class="panel-tabs" role="tablist">
             <button id="tab-console" class="active" role="tab" aria-selected="true" aria-controls="console">Console</button>
             <button id="tab-messages" role="tab" aria-selected="false" aria-controls="messages">Mensagens <span id="message-count"></span></button>
@@ -284,7 +285,7 @@
           </section>
         </section>
       </div>
-      <div id="utilities-splitter" class="splitter" role="separator" aria-orientation="vertical" hidden></div>
+      <div id="utilities-splitter" class="splitter" role="separator" aria-label="Redimensionar painel Utilitários" aria-controls="utilities" aria-orientation="vertical" aria-valuemin="210" aria-valuemax="600" aria-valuenow="280" aria-keyshortcuts="ArrowLeft ArrowRight Home End" title="Arraste ou use as setas; Home e End definem os limites" tabindex="0" hidden></div>
       <aside id="utilities" class="utilities" aria-labelledby="utilities-title" hidden>
         <header>
           <h2 id="utilities-title"># Painel Utilitários</h2>
