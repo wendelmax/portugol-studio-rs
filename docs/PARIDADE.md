@@ -56,10 +56,11 @@ são executados e validados sem tela.
 | Temas claro/escuro (`TelaEditarTemas`) | 🟡 | claro, escuro e do sistema com paletas do editor; falta editor de temas |
 | Moldura e barra de comandos | ✅ | moldura de 5px, controles nativos, área de arraste, abas com ícone e barra lateral com ícones da versão 2.7.5 |
 | Expandir editor (Shift+Esc) | ✅ | barra horizontal compacta e botão de restauração |
-| Tela inicial com exemplos (`AbaInicial`, `PainelExemplos`) | 🟡 | Abrir/Novo, até seis recentes, 119 exemplos com busca, descrição, imagens e cópia de trabalho com recursos; faltam dicas |
+| Tela inicial com exemplos (`AbaInicial`, `PainelExemplos`) | 🟡 | Abrir/Novo, até seis recentes, 119 exemplos com busca, descrição, imagens e cópia de trabalho com recursos e acesso às dicas |
 | Ajuda da linguagem e das bibliotecas (`abaAjuda`, `assets/ajuda`) | ✅ | aba F1, busca, tópicos e diagramas da versão 2.7.5, abertura de exemplos e referências das bibliotecas |
 | Árvore estrutural (variáveis e funções do programa) | ✅ | painel redimensionável com busca, filtros, navegação à declaração e inspetor de depuração |
 | Renomear símbolo (`TelaRenomearSimbolo`) | ⬜ | |
+| Dobras de código | ✅ | blocos aninhados e comentários de várias linhas, com marcadores no cabeçalho |
 | Formatador de código (`editor/formatador`) | ⬜ | |
 | Exercícios com correção automática (`assets/exercicios`, módulo `checker`) | ⬜ | |
 | Tamanho da fonte do editor | ✅ | ajuste de 10 a 50, salvo localmente |
