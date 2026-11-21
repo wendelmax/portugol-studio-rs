@@ -65,6 +65,41 @@ jobs:
         env:
           CARGO_PROFILE_DEV_DEBUG: "0"
         run: cargo build -p portugol-desktop --features tauri/custom-protocol --config 'profile.dev.package."*".opt-level=0'
+      - name: Testes do app
+        env:
+          CARGO_PROFILE_DEV_DEBUG: "0"
+        run: cargo test -p portugol-desktop --lib --features tauri/custom-protocol --config 'profile.dev.package."*".opt-level=0'
       - name: Janela gráfica nativa
         timeout-minutes: 2
         run: xvfb-run -a -s "-screen 0 1280x900x24" dbus-run-session -- node apps/desktop/tests/graphics-smoke.mjs
+
+
+  ide_multiplataforma:
+    name: IDE (Tauri em ${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Frontend
+        working-directory: apps/desktop
+        run: |
+          npm ci
+          npm run build
+      - name: Clippy do app
+        run: cargo clippy -p portugol-desktop --all-targets -- -D warnings
+      - name: Testes do app com protocolo de produção
+        env:
+          CARGO_PROFILE_DEV_DEBUG: "0"
+        run: cargo test -p portugol-desktop --lib --features tauri/custom-protocol

@@ -89,6 +89,10 @@ reserva espaço aos cursos recomendados.
 
 ## Distribuição
 
+O CI compila e executa os testes do aplicativo Tauri em Linux, Windows e
+macOS. No Linux, a suíte também abre o aplicativo e verifica diretamente a
+janela gráfica, o teclado e o mouse em Xvfb.
+
 | Recurso | Estado | Observações |
 |---|---|---|
 | Instalador Windows | ✅ | `.exe` (NSIS) e `.msi`, assinatura configurável (docs/DISTRIBUICAO.md) |
