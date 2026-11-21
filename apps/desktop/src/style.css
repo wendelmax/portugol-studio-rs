@@ -1126,6 +1126,30 @@ select {
   font-size: 20px;
 }
 
+.workspace-explorer-actions {
+  display: flex;
+  gap: 2px;
+}
+
+.workspace-explorer-header button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+#workspace-create-dialog {
+  width: min(360px, calc(100% - 24px));
+}
+
+#workspace-create-form {
+  display: grid;
+  gap: 8px;
+}
+
+#workspace-create-error {
+  margin: 0;
+  color: var(--error);
+}
+
 .workspace-name {
   overflow: hidden;
   margin: 0;

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use super::{WorkspaceEntry, list_entries, read_relative_file};
+    use super::{WorkspaceEntry, create_source_file, list_entries, read_relative_file};
     use std::fs;
     use std::path::Path;
     use std::sync::atomic::{AtomicUsize, Ordering};
@@ -104,6 +104,56 @@ mod tests {
         assert_eq!(
             fs::read_to_string(temp.0.join("atividade.pex")).unwrap(),
             "exercício"
+        );
+    }
+
+    #[test]
+    fn creates_empty_portugol_and_portugol_rs_files_exclusively() {
+        let temp = TempDir::new();
+
+        create_source_file(&temp.0, "ola.por").unwrap();
+        create_source_file(&temp.0, "ponte.pors").unwrap();
+
+        assert_eq!(fs::read_to_string(temp.0.join("ola.por")).unwrap(), "");
+        assert_eq!(fs::read_to_string(temp.0.join("ponte.pors")).unwrap(), "");
+    }
+
+    #[test]
+    fn rejects_invalid_names_and_never_overwrites_an_existing_file() {
+        let temp = TempDir::new();
+        fs::write(temp.0.join("aula.por"), "conteúdo existente").unwrap();
+
+        for invalid in [
+            "",
+            ".",
+            "..",
+            "../fora.por",
+            "subpasta\\programa.por",
+            "dados.pex",
+        ] {
+            assert!(create_source_file(&temp.0, invalid).is_err(), "{invalid}");
+        }
+        assert!(create_source_file(&temp.0, "aula.por").is_err());
+        assert_eq!(
+            fs::read_to_string(temp.0.join("aula.por")).unwrap(),
+            "conteúdo existente"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn refuses_to_replace_a_symlink_when_creating_a_source_file() {
+        use std::os::unix::fs::symlink;
+
+        let temp = TempDir::new();
+        let outside = TempDir::new();
+        fs::write(outside.0.join("segredo"), "não alterar").unwrap();
+        symlink(outside.0.join("segredo"), temp.0.join("novo.por")).unwrap();
+
+        assert!(create_source_file(&temp.0, "novo.por").is_err());
+        assert_eq!(
+            fs::read_to_string(outside.0.join("segredo")).unwrap(),
+            "não alterar"
         );
     }
 
@@ -348,6 +398,42 @@ fn write_relative_file(root: &Path, relative: &Path, source: &str) -> Result<(),
     fs::write(path, source).map_err(|error| format!("Não foi possível salvar o arquivo: {error}"))
 }
 
+fn create_source_file(root: &Path, file_name: &str) -> Result<(), String> {
+    let relative = Path::new(file_name);
+    if file_name.trim().is_empty()
+        || file_name == "."
+        || file_name == ".."
+        || file_name.contains('/')
+        || file_name.contains('\\')
+        || relative.components().count() != 1
+        || !matches!(relative.components().next(), Some(Component::Normal(_)))
+    {
+        return Err("Informe um nome de arquivo sem pastas.".into());
+    }
+    if !supported_program(relative) {
+        return Err("O arquivo deve usar a extensão .por ou .pors.".into());
+    }
+
+    let root = fs::canonicalize(root)
+        .map_err(|_| "A pasta aberta não está mais disponível.".to_string())?;
+    if !root.is_dir() {
+        return Err("A pasta aberta não está mais disponível.".into());
+    }
+    let path = root.join(relative);
+    fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)
+        .map(|_| ())
+        .map_err(|error| {
+            if error.kind() == std::io::ErrorKind::AlreadyExists {
+                "Já existe um arquivo com esse nome.".into()
+            } else {
+                format!("Não foi possível criar o arquivo: {error}")
+            }
+        })
+}
+
 #[tauri::command]
 pub async fn workspace_open(
     app: AppHandle,
@@ -419,4 +505,25 @@ pub fn workspace_write_file(
 ) -> Result<(), String> {
     let root = session.root(&workspace_id)?;
     write_relative_file(&root, Path::new(&relative_path), &source)
+}
+
+#[tauri::command]
+pub fn workspace_create_file(
+    workspace_id: String,
+    file_name: String,
+    session: State<'_, WorkspaceSession>,
+) -> Result<WorkspaceListing, String> {
+    let root = session.root(&workspace_id)?;
+    create_source_file(&root, &file_name)?;
+    let entries = list_entries(&root)?;
+    let name = root
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("Projeto")
+        .to_string();
+    Ok(WorkspaceListing {
+        id: workspace_id,
+        name,
+        entries,
+    })
 }

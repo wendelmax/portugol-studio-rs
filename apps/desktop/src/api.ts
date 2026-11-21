@@ -159,6 +159,8 @@ export const readWorkspaceFile = (workspaceId: string, relativePath: string) =>
   invoke<WorkspaceFile>("workspace_read_file", { workspaceId, relativePath });
 export const writeWorkspaceFile = (workspaceId: string, relativePath: string, source: string) =>
   invoke<void>("workspace_write_file", { workspaceId, relativePath, source });
+export const createWorkspaceFile = (workspaceId: string, fileName: string) =>
+  invoke<WorkspaceListing>("workspace_create_file", { workspaceId, fileName });
 
 export type CatalogEntry =
   | { kind: "folder"; name: string; entries: CatalogEntry[] }
