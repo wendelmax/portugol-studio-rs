@@ -7,7 +7,7 @@ const renderer = new GraphicsRenderer(canvas);
 const errorBox = document.querySelector<HTMLElement>("#graphics-error")!;
 
 const keys: Record<string, number> = {
-  Enter: 10, NumpadEnter: 10, Backspace: 8, Tab: 9, Escape: 27, Space: 32,
+  Cancel: 3, Clear: 12, Enter: 10, NumpadEnter: 10, Backspace: 8, Tab: 9, Escape: 27, Space: 32,
   ShiftLeft: 16, ShiftRight: 16, ControlLeft: 17, ControlRight: 17,
   AltLeft: 18, AltRight: 65406, Pause: 19, CapsLock: 20,
   PageUp: 33, PageDown: 34, End: 35, Home: 36,
@@ -15,20 +15,32 @@ const keys: Record<string, number> = {
   Comma: 44, Minus: 45, Period: 46, Slash: 47, Semicolon: 59, Equal: 61,
   BracketLeft: 91, Backslash: 92, BracketRight: 93, Backquote: 192, Quote: 222,
   NumpadMultiply: 106, NumpadAdd: 107, NumpadSubtract: 109,
-  NumpadDecimal: 110, NumpadDivide: 111,
+  NumpadEqual: 61, NumpadComma: 108, NumpadDecimal: 110, NumpadDivide: 111,
   Delete: 127, NumLock: 144, ScrollLock: 145,
-  PrintScreen: 154, Insert: 155, Help: 156, MetaLeft: 524, MetaRight: 524,
+  PrintScreen: 154, Insert: 155, Help: 156,
   ContextMenu: 525,
 };
 
+const logicalPunctuation: Record<string, number> = {
+  "&": 150, "*": 151, '"': 152, "<": 153, ">": 160, "{": 161, "}": 162,
+  "@": 512, ":": 513, "^": 514, "$": 515, "€": 516, "!": 517, "¡": 518,
+  "(": 519, "#": 520, "+": 521, ")": 522, "_": 523,
+};
+const metaKey = /Macintosh/.test(navigator.userAgent) ? 157 : 524;
+
 function javaKey(event: KeyboardEvent): number | undefined {
   const code = event.code;
+  if (code === "MetaLeft" || code === "MetaRight") return metaKey;
+  if (code.startsWith("Numpad") && !/^Numpad[0-9]$/.test(code)) return keys[code];
+  const symbol = event.key.length === 1 ? logicalPunctuation[event.key] : undefined;
+  if (symbol !== undefined && (!event.shiftKey || event.getModifierState("AltGraph"))) return symbol;
   if (/^Key[A-Z]$/.test(code)) return code.charCodeAt(3);
   if (/^Digit[0-9]$/.test(code)) return code.charCodeAt(5);
   if (/^Numpad[0-9]$/.test(code)) return 96 + Number(code.slice(6));
-  if (/^F(?:[1-9]|1[0-2])$/.test(code)) return 111 + Number(code.slice(1));
-  if (/^F(?:1[3-9]|2[0-4])$/.test(code)) return 61_427 + Number(code.slice(1));
-  return keys[code];
+  const fnKey = event.key.startsWith("F") ? event.key : code;
+  if (/^F(?:[1-9]|1[0-2])$/.test(fnKey)) return 111 + Number(fnKey.slice(1));
+  if (/^F(?:1[3-9]|2[0-4])$/.test(fnKey)) return 61_427 + Number(fnKey.slice(1));
+  return keys[code] ?? symbol;
 }
 
 type Input =
@@ -67,23 +79,28 @@ async function flushInput() {
   }
 }
 
+const physicalKey = (event: KeyboardEvent) => event.code && event.code !== "Unidentified"
+  ? event.code : event.key;
+
 const pressed = new Map<string, number>();
 const counts = new Map<number, number>();
 window.addEventListener("keydown", (event) => {
   const code = javaKey(event);
   if (code === undefined) return;
   event.preventDefault();
-  if (pressed.has(event.code)) return;
-  pressed.set(event.code, code);
+  const key = physicalKey(event);
+  if (pressed.has(key)) return;
+  pressed.set(key, code);
   const count = counts.get(code) ?? 0;
   counts.set(code, count + 1);
   if (!count) enqueue({ type: "key_down", code });
 });
 window.addEventListener("keyup", (event) => {
-  const code = pressed.get(event.code);
+  const key = physicalKey(event);
+  const code = pressed.get(key);
   if (code === undefined) return;
   event.preventDefault();
-  pressed.delete(event.code);
+  pressed.delete(key);
   const count = (counts.get(code) ?? 1) - 1;
   if (count) counts.set(code, count);
   else {
