@@ -117,6 +117,9 @@ export const debugStepOut = (id: number) => invoke<void>("debug_step_out", { id 
 export const debugSetBreakpoints = (id: number, source: string, lines: number[]) =>
   invoke<void>("debug_set_breakpoints", { id, source, lines });
 
+export const pendingFiles = () => invoke<string[]>("pending_files");
+export const onSystemFiles = (handler: () => void) => listen("project-files-opened", handler);
+
 export const readFile = (path: string) => invoke<string>("read_file", { path });
 
 export const writeFile = (path: string, text: string) => invoke<void>("write_file", { path, text });

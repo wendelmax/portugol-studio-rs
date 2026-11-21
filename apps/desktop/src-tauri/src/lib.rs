@@ -21,6 +21,7 @@ mod catalog;
 mod graphics;
 
 mod alerts;
+mod open_files;
 mod updates;
 
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -354,6 +355,7 @@ pub fn run_app() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(Runs::default())
+        .manage(open_files::PendingFiles::from_args())
         .manage(graphics::GraphicsWindows::default())
         .invoke_handler(tauri::generate_handler![
             check,
@@ -381,11 +383,13 @@ pub fn run_app() {
             graphics::graphics_reply,
             graphics::graphics_input,
             read_file,
+            open_files::pending_files,
             catalog::example_catalog,
             catalog::open_example,
             catalog::example_preview,
             write_file
         ])
-        .run(tauri::generate_context!())
-        .expect("erro ao iniciar a IDE");
+        .build(tauri::generate_context!())
+        .expect("erro ao iniciar a IDE")
+        .run(open_files::application_event);
 }

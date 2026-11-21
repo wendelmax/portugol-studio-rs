@@ -7,6 +7,12 @@ export interface ExerciseDocument {
   contents?: string;
 }
 
+export async function readExercise(path: string): Promise<ExerciseDocument> {
+  const contents = await readFile(path);
+  const exercise = await inspectExercise(contents);
+  return { exercise, name: path.split(/[\\/]/).pop() ?? "Exercício", contents };
+}
+
 export function mountExercises(openSource: (document: ExerciseDocument) => void) {
   const chooser = document.querySelector<HTMLDialogElement>("#exercises")!;
   const list = document.querySelector<HTMLSelectElement>("#exercise-list")!;
@@ -43,11 +49,10 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
     try {
       const path = await openDialog({ filters: [{ name: "Exercício do Portugol", extensions: ["pex"] }] });
       if (typeof path !== "string" || !chooser.open) return;
-      const contents = await readFile(path);
-      const exercise = await inspectExercise(contents);
+      const document = await readExercise(path);
       if (!chooser.open) return;
       chooser.close();
-      openSource({ exercise, name: path.split(/[\\/]/).pop() ?? "Exercício", contents });
+      openSource(document);
     } catch (message) {
       loadError.textContent = typeof message === "string" ? message : "Não foi possível abrir o exercício.";
       loadError.hidden = false;
