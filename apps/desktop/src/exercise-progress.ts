@@ -153,7 +153,12 @@ export function createExerciseProgress(
     return Boolean(read().exercises[identity]?.completedRevision);
   }
 
-  async function record(identity: string | null, source: string, result: ExerciseEvaluation) {
+  async function record(
+    identity: string | null,
+    source: string,
+    result: ExerciseEvaluation,
+    isCurrent: () => boolean = () => true,
+  ) {
     const completed = Number.isInteger(result.total) && result.total > 0
       && Number.isInteger(result.passed) && result.passed === result.total
       && Array.isArray(result.failures) && result.failures.length === 0;
@@ -163,7 +168,7 @@ export function createExerciseProgress(
       return { recorded: false, completed, revision: null };
     }
     const revision = await sourceRevision(source, cryptoApi);
-    if (!revision) return { recorded: false, completed, revision: null };
+    if (!revision || !isCurrent()) return { recorded: false, completed, revision };
 
     const state = read();
     const previous = state.exercises[identity];
@@ -204,7 +209,7 @@ export function createValidatedExerciseGrader<T extends ExerciseEvaluation & { h
       evaluation,
       result: { recorded: false, completed: false, revision: null },
     };
-    const result = await progress.record(identity, source, evaluation);
+    const result = await progress.record(identity, source, evaluation, isCurrent);
     return { evaluation, result };
   };
 }

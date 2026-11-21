@@ -125,6 +125,42 @@ test("a superseded asynchronous evaluation cannot replace the latest attempt", a
   assert.equal(progress.hasPassed("builtin:11"), false);
 });
 
+test("an evaluation superseded while hashing cannot persist completion", async () => {
+  const { createExerciseProgress, createValidatedExerciseGrader } = await import(moduleUrl.href);
+  const storage = memoryStorage();
+  let finishDigest;
+  let digestStarted;
+  const started = new Promise((resolve) => { digestStarted = resolve; });
+  const gate = new Promise((resolve) => { finishDigest = resolve; });
+  const cryptoApi = {
+    subtle: {
+      digest: async (algorithm, source) => {
+        digestStarted();
+        await gate;
+        return globalThis.crypto.subtle.digest(algorithm, source);
+      },
+    },
+  };
+  const progress = createExerciseProgress(storage, cryptoApi);
+  let current = true;
+  const grader = createValidatedExerciseGrader(
+    async () => ({ total: 1, passed: 1, failures: [], hints: [] }),
+    progress,
+    "builtin:13",
+    () => current,
+  );
+
+  const pending = grader("stale after hashing begins");
+  await started;
+  current = false;
+  finishDigest();
+  const result = await pending;
+
+  assert.equal(result.result.recorded, false);
+  assert.equal(progress.hasPassed("builtin:13"), false);
+  assert.equal(progress.read().exercises["builtin:13"], undefined);
+});
+
 test("storage from a future schema version does not expose stale completion", async () => {
   const { createExerciseProgress } = await import(moduleUrl.href);
   const future = memoryStorage(JSON.stringify({ version: 2, exercises: { "builtin:12": { completedRevision: "a".repeat(64) } } }));

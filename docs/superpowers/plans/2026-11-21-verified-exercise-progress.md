@@ -73,3 +73,12 @@
 - [ ] Run `cargo test --workspace`; local run is blocked while compiling Tauri by missing `webkit2gtk-4.1` and `javascriptcoregtk-4.1` development libraries. `cargo test --workspace --exclude portugol-desktop` passed all remaining Rust tests after enabling the test's loopback listener.
 - [ ] Run `cargo clippy --workspace --all-targets -- -D warnings`; local run is blocked by the same missing WebKitGTK development library. `cargo clippy --workspace --exclude portugol-desktop --all-targets -- -D warnings` passed.
 - [x] Review changed files and commit the feature documentation; CI remains the gate for full workspace validation.
+
+#### Review finding and fix
+
+The independent review found that a result could become stale while its source
+revision was being hashed. `record()` now revalidates the active attempt after
+the digest and before writing. A delayed-digest regression test failed before
+the fix and passes afterward. Node tests and the TypeScript/Vite build were
+rerun successfully; full Rust workspace CI remains pending because this local
+Linux environment lacks WebKitGTK development libraries.
