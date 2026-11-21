@@ -4,7 +4,7 @@
 
 - [x] Adicionar crate `portugol-hir` e tipos neutros (`Span`, `Type`, `BindingId`, `Mutability`, nós do subset).
 - [x] Adicionar testes do modelo e lowering clássico antes de refatorar o exportador.
-- [ ] Adaptar o gerador legado de `portugol-rust` para consumir a HIR e preservar API, erros e comportamento (pendente; nesta fatia só foi exposto `lower_to_hir`).
+- [x] Adaptar o gerador de `portugol-rust` para consumir a HIR; manter API e erros, com testes de saída comparados ao gerador legado.
 - [x] Rodar testes da crate/exportador, Clippy e gates disponíveis; build Tauri bloqueado pela dependência WebKitGTK 4.1 ausente no ambiente.
 - [x] Criar relatório de evidências em `docs/reports/FEAT-LANG-001-hir-compartilhada.md`.
 
@@ -36,7 +36,7 @@
 
 ## Estado desta entrega
 
-A fatia inicial criou o modelo e o adaptador AST clássico; ela não completa a integração da HIR com o gerador e não habilita Portugol-RS ou `.pors`. O relatório de evidências registra limites e resultados dos gates.
+A fatia inicial criou o modelo e o adaptador AST clássico, e o exportador agora consome a HIR. Ela não habilita o frontend Portugol-RS ou `.pors`. O relatório de evidências registra limites e resultados dos gates.
 
 ## Regras de encerramento
 

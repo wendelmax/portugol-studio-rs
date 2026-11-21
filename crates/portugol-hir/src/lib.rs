@@ -133,6 +133,7 @@ pub enum ExprKind {
     Boolean(bool),
     String(String),
     Character(char),
+    Parenthesized(Box<Expr>),
     Unary {
         op: UnaryOp,
         operand: Box<Expr>,

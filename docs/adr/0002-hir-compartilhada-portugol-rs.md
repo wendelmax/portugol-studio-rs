@@ -13,7 +13,7 @@ Portugol-RS será um dialeto educacional opcional. Arquivos `.por` continuam com
 
 Introduzir uma crate `portugol-hir` sem dependência de frontend nem backend. A HIR conterá tipos de domínio, spans neutros de bytes, identificadores estáveis de bindings, mutabilidade e nós de expressão/comando. Adaptadores de frontend baixam suas ASTs para a HIR; geradores/runtime consomem HIR sem colocar texto do destino dentro dela.
 
-A primeira fatia adiciona o modelo, testes e API `lower_to_hir(&str)` para o subconjunto clássico que o exportador já suporta. A validação semântica clássica continua ocorrendo antes do lowering. Construções fora do subconjunto retornam diagnóstico localizado. O exportador existente mantém sua implementação privada até que a migração para consumo de HIR tenha equivalência demonstrada.
+A primeira fatia adiciona o modelo, testes, API `lower_to_hir(&str)` para o subconjunto clássico suportado e migra `export(&str)` para emitir código a partir da HIR. A validação semântica clássica continua ocorrendo antes do lowering. Construções fora do subconjunto retornam diagnóstico localizado. A implementação anterior permanece compilada somente em testes como oráculo de equivalência até a migração ser estabilizada.
 
 Portugol-RS terá um parser/adaptador independente em uma fatia posterior. Não se altera o significado de `.por`, o parser clássico, a VM ou os comandos Tauri nesta decisão.
 

@@ -1,7 +1,9 @@
 //! Conversão verificada de um subconjunto de Portugol em Rust compilável.
 
+#[cfg(test)]
 use std::collections::HashMap;
 
+mod codegen;
 mod hir;
 
 /// Baixa o subconjunto clássico suportado para a HIR tipada compartilhada.
@@ -9,11 +11,14 @@ pub fn lower_to_hir(source: &str) -> Result<portugol_hir::Program, Diagnostic> {
     hir::lower(source)
 }
 
+use portugol_syntax::Diagnostic;
+#[cfg(test)]
 use portugol_syntax::ast::{
     AssignOp, Assignment, BinOp, Declarations, Declarator, Expr as AstExpr, Function, Item,
     Program, Stmt as AstStmt, Type, UnaryOp,
 };
-use portugol_syntax::{Diagnostic, Severity, Span};
+#[cfg(test)]
+use portugol_syntax::{Severity, Span};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Ty {
@@ -24,6 +29,7 @@ enum Ty {
     Caracter,
 }
 
+#[cfg(test)]
 impl Ty {
     fn rust(self) -> &'static str {
         match self {
@@ -36,11 +42,13 @@ impl Ty {
     }
 }
 
+#[cfg(test)]
 #[derive(Debug)]
 struct HProgram {
     body: Vec<HStmt>,
 }
 
+#[cfg(test)]
 #[derive(Debug)]
 enum HStmt {
     Declare {
@@ -63,6 +71,7 @@ enum HStmt {
     },
 }
 
+#[cfg(test)]
 #[derive(Debug)]
 struct HExpr {
     code: String,
@@ -70,10 +79,15 @@ struct HExpr {
     span: Span,
 }
 
-/// Gera Rust completo para um subconjunto documentado de Portugol.
-/// Erros de sintaxe/semântica existentes são preservados; o primeiro recurso
-/// fora do subconjunto retorna `rust.unsupported` com o span original.
+/// Gera Rust completo a partir da HIR para o subconjunto documentado.
+/// Erros de sintaxe/semântica e spans da fonte são preservados pelo lowering.
 pub fn export(source: &str) -> Result<String, Diagnostic> {
+    let hir = hir::lower(source)?;
+    Ok(codegen::render(&hir))
+}
+
+#[cfg(test)]
+fn export_legacy(source: &str) -> Result<String, Diagnostic> {
     let parsed = portugol_syntax::parse(source);
     if let Some(error) = parsed
         .diagnostics
@@ -93,10 +107,12 @@ pub fn export(source: &str) -> Result<String, Diagnostic> {
     Ok(render(&hir))
 }
 
+#[cfg(test)]
 struct Lowerer {
     scopes: Vec<HashMap<String, Ty>>,
 }
 
+#[cfg(test)]
 impl Lowerer {
     fn new() -> Self {
         Self {
@@ -420,10 +436,12 @@ impl Lowerer {
     }
 }
 
+#[cfg(test)]
 fn compatible(target: Ty, value: Ty) -> bool {
     target == value
 }
 
+#[cfg(test)]
 fn map_type(ty: Type) -> Option<Ty> {
     match ty {
         Type::Inteiro => Some(Ty::Inteiro),
@@ -435,6 +453,7 @@ fn map_type(ty: Type) -> Option<Ty> {
     }
 }
 
+#[cfg(test)]
 fn binary_type(op: BinOp, left: Ty, right: Ty) -> Option<Ty> {
     match op {
         BinOp::Add if left == Ty::Cadeia && right == Ty::Cadeia => Some(Ty::Cadeia),
@@ -460,6 +479,7 @@ fn binary_type(op: BinOp, left: Ty, right: Ty) -> Option<Ty> {
     }
 }
 
+#[cfg(test)]
 fn render(program: &HProgram) -> String {
     let mut output = String::from("use std::io::{self, Write};\n\n");
     output.push_str(JAVA_DOUBLE_HELPER);
@@ -469,6 +489,7 @@ fn render(program: &HProgram) -> String {
     output
 }
 
+#[cfg(test)]
 fn render_statements(statements: &[HStmt], depth: usize, output: &mut String) {
     let indent = "    ".repeat(depth);
     for statement in statements {
@@ -584,6 +605,7 @@ fn rust_ident(name: &str) -> String {
     format!("pt_{name}")
 }
 
+#[cfg(test)]
 fn owned_value(expression: &HExpr) -> String {
     if expression.ty == Ty::Cadeia {
         format!("({}).clone()", expression.code)
@@ -656,6 +678,7 @@ const JAVA_DOUBLE_HELPER: &str = r#"fn __portugol_java_double(value: f64) -> Str
     out
 }"#;
 
+#[cfg(test)]
 fn unsupported(feature: &str, span: Span) -> Diagnostic {
     Diagnostic::error(
         "rust.unsupported",
@@ -666,7 +689,7 @@ fn unsupported(feature: &str, span: Span) -> Diagnostic {
 
 #[cfg(test)]
 mod tests {
-    use super::export;
+    use super::{export, export_legacy};
     use std::process::Command;
 
     const SOURCE: &str = "programa { funcao inicio() { inteiro total = 40 + 2 escreva(total) } }";
@@ -824,6 +847,24 @@ mod tests {
     fn scopes_constants_in_declaration_order() {
         let source = "programa { funcao inicio() { inteiro n = 1 se (verdadeiro) { escreva(n) const inteiro n = 2 escreva(n) } } }";
         assert_rust_output(export(source).unwrap(), "12");
+    }
+
+    #[test]
+    fn shared_hir_codegen_matches_legacy_output_for_supported_programs() {
+        let examples = [
+            "programa { funcao inicio() { inteiro total = 40 + 2 escreva(total) } }",
+            "programa { funcao inicio() { cadeia nome = \"Oi\" escreva(nome + \"!\") } }",
+            "programa { funcao inicio() { caracter a = 'a' caracter b = 'b' escreva(a + b) } }",
+            "programa { funcao inicio() { inteiro n = 1 se (n < 2) { escreva(n) } senao { escreva(0) } } }",
+            "programa { funcao inicio() { escreva(-2147483648, +1, 0.25, verdadeiro) } }",
+        ];
+        for source in examples {
+            assert_eq!(
+                export(source).unwrap(),
+                export_legacy(source).unwrap(),
+                "{source}"
+            );
+        }
     }
 
     #[test]

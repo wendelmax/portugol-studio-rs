@@ -141,6 +141,21 @@ impl Lowerer {
                 if value.ty != ty {
                     return Err(unsupported("conversao implicita de tipo", a.value.span()));
                 }
+                let valid_compound = match a.op {
+                    AssignOp::Assign => true,
+                    AssignOp::Add => {
+                        matches!(ty, hir::Type::Integer | hir::Type::Real | hir::Type::String)
+                    }
+                    AssignOp::Sub | AssignOp::Mul | AssignOp::Div => {
+                        matches!(ty, hir::Type::Integer | hir::Type::Real)
+                    }
+                    AssignOp::Mod | AssignOp::Xor | AssignOp::BitAnd | AssignOp::BitOr => {
+                        ty == hir::Type::Integer
+                    }
+                };
+                if !valid_compound {
+                    return Err(unsupported("operador de atribuição composta", a.span));
+                }
                 hir::StmtKind::Assign {
                     binding,
                     op: map_assign(a.op),
@@ -232,31 +247,33 @@ impl Lowerer {
             Expr::Paren { expr, .. } => {
                 let e = self.expression(expr)?;
                 let ty = e.ty;
-                return Ok(hir::Expr {
-                    kind: e.kind,
-                    ty,
-                    span: sp,
-                });
+                (hir::ExprKind::Parenthesized(Box::new(e)), ty)
             }
             Expr::Unary { op, expr, .. } => {
-                let e = self.expression(expr)?;
-                let ty = match op {
-                    UnaryOp::Neg | UnaryOp::Plus
-                        if matches!(e.ty, hir::Type::Integer | hir::Type::Real) =>
-                    {
-                        e.ty
-                    }
-                    UnaryOp::Not if e.ty == hir::Type::Boolean => hir::Type::Boolean,
-                    UnaryOp::BitNot if e.ty == hir::Type::Integer => hir::Type::Integer,
-                    _ => return Err(unsupported("operacao unaria", expr.span())),
-                };
-                (
-                    hir::ExprKind::Unary {
-                        op: map_unary(*op),
-                        operand: Box::new(e),
-                    },
-                    ty,
-                )
+                if *op == UnaryOp::Neg
+                    && matches!(expr.as_ref(), Expr::Int { value, .. } if *value == i32::MAX as i64 + 1)
+                {
+                    (hir::ExprKind::Integer(i32::MIN), hir::Type::Integer)
+                } else {
+                    let e = self.expression(expr)?;
+                    let ty = match op {
+                        UnaryOp::Neg | UnaryOp::Plus
+                            if matches!(e.ty, hir::Type::Integer | hir::Type::Real) =>
+                        {
+                            e.ty
+                        }
+                        UnaryOp::Not if e.ty == hir::Type::Boolean => hir::Type::Boolean,
+                        UnaryOp::BitNot if e.ty == hir::Type::Integer => hir::Type::Integer,
+                        _ => return Err(unsupported("operacao unaria", expr.span())),
+                    };
+                    (
+                        hir::ExprKind::Unary {
+                            op: map_unary(*op),
+                            operand: Box::new(e),
+                        },
+                        ty,
+                    )
+                }
             }
             Expr::Binary {
                 op, left, right, ..

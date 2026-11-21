@@ -18,7 +18,7 @@ Preparar a arquitetura existente para um frontend Portugol-RS sem alterar o pars
 2. Usar `Span { start, end }` em offsets UTF-8 semiabertos, sem dependência da crate parser.
 3. Representar `Type`, `BindingId`, `Mutability`, `Program`, `Stmt` e `Expr` por enums/structs tipados; guardar span em cada nó relevante.
 4. O lowering do Portugol clássico resolve nomes em `BindingId` e cria HIR sem texto Rust.
-5. A migração do gerador legado para consumir HIR é uma etapa separada: manter a API `export`, diagnósticos e comportamento com testes de equivalência antes de remover o lowering privado.
+5. `export` consome a HIR compartilhada; o lowering/gerador anterior fica disponível apenas sob testes como oráculo de equivalência.
 6. Construções não suportadas mantêm o erro e a localização originais.
 7. `.por` mantém parser, semântica, execução e associação atuais. `.pors` não será registrado antes do frontend end-to-end.
 
