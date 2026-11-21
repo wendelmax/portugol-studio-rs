@@ -1089,6 +1089,117 @@ select {
   min-height: 0;
 }
 
+.workspace-explorer {
+  display: flex;
+  flex: 0 0 240px;
+  flex-direction: column;
+  min-width: 180px;
+  max-width: 300px;
+  min-height: 0;
+  border-right: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.workspace-explorer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px 4px 14px;
+}
+
+.workspace-explorer-header h2 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.workspace-explorer-header button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  font-size: 20px;
+}
+
+.workspace-name {
+  overflow: hidden;
+  margin: 0;
+  padding: 4px 12px 8px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#workspace-tree {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  margin: 0;
+  padding: 4px 6px;
+  list-style: none;
+}
+
+.workspace-tree-item {
+  display: flex;
+  width: 100%;
+  min-height: 28px;
+  align-items: center;
+  gap: 7px;
+  overflow: hidden;
+  padding: 4px 8px;
+  border-color: transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  text-align: start;
+  white-space: nowrap;
+}
+
+.workspace-tree-item:hover,
+.workspace-tree-item:focus-visible {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.workspace-tree-marker {
+  display: inline-grid;
+  width: 20px;
+  flex: 0 0 20px;
+  place-items: center;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.workspace-tree-item.is-folder .workspace-tree-marker {
+  color: var(--accent);
+  font-size: 14px;
+}
+
+.workspace-tree-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.workspace-tree-state {
+  margin: 8px 12px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.code.expanded #workspace-explorer {
+  display: none;
+}
+
 .code .workspace {
   min-width: 0;
 }
@@ -1445,6 +1556,11 @@ body {
 .window-controls button:hover,
 .code-toolbar button:hover:not(:disabled) {
   background: var(--tab-active);
+}
+
+.code-toolbar button#btn-explorer[aria-expanded="true"] {
+  background: var(--tab-active);
+  box-shadow: inset 3px 0 var(--accent);
 }
 
 #window-close:hover {
