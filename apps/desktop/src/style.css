@@ -2003,6 +2003,20 @@ body {
   white-space: pre;
   tab-size: 4;
 }
+.rust-preview .rust-mapped-segment {
+  display: inline;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  white-space: pre;
+  text-decoration: underline dotted var(--accent);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.rust-preview .rust-mapped-segment:focus-visible { outline: 1px solid var(--accent); }
 
 .editor-options {
   position: absolute;

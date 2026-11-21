@@ -2784,6 +2784,7 @@ dependencies = [
  "portugol-vm",
  "roxmltree",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

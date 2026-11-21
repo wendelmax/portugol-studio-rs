@@ -7,9 +7,18 @@ fn compiles_and_runs_supported_portugol_rs_with_real_rustc() {
     )
     .unwrap();
 
-    assert_eq!(result.stdout, "17");
-    assert!(result.stderr.is_empty());
-    assert_eq!(result.exit_code, Some(0));
+    match result {
+        portugol_service::PortugolRsRunResult::Executed {
+            stdout,
+            stderr,
+            exit_code,
+        } => {
+            assert_eq!(stdout, "17");
+            assert!(stderr.is_empty());
+            assert_eq!(exit_code, Some(0));
+        }
+        other => panic!("esperava execução bem-sucedida, recebido {other:?}"),
+    }
 }
 
 #[test]
@@ -25,6 +34,13 @@ fn returns_the_real_exit_code_and_stderr_from_a_rust_runtime_failure() {
         run_portugol_rs("funcao inicio() { seja divisor: inteiro = 0; escreva(1 / divisor); }")
             .unwrap();
 
-    assert_ne!(result.exit_code, Some(0));
-    assert!(result.stderr.contains("panicked"));
+    match result {
+        portugol_service::PortugolRsRunResult::Executed {
+            stderr, exit_code, ..
+        } => {
+            assert_ne!(exit_code, Some(0));
+            assert!(stderr.contains("panicked"));
+        }
+        other => panic!("falha em runtime não deve ser erro de compilação: {other:?}"),
+    }
 }
