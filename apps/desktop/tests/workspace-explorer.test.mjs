@@ -100,3 +100,19 @@ test("workspace rename has an accessible dialog and a typed Tauri route", () => 
   assert.match(main, /prepareWorkspaceRename/);
   assert.match(css, /@media \(hover: none\), \(pointer: coarse\)[\s\S]*?\.workspace-file-actions\s*\{\s*opacity: 1;/);
 });
+
+test("workspace delete has an accessible destructive confirmation and typed Tauri route", () => {
+  const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+  const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
+  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+
+  assert.match(main, /workspace-delete-file/);
+  assert.match(html, /id="workspace-delete-dialog"[^>]*aria-labelledby="workspace-delete-title"[^>]*aria-describedby="workspace-delete-description"/);
+  assert.match(html, /id="workspace-delete-warning"[^>]*role="status"[^>]*aria-live="polite"/);
+  assert.match(html, /id="workspace-delete-save"/);
+  assert.match(html, /id="workspace-delete-submit"/);
+  assert.match(html, /id="workspace-delete-cancel"/);
+  assert.match(api, /deleteWorkspaceFile/);
+  assert.match(api, /"workspace_delete_file"/);
+  assert.match(main, /deleteWorkspaceFileFlow/);
+});

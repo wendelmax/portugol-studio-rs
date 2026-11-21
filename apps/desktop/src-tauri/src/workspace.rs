@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
     use super::{
-        WorkspaceEntry, create_source_file, list_entries, read_relative_file, rename_relative_file,
-        restore_saved_workspace, save_last_workspace,
+        WorkspaceEntry, create_source_file, delete_relative_file, list_entries, read_relative_file,
+        rename_relative_file, restore_saved_workspace, save_last_workspace,
     };
     use std::fs;
     use std::path::Path;
@@ -212,6 +212,111 @@ mod tests {
             fs::read_to_string(temp.0.join("depois.por")).unwrap(),
             "destino"
         );
+    }
+
+    #[test]
+    fn deletes_supported_files_and_preserves_neighbors() {
+        let temp = TempDir::new();
+        fs::create_dir_all(temp.0.join("aulas")).unwrap();
+        fs::write(temp.0.join("aulas/classico.por"), "programa").unwrap();
+        fs::write(temp.0.join("aulas/ponte.pors"), "funcao inicio() {}").unwrap();
+        fs::write(temp.0.join("aulas/exercicio.pex"), "enunciado").unwrap();
+        fs::write(temp.0.join("aulas/manter.por"), "manter").unwrap();
+
+        for name in ["classico.por", "ponte.pors", "exercicio.pex"] {
+            let relative = Path::new("aulas").join(name);
+            let expected = fs::canonicalize(temp.0.join("aulas").join(name)).unwrap();
+            let deleted = delete_relative_file(&temp.0, &relative).unwrap();
+            assert_eq!(deleted, expected);
+            assert!(!temp.0.join("aulas").join(name).exists());
+        }
+        assert_eq!(
+            fs::read_to_string(temp.0.join("aulas/manter.por")).unwrap(),
+            "manter"
+        );
+    }
+
+    #[test]
+    fn delete_rejects_traversal_directories_missing_and_unsupported_files() {
+        let temp = TempDir::new();
+        fs::create_dir_all(temp.0.join("pasta.por")).unwrap();
+        fs::write(temp.0.join("notas.txt"), "manter").unwrap();
+        fs::write(temp.0.join("programa.por"), "manter").unwrap();
+
+        for relative in [
+            Path::new("../fora.por"),
+            Path::new("pasta.por"),
+            Path::new("ausente.por"),
+            Path::new("notas.txt"),
+        ] {
+            assert!(
+                delete_relative_file(&temp.0, relative).is_err(),
+                "{relative:?}"
+            );
+        }
+        assert_eq!(
+            fs::read_to_string(temp.0.join("programa.por")).unwrap(),
+            "manter"
+        );
+        assert_eq!(
+            fs::read_to_string(temp.0.join("notas.txt")).unwrap(),
+            "manter"
+        );
+        assert!(temp.0.join("pasta.por").is_dir());
+    }
+
+    #[test]
+    fn removes_deleted_path_from_a_previous_workspace_listing() {
+        let mut entries = vec![
+            WorkspaceEntry::Folder {
+                name: "aulas".into(),
+                path: "aulas".into(),
+                entries: vec![
+                    WorkspaceEntry::File {
+                        name: "manter.por".into(),
+                        path: "aulas/manter.por".into(),
+                    },
+                    WorkspaceEntry::File {
+                        name: "apagar.por".into(),
+                        path: "aulas/apagar.por".into(),
+                    },
+                ],
+            },
+            WorkspaceEntry::File {
+                name: "fora.pors".into(),
+                path: "fora.pors".into(),
+            },
+        ];
+
+        super::remove_file_from_listing(&mut entries, "aulas/apagar.por");
+
+        assert!(matches!(
+            &entries[0],
+            WorkspaceEntry::Folder { entries, .. } if entries.len() == 1
+                && matches!(&entries[0], WorkspaceEntry::File { path, .. } if path == "aulas/manter.por")
+        ));
+        assert!(matches!(
+            &entries[1],
+            WorkspaceEntry::File { path, .. } if path == "fora.pors"
+        ));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn refuses_to_delete_a_symlink_outside_the_workspace() {
+        use std::os::unix::fs::symlink;
+
+        let temp = TempDir::new();
+        let outside = TempDir::new();
+        fs::write(outside.0.join("programa.por"), "fora").unwrap();
+        symlink(outside.0.join("programa.por"), temp.0.join("ligacao.por")).unwrap();
+
+        assert!(delete_relative_file(&temp.0, Path::new("ligacao.por")).is_err());
+        assert_eq!(
+            fs::read_to_string(outside.0.join("programa.por")).unwrap(),
+            "fora"
+        );
+        assert!(temp.0.join("ligacao.por").exists());
     }
 
     #[cfg(unix)]
@@ -532,6 +637,13 @@ pub struct WorkspaceRenameResult {
     file: WorkspaceFilePath,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceDeleteResult {
+    listing: WorkspaceListing,
+    file: WorkspaceFilePath,
+}
+
 fn supported_source(path: &Path) -> bool {
     path.extension()
         .and_then(|extension| extension.to_str())
@@ -611,6 +723,16 @@ fn list_entries(root: &Path) -> Result<Vec<WorkspaceEntry>, String> {
         return Err("A pasta selecionada não está disponível.".into());
     }
     list_folder(root, root)
+}
+
+fn remove_file_from_listing(entries: &mut Vec<WorkspaceEntry>, relative_path: &str) {
+    entries.retain_mut(|entry| match entry {
+        WorkspaceEntry::File { path, .. } => path != relative_path,
+        WorkspaceEntry::Folder { entries, .. } => {
+            remove_file_from_listing(entries, relative_path);
+            !entries.is_empty()
+        }
+    });
 }
 
 fn checked_file(root: &Path, relative: &Path, allow_exercise: bool) -> Result<PathBuf, String> {
@@ -766,6 +888,60 @@ fn rename_relative_file(root: &Path, relative: &Path, new_name: &str) -> Result<
         .map_err(|error| format!("Não foi possível acessar o arquivo renomeado: {error}"))
 }
 
+#[cfg(test)]
+fn delete_relative_file(root: &Path, relative: &Path) -> Result<PathBuf, String> {
+    let root = fs::canonicalize(root)
+        .map_err(|_| "A pasta aberta não está mais disponível.".to_string())?;
+    let directory = cap_std::fs::Dir::open_ambient_dir(&root, cap_std::ambient_authority())
+        .map_err(|error| format!("Não foi possível abrir a pasta do projeto: {error}"))?;
+    delete_relative_file_from_dir(&directory, &root, relative)
+}
+
+fn delete_relative_file_from_dir(
+    directory: &cap_std::fs::Dir,
+    root_path: &Path,
+    relative: &Path,
+) -> Result<PathBuf, String> {
+    if relative.as_os_str().is_empty()
+        || relative.is_absolute()
+        || relative
+            .components()
+            .any(|component| !matches!(component, Component::Normal(_)))
+    {
+        return Err("O caminho do arquivo é inválido.".into());
+    }
+
+    let components: Vec<_> = relative.components().collect();
+    let mut candidate = PathBuf::new();
+    for (index, component) in components.iter().enumerate() {
+        let Component::Normal(name) = component else {
+            return Err("O caminho do arquivo é inválido.".into());
+        };
+        candidate.push(name);
+        let metadata = directory
+            .symlink_metadata(&candidate)
+            .map_err(|_| "O arquivo não está mais disponível.".to_string())?;
+        if metadata.file_type().is_symlink() {
+            return Err("Links simbólicos não podem ser excluídos pelo explorador.".into());
+        }
+        if index + 1 < components.len() && !metadata.is_dir() {
+            return Err("O caminho do arquivo é inválido.".into());
+        }
+        if index + 1 == components.len() && (!metadata.is_file() || !supported_source(relative)) {
+            return Err("O explorador só exclui arquivos .por, .pors e .pex.".into());
+        }
+    }
+
+    let path = root_path.join(relative);
+    path.to_str().ok_or_else(|| {
+        "O caminho do arquivo não pode ser representado nesta interface.".to_string()
+    })?;
+    directory
+        .remove_file(relative)
+        .map_err(|error| format!("Não foi possível excluir o arquivo: {error}"))?;
+    Ok(path)
+}
+
 #[tauri::command]
 pub async fn workspace_open(
     app: AppHandle,
@@ -910,6 +1086,45 @@ pub fn workspace_rename_file(
         file: WorkspaceFilePath {
             path,
             relative_path: new_relative_path,
+        },
+    })
+}
+
+#[tauri::command]
+pub fn workspace_delete_file(
+    workspace_id: String,
+    relative_path: String,
+    session: State<'_, WorkspaceSession>,
+) -> Result<WorkspaceDeleteResult, String> {
+    let root = session.root(&workspace_id)?;
+    let root_directory = cap_std::fs::Dir::open_ambient_dir(&root, cap_std::ambient_authority())
+        .map_err(|_| "A pasta aberta não está mais disponível.".to_string())?;
+    let name = root
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("Projeto")
+        .to_string();
+    let pre_delete_entries = list_entries(&root)?;
+    let deleted_path =
+        delete_relative_file_from_dir(&root_directory, &root, Path::new(&relative_path))?;
+    let path = deleted_path.to_str().map(str::to_string).ok_or_else(|| {
+        "O caminho do arquivo não pode ser representado nesta interface.".to_string()
+    })?;
+    let deleted_relative_path = self::relative_path(&root, &deleted_path)?;
+    let entries = list_entries(&root).unwrap_or_else(|_| {
+        let mut entries = pre_delete_entries;
+        remove_file_from_listing(&mut entries, &deleted_relative_path);
+        entries
+    });
+    Ok(WorkspaceDeleteResult {
+        listing: WorkspaceListing {
+            id: workspace_id,
+            name,
+            entries,
+        },
+        file: WorkspaceFilePath {
+            path,
+            relative_path: deleted_relative_path,
         },
     })
 }

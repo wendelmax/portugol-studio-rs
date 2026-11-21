@@ -364,6 +364,18 @@
       </form>
     </dialog>
 
+    <dialog id="workspace-delete-dialog" aria-labelledby="workspace-delete-title" aria-describedby="workspace-delete-description">
+      <h2 id="workspace-delete-title">Excluir arquivo?</h2>
+      <p id="workspace-delete-description">Esta exclusão é permanente e não pode ser desfeita.</p>
+      <p id="workspace-delete-warning" role="status" aria-live="polite" hidden></p>
+      <p id="workspace-delete-error" role="alert" aria-live="assertive" hidden></p>
+      <div class="dialog-actions">
+        <button id="workspace-delete-save" type="button">Salvar alterações e manter arquivo</button>
+        <button id="workspace-delete-submit" class="danger-action" type="button">Excluir arquivo</button>
+        <button id="workspace-delete-cancel" type="button">Cancelar</button>
+      </div>
+    </dialog>
+
     <template id="find-template">
       <dialog class="find-dialog" aria-labelledby="find-title">
         <h2 id="find-title">Localizar e substituir</h2>

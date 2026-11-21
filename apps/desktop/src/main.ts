@@ -37,7 +37,7 @@ import { panelContentId, type PanelName } from "./panel-tabs";
 import { LIBRARIES, portugol, portugolRs, SNIPPETS } from "./portugol";
 import { detectSourceLanguage, ensureSourceExtension, type SourceLanguage } from "./document-language";
 import { flattenWorkspaceEntries, workspaceFileKind, workspaceRenameFileName, workspaceSourceFileName, type WorkspaceEntry } from "./workspace-explorer";
-import { applyWorkspaceRenameToTabs, prepareWorkspaceRename } from "./workspace-file-actions";
+import { applyWorkspaceRenameToTabs, deleteWorkspaceFileFlow, prepareWorkspaceRename } from "./workspace-file-actions";
 import { conceptsForMode, resolveConceptForMode } from "./learning-content";
 import { loadLearningMode, saveLearningMode, type LearningMode } from "./learning-mode";
 import {
@@ -539,6 +539,8 @@ let workspaceError: string | null = null;
 let workspaceFileCreationPending = false;
 let workspaceRenameTarget: Extract<WorkspaceEntry, { kind: "file" }> | null = null;
 let workspaceRenamePending = false;
+let workspaceDeleteTarget: Extract<WorkspaceEntry, { kind: "file" }> | null = null;
+let workspaceDeletePending = false;
 
 function setWorkspaceExplorerVisible(visible: boolean) {
   $("workspace-explorer").hidden = !visible;
@@ -621,6 +623,18 @@ function renderWorkspaceExplorer() {
         openWorkspaceRenameDialog(entry);
       };
       actions.append(renameButton);
+      const deleteButton = document.createElement("button");
+      deleteButton.type = "button";
+      deleteButton.textContent = "🗑";
+      deleteButton.title = `Excluir ${entry.name}`;
+      deleteButton.setAttribute("aria-label", `Excluir ${entry.name}`);
+      deleteButton.dataset.action = "workspace-delete-file";
+      deleteButton.onclick = (event) => {
+        event.stopPropagation();
+        openWorkspaceDeleteDialog(entry);
+      };
+      actions.append(deleteButton);
+      actions.dataset.testid = "file-actions";
       row.append(actions);
     }
     item.append(row);
@@ -779,6 +793,16 @@ function replaceRecentFile(oldPath: string, newPath: string) {
   renderRecent();
 }
 
+function forgetRecentFile(path: string) {
+  recent = recent.filter((entry) => entry !== path);
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
+  } catch {
+    // A lista em memória permanece disponível.
+  }
+  renderRecent();
+}
+
 async function submitWorkspaceRenameDialog(event: SubmitEvent) {
   event.preventDefault();
   const workspace = workspaceState;
@@ -860,6 +884,115 @@ async function submitWorkspaceRenameDialog(event: SubmitEvent) {
     workspaceRenamePending = false;
     submit.disabled = false;
     cancel.disabled = false;
+  }
+}
+
+function showWorkspaceDeleteError(message: string | null) {
+  const error = $("workspace-delete-error");
+  error.textContent = message ?? "";
+  error.hidden = !message;
+}
+
+function updateWorkspaceDeleteDialog(entry: Extract<WorkspaceEntry, { kind: "file" }>, workspaceId: string) {
+  const dirty = tabs.some((tab) => tab.workspaceId === workspaceId &&
+    (tab.workspacePath === entry.path || tab.workspaceExercisePath === entry.path) && isDirty(tab));
+  $("workspace-delete-title").textContent = `Excluir ${entry.name}?`;
+  const warning = $("workspace-delete-warning");
+  warning.textContent = dirty
+    ? "Há alterações não salvas em abas abertas. Salvar mantém o arquivo; excluir com descarte fecha essas abas."
+    : "";
+  warning.hidden = !dirty;
+  $<HTMLButtonElement>("workspace-delete-save").hidden = !dirty;
+  $<HTMLButtonElement>("workspace-delete-submit").textContent = dirty
+    ? "Excluir e descartar alterações"
+    : "Excluir arquivo";
+}
+
+function openWorkspaceDeleteDialog(entry: Extract<WorkspaceEntry, { kind: "file" }>) {
+  if (!workspaceState || workspaceDeletePending) return;
+  workspaceDeleteTarget = entry;
+  showWorkspaceDeleteError(null);
+  updateWorkspaceDeleteDialog(entry, workspaceState.id);
+  $<HTMLDialogElement>("workspace-delete-dialog").showModal();
+  $("workspace-delete-cancel").focus();
+}
+
+async function chooseWorkspaceDeleteAction(choice: "save" | "delete" | "discard") {
+  const workspace = workspaceState;
+  const target = workspaceDeleteTarget;
+  if (!workspace || !target || workspaceDeletePending) return;
+
+  const buttons = [
+    $<HTMLButtonElement>("workspace-delete-save"),
+    $<HTMLButtonElement>("workspace-delete-submit"),
+    $<HTMLButtonElement>("workspace-delete-cancel"),
+  ];
+  workspaceDeletePending = true;
+  buttons.forEach((button) => { button.disabled = true; });
+  showWorkspaceDeleteError(null);
+  try {
+    const previousActive = activeId;
+    const result = await deleteWorkspaceFileFlow({
+      tabs,
+      workspaceId: workspace.id,
+      filePath: target.path,
+      choice,
+      isDirty,
+      saveTab: async (tab) => {
+        activate(tab.id);
+        try {
+          return await save();
+        } catch {
+          return false;
+        }
+      },
+      deleteFile: () => api.deleteWorkspaceFile(workspace.id, target.path),
+    });
+    if (choice === "save") activate(previousActive);
+    if (result.status === "cancelled") return;
+    if (result.status === "save-failed") {
+      showWorkspaceDeleteError("Não foi possível salvar todas as alterações. O arquivo foi mantido.");
+      updateWorkspaceDeleteDialog(target, workspace.id);
+      return;
+    }
+    if (result.status === "needs-decision") {
+      showWorkspaceDeleteError("Há alterações não salvas. Escolha salvar ou descartar antes de excluir.");
+      updateWorkspaceDeleteDialog(target, workspace.id);
+      return;
+    }
+    if (result.status === "saved") {
+      $<HTMLDialogElement>("workspace-delete-dialog").close();
+      workspaceDeleteTarget = null;
+      setStatus(`Alterações salvas; arquivo mantido: ${target.name}`, "ok");
+      return;
+    }
+
+    if (workspaceState?.id !== workspace.id) return;
+    const deleted = result.deletion;
+    workspaceState = deleted.listing;
+    workspaceError = null;
+    if (selectedWorkspacePath === target.path) selectedWorkspacePath = null;
+    forgetRecentFile(deleted.file.path);
+    tabs = result.remainingTabs;
+    const activeWasDeleted = result.deletedTabs.some((tab) => tab.id === activeId);
+    renderWorkspaceExplorer();
+    if (activeWasDeleted) activate(tabs[tabs.length - 1]?.id ?? homeId);
+    else renderTabs();
+    $<HTMLDialogElement>("workspace-delete-dialog").close();
+    workspaceDeleteTarget = null;
+    setStatus(`Arquivo excluído: ${target.name}`, "ok");
+    queueMicrotask(() => {
+      const first = $("workspace-tree").querySelector<HTMLButtonElement>("[role=treeitem]");
+      if (first) first.focus();
+      else $("workspace-new-file").focus();
+    });
+  } catch (error) {
+    const message = String(error).replace(/^Error: /, "");
+    showWorkspaceDeleteError(message);
+    setStatus(message, "error");
+  } finally {
+    workspaceDeletePending = false;
+    buttons.forEach((button) => { button.disabled = false; });
   }
 }
 
@@ -947,6 +1080,24 @@ $("workspace-rename-cancel").onclick = () => {
   $<HTMLFormElement>("workspace-rename-form").reset();
   workspaceRenameTarget = null;
   showWorkspaceRenameError(null);
+};
+$<HTMLButtonElement>("workspace-delete-save").onclick = () => void chooseWorkspaceDeleteAction("save");
+$<HTMLButtonElement>("workspace-delete-submit").onclick = () => {
+  const choice = tabs.some((tab) => tab.workspaceId === workspaceState?.id &&
+    (tab.workspacePath === workspaceDeleteTarget?.path || tab.workspaceExercisePath === workspaceDeleteTarget?.path) && isDirty(tab))
+    ? "discard"
+    : "delete";
+  void chooseWorkspaceDeleteAction(choice);
+};
+$("workspace-delete-dialog").addEventListener("cancel", (event) => {
+  if (workspaceDeletePending) event.preventDefault();
+  else workspaceDeleteTarget = null;
+});
+$<HTMLButtonElement>("workspace-delete-cancel").onclick = () => {
+  if (workspaceDeletePending) return;
+  $<HTMLDialogElement>("workspace-delete-dialog").close();
+  workspaceDeleteTarget = null;
+  showWorkspaceDeleteError(null);
 };
 $("btn-explorer").onclick = () => {
   if (!workspaceState) {

@@ -1164,6 +1164,28 @@ select {
   color: var(--error);
 }
 
+#workspace-delete-dialog {
+  width: min(420px, calc(100% - 24px));
+}
+
+#workspace-delete-dialog .dialog-actions {
+  flex-wrap: wrap;
+}
+
+#workspace-delete-warning {
+  color: var(--warning);
+}
+
+#workspace-delete-error {
+  color: var(--error);
+}
+
+.danger-action {
+  border-color: var(--error);
+  background: var(--error);
+  color: var(--accent-text);
+}
+
 .workspace-name {
   overflow: hidden;
   margin: 0;
@@ -1239,6 +1261,11 @@ select {
   border-color: var(--border);
   background: var(--surface);
   color: var(--text);
+}
+
+.workspace-file-actions button[data-action="workspace-delete-file"]:hover,
+.workspace-file-actions button[data-action="workspace-delete-file"]:focus-visible {
+  color: var(--error);
 }
 
 .workspace-tree-item:hover,
