@@ -1152,6 +1152,13 @@ fn open_selected_file_with_hook(
             return Err("Links simbólicos não podem ser exportados.".into());
         }
         let is_last = index + 1 == components.len();
+        let path_metadata = fs::symlink_metadata(&checked_path)
+            .map_err(|_| "O arquivo selecionado mudou durante a validação.".to_string())?;
+        if path_metadata.file_type().is_symlink() {
+            return Err("Links simbólicos não podem ser exportados.".into());
+        }
+        let validated_handle = open_path_handle(&checked_path, !is_last)
+            .map_err(|_| "O arquivo selecionado mudou durante a validação.".to_string())?;
         if is_last {
             if !metadata.is_file()
                 || !(supported_program(relative_path) || is_exercise(relative_path))
@@ -1162,16 +1169,11 @@ fn open_selected_file_with_hook(
             let file = current
                 .open(name)
                 .map_err(|_| "O arquivo selecionado não pode ser lido.".to_string())?;
-            let opened_metadata = file
+            let opened_handle = file
                 .try_clone()
                 .map(cap_std::fs::File::into_std)
-                .and_then(|file| file.metadata())
                 .map_err(|_| "O arquivo selecionado não pode ser lido.".to_string())?;
-            let path_metadata = fs::symlink_metadata(&checked_path)
-                .map_err(|_| "O arquivo selecionado mudou durante a validação.".to_string())?;
-            if path_metadata.file_type().is_symlink()
-                || !same_file_identity(&path_metadata, &opened_metadata)
-            {
+            if !same_file_identity(&validated_handle, &opened_handle) {
                 return Err(
                     "O arquivo mudou durante a validação. Atualize o Explorador e tente novamente."
                         .into(),
@@ -1186,17 +1188,11 @@ fn open_selected_file_with_hook(
         let opened = current
             .open_dir(name)
             .map_err(|_| "A subpasta selecionada não está mais disponível.".to_string())?;
-        let opened_metadata = opened
+        let opened_handle = opened
             .try_clone()
             .map_err(|_| "A subpasta selecionada não está mais disponível.".to_string())?
-            .into_std_file()
-            .metadata()
-            .map_err(|_| "A subpasta selecionada não está mais disponível.".to_string())?;
-        let path_metadata = fs::symlink_metadata(&checked_path)
-            .map_err(|_| "A subpasta selecionada mudou durante a validação.".to_string())?;
-        if path_metadata.file_type().is_symlink()
-            || !same_file_identity(&path_metadata, &opened_metadata)
-        {
+            .into_std_file();
+        if !same_file_identity(&validated_handle, &opened_handle) {
             return Err(
                 "A pasta mudou durante a validação. Atualize o Explorador e tente novamente."
                     .into(),
@@ -1205,6 +1201,30 @@ fn open_selected_file_with_hook(
         current = opened;
     }
     Err("O caminho do arquivo é inválido.".into())
+}
+
+fn open_path_handle(path: &Path, directory: bool) -> std::io::Result<fs::File> {
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::OpenOptionsExt;
+        const FILE_FLAG_OPEN_REPARSE_POINT: u32 = 0x0020_0000;
+        const FILE_FLAG_BACKUP_SEMANTICS: u32 = 0x0200_0000;
+        let mut options = fs::OpenOptions::new();
+        options.read(true).custom_flags(
+            FILE_FLAG_OPEN_REPARSE_POINT
+                | if directory {
+                    FILE_FLAG_BACKUP_SEMANTICS
+                } else {
+                    0
+                },
+        );
+        options.open(path)
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = directory;
+        fs::File::open(path)
+    }
 }
 
 fn open_or_create_export_parent(
@@ -1289,14 +1309,16 @@ fn path_matches_directory_handle(path: &Path, directory: &cap_std::fs::Dir) -> b
     if metadata.file_type().is_symlink() || !metadata.is_dir() {
         return false;
     }
-    let Ok(handle_metadata) = directory
+    let Ok(path_handle) = open_path_handle(path, true) else {
+        return false;
+    };
+    let Ok(handle) = directory
         .try_clone()
         .map(|directory| directory.into_std_file())
-        .and_then(|directory| directory.metadata())
     else {
         return false;
     };
-    same_file_identity(&metadata, &handle_metadata)
+    same_file_identity(&path_handle, &handle)
 }
 
 fn same_directory_identity(
@@ -1310,16 +1332,12 @@ fn same_directory_identity(
     if entry_metadata.file_type().is_symlink() || !entry_metadata.is_dir() {
         return false;
     }
-    let Ok(actual) = parent
-        .open_dir(name)
-        .and_then(|directory| directory.into_std_file().metadata())
-    else {
+    let Ok(actual) = parent.open_dir(name).map(cap_std::fs::Dir::into_std_file) else {
         return false;
     };
     let Ok(expected) = expected
         .try_clone()
         .map(|directory| directory.into_std_file())
-        .and_then(|directory| directory.metadata())
     else {
         return false;
     };
@@ -1327,28 +1345,69 @@ fn same_directory_identity(
 }
 
 #[cfg(unix)]
-fn same_file_identity(left: &std::fs::Metadata, right: &std::fs::Metadata) -> bool {
+fn same_file_identity(left: &fs::File, right: &fs::File) -> bool {
     use std::os::unix::fs::MetadataExt;
+    let (Ok(left), Ok(right)) = (left.metadata(), right.metadata()) else {
+        return false;
+    };
     left.dev() == right.dev() && left.ino() == right.ino()
 }
 
 #[cfg(windows)]
-fn same_file_identity(left: &std::fs::Metadata, right: &std::fs::Metadata) -> bool {
-    use std::os::windows::fs::MetadataExt;
-    matches!(
-        (
-            left.volume_serial_number(),
-            right.volume_serial_number(),
-            left.file_index(),
-            right.file_index(),
-        ),
-        (Some(left_volume), Some(right_volume), Some(left_index), Some(right_index))
-            if left_volume == right_volume && left_index == right_index
-    )
+fn same_file_identity(left: &fs::File, right: &fs::File) -> bool {
+    use std::ffi::c_void;
+    use std::os::windows::io::AsRawHandle;
+
+    #[repr(C)]
+    struct FileTime {
+        low: u32,
+        high: u32,
+    }
+
+    #[repr(C)]
+    struct FileInformation {
+        attributes: u32,
+        creation_time: FileTime,
+        last_access_time: FileTime,
+        last_write_time: FileTime,
+        volume_serial_number: u32,
+        file_size_high: u32,
+        file_size_low: u32,
+        number_of_links: u32,
+        file_index_high: u32,
+        file_index_low: u32,
+    }
+
+    #[link(name = "kernel32")]
+    unsafe extern "system" {
+        fn GetFileInformationByHandle(file: *mut c_void, information: *mut FileInformation) -> i32;
+    }
+
+    fn identity(file: &fs::File) -> Option<(u32, u32, u32)> {
+        let mut information = std::mem::MaybeUninit::<FileInformation>::uninit();
+        // SAFETY: the handle is live for this call and the pointer refers to a correctly sized output struct.
+        let succeeded = unsafe {
+            GetFileInformationByHandle(file.as_raw_handle().cast(), information.as_mut_ptr())
+        };
+        if succeeded == 0 {
+            return None;
+        }
+        // SAFETY: GetFileInformationByHandle initialized the output struct on success.
+        let information = unsafe { information.assume_init() };
+        Some((
+            information.volume_serial_number,
+            information.file_index_high,
+            information.file_index_low,
+        ))
+    }
+
+    identity(left)
+        .zip(identity(right))
+        .is_some_and(|(left, right)| left == right)
 }
 
 #[cfg(not(any(unix, windows)))]
-fn same_file_identity(_left: &std::fs::Metadata, _right: &std::fs::Metadata) -> bool {
+fn same_file_identity(_left: &fs::File, _right: &fs::File) -> bool {
     false
 }
 
