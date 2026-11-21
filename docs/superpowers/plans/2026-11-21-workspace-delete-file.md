@@ -54,4 +54,5 @@
 
 - [x] Documentar validações reais e limitação local de WebKitGTK/JavascriptCoreGTK.
 - [x] Pedir revisão do diff; corrigidos o confinamento da exclusão e o falso erro após remoção.
-- [ ] Abrir PR, aguardar CI verde, mesclar e excluir branch.
+- [x] Abrir PR #46; CI em execução.
+- [ ] Aguardar CI verde, mesclar e excluir branch.
