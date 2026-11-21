@@ -75,18 +75,25 @@ são executados e validados sem tela.
 
 ## Comparação visual
 
-Capturas em Linux sob Xvfb, com janelas de 1200 × 800 pixels. A versão Java
-2.7.5 está à esquerda e o port em Rust à direita. A aba de código mostra o
-programa inicial de cada versão.
+Capturas em Linux sob Xvfb. As comparações do editor usam janelas de 1200 ×
+800 pixels, com a versão Java 2.7.5 à esquerda e o port em Rust à direita; a
+aba de código mostra o programa inicial de cada versão.
 
 | Tela | Dark | Portugol |
 |---|---|---|
-| Inicial | [Comparar tela inicial em Dark](imagens/paridade/home-dark.webp) | [Comparar tela inicial em Portugol](imagens/paridade/home-light.webp) |
+| Inicial | ⬜ Comparação pendente | ⬜ Comparação pendente |
 | Editor | [Comparar editor em Dark](imagens/paridade/editor-dark.webp) | [Comparar editor em Portugol](imagens/paridade/editor-light.webp) |
 
-O rodapé de status, a guia Depuração e o acesso aos Exercícios aparecem
-nas capturas do port. A IDE Java também apresenta o acesso a Plugins e
-reserva espaço aos cursos recomendados.
+As capturas `home-dark.webp` e `home-light.webp` são composições de telas
+diferentes: mostram o editor Java à esquerda e a tela inicial do port à
+direita. Elas não permitem avaliar a paridade da tela inicial e, por isso,
+não são apresentadas como comparação. Devem ser substituídas por capturas da
+tela inicial nas duas aplicações, com o mesmo tema e dimensões, antes de
+marcar essa linha como validada.
+
+Nas capturas válidas do editor, o rodapé de status, a guia Depuração e o acesso
+aos Exercícios aparecem no port. A IDE Java também apresenta o acesso a Plugins
+e reserva espaço aos cursos recomendados.
 
 ## Distribuição
 
