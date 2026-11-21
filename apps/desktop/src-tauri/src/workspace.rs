@@ -890,9 +890,11 @@ fn rename_relative_file(root: &Path, relative: &Path, new_name: &str) -> Result<
 
 #[cfg(test)]
 fn delete_relative_file(root: &Path, relative: &Path) -> Result<PathBuf, String> {
-    let directory = cap_std::fs::Dir::open_ambient_dir(root, cap_std::ambient_authority())
+    let root = fs::canonicalize(root)
+        .map_err(|_| "A pasta aberta não está mais disponível.".to_string())?;
+    let directory = cap_std::fs::Dir::open_ambient_dir(&root, cap_std::ambient_authority())
         .map_err(|error| format!("Não foi possível abrir a pasta do projeto: {error}"))?;
-    delete_relative_file_from_dir(&directory, root, relative)
+    delete_relative_file_from_dir(&directory, &root, relative)
 }
 
 fn delete_relative_file_from_dir(
