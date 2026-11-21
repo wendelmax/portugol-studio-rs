@@ -35,7 +35,7 @@ import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
 import { mountOutline, symbolKindLabels } from "./outline";
 import { panelContentId, type PanelName } from "./panel-tabs";
-import { clampPaneSize, DEFAULT_PANE_LAYOUT, loadPaneLayout, normalizePaneLayout, resizePaneForKey, savePaneLayout, type PaneLayout } from "./pane-layout";
+import { calculateSidePaneMinimums, clampPaneSize, DEFAULT_PANE_LAYOUT, loadPaneLayout, normalizePaneLayout, resizePaneForKey, savePaneLayout, type PaneLayout } from "./pane-layout";
 import { LIBRARIES, portugol, portugolRs, SNIPPETS } from "./portugol";
 import { detectSourceLanguage, ensureSourceExtension, type SourceLanguage } from "./document-language";
 import { flattenWorkspaceEntries, workspaceFileKind, workspaceRenameFileName, workspaceSourceFileName, type WorkspaceEntry } from "./workspace-explorer";
@@ -588,7 +588,10 @@ function setWorkspaceExplorerVisible(visible: boolean) {
   $("workspace-explorer").hidden = !visible;
   $("workspace-explorer-splitter").hidden = !visible;
   $("btn-explorer").setAttribute("aria-expanded", String(visible));
-  if (visible) applyExplorerPaneSize();
+  if (visible) {
+    applyExplorerPaneSize();
+    if (!utilities.hidden) applyUtilitiesPaneSize();
+  } else if (!utilities.hidden) applyUtilitiesPaneSize();
 }
 
 function renderWorkspaceExplorer() {
@@ -1734,10 +1737,20 @@ const explorer = $("workspace-explorer");
 const explorerSplitter = $("workspace-explorer-splitter");
 
 function explorerPaneBounds() {
-  const available = Math.max(430, $("code").clientWidth || window.innerWidth);
-  const minimum = 180;
-  const utilitiesWidth = utilities.hidden ? 0 : utilities.getBoundingClientRect().width + utilitiesSplitter.offsetWidth;
-  const maximum = Math.max(minimum, Math.min(420, available * 0.42, available - 250 - utilitiesWidth));
+  const available = Math.max(1, $("code").clientWidth || window.innerWidth);
+  const sideMinimums = calculateSidePaneMinimums(
+    available,
+    paneChromeWidth(),
+    explorerSplitter.offsetWidth || 9,
+    utilitiesSplitter.offsetWidth || 15,
+    !explorer.hidden,
+    !utilities.hidden,
+  );
+  const minimum = sideMinimums.explorer;
+  const utilitiesWidth = utilities.hidden ? 0 : utilities.getBoundingClientRect().width;
+  const maximum = Math.max(minimum, Math.min(420, available * 0.42, available - paneChromeWidth()
+    - (explorer.hidden ? 0 : explorerSplitter.offsetWidth)
+    - (utilities.hidden ? 0 : utilitiesSplitter.offsetWidth) - utilitiesWidth));
   return { minimum, maximum, available };
 }
 
@@ -1749,11 +1762,27 @@ function bottomPaneBounds() {
 }
 
 function utilitiesPaneBounds() {
-  const available = Math.max(430, $("code").clientWidth || window.innerWidth);
-  const minimum = 210;
-  const explorerWidth = explorer.hidden ? 0 : explorer.getBoundingClientRect().width + explorerSplitter.offsetWidth;
-  const maximum = Math.max(minimum, Math.min(available * 0.55, 720, available - 350 - explorerWidth));
+  const available = Math.max(1, $("code").clientWidth || window.innerWidth);
+  const sideMinimums = calculateSidePaneMinimums(
+    available,
+    paneChromeWidth(),
+    explorerSplitter.offsetWidth || 9,
+    utilitiesSplitter.offsetWidth || 15,
+    !explorer.hidden,
+    !utilities.hidden,
+  );
+  const minimum = sideMinimums.utilities;
+  const explorerWidth = explorer.hidden ? 0 : explorer.getBoundingClientRect().width;
+  const maximum = Math.max(minimum, Math.min(available * 0.55, 720, available - paneChromeWidth()
+    - (explorer.hidden ? 0 : explorerSplitter.offsetWidth)
+    - (utilities.hidden ? 0 : utilitiesSplitter.offsetWidth) - explorerWidth));
   return { minimum, maximum, available };
+}
+
+function paneChromeWidth() {
+  const toolbar = $("code").querySelector<HTMLElement>(".code-toolbar")?.getBoundingClientRect().width ?? 56;
+  const editorMinimum = $("rust-preview").hidden ? 100 : 360;
+  return toolbar + editorMinimum;
 }
 
 function setSeparatorValue(separator: HTMLElement, value: number, bounds: { minimum: number; maximum: number }) {
@@ -1765,6 +1794,7 @@ function setSeparatorValue(separator: HTMLElement, value: number, bounds: { mini
 function applyExplorerPaneSize(width = paneLayout.explorer * explorerPaneBounds().available) {
   const bounds = explorerPaneBounds();
   const size = clampPaneSize(width, bounds.minimum, bounds.maximum);
+  explorer.style.minWidth = `${bounds.minimum}px`;
   explorer.style.flexBasis = `${size}px`;
   setSeparatorValue(explorerSplitter, size, bounds);
   return { size, ...bounds };
@@ -1781,6 +1811,7 @@ function applyBottomPaneSize(height = paneLayout.bottom * bottomPaneBounds().ava
 function applyUtilitiesPaneSize(width = paneLayout.utilities * utilitiesPaneBounds().available) {
   const bounds = utilitiesPaneBounds();
   const size = clampPaneSize(width, bounds.minimum, bounds.maximum);
+  utilities.style.minWidth = `${bounds.minimum}px`;
   utilities.style.flex = `0 0 ${size}px`;
   setSeparatorValue(utilitiesSplitter, size, bounds);
   return { size, ...bounds };
@@ -1926,7 +1957,10 @@ function showUtilities(visible: boolean) {
   if (visible && $("code").classList.contains("expanded")) toggleExpanded();
   utilities.hidden = utilitiesSplitter.hidden = !visible;
   $("btn-utilities").setAttribute("aria-expanded", String(visible));
-  if (visible) applyUtilitiesPaneSize();
+  if (visible) {
+    if (!explorer.hidden) applyExplorerPaneSize();
+    applyUtilitiesPaneSize();
+  } else if (!explorer.hidden) applyExplorerPaneSize();
 }
 
 function toggleUtilities() {

@@ -68,6 +68,26 @@ export function resizePaneForKey(
   return null;
 }
 
+export function calculateSidePaneMinimums(
+  available: number,
+  fixedWidth: number,
+  explorerSeparator: number,
+  utilitiesSeparator: number,
+  showExplorer: boolean,
+  showUtilities: boolean,
+): { explorer: number; utilities: number } {
+  const remaining = Math.max(0, available - fixedWidth
+    - (showExplorer ? explorerSeparator : 0)
+    - (showUtilities ? utilitiesSeparator : 0));
+  if (showExplorer && showUtilities) {
+    const scale = Math.min(1, remaining / (180 + 210));
+    return { explorer: 180 * scale, utilities: 210 * scale };
+  }
+  if (showExplorer) return { explorer: Math.min(180, remaining), utilities: 0 };
+  if (showUtilities) return { explorer: 0, utilities: Math.min(210, remaining) };
+  return { explorer: 0, utilities: 0 };
+}
+
 export function clampPaneSize(value: number, minimum: number, maximum: number): number {
   const ceiling = Math.max(minimum, maximum);
   return Math.min(ceiling, Math.max(minimum, value));

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { DEFAULT_PANE_LAYOUT, loadPaneLayout, resizePaneForKey, savePaneLayout } from "../src/pane-layout.ts";
+import { calculateSidePaneMinimums, DEFAULT_PANE_LAYOUT, loadPaneLayout, resizePaneForKey, savePaneLayout } from "../src/pane-layout.ts";
 
 function storage(initial = null) {
   let value = initial;
@@ -43,6 +43,15 @@ test("maps pane separator keys to bounded size changes", () => {
   assert.equal(resizePaneForKey("Escape", "horizontal", -1, 220, bounds), null);
 });
 
+test("fits both side panes into the width left after toolbar, editor, and separators", () => {
+  const minimums = calculateSidePaneMinimums(430, 155, 9, 15, true, true);
+  assert.ok(minimums.explorer < 180);
+  assert.ok(minimums.utilities < 210);
+  assert.ok(Math.abs(430 - 155 - 9 - 15 - minimums.explorer - minimums.utilities) < 0.001);
+  assert.deepEqual(calculateSidePaneMinimums(1_000, 155, 9, 15, true, true), { explorer: 180, utilities: 210 });
+  assert.deepEqual(calculateSidePaneMinimums(430, 155, 9, 15, true, false), { explorer: 180, utilities: 0 });
+});
+
 test("pane separators expose accessible keyboard-resizable controls", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   for (const id of ["workspace-explorer-splitter", "splitter", "utilities-splitter"]) {
@@ -52,5 +61,6 @@ test("pane separators expose accessible keyboard-resizable controls", () => {
     assert.match(markup, /aria-valuemin=/);
     assert.match(markup, /aria-valuemax=/);
     assert.match(markup, /aria-valuenow=/);
+    assert.match(markup, /aria-controls=/);
   }
 });
