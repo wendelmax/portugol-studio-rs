@@ -28,6 +28,7 @@ import { open as openDialog, save as saveDialog, ask } from "@tauri-apps/plugin-
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import { renderDiagnostics } from "./diagnostics";
+import { mappedPreviewSegments, sourceDiagnostic } from "./source-map-ui";
 import { mountExamples } from "./examples";
 import { mountExercises, readExercise, type ExerciseDocument } from "./exercises";
 import { portugolFolding } from "./folding";
@@ -95,6 +96,7 @@ interface Tab {
   /** Texto da última gravação, para saber se há alterações. */
   saved: string;
   diagnostics: api.DiagnosticInfo[];
+  porsCompileDiagnostics?: api.DiagnosticInfo[];
   symbols: api.SymbolInfo[];
 }
 
@@ -260,7 +262,7 @@ const portugolLinter = linter(
       outline.show(symbols);
       updateLibraryButtons(symbols);
     }
-    return diagnostics.map((d) => toCodeMirror(d, doc.length));
+    return [...diagnostics, ...(tab?.porsCompileDiagnostics ?? [])].map((d) => toCodeMirror(d, doc.length));
   },
   { delay: 350 },
 );
@@ -314,6 +316,10 @@ function extensions(language: SourceLanguage): Extension[] {
       ...historyKeymap, ...completionKeymap, ...foldKeymap, indentWithTab,
     ]),
     EditorView.updateListener.of((update) => {
+      if (update.docChanged && activeTab()?.porsCompileDiagnostics?.length) {
+        activeTab()!.porsCompileDiagnostics = [];
+        renderMessages();
+      }
       if (update.docChanged) renderTabs();
       if (update.docChanged && learningMode === "bridge" && activeTab()?.language !== "rust") scheduleRustExport();
       if (update.selectionSet || update.docChanged) renderCursor();
@@ -1603,14 +1609,28 @@ async function runProgram(pauseOnStart = false) {
     try {
       const result = await api.runPortugolRs(source);
       if (activeTab() !== tab || view.state.doc !== documentState) return;
-      if (result.stdout) appendConsole(result.stdout);
-      if (result.stderr) appendConsole(result.stderr, "error");
-      setStatus(
-        result.exitCode === 0
-          ? "Programa Portugol-RS finalizado com rustc."
-          : `Programa Portugol-RS terminou com código ${result.exitCode ?? "desconhecido"}.`,
-        result.exitCode === 0 ? "ok" : "error",
-      );
+      if (result.status === "executed") {
+        if (result.stdout) appendConsole(result.stdout);
+        if (result.stderr) appendConsole(result.stderr, "error");
+        setStatus(
+          result.exitCode === 0
+            ? "Programa Portugol-RS finalizado com rustc."
+            : `Programa Portugol-RS terminou com código ${result.exitCode ?? "desconhecido"}.`,
+          result.exitCode === 0 ? "ok" : "error",
+        );
+      } else {
+        const diagnostics = result.diagnostics.map(sourceDiagnostic).filter((item): item is api.DiagnosticInfo => item !== null);
+        tab.porsCompileDiagnostics = diagnostics;
+        if (result.stderr) appendConsole(result.stderr, "error");
+        if (diagnostics.length) {
+          renderMessages();
+          view.dispatch(setDiagnostics(view.state, diagnostics.map((item) => toCodeMirror(item, view.state.doc.length))));
+          showPanel("messages");
+          setStatus("rustc encontrou erros no Rust gerado. Selecione um diagnóstico para voltar à origem.", "error");
+        } else {
+          setStatus("rustc encontrou um erro no código gerado; veja o detalhe no console.", "error");
+        }
+      }
     } catch (error) {
       if (activeTab() === tab && view.state.doc === documentState) {
         appendConsole(String(error) + "\n", "error");
@@ -1846,7 +1866,8 @@ function goTo(offset: number) {
 }
 
 function renderMessages() {
-  renderDiagnostics(activeTab()?.diagnostics ?? [], view.state.doc.lines, goTo);
+  const tab = activeTab();
+  renderDiagnostics([...(tab?.diagnostics ?? []), ...(tab?.porsCompileDiagnostics ?? [])], view.state.doc.lines, goTo);
 }
 
 function routeRunEvent(id: number, handle: () => void) {
@@ -2522,7 +2543,25 @@ function scheduleRustExport() {
     const copy = $<HTMLButtonElement>("rust-copy");
     const save = $<HTMLButtonElement>("rust-save");
     if (result.code !== null) {
-      output.textContent = result.code;
+      const segments = mappedPreviewSegments(result.code, result.sourceMap);
+      output.replaceChildren();
+      let cursor = 0;
+      for (const segment of segments) {
+        if (segment.from < cursor) continue;
+        output.append(document.createTextNode(result.code.slice(cursor, segment.from)));
+        const mapped = document.createElement("button");
+        mapped.type = "button";
+        mapped.className = "rust-mapped-segment";
+        mapped.textContent = result.code.slice(segment.from, segment.to);
+        mapped.title = segment.quality === "approximate"
+          ? `Localização aproximada: linha ${segment.sourceLine} da origem`
+          : `Ir para linha ${segment.sourceLine} da origem`;
+        mapped.setAttribute("aria-label", mapped.title);
+        mapped.onclick = () => goTo(segment.sourceOffset);
+        output.append(mapped);
+        cursor = segment.to;
+      }
+      output.append(document.createTextNode(result.code.slice(cursor)));
       status.textContent = "Tradução disponível para copiar ou salvar.";
       copy.disabled = save.disabled = false;
       $<HTMLButtonElement>("rust-detach").disabled = false;

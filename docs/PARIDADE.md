@@ -17,7 +17,7 @@ são executados e validados sem tela.
 | Sintaxe completa do Portugol 2.0 | ✅ | 194/196 exemplos; os 2 restantes têm erro no próprio arquivo |
 | Análise semântica | ✅ | casos do `AnalisadorSemanticoTest.java` portados |
 | Execução (tipos, operadores, vetores, matrizes, funções, referência) | ✅ | semântica do Java gerado pelo original |
-| Execução do subset Portugol-RS (`.pors`) | 🟡 | compila somente o Rust gerado pela gramática suportada via `rustc`; stdout, stderr e código de saída reais. Sem entrada interativa, depuração, interrupção, loops ou execução de `.rs`; requer toolchain Rust instalada. |
+| Execução do subset Portugol-RS (`.pors`) | 🟡 | compila somente o Rust gerado pela gramática suportada via `rustc`; stdout, stderr e código de saída reais. Erros de compilação estruturados e mapeados ao `.pors` quando possível, com detalhe original de `rustc`. Sem entrada interativa, depuração, interrupção, loops ou execução de `.rs`; requer toolchain Rust instalada. |
 | `escreva`, `leia`, `limpa`, `sorteia` | ✅ | |
 | Parâmetros de execução (`inicio(cadeia params[])`) | ✅ | |
 | Mensagens de erro de execução | ✅ | mesmas mensagens do original |
@@ -55,6 +55,7 @@ são executados e validados sem tela.
 | Laboratório pedagógico de ownership | 🟡 | quatro cenários guiados de `String` para move, `&T`, `&mut T` e escopo; fixtures verificadas com `rustc`; simulação editorial, não é trace Rust nem interpreta o buffer do aluno |
 | Painel Testes (UI-020 / FT-06) | 🟡 | aba inferior com estado vazio explícito; ainda não há descoberta ou execução de testes configuráveis, e nenhum resultado é simulado |
 | Autocompletar bibliotecas | ✅ | opções, assinaturas e descrições da mesma referência usada pela ajuda |
+| Prévia Portugol → Rust com navegação de origem | 🟡 | exportação `.por`/`.pors` inclui source maps; trechos mapeados da prévia são focáveis e navegam ao código original. Localizações aproximadas são identificadas; trechos gerados sem origem permanecem sem navegação. |
 | Localizar e substituir (`PSFindReplace`) | ✅ | diálogo Ctrl+F com direção, palavra inteira, maiúsculas, expressões regulares e substituição em lote |
 | Atalhos do original (`TelaAtalhos`) | ✅ | tela F11, atalhos de edição, depuração, arquivos, abas, filtros e centralização |
 | Temas claro/escuro (`TelaEditarTemas`) | ✅ | Portugol, Dark, Sistema, seis presets inspirados em temas populares do VS Code e perfis personalizados editáveis com prévia; troca funciona offline. Referências: [ranking do Marketplace](https://www.vsxatlas.com/rankings?category=Themes&registry=marketplace) e [GitHub Theme oficial](https://marketplace.visualstudio.com/items?itemName=GitHub.github-vscode-theme) |

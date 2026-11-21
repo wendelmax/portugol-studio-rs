@@ -21,6 +21,32 @@ use portugol_syntax::ast::{
 use portugol_syntax::{Severity, Span};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SourceRange {
+    pub start: u32,
+    pub end: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SourceMapQuality {
+    Exact,
+    Approximate,
+    GeneratedOnly,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SourceMapSegment {
+    pub generated: SourceRange,
+    pub source: Option<SourceRange>,
+    pub quality: SourceMapQuality,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GeneratedRust {
+    pub code: String,
+    pub mappings: Vec<SourceMapSegment>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Ty {
     Inteiro,
     Real,
@@ -82,14 +108,24 @@ struct HExpr {
 /// Gera Rust completo a partir da HIR para o subconjunto documentado.
 /// Erros de sintaxe/semântica e spans da fonte são preservados pelo lowering.
 pub fn export(source: &str) -> Result<String, Diagnostic> {
+    export_with_map(source).map(|generated| generated.code)
+}
+
+/// Gera Rust para Portugol clássico e preserva os spans HIR de origem.
+pub fn export_with_map(source: &str) -> Result<GeneratedRust, Diagnostic> {
     let hir = hir::lower(source)?;
-    Ok(codegen::render(&hir))
+    Ok(codegen::render_with_map(&hir))
 }
 
 /// Gera Rust para o subset inicial do dialeto educacional Portugol-RS.
 pub fn export_portugol_rs(source: &str) -> Result<String, Vec<Diagnostic>> {
+    export_portugol_rs_with_map(source).map(|generated| generated.code)
+}
+
+/// Gera Rust para Portugol-RS e preserva os spans HIR de origem.
+pub fn export_portugol_rs_with_map(source: &str) -> Result<GeneratedRust, Vec<Diagnostic>> {
     let hir = portugol_rs_frontend::lower(source)?;
-    Ok(codegen::render(&hir))
+    Ok(codegen::render_with_map(&hir))
 }
 
 #[cfg(test)]
@@ -695,7 +731,9 @@ fn unsupported(feature: &str, span: Span) -> Diagnostic {
 
 #[cfg(test)]
 mod tests {
-    use super::{export, export_legacy, export_portugol_rs};
+    use super::{
+        SourceMapQuality, export, export_legacy, export_portugol_rs, export_portugol_rs_with_map,
+    };
     use std::process::Command;
 
     const SOURCE: &str = "programa { funcao inicio() { inteiro total = 40 + 2 escreva(total) } }";
@@ -722,6 +760,49 @@ mod tests {
         let source =
             "funcao inicio() { seja mutavel idade: inteiro = 16; idade += 1; escreva(idade); }";
         assert_rust_output(export_portugol_rs(source).unwrap(), "17");
+    }
+
+    #[test]
+    fn maps_generated_rust_declarations_expressions_and_nested_statements_to_source() {
+        let source = "funcao inicio() { seja mutavel idade: inteiro = 16; se (verdadeiro) { escreva(idade); } }";
+        let generated = export_portugol_rs_with_map(source).unwrap();
+
+        assert!(generated.code.contains("let mut pt_idade: i32 = 16_i32;"));
+        for snippet in ["seja mutavel", "verdadeiro", "escreva(idade)"] {
+            let start = source.find(snippet).unwrap() as u32;
+            assert!(
+                generated.mappings.iter().any(|mapping| {
+                    mapping.source.is_some_and(|range| range.start == start)
+                        && mapping.quality == SourceMapQuality::Exact
+                }),
+                "missing exact source mapping for {snippet}"
+            );
+        }
+        assert!(generated.mappings.iter().all(|mapping| {
+            mapping.generated.start < mapping.generated.end
+                && mapping.generated.end as usize <= generated.code.len()
+                && mapping.source.is_none_or(|range| {
+                    range.start < range.end && range.end as usize <= source.len()
+                })
+        }));
+        assert!(generated.mappings.windows(2).all(|pair| {
+            (pair[0].generated.start, pair[0].generated.end)
+                <= (pair[1].generated.start, pair[1].generated.end)
+        }));
+    }
+
+    #[test]
+    fn marks_rust_prelude_as_generated_only() {
+        let source = "funcao inicio() { escreva(1); }";
+        let generated = export_portugol_rs_with_map(source).unwrap();
+        let prelude = generated.code.find("use std::io").unwrap() as u32;
+
+        assert!(generated.mappings.iter().any(|mapping| {
+            mapping.generated.start <= prelude
+                && prelude < mapping.generated.end
+                && mapping.source.is_none()
+                && mapping.quality == SourceMapQuality::GeneratedOnly
+        }));
     }
 
     #[test]

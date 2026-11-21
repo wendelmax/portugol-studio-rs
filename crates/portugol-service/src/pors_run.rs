@@ -4,16 +4,44 @@ use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde::Serialize;
+use serde_json::Value;
+
+use crate::{Position, SourceMapQuality, position::LineIndex};
+use portugol_rust::{GeneratedRust, SourceMapQuality as RustSourceMapQuality, SourceMapSegment};
 
 static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(1);
 const MAX_SOURCE_BYTES: usize = 1_048_576;
 
-#[derive(Debug, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(
+    tag = "status",
+    rename_all = "snake_case",
+    rename_all_fields = "camelCase"
+)]
+pub enum PortugolRsRunResult {
+    Executed {
+        stdout: String,
+        stderr: String,
+        exit_code: Option<i32>,
+    },
+    CompileError {
+        diagnostics: Vec<PortugolRsCompileDiagnostic>,
+        stderr: String,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PortugolRsRunResult {
-    pub stdout: String,
-    pub stderr: String,
-    pub exit_code: Option<i32>,
+pub struct PortugolRsCompileDiagnostic {
+    pub severity: String,
+    pub code: Option<String>,
+    pub message: String,
+    pub rendered: Option<String>,
+    pub generated_start: Option<Position>,
+    pub generated_end: Option<Position>,
+    pub source_start: Option<Position>,
+    pub source_end: Option<Position>,
+    pub quality: SourceMapQuality,
 }
 
 struct TemporaryDirectory(PathBuf);
@@ -75,15 +103,27 @@ pub fn run_portugol_rs(source: &str) -> Result<PortugolRsRunResult, String> {
             "Rustc não foi encontrado. Instale a toolchain Rust para executar `.pors`.".into(),
         );
     }
-    let export = crate::export_portugol_rs(source);
-    let generated = export.code.ok_or_else(|| match export.diagnostic {
-        Some(diagnostic) => format!(
-            "{} (linha {}, coluna {}).",
-            diagnostic.message, diagnostic.start.line, diagnostic.start.column
-        ),
-        None => "Corrija os erros do Portugol-RS antes de executar.".to_string(),
+    let generated = portugol_rust::export_portugol_rs_with_map(source).map_err(|diagnostics| {
+        diagnostics.first().map_or_else(
+            || "Corrija os erros do Portugol-RS antes de executar.".to_string(),
+            |diagnostic| {
+                let index = LineIndex::new(source);
+                let diagnostic = crate::describe(&index, diagnostic);
+                format!(
+                    "{} (linha {}, coluna {}).",
+                    diagnostic.message, diagnostic.start.line, diagnostic.start.column
+                )
+            },
+        )
     })?;
 
+    compile_and_run_generated(&generated, source)
+}
+
+fn compile_and_run_generated(
+    generated: &GeneratedRust,
+    source: &str,
+) -> Result<PortugolRsRunResult, String> {
     let temporary = TemporaryDirectory::create()?;
     let source_path = temporary.0.join("program.rs");
     let executable_path = temporary.0.join(if cfg!(windows) {
@@ -91,11 +131,12 @@ pub fn run_portugol_rs(source: &str) -> Result<PortugolRsRunResult, String> {
     } else {
         "program"
     });
-    fs::write(&source_path, generated)
+    fs::write(&source_path, &generated.code)
         .map_err(|error| format!("Não foi possível gravar o Rust temporário: {error}"))?;
 
     let compilation = Command::new("rustc")
         .arg("--edition=2021")
+        .arg("--error-format=json")
         .arg("--crate-name=portugol_rs_program")
         .arg(&source_path)
         .arg("-o")
@@ -103,16 +144,267 @@ pub fn run_portugol_rs(source: &str) -> Result<PortugolRsRunResult, String> {
         .output()
         .map_err(|error| format!("Não foi possível iniciar rustc: {error}"))?;
     if !compilation.status.success() {
-        let stderr = String::from_utf8_lossy(&compilation.stderr);
-        return Err(format!("Falha ao compilar o Rust gerado:\n{stderr}"));
+        let stderr = String::from_utf8_lossy(&compilation.stderr).into_owned();
+        let diagnostics =
+            parse_rustc_diagnostics(&stderr, &generated.code, source, &generated.mappings);
+        return Ok(PortugolRsRunResult::CompileError {
+            diagnostics,
+            stderr,
+        });
     }
 
     let execution = Command::new(&executable_path)
         .output()
         .map_err(|error| format!("Não foi possível executar o programa compilado: {error}"))?;
-    Ok(PortugolRsRunResult {
+    Ok(PortugolRsRunResult::Executed {
         stdout: String::from_utf8_lossy(&execution.stdout).into_owned(),
         stderr: String::from_utf8_lossy(&execution.stderr).into_owned(),
         exit_code: execution.status.code(),
     })
+}
+
+fn parse_rustc_diagnostics(
+    stderr: &str,
+    generated: &str,
+    source: &str,
+    mappings: &[SourceMapSegment],
+) -> Vec<PortugolRsCompileDiagnostic> {
+    let generated_index = LineIndex::new(generated);
+    let source_index = LineIndex::new(source);
+    stderr
+        .lines()
+        .take(1000)
+        .filter_map(|line| serde_json::from_str::<Value>(line).ok())
+        .filter(|value| {
+            value.get("$message_type").and_then(Value::as_str) == Some("diagnostic")
+                || value.get("message").and_then(Value::as_str).is_some()
+                    && value.get("level").and_then(Value::as_str).is_some()
+        })
+        .take(100)
+        .map(|value| {
+            let message = value
+                .get("message")
+                .and_then(Value::as_str)
+                .unwrap_or("Falha ao compilar o Rust gerado.")
+                .to_string();
+            let severity = value
+                .get("level")
+                .and_then(Value::as_str)
+                .unwrap_or("error")
+                .to_string();
+            let code = value
+                .pointer("/code/code")
+                .and_then(Value::as_str)
+                .map(str::to_string);
+            let rendered = value
+                .get("rendered")
+                .and_then(Value::as_str)
+                .map(str::to_string);
+            let primary = value
+                .get("spans")
+                .and_then(Value::as_array)
+                .and_then(|spans| {
+                    spans
+                        .iter()
+                        .find(|span| span.get("is_primary").and_then(Value::as_bool) == Some(true))
+                })
+                .and_then(|span| {
+                    Some((
+                        u32::try_from(span.get("byte_start")?.as_u64()?).ok()?,
+                        u32::try_from(span.get("byte_end")?.as_u64()?).ok()?,
+                    ))
+                });
+            let (generated_start, generated_end, source_start, source_end, quality) =
+                if let Some((start, end)) = primary {
+                    let mapping = mappings
+                        .iter()
+                        .filter(|mapping| {
+                            mapping.generated.start <= start && mapping.generated.end >= end
+                        })
+                        .min_by_key(|mapping| mapping.generated.end - mapping.generated.start);
+                    let source_range = mapping.and_then(|mapping| mapping.source);
+                    (
+                        Some(generated_index.position(start)),
+                        Some(generated_index.position(end)),
+                        source_range.map(|range| source_index.position(range.start)),
+                        source_range.map(|range| source_index.position(range.end)),
+                        mapping.map_or(SourceMapQuality::GeneratedOnly, |mapping| {
+                            match mapping.quality {
+                                RustSourceMapQuality::Exact => SourceMapQuality::Exact,
+                                RustSourceMapQuality::Approximate => SourceMapQuality::Approximate,
+                                RustSourceMapQuality::GeneratedOnly => {
+                                    SourceMapQuality::GeneratedOnly
+                                }
+                            }
+                        }),
+                    )
+                } else {
+                    (None, None, None, None, SourceMapQuality::GeneratedOnly)
+                };
+            PortugolRsCompileDiagnostic {
+                severity,
+                code,
+                message,
+                rendered,
+                generated_start,
+                generated_end,
+                source_start,
+                source_end,
+                quality,
+            }
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{SourceMapQuality, parse_rustc_diagnostics};
+    use portugol_rust::{
+        GeneratedRust, SourceMapQuality as RustSourceMapQuality, SourceMapSegment, SourceRange,
+    };
+
+    #[test]
+    fn maps_rustc_primary_span_to_utf16_source_positions() {
+        let generated_code = "fn main() { let value = String::from(\"😀\"); }\n";
+        let source = "funcao inicio() { seja valor: cadeia = \"😀\"; }";
+        let generated_start = generated_code.find("\"😀\"").unwrap() as u32;
+        let generated_end = generated_start + "\"😀\"".len() as u32;
+        let source_start = source.find("\"😀\"").unwrap() as u32;
+        let source_end = source_start + "\"😀\"".len() as u32;
+        let stderr = format!(
+            r#"{{"$message_type":"diagnostic","message":"type mismatch","level":"error","code":{{"code":"E0308"}},"spans":[{{"byte_start":{generated_start},"byte_end":{generated_end},"is_primary":true}}],"rendered":"error[E0308]: type mismatch"}}"#
+        );
+        let mappings = [SourceMapSegment {
+            generated: SourceRange {
+                start: generated_start,
+                end: generated_end,
+            },
+            source: Some(SourceRange {
+                start: source_start,
+                end: source_end,
+            }),
+            quality: RustSourceMapQuality::Exact,
+        }];
+        let diagnostics = parse_rustc_diagnostics(&stderr, generated_code, source, &mappings);
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(diagnostics[0].code.as_deref(), Some("E0308"));
+        assert_eq!(diagnostics[0].quality, SourceMapQuality::Exact);
+        assert_eq!(
+            diagnostics[0].source_start.unwrap().offset as usize,
+            source[..source_start as usize].encode_utf16().count()
+        );
+        assert_eq!(
+            diagnostics[0].source_end.unwrap().offset as usize,
+            source[..source_end as usize].encode_utf16().count()
+        );
+        assert_eq!(
+            diagnostics[0].generated_end.unwrap().offset
+                - diagnostics[0].generated_start.unwrap().offset,
+            "\"😀\"".encode_utf16().count() as u32
+        );
+        assert_eq!(
+            diagnostics[0].rendered.as_deref(),
+            Some("error[E0308]: type mismatch")
+        );
+    }
+
+    #[test]
+    fn diagnostics_without_a_primary_span_remain_generated_only() {
+        let diagnostics = parse_rustc_diagnostics(
+            r#"{"message":"warning without span","level":"warning","spans":[]}"#,
+            "fn main() {}\n",
+            "funcao inicio() {}",
+            &[],
+        );
+        assert_eq!(diagnostics.len(), 1);
+        assert!(diagnostics[0].source_start.is_none());
+        assert!(diagnostics[0].generated_start.is_none());
+        assert_eq!(diagnostics[0].quality, SourceMapQuality::GeneratedOnly);
+    }
+
+    #[test]
+    fn chooses_the_smallest_enclosing_mapping_for_nested_source_ranges() {
+        let generated = "fn main() { let x = 1 + 2; }";
+        let start = generated.find("1 + 2").unwrap() as u32;
+        let end = start + "1 + 2".len() as u32;
+        let stderr = format!(
+            r#"{{"message":"ambiguous expression","level":"error","spans":[{{"byte_start":{start},"byte_end":{end},"is_primary":true}}]}}"#
+        );
+        let mappings = [
+            SourceMapSegment {
+                generated: SourceRange {
+                    start: 0,
+                    end: generated.len() as u32,
+                },
+                source: Some(SourceRange { start: 0, end: 40 }),
+                quality: RustSourceMapQuality::Approximate,
+            },
+            SourceMapSegment {
+                generated: SourceRange { start, end },
+                source: Some(SourceRange { start: 15, end: 20 }),
+                quality: RustSourceMapQuality::Exact,
+            },
+        ];
+        let diagnostics = parse_rustc_diagnostics(
+            &stderr,
+            generated,
+            "0123456789012345678901234567890123456789",
+            &mappings,
+        );
+        assert_eq!(diagnostics[0].quality, SourceMapQuality::Exact);
+        assert_eq!(diagnostics[0].source_start.unwrap().offset, 15);
+    }
+
+    #[test]
+    fn malformed_lines_are_ignored_and_unknown_json_fields_are_tolerated() {
+        let stderr = "this is not JSON\n{\"message\":\"known diagnostic\",\"level\":\"error\",\"futureField\":42}\n";
+        let diagnostics = parse_rustc_diagnostics(stderr, "fn main() {}\n", "", &[]);
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(diagnostics[0].message, "known diagnostic");
+        assert_eq!(diagnostics[0].quality, SourceMapQuality::GeneratedOnly);
+    }
+
+    #[test]
+    fn compile_rejection_is_a_typed_outcome_with_raw_stderr() {
+        let code = "fn main() { let _: i32 = \"no inteiro\"; }\n".to_owned();
+        let start = code.find("\"no inteiro\"").unwrap() as u32;
+        let end = start + "\"no inteiro\"".len() as u32;
+        let source = "funcao inicio() { seja valor: inteiro = 1; }";
+        let generated = GeneratedRust {
+            code,
+            mappings: vec![SourceMapSegment {
+                generated: SourceRange { start, end },
+                source: Some(SourceRange { start: 0, end: 9 }),
+                quality: RustSourceMapQuality::Approximate,
+            }],
+        };
+        let result = super::compile_and_run_generated(&generated, source).unwrap();
+        match result {
+            super::PortugolRsRunResult::CompileError {
+                diagnostics,
+                stderr,
+            } => {
+                assert!(!stderr.is_empty());
+                assert!(!diagnostics.is_empty());
+                assert_eq!(diagnostics[0].quality, SourceMapQuality::Approximate);
+                assert!(diagnostics[0].source_start.is_some());
+            }
+            super::PortugolRsRunResult::Executed { .. } => {
+                panic!("código Rust inválido não deveria executar")
+            }
+        }
+    }
+
+    #[test]
+    fn tagged_run_result_serializes_the_typescript_contract() {
+        let result = super::PortugolRsRunResult::Executed {
+            stdout: "17".into(),
+            stderr: String::new(),
+            exit_code: Some(0),
+        };
+        let value = serde_json::to_value(result).unwrap();
+        assert_eq!(value["status"], "executed");
+        assert_eq!(value["exitCode"], 0);
+        assert!(value.get("exit_code").is_none());
+    }
 }

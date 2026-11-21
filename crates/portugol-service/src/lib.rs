@@ -17,6 +17,7 @@ mod run;
 
 use serde::Serialize;
 
+use portugol_rust::{GeneratedRust, SourceMapQuality as RustSourceMapQuality};
 use portugol_syntax::{Diagnostic, Severity, parse};
 
 pub use exercises::{
@@ -131,21 +132,68 @@ pub struct Inspection {
 /// Resultado da prévia Portugol → Rust. Em caso de falha, `code` fica vazio e
 /// `diagnostic` aponta para a construção original que impediu a tradução.
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RustExport {
     pub code: Option<String>,
     pub diagnostic: Option<DiagnosticInfo>,
+    pub source_map: Vec<SourceMapInfo>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SourceMapQuality {
+    Exact,
+    Approximate,
+    GeneratedOnly,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceMapInfo {
+    pub generated_start: Position,
+    pub generated_end: Position,
+    pub source_start: Option<Position>,
+    pub source_end: Option<Position>,
+    pub quality: SourceMapQuality,
+}
+
+fn editor_source_map(source: &str, generated: &GeneratedRust) -> Vec<SourceMapInfo> {
+    let source_index = position::LineIndex::new(source);
+    let generated_index = position::LineIndex::new(&generated.code);
+    generated
+        .mappings
+        .iter()
+        .map(|mapping| SourceMapInfo {
+            generated_start: generated_index.position(mapping.generated.start),
+            generated_end: generated_index.position(mapping.generated.end),
+            source_start: mapping
+                .source
+                .map(|range| source_index.position(range.start)),
+            source_end: mapping.source.map(|range| source_index.position(range.end)),
+            quality: match mapping.quality {
+                RustSourceMapQuality::Exact => SourceMapQuality::Exact,
+                RustSourceMapQuality::Approximate => SourceMapQuality::Approximate,
+                RustSourceMapQuality::GeneratedOnly => SourceMapQuality::GeneratedOnly,
+            },
+        })
+        .collect()
 }
 
 pub fn export_rust(source: &str) -> RustExport {
     let index = position::LineIndex::new(source);
-    match portugol_rust::export(source) {
-        Ok(code) => RustExport {
-            code: Some(code),
-            diagnostic: None,
-        },
+    match portugol_rust::export_with_map(source) {
+        Ok(generated) => {
+            let source_map = editor_source_map(source, &generated);
+            RustExport {
+                code: Some(generated.code),
+                diagnostic: None,
+                source_map,
+            }
+        }
         Err(diagnostic) => RustExport {
             code: None,
             diagnostic: Some(describe(&index, &diagnostic)),
+            source_map: Vec::new(),
         },
     }
 }
@@ -186,16 +234,21 @@ pub fn inspect_portugol_rs(source: &str) -> Inspection {
 /// Traduz o dialeto Portugol-RS para Rust usando o backend compartilhado.
 pub fn export_portugol_rs(source: &str) -> RustExport {
     let index = position::LineIndex::new(source);
-    match portugol_rust::export_portugol_rs(source) {
-        Ok(code) => RustExport {
-            code: Some(code),
-            diagnostic: None,
-        },
+    match portugol_rust::export_portugol_rs_with_map(source) {
+        Ok(generated) => {
+            let source_map = editor_source_map(source, &generated);
+            RustExport {
+                code: Some(generated.code),
+                diagnostic: None,
+                source_map,
+            }
+        }
         Err(diagnostics) => RustExport {
             code: None,
             diagnostic: diagnostics
                 .first()
                 .map(|diagnostic| describe(&index, diagnostic)),
+            source_map: Vec::new(),
         },
     }
 }
@@ -334,5 +387,65 @@ mod portugol_rs_service {
             export_portugol_rs("funcao inicio() { seja idade: inteiro = 16; escreva(idade); }");
         assert!(result.diagnostic.is_none());
         assert!(result.code.unwrap().contains("print!(\"{}\""));
+    }
+
+    #[test]
+    fn export_source_maps_convert_unicode_ranges_to_utf16_editor_offsets() {
+        let source = "funcao inicio() { seja texto: cadeia = \"😀\"; escreva(texto); }";
+        let result = export_portugol_rs(source);
+        let code = result.code.as_ref().unwrap();
+        let source_start_bytes = source.find("escreva").unwrap();
+        let source_start_utf16 = source[..source_start_bytes].encode_utf16().count() as u32;
+        let generated_start_bytes = code.find("let __portugol_write_0").unwrap();
+        let generated_line_start_bytes = code[..generated_start_bytes]
+            .rfind('\n')
+            .map_or(0, |newline| newline + 1);
+        let generated_start_utf16 = code[..generated_start_bytes].encode_utf16().count() as u32;
+
+        let mapping = result
+            .source_map
+            .iter()
+            .find(|mapping| {
+                mapping
+                    .source_start
+                    .is_some_and(|start| start.offset == source_start_utf16)
+            })
+            .expect("a instrução escreva deve mapear para seu span da origem");
+        assert_eq!(
+            mapping.generated_start.offset,
+            code[..generated_line_start_bytes].encode_utf16().count() as u32
+        );
+        assert!(generated_start_utf16 > mapping.generated_start.offset);
+        assert_eq!(mapping.quality, super::SourceMapQuality::Exact);
+        assert!(result.source_map.iter().any(|mapping| {
+            mapping.quality == super::SourceMapQuality::GeneratedOnly
+                && mapping.source_start.is_none()
+        }));
+    }
+
+    #[test]
+    fn classic_export_also_exposes_shared_hir_source_maps() {
+        let source = "programa { funcao inicio() { cadeia texto = \"😀\" escreva(texto) } }";
+        let result = super::export_rust(source);
+        assert!(result.diagnostic.is_none());
+        assert!(!result.source_map.is_empty());
+        assert!(
+            result
+                .source_map
+                .iter()
+                .any(|mapping| { mapping.source_start.is_some() && mapping.source_end.is_some() })
+        );
+    }
+
+    #[test]
+    fn export_source_map_serializes_with_the_typescript_camel_case_contract() {
+        let result = export_portugol_rs("funcao inicio() { seja idade: inteiro = 16; }");
+        let value = serde_json::to_value(result).unwrap();
+        let mapping = &value["sourceMap"][0];
+
+        assert!(mapping.get("generatedStart").is_some());
+        assert!(mapping.get("generatedEnd").is_some());
+        assert!(mapping.get("quality").is_some());
+        assert!(value.get("source_map").is_none());
     }
 }

@@ -116,19 +116,47 @@ export const checkUpdates = () => invoke<UpdateInfo>("check_updates");
 
 export const inspect = (source: string) => invoke<Inspection>("inspect", { source });
 
+export interface SourceMapInfo {
+  generatedStart: Position;
+  generatedEnd: Position;
+  sourceStart: Position | null;
+  sourceEnd: Position | null;
+  quality: "exact" | "approximate" | "generated_only";
+}
+
 export interface RustExport {
   code: string | null;
   diagnostic: DiagnosticInfo | null;
+  sourceMap: SourceMapInfo[];
 }
 
 export const exportRust = (source: string) => invoke<RustExport>("export_rust", { source });
 export const inspectPortugolRs = (source: string) => invoke<Inspection>("inspect_portugol_rs", { source });
 export const exportPortugolRs = (source: string) => invoke<RustExport>("export_portugol_rs", { source });
-export interface PortugolRsRunResult {
-  stdout: string;
-  stderr: string;
-  exitCode: number | null;
+export interface PortugolRsCompileDiagnostic {
+  severity: string;
+  code: string | null;
+  message: string;
+  rendered: string | null;
+  generatedStart: Position | null;
+  generatedEnd: Position | null;
+  sourceStart: Position | null;
+  sourceEnd: Position | null;
+  quality: SourceMapInfo["quality"];
 }
+
+export type PortugolRsRunResult =
+  | {
+      status: "executed";
+      stdout: string;
+      stderr: string;
+      exitCode: number | null;
+    }
+  | {
+      status: "compile_error";
+      diagnostics: PortugolRsCompileDiagnostic[];
+      stderr: string;
+    };
 export const rustToolchainAvailable = () => invoke<boolean>("rust_toolchain_available");
 export const runPortugolRs = (source: string) =>
   invoke<PortugolRsRunResult>("run_portugol_rs", { source });
