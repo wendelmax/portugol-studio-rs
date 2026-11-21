@@ -16,3 +16,4 @@
 - `cargo fmt --all -- --check` — passou.
 - `git diff --check` — passou.
 - Testes Rust do desktop — este host não possui WebKitGTK/JavascriptCoreGTK 4.1; a execução local falha antes de compilar o crate. CI deve validar testes e Clippy em Linux, macOS e Windows.
+- CI do PR #44 no commit `8c199f0` — seis jobs passaram, incluindo testes/clippy Rust e smoke nativo Tauri.

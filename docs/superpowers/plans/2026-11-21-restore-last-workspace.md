@@ -30,32 +30,32 @@
 
 **Files:** `apps/desktop/src-tauri/src/workspace.rs`
 
-- [ ] Add tests for save/load, no preference, stale directory cleanup, and restoration into a new session.
-- [ ] Attempt targeted desktop tests; record the WebKitGTK limitation if they cannot start.
-- [ ] Add atomic JSON save, safe read, and `restore_saved_workspace` helpers.
-- [ ] Revalidate root and list entries before registering a restored session.
+- [x] Add tests for save/load, no preference, stale directory cleanup, malformed/relative paths, and restoration into a new session.
+- [x] Attempt targeted desktop tests; record the WebKitGTK limitation locally and confirm the Rust tests pass in CI.
+- [x] Add atomic JSON save, safe read, and `restore_saved_workspace` helpers.
+- [x] Revalidate root and list entries before registering a restored session.
 
 ### Task 2: Tauri commands
 
 **Files:** `apps/desktop/src-tauri/src/workspace.rs`, `apps/desktop/src-tauri/src/lib.rs`
 
-- [ ] Persist the selected canonical root best-effort in `workspace_open`.
-- [ ] Expose `workspace_restore` using the app-config directory and blocking filesystem work.
-- [ ] Register the command and run formatting, desktop tests and Clippy in CI.
+- [x] Persist the selected canonical root best-effort in `workspace_open`.
+- [x] Expose `workspace_restore` using the app-config directory and blocking filesystem work.
+- [x] Register the command; formatting, desktop tests, and Clippy passed in cross-platform CI.
 
 ### Task 3: Startup integration
 
 **Files:** `apps/desktop/src/api.ts`, `apps/desktop/src/main.ts`, `apps/desktop/tests/workspace-explorer.test.mjs`
 
-- [ ] Add the typed invoke wrapper and a test for the restore API/startup contract.
-- [ ] Restore tree state on startup without opening files; display restored folder name.
-- [ ] Guard stale async results so a later user-selected workspace wins.
-- [ ] Verify frontend tests and production build.
+- [x] Add the typed invoke wrapper and a test for the restore API/startup contract.
+- [x] Restore tree state on startup without opening files; display restored folder name.
+- [x] Guard stale async results so a later user-selected workspace wins.
+- [x] Verify frontend tests and production build.
 
 ### Task 4: Quality and delivery
 
 **Files:** `docs/PARIDADE.md`, `docs/reports/FEAT-WORKSPACE-003.md`
 
-- [ ] Record persistence scope, privacy behavior, and validation results.
-- [ ] Run available frontend/Rust checks and `git diff --check`.
-- [ ] Open a PR, fix failures until CI is green, merge, and delete its branch.
+- [x] Record persistence scope, privacy behavior, and validation results.
+- [x] Run available frontend/Rust checks and `git diff --check`; Rust desktop tests and Clippy passed in CI.
+- [ ] Open PR #44; all six jobs passed. Merge and delete its branch after the plan update CI also passes.
