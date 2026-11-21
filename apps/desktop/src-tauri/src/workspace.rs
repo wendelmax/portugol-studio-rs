@@ -49,6 +49,7 @@ mod tests {
         fs::write(temp.0.join("inicio.POR"), "programa").unwrap();
         fs::write(temp.0.join("aula/exercicio.pEx"), "atividade").unwrap();
         fs::write(temp.0.join("aula/subpasta/rust.pors"), "funcao").unwrap();
+        fs::write(temp.0.join("aula/subpasta/main.rs"), "fn main() {}").unwrap();
         fs::write(temp.0.join("notas.txt"), "ignorar").unwrap();
 
         let entries = list_entries(&temp.0).unwrap();
@@ -60,6 +61,7 @@ mod tests {
             paths,
             [
                 "aula/exercicio.pEx",
+                "aula/subpasta/main.rs",
                 "aula/subpasta/rust.pors",
                 "inicio.POR"
             ]
@@ -90,9 +92,10 @@ mod tests {
     }
 
     #[test]
-    fn only_saves_existing_portugol_source_files() {
+    fn saves_existing_supported_program_sources() {
         let temp = TempDir::new();
         fs::write(temp.0.join("programa.por"), "antes").unwrap();
+        fs::write(temp.0.join("main.rs"), "fn main() {} ").unwrap();
         fs::write(temp.0.join("atividade.pex"), "exercício").unwrap();
 
         super::write_relative_file(&temp.0, Path::new("programa.por"), "depois").unwrap();
@@ -100,6 +103,16 @@ mod tests {
         assert_eq!(
             fs::read_to_string(temp.0.join("programa.por")).unwrap(),
             "depois"
+        );
+        super::write_relative_file(
+            &temp.0,
+            Path::new("main.rs"),
+            "fn main() { println!(\"ok\"); }",
+        )
+        .unwrap();
+        assert_eq!(
+            fs::read_to_string(temp.0.join("main.rs")).unwrap(),
+            "fn main() { println!(\"ok\"); }"
         );
         assert!(
             super::write_relative_file(&temp.0, Path::new("atividade.pex"), "alterado").is_err()
@@ -111,14 +124,16 @@ mod tests {
     }
 
     #[test]
-    fn creates_empty_portugol_and_portugol_rs_files_exclusively() {
+    fn creates_empty_portugol_portugol_rs_and_rust_files_exclusively() {
         let temp = TempDir::new();
 
         create_source_file(&temp.0, "ola.por").unwrap();
         create_source_file(&temp.0, "ponte.pors").unwrap();
+        create_source_file(&temp.0, "main.rs").unwrap();
 
         assert_eq!(fs::read_to_string(temp.0.join("ola.por")).unwrap(), "");
         assert_eq!(fs::read_to_string(temp.0.join("ponte.pors")).unwrap(), "");
+        assert_eq!(fs::read_to_string(temp.0.join("main.rs")).unwrap(), "");
     }
 
     #[test]
@@ -173,6 +188,11 @@ mod tests {
         assert_eq!(renamed, expected);
         assert_eq!(fs::read_to_string(&renamed).unwrap(), "escreva(42)");
         assert!(!temp.0.join("aulas/antigo.por").exists());
+
+        fs::write(temp.0.join("aulas/main.rs"), "fn main() {}").unwrap();
+        let renamed_rust =
+            rename_relative_file(&temp.0, Path::new("aulas/main.rs"), "renomeado.rs").unwrap();
+        assert_eq!(fs::read_to_string(renamed_rust).unwrap(), "fn main() {}");
     }
 
     #[test]
@@ -220,10 +240,11 @@ mod tests {
         fs::create_dir_all(temp.0.join("aulas")).unwrap();
         fs::write(temp.0.join("aulas/classico.por"), "programa").unwrap();
         fs::write(temp.0.join("aulas/ponte.pors"), "funcao inicio() {}").unwrap();
+        fs::write(temp.0.join("aulas/main.rs"), "fn main() {}").unwrap();
         fs::write(temp.0.join("aulas/exercicio.pex"), "enunciado").unwrap();
         fs::write(temp.0.join("aulas/manter.por"), "manter").unwrap();
 
-        for name in ["classico.por", "ponte.pors", "exercicio.pex"] {
+        for name in ["classico.por", "ponte.pors", "main.rs", "exercicio.pex"] {
             let relative = Path::new("aulas").join(name);
             let expected = fs::canonicalize(temp.0.join("aulas").join(name)).unwrap();
             let deleted = delete_relative_file(&temp.0, &relative).unwrap();
@@ -650,7 +671,7 @@ fn supported_source(path: &Path) -> bool {
         .is_some_and(|extension| {
             matches!(
                 extension.to_ascii_lowercase().as_str(),
-                "por" | "pors" | "pex"
+                "por" | "pors" | "rs" | "pex"
             )
         })
 }
@@ -658,7 +679,12 @@ fn supported_source(path: &Path) -> bool {
 fn supported_program(path: &Path) -> bool {
     path.extension()
         .and_then(|extension| extension.to_str())
-        .is_some_and(|extension| matches!(extension.to_ascii_lowercase().as_str(), "por" | "pors"))
+        .is_some_and(|extension| {
+            matches!(
+                extension.to_ascii_lowercase().as_str(),
+                "por" | "pors" | "rs"
+            )
+        })
 }
 
 fn relative_path(root: &Path, path: &Path) -> Result<String, String> {
@@ -767,7 +793,7 @@ fn checked_file(root: &Path, relative: &Path, allow_exercise: bool) -> Result<Pa
     if !metadata.is_file()
         || !(supported_program(&candidate) || allow_exercise && is_exercise(&candidate))
     {
-        return Err("O explorador só abre arquivos .por, .pors e .pex.".into());
+        return Err("O explorador só abre arquivos .por, .pors, .rs e .pex.".into());
     }
     let canonical = fs::canonicalize(&candidate)
         .map_err(|_| "O arquivo não está mais disponível.".to_string())?;
@@ -793,7 +819,7 @@ fn read_relative_file(root: &Path, relative: &Path) -> Result<String, String> {
 
 fn write_relative_file(root: &Path, relative: &Path, source: &str) -> Result<(), String> {
     if !supported_program(relative) {
-        return Err("Apenas arquivos .por e .pors podem ser salvos pelo explorador.".into());
+        return Err("Apenas arquivos .por, .pors e .rs podem ser salvos pelo explorador.".into());
     }
     let path = checked_file(root, relative, false)?;
     fs::write(path, source).map_err(|error| format!("Não foi possível salvar o arquivo: {error}"))
@@ -812,7 +838,7 @@ fn create_source_file(root: &Path, file_name: &str) -> Result<(), String> {
         return Err("Informe um nome de arquivo sem pastas.".into());
     }
     if !supported_program(relative) {
-        return Err("O arquivo deve usar a extensão .por ou .pors.".into());
+        return Err("O arquivo deve usar a extensão .por, .pors ou .rs.".into());
     }
 
     let root = fs::canonicalize(root)
@@ -849,7 +875,7 @@ fn rename_relative_file(root: &Path, relative: &Path, new_name: &str) -> Result<
         return Err("Informe um nome de arquivo sem pastas.".into());
     }
     if new_name.ends_with('.') || !supported_source(name) {
-        return Err("O arquivo deve manter uma extensão .por, .pors ou .pex.".into());
+        return Err("O arquivo deve manter uma extensão .por, .pors, .rs ou .pex.".into());
     }
 
     let source_extension = source
@@ -928,7 +954,7 @@ fn delete_relative_file_from_dir(
             return Err("O caminho do arquivo é inválido.".into());
         }
         if index + 1 == components.len() && (!metadata.is_file() || !supported_source(relative)) {
-            return Err("O explorador só exclui arquivos .por, .pors e .pex.".into());
+            return Err("O explorador só exclui arquivos .por, .pors, .rs e .pex.".into());
         }
     }
 

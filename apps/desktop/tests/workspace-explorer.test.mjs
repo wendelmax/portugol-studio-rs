@@ -22,16 +22,24 @@ test("collapsed folders hide descendants and expanded folders preserve tree dept
   ]);
 });
 
-test("classifies Portugol, Portugol-RS, and exercise files case-insensitively", () => {
+test("classifies Portugol, Portugol-RS, Rust, and exercise files case-insensitively", () => {
   assert.equal(workspaceFileKind("aula.POR"), "portugol");
   assert.equal(workspaceFileKind("ponte.PORS"), "portugol-rs");
+  assert.equal(workspaceFileKind("main.RS"), "rust");
   assert.equal(workspaceFileKind("listas.PEX"), "exercise");
   assert.equal(workspaceFileKind("leia-me.md"), null);
 });
 
-test("builds new Portugol and Portugol-RS filenames from the selected language", () => {
+test("validates Rust workspace source filenames", () => {
+  assert.equal(workspaceSourceFileName("main", "rs"), "main.rs");
+  assert.equal(workspaceSourceFileName("main.RS", "rs"), "main.RS");
+  assert.throws(() => workspaceSourceFileName("main.por", "rs"), /extensão/);
+});
+
+test("builds new Portugol, Portugol-RS, and Rust filenames from the selected language", () => {
   assert.equal(workspaceSourceFileName("ola", "por"), "ola.por");
   assert.equal(workspaceSourceFileName("ponte.pors", "pors"), "ponte.pors");
+  assert.equal(workspaceSourceFileName("main", "rs"), "main.rs");
   assert.equal(workspaceSourceFileName("classico.POR", "por"), "classico.POR");
 });
 
@@ -45,6 +53,7 @@ test("rejects empty names, path separators, and extensions that conflict with th
 test("renames a workspace file while preserving its original extension", () => {
   assert.equal(workspaceRenameFileName("novo", "antigo.por"), "novo.por");
   assert.equal(workspaceRenameFileName("ponte.pors", "classico.pors"), "ponte.pors");
+  assert.equal(workspaceRenameFileName("crates.rs", "main.rs"), "crates.rs");
   assert.equal(workspaceRenameFileName("atividade.pex", "exercicio.pex"), "atividade.pex");
   assert.equal(workspaceRenameFileName(" nome.por ", " nome.por "), " nome.por ");
 });
@@ -64,13 +73,14 @@ test("home action and explorer tree expose stable accessible controls", () => {
   assert.match(html, /data-testid="project-tree"/);
 });
 
-test("workspace create dialog exposes the .por and .pors choice and an error status", () => {
+test("workspace create dialog exposes the .por, .pors, and .rs choices and an error status", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   assert.match(html, /id="workspace-new-file"/);
   assert.match(html, /id="workspace-create-dialog"[^>]*aria-labelledby="workspace-create-title"/);
   assert.match(html, /id="workspace-create-name"[^>]*aria-describedby="workspace-create-error"/);
   assert.match(html, /<option value="por">[^<]*\.por\)<\/option>/);
   assert.match(html, /<option value="pors">[^<]*\.pors\)<\/option>/);
+  assert.match(html, /<option value="rs">[^<]*\.rs\)<\/option>/);
   assert.match(html, /id="workspace-create-error"[^>]*role="status"/);
   assert.match(html, /id="workspace-create-submit"/);
   assert.match(html, /id="workspace-create-cancel"/);

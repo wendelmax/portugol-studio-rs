@@ -19,9 +19,10 @@ import { defaultKeymap, history, historyKeymap, indentWithTab, isolateHistory } 
 import {
   syntaxHighlighting, HighlightStyle, bracketMatching, indentOnInput, foldGutter, foldKeymap,
 } from "@codemirror/language";
-import { linter, lintGutter, type Diagnostic } from "@codemirror/lint";
+import { linter, lintGutter, setDiagnostics, type Diagnostic } from "@codemirror/lint";
 import { openSearchPanel, highlightSelectionMatches } from "@codemirror/search";
 import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from "@codemirror/autocomplete";
+import { rust } from "@codemirror/lang-rust";
 import { tags } from "@lezer/highlight";
 import { open as openDialog, save as saveDialog, ask } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -78,6 +79,7 @@ interface Tab {
 const THEME_KEY = "portugol.theme";
 const theme = new Compartment();
 const sourceLanguage = new Compartment();
+const portugolTools = new Compartment();
 const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
 function themeChoice(): string {
@@ -215,6 +217,14 @@ const portugolLinter = linter(
   async (view) => {
     const doc = view.state.doc;
     const tab = activeTab();
+    if (tab?.language === "rust") {
+      tab.diagnostics = [];
+      tab.symbols = [];
+      renderMessages();
+      outline.show([]);
+      updateLibraryButtons([]);
+      return [];
+    }
     const language = tab?.language ?? "portugol";
     const inspection = language === "portugol-rs"
       ? await api.inspectPortugolRs(doc.toString())
@@ -233,6 +243,11 @@ const portugolLinter = linter(
 );
 
 function extensions(language: SourceLanguage): Extension[] {
+  const isRust = language === "rust";
+  const isPortugol = !isRust;
+  const tools: Extension[] = isPortugol
+    ? [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]
+    : [];
   return [
     lineNumbers(),
     highlightActiveLineGutter(),
@@ -247,8 +262,8 @@ function extensions(language: SourceLanguage): Extension[] {
     highlightSelectionMatches(),
     findDialog,
     EditorState.tabSize.of(4),
-    sourceLanguage.of(language === "portugol-rs" ? portugolRs() : portugol()),
-    portugolFolding,
+    sourceLanguage.of(isRust ? rust() : language === "portugol-rs" ? portugolRs() : portugol()),
+    portugolTools.of(tools),
     foldGutter({ markerDOM: (open) => {
       const marker = document.createElement("span");
       marker.textContent = open ? "−" : "+";
@@ -259,14 +274,10 @@ function extensions(language: SourceLanguage): Extension[] {
     editorColors,
     theme.of(editorTheme()),
     lintGutter(),
-    portugolLinter,
-    runtimeError,
-    breakpoints,
-    breakpointGutter,
-    debugLine,
     EditorView.domEventHandlers({
       click(event, editor) {
         const mouse = event as MouseEvent;
+        if (activeTab()?.language === "rust") return false;
         if (mouse.button !== 0 || (!mouse.ctrlKey && !mouse.metaKey)) return false;
         const offset = editor.posAtCoords({ x: mouse.clientX, y: mouse.clientY });
         if (offset === null) return false;
@@ -281,7 +292,7 @@ function extensions(language: SourceLanguage): Extension[] {
     ]),
     EditorView.updateListener.of((update) => {
       if (update.docChanged) renderTabs();
-      if (update.docChanged && learningMode === "bridge") scheduleRustExport();
+      if (update.docChanged && learningMode === "bridge" && activeTab()?.language !== "rust") scheduleRustExport();
       if (update.selectionSet || update.docChanged) renderCursor();
       if (centerActive && update.selectionSet) {
         queueMicrotask(() => {
@@ -399,46 +410,55 @@ function activate(id: number) {
   view.setState(tab.state);
   view.dispatch({ effects: [
     theme.reconfigure(editorTheme()),
-    sourceLanguage.reconfigure(tab.language === "portugol-rs" ? portugolRs() : portugol()),
+    sourceLanguage.reconfigure(tab.language === "rust" ? rust() : tab.language === "portugol-rs" ? portugolRs() : portugol()),
+    portugolTools.reconfigure(tab.language === "rust" ? [] : [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]),
     setDebugLine.of(tab.id === runTabId ? paused?.position.line ?? null : null),
   ] });
+  if (tab.language === "rust") view.dispatch(setDiagnostics(view.state, []));
   renderTabs();
+  $<HTMLElement>("rust-preview").hidden = learningMode !== "bridge" || tab.language === "rust";
   renderMessages();
   outline.show(tab.symbols, current !== tab);
   updateLibraryButtons(tab.symbols);
   renderCursor();
   if (centerActive) centerSelection();
-  if (learningMode === "bridge") scheduleRustExport();
+  if (learningMode === "bridge" && tab.language !== "rust") scheduleRustExport();
+  if (tab.language === "rust") {
+    rustExportGeneration++;
+    $<HTMLElement>("rust-status").textContent = "Documento Rust independente; a prévia gerada não altera este arquivo.";
+    $<HTMLElement>("rust-output").textContent = "";
+  }
   syncLanguageControls(tab);
   view.focus();
 }
 
 function syncLanguageControls(tab: Tab) {
   const pors = tab.language === "portugol-rs";
-  const reason = "Disponível quando o Portugol-RS tiver execução e depuração integradas.";
+  const rustFile = tab.language === "rust";
+  const reason = rustFile ? "Execução Rust não configurada nesta versão." : "Disponível quando o Portugol-RS tiver execução e depuração integradas.";
   for (const id of ["btn-run", "btn-debug", "btn-debug-pause", "btn-debug-continue", "btn-debug-step-over", "btn-debug-step-into", "btn-debug-step-out"]) {
     const button = $<HTMLButtonElement>(id);
-    button.disabled = pors || (id === "btn-debug-pause"
+    button.disabled = (pors || rustFile) || (id === "btn-debug-pause"
       ? runId === null || paused !== null
       : id === "btn-run" || id === "btn-debug"
         ? (runId !== null || pendingEvents !== null) && paused === null
         : paused === null);
     button.dataset.defaultTitle ??= button.title;
-    if (pors) button.title = reason;
+    if (pors || rustFile) button.title = reason;
     else button.title = button.dataset.defaultTitle;
-    button.setAttribute("aria-description", pors ? reason : "");
+    button.setAttribute("aria-description", pors || rustFile ? reason : "");
   }
   const format = $<HTMLButtonElement>("editor-format");
-  format.disabled = pors;
-  format.title = pors ? "Formatador clássico indisponível para Portugol-RS." : "Formatar código-fonte";
+  format.disabled = pors || rustFile;
+  format.title = rustFile ? "Formatador Rust não configurado." : pors ? "Formatador clássico indisponível para Portugol-RS." : "Formatar código-fonte";
   for (const [name, button] of libraryButtons) {
-    button.disabled = pors || tab.symbols.some((symbol) => symbol.kind === "library" && symbol.name.split(" → ", 1)[0] === name);
-    button.title = pors ? "Bibliotecas clássicas não se aplicam ao Portugol-RS." : `Incluir biblioteca ${name}`;
+    button.disabled = pors || rustFile || tab.symbols.some((symbol) => symbol.kind === "library" && symbol.name.split(" → ", 1)[0] === name);
+    button.title = rustFile ? "Bibliotecas Portugol não se aplicam a Rust." : pors ? "Bibliotecas clássicas não se aplicam ao Portugol-RS." : `Incluir biblioteca ${name}`;
   }
   for (const id of ["editor-definition", "editor-rename"]) {
     const button = $<HTMLButtonElement>(id);
-    button.disabled = pors;
-    button.setAttribute("aria-description", pors ? "Navegação e renomeação Portugol-RS ainda não estão implementadas." : "");
+    button.disabled = pors || rustFile;
+    button.setAttribute("aria-description", rustFile ? "Navegação e renomeação de símbolos Rust ainda não estão implementadas." : pors ? "Navegação e renomeação Portugol-RS ainda não estão implementadas." : "");
   }
 }
 
@@ -533,7 +553,7 @@ function renderCursor() {
 // Arquivos
 // ---------------------------------------------------------------------------
 
-const FILTERS = [{ name: "Programas Portugol", extensions: ["por", "pors"] }];
+const FILTERS = [{ name: "Programas", extensions: ["por", "pors", "rs"] }];
 
 let workspaceError: string | null = null;
 let workspaceFileCreationPending = false;
@@ -569,7 +589,7 @@ function renderWorkspaceExplorer() {
     const marker = document.createElement("span");
     marker.className = "workspace-tree-marker";
     marker.setAttribute("aria-hidden", "true");
-    marker.textContent = isFolder ? (isExpanded ? "▾" : "▸") : workspaceFileKind(entry.path) === "portugol-rs" ? "RS" : workspaceFileKind(entry.path) === "exercise" ? "EX" : "POR";
+    marker.textContent = isFolder ? (isExpanded ? "▾" : "▸") : workspaceFileKind(entry.path) === "rust" ? "R" : workspaceFileKind(entry.path) === "portugol-rs" ? "RS" : workspaceFileKind(entry.path) === "exercise" ? "EX" : "POR";
     const label = document.createElement("span");
     label.className = "workspace-tree-label";
     label.textContent = entry.name;
@@ -653,7 +673,7 @@ function renderWorkspaceExplorer() {
     message.textContent = "Abra uma pasta para navegar pelos arquivos do projeto.";
     message.hidden = false;
   } else if (rows.length === 0) {
-    message.textContent = "Esta pasta não contém arquivos .por, .pors ou .pex.";
+    message.textContent = "Esta pasta não contém arquivos .por, .pors, .rs ou .pex.";
     message.hidden = false;
   } else {
     message.textContent = "";
@@ -1011,7 +1031,7 @@ async function submitWorkspaceCreateDialog(event: SubmitEvent) {
   if (!selected) return;
 
   const name = $<HTMLInputElement>("workspace-create-name");
-  const language = $<HTMLSelectElement>("workspace-create-language").value as "por" | "pors";
+  const language = $<HTMLSelectElement>("workspace-create-language").value as "por" | "pors" | "rs";
   let fileName: string;
   try {
     fileName = workspaceSourceFileName(name.value, language);
@@ -1220,9 +1240,10 @@ async function save(as = false): Promise<boolean> {
   let path = tab.path;
   let workspaceFile = Boolean(tab.workspaceId && tab.workspacePath);
   if (!path || as) {
-    const extension = tab.language === "portugol-rs" ? "pors" : "por";
+    const extension = tab.language === "portugol-rs" ? "pors" : tab.language === "rust" ? "rs" : "por";
     const exerciseName = tab.exercise ? tab.exercise.name.replace(/\.pex$/i, "") + ".por" : undefined;
-    path = await saveDialog({ filters: FILTERS, defaultPath: tab.path ?? exerciseName ?? tab.exampleName ?? `programa.${extension}` });
+    const filters = tab.language === "rust" ? [{ name: "Rust", extensions: ["rs"] }] : FILTERS;
+    path = await saveDialog({ filters, defaultPath: tab.path ?? exerciseName ?? tab.exampleName ?? `programa.${extension}` });
     if (!path) return false;
     path = ensureSourceExtension(path, tab.language);
     workspaceFile = false;
@@ -1245,7 +1266,21 @@ async function save(as = false): Promise<boolean> {
     tab.workspaceExercisePath = undefined;
   }
   tab.language = detectSourceLanguage(path);
-  if (tab.id === activeId) view.dispatch({ effects: sourceLanguage.reconfigure(tab.language === "portugol-rs" ? portugolRs() : portugol()) });
+  if (tab.id === activeId) {
+    view.dispatch({ effects: [
+      sourceLanguage.reconfigure(tab.language === "rust" ? rust() : tab.language === "portugol-rs" ? portugolRs() : portugol()),
+      portugolTools.reconfigure(tab.language === "rust" ? [] : [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]),
+    ] });
+    syncLanguageControls(tab);
+  }
+  if (tab.language === "rust") {
+    if (tab.id === activeId) view.dispatch(setDiagnostics(view.state, []));
+    tab.diagnostics = [];
+    tab.symbols = [];
+    renderMessages();
+    outline.show([]);
+    updateLibraryButtons([]);
+  }
   tab.saved = text;
   rememberFile(path);
   renderTabs();
@@ -1286,15 +1321,15 @@ function appendConsole(text: string, className?: string) {
 }
 
 function setRunning(running: boolean) {
-  const pors = activeTab()?.language === "portugol-rs";
-  $<HTMLButtonElement>("btn-run").disabled = pors || (running && paused === null);
-  $<HTMLButtonElement>("btn-debug").disabled = pors || (running && paused === null);
+  const unsupported = activeTab()?.language !== "portugol";
+  $<HTMLButtonElement>("btn-run").disabled = unsupported || (running && paused === null);
+  $<HTMLButtonElement>("btn-debug").disabled = unsupported || (running && paused === null);
   $<HTMLButtonElement>("btn-stop").disabled = !running;
-  $<HTMLButtonElement>("btn-debug-pause").disabled = pors || !running || paused !== null;
+  $<HTMLButtonElement>("btn-debug-pause").disabled = unsupported || !running || paused !== null;
   for (const id of [
     "btn-debug-continue", "btn-debug-step-over", "btn-debug-step-into", "btn-debug-step-out",
   ]) {
-    $<HTMLButtonElement>(id).disabled = pors || paused === null;
+    $<HTMLButtonElement>(id).disabled = unsupported || paused === null;
   }
   if (!running) inputForm.hidden = true;
   $("debug-vars").hidden = paused === null || paused.variables.length === 0;
@@ -1381,7 +1416,11 @@ async function runProgram(pauseOnStart = false) {
   if (runId !== null || pendingEvents !== null) return;
   const tab = activeTab();
   if (!tab) return;
-  if (tab.language === "portugol-rs") {
+  if (tab.language !== "portugol") {
+    if (tab.language === "rust") {
+      setStatus("Execução e depuração Rust ainda não estão configuradas.");
+      return;
+    }
     setStatus("O Portugol-RS ainda não possui execução e depuração integradas.");
     return;
   }
@@ -1713,8 +1752,8 @@ for (const name of LIBRARIES) {
 function updateLibraryButtons(symbols: api.SymbolInfo[]) {
   const included = new Set(symbols.filter((symbol) => symbol.kind === "library")
     .map(({ name }) => name.split(" → ", 1)[0]));
-  const pors = activeTab()?.language === "portugol-rs";
-  for (const [name, button] of libraryButtons) button.disabled = pors || included.has(name);
+  const unsupported = activeTab()?.language !== "portugol";
+  for (const [name, button] of libraryButtons) button.disabled = unsupported || included.has(name);
 }
 
 for (const snippet of SNIPPETS) {
@@ -1723,7 +1762,7 @@ for (const snippet of SNIPPETS) {
   button.title = snippet.detail ?? snippet.label;
   button.onclick = () => {
     const tab = activeTab();
-    if (!tab || (tab.id === runTabId && runId !== null)) return;
+    if (!tab || tab.language === "rust" || (tab.id === runTabId && runId !== null)) return;
     if (snippet.label === "programa") {
       newTab();
       return;
@@ -1787,6 +1826,12 @@ newPorsButton.title = "Novo arquivo Portugol-RS (.pors)";
 newPorsButton.textContent = "Novo Portugol-RS";
 newPorsButton.onclick = () => newTab(PORS_TEMPLATE, null, undefined, undefined, undefined, "portugol-rs");
 $("home-new").parentElement!.append(newPorsButton);
+const newRustButton = document.createElement("button");
+newRustButton.id = "home-new-rust";
+newRustButton.title = "Novo arquivo Rust (.rs)";
+newRustButton.textContent = "Novo Rust";
+newRustButton.onclick = () => newTab("fn main() {\n    \n}\n", null, undefined, undefined, undefined, "rust");
+$("home-new").parentElement!.append(newRustButton);
 $("home-open").onclick = () => void openFiles();
 $("btn-open").onclick = () => void openFiles();
 const editorOptions = $<HTMLDetailsElement>("editor-options");
@@ -1983,7 +2028,7 @@ function applyLearningMode(mode: LearningMode, persist = true) {
   if (!$<HTMLElement>("learning-panel").hidden) renderLearningPanel();
 
   const preview = $<HTMLElement>("rust-preview");
-  const bridgeEnabled = mode === "bridge";
+  const bridgeEnabled = mode === "bridge" && activeTab()?.language !== "rust";
   preview.hidden = !bridgeEnabled;
   $<HTMLButtonElement>("btn-rust").setAttribute("aria-pressed", String(bridgeEnabled));
   if (bridgeEnabled) {
@@ -2026,10 +2071,20 @@ $<HTMLButtonElement>("rust-save").onclick = async () => {
     setStatus(String(error), "error");
   }
 };
+$<HTMLButtonElement>("rust-detach").onclick = () => {
+  const code = $<HTMLElement>("rust-output").textContent ?? "";
+  if (!code || activeTab()?.language === "rust") return;
+  const tab = newTab(code, null, undefined, undefined, undefined, "rust");
+  $<HTMLElement>("rust-preview").hidden = true;
+  setStatus("Rust desvinculado em uma nova aba .rs. O arquivo de origem permanece intacto.", "ok");
+  view.focus();
+  renderTabs();
+  syncLanguageControls(tab);
+};
 $("btn-debug").onclick = () => void stepOrStart();
 $("btn-stop").onclick = () => void stopProgram();
 $("btn-debug-pause").onclick = () => {
-  if (activeTab()?.language === "portugol-rs") return;
+  if (activeTab()?.language !== "portugol") return;
   if (runId !== null) void api.debugPause(runId);
 };
 $("btn-debug-continue").onclick = () => void debugCommand(api.debugContinue);
@@ -2074,6 +2129,10 @@ $<HTMLButtonElement>("ownership-restart").onclick = () => {
 };
 
 function scheduleRustExport() {
+  if (activeTab()?.language === "rust") {
+    rustExportGeneration++;
+    return;
+  }
   const generation = ++rustExportGeneration;
   if (rustExportTimer !== undefined) window.clearTimeout(rustExportTimer);
   const status = $<HTMLElement>("rust-status");
@@ -2081,6 +2140,7 @@ function scheduleRustExport() {
   delete status.dataset.error;
   $<HTMLButtonElement>("rust-copy").disabled = true;
   $<HTMLButtonElement>("rust-save").disabled = true;
+  $<HTMLButtonElement>("rust-detach").disabled = true;
   $<HTMLElement>("rust-output").textContent = "";
   rustExportTimer = window.setTimeout(async () => {
     let result: api.RustExport;
@@ -2095,6 +2155,7 @@ function scheduleRustExport() {
       status.dataset.error = "true";
       $<HTMLButtonElement>("rust-copy").disabled = true;
       $<HTMLButtonElement>("rust-save").disabled = true;
+      $<HTMLButtonElement>("rust-detach").disabled = true;
       $<HTMLElement>("rust-output").textContent = "";
       return;
     }
@@ -2106,6 +2167,7 @@ function scheduleRustExport() {
       output.textContent = result.code;
       status.textContent = "Tradução disponível para copiar ou salvar.";
       copy.disabled = save.disabled = false;
+      $<HTMLButtonElement>("rust-detach").disabled = false;
       delete status.dataset.error;
     } else {
       output.textContent = "";
@@ -2114,6 +2176,7 @@ function scheduleRustExport() {
         ? "Linha " + diagnostic.start.line + ", coluna " + diagnostic.start.column + ": " + diagnostic.message
         : "Não foi possível gerar Rust para este programa.";
       copy.disabled = save.disabled = true;
+      $<HTMLButtonElement>("rust-detach").disabled = true;
       status.dataset.error = "true";
     }
   }, 220);
@@ -2447,12 +2510,15 @@ async function openIncomingFiles(paths: string[], warnUnsupported = false) {
       } else if (/\.pors$/i.test(path)) {
         supported = true;
         await openFile(path);
+      } else if (/\.rs$/i.test(path)) {
+        supported = true;
+        await openFile(path);
       }
     } catch (error) {
       setStatus(typeof error === "string" ? error : "Não foi possível abrir o arquivo.", "error");
     }
   }
-  if (warnUnsupported && !supported && paths.length) setStatus("Escolha um arquivo .por, .pors ou .pex.", "error");
+  if (warnUnsupported && !supported && paths.length) setStatus("Escolha um arquivo .por, .pors, .rs ou .pex.", "error");
 }
 
 async function consumeSystemFiles() {
