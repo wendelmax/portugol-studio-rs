@@ -36,7 +36,7 @@ import { mountOutline, symbolKindLabels } from "./outline";
 import { panelContentId, type PanelName } from "./panel-tabs";
 import { LIBRARIES, portugol, portugolRs, SNIPPETS } from "./portugol";
 import { detectSourceLanguage, ensureSourceExtension, type SourceLanguage } from "./document-language";
-import { flattenWorkspaceEntries, workspaceFileKind, type WorkspaceEntry } from "./workspace-explorer";
+import { flattenWorkspaceEntries, workspaceFileKind, workspaceSourceFileName, type WorkspaceEntry } from "./workspace-explorer";
 import { conceptsForMode, resolveConceptForMode } from "./learning-content";
 import { loadLearningMode, saveLearningMode, type LearningMode } from "./learning-mode";
 import {
@@ -535,6 +535,7 @@ function renderCursor() {
 const FILTERS = [{ name: "Programas Portugol", extensions: ["por", "pors"] }];
 
 let workspaceError: string | null = null;
+let workspaceFileCreationPending = false;
 
 function setWorkspaceExplorerVisible(visible: boolean) {
   $("workspace-explorer").hidden = !visible;
@@ -548,6 +549,7 @@ function renderWorkspaceExplorer() {
   const name = $("workspace-name");
   const openButtons = [$<HTMLButtonElement>("home-open-folder"), $<HTMLButtonElement>("workspace-open-folder")];
   openButtons.forEach((button) => { button.disabled = workspaceLoading; });
+  $<HTMLButtonElement>("workspace-new-file").disabled = !workspaceState || workspaceLoading;
   name.hidden = !workspaceState;
   name.textContent = workspaceState?.name ?? "";
 
@@ -701,8 +703,88 @@ async function openWorkspaceFile(entry: Extract<WorkspaceEntry, { kind: "file" }
   setStatus(`Aberto: ${entry.path}`, "ok");
 }
 
+function showWorkspaceCreateError(message: string | null) {
+  const error = $("workspace-create-error");
+  error.textContent = message ?? "";
+  error.hidden = !message;
+  $("workspace-create-name").setAttribute("aria-invalid", String(Boolean(message)));
+}
+
+function openWorkspaceCreateDialog() {
+  if (!workspaceState) return;
+  const dialog = $<HTMLDialogElement>("workspace-create-dialog");
+  showWorkspaceCreateError(null);
+  $<HTMLFormElement>("workspace-create-form").reset();
+  dialog.showModal();
+  $("workspace-create-name").focus();
+}
+
+async function submitWorkspaceCreateDialog(event: SubmitEvent) {
+  event.preventDefault();
+  const selected = workspaceState;
+  if (!selected) return;
+
+  const name = $<HTMLInputElement>("workspace-create-name");
+  const language = $<HTMLSelectElement>("workspace-create-language").value as "por" | "pors";
+  let fileName: string;
+  try {
+    fileName = workspaceSourceFileName(name.value, language);
+  } catch (error) {
+    showWorkspaceCreateError(String(error).replace(/^Error: /, ""));
+    name.focus();
+    return;
+  }
+
+  const submit = $<HTMLButtonElement>("workspace-create-submit");
+  const cancel = $<HTMLButtonElement>("workspace-create-cancel");
+  workspaceFileCreationPending = true;
+  submit.disabled = true;
+  cancel.disabled = true;
+  showWorkspaceCreateError(null);
+  try {
+    const refreshed = await api.createWorkspaceFile(selected.id, fileName);
+    if (workspaceState?.id !== selected.id) return;
+    workspaceState = refreshed;
+    workspaceError = null;
+    selectedWorkspacePath = fileName;
+    setWorkspaceExplorerVisible(true);
+    renderWorkspaceExplorer();
+    $<HTMLDialogElement>("workspace-create-dialog").close();
+    $<HTMLFormElement>("workspace-create-form").reset();
+    const created = refreshed.entries.find((entry): entry is Extract<WorkspaceEntry, { kind: "file" }> =>
+      entry.kind === "file" && entry.path === fileName,
+    );
+    if (created) await openWorkspaceFile(created);
+    else setStatus(`Arquivo criado: ${fileName}`, "ok");
+  } catch (error) {
+    const message = String(error).replace(/^Error: /, "");
+    if ($<HTMLDialogElement>("workspace-create-dialog").open) {
+      showWorkspaceCreateError(message);
+      name.focus();
+    } else {
+      workspaceError = message;
+      renderWorkspaceExplorer();
+      setStatus(message, "error");
+    }
+  } finally {
+    workspaceFileCreationPending = false;
+    submit.disabled = false;
+    cancel.disabled = false;
+  }
+}
+
 $("home-open-folder").onclick = () => void openWorkspaceFolder();
 $("workspace-open-folder").onclick = () => void openWorkspaceFolder();
+$("workspace-new-file").onclick = openWorkspaceCreateDialog;
+$("workspace-create-form").addEventListener("submit", (event) => void submitWorkspaceCreateDialog(event as SubmitEvent));
+$("workspace-create-dialog").addEventListener("cancel", (event) => {
+  if (workspaceFileCreationPending) event.preventDefault();
+});
+$("workspace-create-cancel").onclick = () => {
+  $<HTMLDialogElement>("workspace-create-dialog").close();
+  $<HTMLFormElement>("workspace-create-form").reset();
+  showWorkspaceCreateError(null);
+};
 $("btn-explorer").onclick = () => {
   if (!workspaceState) {
     void openWorkspaceFolder();

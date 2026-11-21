@@ -24,3 +24,23 @@ export function workspaceFileKind(path: string): "portugol" | "portugol-rs" | "e
   if (extension === "pex") return "exercise";
   return null;
 }
+
+export function workspaceSourceFileName(name: string, language: "por" | "pors"): string {
+  const trimmed = name.trim();
+  if (!trimmed || trimmed === "." || trimmed === ".." || /[\\/]/.test(trimmed)) {
+    throw new Error("Informe um nome de arquivo sem pastas.");
+  }
+  if (trimmed.endsWith(".")) {
+    throw new Error("O nome do arquivo não pode terminar com ponto.");
+  }
+
+  const dot = trimmed.lastIndexOf(".");
+  if (dot >= 0) {
+    const extension = trimmed.slice(dot + 1).toLowerCase();
+    if (extension !== language) {
+      throw new Error(`A extensão do nome deve ser .${language}.`);
+    }
+    return trimmed;
+  }
+  return `${trimmed}.${language}`;
+}
