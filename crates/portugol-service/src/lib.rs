@@ -17,7 +17,9 @@ use serde::Serialize;
 
 use portugol_syntax::{Diagnostic, Severity, parse};
 
-pub use exercises::{Exercise, ExerciseResult, check_exercise, exercises};
+pub use exercises::{
+    Exercise, ExerciseResult, check_exercise, check_imported_exercise, exercises, inspect_exercise,
+};
 pub use outline::{SymbolInfo, SymbolKind};
 pub use portugol_vm::{FileFilter, Host, Sound, graphics};
 pub use position::Position;

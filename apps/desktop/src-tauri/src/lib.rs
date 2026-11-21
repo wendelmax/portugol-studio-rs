@@ -168,13 +168,22 @@ fn exercise_catalog() -> Vec<portugol_service::Exercise> {
 }
 
 #[tauri::command]
+fn inspect_exercise(contents: String) -> Result<portugol_service::Exercise, String> {
+    portugol_service::inspect_exercise(&contents)
+}
+
+#[tauri::command]
 async fn check_exercise(
     id: u32,
     source: String,
+    contents: Option<String>,
 ) -> Result<portugol_service::ExerciseResult, String> {
-    tauri::async_runtime::spawn_blocking(move || portugol_service::check_exercise(id, &source))
-        .await
-        .map_err(|error| error.to_string())?
+    tauri::async_runtime::spawn_blocking(move || match contents {
+        Some(raw) => portugol_service::check_imported_exercise(&raw, &source),
+        None => portugol_service::check_exercise(id, &source),
+    })
+    .await
+    .map_err(|error| error.to_string())?
 }
 
 #[tauri::command]
@@ -353,6 +362,7 @@ pub fn run_app() {
             include_library,
             exercise_catalog,
             check_exercise,
+            inspect_exercise,
             rename_target,
             rename_symbol,
             open_project_page,
