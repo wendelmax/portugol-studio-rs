@@ -14,6 +14,12 @@ pub struct RenameTarget {
     pub occurrences: usize,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct SymbolLocation {
+    pub start: crate::Position,
+    pub end: crate::Position,
+}
+
 #[derive(Serialize)]
 pub struct RenameEdit {
     pub from: u32,
@@ -69,11 +75,6 @@ fn locate(
         .ok_or("Posicione o cursor em um símbolo do programa.")?;
     let span = tokens[candidate].span;
     let name = &source[span.start as usize..span.end as usize];
-    if name == "inicio" && portugol_syntax::parse(source).program.items.iter().any(|item| {
-        matches!(item, portugol_syntax::ast::Item::Function(function) if function.name.span == span)
-    }) {
-        return Err("A função de entrada inicio precisa manter esse nome.".into());
-    }
     let mut occurrences: Vec<_> = bindings
         .symbols
         .iter()
@@ -83,13 +84,41 @@ fn locate(
     Ok((candidate, name.to_owned(), occurrences))
 }
 
+fn validate_rename_target(
+    source: &str,
+    declaration: usize,
+    name: &str,
+    tokens: &[Token],
+) -> Result<(), String> {
+    let span = tokens[declaration].span;
+    if name == "inicio" && portugol_syntax::parse(source).program.items.iter().any(|item| {
+        matches!(item, portugol_syntax::ast::Item::Function(function) if function.name.span == span)
+    }) {
+        return Err("A função de entrada inicio precisa manter esse nome.".into());
+    }
+    Ok(())
+}
+
 pub fn rename_target(source: &str, offset: u32) -> Result<RenameTarget, String> {
     let bindings = bindings(source)?;
     let index = LineIndex::new(source);
-    let (_, name, occurrences) = locate(source, offset, &index, &bindings)?;
+    let (declaration, name, occurrences) = locate(source, offset, &index, &bindings)?;
+    validate_rename_target(source, declaration, &name, &bindings.tokens)?;
     Ok(RenameTarget {
         name,
         occurrences: occurrences.len(),
+    })
+}
+
+/// Resolve a symbol use to its declaration using the same semantic bindings as rename.
+pub fn resolve_symbol(source: &str, offset: u32) -> Result<SymbolLocation, String> {
+    let bindings = bindings(source)?;
+    let index = LineIndex::new(source);
+    let (declaration, _, _) = locate(source, offset, &index, &bindings)?;
+    let span = bindings.tokens[declaration].span;
+    Ok(SymbolLocation {
+        start: index.position(span.start),
+        end: index.position(span.end),
     })
 }
 
@@ -104,7 +133,8 @@ pub fn rename_symbol(source: &str, offset: u32, name: &str) -> Result<Vec<Rename
     }
     let old = bindings(source)?;
     let index = LineIndex::new(source);
-    let (_, old_name, occurrences) = locate(source, offset, &index, &old)?;
+    let (declaration, old_name, occurrences) = locate(source, offset, &index, &old)?;
+    validate_rename_target(source, declaration, &old_name, &old.tokens)?;
     if name == old_name {
         return Ok(Vec::new());
     }
@@ -134,6 +164,51 @@ pub fn rename_symbol(source: &str, offset: u32, name: &str) -> Result<Vec<Rename
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn resolve_symbol_returns_the_declaration_for_a_local_use() {
+        let source = "programa { inteiro valor = 1 funcao inicio() { escreva(valor) } }";
+        let usage = source.find("valor)").unwrap() as u32;
+        let location = resolve_symbol(source, usage).unwrap();
+        assert_eq!(location.start.offset, source.find("valor").unwrap() as u32);
+        assert_eq!(
+            location.end.offset,
+            location.start.offset + "valor".len() as u32
+        );
+    }
+
+    #[test]
+    fn resolve_symbol_respects_shadowed_bindings_and_utf16_offsets() {
+        let source = "// 😀\nprograma { inteiro item = 1 funcao inicio() { escreva(item) se (verdadeiro) { inteiro item = 2 escreva(item) } escreva(item) } }";
+        let occurrences: Vec<_> = source
+            .match_indices("item")
+            .map(|(offset, _)| offset)
+            .collect();
+        let as_utf16 = |byte_offset: usize| source[..byte_offset].encode_utf16().count() as u32;
+
+        let inner = resolve_symbol(source, as_utf16(occurrences[3])).unwrap();
+        let after_scope = resolve_symbol(source, as_utf16(occurrences[4])).unwrap();
+
+        assert_eq!(inner.start.offset, as_utf16(occurrences[2]));
+        assert_eq!(after_scope.start.offset, as_utf16(occurrences[0]));
+    }
+
+    #[test]
+    fn resolve_symbol_rejects_positions_without_a_resolved_identifier() {
+        let source = "programa { inteiro valor = 1 funcao inicio() { escreva(valor) } }";
+        assert!(resolve_symbol(source, source.find("programa").unwrap() as u32).is_err());
+    }
+
+    #[test]
+    fn resolve_symbol_navigates_to_functions_including_the_entry_function() {
+        let source = "programa { funcao auxiliar() { } funcao inicio() { auxiliar() } }";
+        let helper_use = source.find("auxiliar() }").unwrap() as u32;
+        let helper = resolve_symbol(source, helper_use).unwrap();
+        let entry = resolve_symbol(source, source.find("inicio").unwrap() as u32).unwrap();
+
+        assert_eq!(helper.start.offset, source.find("auxiliar").unwrap() as u32);
+        assert_eq!(entry.start.offset, source.find("inicio").unwrap() as u32);
+    }
 
     #[test]
     fn renames_only_the_selected_binding_and_keeps_utf16_offsets() {

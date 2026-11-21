@@ -58,6 +58,11 @@ export interface SymbolInfo {
   children: SymbolInfo[];
 }
 
+export interface SymbolLocation {
+  start: Position;
+  end: Position;
+}
+
 export interface Inspection {
   diagnostics: DiagnosticInfo[];
   symbols: SymbolInfo[];
@@ -85,6 +90,9 @@ export const renameTarget = (source: string, offset: number) =>
 
 export const renameSymbol = (source: string, offset: number, name: string) =>
   invoke<{ from: number; to: number; insert: string }[]>("rename_symbol", { source, offset, name });
+
+export const resolveSymbol = (source: string, offset: number) =>
+  invoke<SymbolLocation>("resolve_symbol", { source, offset });
 
 export const openProjectPage = (page: "bug_report" | "releases" | "contribute") =>
   invoke<void>("open_project_page", { page });

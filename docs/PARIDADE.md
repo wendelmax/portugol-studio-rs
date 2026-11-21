@@ -61,6 +61,7 @@ são executados e validados sem tela.
 | Tela inicial com exemplos (`AbaInicial`, `PainelExemplos`) | 🟡 | Abrir/Novo, até seis recentes, 119 exemplos com busca, descrição, imagens e cópia de trabalho com recursos, acesso às dicas e links do rodapé |
 | Ajuda da linguagem e das bibliotecas (`abaAjuda`, `assets/ajuda`) | ✅ | aba F1, busca, tópicos e diagramas da versão 2.7.5, abertura de exemplos e referências das bibliotecas |
 | Árvore estrutural (variáveis e funções do programa) | ✅ | painel redimensionável com busca, engrenagem de filtros, navegação, inspetor e inclusão de bibliotecas e modelos |
+| Ir à declaração (`resolve_symbol`) | ✅ | F12 no editor, Ctrl/Cmd+clique e ação no menu; resolução semântica respeita escopos, preserva o buffer e descarta respostas obsoletas |
 | Renomear símbolo (`TelaRenomearSimbolo`) | ✅ | Ctrl+R, menu do editor e duplo clique na árvore; análise de escopo e verificação de conflitos |
 | Dobras de código | ✅ | blocos aninhados e comentários de várias linhas, com marcadores no cabeçalho |
 | Formatador de código (`editor/formatador`) | ✅ | opções do editor e Ctrl+Alt+F, com alterações de espaço e desfazer em uma etapa |
