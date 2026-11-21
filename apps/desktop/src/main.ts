@@ -39,6 +39,7 @@ import { calculateSidePaneMinimums, clampPaneSize, DEFAULT_PANE_LAYOUT, loadPane
 import { LIBRARIES, portugol, portugolRs, SNIPPETS } from "./portugol";
 import { detectSourceLanguage, ensureSourceExtension, type SourceLanguage } from "./document-language";
 import { collectWorkspaceFiles, flattenWorkspaceEntries, workspaceFileKind, workspaceRenameFileName, workspaceSourceFileName, type WorkspaceEntry } from "./workspace-explorer";
+import { workspaceExportStatus } from "./workspace-export-state";
 import { applyWorkspaceRenameToTabs, deleteWorkspaceFileFlow, prepareWorkspaceRename } from "./workspace-file-actions";
 import { conceptsForMode, resolveConceptForMode } from "./learning-content";
 import { loadLearningMode, saveLearningMode, type LearningMode } from "./learning-mode";
@@ -1057,14 +1058,15 @@ function openWorkspaceCreateDialog() {
 
 function updateWorkspaceExportSelection() {
   const selectedCount = document.querySelectorAll<HTMLInputElement>("#workspace-export-files input:checked").length;
+  document.querySelectorAll<HTMLInputElement>("#workspace-export-files input").forEach((input) => {
+    input.disabled = workspaceExportPending;
+  });
   const submit = $<HTMLButtonElement>("workspace-export-submit");
   submit.disabled = workspaceExportPending || selectedCount === 0;
   $<HTMLButtonElement>("workspace-export-select-all").disabled = workspaceExportPending;
   $<HTMLButtonElement>("workspace-export-select-none").disabled = workspaceExportPending;
   $<HTMLButtonElement>("workspace-export-cancel").disabled = workspaceExportPending;
-  if (!workspaceExportPending) $("workspace-export-status").textContent = selectedCount
-    ? `${selectedCount} ${selectedCount === 1 ? "arquivo selecionado" : "arquivos selecionados"}.`
-    : "Selecione ao menos um arquivo.";
+  if (!workspaceExportPending) $("workspace-export-status").textContent = workspaceExportStatus(selectedCount);
 }
 
 function renderWorkspaceExportSelection() {
@@ -1121,10 +1123,11 @@ async function submitWorkspaceExport() {
   $("workspace-export-status").textContent = "Escolha uma pasta de destino no seletor do sistema…";
   updateWorkspaceExportSelection();
   renderWorkspaceExplorer();
+  let cancelled = false;
   try {
     const result = await api.exportWorkspaceFiles(workspace.id, relativePaths);
     if (!result) {
-      $("workspace-export-status").textContent = "Exportação cancelada. Nenhum arquivo foi copiado.";
+      cancelled = true;
       return;
     }
     $<HTMLDialogElement>("workspace-export-dialog").close();
@@ -1136,6 +1139,10 @@ async function submitWorkspaceExport() {
     workspaceExportPending = false;
     $("workspace-export-dialog").removeAttribute("aria-busy");
     updateWorkspaceExportSelection();
+    if (cancelled) {
+      const selectedCount = document.querySelectorAll<HTMLInputElement>("#workspace-export-files input:checked").length;
+      $("workspace-export-status").textContent = workspaceExportStatus(selectedCount, "cancelled");
+    }
     renderWorkspaceExplorer();
   }
 }

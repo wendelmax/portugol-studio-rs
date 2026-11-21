@@ -1,9 +1,10 @@
 #[cfg(test)]
 mod tests {
     use super::{
-        WorkspaceEntry, copy_selected_files, copy_selected_files_with_hook, create_source_file,
-        delete_relative_file, list_entries, read_relative_file, rename_relative_file,
-        restore_saved_workspace, save_last_workspace,
+        WorkspaceEntry, WorkspaceSession, copy_selected_files,
+        copy_selected_files_from_dir_with_hook, copy_selected_files_with_hook, create_source_file,
+        delete_relative_file, list_entries, open_selected_file_with_hook, read_relative_file,
+        rename_relative_file, restore_saved_workspace, save_last_workspace,
     };
     use std::fs;
     use std::path::Path;
@@ -147,6 +148,146 @@ mod tests {
 
         assert!(result.is_err());
         assert!(!destination.0.join("projeto").exists());
+    }
+
+    #[test]
+    fn export_does_not_truncate_a_conflicting_destination_file() {
+        let source = TempDir::new();
+        let destination = TempDir::new();
+        let root = source.0.join("projeto");
+        fs::create_dir_all(&root).unwrap();
+        fs::write(root.join("programa.por"), "origem").unwrap();
+        let conflict = destination.0.join("projeto/programa.por");
+
+        let result =
+            copy_selected_files_with_hook(&root, &destination.0, &["programa.por".into()], |_| {
+                fs::create_dir_all(conflict.parent().unwrap()).unwrap();
+                fs::write(&conflict, "arquivo preexistente").unwrap();
+                Ok(())
+            });
+
+        let error = result.unwrap_err();
+        assert!(error.contains("sem sobrescrever"));
+        assert!(error.contains("limpeza da cópia parcial também falhou"));
+        assert_eq!(
+            fs::read_to_string(&conflict).unwrap(),
+            "arquivo preexistente"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn export_uses_the_workspace_directory_handle_registered_at_open_time() {
+        use std::os::unix::fs::symlink;
+
+        let source = TempDir::new();
+        let destination = TempDir::new();
+        let root = source.0.join("projeto");
+        let moved = source.0.join("projeto-original");
+        let replacement = source.0.join("substituto");
+        fs::create_dir_all(&root).unwrap();
+        fs::create_dir_all(&replacement).unwrap();
+        fs::write(root.join("programa.por"), "conteúdo original").unwrap();
+        fs::write(replacement.join("programa.por"), "conteúdo externo").unwrap();
+
+        let session = WorkspaceSession::default();
+        let workspace_id = session.register(root.clone()).unwrap();
+        fs::rename(&root, &moved).unwrap();
+        symlink(&replacement, &root).unwrap();
+        let registered_dir = session.directory(&workspace_id).unwrap();
+
+        assert!(
+            copy_selected_files_from_dir_with_hook(
+                &registered_dir,
+                &root,
+                "projeto",
+                &destination.0,
+                &["programa.por".into()],
+                |_| Ok(()),
+            )
+            .unwrap_err()
+            .contains("mudou")
+        );
+        copy_selected_files_from_dir_with_hook(
+            &registered_dir,
+            &moved,
+            "projeto",
+            &destination.0,
+            &["programa.por".into()],
+            |_| Ok(()),
+        )
+        .unwrap();
+
+        assert_eq!(
+            fs::read_to_string(destination.0.join("projeto/programa.por")).unwrap(),
+            "conteúdo original"
+        );
+        assert_eq!(
+            fs::read_to_string(replacement.join("programa.por")).unwrap(),
+            "conteúdo externo"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn rollback_preserves_a_replacement_folder_and_cleans_the_created_folder_handle() {
+        let source = TempDir::new();
+        let destination = TempDir::new();
+        let root = source.0.join("projeto");
+        fs::create_dir_all(&root).unwrap();
+        fs::write(root.join("a.por"), "primeiro").unwrap();
+        fs::write(root.join("b.por"), "segundo").unwrap();
+        let moved = destination.0.join("pasta-criada-movida");
+
+        let result = copy_selected_files_with_hook(
+            &root,
+            &destination.0,
+            &["a.por".into(), "b.por".into()],
+            |relative| {
+                if relative == "b.por" {
+                    fs::rename(destination.0.join("projeto"), &moved).unwrap();
+                    fs::create_dir(destination.0.join("projeto")).unwrap();
+                    fs::write(destination.0.join("projeto/nao-apagar.txt"), "substituta").unwrap();
+                    Err("falha de cópia injetada".into())
+                } else {
+                    Ok(())
+                }
+            },
+        );
+
+        assert!(result.unwrap_err().contains("substituída"));
+        assert_eq!(
+            fs::read_to_string(destination.0.join("projeto/nao-apagar.txt")).unwrap(),
+            "substituta"
+        );
+        assert_eq!(fs::read_dir(&moved).unwrap().count(), 0);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn export_rejects_a_file_replaced_by_a_symlink_after_validation() {
+        use std::os::unix::fs::symlink;
+
+        let source = TempDir::new();
+        let outside = TempDir::new();
+        let root = source.0.join("projeto");
+        fs::create_dir_all(&root).unwrap();
+        fs::write(root.join("programa.por"), "original").unwrap();
+        fs::write(outside.0.join("segredo.por"), "segredo").unwrap();
+        let directory =
+            cap_std::fs::Dir::open_ambient_dir(&root, cap_std::ambient_authority()).unwrap();
+
+        let result = open_selected_file_with_hook(&directory, "programa.por", |_| {
+            fs::remove_file(root.join("programa.por")).unwrap();
+            symlink(outside.0.join("segredo.por"), root.join("programa.por")).unwrap();
+            Ok(())
+        });
+
+        assert!(result.is_err());
+        assert_eq!(
+            fs::read_to_string(outside.0.join("segredo.por")).unwrap(),
+            "segredo"
+        );
     }
 
     #[test]
@@ -591,6 +732,7 @@ mod tests {
     }
 }
 use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::ffi::OsString;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -603,6 +745,7 @@ use tauri_plugin_dialog::DialogExt;
 struct WorkspaceState {
     next_id: u64,
     roots: HashMap<String, PathBuf>,
+    directories: HashMap<String, cap_std::fs::Dir>,
     ids: HashMap<PathBuf, String>,
 }
 
@@ -610,17 +753,20 @@ struct WorkspaceState {
 pub struct WorkspaceSession(Arc<Mutex<WorkspaceState>>);
 
 impl WorkspaceSession {
-    fn register(&self, root: PathBuf) -> String {
+    fn register(&self, root: PathBuf) -> Result<String, String> {
+        let directory = cap_std::fs::Dir::open_ambient_dir(&root, cap_std::ambient_authority())
+            .map_err(|error| format!("Não foi possível fixar a pasta do projeto: {error}"))?;
         let mut state = self.0.lock().unwrap_or_else(|error| error.into_inner());
         if let Some(id) = state.ids.get(&root) {
-            return id.clone();
+            return Ok(id.clone());
         }
         state.next_id += 1;
         let next_id = state.next_id;
         let id = format!("workspace-{next_id}");
         state.ids.insert(root.clone(), id.clone());
         state.roots.insert(id.clone(), root);
-        id
+        state.directories.insert(id.clone(), directory);
+        Ok(id)
     }
 
     fn root(&self, id: &str) -> Result<PathBuf, String> {
@@ -633,6 +779,19 @@ impl WorkspaceSession {
             .ok_or_else(|| {
                 "Esta pasta não está mais aberta. Abra-a novamente para continuar.".into()
             })
+    }
+
+    fn directory(&self, id: &str) -> Result<cap_std::fs::Dir, String> {
+        self.0
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .directories
+            .get(id)
+            .ok_or_else(|| {
+                "Esta pasta não está mais aberta. Abra-a novamente para continuar.".to_string()
+            })?
+            .try_clone()
+            .map_err(|error| format!("Não foi possível acessar a pasta aberta: {error}"))
     }
 }
 
@@ -749,7 +908,7 @@ fn restore_saved_workspace(
         .and_then(|name| name.to_str())
         .unwrap_or("Projeto")
         .to_string();
-    let id = session.register(root);
+    let id = session.register(root)?;
     Ok(Some(WorkspaceListing { id, name, entries }))
 }
 
@@ -782,23 +941,66 @@ pub struct WorkspaceDeleteResult {
     file: WorkspaceFilePath,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct WorkspaceExportResult {
     project_name: String,
     file_count: usize,
 }
 
+#[cfg(test)]
 fn copy_selected_files(
     source_root: &Path,
     destination_parent: &Path,
     selected_paths: &[String],
 ) -> Result<WorkspaceExportResult, String> {
-    copy_selected_files_with_hook(source_root, destination_parent, selected_paths, |_| Ok(()))
+    let source_root = fs::canonicalize(source_root)
+        .map_err(|_| "A pasta aberta não está mais disponível.".to_string())?;
+    let source = cap_std::fs::Dir::open_ambient_dir(&source_root, cap_std::ambient_authority())
+        .map_err(|error| format!("Não foi possível abrir o projeto: {error}"))?;
+    let project_name = source_root
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("Projeto");
+    copy_selected_files_from_dir_with_hook(
+        &source,
+        &source_root,
+        project_name,
+        destination_parent,
+        selected_paths,
+        |_| Ok(()),
+    )
 }
 
+#[cfg(test)]
 fn copy_selected_files_with_hook(
     source_root: &Path,
+    destination_parent: &Path,
+    selected_paths: &[String],
+    before_copy: impl FnMut(&str) -> Result<(), String>,
+) -> Result<WorkspaceExportResult, String> {
+    let source_root = fs::canonicalize(source_root)
+        .map_err(|_| "A pasta aberta não está mais disponível.".to_string())?;
+    let source = cap_std::fs::Dir::open_ambient_dir(&source_root, cap_std::ambient_authority())
+        .map_err(|error| format!("Não foi possível abrir o projeto: {error}"))?;
+    let project_name = source_root
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("Projeto");
+    copy_selected_files_from_dir_with_hook(
+        &source,
+        &source_root,
+        project_name,
+        destination_parent,
+        selected_paths,
+        before_copy,
+    )
+}
+
+fn copy_selected_files_from_dir_with_hook(
+    source: &cap_std::fs::Dir,
+    source_root_path: &Path,
+    project_name: &str,
     destination_parent: &Path,
     selected_paths: &[String],
     mut before_copy: impl FnMut(&str) -> Result<(), String>,
@@ -807,62 +1009,70 @@ fn copy_selected_files_with_hook(
         return Err("Selecione ao menos um arquivo para exportar.".into());
     }
 
-    let source_root = fs::canonicalize(source_root)
+    let source_root_path = fs::canonicalize(source_root_path)
         .map_err(|_| "A pasta aberta não está mais disponível.".to_string())?;
     let destination_parent = fs::canonicalize(destination_parent)
         .map_err(|_| "A pasta de destino não está mais disponível.".to_string())?;
-    if !source_root.is_dir() || !destination_parent.is_dir() {
+    if !path_matches_directory_handle(&source_root_path, source) {
+        return Err(
+            "A pasta aberta mudou desde que o projeto foi carregado. Abra-a novamente.".into(),
+        );
+    }
+    if !destination_parent.is_dir() {
         return Err("A origem ou o destino não é uma pasta disponível.".into());
     }
-    if destination_parent.starts_with(&source_root) {
+    if destination_parent.starts_with(&source_root_path) {
         return Err("Escolha uma pasta de destino fora do projeto aberto.".into());
     }
-
-    let project_name = source_root
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("Projeto")
-        .to_string();
     let selected_paths: BTreeSet<_> = selected_paths.iter().cloned().collect();
+    let mut inputs = Vec::with_capacity(selected_paths.len());
     for relative in &selected_paths {
-        checked_file(&source_root, Path::new(relative), true)?;
+        inputs.push((relative.clone(), open_selected_file(source, relative)?));
     }
 
     let destination =
         cap_std::fs::Dir::open_ambient_dir(&destination_parent, cap_std::ambient_authority())
             .map_err(|error| format!("Não foi possível abrir a pasta de destino: {error}"))?;
-    destination.create_dir(&project_name).map_err(|error| {
+    destination.create_dir(project_name).map_err(|error| {
         if error.kind() == std::io::ErrorKind::AlreadyExists {
             format!("Já existe uma pasta chamada ‘{project_name}’ no destino escolhido.")
         } else {
             format!("Não foi possível criar a pasta exportada: {error}")
         }
     })?;
+    let exported = destination
+        .open_dir(project_name)
+        .map_err(|error| format!("Não foi possível acessar a pasta exportada: {error}"))?;
 
+    let mut created_files: Vec<(cap_std::fs::Dir, OsString)> = Vec::new();
+    let mut created_directories: Vec<(cap_std::fs::Dir, OsString)> = Vec::new();
     let copy_result = (|| {
-        let source = cap_std::fs::Dir::open_ambient_dir(&source_root, cap_std::ambient_authority())
-            .map_err(|error| format!("Não foi possível abrir o projeto: {error}"))?;
-        let exported = destination
-            .open_dir(&project_name)
-            .map_err(|error| format!("Não foi possível acessar a pasta exportada: {error}"))?;
-
-        for relative in &selected_paths {
-            before_copy(relative)?;
-            let relative_path = Path::new(relative);
-            let mut input = source
-                .open(relative_path)
-                .map_err(|error| format!("Não foi possível ler ‘{relative}’: {error}"))?;
-            if let Some(parent) = relative_path
+        for (relative, mut input) in inputs {
+            before_copy(&relative)?;
+            let relative_path = Path::new(&relative);
+            let parent = if let Some(parent_path) = relative_path
                 .parent()
                 .filter(|parent| !parent.as_os_str().is_empty())
             {
-                exported.create_dir_all(parent).map_err(|error| {
-                    format!("Não foi possível criar a subpasta de ‘{relative}’: {error}")
-                })?;
-            }
-            let mut output = exported.create(relative_path).map_err(|error| {
-                format!("Não foi possível criar o arquivo exportado ‘{relative}’: {error}")
+                open_or_create_export_parent(&exported, parent_path, &mut created_directories)
+                    .map_err(|error| {
+                        format!("Não foi possível criar a subpasta de ‘{relative}’: {error}")
+                    })?
+            } else {
+                exported.try_clone().map_err(|error| {
+                    format!("Não foi possível acessar a pasta exportada: {error}")
+                })?
+            };
+            let file_name = relative_path
+                .file_name()
+                .ok_or_else(|| "O caminho do arquivo é inválido.".to_string())?
+                .to_os_string();
+            let mut options = cap_std::fs::OpenOptions::new();
+            options.write(true).create_new(true);
+            let mut output = parent.open_with(&file_name, &options).map_err(|error| {
+                format!("Não foi possível criar o arquivo exportado ‘{relative}’ sem sobrescrever: {error}")
             })?;
+            created_files.push((parent, file_name));
             std::io::copy(&mut input, &mut output)
                 .map_err(|error| format!("Não foi possível copiar ‘{relative}’: {error}"))?;
         }
@@ -870,14 +1080,245 @@ fn copy_selected_files_with_hook(
     })();
 
     if let Err(error) = copy_result {
-        let _ = destination.remove_dir_all(&project_name);
+        if let Err(cleanup_error) = rollback_export(
+            &destination,
+            project_name,
+            &exported,
+            &created_files,
+            &created_directories,
+        ) {
+            return Err(format!(
+                "{error} A limpeza da cópia parcial também falhou: {cleanup_error}"
+            ));
+        }
         return Err(error);
     }
 
     Ok(WorkspaceExportResult {
-        project_name,
+        project_name: project_name.to_string(),
         file_count: selected_paths.len(),
     })
+}
+
+fn open_selected_file(
+    source: &cap_std::fs::Dir,
+    relative: &str,
+) -> Result<cap_std::fs::File, String> {
+    open_selected_file_with_hook(source, relative, |_| Ok(()))
+}
+
+fn open_selected_file_with_hook(
+    source: &cap_std::fs::Dir,
+    relative: &str,
+    mut after_metadata: impl FnMut(&Path) -> Result<(), String>,
+) -> Result<cap_std::fs::File, String> {
+    let relative_path = Path::new(relative);
+    if relative_path.as_os_str().is_empty()
+        || relative_path.is_absolute()
+        || relative_path
+            .components()
+            .any(|component| !matches!(component, Component::Normal(_)))
+    {
+        return Err("O caminho do arquivo é inválido.".into());
+    }
+
+    let components: Vec<_> = relative_path.components().collect();
+    let mut current = source
+        .try_clone()
+        .map_err(|error| format!("Não foi possível acessar o projeto: {error}"))?;
+    for (index, component) in components.iter().enumerate() {
+        let Component::Normal(name) = component else {
+            return Err("O caminho do arquivo é inválido.".into());
+        };
+        let metadata = current
+            .symlink_metadata(name)
+            .map_err(|_| "O arquivo não está mais disponível.".to_string())?;
+        if metadata.file_type().is_symlink() {
+            return Err("Links simbólicos não podem ser exportados.".into());
+        }
+        let is_last = index + 1 == components.len();
+        if is_last {
+            if !metadata.is_file()
+                || !(supported_program(relative_path) || is_exercise(relative_path))
+            {
+                return Err("O explorador só exporta arquivos .por, .pors, .rs e .pex.".into());
+            }
+            after_metadata(relative_path)?;
+            let file = current
+                .open(name)
+                .map_err(|_| "O arquivo selecionado não pode ser lido.".to_string())?;
+            let opened_metadata = file
+                .metadata()
+                .map_err(|_| "O arquivo selecionado não pode ser lido.".to_string())?;
+            if !same_file_identity(&metadata, &opened_metadata) {
+                return Err(
+                    "O arquivo mudou durante a validação. Atualize o Explorador e tente novamente."
+                        .into(),
+                );
+            }
+            return Ok(file);
+        }
+        if !metadata.is_dir() {
+            return Err("O caminho do arquivo é inválido.".into());
+        }
+        after_metadata(relative_path)?;
+        let opened = current
+            .open_dir(name)
+            .map_err(|_| "A subpasta selecionada não está mais disponível.".to_string())?;
+        if !same_file_identity(
+            &metadata,
+            &opened
+                .dir_metadata()
+                .map_err(|_| "A subpasta selecionada não está mais disponível.".to_string())?,
+        ) {
+            return Err(
+                "A pasta mudou durante a validação. Atualize o Explorador e tente novamente."
+                    .into(),
+            );
+        }
+        current = opened;
+    }
+    Err("O caminho do arquivo é inválido.".into())
+}
+
+fn open_or_create_export_parent(
+    root: &cap_std::fs::Dir,
+    relative: &Path,
+    created: &mut Vec<(cap_std::fs::Dir, OsString)>,
+) -> std::io::Result<cap_std::fs::Dir> {
+    let mut current = root.try_clone()?;
+    for component in relative.components() {
+        let Component::Normal(name) = component else {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "caminho de subpasta inválido",
+            ));
+        };
+        let name = name.to_os_string();
+        match current.symlink_metadata(&name) {
+            Ok(metadata) if metadata.file_type().is_symlink() || !metadata.is_dir() => {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::AlreadyExists,
+                    "o caminho de destino existe e não é uma pasta segura",
+                ));
+            }
+            Ok(_) => current = current.open_dir(&name)?,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                let parent = current.try_clone()?;
+                current.create_dir(&name)?;
+                created.push((parent, name.clone()));
+                current = current.open_dir(&name)?;
+            }
+            Err(error) => return Err(error),
+        }
+    }
+    Ok(current)
+}
+
+fn rollback_export(
+    parent: &cap_std::fs::Dir,
+    project_name: &str,
+    exported: &cap_std::fs::Dir,
+    created_files: &[(cap_std::fs::Dir, OsString)],
+    created_directories: &[(cap_std::fs::Dir, OsString)],
+) -> Result<(), String> {
+    let mut errors = Vec::new();
+    for (directory, name) in created_files.iter().rev() {
+        if let Err(error) = directory.remove_file(name)
+            && error.kind() != std::io::ErrorKind::NotFound
+        {
+            errors.push(error.to_string());
+        }
+    }
+    for (directory, name) in created_directories.iter().rev() {
+        if let Err(error) = directory.remove_dir(name)
+            && error.kind() != std::io::ErrorKind::NotFound
+        {
+            errors.push(error.to_string());
+        }
+    }
+    if errors.is_empty() {
+        if same_directory_identity(parent, project_name, exported) {
+            if let Err(error) = parent.remove_dir(project_name) {
+                errors.push(error.to_string());
+            }
+        } else {
+            errors.push(
+                "a pasta de destino não corresponde mais à criada pela exportação; o conteúdo externo foi preservado"
+                    .into(),
+            );
+        }
+    }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors.join("; "))
+    }
+}
+
+fn path_matches_directory_handle(path: &Path, directory: &cap_std::fs::Dir) -> bool {
+    let Ok(metadata) = fs::symlink_metadata(path) else {
+        return false;
+    };
+    if metadata.file_type().is_symlink() || !metadata.is_dir() {
+        return false;
+    }
+    let Ok(handle_metadata) = directory.dir_metadata() else {
+        return false;
+    };
+    same_file_identity(
+        &handle_metadata,
+        &cap_std::fs::Metadata::from_just_metadata(metadata),
+    )
+}
+
+fn same_directory_identity(
+    parent: &cap_std::fs::Dir,
+    name: &str,
+    expected: &cap_std::fs::Dir,
+) -> bool {
+    let Ok(entry_metadata) = parent.symlink_metadata(name) else {
+        return false;
+    };
+    if entry_metadata.file_type().is_symlink() || !entry_metadata.is_dir() {
+        return false;
+    }
+    let Ok(actual) = parent
+        .open_dir(name)
+        .and_then(|directory| directory.dir_metadata())
+    else {
+        return false;
+    };
+    let Ok(expected) = expected.dir_metadata() else {
+        return false;
+    };
+    same_file_identity(&actual, &expected)
+}
+
+#[cfg(unix)]
+fn same_file_identity(left: &cap_std::fs::Metadata, right: &cap_std::fs::Metadata) -> bool {
+    use cap_std::fs::MetadataExt;
+    left.dev() == right.dev() && left.ino() == right.ino()
+}
+
+#[cfg(windows)]
+fn same_file_identity(left: &cap_std::fs::Metadata, right: &cap_std::fs::Metadata) -> bool {
+    use cap_std::fs::MetadataExt;
+    matches!(
+        (
+            left.volume_serial_number(),
+            right.volume_serial_number(),
+            left.file_index(),
+            right.file_index(),
+        ),
+        (Some(left_volume), Some(right_volume), Some(left_index), Some(right_index))
+            if left_volume == right_volume && left_index == right_index
+    )
+}
+
+#[cfg(not(any(unix, windows)))]
+fn same_file_identity(_left: &cap_std::fs::Metadata, _right: &cap_std::fs::Metadata) -> bool {
+    false
 }
 
 fn supported_source(path: &Path) -> bool {
@@ -1217,7 +1658,7 @@ pub async fn workspace_open(
         {
             eprintln!("{error}");
         }
-        let id = session.register(root);
+        let id = session.register(root)?;
         Ok(Some(WorkspaceListing { id, name, entries }))
     })
     .await
@@ -1381,6 +1822,7 @@ pub async fn workspace_export(
         return Err("Selecione ao menos um arquivo para exportar.".into());
     }
     let root = session.root(&workspace_id)?;
+    let source = session.directory(&workspace_id)?;
     tauri::async_runtime::spawn_blocking(move || {
         let Some(selected) = app
             .dialog()
@@ -1393,7 +1835,20 @@ pub async fn workspace_export(
         let destination = selected
             .into_path()
             .map_err(|error| format!("Não foi possível acessar a pasta selecionada: {error}"))?;
-        copy_selected_files(&root, &destination, &relative_paths).map(Some)
+        let project_name = root
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("Projeto")
+            .to_string();
+        copy_selected_files_from_dir_with_hook(
+            &source,
+            &root,
+            &project_name,
+            &destination,
+            &relative_paths,
+            |_| Ok(()),
+        )
+        .map(Some)
     })
     .await
     .map_err(|error| format!("Não foi possível exportar o projeto: {error}"))?

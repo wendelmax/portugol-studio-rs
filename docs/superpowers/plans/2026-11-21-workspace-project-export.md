@@ -61,6 +61,7 @@
 - Modify: `apps/desktop/src/api.ts`
 - Modify: `apps/desktop/index.html`
 - Modify: `apps/desktop/src/main.ts`
+- Create: `apps/desktop/src/workspace-export-state.ts`
 - Modify: `apps/desktop/src/style.css`
 - Create: `apps/desktop/tests/workspace-export.test.mjs`
 - Modify: `docs/PARIDADE.md`
@@ -72,6 +73,6 @@
 
 - [x] Add failing tests for entry point, selection, empty state, error/status copy, no upload claim, and Tauri API contract.
 - [x] Implement the accessible selection dialog, busy/cancel/error/success states, and disabled action without a workspace.
-- [x] Frontend tests (13 files), production build, Rust format, and diff checks pass; Rust tests are BLOCKED by missing system libraries as recorded above.
+- [x] Frontend tests (12 files), production build, Rust format, and diff checks pass; Rust tests are BLOCKED by missing system libraries as recorded above.
 - [x] Record actual validation and platform limitations in the FT-10 report.
-- [ ] Commit the verified feature.
+- [x] Commit the verified feature; review fixes are being added to the same PR.

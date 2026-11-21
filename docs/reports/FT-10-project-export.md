@@ -1,17 +1,20 @@
 # Relatório de implementação — FEAT-WORKSPACE-EXPORT-001
 
-- Branch / commit: `feat/workspace-project-export` / pendente de commit.
+- Branch / commit: `feat/workspace-project-export` / correção de revisão em validação.
 - Escopo e IDs (UI/UC/FT/AC): UI-006, UI-008, UI-009, UC-14, FT-10, AC-16.
 - Estado anterior (evidência path/linha): `apps/desktop/index.html` tinha ações Abrir e Novo no Explorador; `apps/desktop/src/api.ts` expunha abrir/ler/gravar/criar/renomear/excluir, sem exportação.
-- Arquivos alterados: `apps/desktop/index.html`, `apps/desktop/src/api.ts`, `apps/desktop/src/main.ts`, `apps/desktop/src/style.css`, `apps/desktop/src/workspace-explorer.ts`, `apps/desktop/src-tauri/src/lib.rs`, `apps/desktop/src-tauri/src/workspace.rs`, `apps/desktop/tests/workspace-explorer.test.mjs`, `apps/desktop/tests/workspace-export.test.mjs`, `docs/PARIDADE.md`, `docs/reports/FT-10-project-export.md`, `docs/superpowers/plans/2026-11-21-workspace-project-export.md`, `docs/superpowers/specs/2026-11-21-workspace-project-export-design.md`.
+- Arquivos alterados: `apps/desktop/index.html`, `apps/desktop/src/api.ts`, `apps/desktop/src/main.ts`, `apps/desktop/src/style.css`, `apps/desktop/src/workspace-explorer.ts`, `apps/desktop/src/workspace-export-state.ts`, `apps/desktop/src-tauri/src/lib.rs`, `apps/desktop/src-tauri/src/workspace.rs`, `apps/desktop/tests/workspace-explorer.test.mjs`, `apps/desktop/tests/workspace-export.test.mjs`, `docs/PARIDADE.md`, `docs/reports/FT-10-project-export.md`, `docs/superpowers/plans/2026-11-21-workspace-project-export.md`, `docs/superpowers/specs/2026-11-21-workspace-project-export-design.md`.
 - Alterações no contrato IPC/Rust/Tauri: novo comando `workspace_export`, com `workspaceId`, caminhos relativos selecionados e resultado anulável em cancelamento; seletor de pasta é apresentado pelo backend.
 - Permissões/capabilities alteradas? Justificativa: nenhuma; reutiliza o plugin de diálogo existente e confina leitura ao workspace/cópia ao destino escolhido via `cap-std`.
 - Compatibilidade preservada (fixtures): nenhum buffer aberto, arquivo de origem ou progresso é alterado; aceita `.por`, `.pors`, `.rs`, `.pex` já listados pelo Explorador.
 - Estados UI implementados (loading/empty/error/success/cancelled): lista vazia; nenhuma seleção; seletor/cópia em andamento; cancelamento sem cópia; erro anunciado; sucesso após cópia concluída.
 - Testes executados (comando, status PASS/FAIL/BLOCKED/NOT_RUN, log):
-  - `node --experimental-strip-types --test tests/*.test.mjs` — PASS, 13 arquivos de teste, 0 falhas.
+  - `node --experimental-strip-types --test tests/*.test.mjs` — PASS, 12 arquivos de teste, 0 falhas.
   - `npm run build` — PASS, TypeScript e Vite concluídos; Vite emitiu aviso preexistente de chunk IDE acima de 500 kB.
   - `cargo test -p portugol-desktop --lib workspace::tests::` — BLOCKED antes de compilar o crate: faltam as bibliotecas de sistema `webkit2gtk-4.1` e `javascriptcoregtk-4.1` no Linux; a CI precisa validar os testes Rust. Foram incluídos casos de sucesso, rejeição de entradas inválidas/symlink, colisão e rollback após falha parcial.
+  - `PKG_CONFIG_PATH=/tmp/ft10-pkgconfig cargo check -p portugol-desktop --tests` — PASS (checagem de tipos; metadados pkg-config temporários apenas contornam a descoberta das bibliotecas nativas e não executam os testes nem linkam a aplicação).
+  - `PKG_CONFIG_PATH=/tmp/ft10-pkgconfig cargo test -p portugol-desktop --lib workspace::tests:: --no-run` — BLOCKED no link: as bibliotecas reais WebKitGTK/JSC continuam ausentes; os testes compilaram na checagem de tipos, mas não puderam ser executados localmente.
+  - Revisão independente — os quatro findings Important e dois Minor foram corrigidos com testes/regressões correspondentes; sem findings pendentes conhecidos.
   - `cargo fmt --all -- --check` — PASS.
   - `git diff --check` — PASS.
 - Screenshot/registro visual em viewport configurado: NOT_RUN.
