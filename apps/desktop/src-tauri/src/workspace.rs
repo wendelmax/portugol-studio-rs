@@ -150,7 +150,10 @@ mod tests {
         );
 
         assert!(result.is_err());
-        assert!(!destination.0.join("projeto").exists());
+        assert!(
+            !destination.0.join("projeto").exists(),
+            "partial export was not removed: {result:?}"
+        );
     }
 
     #[test]
