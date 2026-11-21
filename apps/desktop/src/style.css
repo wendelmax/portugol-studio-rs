@@ -1399,6 +1399,66 @@ dialog h2 {
   margin: 0;
 }
 
+#command-palette {
+  width: min(680px, calc(100% - 24px));
+  padding: 16px;
+  border-radius: 10px;
+  box-shadow: 0 18px 70px rgb(0 0 0 / 35%);
+}
+
+#command-palette > label {
+  display: block;
+  margin-bottom: 6px;
+}
+
+#command-search {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 12px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  font: inherit;
+}
+
+#command-results {
+  max-height: min(55vh, 420px);
+  overflow: auto;
+  margin: 8px -6px;
+}
+
+.command-option {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 10px;
+  color: var(--text);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.command-option[aria-selected="true"],
+.command-option:hover,
+.command-option:focus-visible {
+  background: var(--tab-active);
+  outline: none;
+}
+
+.command-option kbd {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+#command-empty {
+  padding: 8px 4px;
+  color: var(--muted);
+}
+
 .editor .cm-scroller {
   font-size: var(--editor-font, 12px);
 }

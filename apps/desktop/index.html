@@ -410,6 +410,16 @@
       <form method="dialog"><button>Fechar</button></form>
     </dialog>
 
+    <dialog id="command-palette" aria-labelledby="command-palette-title">
+      <h2 id="command-palette-title">Paleta de comandos</h2>
+      <label for="command-search">Pesquisar comandos</label>
+      <input id="command-search" type="search" role="combobox" aria-autocomplete="list"
+        aria-controls="command-results" aria-expanded="true" autocomplete="off" spellcheck="false">
+      <div id="command-results" role="listbox" aria-label="Comandos"></div>
+      <p id="command-empty" role="status" hidden>Nenhum comando encontrado.</p>
+      <form method="dialog"><button>Fechar</button></form>
+    </dialog>
+
     <dialog id="exercises" aria-labelledby="exercises-title">
       <h2 id="exercises-title">Exercícios</h2>
       <label>Exercício <select id="exercise-list"></select></label>
