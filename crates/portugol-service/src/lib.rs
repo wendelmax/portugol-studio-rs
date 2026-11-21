@@ -123,6 +123,28 @@ pub struct Inspection {
     pub symbols: Vec<SymbolInfo>,
 }
 
+/// Resultado da prévia Portugol → Rust. Em caso de falha, `code` fica vazio e
+/// `diagnostic` aponta para a construção original que impediu a tradução.
+#[derive(Serialize)]
+pub struct RustExport {
+    pub code: Option<String>,
+    pub diagnostic: Option<DiagnosticInfo>,
+}
+
+pub fn export_rust(source: &str) -> RustExport {
+    let index = position::LineIndex::new(source);
+    match portugol_rust::export(source) {
+        Ok(code) => RustExport {
+            code: Some(code),
+            diagnostic: None,
+        },
+        Err(diagnostic) => RustExport {
+            code: None,
+            diagnostic: Some(describe(&index, &diagnostic)),
+        },
+    }
+}
+
 /// Analisa o código como a IDE faz a cada edição.
 pub fn check(source: &str) -> Vec<DiagnosticInfo> {
     let parsed = analyze_source(source);
@@ -196,5 +218,33 @@ mod library_edits {
         assert_eq!(edit.insert, "\n\tinclua biblioteca Matematica");
         let source = "programa { inclua biblioteca Matematica --> m funcao inicio() {} }";
         assert!(include_library(source, "Matematica").unwrap().is_none());
+    }
+}
+
+#[cfg(test)]
+mod rust_export {
+    use super::export_rust;
+
+    #[test]
+    fn includes_generated_code_for_supported_programs() {
+        let result = export_rust("programa { funcao inicio() { escreva(42) } }");
+        assert!(result.diagnostic.is_none());
+        let code = result.code.unwrap();
+        assert!(code.contains("let __portugol_write_0 = 42_i32;"));
+        assert!(code.contains("print!(\"{}\", __portugol_write_0);"));
+    }
+
+    #[test]
+    fn exposes_unsupported_feature_as_a_localized_positioned_diagnostic() {
+        let source = "programa { funcao inicio() { enquanto (verdadeiro) {} } }";
+        let result = export_rust(source);
+        assert!(result.code.is_none());
+        let diagnostic = result.diagnostic.unwrap();
+        assert_eq!(diagnostic.code, "rust.unsupported");
+        assert_eq!(
+            diagnostic.start.offset,
+            source.find("enquanto").unwrap() as u32
+        );
+        assert!(diagnostic.message.contains("enquanto"));
     }
 }

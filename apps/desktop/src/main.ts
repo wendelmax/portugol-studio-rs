@@ -248,6 +248,7 @@ function extensions(): Extension[] {
     ]),
     EditorView.updateListener.of((update) => {
       if (update.docChanged) renderTabs();
+      if (update.docChanged && !$<HTMLElement>("rust-preview").hidden) scheduleRustExport();
       if (update.selectionSet || update.docChanged) renderCursor();
       if (centerActive && update.selectionSet) {
         queueMicrotask(() => {
@@ -289,6 +290,8 @@ const helpId = -1;
 let activeId = homeId;
 let helpOpen = false;
 let nextTabId = 1;
+let rustExportTimer: number | undefined;
+let rustExportGeneration = 0;
 
 const activeTab = () => tabs.find((t) => t.id === activeId);
 
@@ -333,6 +336,7 @@ function activate(id: number) {
   $("code").hidden = !tab;
   $("editor-exercise").hidden = !tab?.exercise;
   if (!tab) {
+    rustExportGeneration++;
     renderTabs();
     $("cursor").textContent = "";
     if (id === helpId) void openHelp();
@@ -350,6 +354,7 @@ function activate(id: number) {
   updateLibraryButtons(tab.symbols);
   renderCursor();
   if (centerActive) centerSelection();
+  if (!$<HTMLElement>("rust-preview").hidden) scheduleRustExport();
   view.focus();
 }
 
@@ -1039,6 +1044,36 @@ $("utilities-close").onclick = () => {
 $("btn-save").onclick = () => void save();
 $("btn-save-as").onclick = () => void save(true);
 $("btn-run").onclick = () => void runOrContinue();
+$<HTMLButtonElement>("btn-rust").onclick = () => {
+  const preview = $<HTMLElement>("rust-preview");
+  preview.hidden = !preview.hidden;
+  if (preview.hidden) rustExportGeneration++;
+  else scheduleRustExport();
+};
+$<HTMLButtonElement>("rust-close").onclick = () => {
+  rustExportGeneration++;
+  $<HTMLElement>("rust-preview").hidden = true;
+  view.focus();
+};
+$<HTMLButtonElement>("rust-copy").onclick = async () => {
+  try {
+    await navigator.clipboard.writeText($<HTMLElement>("rust-output").textContent ?? "");
+    setStatus("Código Rust copiado.", "ok");
+  } catch (error) {
+    setStatus(String(error), "error");
+  }
+};
+$<HTMLButtonElement>("rust-save").onclick = async () => {
+  const code = $<HTMLElement>("rust-output").textContent ?? "";
+  try {
+    const path = await saveDialog({ defaultPath: "programa.rs", filters: [{ name: "Rust", extensions: ["rs"] }] });
+    if (!path) return;
+    await api.writeFile(path, code);
+    setStatus("Rust salvo em " + path + ".", "ok");
+  } catch (error) {
+    setStatus(String(error), "error");
+  }
+};
 $("btn-debug").onclick = () => void stepOrStart();
 $("btn-stop").onclick = () => void stopProgram();
 $("btn-debug-pause").onclick = () => { if (runId !== null) void api.debugPause(runId); };
@@ -1058,6 +1093,49 @@ $("btn-copy").onclick = async () => {
 $("tab-console").onclick = () => showPanel("console");
 $("tab-messages").onclick = () => showPanel("messages");
 $("tab-debug").onclick = () => showPanel("debug");
+
+function scheduleRustExport() {
+  const generation = ++rustExportGeneration;
+  if (rustExportTimer !== undefined) window.clearTimeout(rustExportTimer);
+  const status = $<HTMLElement>("rust-status");
+  status.textContent = "Atualizando tradução…";
+  delete status.dataset.error;
+  $<HTMLButtonElement>("rust-copy").disabled = true;
+  $<HTMLButtonElement>("rust-save").disabled = true;
+  $<HTMLElement>("rust-output").textContent = "";
+  rustExportTimer = window.setTimeout(async () => {
+    let result: api.RustExport;
+    try {
+      result = await api.exportRust(view.state.doc.toString());
+    } catch (error) {
+      if (generation !== rustExportGeneration) return;
+      status.textContent = "Falha ao solicitar a tradução: " + String(error);
+      status.dataset.error = "true";
+      $<HTMLButtonElement>("rust-copy").disabled = true;
+      $<HTMLButtonElement>("rust-save").disabled = true;
+      $<HTMLElement>("rust-output").textContent = "";
+      return;
+    }
+    if (generation !== rustExportGeneration) return;
+    const output = $<HTMLElement>("rust-output");
+    const copy = $<HTMLButtonElement>("rust-copy");
+    const save = $<HTMLButtonElement>("rust-save");
+    if (result.code !== null) {
+      output.textContent = result.code;
+      status.textContent = "Tradução disponível para copiar ou salvar.";
+      copy.disabled = save.disabled = false;
+      delete status.dataset.error;
+    } else {
+      output.textContent = "";
+      const diagnostic = result.diagnostic;
+      status.textContent = diagnostic
+        ? "Linha " + diagnostic.start.line + ", coluna " + diagnostic.start.column + ": " + diagnostic.message
+        : "Não foi possível gerar Rust para este programa.";
+      copy.disabled = save.disabled = true;
+      status.dataset.error = "true";
+    }
+  }, 220);
+}
 
 function cycleTab(step: number) {
   const ids = [homeId, ...(helpOpen ? [helpId] : []), ...tabs.map((tab) => tab.id)];
