@@ -17,15 +17,16 @@ export function flattenWorkspaceEntries(
   return rows;
 }
 
-export function workspaceFileKind(path: string): "portugol" | "portugol-rs" | "exercise" | null {
+export function workspaceFileKind(path: string): "portugol" | "portugol-rs" | "rust" | "exercise" | null {
   const extension = path.split(/[\\/]/).pop()?.split(".").pop()?.toLowerCase();
   if (extension === "por") return "portugol";
   if (extension === "pors") return "portugol-rs";
+  if (extension === "rs") return "rust";
   if (extension === "pex") return "exercise";
   return null;
 }
 
-export function workspaceSourceFileName(name: string, language: "por" | "pors"): string {
+export function workspaceSourceFileName(name: string, language: "por" | "pors" | "rs"): string {
   const trimmed = name.trim();
   if (!trimmed || trimmed === "." || trimmed === ".." || /[\\/]/.test(trimmed)) {
     throw new Error("Informe um nome de arquivo sem pastas.");
@@ -58,7 +59,7 @@ export function workspaceRenameFileName(name: string, currentPath: string): stri
 
   const currentDot = currentName.lastIndexOf(".");
   const extension = currentDot >= 0 ? currentName.slice(currentDot + 1).toLowerCase() : "";
-  if (extension !== "por" && extension !== "pors" && extension !== "pex") {
+  if (extension !== "por" && extension !== "pors" && extension !== "rs" && extension !== "pex") {
     throw new Error("A extensão deste arquivo não pode ser alterada no Explorador.");
   }
 

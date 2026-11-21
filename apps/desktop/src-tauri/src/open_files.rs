@@ -12,6 +12,7 @@ fn file_paths(paths: impl IntoIterator<Item = PathBuf>) -> Vec<String> {
             path.extension().is_some_and(|extension| {
                 extension.eq_ignore_ascii_case("por")
                     || extension.eq_ignore_ascii_case("pors")
+                    || extension.eq_ignore_ascii_case("rs")
                     || extension.eq_ignore_ascii_case("pex")
             }) && path.is_file()
         })
@@ -61,13 +62,16 @@ mod tests {
         let pex = base.join("exercicio01.pex");
         let por = root.join("tests/corpus/exemplos/jogos/pong.por");
         let pors = std::env::temp_dir().join(format!("Portugol á {}.PORS", std::process::id()));
+        let rust = std::env::temp_dir().join(format!("Portugol {}.RS", std::process::id()));
         std::fs::write(&pors, "funcao inicio() {}").unwrap();
+        std::fs::write(&rust, "fn main() {}").unwrap();
         let not_source = root.join("Cargo.toml");
         let paths = file_paths([
             pex.clone(),
             not_source,
             por.clone(),
             pors.clone(),
+            rust.clone(),
             base.join("missing.pex"),
         ]);
         assert_eq!(
@@ -75,9 +79,11 @@ mod tests {
             [
                 pex.to_str().unwrap(),
                 por.to_str().unwrap(),
-                pors.to_str().unwrap()
+                pors.to_str().unwrap(),
+                rust.to_str().unwrap()
             ]
         );
         std::fs::remove_file(pors).unwrap();
+        std::fs::remove_file(rust).unwrap();
     }
 }
