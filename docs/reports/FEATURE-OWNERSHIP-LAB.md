@@ -1,0 +1,22 @@
+# Relatório de implementação — FEAT-OWNERSHIP-LAB-001
+
+- Branch / commit: `feat/ownership-visual-lab` / SHA da implementação será registrado no commit documental seguinte.
+- Escopo e IDs: UI-023/024/027, UC-13/15, FT-07, AC-13.
+- Estado anterior: o conceito Ownership mostrava definição e exemplo Rust editorial, sem navegação por passos ou visualização de memória (`apps/desktop/src/learning-content.ts`, `apps/desktop/src/main.ts`). O debugger existente expõe variáveis da VM Portugol, sem trace de ownership Rust.
+- Arquivos alterados: `apps/desktop/index.html`, `apps/desktop/src/main.ts`, `apps/desktop/src/style.css`, `apps/desktop/src/ownership-lab.ts`, `apps/desktop/tests/ownership-lab.test.mjs`, quatro fixtures em `apps/desktop/tests/fixtures/ownership/`, `docs/PARIDADE.md`, `docs/plans/evolucao-progressiva-portugol-rust.md`, pesquisa/diagnóstico, plano e design desta feature.
+- Contratos IPC/Rust/Tauri e permissões: sem alterações. Não há chamada a shell, parser Rust ou processo de compilação em produção.
+- Compatibilidade: o painel só aparece no modo Bridge com o conceito Ownership selecionado. Nenhuma alteração em buffer, modo, runtime, VM, debugger Portugol, progresso de exercício, exportador ou arquivos.
+- Estados: seletor de quatro cenários; passos anterior/próximo/reiniciar; navegação desabilitada nos limites; estado do código, bindings, heap, explicação e diagnóstico acompanha o passo. Diagnóstico de move é uma explicação editorial de compile time, nunca resultado de execução.
+- Proveniência: cada snapshot usa `verified-simulation`; o painel mantém o rótulo `Simulação didática — não é execução nem trace de memória Rust.`. A simulação não lê nem interpreta o buffer atual.
+- Testes automatizados executados:
+  - `cd apps/desktop && npm test` — **PASS**, 31 testes, incluindo compilação/execução de três fixtures e rejeição pelo `rustc` da fixture de uso após move.
+  - `cd apps/desktop && npm run build` — TypeScript passou; Vite não conseguiu limpar `dist/` (`EROFS`) no worktree. `npx vite build --outDir /tmp/portugol-ownership-dist` — **PASS**, 268 módulos transformados; Vite mantém aviso de chunk acima de 500 kB.
+  - `cargo fmt --all --check` — **PASS**.
+  - `CARGO_TARGET_DIR=/tmp/portugol-target cargo test --offline --locked` — **PASS**, núcleo e regressão do corpus; foi necessário permitir loopback para o teste local de Internet.
+  - `CARGO_TARGET_DIR=/tmp/portugol-target cargo clippy --all-targets --offline -- -D warnings` — **PASS**.
+  - `git diff --check` — **PASS**.
+- Dependências frontend: `npm ci --offline` não pôde repor a worktree porque o cache local não contém `w3c-keyname@2.2.8`. Testes e build usaram symlink temporário para `node_modules` já instalado, após confirmar hashes idênticos de `package.json` e `package-lock.json`; removido antes da integração.
+- E2E/visual/acessibilidade manual: `NOT_RUN`; esta máquina não tem WebKitGTK 4.1 nem Playwright/Chromium configurado. Há teste de markup/nomes acessíveis, mas isso não substitui inspeção por leitor de tela.
+- Limitações: exemplos curriculares finitos e estáticos; nenhum passo é inferido do cursor/arquivo. O laboratório não cobre outros tipos, funções, lifetimes, referências que escapam, nem análise geral de Rust. A fase completa de ownership segue pendente conforme `docs/plans/evolucao-progressiva-portugol-rust.md`.
+- Rollback: remover o módulo, a região do painel, os handlers/estilos, fixtures e teste; o cartão editorial existente permanece.
+- Próxima fatia: somente após a HIR/semântica Rust definida, modelar trace de eventos tipado com spans e proveniência; não promover o cenário estático a debugger Rust.
