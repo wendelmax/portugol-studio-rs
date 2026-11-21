@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use super::{WorkspaceEntry, create_source_file, list_entries, read_relative_file};
+    use super::{
+        WorkspaceEntry, create_source_file, list_entries, read_relative_file,
+        restore_saved_workspace, save_last_workspace,
+    };
     use std::fs;
     use std::path::Path;
     use std::sync::atomic::{AtomicUsize, Ordering};
@@ -157,6 +160,86 @@ mod tests {
         );
     }
 
+    #[test]
+    fn saves_the_canonical_workspace_path_for_the_next_session() {
+        let config = TempDir::new();
+        let root = TempDir::new();
+        fs::create_dir_all(root.0.join("Aulas com acento")).unwrap();
+        let workspace = root.0.join("Aulas com acento");
+
+        save_last_workspace(&config.0, &workspace).unwrap();
+
+        assert_eq!(
+            super::load_last_workspace(&config.0).unwrap(),
+            Some(fs::canonicalize(workspace).unwrap())
+        );
+    }
+
+    #[test]
+    fn restores_a_saved_workspace_with_a_fresh_session_id() {
+        let config = TempDir::new();
+        let root = TempDir::new();
+        fs::write(root.0.join("programa.pors"), "funcao inicio() {}").unwrap();
+        save_last_workspace(&config.0, &root.0).unwrap();
+
+        let session = super::WorkspaceSession::default();
+        let restored = restore_saved_workspace(&session, &config.0)
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(
+            restored.name,
+            root.0.file_name().unwrap().to_string_lossy().into_owned()
+        );
+        assert_eq!(restored.id, "workspace-1");
+        assert!(
+            matches!(&restored.entries[0], WorkspaceEntry::File { name, .. } if name == "programa.pors")
+        );
+    }
+
+    #[test]
+    fn no_saved_workspace_returns_none_without_an_error() {
+        let config = TempDir::new();
+        let session = super::WorkspaceSession::default();
+
+        assert!(
+            restore_saved_workspace(&session, &config.0)
+                .unwrap()
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn a_removed_workspace_is_forgotten_after_restore() {
+        let config = TempDir::new();
+        let root = TempDir::new();
+        save_last_workspace(&config.0, &root.0).unwrap();
+        fs::remove_dir_all(&root.0).unwrap();
+        let session = super::WorkspaceSession::default();
+
+        assert!(
+            restore_saved_workspace(&session, &config.0)
+                .unwrap()
+                .is_none()
+        );
+        assert!(super::load_last_workspace(&config.0).unwrap().is_none());
+    }
+
+    #[test]
+    fn malformed_saved_state_is_discarded_without_blocking_startup() {
+        let config = TempDir::new();
+        let saved_path = config.0.join(super::LAST_WORKSPACE_FILE);
+        fs::write(&saved_path, "not valid JSON").unwrap();
+        let session = super::WorkspaceSession::default();
+
+        assert!(
+            restore_saved_workspace(&session, &config.0)
+                .unwrap()
+                .is_none()
+        );
+        assert!(!saved_path.exists());
+    }
+
     #[cfg(unix)]
     #[test]
     fn skips_symlinks_and_rejects_symlink_reads() {
@@ -183,7 +266,7 @@ use std::path::{Component, Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use serde::Serialize;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 use tauri_plugin_dialog::DialogExt;
 
 #[derive(Default)]
@@ -243,6 +326,96 @@ pub struct WorkspaceListing {
     id: String,
     name: String,
     entries: Vec<WorkspaceEntry>,
+}
+
+const LAST_WORKSPACE_FILE: &str = "last-workspace.json";
+
+fn save_last_workspace(config_dir: &Path, root: &Path) -> Result<(), String> {
+    let root = fs::canonicalize(root)
+        .map_err(|error| format!("Não foi possível salvar a pasta do projeto: {error}"))?;
+    let root = root.to_str().ok_or_else(|| {
+        "O caminho do projeto não pode ser representado nesta interface.".to_string()
+    })?;
+    let encoded = serde_json::to_vec(root)
+        .map_err(|error| format!("Não foi possível salvar a pasta do projeto: {error}"))?;
+    fs::create_dir_all(config_dir)
+        .map_err(|error| format!("Não foi possível acessar as preferências da IDE: {error}"))?;
+
+    let saved_path = config_dir.join(LAST_WORKSPACE_FILE);
+    let temporary_path = config_dir.join(format!("{LAST_WORKSPACE_FILE}.tmp"));
+    fs::write(&temporary_path, encoded)
+        .map_err(|error| format!("Não foi possível salvar a pasta do projeto: {error}"))?;
+    match fs::rename(&temporary_path, &saved_path) {
+        Ok(()) => Ok(()),
+        Err(error) if saved_path.exists() => {
+            fs::remove_file(&saved_path).map_err(|remove_error| {
+                format!("Não foi possível atualizar a pasta salva: {remove_error}")
+            })?;
+            fs::rename(&temporary_path, &saved_path).map_err(|rename_error| {
+                format!("Não foi possível salvar a pasta do projeto: {rename_error}; {error}")
+            })
+        }
+        Err(error) => Err(format!(
+            "Não foi possível salvar a pasta do projeto: {error}"
+        )),
+    }
+}
+
+fn load_last_workspace(config_dir: &Path) -> Result<Option<PathBuf>, String> {
+    let saved_path = config_dir.join(LAST_WORKSPACE_FILE);
+    let encoded = match fs::read(&saved_path) {
+        Ok(encoded) => encoded,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => {
+            return Err(format!(
+                "Não foi possível ler as preferências da IDE: {error}"
+            ));
+        }
+    };
+    let Ok(path) = serde_json::from_slice::<String>(&encoded) else {
+        clear_last_workspace(config_dir)?;
+        return Ok(None);
+    };
+    if path.is_empty() {
+        clear_last_workspace(config_dir)?;
+        return Ok(None);
+    }
+    Ok(Some(PathBuf::from(path)))
+}
+
+fn clear_last_workspace(config_dir: &Path) -> Result<(), String> {
+    match fs::remove_file(config_dir.join(LAST_WORKSPACE_FILE)) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(format!(
+            "Não foi possível limpar a preferência de projeto: {error}"
+        )),
+    }
+}
+
+fn restore_saved_workspace(
+    session: &WorkspaceSession,
+    config_dir: &Path,
+) -> Result<Option<WorkspaceListing>, String> {
+    let Some(saved_root) = load_last_workspace(config_dir)? else {
+        return Ok(None);
+    };
+    let Ok(root) = fs::canonicalize(saved_root) else {
+        clear_last_workspace(config_dir)?;
+        return Ok(None);
+    };
+    if !root.is_dir() {
+        clear_last_workspace(config_dir)?;
+        return Ok(None);
+    }
+    let entries = list_entries(&root)?;
+    let name = root
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("Projeto")
+        .to_string();
+    let id = session.register(root);
+    Ok(Some(WorkspaceListing { id, name, entries }))
 }
 
 #[derive(Serialize)]
@@ -463,11 +636,31 @@ pub async fn workspace_open(
             .and_then(|name| name.to_str())
             .unwrap_or("Projeto")
             .to_string();
+        if let Ok(config_dir) = app.path().app_config_dir()
+            && let Err(error) = save_last_workspace(&config_dir, &root)
+        {
+            eprintln!("{error}");
+        }
         let id = session.register(root);
         Ok(Some(WorkspaceListing { id, name, entries }))
     })
     .await
     .map_err(|error| format!("Não foi possível abrir a pasta do projeto: {error}"))?
+}
+
+#[tauri::command]
+pub async fn workspace_restore(
+    app: AppHandle,
+    session: State<'_, WorkspaceSession>,
+) -> Result<Option<WorkspaceListing>, String> {
+    let session = session.inner().clone();
+    let config_dir = app
+        .path()
+        .app_config_dir()
+        .map_err(|error| format!("Não foi possível localizar as preferências da IDE: {error}"))?;
+    tauri::async_runtime::spawn_blocking(move || restore_saved_workspace(&session, &config_dir))
+        .await
+        .map_err(|error| format!("Não foi possível restaurar o último projeto: {error}"))?
 }
 
 #[tauri::command]

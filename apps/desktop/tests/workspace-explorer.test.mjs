@@ -61,3 +61,11 @@ test("workspace create dialog exposes the .por and .pors choice and an error sta
   assert.match(html, /id="workspace-create-submit"/);
   assert.match(html, /id="workspace-create-cancel"/);
 });
+
+test("startup has a typed Tauri route to restore the last workspace", () => {
+  const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
+  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+  assert.match(api, /restoreWorkspace\s*=\s*\(\)\s*=>\s*invoke<WorkspaceListing\s*\|\s*null>\("workspace_restore"\)/);
+  assert.match(main, /restoreWorkspaceOnStartup\(\)/);
+  assert.match(main, /api\.restoreWorkspace\(\)/);
+});
