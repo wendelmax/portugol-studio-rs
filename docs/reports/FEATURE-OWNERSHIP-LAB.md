@@ -1,6 +1,6 @@
 # Relatório de implementação — FEAT-OWNERSHIP-LAB-001
 
-- Branch / commit: `feat/ownership-visual-lab` / SHA da implementação será registrado no commit documental seguinte.
+- Branch / commit: `feat/ownership-visual-lab` / `ad01479cbaff28875668ac7ce8c4bf9d5ffafab1`.
 - Escopo e IDs: UI-023/024/027, UC-13/15, FT-07, AC-13.
 - Estado anterior: o conceito Ownership mostrava definição e exemplo Rust editorial, sem navegação por passos ou visualização de memória (`apps/desktop/src/learning-content.ts`, `apps/desktop/src/main.ts`). O debugger existente expõe variáveis da VM Portugol, sem trace de ownership Rust.
 - Arquivos alterados: `apps/desktop/index.html`, `apps/desktop/src/main.ts`, `apps/desktop/src/style.css`, `apps/desktop/src/ownership-lab.ts`, `apps/desktop/tests/ownership-lab.test.mjs`, quatro fixtures em `apps/desktop/tests/fixtures/ownership/`, `docs/PARIDADE.md`, `docs/plans/evolucao-progressiva-portugol-rust.md`, pesquisa/diagnóstico, plano e design desta feature.
