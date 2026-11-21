@@ -68,6 +68,8 @@ A pessoa aprende um conceito em Portugol, vê a tradução equivalente e gradual
 
 **Objetivo:** tornar visível por que um valor pode ser movido ou emprestado.
 
+**Primeira fatia UI-027:** o painel Aprender oferece cenários editoriais roteirizados para `String`, move, `&T`, `&mut T` e escopo. Os exemplos são conferidos com fixtures `rustc`, mas o estado exibido é uma simulação didática, não um trace nem uma análise do código aberto. A fase continua aberta até existir análise de eventos/spans para o subconjunto de Rust definido abaixo.
+
 1. Definir primeiro um subconjunto explícito de Rust (String, bindings, escopos, `&T`, `&mut T`, chamadas e retornos).
 2. Criar análise de eventos de memória e spans: criação, move, empréstimo compartilhado, empréstimo mutável, uso, fim de escopo e erro.
 3. Apresentar timeline/visualizador junto do código e controles passo/reiniciar.

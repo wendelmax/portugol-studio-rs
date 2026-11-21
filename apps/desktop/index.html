@@ -218,6 +218,50 @@
                 </section>
               </div>
             </article>
+            <section id="ownership-lab" class="ownership-lab" aria-labelledby="ownership-lab-title" hidden>
+              <header class="ownership-lab-heading">
+                <div>
+                  <h3 id="ownership-lab-title">Laboratório de ownership</h3>
+                  <p>Avance pelos estados de posse, empréstimo e escopo.</p>
+                </div>
+                <span id="ownership-provenance" class="ownership-provenance">Simulação didática — não é execução nem trace de memória Rust.</span>
+              </header>
+              <label class="ownership-scenario-picker" for="ownership-scenario">Cenário
+                <select id="ownership-scenario" aria-label="Cenário de ownership">
+                  <option value="move">Movimento de um valor (move)</option>
+                  <option value="shared-borrow">Empréstimo compartilhado (&amp;T)</option>
+                  <option value="mutable-borrow">Empréstimo mutável (&amp;mut T)</option>
+                  <option value="scope">Escopo e liberação do valor</option>
+                </select>
+              </label>
+              <div class="ownership-controls" role="group" aria-label="Controles do laboratório de ownership">
+                <button id="ownership-previous" type="button" aria-label="Passo anterior" disabled>← Anterior</button>
+                <button id="ownership-next" type="button" aria-label="Próximo passo">Próximo →</button>
+                <button id="ownership-restart" type="button" aria-label="Reiniciar cenário" disabled>Reiniciar</button>
+                <span id="ownership-step-status" role="status" aria-live="polite"></span>
+              </div>
+              <article class="ownership-step">
+                <h4 id="ownership-step-title"></h4>
+                <p id="ownership-explanation"></p>
+                <p id="ownership-diagnostic" class="ownership-diagnostic" role="alert" hidden></p>
+              </article>
+              <div class="ownership-memory-grid">
+                <section class="ownership-memory-pane" aria-labelledby="ownership-code-title">
+                  <h4 id="ownership-code-title">Exemplo Rust didático</h4>
+                  <pre aria-label="Código Rust do cenário didático"><code id="ownership-source"></code></pre>
+                </section>
+                <section class="ownership-memory-pane" aria-labelledby="ownership-bindings-title">
+                  <h4 id="ownership-bindings-title">Stack — variáveis e referências</h4>
+                  <p class="ownership-memory-caption">Bindings e referências em stack; não há endereços reais nesta simulação.</p>
+                  <ul id="ownership-bindings" aria-label="Variáveis e referências simuladas"></ul>
+                </section>
+                <section class="ownership-memory-pane" aria-labelledby="ownership-heap-title">
+                  <h4 id="ownership-heap-title">Heap — conteúdo alocado</h4>
+                  <p class="ownership-memory-caption">Bloco conceitual com os bytes UTF-8 do texto; não mostra endereços reais.</p>
+                  <ul id="ownership-heap" aria-label="Alocações simuladas no heap"></ul>
+                </section>
+              </div>
+            </section>
             <p class="learning-no-progress">Estudar um conceito não registra progresso de exercício.</p>
           </section>
         </section>

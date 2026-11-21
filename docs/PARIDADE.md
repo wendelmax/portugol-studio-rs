@@ -51,6 +51,7 @@ são executados e validados sem tela.
 | Abas de arquivos, abrir, salvar, salvar como | ✅ | |
 | Console com entrada (`AbaConsole`) | ✅ | entrada e engrenagem para limpar, copiar e ajustar fonte |
 | Depuração na IDE (`AbaDepuracao`, `Depurador`) | ✅ | gutter de breakpoints, início pausado com Shift+F5, pilha e variáveis |
+| Laboratório pedagógico de ownership | 🟡 | quatro cenários guiados de `String` para move, `&T`, `&mut T` e escopo; fixtures verificadas com `rustc`; simulação editorial, não é trace Rust nem interpreta o buffer do aluno |
 | Autocompletar bibliotecas | ✅ | opções, assinaturas e descrições da mesma referência usada pela ajuda |
 | Localizar e substituir (`PSFindReplace`) | ✅ | diálogo Ctrl+F com direção, palavra inteira, maiúsculas, expressões regulares e substituição em lote |
 | Atalhos do original (`TelaAtalhos`) | ✅ | tela F11, atalhos de edição, depuração, arquivos, abas, filtros e centralização |
