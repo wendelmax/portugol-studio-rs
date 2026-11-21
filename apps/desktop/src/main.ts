@@ -36,6 +36,7 @@ import { mountOutline, symbolKindLabels } from "./outline";
 import { panelContentId, type PanelName } from "./panel-tabs";
 import { LIBRARIES, portugol, portugolRs, SNIPPETS } from "./portugol";
 import { detectSourceLanguage, ensureSourceExtension, type SourceLanguage } from "./document-language";
+import { flattenWorkspaceEntries, workspaceFileKind, type WorkspaceEntry } from "./workspace-explorer";
 import { conceptsForMode, resolveConceptForMode } from "./learning-content";
 import { loadLearningMode, saveLearningMode, type LearningMode } from "./learning-mode";
 import {
@@ -62,6 +63,9 @@ interface Tab {
   exampleName?: string;
   examplePath?: string;
   exercise?: ExerciseDocument;
+  workspaceId?: string;
+  workspacePath?: string;
+  workspaceExercisePath?: string;
   state: EditorState;
   /** Texto da última gravação, para saber se há alterações. */
   saved: string;
@@ -313,6 +317,11 @@ darkQuery.addEventListener("change", () => {
 // ---------------------------------------------------------------------------
 
 let tabs: Tab[] = [];
+let workspaceState: api.WorkspaceListing | null = null;
+let workspaceLoading = false;
+let workspaceRequest = 0;
+let selectedWorkspacePath: string | null = null;
+const expandedWorkspaceFolders = new Set<string>();
 const homeId = 0;
 const helpId = -1;
 let activeId = homeId;
@@ -341,7 +350,7 @@ function isDirty(tab: Tab): boolean {
 const NEW_PROGRAM = TEMPLATE.replace("\t\t\n", '\t\tescreva("Olá Mundo")\n');
 const PORS_TEMPLATE = "funcao inicio() {\n    seja mutavel idade: inteiro = 16;\n    idade += 1;\n    escreva(idade);\n}\n";
 
-function newTab(text = NEW_PROGRAM, path: string | null = null, exampleName?: string, examplePath?: string, exercise?: ExerciseDocument, explicitLanguage?: SourceLanguage): Tab {
+function newTab(text = NEW_PROGRAM, path: string | null = null, exampleName?: string, examplePath?: string, exercise?: ExerciseDocument, explicitLanguage?: SourceLanguage, workspaceFile?: { id: string; path: string }): Tab {
   const language = explicitLanguage ?? detectSourceLanguage(path ?? "programa.por");
   const tab: Tab = {
     id: nextTabId++,
@@ -350,6 +359,8 @@ function newTab(text = NEW_PROGRAM, path: string | null = null, exampleName?: st
     exampleName,
     examplePath,
     exercise,
+    workspaceId: workspaceFile?.id,
+    workspacePath: workspaceFile?.path,
     state: EditorState.create({ doc: text, extensions: extensions(language) }),
     saved: text,
     diagnostics: [],
@@ -378,6 +389,11 @@ function activate(id: number) {
     if (id === helpId) void openHelp();
     else $("home").focus();
     return;
+  }
+  const workspacePath = tab.workspacePath ?? tab.workspaceExercisePath;
+  if (tab.workspaceId === workspaceState?.id && workspacePath) {
+    selectedWorkspacePath = workspacePath;
+    renderWorkspaceExplorer();
   }
   view.setState(tab.state);
   view.dispatch({ effects: [
@@ -518,6 +534,225 @@ function renderCursor() {
 
 const FILTERS = [{ name: "Programas Portugol", extensions: ["por", "pors"] }];
 
+let workspaceError: string | null = null;
+
+function setWorkspaceExplorerVisible(visible: boolean) {
+  $("workspace-explorer").hidden = !visible;
+  $("btn-explorer").setAttribute("aria-expanded", String(visible));
+}
+
+function renderWorkspaceExplorer() {
+  $("workspace-explorer").setAttribute("aria-busy", String(workspaceLoading));
+  const tree = $<HTMLUListElement>("workspace-tree");
+  const message = $("workspace-tree-state");
+  const name = $("workspace-name");
+  const openButtons = [$<HTMLButtonElement>("home-open-folder"), $<HTMLButtonElement>("workspace-open-folder")];
+  openButtons.forEach((button) => { button.disabled = workspaceLoading; });
+  name.hidden = !workspaceState;
+  name.textContent = workspaceState?.name ?? "";
+
+  const rows = flattenWorkspaceEntries(workspaceState?.entries ?? [], expandedWorkspaceFolders);
+  tree.setAttribute("aria-label", workspaceState ? `Arquivos em ${workspaceState.name}` : "Arquivos do projeto");
+  const items = rows.map(({ entry, depth, position, setSize }) => {
+    const item = document.createElement("li");
+    item.setAttribute("role", "none");
+    const button = document.createElement("button");
+    const isFolder = entry.kind === "folder";
+    const isExpanded = isFolder && expandedWorkspaceFolders.has(entry.path);
+    const marker = document.createElement("span");
+    marker.className = "workspace-tree-marker";
+    marker.setAttribute("aria-hidden", "true");
+    marker.textContent = isFolder ? (isExpanded ? "▾" : "▸") : workspaceFileKind(entry.path) === "portugol-rs" ? "RS" : workspaceFileKind(entry.path) === "exercise" ? "EX" : "POR";
+    const label = document.createElement("span");
+    label.className = "workspace-tree-label";
+    label.textContent = entry.name;
+    button.type = "button";
+    button.className = `workspace-tree-item${isFolder ? " is-folder" : " is-file"}`;
+    button.dataset.path = entry.path;
+    button.dataset.depth = String(depth);
+    button.setAttribute("role", "treeitem");
+    button.setAttribute("aria-level", String(depth + 1));
+    button.setAttribute("aria-posinset", String(position));
+    button.setAttribute("aria-setsize", String(setSize));
+    button.setAttribute("aria-selected", String(!isFolder && selectedWorkspacePath === entry.path));
+    button.style.paddingInlineStart = `${8 + depth * 16}px`;
+    if (isFolder) {
+      button.setAttribute("aria-expanded", String(isExpanded));
+      button.setAttribute("aria-label", `${entry.name}, pasta${isExpanded ? ", expandida" : ", recolhida"}`);
+      button.onclick = () => {
+        if (expandedWorkspaceFolders.has(entry.path)) expandedWorkspaceFolders.delete(entry.path);
+        else expandedWorkspaceFolders.add(entry.path);
+        renderWorkspaceExplorer();
+        tree.querySelector<HTMLButtonElement>(`[data-path="${CSS.escape(entry.path)}"]`)?.focus();
+      };
+    } else {
+      button.setAttribute("aria-label", `${entry.name}, arquivo`);
+      button.onclick = () => {
+        selectedWorkspacePath = entry.path;
+        renderWorkspaceExplorer();
+        void openWorkspaceFile(entry).catch((error) => {
+          workspaceError = String(error);
+          renderWorkspaceExplorer();
+          setStatus(String(error), "error");
+        });
+      };
+    }
+    button.append(marker, label);
+    item.append(button);
+    return item;
+  });
+  tree.replaceChildren(...items);
+  tree.hidden = rows.length === 0;
+
+  if (workspaceLoading) {
+    message.textContent = "Abrindo pasta…";
+    message.hidden = false;
+  } else if (workspaceError) {
+    message.textContent = workspaceError;
+    message.hidden = false;
+  } else if (!workspaceState) {
+    message.textContent = "Abra uma pasta para navegar pelos arquivos do projeto.";
+    message.hidden = false;
+  } else if (rows.length === 0) {
+    message.textContent = "Esta pasta não contém arquivos .por, .pors ou .pex.";
+    message.hidden = false;
+  } else {
+    message.textContent = "";
+    message.hidden = true;
+  }
+}
+
+async function openWorkspaceFolder() {
+  if (workspaceLoading) return;
+  const request = ++workspaceRequest;
+  workspaceLoading = true;
+  workspaceError = null;
+  renderWorkspaceExplorer();
+  try {
+    const selected = await api.openWorkspace();
+    if (request !== workspaceRequest || !selected) return;
+    workspaceState = selected;
+    selectedWorkspacePath = null;
+    expandedWorkspaceFolders.clear();
+    workspaceError = null;
+    setWorkspaceExplorerVisible(true);
+    if (!activeTab()) {
+      const previousTab = tabs[tabs.length - 1];
+      if (previousTab) activate(previousTab.id);
+      else newTab();
+    }
+    renderWorkspaceExplorer();
+    setStatus(`Pasta aberta: ${selected.name}`, "ok");
+  } catch (error) {
+    if (request === workspaceRequest) {
+      workspaceError = String(error);
+      renderWorkspaceExplorer();
+      setStatus(String(error), "error");
+    }
+  } finally {
+    if (request === workspaceRequest) {
+      workspaceLoading = false;
+      renderWorkspaceExplorer();
+    }
+  }
+}
+
+async function openWorkspaceFile(entry: Extract<WorkspaceEntry, { kind: "file" }>) {
+  const selected = workspaceState;
+  if (!selected) return;
+  const kind = workspaceFileKind(entry.path);
+  if (!kind) return;
+  if (kind === "exercise") {
+    const existingExercise = tabs.find((tab) =>
+      tab.workspaceId === selected.id && tab.workspaceExercisePath === entry.path,
+    );
+    if (existingExercise) {
+      activate(existingExercise.id);
+      return;
+    }
+    const loaded = await api.readWorkspaceFile(selected.id, entry.path);
+    if (workspaceState?.id !== selected.id) return;
+    const exercise = await api.inspectExercise(loaded.source);
+    if (workspaceState?.id !== selected.id) return;
+    openExercise({ exercise, name: loaded.path.split("/").pop() ?? entry.name, contents: loaded.source }, {
+      id: selected.id,
+      path: loaded.relativePath,
+      exercise: true,
+    });
+    setStatus(`Exercício aberto: ${entry.path}`, "ok");
+    return;
+  }
+
+  const existing = tabs.find((tab) => tab.workspaceId === selected.id && tab.workspacePath === entry.path);
+  if (existing) {
+    activate(existing.id);
+    return;
+  }
+  const loaded = await api.readWorkspaceFile(selected.id, entry.path);
+  if (workspaceState?.id !== selected.id) return;
+  const current = activeTab();
+  if (current && !current.path && !current.exampleName && !isDirty(current) && tabs.length === 1) tabs = [];
+  const tab = newTab(loaded.source, loaded.path, undefined, undefined, undefined, undefined, {
+    id: selected.id,
+    path: loaded.relativePath,
+  });
+  tab.workspacePath = loaded.relativePath;
+  rememberFile(loaded.path);
+  setStatus(`Aberto: ${entry.path}`, "ok");
+}
+
+$("home-open-folder").onclick = () => void openWorkspaceFolder();
+$("workspace-open-folder").onclick = () => void openWorkspaceFolder();
+$("btn-explorer").onclick = () => {
+  if (!workspaceState) {
+    void openWorkspaceFolder();
+    return;
+  }
+  setWorkspaceExplorerVisible(Boolean($("workspace-explorer").hidden));
+};
+
+$("workspace-tree").addEventListener("keydown", (event) => {
+  if (!(event instanceof KeyboardEvent)) return;
+  const current = event.target instanceof HTMLButtonElement ? event.target : null;
+  if (!current) return;
+  const items = [...$("workspace-tree").querySelectorAll<HTMLButtonElement>("[role=treeitem]")];
+  const index = items.indexOf(current);
+  const focus = (item?: HTMLButtonElement) => {
+    if (item) {
+      event.preventDefault();
+      item.focus();
+    }
+  };
+  if (event.key === "ArrowDown") focus(items[index + 1]);
+  else if (event.key === "ArrowUp") focus(items[index - 1]);
+  else if (event.key === "Home") focus(items[0]);
+  else if (event.key === "End") focus(items[items.length - 1]);
+  else if (event.key === "ArrowRight" && current.classList.contains("is-folder")) {
+    const path = current.dataset.path!;
+    if (!expandedWorkspaceFolders.has(path)) {
+      event.preventDefault();
+      expandedWorkspaceFolders.add(path);
+      renderWorkspaceExplorer();
+      $("workspace-tree").querySelector<HTMLButtonElement>(`[data-path="${CSS.escape(path)}"]`)?.focus();
+    } else if (items[index + 1]?.dataset.depth === String(Number(current.dataset.depth) + 1)) {
+      focus(items[index + 1]);
+    }
+  } else if (event.key === "ArrowLeft") {
+    const path = current.dataset.path!;
+    if (current.classList.contains("is-folder") && expandedWorkspaceFolders.has(path)) {
+      event.preventDefault();
+      expandedWorkspaceFolders.delete(path);
+      renderWorkspaceExplorer();
+      $("workspace-tree").querySelector<HTMLButtonElement>(`[data-path="${CSS.escape(path)}"]`)?.focus();
+    } else {
+      const depth = Number(current.dataset.depth);
+      focus(items.slice(0, index).reverse().find((item) => Number(item.dataset.depth) === depth - 1));
+    }
+  }
+});
+
+renderWorkspaceExplorer();
+
 const RECENT_KEY = "portugol.recent";
 
 function loadRecent(): string[] {
@@ -586,21 +821,32 @@ async function save(as = false): Promise<boolean> {
   const tab = activeTab();
   if (!tab) return false;
   let path = tab.path;
+  let workspaceFile = Boolean(tab.workspaceId && tab.workspacePath);
   if (!path || as) {
     const extension = tab.language === "portugol-rs" ? "pors" : "por";
     const exerciseName = tab.exercise ? tab.exercise.name.replace(/\.pex$/i, "") + ".por" : undefined;
     path = await saveDialog({ filters: FILTERS, defaultPath: tab.path ?? exerciseName ?? tab.exampleName ?? `programa.${extension}` });
     if (!path) return false;
     path = ensureSourceExtension(path, tab.language);
+    workspaceFile = false;
   }
   const text = view.state.doc.toString();
   try {
-    await api.writeFile(path, text);
+    if (workspaceFile && tab.workspaceId && tab.workspacePath) {
+      await api.writeWorkspaceFile(tab.workspaceId, tab.workspacePath, text);
+    } else {
+      await api.writeFile(path, text);
+    }
   } catch (error) {
     setStatus(String(error), "error");
     return false;
   }
   tab.path = path;
+  if (!workspaceFile) {
+    tab.workspaceId = undefined;
+    tab.workspacePath = undefined;
+    tab.workspaceExercisePath = undefined;
+  }
   tab.language = detectSourceLanguage(path);
   if (tab.id === activeId) view.dispatch({ effects: sourceLanguage.reconfigure(tab.language === "portugol-rs" ? portugolRs() : portugol()) });
   tab.saved = text;
@@ -1279,13 +1525,30 @@ function editorMenuAction(id: string, action: () => unknown) {
     action();
   };
 }
-function openExercise(exerciseDocument: ExerciseDocument) {
+function openExercise(exerciseDocument: ExerciseDocument, workspaceExercise?: { id: string; path: string; exercise: true }) {
+  if (workspaceExercise) {
+    const existing = tabs.find((tab) =>
+      tab.workspaceId === workspaceExercise.id && tab.workspaceExercisePath === workspaceExercise.path,
+    );
+    if (existing) {
+      activate(existing.id);
+      return;
+    }
+  }
   const source = `/*
 ${exerciseDocument.exercise.statement.replaceAll("*/", "* /")}
 */
 
 ${TEMPLATE}`;
-  newTab(source, null, exerciseDocument.name, undefined, exerciseDocument);
+  const current = activeTab();
+  if (current && !current.path && !current.exampleName && !isDirty(current) && tabs.length === 1) tabs = [];
+  const tab = newTab(source, null, exerciseDocument.name, undefined, exerciseDocument);
+  if (workspaceExercise) {
+    tab.workspaceId = workspaceExercise.id;
+    tab.workspaceExercisePath = workspaceExercise.path;
+    selectedWorkspacePath = workspaceExercise.path;
+    renderWorkspaceExplorer();
+  }
 }
 const exercises = mountExercises(openExercise);
 $("home-exercises").onclick = exercises.browse;
@@ -1521,6 +1784,10 @@ function fileShortcut(key: string, shift: boolean, command: string, action: () =
 
 fileShortcut("N", false, "Novo arquivo", () => newTab());
 fileShortcut("O", false, "Abrir arquivo", openFiles);
+fileShortcut("E", true, "Mostrar ou ocultar o explorador", () => {
+  if (!workspaceState) void openWorkspaceFolder();
+  else setWorkspaceExplorerVisible(Boolean($("workspace-explorer").hidden));
+});
 fileShortcut("S", false, "Salvar", () => save());
 fileShortcut("S", true, "Salvar como", () => save(true));
 fileShortcut("E", false, "Parâmetros de execução", () => {

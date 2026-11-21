@@ -2,6 +2,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import type { WorkspaceEntry } from "./workspace-explorer";
 
 export interface Position {
   /** Offset em unidades UTF-16, o mesmo do CodeMirror. */
@@ -140,6 +141,24 @@ export const onSystemFiles = (handler: () => void) => listen("project-files-open
 export const readFile = (path: string) => invoke<string>("read_file", { path });
 
 export const writeFile = (path: string, text: string) => invoke<void>("write_file", { path, text });
+
+export interface WorkspaceListing {
+  id: string;
+  name: string;
+  entries: WorkspaceEntry[];
+}
+
+export interface WorkspaceFile {
+  path: string;
+  relativePath: string;
+  source: string;
+}
+
+export const openWorkspace = () => invoke<WorkspaceListing | null>("workspace_open");
+export const readWorkspaceFile = (workspaceId: string, relativePath: string) =>
+  invoke<WorkspaceFile>("workspace_read_file", { workspaceId, relativePath });
+export const writeWorkspaceFile = (workspaceId: string, relativePath: string, source: string) =>
+  invoke<void>("workspace_write_file", { workspaceId, relativePath, source });
 
 export type CatalogEntry =
   | { kind: "folder"; name: string; entries: CatalogEntry[] }

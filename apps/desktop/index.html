@@ -21,6 +21,7 @@
         <div class="home-actions">
           <button id="home-new" title="Novo arquivo (Ctrl+N)"><span data-icon="grande/newfile64"></span>Novo Arquivo</button>
           <button id="home-open" title="Abrir arquivo (Ctrl+O)"><span data-icon="grande/openfile64"></span>Abrir Arquivo</button>
+          <button id="home-open-folder" title="Abrir pasta de projeto"><span data-icon="pequeno/folder_closed"></span>Abrir Pasta</button>
           <button id="home-help" title="Ajuda (F1)"><span data-icon="grande/helplow"></span>Ajuda</button>
         </div>
         <div class="home-brand">
@@ -62,7 +63,19 @@
     </main>
 
     <main id="code" class="code" hidden>
+      <aside id="workspace-explorer" class="workspace-explorer" aria-labelledby="workspace-title" hidden>
+        <header class="workspace-explorer-header">
+          <h2 id="workspace-title">Explorador</h2>
+          <button id="workspace-open-folder" title="Abrir outra pasta" aria-label="Abrir outra pasta">＋</button>
+        </header>
+        <p id="workspace-name" class="workspace-name" hidden></p>
+        <ul id="workspace-tree" role="tree" aria-label="Arquivos do projeto" data-testid="project-tree"></ul>
+        <p id="workspace-tree-state" class="workspace-tree-state" role="status" aria-live="polite">Abra uma pasta para navegar pelos arquivos do projeto.</p>
+      </aside>
       <aside class="code-toolbar" aria-label="Comandos do editor">
+        <button id="btn-explorer" title="Mostrar ou ocultar o explorador (Ctrl+Shift+E)" aria-label="Explorador" aria-expanded="false">
+          <span data-icon="pequeno/folder_closed"></span>
+        </button>
         <button id="btn-run" title="Executar até o próximo ponto de parada (Shift+F6)" aria-label="Executar">
           <span data-icon="grande/resultset_next"></span>
         </button>
