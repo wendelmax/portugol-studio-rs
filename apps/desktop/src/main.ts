@@ -1001,7 +1001,29 @@ for (const { label, command } of [...shortcuts, { label: "Ctrl+F", command: "Loc
   $("shortcut-list").append(term, description);
 }
 $("home-shortcuts").onclick = showShortcuts;
-$("home-about").onclick = () => $<HTMLDialogElement>("about").showModal();
+const aboutDialog = $<HTMLDialogElement>("about");
+const reportDialog = $<HTMLDialogElement>("report");
+const reportError = $("report-error");
+$("home-about").onclick = () => aboutDialog.showModal();
+$("home-alerts").onclick = () => $<HTMLDialogElement>("alerts").showModal();
+$("about-report").onclick = () => {
+  reportError.hidden = true;
+  reportDialog.showModal();
+};
+$("report-open").onclick = async () => {
+  const button = $<HTMLButtonElement>("report-open");
+  button.disabled = true;
+  reportError.hidden = true;
+  try {
+    await api.openBugReport();
+    reportDialog.close();
+  } catch {
+    reportError.textContent = "Não foi possível abrir o navegador. Use github.com/wendelmax/portugol-studio-rs/issues/new.";
+    reportError.hidden = false;
+  } finally {
+    button.disabled = false;
+  }
+};
 $("home-help").onclick = $("btn-help").onclick = () => activate(helpId);
 
 window.addEventListener("keydown", (e) => {

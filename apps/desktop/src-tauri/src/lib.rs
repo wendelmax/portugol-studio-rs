@@ -151,6 +151,36 @@ fn format_source(source: String) -> Option<Vec<portugol_service::FormatEdit>> {
     portugol_service::format_source(&source)
 }
 
+#[tauri::command]
+async fn open_bug_report() -> Result<(), String> {
+    const URL: &str = "https://github.com/wendelmax/portugol-studio-rs/issues/new";
+    let mut command;
+    #[cfg(target_os = "linux")]
+    {
+        command = std::process::Command::new("xdg-open");
+        command.arg(URL);
+    }
+    #[cfg(target_os = "macos")]
+    {
+        command = std::process::Command::new("open");
+        command.arg(URL);
+    }
+    #[cfg(target_os = "windows")]
+    {
+        command = std::process::Command::new("rundll32.exe");
+        command.args(["url.dll,FileProtocolHandler", URL]);
+    }
+    let status = tauri::async_runtime::spawn_blocking(move || command.status())
+        .await
+        .map_err(|error| error.to_string())?
+        .map_err(|error| error.to_string())?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err("Não foi possível abrir o navegador.".into())
+    }
+}
+
 /// Inicia uma execução, parando a anterior se ainda estiver rodando.
 #[tauri::command]
 fn run(
@@ -268,6 +298,7 @@ pub fn run_app() {
             check,
             inspect,
             format_source,
+            open_bug_report,
             run,
             send_input,
             stop,

@@ -67,7 +67,8 @@ são executados e validados sem tela.
 | Dicas de interface (`TelaDicas`) | ✅ | 18 dicas do original, F3, setas, troca de tema e opção de mostrar ao iniciar |
 | Sobre / licenças (`Sobre`, `TelaLicencas`) | ✅ | diálogo F12, versão, origem e texto da licença |
 | Verificação de atualizações (`TelaAtualizacoes`) | ⬜ | updater do Tauri |
-| Relatar bug (`TelaRelatarBug`) | ⬜ | link para as issues do GitHub |
+| Relatar bug (`TelaRelatarBug`) | ✅ | diálogo em Sobre, com abertura das issues do port no navegador |
+| Mostrar alertas (`TelaAlertas`) | 🟡 | diálogo na tela inicial com estado vazio; avisos distribuídos ainda sem fonte |
 | Plugins (`plugins`, `PainelPlugins`) | ➖ | plugins do original são classes Java; exigiria outro modelo de extensão |
 | Carrossel de cursos, coletor de interações | ➖ | dependem de serviços da UNIVALI |
 
