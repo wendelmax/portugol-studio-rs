@@ -85,10 +85,34 @@ pub fn teclado_constant(name: &str) -> Option<Value> {
         "TECLA_QUOTE" => 222,
         "TECLA_WINDOWS" => 524,
         "TECLA_MENU_CONTEXTO" => 525,
+        "TECLA_CAPS_LOCK" => 20,
+        "TECLA_META" => 157,
+        "TECLA_AMPERSAND" => 150,
+        "TECLA_ASTERISK" => 151,
+        "TECLA_QUOTEDBL" => 152,
+        "TECLA_LESS" => 153,
+        "TECLA_GREATER" => 160,
+        "TECLA_BRACELEFT" => 161,
+        "TECLA_BRACERIGHT" => 162,
+        "TECLA_AT" => 512,
+        "TECLA_COLON" => 513,
+        "TECLA_CIRCUMFLEX" => 514,
+        "TECLA_DOLLAR" => 515,
+        "TECLA_EURO_SIGN" => 516,
+        "TECLA_EXCLAMATION_MARK" => 517,
+        "TECLA_INVERTED_EXCLAMATION_MARK" => 518,
+        "TECLA_LEFT_PARENTHESIS" => 519,
+        "TECLA_NUMBER_SIGN" => 520,
+        "TECLA_PLUS" => 521,
+        "TECLA_RIGHT_PARENTHESIS" => 522,
+        "TECLA_UNDERSCORE" => 523,
         _ => {
-            // TECLA_0..9, TECLA_NUM_0..9 e TECLA_F1..F12.
+            // As duas formas para o teclado numérico são aceitas.
             let rest = name.strip_prefix("TECLA_")?;
-            if let Some(digit) = rest.strip_prefix("NUM_") {
+            if let Some(digit) = rest
+                .strip_suffix("_NUM")
+                .or_else(|| rest.strip_prefix("NUM_"))
+            {
                 return digit
                     .parse::<i32>()
                     .ok()
@@ -96,11 +120,11 @@ pub fn teclado_constant(name: &str) -> Option<Value> {
                     .map(|d| Value::Int(96 + d));
             }
             if let Some(f) = rest.strip_prefix('F') {
-                return f
-                    .parse::<i32>()
-                    .ok()
-                    .filter(|n| (1..=12).contains(n))
-                    .map(|n| Value::Int(111 + n));
+                return f.parse::<i32>().ok().and_then(|n| match n {
+                    1..=12 => Some(Value::Int(111 + n)),
+                    13..=24 => Some(Value::Int(61_427 + n)),
+                    _ => None,
+                });
             }
             return rest
                 .parse::<i32>()
@@ -121,11 +145,10 @@ pub fn mouse_constant(name: &str) -> Option<Value> {
     }
 }
 
-/// O vetor de teclas do original tem 525 posições.
 fn tecla_pressionada(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
     arity(args, 1, "tecla_pressionada")?;
     let code = int(&args[0])?;
-    if !(0..525).contains(&code) {
+    if !(0..=525).contains(&code) && !(61_440..=61_451).contains(&code) && code != 65_406 {
         return Err("Você tentou acessar um índice de vetor ou matriz inválido.".into());
     }
     Ok(Value::Bool(

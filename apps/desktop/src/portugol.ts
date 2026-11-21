@@ -1,6 +1,6 @@
 // Linguagem Portugol para o CodeMirror: realce (StreamLanguage) e
 // autocompletar. As listas espelham o lexer em crates/portugol-syntax e as
-// bibliotecas já portadas em crates/portugol-vm/src/stdlib.
+// bibliotecas documentadas na ajuda e portadas em crates/portugol-vm/src/stdlib.
 
 import {
   StreamLanguage,
@@ -24,77 +24,26 @@ const KEYWORDS = [
 const TYPES = ["inteiro", "real", "cadeia", "caracter", "logico", "vazio"];
 const BUILTINS = ["escreva", "leia", "limpa", "sorteia"];
 
-export const LIBRARIES: Record<string, string[]> = {
-  Matematica: [
-    "PI", "potencia", "raiz", "arredondar", "logaritmo", "seno", "cosseno",
-    "tangente", "valor_absoluto", "maior_numero", "menor_numero",
-  ],
-  Texto: [
-    "numero_caracteres", "caixa_alta", "caixa_baixa", "substituir",
-    "preencher_a_esquerda", "obter_caracter", "posicao_texto", "extrair_subtexto",
-  ],
-  Tipos: [
-    "cadeia_e_inteiro", "cadeia_e_real", "cadeia_e_logico", "cadeia_e_caracter",
-    "cadeia_para_caracter", "cadeia_para_inteiro", "cadeia_para_real",
-    "cadeia_para_logico", "inteiro_e_caracter", "inteiro_para_cadeia",
-    "inteiro_para_caracter", "inteiro_para_logico", "inteiro_para_real",
-    "caracter_e_inteiro", "caracter_e_logico", "caracter_para_cadeia",
-    "caracter_para_inteiro", "caracter_para_logico", "logico_para_cadeia",
-    "logico_para_inteiro", "logico_para_caracter", "real_para_cadeia",
-    "real_para_inteiro",
-  ],
-  Calendario: [
-    "DIA_DOMINGO", "DIA_SEGUNDA_FEIRA", "DIA_TERCA_FEIRA", "DIA_QUARTA_FEIRA",
-    "DIA_QUINTA_FEIRA", "DIA_SEXTA_FEIRA", "DIA_SABADO", "MES_JANEIRO",
-    "MES_FEVEREIRO", "MES_MARCO", "MES_ABRIL", "MES_MAIO", "MES_JUNHO",
-    "MES_JULHO", "MES_AGOSTO", "MES_SETEMBRO", "MES_OUTUBRO", "MES_NOVEMBRO",
-    "MES_DEZEMBRO", "dia_mes_atual", "dia_semana_atual", "mes_atual", "ano_atual",
-    "hora_atual", "minuto_atual", "segundo_atual", "milisegundo_atual",
-    "dia_semana_completo", "dia_semana_curto", "dia_semana_abreviado",
-  ],
-  Util: [
-    "numero_elementos", "numero_linhas", "numero_colunas", "sorteia",
-    "aguarde", "tempo_decorrido", "obter_diretorio_usuario",
-  ],
-  Arquivos: [
-    "MODO_LEITURA", "MODO_ESCRITA", "MODO_ACRESCENTAR", "abrir_arquivo",
-    "fechar_arquivo", "fim_arquivo", "ler_linha", "escrever_linha",
-    "substituir_texto", "arquivo_existe", "apagar_arquivo",
-    "selecionar_arquivo", "listar_pastas", "listar_arquivos",
-    "listar_arquivos_por_tipo", "criar_pasta",
-  ],
-  Objetos: [
-    "TIPO_INTEIRO", "TIPO_CADEIA", "TIPO_CARACTER", "TIPO_REAL", "TIPO_LOGICO",
-    "TIPO_OBJETO", "TIPO_VETOR", "criar_objeto", "criar_objeto_via_json",
-    "criar_objeto_via_xml", "atribuir_propriedade",
-    "obter_propriedade_tipo_inteiro", "obter_propriedade_tipo_real",
-    "obter_propriedade_tipo_logico", "obter_propriedade_tipo_caracter",
-    "obter_propriedade_tipo_cadeia", "obter_propriedade_tipo_objeto",
-    "obter_propriedade_tipo_inteiro_em_vetor",
-    "obter_propriedade_tipo_real_em_vetor",
-    "obter_propriedade_tipo_logico_em_vetor",
-    "obter_propriedade_tipo_caracter_em_vetor",
-    "obter_propriedade_tipo_cadeia_em_vetor",
-    "obter_propriedade_tipo_objeto_em_vetor", "obter_tamanho_vetor_propriedade",
-    "liberar_objeto", "liberar", "obter_json", "contem_propriedade",
-    "tipo_propriedade",
-  ],
-  Internet: [
-    "definir_tempo_limite", "obter_texto", "baixar_imagem",
-    "endereco_disponivel",
-  ],
-  ServicosWeb: [
-    "OBTER", "PUBLICAR", "ATUALIZAR", "EXCLUIR", "obter_dados", "excluir_dados",
-    "publicar_dados", "atualizar_dados", "abrir_conexao", "adicionar_cabecalho",
-    "adicionar_parametros", "fazer_requisicao",
-  ],
-  Sons: [
-    "carregar_som", "liberar_som", "reproduzir_som", "pausar_som", "interromper_som",
-    "obter_tamanho_musica", "obter_posicao_atual_musica", "definir_posicao_atual_musica",
-    "definir_volume", "definir_volume_reproducao", "obter_volume", "obter_volume_reproducao",
-  ],
-  Graficos: [], Mouse: [], Teclado: [],
-};
+export const LIBRARIES = [
+  "Arquivos", "Calendario", "Graficos", "Internet", "Matematica", "Mouse",
+  "Objetos", "ServicosWeb", "Sons", "Teclado", "Texto", "Tipos", "Util",
+] as const;
+const libraryNames = new Set<string>(LIBRARIES);
+let documentedMembers: Promise<Map<string, Completion[]>> | undefined;
+
+function libraryMembers() {
+  documentedMembers ??= import("./help-assets/bibliotecas.json").then(({ default: libraries }) =>
+    new Map(Object.entries(libraries).map(([name, library]) => [
+      name, library.resources.map((resource) => ({
+        label: resource.name,
+        type: resource.signature.startsWith("funcao ") ? "function" : "constant",
+        detail: resource.signature,
+        info: resource.description,
+      })),
+    ])),
+  );
+  return documentedMembers;
+}
 
 const keywordSet = new Set(KEYWORDS);
 const typeSet = new Set(TYPES);
@@ -147,7 +96,7 @@ const parser: StreamParser<State> = {
       if (typeSet.has(text)) return "typeName";
       if (keywordSet.has(text)) return "keyword";
       if (builtinSet.has(text)) return "builtin";
-      if (text in LIBRARIES) return "namespace";
+      if (libraryNames.has(text)) return "namespace";
       if (stream.match(/^\s*\(/, false)) return "function";
       return "variableName";
     }
@@ -232,7 +181,7 @@ function declaredNames(text: string): string[] {
   return [...names];
 }
 
-function complete(context: CompletionContext): CompletionResult | null {
+function complete(context: CompletionContext): CompletionResult | null | Promise<CompletionResult> {
   const text = context.state.doc.toString();
 
   // Membro de biblioteca: `alias.`
@@ -241,15 +190,11 @@ function complete(context: CompletionContext): CompletionResult | null {
     const [scope] = member.text.split(".");
     const library = libraryScopes(text).get(scope);
     if (library) {
-      return {
+      return libraryMembers().then((members) => ({
         from: member.from + scope.length + 1,
-        options: (LIBRARIES[library] ?? []).map((name) => ({
-          label: name,
-          type: name === name.toUpperCase() ? "constant" : "function",
-          detail: library,
-        })),
+        options: members.get(library) ?? [],
         validFor: /^\w*$/,
-      };
+      }));
     }
   }
 
@@ -259,10 +204,9 @@ function complete(context: CompletionContext): CompletionResult | null {
     const word = context.matchBefore(/\w*/)!;
     return {
       from: word.from,
-      options: Object.keys(LIBRARIES).map((label) => ({
+      options: LIBRARIES.map((label) => ({
         label,
         type: "namespace",
-        detail: LIBRARIES[label].length ? "" : "ainda não disponível",
       })),
     };
   }

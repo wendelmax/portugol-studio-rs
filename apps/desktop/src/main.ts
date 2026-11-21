@@ -812,7 +812,7 @@ const utilitiesSplitter = $("utilities-splitter");
 const outline = mountOutline(goTo, renameAt);
 
 const libraryButtons = new Map<string, HTMLButtonElement>();
-for (const name of Object.keys(LIBRARIES).sort((a, b) => a.localeCompare(b, "pt-BR"))) {
+for (const name of LIBRARIES) {
   const button = document.createElement("button");
   button.textContent = name;
   button.title = `Incluir biblioteca ${name}`;

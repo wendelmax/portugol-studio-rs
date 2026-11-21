@@ -37,8 +37,8 @@ são executados e validados sem tela.
 | Internet | 4 | ✅ | |
 | ServicosWeb | 8 + 4 constantes | ✅ | |
 | Graficos | 56 | 🟡 | janela Tauri e Canvas com formas, fontes, imagens, gradientes, rotação e captura RGBA; desenho e captura RGBA verificados no Linux; falta teste interativo em Windows e macOS |
-| Teclado | 5 | 🟡 | eventos da janela alimentam `InputState`; verificado no Linux |
-| Mouse | 8 | 🟡 | eventos da janela alimentam `InputState`; verificado no Linux |
+| Teclado | 4 + 135 constantes | 🟡 | códigos públicos do Java e eventos em `InputState`; verificado no Linux |
+| Mouse | 7 + 3 constantes | 🟡 | eventos da janela alimentam `InputState`; verificado no Linux |
 | Sons | 12 | ✅ | MP3 e WAV, reprodução simultânea de clipes, pausa, posição e volume no host da IDE |
 
 ## IDE
@@ -51,6 +51,7 @@ são executados e validados sem tela.
 | Abas de arquivos, abrir, salvar, salvar como | ✅ | |
 | Console com entrada (`AbaConsole`) | ✅ | entrada e engrenagem para limpar, copiar e ajustar fonte |
 | Depuração na IDE (`AbaDepuracao`, `Depurador`) | ✅ | gutter de breakpoints, início pausado com Shift+F5, pilha e variáveis |
+| Autocompletar bibliotecas | ✅ | opções, assinaturas e descrições da mesma referência usada pela ajuda |
 | Localizar e substituir (`PSFindReplace`) | ✅ | diálogo Ctrl+F com direção, palavra inteira, maiúsculas, expressões regulares e substituição em lote |
 | Atalhos do original (`TelaAtalhos`) | ✅ | tela F11, atalhos de edição, depuração, arquivos, abas, filtros e centralização |
 | Temas claro/escuro (`TelaEditarTemas`) | ✅ | claro, escuro, sistema e perfis personalizados com prévia |
