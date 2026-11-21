@@ -1909,8 +1909,10 @@ async function renameAt(offset: number) {
 async function goToDeclarationAt(offset: number, quiet = false) {
   const tab = activeTab();
   if (!tab) return;
-  if (tab.language === "portugol-rs") {
-    if (!quiet) setStatus("Navegação semântica ainda não está disponível no Portugol-RS.");
+  if (tab.language !== "portugol") {
+    if (!quiet) setStatus(tab.language === "rust"
+      ? "Navegação de símbolos Rust ainda não está configurada."
+      : "Navegação semântica ainda não está disponível no Portugol-RS.");
     return;
   }
   const doc = view.state.doc;
