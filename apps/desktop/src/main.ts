@@ -1064,10 +1064,11 @@ $<HTMLButtonElement>("rust-copy").onclick = async () => {
   }
 };
 $<HTMLButtonElement>("rust-save").onclick = async () => {
-  const path = await saveDialog({ defaultPath: "programa.rs", filters: [{ name: "Rust", extensions: ["rs"] }] });
-  if (!path) return;
+  const code = $<HTMLElement>("rust-output").textContent ?? "";
   try {
-    await api.writeFile(path, $<HTMLElement>("rust-output").textContent ?? "");
+    const path = await saveDialog({ defaultPath: "programa.rs", filters: [{ name: "Rust", extensions: ["rs"] }] });
+    if (!path) return;
+    await api.writeFile(path, code);
     setStatus("Rust salvo em " + path + ".", "ok");
   } catch (error) {
     setStatus(String(error), "error");
@@ -1101,6 +1102,7 @@ function scheduleRustExport() {
   delete status.dataset.error;
   $<HTMLButtonElement>("rust-copy").disabled = true;
   $<HTMLButtonElement>("rust-save").disabled = true;
+  $<HTMLElement>("rust-output").textContent = "";
   rustExportTimer = window.setTimeout(async () => {
     let result: api.RustExport;
     try {

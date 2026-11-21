@@ -17,6 +17,7 @@ default-members = [
     "crates/portugol-semantics",
     "crates/portugol-bytecode",
     "crates/portugol-vm",
+    "crates/portugol-rust",
     "crates/portugol-service",
     "crates/portugol-cli",
 ]

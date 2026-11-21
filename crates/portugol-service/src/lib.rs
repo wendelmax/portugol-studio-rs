@@ -229,7 +229,9 @@ mod rust_export {
     fn includes_generated_code_for_supported_programs() {
         let result = export_rust("programa { funcao inicio() { escreva(42) } }");
         assert!(result.diagnostic.is_none());
-        assert!(result.code.unwrap().contains("print!(\"{}\", 42_i32);"));
+        let code = result.code.unwrap();
+        assert!(code.contains("let __portugol_write_0 = 42_i32;"));
+        assert!(code.contains("print!(\"{}\", __portugol_write_0);"));
     }
 
     #[test]

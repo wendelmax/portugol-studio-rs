@@ -126,10 +126,12 @@ impl Lowerer {
             return Err(unsupported("comandos fora de funcao inicio", span));
         }
         if functions.len() != 1 || functions[0].name.name != "inicio" {
-            return Err(unsupported(
-                "programa sem uma única função inicio",
-                program.span,
-            ));
+            let span = functions
+                .iter()
+                .find(|function| function.name.name != "inicio")
+                .map(|function| function.name.span)
+                .unwrap_or(program.span);
+            return Err(unsupported("programa sem uma única função inicio", span));
         }
         let function = functions[0];
         if !function.params.is_empty() || function.return_type.is_some() {
@@ -215,7 +217,7 @@ impl Lowerer {
         if declarations.declarators.len() != 1 {
             return Err(unsupported("declaração múltipla", declarations.span));
         }
-        let Declarator::Variable { name, init, span } = &declarations.declarators[0] else {
+        let Declarator::Variable { name, init, .. } = &declarations.declarators[0] else {
             return Err(unsupported("vetor ou matriz", declarations.span));
         };
         let init = init
@@ -233,17 +235,10 @@ impl Lowerer {
                 declarations.span,
             ));
         }
-        if is_reserved_identifier(&name.name) {
-            return Err(unsupported(
-                "identificador reservado pela sintaxe Rust",
-                name.span,
-            ));
-        }
         self.scopes
             .last_mut()
             .unwrap()
             .insert(name.name.clone(), ty);
-        let _ = span;
         Ok(HStmt::Declare {
             name: rust_ident(&name.name),
             ty,
@@ -256,18 +251,24 @@ impl Lowerer {
         let AstExpr::Ident(ident) = &assignment.target else {
             return Err(unsupported("atribuição indireta", assignment.target.span()));
         };
-        if is_reserved_identifier(&ident.name) {
-            return Err(unsupported(
-                "identificador reservado pela sintaxe Rust",
-                ident.span,
-            ));
-        }
         let ty = self
             .lookup(&ident.name)
             .ok_or_else(|| unsupported("variável fora do escopo", ident.span))?;
         let value = self.expression(&assignment.value)?;
         if !compatible(ty, value.ty) {
             return Err(unsupported("conversao implicita de tipo", value.span));
+        }
+        let valid_compound = match assignment.op {
+            AssignOp::Assign => true,
+            AssignOp::Add => matches!(ty, Ty::Inteiro | Ty::Real | Ty::Cadeia),
+            AssignOp::Sub | AssignOp::Mul | AssignOp::Div => matches!(ty, Ty::Inteiro | Ty::Real),
+            AssignOp::Mod | AssignOp::Xor | AssignOp::BitAnd | AssignOp::BitOr => ty == Ty::Inteiro,
+        };
+        if !valid_compound {
+            return Err(unsupported(
+                "operador de atribuição composta",
+                assignment.span,
+            ));
         }
         Ok(HStmt::Assign {
             name: rust_ident(&ident.name),
@@ -314,20 +315,24 @@ impl Lowerer {
                 } else {
                     let expr = self.expression(expr)?;
                     if *op == UnaryOp::Neg && expr.ty == Ty::Inteiro {
-                        (format!("{}.wrapping_neg()", expr.code), Ty::Inteiro)
+                        (format!("({}).wrapping_neg()", expr.code), Ty::Inteiro)
                     } else {
                         let (operator, ty) = match op {
                             UnaryOp::Neg if matches!(expr.ty, Ty::Inteiro | Ty::Real) => {
                                 ("-", expr.ty)
                             }
                             UnaryOp::Plus if matches!(expr.ty, Ty::Inteiro | Ty::Real) => {
-                                ("+", expr.ty)
+                                return Ok(HExpr {
+                                    code: expr.code,
+                                    ty: expr.ty,
+                                    span,
+                                });
                             }
                             UnaryOp::Not if expr.ty == Ty::Logico => ("!", Ty::Logico),
                             UnaryOp::BitNot if expr.ty == Ty::Inteiro => ("!", Ty::Inteiro),
                             _ => return Err(unsupported("operacao unaria", span)),
                         };
-                        (format!("{operator}{}", expr.code), ty)
+                        (format!("{operator}({})", expr.code), ty)
                     }
                 }
             }
@@ -337,17 +342,13 @@ impl Lowerer {
                 let left = self.expression(left)?;
                 let right = self.expression(right)?;
                 if *op == BinOp::Add
-                    && (left.ty == Ty::Cadeia
-                        || right.ty == Ty::Cadeia
+                    && ((left.ty == Ty::Cadeia && right.ty == Ty::Cadeia)
                         || (left.ty == Ty::Caracter && right.ty == Ty::Caracter))
                 {
                     (
                         format!(
                             "format!(\"{}{}\", {}, {})",
-                            format_placeholder(left.ty),
-                            format_placeholder(right.ty),
-                            left.code,
-                            right.code
+                            "{}", "{}", left.code, right.code
                         ),
                         Ty::Cadeia,
                     )
@@ -371,7 +372,7 @@ impl Lowerer {
                             } else {
                                 right.code
                             };
-                            (format!("{}.{}({right})", left.code, method), ty)
+                            (format!("({}).{}({right})", left.code, method), ty)
                         } else {
                             let operator = match op {
                                 BinOp::Xor => "^",
@@ -379,7 +380,7 @@ impl Lowerer {
                                 BinOp::BitOr => "|",
                                 _ => unreachable!(),
                             };
-                            (format!("{} {operator} {}", left.code, right.code), ty)
+                            (format!("({}) {operator} ({})", left.code, right.code), ty)
                         }
                     } else {
                         let operator = match op {
@@ -402,7 +403,7 @@ impl Lowerer {
                             BinOp::Add => "+",
                             BinOp::Sub => "-",
                         };
-                        (format!("{} {operator} {}", left.code, right.code), ty)
+                        (format!("({}) {operator} ({})", left.code, right.code), ty)
                     }
                 }
             }
@@ -414,10 +415,6 @@ impl Lowerer {
 
 fn compatible(target: Ty, value: Ty) -> bool {
     target == value
-}
-
-fn format_placeholder(ty: Ty) -> &'static str {
-    if ty == Ty::Real { "{:?}" } else { "{}" }
 }
 
 fn map_type(ty: Type) -> Option<Ty> {
@@ -433,7 +430,7 @@ fn map_type(ty: Type) -> Option<Ty> {
 
 fn binary_type(op: BinOp, left: Ty, right: Ty) -> Option<Ty> {
     match op {
-        BinOp::Add if left == Ty::Cadeia || right == Ty::Cadeia => Some(Ty::Cadeia),
+        BinOp::Add if left == Ty::Cadeia && right == Ty::Cadeia => Some(Ty::Cadeia),
         BinOp::Add if left == Ty::Caracter && right == Ty::Caracter => Some(Ty::Cadeia),
         BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div
             if left == right && matches!(left, Ty::Inteiro | Ty::Real) =>
@@ -457,7 +454,9 @@ fn binary_type(op: BinOp, left: Ty, right: Ty) -> Option<Ty> {
 }
 
 fn render(program: &HProgram) -> String {
-    let mut output = String::from("use std::io::{self, Write};\n\nfn main() {\n");
+    let mut output = String::from("use std::io::{self, Write};\n\n");
+    output.push_str(JAVA_DOUBLE_HELPER);
+    output.push_str("\nfn main() {\n");
     render_statements(&program.body, 1, &mut output);
     output.push_str("}\n");
     output
@@ -475,11 +474,13 @@ fn render_statements(statements: &[HStmt], depth: usize, output: &mut String) {
             } => {
                 output.push_str(&format!(
                     "{indent}{} {name}: {}",
-                    if *is_const { "const" } else { "let mut" },
+                    if *is_const { "let" } else { "let mut" },
                     ty.rust()
                 ));
                 if let Some(init) = init {
-                    output.push_str(&format!(" = {}", init.code));
+                    output.push_str(&format!(" = {}", owned_value(init)));
+                } else {
+                    output.push_str(&format!(" = {}", default_value(*ty)));
                 }
                 output.push_str(";\n");
             }
@@ -500,7 +501,7 @@ fn render_statements(statements: &[HStmt], depth: usize, output: &mut String) {
                     };
                     if let Some(method) = method {
                         output.push_str(&format!(
-                            "{indent}{name} = {name}.{method}({});\n",
+                            "{indent}{name} = ({name}).{method}({});\n",
                             value.code
                         ));
                         continue;
@@ -509,10 +510,11 @@ fn render_statements(statements: &[HStmt], depth: usize, output: &mut String) {
                 if *ty == Ty::Cadeia && *op == AssignOp::Add {
                     output.push_str(&format!(
                         "{indent}{name} = format!(\"{{}}{{}}\", {name}, {});\n",
-                        value.code
+                        owned_value(value)
                     ));
                     continue;
                 }
+                let assignment_op = *op;
                 let op = match op {
                     AssignOp::Assign => "=",
                     AssignOp::Add => "+=",
@@ -524,15 +526,31 @@ fn render_statements(statements: &[HStmt], depth: usize, output: &mut String) {
                     AssignOp::BitAnd => "&=",
                     AssignOp::BitOr => "|=",
                 };
-                output.push_str(&format!("{indent}{name} {op} {};\n", value.code));
+                let value = if assignment_op == AssignOp::Assign {
+                    owned_value(value)
+                } else {
+                    value.code.clone()
+                };
+                output.push_str(&format!("{indent}{name} {op} {value};\n"));
             }
             HStmt::Write(values) => {
-                for value in values {
-                    output.push_str(&format!(
-                        "{indent}print!(\"{}\", {});\n",
-                        format_placeholder(value.ty),
-                        value.code
-                    ));
+                let temps: Vec<String> = values
+                    .iter()
+                    .enumerate()
+                    .map(|(index, _)| format!("__portugol_write_{index}"))
+                    .collect();
+                for (temp, value) in temps.iter().zip(values) {
+                    output.push_str(&format!("{indent}let {temp} = {};\n", owned_value(value)));
+                }
+                for (temp, value) in temps.iter().zip(values) {
+                    let expression = match value.ty {
+                        Ty::Logico => {
+                            format!("if {temp} {{ \"verdadeiro\" }} else {{ \"falso\" }}")
+                        }
+                        Ty::Real => format!("__portugol_java_double({temp})"),
+                        _ => temp.clone(),
+                    };
+                    output.push_str(&format!("{indent}print!(\"{{}}\", {expression});\n"));
                 }
                 output.push_str(&format!("{indent}let _ = io::stdout().flush();\n"));
             }
@@ -556,24 +574,37 @@ fn render_statements(statements: &[HStmt], depth: usize, output: &mut String) {
 }
 
 fn rust_ident(name: &str) -> String {
-    const KEYWORDS: &[&str] = &[
-        "as", "break", "const", "continue", "crate", "else", "enum", "extern", "false", "fn",
-        "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref",
-        "return", "self", "Self", "static", "struct", "super", "trait", "true", "type", "unsafe",
-        "use", "where", "while", "async", "await", "dyn",
-    ];
-    if KEYWORDS.contains(&name) && !matches!(name, "self" | "Self" | "super" | "crate") {
-        format!("r#{name}")
+    format!("pt_{name}")
+}
+
+fn owned_value(expression: &HExpr) -> String {
+    if expression.ty == Ty::Cadeia {
+        format!("({}).clone()", expression.code)
     } else {
-        name.to_owned()
+        expression.code.clone()
     }
 }
 
-fn is_reserved_identifier(name: &str) -> bool {
-    matches!(name, "self" | "Self" | "super" | "crate")
+fn default_value(ty: Ty) -> &'static str {
+    match ty {
+        Ty::Inteiro => "0_i32",
+        Ty::Real => "0.0_f64",
+        Ty::Logico => "false",
+        Ty::Cadeia => "String::new()",
+        Ty::Caracter => "'\\0'",
+    }
 }
 
 fn format_real(value: f64) -> String {
+    if value.is_nan() {
+        return "f64::NAN".to_owned();
+    }
+    if value == f64::INFINITY {
+        return "f64::INFINITY".to_owned();
+    }
+    if value == f64::NEG_INFINITY {
+        return "f64::NEG_INFINITY".to_owned();
+    }
     let value = value.to_string();
     if value.contains(['.', 'e', 'E']) {
         value
@@ -581,6 +612,42 @@ fn format_real(value: f64) -> String {
         format!("{value}.0")
     }
 }
+
+const JAVA_DOUBLE_HELPER: &str = r#"fn __portugol_java_double(value: f64) -> String {
+    if value.is_nan() { return "NaN".to_owned(); }
+    if value.is_infinite() { return if value > 0.0 { "Infinity" } else { "-Infinity" }.to_owned(); }
+    if value == 0.0 { return if value.is_sign_negative() { "-0.0" } else { "0.0" }.to_owned(); }
+    let sci = format!("{:e}", value.abs());
+    let (mantissa, exponent) = sci.split_once('e').expect("{:e} format");
+    let exponent: i32 = exponent.parse().expect("exponent");
+    let digits: String = mantissa.chars().filter(|c| *c != '.').collect();
+    let mut out = String::new();
+    if value < 0.0 { out.push('-'); }
+    let magnitude = value.abs();
+    if (1e-3..1e7).contains(&magnitude) {
+        if exponent >= 0 {
+            let int_len = exponent as usize + 1;
+            if digits.len() <= int_len {
+                out.push_str(&digits);
+                out.extend(std::iter::repeat_n('0', int_len - digits.len()));
+                out.push_str(".0");
+            } else {
+                out.push_str(&digits[..int_len]);
+                out.push('.');
+                out.push_str(&digits[int_len..]);
+            }
+        } else {
+            out.push_str("0.");
+            out.extend(std::iter::repeat_n('0', (-exponent - 1) as usize));
+            out.push_str(&digits);
+        }
+    } else {
+        out.push_str(&digits[..1]); out.push('.');
+        if digits.len() > 1 { out.push_str(&digits[1..]); } else { out.push('0'); }
+        out.push_str(&format!("E{exponent}"));
+    }
+    out
+}"#;
 
 fn unsupported(feature: &str, span: Span) -> Diagnostic {
     Diagnostic::error(
@@ -600,8 +667,8 @@ mod tests {
     #[test]
     fn lowers_typed_declarations_and_preserves_write_without_newline() {
         let generated = export(SOURCE).unwrap();
-        assert!(generated.contains("let mut total: i32 = 40_i32.wrapping_add(2_i32);"));
-        assert!(generated.contains("print!(\"{}\", total);"));
+        assert!(generated.contains("let mut pt_total: i32 = (40_i32).wrapping_add(2_i32);"));
+        assert!(generated.contains("print!(\"{}\", __portugol_write_0);"));
         assert!(!generated.contains("println!"));
     }
 
@@ -644,8 +711,8 @@ mod tests {
     fn emits_scoped_conditionals_and_string_concatenation_as_valid_rust() {
         let source = r#"programa { funcao inicio() { cadeia nome = "Ana" escreva("Oi, " + nome) se (1 < 2) { escreva("!") } } }"#;
         let generated = export(source).unwrap();
-        assert!(generated.contains(r#"format!("{}{}", String::from("Oi, "), nome)"#));
-        assert!(generated.contains("if 1_i32 < 2_i32 {"));
+        assert!(generated.contains(r#"format!("{}{}", String::from("Oi, "), pt_nome)"#));
+        assert!(generated.contains("if (1_i32) < (2_i32) {"));
         let dir =
             std::env::temp_dir().join(format!("portugol-rust-condition-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
@@ -688,7 +755,7 @@ mod tests {
     fn exports_the_minimum_signed_integer_literal() {
         let source = "programa { funcao inicio() { inteiro n = -2147483648 escreva(n) } }";
         let generated = export(source).unwrap();
-        assert!(generated.contains("let mut n: i32 = i32::MIN;"));
+        assert!(generated.contains("let mut pt_n: i32 = i32::MIN;"));
         assert_rust_output(generated, "-2147483648");
     }
 
@@ -702,6 +769,93 @@ mod tests {
     fn preserves_integer_negation_wraparound() {
         let source = "programa { funcao inicio() { inteiro n = -2147483648 n = -n escreva(n) } }";
         assert_rust_output(export(source).unwrap(), "-2147483648");
+    }
+
+    #[test]
+    fn clones_strings_on_declaration_and_assignment() {
+        let source = "programa { funcao inicio() { cadeia origem = \"oi\" cadeia destino = \"\" destino = origem escreva(origem, destino) } }";
+        assert_rust_output(export(source).unwrap(), "oioi");
+    }
+
+    #[test]
+    fn mangles_rust_reserved_and_special_identifiers() {
+        let source = "programa { funcao inicio() { inteiro gen = 1 inteiro yield = 2 inteiro Some = 3 inteiro _ = 4 escreva(gen, yield, Some, _) } }";
+        assert_rust_output(export(source).unwrap(), "1234");
+    }
+
+    #[test]
+    fn prints_logicos_in_portugol_spelling() {
+        let source = "programa { funcao inicio() { escreva(verdadeiro, falso) } }";
+        assert_rust_output(export(source).unwrap(), "verdadeirofalso");
+    }
+
+    #[test]
+    fn formats_real_exponents_like_portugol() {
+        let source = "programa { funcao inicio() { escreva(10000000.0, 0.0001) } }";
+        assert_rust_output(export(source).unwrap(), "1.0E71.0E-4");
+    }
+
+    #[test]
+    fn initializes_uninitialized_scalars_to_their_portugol_defaults() {
+        let source = "programa { funcao inicio() { inteiro n se (falso) { n = 1 } escreva(n) } }";
+        assert_rust_output(export(source).unwrap(), "0");
+    }
+
+    #[test]
+    fn lowers_unary_plus_to_a_valid_rust_expression() {
+        let source = "programa { funcao inicio() { escreva(+1) } }";
+        assert_rust_output(export(source).unwrap(), "1");
+    }
+
+    #[test]
+    fn preserves_operator_grouping_from_the_ast() {
+        let source = "programa { funcao inicio() { escreva(~1 + 2, 1 < 2 == verdadeiro) } }";
+        assert_rust_output(export(source).unwrap(), "0verdadeiro");
+    }
+
+    #[test]
+    fn scopes_constants_in_declaration_order() {
+        let source = "programa { funcao inicio() { inteiro n = 1 se (verdadeiro) { escreva(n) const inteiro n = 2 escreva(n) } } }";
+        assert_rust_output(export(source).unwrap(), "12");
+    }
+
+    #[test]
+    fn rejects_compound_operators_without_rust_equivalents() {
+        let source = "programa { funcao inicio() { logico ativo = verdadeiro ativo += falso } }";
+        assert_eq!(export(source).unwrap_err().code, "rust.unsupported");
+    }
+
+    #[test]
+    fn rejects_string_concatenation_that_needs_implicit_conversion() {
+        let source = "programa { funcao inicio() { escreva(\"n=\" + 1) } }";
+        assert_eq!(export(source).unwrap_err().code, "rust.unsupported");
+    }
+
+    #[test]
+    fn evaluates_all_escreva_arguments_before_writing_any_of_them() {
+        let source = "programa { funcao inicio() { escreva(\"prefixo\", 1 / 0) } }";
+        let generated = export(source).unwrap();
+        let dir = std::env::temp_dir().join(format!("portugol-rust-write-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let source_path = dir.join("main.rs");
+        let binary = dir.join(format!("program{}", std::env::consts::EXE_SUFFIX));
+        std::fs::write(&source_path, generated).unwrap();
+        let compilation = Command::new("rustc")
+            .arg("--edition=2024")
+            .arg(&source_path)
+            .arg("-o")
+            .arg(&binary)
+            .output()
+            .unwrap();
+        assert!(
+            compilation.status.success(),
+            "{}",
+            String::from_utf8_lossy(&compilation.stderr)
+        );
+        let output = Command::new(&binary).output().unwrap();
+        assert!(!output.status.success());
+        assert!(output.stdout.is_empty());
+        std::fs::remove_dir_all(dir).unwrap();
     }
 
     fn assert_rust_output(generated: String, expected: &str) {
