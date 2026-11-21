@@ -58,6 +58,7 @@ jobs:
         working-directory: apps/desktop
         run: |
           npm ci
+          npm test
           npm run build
       - name: Clippy do app
         run: cargo clippy -p portugol-desktop -- -D warnings
@@ -96,6 +97,7 @@ jobs:
         working-directory: apps/desktop
         run: |
           npm ci
+          npm test
           npm run build
       - name: Clippy do app
         run: cargo clippy -p portugol-desktop --all-targets -- -D warnings

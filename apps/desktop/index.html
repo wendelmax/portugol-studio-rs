@@ -96,9 +96,19 @@
               </label>
               <label class="theme">Tema
                 <select id="theme">
-                  <option value="system">Sistema</option>
-                  <option value="light">Portugol</option>
-                  <option value="dark">Dark</option>
+                  <optgroup label="Temas originais">
+                    <option value="system">Sistema</option>
+                    <option value="light">Portugol</option>
+                    <option value="dark">Dark</option>
+                  </optgroup>
+                  <optgroup label="Temas populares">
+                    <option value="preset:github-light">GitHub Light</option>
+                    <option value="preset:github-dark">GitHub Dark</option>
+                    <option value="preset:one-dark-pro">One Dark Pro</option>
+                    <option value="preset:dracula">Dracula</option>
+                    <option value="preset:catppuccin-mocha">Catppuccin Mocha</option>
+                    <option value="preset:night-owl">Night Owl</option>
+                  </optgroup>
                 </select>
               </label>
               <button id="editor-themes">Editar temas</button>
