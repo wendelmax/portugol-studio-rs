@@ -769,6 +769,7 @@ select {
 }
 
 #shortcuts,
+#tips,
 #about {
   color: var(--text);
   background: var(--surface);
@@ -778,11 +779,13 @@ select {
 }
 
 #shortcuts::backdrop,
+#tips::backdrop,
 #about::backdrop {
   background: rgb(0 0 0 / 55%);
 }
 
 #shortcuts h2,
+#tips h2,
 #about h2 {
   margin-top: 0;
 }
@@ -1247,4 +1250,32 @@ body {
   :root:not([data-theme="dark"]) .window-controls .ui-icon {
     filter: brightness(0) opacity(0.8);
   }
+}
+
+
+#tips {
+  width: min(680px, calc(100% - 24px));
+}
+
+#tips-image {
+  display: block;
+  width: 100%;
+  height: min(48vh, 360px);
+  object-fit: contain;
+  background: var(--bg);
+}
+
+#tips-description {
+  white-space: pre-line;
+}
+
+.tips-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tips-actions label {
+  margin-inline-end: auto;
 }

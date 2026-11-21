@@ -1,3 +1,4 @@
+import { mountTips } from "./tips";
 // IDE: abas de arquivos, editor CodeMirror, console e execução.
 //
 // Atalhos seguem o Portugol Studio original (TelaAtalhos.java):
@@ -898,6 +899,7 @@ const shortcuts: {
   { label: "Shift+F11", command: "Sair da função", matches: (e) => e.shiftKey && e.key === "F11",
     action: () => debugCommand(api.debugStepOut) },
   { label: "F1", command: "Ajuda", matches: (e) => e.key === "F1", action: () => activate(helpId) },
+  { label: "F3", command: "Dicas de interface", matches: (e) => e.key === "F3", action: () => tips.open() },
   { label: "F12", command: "Sobre", matches: (e) => e.key === "F12", action: () =>
     $<HTMLDialogElement>("about").showModal() },
   { label: "F11", command: "Atalhos de teclado", matches: (e) => !e.altKey && !e.shiftKey && e.key === "F11",
@@ -1063,3 +1065,9 @@ mountExamples((source, file, workPath) => newTab(source, null, file, workPath));
 activate(0);
 applyTheme(themeChoice());
 showPanel("console");
+const tips = mountTips(() => {
+  const choice = isDark() ? "light" : "dark";
+  applyTheme(choice);
+  themeSelect.value = choice;
+});
+$("home-tips").onclick = tips.open;
