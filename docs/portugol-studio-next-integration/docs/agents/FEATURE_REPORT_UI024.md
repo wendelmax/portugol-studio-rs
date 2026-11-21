@@ -16,7 +16,8 @@
   - `cargo clippy --all-targets --offline -- -D warnings` — **PASS**.
   - `cargo clippy -p portugol-desktop --offline -- -D warnings` com sysroot local — **PASS**.
   - `git diff --check` — **PASS**.
-  - CI #79 — **FAIL** apenas no smoke gráfico nativo: a execução expôs o painel Aprender buscando o ID errado. Correção adicionou mapeamento explícito e teste de regressão; CI deve ser reexecutado no próximo commit.
+  - CI #79 — **FAIL** no smoke gráfico nativo porque a alternância da nova aba buscava o ID errado. O commit `5042736` adicionou mapeamento explícito e teste de regressão.
+  - CI #80, após a correção — **PASS** em Linux, Windows e macOS, incluindo o smoke gráfico nativo.
   - E2E visual específico do painel Aprender — **NOT_RUN**: não há runner DOM/E2E configurado nesta IDE; o smoke gráfico do projeto não navega para essa aba.
 - Screenshot: **NOT_RUN**.
 - Limitações: conteúdo ainda é catálogo editorial local, não currículo versionado por docente. O painel não detecta automaticamente a posição do cursor nem pretende fazê-lo. Exemplos Rust demonstram conceitos e não são tradução/compilação do arquivo aberto.
