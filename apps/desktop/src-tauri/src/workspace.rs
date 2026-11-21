@@ -1097,9 +1097,9 @@ fn copy_selected_files_from_dir_with_hook(
         if let Err(cleanup_error) = rollback_export(
             &destination,
             project_name,
-            &exported,
-            &created_files,
-            &created_directories,
+            exported,
+            created_files,
+            created_directories,
         ) {
             return Err(format!(
                 "{error} A limpeza da cópia parcial também falhou: {cleanup_error}"
@@ -1267,9 +1267,9 @@ fn open_or_create_export_parent(
 fn rollback_export(
     parent: &cap_std::fs::Dir,
     project_name: &str,
-    exported: &cap_std::fs::Dir,
-    created_files: &[(cap_std::fs::Dir, OsString)],
-    created_directories: &[(cap_std::fs::Dir, OsString)],
+    exported: cap_std::fs::Dir,
+    created_files: Vec<(cap_std::fs::Dir, OsString)>,
+    created_directories: Vec<(cap_std::fs::Dir, OsString)>,
 ) -> Result<(), String> {
     let mut errors = Vec::new();
     for (directory, name) in created_files.iter().rev() {
@@ -1287,7 +1287,10 @@ fn rollback_export(
         }
     }
     if errors.is_empty() {
-        if same_directory_identity(parent, project_name, exported) {
+        if same_directory_identity(parent, project_name, &exported) {
+            drop(exported);
+            drop(created_files);
+            drop(created_directories);
             if let Err(error) = parent.remove_dir(project_name) {
                 errors.push(error.to_string());
             }
