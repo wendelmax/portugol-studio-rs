@@ -33,7 +33,9 @@ import { portugolFolding } from "./folding";
 import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
 import { mountOutline, symbolKindLabels } from "./outline";
+import { panelContentId, type PanelName } from "./panel-tabs";
 import { LIBRARIES, portugol, SNIPPETS } from "./portugol";
+import { conceptsForMode, resolveConceptForMode } from "./learning-content";
 import { loadLearningMode, saveLearningMode, type LearningMode } from "./learning-mode";
 import * as api from "./api";
 
@@ -294,6 +296,7 @@ let nextTabId = 1;
 let rustExportTimer: number | undefined;
 let rustExportGeneration = 0;
 let learningMode: LearningMode = loadLearningMode();
+let selectedLearningConceptId = "variables";
 
 const activeTab = () => tabs.find((t) => t.id === activeId);
 
@@ -715,12 +718,45 @@ async function stopProgram() {
   if (runId !== null) await api.stop(runId);
 }
 
-function showPanel(which: "console" | "messages" | "debug") {
-  for (const name of ["console", "messages", "debug"]) {
+function renderLearningPanel() {
+  const concepts = conceptsForMode(learningMode);
+  const concept = resolveConceptForMode(learningMode, selectedLearningConceptId);
+  selectedLearningConceptId = concept.id;
+
+  const picker = $<HTMLSelectElement>("learning-concept");
+  picker.replaceChildren(...concepts.map((item) => {
+    const option = document.createElement("option");
+    option.value = item.id;
+    option.textContent = item.title;
+    return option;
+  }));
+  picker.value = concept.id;
+  $("learning-mode-description").textContent = learningMode === "bridge"
+    ? "Ponte didática: compare os conceitos de Portugol com exemplos Rust editoriais."
+    : "Fundamentos de lógica e programação em Portugol.";
+  $("learning-title").textContent = concept.title;
+  $("learning-definition").textContent = concept.definition;
+  $("learning-provenance").textContent = "Conceito selecionado manualmente";
+  $("learning-portugol-caption").textContent = concept.portugolExample.caption;
+  $("learning-portugol-code").textContent = concept.portugolExample.code;
+
+  const rustSection = $<HTMLElement>("learning-rust-example");
+  const showRustExample = learningMode === "bridge" && concept.rustExample !== undefined;
+  rustSection.hidden = !showRustExample;
+  if (showRustExample && concept.rustExample) {
+    $("learning-rust-caption").textContent = concept.rustExample.caption;
+    $("learning-rust-code").textContent = concept.rustExample.code;
+  }
+}
+
+function showPanel(which: PanelName) {
+  for (const name of ["console", "messages", "debug", "learning"] as const) {
     $(`tab-${name}`).classList.toggle("active", which === name);
-    $(name).hidden = which !== name;
+    $(`tab-${name}`).setAttribute("aria-selected", String(which === name));
+    $(panelContentId(name)).hidden = which !== name;
   }
   $("console-tools").hidden = which !== "console";
+  if (which === "learning") renderLearningPanel();
 }
 
 function goTo(offset: number) {
@@ -1051,6 +1087,7 @@ function applyLearningMode(mode: LearningMode, persist = true) {
   const selector = $<HTMLSelectElement>("learning-mode");
   selector.value = mode;
   if (persist) saveLearningMode(mode);
+  if (!$<HTMLElement>("learning-panel").hidden) renderLearningPanel();
 
   const preview = $<HTMLElement>("rust-preview");
   const bridgeEnabled = mode === "bridge";
@@ -1115,6 +1152,11 @@ $("btn-copy").onclick = async () => {
 $("tab-console").onclick = () => showPanel("console");
 $("tab-messages").onclick = () => showPanel("messages");
 $("tab-debug").onclick = () => showPanel("debug");
+$("tab-learning").onclick = () => showPanel("learning");
+$<HTMLSelectElement>("learning-concept").onchange = (event) => {
+  selectedLearningConceptId = (event.currentTarget as HTMLSelectElement).value;
+  renderLearningPanel();
+};
 
 function scheduleRustExport() {
   const generation = ++rustExportGeneration;

@@ -8,7 +8,8 @@ Inventário completo: [`../research/REPOSITORY_DISCOVERY.md`](../research/REPOSI
 | UI-011/022 → UC-04/12 | CodeMirror + `inspect(source)` → diagnósticos/símbolos | Existe | manter; sem trocar editor | TS build e testes do serviço |
 | UI-015/016 → UC-07/08 | `btn-rust` + `export_rust(source)` | Parcial: subset exportado, sem edição/compilação Rust | reaproveitar como preview somente; status e erros atuais | serviço `portugol-rust`, teste de UI futura |
 | **UI-028 → UC-05** | preferência de aprendizagem e visibilidade do preview | **Ausente** | seletor `beginner/bridge/rust`; beginner conserva UX; bridge revela export; rust desabilitado por ausência de compiler/editor | AC-02: trocar modo não altera source/engine; FT-02 especificado; testes Node para persistência e markup |
-| UI-023/024/025 → UC-13 | catálogo de conteúdo/progresso validado | Ausente | conteúdo e progresso ficam para outra fatia; não contabilizar clique como progresso | FT-05 ainda sem runner e conteúdo |
+| UI-023/024 → UC-13 | `learning-content.ts` + aba Aprender, seleção explícita | Parcial: catálogo local e cartões Beginner/Bridge; sem resolver AST ou currículo versionado | manter proveniência manual, exemplos Rust editoriais, expandir conteúdo com validação docente | testes Node do catálogo passam; FT-05/E2E ainda sem runner |
+| UI-025 → UC-13 | progresso via resultados verificados de exercícios | Ausente | só modelar progresso após identidade/revisão e avaliações reais; não contar abertura de cartão | FT-05 e integração de resultados pendentes |
 | UI-026/027/032 → UC-09/15 | debugger VM fornece variáveis e stepping; ownership trace ausente | Parcial | preservar debugger; não simular ownership | FT-07 e contrato de proveniência pendentes |
 | UI-001/002/008/009 → UC-01/03 | diálogo de arquivo e comandos de IO pontuais | Parcial; sem workspace/tree mutations | desenhar workspace/file service antes de UI dependente | FT-01/08 pendentes |
 

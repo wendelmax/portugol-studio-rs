@@ -1,0 +1,24 @@
+# Relatório — FEAT-LEARN-002
+
+- Branch / base: `feat/learning-concept-explanations` / `9f307df`.
+- Escopo: UI-023/024, UC-13, FT-05; explicações por seleção explícita nos modos Beginner e Bridge.
+- Estado anterior: sem painel de aprendizagem. O app já tinha modos Beginner/Bridge; a execução e o exportador Rust existentes ficam intactos.
+- Arquivos: `apps/desktop/index.html`, `apps/desktop/src/main.ts`, `apps/desktop/src/style.css`, `apps/desktop/src/learning-content.ts`, `apps/desktop/src/panel-tabs.ts`, `apps/desktop/tests/learning-content.test.mjs`, matriz de rastreabilidade, gap report, design, plano e este relatório.
+- Contratos Rust/Tauri/IPC e permissões: sem alterações. Catálogo local no frontend; nenhuma chamada a `export_rust` ou compilador é feita pelos exemplos editoriais.
+- Compatibilidade: Console, Mensagens e Depuração preservados como abas; o painel não muda o buffer, runtime ou resultados de execução.
+- Estados: Beginner apresenta fundamentos; Bridge inclui comparações Rust. Troca de modo preserva conceito se compatível; caso contrário seleciona o primeiro disponível. Conteúdo sempre rotulado como seleção manual. Rust editorial fica oculto no modo Beginner. Não há progresso de lição.
+- Testes executados:
+  - TDD focado antes do helper: **FAIL esperado** (`resolveConceptForMode is not a function`). Depois da implementação: passou.
+  - `cd apps/desktop && npm test` — **PASS**, 11 testes (6 novos + 5 anteriores), incluindo mapeamento do conteúdo de cada aba.
+  - `cd apps/desktop && npm run build` — **PASS**, TypeScript e Vite.
+  - `cargo fmt --all --check` — **PASS**.
+  - `cargo test --workspace --offline --locked` com sysroot WebKitGTK local — **PASS**, incluindo VM, regressão, Tauri e doctests.
+  - `cargo clippy --all-targets --offline -- -D warnings` — **PASS**.
+  - `cargo clippy -p portugol-desktop --offline -- -D warnings` com sysroot local — **PASS**.
+  - `git diff --check` — **PASS**.
+  - CI #79 — **FAIL** apenas no smoke gráfico nativo: a execução expôs o painel Aprender buscando o ID errado. Correção adicionou mapeamento explícito e teste de regressão; CI deve ser reexecutado no próximo commit.
+  - E2E visual específico do painel Aprender — **NOT_RUN**: não há runner DOM/E2E configurado nesta IDE; o smoke gráfico do projeto não navega para essa aba.
+- Screenshot: **NOT_RUN**.
+- Limitações: conteúdo ainda é catálogo editorial local, não currículo versionado por docente. O painel não detecta automaticamente a posição do cursor nem pretende fazê-lo. Exemplos Rust demonstram conceitos e não são tradução/compilação do arquivo aberto.
+- Rollback: retirar a aba/painel, `learning-content.ts`, testes e registros FEAT-LEARN-002; os outros painéis e FEAT-LEARN-001 permanecem.
+- Próxima fatia: conectar cartões a uma atividade/exercício identificável quando houver mapeamento de conceito explícito, sem computar progresso por abrir o cartão; depois planejar workspace/documentos antes de persistir estado por projeto.
