@@ -31,9 +31,9 @@
 
 **Files:** `apps/desktop/src-tauri/src/workspace.rs`, `apps/desktop/src-tauri/src/lib.rs`, `apps/desktop/src/api.ts`
 
-- [ ] Escrever testes Rust para apagar arquivos suportados, rejeitar traversal, symlink, diretório/ausente/unsupported e preservar arquivos vizinhos.
-- [ ] Rodar os testes e observar as falhas esperadas antes da implementação.
-- [ ] Implementar `delete_relative_file(root: &Path, relative: &Path) -> Result<PathBuf, String>` validando com `checked_file(..., true)` e removendo somente arquivo regular autorizado.
+- [x] Escrever testes Rust para apagar arquivos suportados, rejeitar traversal, symlink, diretório/ausente/unsupported, preservar arquivos vizinhos e reconciliar listagem anterior.
+- [ ] Rodar os testes e observar as falhas esperadas antes da implementação. **BLOCKED localmente:** o runner Rust não chega ao crate sem `javascriptcoregtk-4.1` e `webkit2gtk-4.1`; CI será a validação executável.
+- [x] Implementar `delete_relative_file(root: &Path, relative: &Path) -> Result<PathBuf, String>` validando o caminho componente a componente pelo handle aberto da raiz e removendo via `cap_std::fs::Dir`.
 - [x] Expor `workspace_delete_file(workspace_id, relative_path) -> WorkspaceDeleteResult` com lista atualizada e caminho removido absoluto/relativo; registrar comando e tipo TS.
 - [x] Rodar `cargo fmt --all -- --check`; CI executará testes nativos multiplataforma.
 
@@ -53,4 +53,5 @@
 **Files:** `docs/reports/FEAT-WORKSPACE-005.md`, plano e spec acima
 
 - [x] Documentar validações reais e limitação local de WebKitGTK/JavascriptCoreGTK.
-- [ ] Pedir revisão do diff, corrigir achados, abrir PR, aguardar CI verde, mesclar e excluir branch.
+- [x] Pedir revisão do diff; corrigidos o confinamento da exclusão e o falso erro após remoção.
+- [ ] Abrir PR, aguardar CI verde, mesclar e excluir branch.

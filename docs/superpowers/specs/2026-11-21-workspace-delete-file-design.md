@@ -23,11 +23,12 @@ Permitir excluir arquivos `.por`, `.pors` e `.pex` pela árvore do workspace, co
 
 ## Decisões
 
-- Backend valida workspace, caminho relativo, extensão, arquivo regular e symlinks; só remove arquivos, nunca diretórios.
-- O resultado contém árvore atualizada e o caminho absoluto/relativo removido para sincronizar abas e recentes.
+- Backend valida workspace, caminho relativo, extensão, arquivo regular e symlinks; a remoção usa um handle de diretório com caminhos relativos para manter a operação confinada ao workspace; só remove arquivos, nunca diretórios.
+- O resultado contém árvore atualizada e o caminho absoluto/relativo removido para sincronizar abas e recentes. Se a árvore não puder ser relida após a remoção, o backend reconcilia a listagem anterior para que o sucesso não seja comunicado como falha.
 - “Salvar alterações” salva as abas e encerra a solicitação de exclusão sem remover o arquivo; o usuário confirma a exclusão em uma ação seguinte, já sem alterações pendentes.
 - “Excluir e descartar” só fecha as abas associadas após o backend confirmar sucesso.
 - Resposta de exercício em `.pex` permanece buffer em memória; salvar usa o fluxo Save As existente, e descartar só fecha essa resposta se a exclusão do arquivo de exercício for bem-sucedida.
+- A raiz selecionada é aberta em um handle antes da validação/listagem da exclusão, e a validação e remoção usam esse mesmo handle com caminhos relativos via `cap_std::fs::Dir`; isso evita que um symlink de diretório substituído durante a operação redirecione a exclusão para fora da raiz.
 
 ## Não objetivos
 
