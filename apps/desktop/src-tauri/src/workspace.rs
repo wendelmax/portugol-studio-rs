@@ -240,6 +240,21 @@ mod tests {
         assert!(!saved_path.exists());
     }
 
+    #[test]
+    fn relative_saved_paths_are_discarded() {
+        let config = TempDir::new();
+        let saved_path = config.0.join(super::LAST_WORKSPACE_FILE);
+        fs::write(&saved_path, serde_json::to_vec("relative/project").unwrap()).unwrap();
+        let session = super::WorkspaceSession::default();
+
+        assert!(
+            restore_saved_workspace(&session, &config.0)
+                .unwrap()
+                .is_none()
+        );
+        assert!(!saved_path.exists());
+    }
+
     #[cfg(unix)]
     #[test]
     fn skips_symlinks_and_rejects_symlink_reads() {
@@ -380,7 +395,12 @@ fn load_last_workspace(config_dir: &Path) -> Result<Option<PathBuf>, String> {
         clear_last_workspace(config_dir)?;
         return Ok(None);
     }
-    Ok(Some(PathBuf::from(path)))
+    let path = PathBuf::from(path);
+    if !path.is_absolute() {
+        clear_last_workspace(config_dir)?;
+        return Ok(None);
+    }
+    Ok(Some(path))
 }
 
 fn clear_last_workspace(config_dir: &Path) -> Result<(), String> {
