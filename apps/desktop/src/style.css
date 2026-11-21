@@ -1366,6 +1366,18 @@ body {
   gap: 8px;
 }
 
+.options-menu label:not(.args).learning-mode {
+  display: grid;
+  align-items: start;
+  gap: 4px;
+}
+
+.learning-mode-help {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .options-menu .args {
   display: grid;
   gap: 4px;

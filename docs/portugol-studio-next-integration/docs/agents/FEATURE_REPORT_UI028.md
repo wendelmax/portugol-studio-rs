@@ -1,0 +1,24 @@
+# Relatório de implementação — FEAT-LEARN-001
+
+- Branch / commit: `feat/next-learning-modes` / base `28b686e` (commit da implementação ainda pendente).
+- Escopo e IDs (UI/UC/FT/AC): UI-028, UI-015; UC-05 e UC-07; FT-02 (especificação); AC: modo sem alterar fonte/engine, export real em Bridge, Rust bloqueado com motivo.
+- Estado anterior (evidência path/linha): sem seletor de modo; toolbar tinha apenas `btn-rust` em `apps/desktop/index.html:75`; painel de preview em `:91-102`; exportação real via `src/api.ts:104-109` e `src-tauri/src/lib.rs:154`.
+- Arquivos alterados: `apps/desktop/index.html`, `apps/desktop/package.json`, `apps/desktop/src/main.ts`, `apps/desktop/src/style.css`, `apps/desktop/src/learning-mode.ts`, `apps/desktop/tests/learning-mode.test.mjs`, `docs/quality/TRACEABILITY_MATRIX.yaml`, `docs/research/REPOSITORY_DISCOVERY.md`, `docs/agents/IMPLEMENTATION_GAP_REPORT.md`, `docs/agents/FEATURE_UI028_LEARNING_MODE_PLAN.md`, este relatório.
+- Alterações no contrato IPC/Rust/Tauri: nenhuma. Bridge usa `export_rust(source)` já existente. Nenhum compiler/runtime Rust foi simulado.
+- Permissões/capabilities alteradas? Justificativa: não.
+- Compatibilidade preservada (fixtures): editor/runtime Portugol existentes; modo inicial `beginner`; botão Rust clássico continua alternando a prévia/ponte. A troca não edita o buffer nem troca runtime.
+- Estados UI implementados (loading/empty/error/success/cancelled): Beginner sem trabalho assíncrono; Bridge delega estados de carregamento/erro/sucesso ao exportador existente e mantém filtro stale por geração. Rust disabled com explicação. Não há cancelamento do serviço de exportação; requisições obsoletas são ignoradas pelo cliente.
+- Testes executados (comando, status PASS/FAIL/BLOCKED/NOT_RUN, log):
+  - `cd apps/desktop && npm test` — **PASS**, 5 testes (3 novos + 2 existentes).
+  - `cd apps/desktop && npm run build` — **PASS**, `tsc` e Vite 8.3.5.
+  - `cargo fmt --all --check` — **PASS**.
+  - `cargo test --workspace --offline --locked` com sysroot WebKitGTK local — **PASS**, testes unitários, integração, regressão do corpus, app Tauri e doctests.
+  - `cargo clippy --all-targets --offline -- -D warnings` — **PASS**.
+  - `cargo clippy -p portugol-desktop --offline -- -D warnings` com sysroot WebKitGTK local — **PASS**.
+  - `git diff --check` — **PASS**.
+  - `apps/desktop/tests/graphics-smoke.mjs` — **NOT_RUN**: ambiente sem `xvfb-run`; além disso, o smoke é da janela gráfica do runtime, não um teste do seletor.
+  - FT-02/gherkin e screenshot/e2e do seletor — **NOT_RUN**: nenhum runner BDD/E2E está configurado para a IDE.
+- Screenshot/registro visual em viewport configurado: NOT_RUN.
+- Problemas e limitações conhecidas: a preferência persiste globalmente em `localStorage`, pois o app não possui WorkspaceStore/ID de workspace. O nível Rust ainda não oferece edição/execução. O teste automatizado cobre persistência/fallback e presença/descrição acessível do controle, não interação visual end-to-end.
+- Rollback: reverter seletor, módulo/teste/script e conexão em `main.ts`; o preview de exportação pré-existente permanece funcional no commit base.
+- Próxima fatia vertical: catálogo de explicações UI-023/024 sem progresso fictício; depois WorkspaceStore para escopo de preferências, e só então tradução vinculada a revisão/ownership com proveniência verificável.
