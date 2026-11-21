@@ -56,9 +56,9 @@ são executados e validados sem tela.
 | Temas claro/escuro (`TelaEditarTemas`) | ✅ | claro, escuro, sistema e perfis personalizados com prévia |
 | Moldura e barra de comandos | ✅ | moldura de 5px, controles nativos, área de arraste, abas com ícone e barra lateral com ícones da versão 2.7.5 |
 | Expandir editor (Shift+Esc) | ✅ | barra horizontal compacta e botão de restauração |
-| Tela inicial com exemplos (`AbaInicial`, `PainelExemplos`) | 🟡 | Abrir/Novo, até seis recentes, 119 exemplos com busca, descrição, imagens e cópia de trabalho com recursos e acesso às dicas |
+| Tela inicial com exemplos (`AbaInicial`, `PainelExemplos`) | 🟡 | Abrir/Novo, até seis recentes, 119 exemplos com busca, descrição, imagens e cópia de trabalho com recursos, acesso às dicas e links do rodapé |
 | Ajuda da linguagem e das bibliotecas (`abaAjuda`, `assets/ajuda`) | ✅ | aba F1, busca, tópicos e diagramas da versão 2.7.5, abertura de exemplos e referências das bibliotecas |
-| Árvore estrutural (variáveis e funções do programa) | ✅ | painel redimensionável com busca, filtros, navegação à declaração e inspetor de depuração |
+| Árvore estrutural (variáveis e funções do programa) | ✅ | painel redimensionável com busca, filtros, navegação, inspetor e inclusão de bibliotecas e modelos |
 | Renomear símbolo (`TelaRenomearSimbolo`) | ✅ | Ctrl+R, menu do editor e duplo clique na árvore; análise de escopo e verificação de conflitos |
 | Dobras de código | ✅ | blocos aninhados e comentários de várias linhas, com marcadores no cabeçalho |
 | Formatador de código (`editor/formatador`) | ✅ | opções do editor e Ctrl+Alt+F, com alterações de espaço e desfazer em uma etapa |
@@ -71,6 +71,21 @@ são executados e validados sem tela.
 | Mostrar alertas (`TelaAlertas`) | 🟡 | diálogo na tela inicial com estado vazio; avisos distribuídos ainda sem fonte |
 | Plugins (`plugins`, `PainelPlugins`) | ➖ | plugins do original são classes Java; exigiria outro modelo de extensão |
 | Carrossel de cursos, coletor de interações | ➖ | dependem de serviços da UNIVALI |
+
+## Comparação visual
+
+Capturas em Linux sob Xvfb, com janelas de 1200 × 800 pixels. A versão Java
+2.7.5 está à esquerda e o port em Rust à direita. A aba de código mostra o
+programa inicial de cada versão.
+
+| Tela | Dark | Portugol |
+|---|---|---|
+| Inicial | [Comparar tela inicial em Dark](imagens/paridade/home-dark.webp) | [Comparar tela inicial em Portugol](imagens/paridade/home-light.webp) |
+| Editor | [Comparar editor em Dark](imagens/paridade/editor-dark.webp) | [Comparar editor em Portugol](imagens/paridade/editor-light.webp) |
+
+O rodapé de status, a guia Depuração e o acesso aos Exercícios aparecem
+nas capturas do port. A IDE Java também apresenta o acesso a Plugins e
+reserva espaço aos cursos recomendados.
 
 ## Distribuição
 

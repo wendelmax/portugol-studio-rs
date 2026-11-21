@@ -176,7 +176,7 @@ const parser: StreamParser<State> = {
 
 const language = StreamLanguage.define(parser);
 
-const SNIPPETS: Completion[] = [
+export const SNIPPETS: Completion[] = [
   snippetCompletion("programa\n{\n\tfuncao inicio()\n\t{\n\t\t${}\n\t}\n}", {
     label: "programa", detail: "estrutura básica", type: "keyword",
   }),

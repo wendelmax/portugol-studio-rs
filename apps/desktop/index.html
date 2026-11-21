@@ -16,15 +16,15 @@
       </div>
     </header>
 
-    <main id="home" class="home">
+    <main id="home" class="home" tabindex="-1">
       <section class="home-welcome" aria-label="Portugol Studio">
         <div class="home-actions">
-          <button id="home-new" title="Novo arquivo (Ctrl+N)"><span data-icon="grande/newfile"></span>Novo arquivo</button>
-          <button id="home-open" title="Abrir arquivo (Ctrl+O)"><span data-icon="grande/openfile"></span>Abrir arquivo</button>
+          <button id="home-new" title="Novo arquivo (Ctrl+N)"><span data-icon="grande/newfile64"></span>Novo Arquivo</button>
+          <button id="home-open" title="Abrir arquivo (Ctrl+O)"><span data-icon="grande/openfile64"></span>Abrir Arquivo</button>
           <button id="home-help" title="Ajuda (F1)"><span data-icon="grande/helplow"></span>Ajuda</button>
         </div>
         <div class="home-brand">
-          <img src="./src/ui-assets/logo_ps.png" alt="Portugol Studio" width="293" height="107" />
+          <div class="home-logo" role="img" aria-label="Portugol Studio"><span data-icon="grande/lite"></span></div>
           <section id="recent" aria-labelledby="recent-title" hidden>
             <h2 id="recent-title">Arquivos recentes</h2>
             <div id="recent-files"></div>
@@ -43,17 +43,21 @@
         <span id="home-version"></span>
       </section>
       <section class="home-examples">
-        <h2>Exemplos</h2>
-        <input id="example-search" type="search" disabled placeholder="Buscar exemplos" aria-label="Buscar exemplos" />
-        <div id="examples"></div>
-        <p id="examples-empty" role="status" hidden>Nenhum exemplo encontrado.</p>
+        <div class="home-example-list">
+          <h2><span data-icon="pequeno/light_pix"></span>Exemplos</h2>
+          <input id="example-search" type="search" disabled placeholder="Buscar Exemplos" aria-label="Buscar exemplos" />
+          <div id="examples"></div>
+          <p id="examples-empty" role="status" hidden>Nenhum exemplo encontrado.</p>
+        </div>
         <button id="home-exercises">Exercícios</button>
       </section>
       <footer class="home-links">
+        <button id="home-tips">Dicas Interface (F3)</button>
         <button id="home-shortcuts">Atalhos de teclado (F11)</button>
-        <button id="home-tips">Dicas (F3)</button>
-        <button id="home-alerts">Mostrar alertas</button>
+        <button id="home-report">Relatar um Bug</button>
+        <button id="home-contribute">Contribuir</button>
         <button id="home-about">Sobre (F12)</button>
+        <button id="home-alerts">Mostrar Alertas</button>
       </footer>
     </main>
 
@@ -163,8 +167,16 @@
           <h2 id="utilities-title"># Painel Utilitários</h2>
           <button id="utilities-close" aria-label="Fechar painel Utilitários">×</button>
         </header>
+        <section class="utilities-insert" aria-label="Inserir bibliotecas e modelos">
+          <div class="utilities-insert-tabs" role="tablist">
+            <button id="utilities-libraries-tab" role="tab" aria-selected="true" aria-controls="utilities-libraries"><span data-icon="pequeno/biblioteca"></span>Bibliotecas</button>
+            <button id="utilities-models-tab" role="tab" aria-selected="false" aria-controls="utilities-models">Modelos</button>
+          </div>
+          <div id="utilities-libraries" role="tabpanel" aria-labelledby="utilities-libraries-tab"></div>
+          <div id="utilities-models" role="tabpanel" aria-labelledby="utilities-models-tab" hidden></div>
+        </section>
         <section class="outline" aria-label="Árvore estrutural">
-          <input id="outline-search" type="search" placeholder="Buscar na estrutura" aria-label="Buscar na estrutura (Ctrl+L)" />
+          <input id="outline-search" type="search" placeholder="Localizar (Ctrl+L)" aria-label="Buscar na estrutura (Ctrl+L)" />
           <div class="outline-filters">
             <select id="outline-type" aria-label="Tipo de dado"><option value="">Todos os tipos</option></select>
             <select id="outline-kind" aria-label="Tipo de símbolo"><option value="">Todos os símbolos</option></select>

@@ -149,8 +149,16 @@ fn inspect(source: String) -> portugol_service::Inspection {
 }
 
 #[tauri::command]
-fn format_source(source: String) -> Option<Vec<portugol_service::FormatEdit>> {
+fn format_source(source: String) -> Option<Vec<portugol_service::TextEdit>> {
     portugol_service::format_source(&source)
+}
+
+#[tauri::command]
+fn include_library(
+    source: String,
+    name: String,
+) -> Result<Option<portugol_service::TextEdit>, String> {
+    portugol_service::include_library(&source, &name)
 }
 
 #[tauri::command]
@@ -187,6 +195,7 @@ fn rename_symbol(
 enum ProjectPage {
     BugReport,
     Releases,
+    Contribute,
 }
 
 #[tauri::command]
@@ -194,6 +203,7 @@ async fn open_project_page(page: ProjectPage) -> Result<(), String> {
     let url = match page {
         ProjectPage::BugReport => "https://github.com/wendelmax/portugol-studio-rs/issues/new",
         ProjectPage::Releases => "https://github.com/wendelmax/portugol-studio-rs/releases",
+        ProjectPage::Contribute => "https://github.com/wendelmax/portugol-studio-rs",
     };
     let mut command;
     #[cfg(target_os = "linux")]
@@ -339,6 +349,7 @@ pub fn run_app() {
             check,
             inspect,
             format_source,
+            include_library,
             exercise_catalog,
             check_exercise,
             rename_target,
