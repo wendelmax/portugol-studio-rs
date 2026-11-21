@@ -332,6 +332,7 @@ fn is_exercise(path: &Path) -> bool {
         .is_some_and(|extension| extension.eq_ignore_ascii_case("pex"))
 }
 
+#[cfg(test)]
 fn read_relative_file(root: &Path, relative: &Path) -> Result<String, String> {
     let path = checked_file(root, relative, true)?;
     let bytes =
