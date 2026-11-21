@@ -61,7 +61,7 @@ são executados e validados sem tela.
 | Árvore estrutural (variáveis e funções do programa) | ✅ | painel redimensionável com busca, filtros, navegação à declaração e inspetor de depuração |
 | Renomear símbolo (`TelaRenomearSimbolo`) | ⬜ | |
 | Dobras de código | ✅ | blocos aninhados e comentários de várias linhas, com marcadores no cabeçalho |
-| Formatador de código (`editor/formatador`) | ⬜ | |
+| Formatador de código (`editor/formatador`) | ✅ | opções do editor e Ctrl+Alt+F, com alterações de espaço e desfazer em uma etapa |
 | Exercícios com correção automática (`assets/exercicios`, módulo `checker`) | ⬜ | |
 | Tamanho da fonte do editor | ✅ | ajuste de 10 a 50, salvo localmente |
 | Dicas de interface (`TelaDicas`) | ✅ | 18 dicas do original, F3, setas, troca de tema e opção de mostrar ao iniciar |

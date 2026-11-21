@@ -42,6 +42,26 @@ pub struct DiagnosticInfo {
 }
 
 #[derive(Serialize)]
+pub struct FormatEdit {
+    from: usize,
+    to: usize,
+    insert: String,
+}
+
+pub fn format_source(source: &str) -> Option<Vec<FormatEdit>> {
+    portugol_syntax::format::format(source).map(|edits| {
+        edits
+            .into_iter()
+            .map(|edit| FormatEdit {
+                from: edit.from,
+                to: edit.to,
+                insert: edit.insert,
+            })
+            .collect()
+    })
+}
+
+#[derive(Serialize)]
 pub struct Inspection {
     pub diagnostics: Vec<DiagnosticInfo>,
     pub symbols: Vec<SymbolInfo>,
