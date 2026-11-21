@@ -48,18 +48,22 @@ fn compare(current: &Version, release: Release) -> Result<UpdateInfo, String> {
     }
 }
 
-fn latest_release(current: &Version) -> Result<UpdateInfo, String> {
+pub(crate) fn github_get(url: &str) -> Result<ureq::Response, Box<ureq::Error>> {
     let agent = ureq::AgentBuilder::new()
         .timeout(Duration::from_secs(8))
         .user_agent("Portugol-Studio-RS")
         .build();
-    let response = match agent
-        .get(LATEST)
+    agent
+        .get(url)
         .set("Accept", "application/vnd.github+json")
         .call()
-    {
+        .map_err(Box::new)
+}
+
+fn latest_release(current: &Version) -> Result<UpdateInfo, String> {
+    let response = match github_get(LATEST) {
         Ok(response) => response,
-        Err(ureq::Error::Status(404, _)) => {
+        Err(error) if matches!(*error, ureq::Error::Status(404, _)) => {
             return Ok(UpdateInfo::Unpublished {
                 current: current.to_string(),
             });

@@ -1180,7 +1180,41 @@ updateDownload.onclick = async () => {
     updateDownload.disabled = false;
   }
 };
-$("home-alerts").onclick = () => $<HTMLDialogElement>("alerts").showModal();
+let alertRequest = 0;
+$("home-alerts").onclick = async () => {
+  const request = ++alertRequest;
+  const dialog = $<HTMLDialogElement>("alerts");
+  const status = $("alerts-status");
+  const list = $("alerts-list");
+  status.hidden = false;
+  status.textContent = "Consultando alertas…";
+  list.hidden = true;
+  list.replaceChildren();
+  dialog.showModal();
+  try {
+    const alerts = await api.projectAlerts();
+    if (request !== alertRequest) return;
+    if (!alerts.length) {
+      status.textContent = "Não há alertas ou avisos.";
+      return;
+    }
+    for (const alert of alerts) {
+      const article = document.createElement("article");
+      const title = document.createElement("h3");
+      title.textContent = alert.title;
+      const message = document.createElement("p");
+      message.textContent = alert.message;
+      article.append(title, message);
+      list.append(article);
+    }
+    status.hidden = true;
+    list.hidden = false;
+  } catch (message) {
+    if (request === alertRequest) {
+      status.textContent = typeof message === "string" ? message : "Não foi possível consultar os alertas.";
+    }
+  }
+};
 $("home-report").onclick = $("about-report").onclick = () => {
   reportError.hidden = true;
   reportDialog.showModal();

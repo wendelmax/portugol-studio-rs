@@ -68,7 +68,7 @@ são executados e validados sem tela.
 | Sobre / licenças (`Sobre`, `TelaLicencas`) | ✅ | diálogo F12, versão, origem e texto da licença |
 | Verificação de atualizações (`TelaAtualizacoes`) | ✅ | consulta versões estáveis em Sobre e abre as versões oficiais para baixar o instalador |
 | Relatar bug (`TelaRelatarBug`) | ✅ | diálogo em Sobre, com abertura das issues do port no navegador |
-| Mostrar alertas (`TelaAlertas`) | 🟡 | diálogo na tela inicial com estado vazio; avisos distribuídos ainda sem fonte |
+| Mostrar alertas (`TelaAlertas`) | ✅ | consulta issues públicas abertas com o rótulo `alerta` no repositório do port |
 | Plugins (`plugins`, `PainelPlugins`) | ➖ | plugins do original são classes Java; exigiria outro modelo de extensão |
 | Carrossel de cursos, coletor de interações | ➖ | dependem de serviços da UNIVALI |
 
