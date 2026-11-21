@@ -86,6 +86,12 @@ pub fn export(source: &str) -> Result<String, Diagnostic> {
     Ok(codegen::render(&hir))
 }
 
+/// Gera Rust para o subset inicial do dialeto educacional Portugol-RS.
+pub fn export_portugol_rs(source: &str) -> Result<String, Vec<Diagnostic>> {
+    let hir = portugol_rs_frontend::lower(source)?;
+    Ok(codegen::render(&hir))
+}
+
 #[cfg(test)]
 fn export_legacy(source: &str) -> Result<String, Diagnostic> {
     let parsed = portugol_syntax::parse(source);
@@ -689,7 +695,7 @@ fn unsupported(feature: &str, span: Span) -> Diagnostic {
 
 #[cfg(test)]
 mod tests {
-    use super::{export, export_legacy};
+    use super::{export, export_legacy, export_portugol_rs};
     use std::process::Command;
 
     const SOURCE: &str = "programa { funcao inicio() { inteiro total = 40 + 2 escreva(total) } }";
@@ -709,6 +715,24 @@ mod tests {
         assert_eq!(diagnostic.code, "rust.unsupported");
         assert_eq!(diagnostic.span.start, source.find("leia").unwrap() as u32);
         assert!(diagnostic.message.contains("leia"));
+    }
+
+    #[test]
+    fn exports_portugol_rs_to_rust_and_executes_with_expected_output() {
+        let source =
+            "funcao inicio() { seja mutavel idade: inteiro = 16; idade += 1; escreva(idade); }";
+        assert_rust_output(export_portugol_rs(source).unwrap(), "17");
+    }
+
+    #[test]
+    fn rejects_portugol_rs_assignment_to_immutable_binding() {
+        let source = "funcao inicio() { seja idade: inteiro = 16; idade = 17; }";
+        let errors = export_portugol_rs(source).unwrap_err();
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.code == "pors.immutable-assignment")
+        );
     }
 
     #[test]

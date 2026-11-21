@@ -10,10 +10,10 @@
 
 ## Fatia 2 — frontend Portugol-RS
 
-- [ ] Definir gramática versionada para `seja`, `mutavel`, tipos, expressões, funções, referências e diagnósticos pt-BR.
-- [ ] Implementar lexer/parser separado ou reutilizar infraestrutura comprovadamente apropriada sem mudar `.por`.
-- [ ] Baixar AST para HIR comum; recusar sintaxe não implementada com erro localizado.
-- [ ] Golden tests de parse, semântica, spans, bindings e erros; compatibilidade clássica regressiva.
+- [x] Definir gramática versionada do subset inicial em `docs/superpowers/specs/2026-11-21-portugol-rs-frontend-design.md`; referências, funções adicionais e estruturas de controle avançadas permanecem fora deste subset.
+- [x] Implementar lexer/parser separado em `portugol-rs-frontend`, sem alterar `.por`.
+- [x] Produzir HIR comum diretamente durante parse/análise; construções não implementadas têm diagnósticos localizados.
+- [x] Cobrir parse, tipos, mutabilidade, spans UTF-8, bindings/sombreamento, erros e corpus clássico.
 
 ## Fatia 3 — arquivos `.pors`
 
@@ -36,7 +36,7 @@
 
 ## Estado desta entrega
 
-A fatia inicial criou o modelo e o adaptador AST clássico, e o exportador agora consome a HIR. Ela não habilita o frontend Portugol-RS ou `.pors`. O relatório de evidências registra limites e resultados dos gates.
+A HIR clássica e o backend compartilhado foram integrados no PR #39. Esta worktree implementa o subset inicial de Portugol-RS e API de geração Rust. A extensão `.pors` ainda não está integrada à UI/CLI/abertura e salvamento; ownership e execução do dialeto também permanecem pendentes. Consulte `docs/reports/FEAT-LANG-002-portugol-rs-frontend.md`.
 
 ## Regras de encerramento
 
