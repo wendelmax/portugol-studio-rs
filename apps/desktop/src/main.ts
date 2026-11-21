@@ -32,7 +32,7 @@ import { mountExercises } from "./exercises";
 import { portugolFolding } from "./folding";
 import { icon, mountIcons } from "./icons";
 import { mountOutline, symbolKindLabels } from "./outline";
-import { portugol } from "./portugol";
+import { LIBRARIES, portugol, SNIPPETS } from "./portugol";
 import * as api from "./api";
 
 const TEMPLATE = "programa\n{\n\tfuncao inicio()\n\t{\n\t\t\n\t}\n}\n";
@@ -79,7 +79,10 @@ const isDark = () => {
 const editorColors = syntaxHighlighting(HighlightStyle.define([
   { tag: tags.keyword, color: "var(--syntax-keyword)" },
   { tag: [tags.typeName, tags.namespace], color: "var(--syntax-type)" },
-  { tag: [tags.number, tags.bool], color: "var(--syntax-number)" },
+  { tag: tags.number, color: "var(--syntax-number)" },
+  { tag: tags.bool, color: "var(--syntax-logical)" },
+  { tag: tags.function(tags.variableName), color: "var(--syntax-function)" },
+  { tag: tags.standard(tags.function(tags.variableName)), color: "var(--syntax-function)" },
   { tag: tags.string, color: "var(--syntax-string)" },
   { tag: tags.comment, color: "var(--syntax-comment)" },
   { tag: tags.operator, color: "var(--syntax-operator)" },
@@ -191,6 +194,7 @@ const portugolLinter = linter(
       tab.symbols = symbols;
       renderMessages();
       outline.show(symbols);
+      updateLibraryButtons(symbols);
     }
     return diagnostics.map((d) => toCodeMirror(d, doc.length));
   },
@@ -283,7 +287,9 @@ function isDirty(tab: Tab): boolean {
   return text !== tab.saved;
 }
 
-function newTab(text = TEMPLATE, path: string | null = null, exampleName?: string, examplePath?: string, exercise?: api.Exercise): Tab {
+const NEW_PROGRAM = TEMPLATE.replace("\t\t\n", '\t\tescreva("Olá Mundo")\n');
+
+function newTab(text = NEW_PROGRAM, path: string | null = null, exampleName?: string, examplePath?: string, exercise?: api.Exercise): Tab {
   const tab: Tab = {
     id: nextTabId++,
     path,
@@ -315,7 +321,7 @@ function activate(id: number) {
     renderTabs();
     $("cursor").textContent = "";
     if (id === helpId) void openHelp();
-    else $<HTMLButtonElement>("home-new").focus();
+    else $("home").focus();
     return;
   }
   view.setState(tab.state);
@@ -326,6 +332,7 @@ function activate(id: number) {
   renderTabs();
   renderMessages();
   outline.show(tab.symbols, current !== tab);
+  updateLibraryButtons(tab.symbols);
   renderCursor();
   view.focus();
 }
@@ -355,13 +362,13 @@ async function closeTab(id: number): Promise<boolean> {
 function renderTabs() {
   const bar = $("tabs");
   const home = document.createElement("button");
-  home.className = "tab" + (activeId === 0 ? " active" : "");
+  home.className = "tab home-tab" + (activeId === 0 ? " active" : "");
   home.append(icon("pequeno/light_pix"), "Portugol Studio");
   home.title = "Tela inicial (Alt+Home)";
   home.setAttribute("aria-current", String(activeId === 0));
   home.onclick = () => activate(0);
   const add = document.createElement("button");
-  add.className = "tab";
+  add.className = "tab add-tab";
   add.textContent = "+";
   add.title = "Novo arquivo (Ctrl+N)";
   add.setAttribute("aria-label", "Novo arquivo");
@@ -788,6 +795,62 @@ const utilities = $("utilities");
 const utilitiesSplitter = $("utilities-splitter");
 const outline = mountOutline(goTo, renameAt);
 
+const libraryButtons = new Map<string, HTMLButtonElement>();
+for (const name of Object.keys(LIBRARIES).sort((a, b) => a.localeCompare(b, "pt-BR"))) {
+  const button = document.createElement("button");
+  button.textContent = name;
+  button.title = `Incluir biblioteca ${name}`;
+  button.onclick = async () => {
+    const tab = activeTab();
+    if (!tab || (tab.id === runTabId && runId !== null)) return;
+    const doc = view.state.doc;
+    try {
+      const change = await api.includeLibrary(doc.toString(), name);
+      if (activeTab() !== tab || view.state.doc !== doc) return;
+      if (change) view.dispatch({ changes: change, annotations: isolateHistory.of("full") });
+      button.disabled = true;
+      view.focus();
+    } catch (message) {
+      if (activeTab() === tab) setStatus(typeof message === "string" ? message : "Não foi possível incluir a biblioteca.", "error");
+    }
+  };
+  $("utilities-libraries").append(button);
+  libraryButtons.set(name, button);
+}
+
+function updateLibraryButtons(symbols: api.SymbolInfo[]) {
+  const included = new Set(symbols.filter((symbol) => symbol.kind === "library")
+    .map(({ name }) => name.split(" → ", 1)[0]));
+  for (const [name, button] of libraryButtons) button.disabled = included.has(name);
+}
+
+for (const snippet of SNIPPETS) {
+  const button = document.createElement("button");
+  button.textContent = snippet.label;
+  button.title = snippet.detail ?? snippet.label;
+  button.onclick = () => {
+    const tab = activeTab();
+    if (!tab || (tab.id === runTabId && runId !== null)) return;
+    if (snippet.label === "programa") {
+      newTab();
+      return;
+    }
+    const { from, to } = view.state.selection.main;
+    if (typeof snippet.apply === "function") snippet.apply(view, snippet, from, to);
+    view.focus();
+  };
+  $("utilities-models").append(button);
+}
+
+for (const selected of ["libraries", "models"]) {
+  $(`utilities-${selected}-tab`).onclick = () => {
+    for (const name of ["libraries", "models"]) {
+      $(`utilities-${name}-tab`).setAttribute("aria-selected", String(name === selected));
+      $(`utilities-${name}`).hidden = name !== selected;
+    }
+  };
+}
+
 function showUtilities(visible: boolean) {
   if (visible && $("code").classList.contains("expanded")) toggleExpanded();
   utilities.hidden = utilitiesSplitter.hidden = !visible;
@@ -1118,9 +1181,12 @@ updateDownload.onclick = async () => {
   }
 };
 $("home-alerts").onclick = () => $<HTMLDialogElement>("alerts").showModal();
-$("about-report").onclick = () => {
+$("home-report").onclick = $("about-report").onclick = () => {
   reportError.hidden = true;
   reportDialog.showModal();
+};
+$("home-contribute").onclick = () => {
+  void api.openProjectPage("contribute").catch(() => setStatus("Não foi possível abrir o navegador.", "error"));
 };
 $("report-open").onclick = async () => {
   const button = $<HTMLButtonElement>("report-open");
@@ -1232,5 +1298,6 @@ mountExamples((source, file, workPath) => newTab(source, null, file, workPath));
 activate(0);
 applyTheme(themeChoice());
 showPanel("console");
+showUtilities(true);
 const tips = mountTips(themeEditor.open);
 $("home-tips").onclick = tips.open;

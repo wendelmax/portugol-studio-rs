@@ -46,23 +46,72 @@ pub struct DiagnosticInfo {
 }
 
 #[derive(Serialize)]
-pub struct FormatEdit {
+pub struct TextEdit {
     from: usize,
     to: usize,
     insert: String,
 }
 
-pub fn format_source(source: &str) -> Option<Vec<FormatEdit>> {
+pub fn format_source(source: &str) -> Option<Vec<TextEdit>> {
     portugol_syntax::format::format(source).map(|edits| {
         edits
             .into_iter()
-            .map(|edit| FormatEdit {
+            .map(|edit| TextEdit {
                 from: edit.from,
                 to: edit.to,
                 insert: edit.insert,
             })
             .collect()
     })
+}
+
+/// Inserção no começo do bloco programa. Usa o lexer para ignorar texto em comentários.
+pub fn include_library(source: &str, name: &str) -> Result<Option<TextEdit>, String> {
+    use portugol_syntax::lexer::lex;
+    use portugol_syntax::token::TokenKind;
+    let proposed = lex(name);
+    if proposed.tokens.len() != 2
+        || proposed.tokens[0].kind != TokenKind::Ident
+        || proposed.tokens[0].span.len() as usize != name.len()
+    {
+        return Err("Biblioteca inválida.".into());
+    }
+    let parsed = parse(source);
+    if parsed
+        .program
+        .includes
+        .iter()
+        .any(|include| include.library.name == name)
+    {
+        return Ok(None);
+    }
+    let tokens = lex(source).tokens;
+    let offset = if let Some(program) = tokens
+        .iter()
+        .position(|token| token.kind == TokenKind::Programa)
+    {
+        if tokens[program + 1].kind != TokenKind::LBrace {
+            return Err("Adicione a chave de abertura do programa.".into());
+        }
+        tokens[program + 1].span.end as usize
+    } else {
+        0
+    };
+    let insert = if offset == 0 {
+        format!("inclua biblioteca {name}\n")
+    } else if source[offset..].starts_with('\n') {
+        format!("\n\tinclua biblioteca {name}")
+    } else {
+        format!("\n\tinclua biblioteca {name}\n")
+    };
+    let from = position::LineIndex::new(source)
+        .position(offset as u32)
+        .offset as usize;
+    Ok(Some(TextEdit {
+        from,
+        to: from,
+        insert,
+    }))
 }
 
 #[derive(Serialize)]
@@ -126,5 +175,23 @@ pub(crate) fn describe(index: &position::LineIndex, diagnostic: &Diagnostic) -> 
         help: diagnostic.help.clone(),
         start: index.position(diagnostic.span.start),
         end: index.position(diagnostic.span.end.max(diagnostic.span.start)),
+    }
+}
+
+#[cfg(test)]
+mod library_edits {
+    use super::include_library;
+
+    #[test]
+    fn inserts_inside_the_program_and_respects_existing_aliases() {
+        let source = "// 🪁 programa { }\nprograma\n{\n\tfuncao inicio() {}\n}";
+        let edit = include_library(source, "Matematica").unwrap().unwrap();
+        let expected = source[..source.find("{\n\t").unwrap() + 1]
+            .encode_utf16()
+            .count();
+        assert_eq!((edit.from, edit.to), (expected, expected));
+        assert_eq!(edit.insert, "\n\tinclua biblioteca Matematica");
+        let source = "programa { inclua biblioteca Matematica --> m funcao inicio() {} }";
+        assert!(include_library(source, "Matematica").unwrap().is_none());
     }
 }

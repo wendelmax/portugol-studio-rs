@@ -63,6 +63,9 @@ export interface Inspection {
   symbols: SymbolInfo[];
 }
 
+export const includeLibrary = (source: string, name: string) =>
+  invoke<{ from: number; to: number; insert: string } | null>("include_library", { source, name });
+
 export const formatSource = (source: string) =>
   invoke<{ from: number; to: number; insert: string }[] | null>("format_source", { source });
 
@@ -82,7 +85,7 @@ export const renameTarget = (source: string, offset: number) =>
 export const renameSymbol = (source: string, offset: number, name: string) =>
   invoke<{ from: number; to: number; insert: string }[]>("rename_symbol", { source, offset, name });
 
-export const openProjectPage = (page: "bug_report" | "releases") =>
+export const openProjectPage = (page: "bug_report" | "releases" | "contribute") =>
   invoke<void>("open_project_page", { page });
 
 type UpdateInfo =

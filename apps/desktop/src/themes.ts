@@ -1,4 +1,5 @@
 const fields = {
+  "--frame": "Moldura e tela inicial",
   "--bg": "Fundo da janela",
   "--surface": "Painéis",
   "--border": "Bordas",
@@ -6,6 +7,8 @@ const fields = {
   "--accent": "Destaque",
   "--console-surface": "Console",
   "--editor-bg": "Fundo do editor",
+  "--editor-text": "Identificadores",
+  "--editor-caret": "Cursor",
   "--editor-line": "Linha atual",
   "--editor-selection": "Seleção",
   "--editor-gutter": "Números de linha",
