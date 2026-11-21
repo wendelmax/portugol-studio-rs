@@ -169,7 +169,8 @@ mod tests {
         let renamed =
             rename_relative_file(&temp.0, Path::new("aulas/antigo.por"), "novo.por").unwrap();
 
-        assert_eq!(renamed, temp.0.join("aulas/novo.por"));
+        let expected = fs::canonicalize(temp.0.join("aulas/novo.por")).unwrap();
+        assert_eq!(renamed, expected);
         assert_eq!(fs::read_to_string(&renamed).unwrap(), "escreva(42)");
         assert!(!temp.0.join("aulas/antigo.por").exists());
     }
