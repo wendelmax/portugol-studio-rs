@@ -34,7 +34,7 @@ import { portugolFolding } from "./folding";
 import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
 import { mountOutline, symbolKindLabels } from "./outline";
-import { panelContentId, type PanelName } from "./panel-tabs";
+import { panelContentId, panelNameForKey, type PanelName } from "./panel-tabs";
 import { calculateSidePaneMinimums, clampPaneSize, DEFAULT_PANE_LAYOUT, loadPaneLayout, normalizePaneLayout, resizePaneForKey, savePaneLayout, type PaneLayout } from "./pane-layout";
 import { LIBRARIES, portugol, portugolRs, SNIPPETS } from "./portugol";
 import { detectSourceLanguage, ensureSourceExtension, type SourceLanguage } from "./document-language";
@@ -1644,8 +1644,10 @@ function renderLearningPanel() {
   if (showOwnershipLab) renderOwnershipLab();
 }
 
+const bottomPanelNames: PanelName[] = ["console", "tests", "messages", "debug", "learning"];
+
 function showPanel(which: PanelName) {
-  for (const name of ["console", "messages", "debug", "learning"] as const) {
+  for (const name of bottomPanelNames) {
     $(`tab-${name}`).classList.toggle("active", which === name);
     $(`tab-${name}`).setAttribute("aria-selected", String(which === name));
     $(panelContentId(name)).hidden = which !== name;
@@ -1653,6 +1655,18 @@ function showPanel(which: PanelName) {
   $("console-tools").hidden = which !== "console";
   if (which === "learning") renderLearningPanel();
 }
+
+document.querySelector<HTMLElement>(".panel-tabs")?.addEventListener("keydown", (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+  const current = bottomPanelNames.find((name) => target.id === `tab-${name}`);
+  if (!current) return;
+  const next = panelNameForKey(bottomPanelNames, current, event.key);
+  if (!next) return;
+  event.preventDefault();
+  showPanel(next);
+  $<HTMLButtonElement>(`tab-${next}`).focus();
+});
 
 function goTo(offset: number) {
   const position = Math.min(offset, view.state.doc.length);
@@ -2273,6 +2287,7 @@ $("btn-copy").onclick = async () => {
   }
 };
 $("tab-console").onclick = () => showPanel("console");
+$("tab-tests").onclick = () => showPanel("tests");
 $("tab-messages").onclick = () => showPanel("messages");
 $("tab-debug").onclick = () => showPanel("debug");
 $("tab-learning").onclick = () => showPanel("learning");
