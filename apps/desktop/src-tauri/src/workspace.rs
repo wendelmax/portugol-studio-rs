@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use super::{
-        WorkspaceEntry, create_source_file, list_entries, read_relative_file,
+        WorkspaceEntry, create_source_file, list_entries, read_relative_file, rename_relative_file,
         restore_saved_workspace, save_last_workspace,
     };
     use std::fs;
@@ -158,6 +158,78 @@ mod tests {
             fs::read_to_string(outside.0.join("segredo")).unwrap(),
             "não alterar"
         );
+    }
+
+    #[test]
+    fn renames_a_source_file_without_changing_its_contents() {
+        let temp = TempDir::new();
+        fs::create_dir_all(temp.0.join("aulas")).unwrap();
+        fs::write(temp.0.join("aulas/antigo.por"), "escreva(42)").unwrap();
+
+        let renamed =
+            rename_relative_file(&temp.0, Path::new("aulas/antigo.por"), "novo.por").unwrap();
+
+        let expected = fs::canonicalize(temp.0.join("aulas/novo.por")).unwrap();
+        assert_eq!(renamed, expected);
+        assert_eq!(fs::read_to_string(&renamed).unwrap(), "escreva(42)");
+        assert!(!temp.0.join("aulas/antigo.por").exists());
+    }
+
+    #[test]
+    fn preserves_original_extension_and_rejects_path_changes() {
+        let temp = TempDir::new();
+        fs::write(temp.0.join("programa.pors"), "funcao inicio() {}").unwrap();
+
+        for invalid in [
+            "novo.por",
+            "../fora.pors",
+            "pasta\\novo.pors",
+            "anotacao.txt",
+        ] {
+            assert!(
+                rename_relative_file(&temp.0, Path::new("programa.pors"), invalid).is_err(),
+                "{invalid}"
+            );
+        }
+        assert_eq!(
+            fs::read_to_string(temp.0.join("programa.pors")).unwrap(),
+            "funcao inicio() {}"
+        );
+    }
+
+    #[test]
+    fn rename_collision_never_overwrites_either_file() {
+        let temp = TempDir::new();
+        fs::write(temp.0.join("antes.por"), "origem").unwrap();
+        fs::write(temp.0.join("depois.por"), "destino").unwrap();
+
+        assert!(rename_relative_file(&temp.0, Path::new("antes.por"), "depois.por").is_err());
+        assert_eq!(
+            fs::read_to_string(temp.0.join("antes.por")).unwrap(),
+            "origem"
+        );
+        assert_eq!(
+            fs::read_to_string(temp.0.join("depois.por")).unwrap(),
+            "destino"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn refuses_to_rename_a_symlink_outside_the_workspace() {
+        use std::os::unix::fs::symlink;
+
+        let temp = TempDir::new();
+        let outside = TempDir::new();
+        fs::write(outside.0.join("programa.por"), "fora").unwrap();
+        symlink(outside.0.join("programa.por"), temp.0.join("ligacao.por")).unwrap();
+
+        assert!(rename_relative_file(&temp.0, Path::new("ligacao.por"), "novo.por").is_err());
+        assert_eq!(
+            fs::read_to_string(outside.0.join("programa.por")).unwrap(),
+            "fora"
+        );
+        assert!(temp.0.join("ligacao.por").exists());
     }
 
     #[test]
@@ -446,6 +518,20 @@ pub struct WorkspaceFile {
     source: String,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceFilePath {
+    path: String,
+    relative_path: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceRenameResult {
+    listing: WorkspaceListing,
+    file: WorkspaceFilePath,
+}
+
 fn supported_source(path: &Path) -> bool {
     path.extension()
         .and_then(|extension| extension.to_str())
@@ -627,6 +713,59 @@ fn create_source_file(root: &Path, file_name: &str) -> Result<(), String> {
         })
 }
 
+fn rename_relative_file(root: &Path, relative: &Path, new_name: &str) -> Result<PathBuf, String> {
+    let source = checked_file(root, relative, true)?;
+    let name = Path::new(new_name);
+    if new_name.trim().is_empty()
+        || new_name == "."
+        || new_name == ".."
+        || new_name.contains('/')
+        || new_name.contains('\\')
+        || name.components().count() != 1
+        || !matches!(name.components().next(), Some(Component::Normal(_)))
+    {
+        return Err("Informe um nome de arquivo sem pastas.".into());
+    }
+    if new_name.ends_with('.') || !supported_source(name) {
+        return Err("O arquivo deve manter uma extensão .por, .pors ou .pex.".into());
+    }
+
+    let source_extension = source
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .ok_or_else(|| "A extensão original do arquivo não é válida.".to_string())?;
+    let new_extension = name
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .ok_or_else(|| "A extensão do arquivo não é válida.".to_string())?;
+    if !source_extension.eq_ignore_ascii_case(new_extension) {
+        return Err(format!(
+            "A extensão deve continuar sendo .{source_extension}."
+        ));
+    }
+
+    let parent = source
+        .parent()
+        .ok_or_else(|| "O arquivo selecionado não pode ser renomeado.".to_string())?;
+    let destination = parent.join(name);
+    if source == destination {
+        return Ok(source);
+    }
+    fs::hard_link(&source, &destination).map_err(|error| {
+        if error.kind() == std::io::ErrorKind::AlreadyExists {
+            "Já existe um arquivo com esse nome.".into()
+        } else {
+            format!("Não foi possível renomear o arquivo: {error}")
+        }
+    })?;
+    if let Err(error) = fs::remove_file(&source) {
+        let _ = fs::remove_file(&destination);
+        return Err(format!("Não foi possível renomear o arquivo: {error}"));
+    }
+    fs::canonicalize(&destination)
+        .map_err(|error| format!("Não foi possível acessar o arquivo renomeado: {error}"))
+}
+
 #[tauri::command]
 pub async fn workspace_open(
     app: AppHandle,
@@ -738,5 +877,39 @@ pub fn workspace_create_file(
         id: workspace_id,
         name,
         entries,
+    })
+}
+
+#[tauri::command]
+pub fn workspace_rename_file(
+    workspace_id: String,
+    relative_path: String,
+    new_name: String,
+    session: State<'_, WorkspaceSession>,
+) -> Result<WorkspaceRenameResult, String> {
+    let root = session.root(&workspace_id)?;
+    let new_path = rename_relative_file(&root, Path::new(&relative_path), &new_name)?;
+    let root = fs::canonicalize(&root)
+        .map_err(|_| "A pasta aberta não está mais disponível.".to_string())?;
+    let entries = list_entries(&root)?;
+    let name = root
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("Projeto")
+        .to_string();
+    let path = new_path.to_str().map(str::to_string).ok_or_else(|| {
+        "O caminho do arquivo não pode ser representado nesta interface.".to_string()
+    })?;
+    let new_relative_path = self::relative_path(&root, &new_path)?;
+    Ok(WorkspaceRenameResult {
+        listing: WorkspaceListing {
+            id: workspace_id,
+            name,
+            entries,
+        },
+        file: WorkspaceFilePath {
+            path,
+            relative_path: new_relative_path,
+        },
     })
 }

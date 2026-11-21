@@ -1150,6 +1150,20 @@ select {
   color: var(--error);
 }
 
+#workspace-rename-dialog {
+  width: min(360px, calc(100% - 24px));
+}
+
+#workspace-rename-form {
+  display: grid;
+  gap: 8px;
+}
+
+#workspace-rename-error {
+  margin: 0;
+  color: var(--error);
+}
+
 .workspace-name {
   overflow: hidden;
   margin: 0;
@@ -1172,7 +1186,9 @@ select {
 
 .workspace-tree-item {
   display: flex;
-  width: 100%;
+  width: auto;
+  min-width: 0;
+  flex: 1;
   min-height: 28px;
   align-items: center;
   gap: 7px;
@@ -1184,6 +1200,45 @@ select {
   color: var(--text);
   text-align: start;
   white-space: nowrap;
+}
+
+.workspace-tree-row {
+  display: flex;
+  min-width: 0;
+}
+
+.workspace-file-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  opacity: 0;
+}
+
+.workspace-tree-row:hover .workspace-file-actions,
+.workspace-tree-row:focus-within .workspace-file-actions {
+  opacity: 1;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .workspace-file-actions {
+    opacity: 1;
+  }
+}
+
+.workspace-file-actions button {
+  width: 24px;
+  min-height: 28px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+}
+
+.workspace-file-actions button:hover,
+.workspace-file-actions button:focus-visible {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text);
 }
 
 .workspace-tree-item:hover,

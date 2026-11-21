@@ -422,7 +422,8 @@ pub fn run_app() {
             workspace::workspace_read_file,
             workspace::workspace_write_file,
             workspace::workspace_create_file,
-            workspace::workspace_restore
+            workspace::workspace_restore,
+            workspace::workspace_rename_file
         ])
         .build(tauri::generate_context!())
         .expect("erro ao iniciar a IDE")
