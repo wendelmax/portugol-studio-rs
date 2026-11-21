@@ -17,6 +17,7 @@
 - `cargo fmt --all -- --check` — **PASS**.
 - `git diff --check` — **PASS** antes das últimas alterações de documentação; repetir antes do commit.
 - `cargo test -p portugol-desktop --offline workspace::tests --lib` — **BLOCKED neste Linux local**, antes de compilar o crate: faltam `webkit2gtk-4.1.pc` e `javascriptcoregtk-4.1.pc`. Os testes unitários do novo módulo cobrem enumeração recursiva/extensões, leitura relativa, traversal, arquivos não suportados, symlink externo e escrita limitada a fontes; precisam ser compilados/executados pelo CI desktop.
+- CI inicial (#99) encontrou `dead_code` no helper `read_relative_file`, usado somente por testes; a função foi restringida com `#[cfg(test)]`. A validação da correção aguarda nova execução CI.
 - E2E e inspeção visual com WebKitGTK — **NOT RUN** localmente pela mesma dependência de sistema ausente. Testes de markup/domínio não substituem o smoke da janela nativa.
 
 ## Limitações e próximos passos
