@@ -1,0 +1,92 @@
+[
+  {
+    "title": "Troca de Tema",
+    "description": "O Portugol Studio contém 2 temas disponíveis: o Tema Escuro e o Tema Portugol. Você pode trocar o tema ao apertar o botão \"Trocar Tema\" abaixo, ou em uma aba de programa, ir na engrenagem no canto superior direito da tela do código.",
+    "image": "tela1.gif"
+  },
+  {
+    "title": "Arquivos Recentes",
+    "description": "Cada vez que você abre ou salva um arquivo do portugol, ele será gravado na tela inicial, na seção \"Arquivos recentes\". O máximo de arquivos que podem ficar ali é 6.",
+    "image": "tela2.png"
+  },
+  {
+    "title": "Árvore de Exemplos",
+    "description": "Cada pasta é uma seção que contém os exemplos do tipo escolhido. Para abrir a seção clique no \"+\" ao lado da pasta.",
+    "image": "tela3.png"
+  },
+  {
+    "title": "Selecionar/Abrir Exemplos",
+    "description": "Com a seção aberta poderá haver mais pastas dentro ou exemplos. Clique em um exemplo dentro da seção para ver a sua descrição. No final da descrição estará o botão \"Explorar Exemplo\", ao clica-lo uma aba do portugol será aberta, permitindo verificar o código e executá-lo.",
+    "image": "tela4.png"
+  },
+  {
+    "title": "Novo Arquivo",
+    "description": "No ícone \"Novo Arquivo\", será aberto uma aba de código no Portugol Studio, ela virá com o código básico para se iniciar a programar.",
+    "image": "tela5.png"
+  },
+  {
+    "title": "Abrir Arquivo",
+    "description": "No ícone \"Abrir Arquivo\", você pode abrir um arquivo do Portugol Studio que esteja salvo no seu computador.",
+    "image": "tela6.png"
+  },
+  {
+    "title": "Ajuda",
+    "description": "No ícone \"Ajuda\", será aberto a aba ajuda com o básico para se iniciar a programar. Nela irá conter a sintaxe e semântica do Portugol como também as especificações de todas as bibliotecas, que contém funções muito úteis para códigos mais complexos.",
+    "image": "tela7.png"
+  },
+  {
+    "title": "Abas",
+    "description": "As abas no portugol permitem navegar entre varios programas em portugol abertos. A primeira aba é a \"Portugol Studio\", que te retornará para a Aba Inicial. Ao final de todas as abas haverá o ícone \"+\", ele tem a mesma função do botão Novo Arquivo da Aba Inicial, onde ele criará uma nova aba para programar.",
+    "image": "tela8.png"
+  },
+  {
+    "title": "Botões pt.1",
+    "description": "Os Botões ao lado do editor de código, são muito importantes. Eles são respectivamente: \n\"Botão Iniciar\": Executa o código no Editor. \n\"Botão Depurar\": Executa passo a passo o código, passando por cada linha de código uma vez a cada clique no botão. \n\"Botão Cancelar\": Para a execução do código forçadamente.",
+    "image": "tela9.png"
+  },
+  {
+    "title": "Botões pt.2",
+    "description": "Os três botões a seguir são respectivamente: \n\"Botão Salvar\": Permite salvar os dados modificados no arquivo(Exemplos não podem ser salvos). \n\"Botão Salvar como\": Permite criar uma nova cópia do arquivo para ser salva em outro local no computador. \n\"Botão Abrir\": Como na aba Inicial, este botão permite abrir um arquivo do Portugol Studio existente no computador.",
+    "image": "tela10.png"
+  },
+  {
+    "title": "Botões pt.3",
+    "description": "O último botão: \n\"Botão Ajuda\": Permite abrir a aba de contendo a documentação da linguagem e das bibliotecas como na aba inicial.",
+    "image": "tela11.png"
+  },
+  {
+    "title": "Painel Utilitários pt.1",
+    "description": "Ao se abrir um arquivo novo, à direita, estará o \"Painel Utilitários\". A primeira aba, \"bibliotecas\", te permitirá adicionar rapidamente bibliotecas ao seu novo projeto.",
+    "image": "tela12.png"
+  },
+  {
+    "title": "Painel Utilitários pt.2",
+    "description": "A segunda aba do \"Painel Utilitários\", \"Modelos\", conterá esqueletos de projetos para serem utilizados onde você poderá reduzir o trabalho de escrever códigos básicos para seus programas.",
+    "image": "tela13.png"
+  },
+  {
+    "title": "Depurando pelo \"bug\"",
+    "description": "À esquerda, por todo o seu código haverá pequenos insetos(bugs), não se preocupe, seu código não está com problemas, é uma funcionalidade do Portugol Studio que permite que você ative o inseto ao clicar, e quando você for executar o código, ele irá para naquela linha com o inseto ativo. A partir deste momento você pode continuar o código depurando passo a passo com o \"Botão Depurar\", ou executa-lo até o fim(ou até o próximo inseto), apertando o \"Botão Iniciar\".",
+    "image": "tela14.png"
+  },
+  {
+    "title": "Árvore Inspetor pt.1",
+    "description": "À direita do Editor, está a árvore inspetor. Com ela você terá acesso a todas as funções, variáveis e constantes do código em ordem alfabética. E ao clicar em uma, você será levado até a posição onde está a variável/constante/função.",
+    "image": "tela15.png"
+  },
+  {
+    "title": "Árvore Inspetor pt.2",
+    "description": "A árvore do inspetor leva o cursor à declaração de uma variável, constante ou função. Use o filtro para localizar um símbolo pelo nome.",
+    "image": "tela16.png"
+  },
+  {
+    "title": "Árvore Inspetor pt.3",
+    "description": "Quando o programa pausa no depurador, a aba Inspetor mostra as variáveis disponíveis e seus valores.",
+    "image": "tela17.png"
+  },
+  {
+    "title": "Editor Expandido",
+    "description": "Você pode expandir o editor completamente ao apertar \"Shift + Esc\" ou ir na engrenagem ao lado direito do editor clicar na opção \"Expandir\". Isso removerá os paineis ao redor do editor e deixará ele em tela cheia, também será colocado um pequeno painel acima do editor para que os botões de execução ainda sejam acessíveis. Caso deseje sair do modo expansivo pode apertar o último botão na barra de botões \"Sair do modo expandido\" ou apertar novamente \"Shift + Esc\".",
+    "image": "tela18.png"
+  }
+]

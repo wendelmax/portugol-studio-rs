@@ -63,7 +63,7 @@ são executados e validados sem tela.
 | Formatador de código (`editor/formatador`) | ⬜ | |
 | Exercícios com correção automática (`assets/exercicios`, módulo `checker`) | ⬜ | |
 | Tamanho da fonte do editor | ✅ | ajuste de 10 a 50, salvo localmente |
-| Dicas de interface (`TelaDicas`) | ⬜ | |
+| Dicas de interface (`TelaDicas`) | ✅ | 18 dicas do original, F3, setas, troca de tema e opção de mostrar ao iniciar |
 | Sobre / licenças (`Sobre`, `TelaLicencas`) | ✅ | diálogo F12, versão, origem e texto da licença |
 | Verificação de atualizações (`TelaAtualizacoes`) | ⬜ | updater do Tauri |
 | Relatar bug (`TelaRelatarBug`) | ⬜ | link para as issues do GitHub |

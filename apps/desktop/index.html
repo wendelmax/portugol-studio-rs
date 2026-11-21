@@ -50,6 +50,7 @@
       </section>
       <footer class="home-links">
         <button id="home-shortcuts">Atalhos de teclado (F11)</button>
+        <button id="home-tips">Dicas (F3)</button>
         <button id="home-about">Sobre (F12)</button>
       </footer>
     </main>
@@ -191,6 +192,19 @@
       <h2 id="shortcuts-title">Atalhos de teclado</h2>
       <dl id="shortcut-list"></dl>
       <form method="dialog"><button>Fechar</button></form>
+    </dialog>
+
+    <dialog id="tips" aria-labelledby="tips-title">
+      <h2 id="tips-title" aria-live="polite">Dicas de interface</h2>
+      <img id="tips-image" alt="" />
+      <p id="tips-description"></p>
+      <div class="tips-actions">
+        <button id="tips-previous" aria-label="Dica anterior">←</button>
+        <button id="tips-next" aria-label="Próxima dica">→</button>
+        <label><input id="tips-startup" type="checkbox" /> Mostrar dicas ao iniciar</label>
+        <button id="tips-theme">Trocar tema</button>
+        <form method="dialog"><button>Fechar</button></form>
+      </div>
     </dialog>
 
     <dialog id="about" aria-labelledby="about-title">
