@@ -53,7 +53,7 @@ são executados e validados sem tela.
 | Depuração na IDE (`AbaDepuracao`, `Depurador`) | ✅ | gutter de breakpoints, início pausado com Shift+F5, pilha e variáveis |
 | Localizar e substituir (`PSFindReplace`) | ✅ | Ctrl+F do CodeMirror |
 | Atalhos do original (`TelaAtalhos`) | 🟡 | tela F11, execução, arquivos, abas e próxima instrução; atalhos restantes ainda divergem |
-| Temas claro/escuro (`TelaEditarTemas`) | 🟡 | claro, escuro e do sistema com paletas do editor; falta editor de temas |
+| Temas claro/escuro (`TelaEditarTemas`) | ✅ | claro, escuro, sistema e perfis personalizados com prévia |
 | Moldura e barra de comandos | ✅ | moldura de 5px, controles nativos, área de arraste, abas com ícone e barra lateral com ícones da versão 2.7.5 |
 | Expandir editor (Shift+Esc) | ✅ | barra horizontal compacta e botão de restauração |
 | Tela inicial com exemplos (`AbaInicial`, `PainelExemplos`) | 🟡 | Abrir/Novo, até seis recentes, 119 exemplos com busca, descrição, imagens e cópia de trabalho com recursos e acesso às dicas |
@@ -64,7 +64,7 @@ são executados e validados sem tela.
 | Formatador de código (`editor/formatador`) | ✅ | opções do editor e Ctrl+Alt+F, com alterações de espaço e desfazer em uma etapa |
 | Exercícios com correção automática (`assets/exercicios`, módulo `checker`) | ⬜ | |
 | Tamanho da fonte do editor | ✅ | ajuste de 10 a 50, salvo localmente |
-| Dicas de interface (`TelaDicas`) | ✅ | 18 dicas do original, F3, setas, troca de tema e opção de mostrar ao iniciar |
+| Dicas de interface (`TelaDicas`) | ✅ | 18 dicas do original, F3, setas, acesso ao editor de temas e opção de mostrar ao iniciar |
 | Sobre / licenças (`Sobre`, `TelaLicencas`) | ✅ | diálogo F12, versão, origem e texto da licença |
 | Verificação de atualizações (`TelaAtualizacoes`) | ⬜ | updater do Tauri |
 | Relatar bug (`TelaRelatarBug`) | ✅ | diálogo em Sobre, com abertura das issues do port no navegador |

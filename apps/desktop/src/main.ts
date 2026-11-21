@@ -1,4 +1,5 @@
 import { mountTips } from "./tips";
+import { applyThemeColors, customTheme, mountThemeEditor } from "./themes";
 // IDE: abas de arquivos, editor CodeMirror, console e execução.
 //
 // Atalhos seguem o Portugol Studio original (TelaAtalhos.java):
@@ -54,23 +55,23 @@ interface Tab {
 }
 
 // Tema: "system" segue o sistema operacional; a escolha fica salva.
-type ThemeChoice = "system" | "light" | "dark";
 const THEME_KEY = "portugol.theme";
 const theme = new Compartment();
 const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
-function themeChoice(): ThemeChoice {
+function themeChoice(): string {
   try {
     const saved = localStorage.getItem(THEME_KEY);
-    if (saved === "light" || saved === "dark" || saved === "system") return saved;
+    if (saved === "light" || saved === "dark" || saved === "system" || (saved && customTheme(saved))) return saved;
   } catch {
     // Sem armazenamento local: fica no padrão.
   }
   return "dark";
 }
 
+let appliedTheme = themeChoice();
 const isDark = () => {
-  const choice = themeChoice();
+  const choice = customTheme(appliedTheme)?.base ?? appliedTheme;
   return choice === "dark" || (choice === "system" && darkQuery.matches);
 };
 const editorColors = syntaxHighlighting(HighlightStyle.define([
@@ -238,14 +239,16 @@ function extensions(): Extension[] {
 
 const view = new EditorView({ parent: $("editor") });
 
-function applyTheme(choice: ThemeChoice) {
+function applyTheme(choice: string) {
+  appliedTheme = choice;
   try {
     localStorage.setItem(THEME_KEY, choice);
   } catch {
     // Ignora: a escolha vale só para esta sessão.
   }
   if (choice === "system") delete document.documentElement.dataset.theme;
-  else document.documentElement.dataset.theme = choice;
+  else document.documentElement.dataset.theme = customTheme(choice)?.base ?? choice;
+  applyThemeColors(document.documentElement, customTheme(choice)?.colors);
   view.dispatch({ effects: theme.reconfigure(editorTheme()) });
   help?.refreshTheme();
 }
@@ -1115,8 +1118,10 @@ void appWindow.onCloseRequested(async (event) => {
 });
 
 const themeSelect = $<HTMLSelectElement>("theme");
+const themeEditor = mountThemeEditor(themeSelect, applyTheme);
 themeSelect.value = themeChoice();
-themeSelect.onchange = () => applyTheme(themeSelect.value as ThemeChoice);
+themeSelect.onchange = () => applyTheme(themeSelect.value);
+editorMenuAction("editor-themes", themeEditor.open);
 
 for (const id of ["editor-font", "console-font"]) {
   const input = $<HTMLInputElement>(id);
@@ -1168,9 +1173,5 @@ mountExamples((source, file, workPath) => newTab(source, null, file, workPath));
 activate(0);
 applyTheme(themeChoice());
 showPanel("console");
-const tips = mountTips(() => {
-  const choice = isDark() ? "light" : "dark";
-  applyTheme(choice);
-  themeSelect.value = choice;
-});
+const tips = mountTips(themeEditor.open);
 $("home-tips").onclick = tips.open;
