@@ -17,6 +17,7 @@
 //!   e a existência do escopo são validados; retornos e constantes de
 //!   bibliotecas viram `Ty::Unknown`.
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 
 use portugol_syntax::ast::{
@@ -57,6 +58,17 @@ pub fn analyze(program: &Program) -> Vec<Diagnostic> {
     analyzer.diagnostics
 }
 
+/// Relaciona o início de cada uso ao início da declaração na fonte.
+pub fn symbol_bindings(program: &Program) -> (Vec<Diagnostic>, HashMap<u32, u32>) {
+    let mut analyzer = Analyzer::new(program);
+    analyzer.bindings = Some(RefCell::new(HashMap::new()));
+    analyzer.run();
+    (
+        analyzer.diagnostics,
+        analyzer.bindings.unwrap().into_inner(),
+    )
+}
+
 #[derive(Debug)]
 struct Target {
     ty: Ty,
@@ -77,6 +89,7 @@ struct Analyzer<'a> {
     program: &'a Program,
     diagnostics: Vec<Diagnostic>,
     scopes: ScopeTable,
+    bindings: Option<RefCell<HashMap<u32, u32>>>,
     /// Nome real ou alias -> nome real da biblioteca.
     libraries: HashMap<String, String>,
     current_function: Option<FunctionInfo>,
@@ -89,10 +102,32 @@ impl<'a> Analyzer<'a> {
             program,
             diagnostics: Vec::new(),
             scopes: ScopeTable::new(),
+            bindings: None,
             libraries: HashMap::new(),
             current_function: None,
             has_entry_point: false,
         }
+    }
+
+    fn record_binding(&self, usage: Span, declaration: Span) {
+        if let Some(bindings) = &self.bindings {
+            bindings.borrow_mut().insert(usage.start, declaration.start);
+        }
+    }
+
+    fn lookup(&self, name: &str, usage: Span) -> Option<&Symbol> {
+        let symbol = self.scopes.get(name)?;
+        self.record_binding(usage, symbol.span);
+        Some(symbol)
+    }
+
+    fn declare(&mut self, symbol: Symbol) -> Result<bool, Symbol> {
+        let span = symbol.span;
+        let result = self.scopes.insert(symbol);
+        if result.is_ok() {
+            self.record_binding(span, span);
+        }
+        result
     }
 
     fn run(&mut self) {
@@ -237,7 +272,7 @@ impl<'a> Analyzer<'a> {
                 continue;
             }
 
-            match self.scopes.insert(Symbol::function(info)) {
+            match self.declare(Symbol::function(info)) {
                 Ok(_) => {}
                 Err(_) => {
                     self.error(
@@ -286,7 +321,7 @@ impl<'a> Analyzer<'a> {
             param.name.span,
         );
 
-        match self.scopes.insert(symbol) {
+        match self.declare(symbol) {
             Ok(false) => {}
             Ok(true) => {
                 self.warning(
@@ -574,7 +609,7 @@ impl<'a> Analyzer<'a> {
     fn insert_symbol(&mut self, symbol: Symbol, span: Span) -> bool {
         let name = symbol.name.clone();
 
-        match self.scopes.insert(symbol) {
+        match self.declare(symbol) {
             Ok(false) => true,
             Ok(true) => {
                 self.warning(
@@ -723,7 +758,7 @@ impl<'a> Analyzer<'a> {
                     return Size::Unknown;
                 }
 
-                match self.scopes.get(&ident.name) {
+                match self.lookup(&ident.name, ident.span) {
                     Some(symbol) if symbol.is_const => {
                         symbol.const_int.map(Size::Int).unwrap_or(Size::Invalid)
                     }
@@ -1034,7 +1069,7 @@ impl<'a> Analyzer<'a> {
                     };
                 }
 
-                let Some(symbol) = self.scopes.get(&ident.name) else {
+                let Some(symbol) = self.lookup(&ident.name, ident.span) else {
                     self.error(
                         "sem.symbol-not-declared",
                         format!("o símbolo \"{}\" não foi declarado", ident.name),
@@ -1163,7 +1198,7 @@ impl<'a> Analyzer<'a> {
             }
         }
 
-        let Some(symbol) = self.scopes.get(name) else {
+        let Some(symbol) = self.lookup(name, span) else {
             self.error(
                 "sem.symbol-not-declared",
                 format!("o símbolo \"{}\" não foi declarado", name),
@@ -1286,7 +1321,7 @@ impl<'a> Analyzer<'a> {
             return Ty::Unknown;
         }
 
-        let Some(symbol) = self.scopes.get(&ident.name) else {
+        let Some(symbol) = self.lookup(&ident.name, ident.span) else {
             self.error(
                 "sem.symbol-not-declared",
                 format!("o símbolo \"{}\" não foi declarado", ident.name),
@@ -1356,7 +1391,7 @@ impl<'a> Analyzer<'a> {
             }
         }
 
-        let Some(symbol) = self.scopes.get(name) else {
+        let Some(symbol) = self.lookup(name, span) else {
             self.error(
                 "sem.symbol-not-declared",
                 format!("o símbolo \"{}\" não foi declarado", name),
@@ -1398,7 +1433,7 @@ impl<'a> Analyzer<'a> {
                     );
                     Ty::Unknown
                 } else {
-                    match self.scopes.get(&ident.name) {
+                    match self.lookup(&ident.name, ident.span) {
                         None => {
                             self.error(
                                 "sem.symbol-not-declared",
@@ -1586,7 +1621,7 @@ impl<'a> Analyzer<'a> {
     }
 
     fn user_call(&mut self, name: &str, args: &[Expr], span: Span) -> Ty {
-        let Some(symbol) = self.scopes.get(name) else {
+        let Some(symbol) = self.lookup(name, span) else {
             self.error(
                 "sem.symbol-not-declared",
                 format!("a função \"{}\" não foi declarada", name),
@@ -1708,17 +1743,19 @@ impl<'a> Analyzer<'a> {
         // Parâmetro escalar.
         if param.by_ref {
             let valid = match arg {
-                Expr::Ident(ident) if ident.scope.is_none() => match self.scopes.get(&ident.name) {
-                    Some(symbol) => symbol.kind == SymbolKind::Variable && !symbol.is_const,
-                    None => {
-                        self.error(
-                            "sem.symbol-not-declared",
-                            format!("o símbolo \"{}\" não foi declarado", ident.name),
-                            ident.span,
-                        );
-                        return;
+                Expr::Ident(ident) if ident.scope.is_none() => {
+                    match self.lookup(&ident.name, ident.span) {
+                        Some(symbol) => symbol.kind == SymbolKind::Variable && !symbol.is_const,
+                        None => {
+                            self.error(
+                                "sem.symbol-not-declared",
+                                format!("o símbolo \"{}\" não foi declarado", ident.name),
+                                ident.span,
+                            );
+                            return;
+                        }
                     }
-                },
+                }
                 _ => false,
             };
 
@@ -1759,8 +1796,7 @@ impl<'a> Analyzer<'a> {
     fn expr_dims(&self, expression: &Expr) -> Option<u8> {
         match expression {
             Expr::Ident(ident) if ident.scope.is_none() => self
-                .scopes
-                .get(&ident.name)
+                .lookup(&ident.name, ident.span)
                 .map(|symbol| symbol.kind.dims()),
             _ => Some(0),
         }
@@ -1812,27 +1848,29 @@ impl<'a> Analyzer<'a> {
 
         for arg in args {
             match arg {
-                Expr::Ident(ident) if ident.scope.is_none() => match self.scopes.get(&ident.name) {
-                    None => {
-                        self.error(
-                            "sem.symbol-not-declared",
-                            format!("o símbolo \"{}\" não foi declarado", ident.name),
-                            ident.span,
-                        );
-                    }
-                    Some(symbol) => {
-                        let invalid = symbol.kind != SymbolKind::Variable || symbol.is_const;
-                        if invalid {
+                Expr::Ident(ident) if ident.scope.is_none() => {
+                    match self.lookup(&ident.name, ident.span) {
+                        None => {
                             self.error(
+                                "sem.symbol-not-declared",
+                                format!("o símbolo \"{}\" não foi declarado", ident.name),
+                                ident.span,
+                            );
+                        }
+                        Some(symbol) => {
+                            let invalid = symbol.kind != SymbolKind::Variable || symbol.is_const;
+                            if invalid {
+                                self.error(
                                 "sem.invalid-argument",
                                 "\"leia\" exige uma variável ou um elemento de vetor/matriz mutável",
                                 ident.span,
                             );
-                        } else {
-                            self.scopes.set_initialized(&ident.name, true);
+                            } else {
+                                self.scopes.set_initialized(&ident.name, true);
+                            }
                         }
                     }
-                },
+                }
                 Expr::Ident(ident) => {
                     self.check_library_scope(
                         ident.scope.as_deref().unwrap_or_default(),
@@ -1860,7 +1898,7 @@ impl<'a> Analyzer<'a> {
                         continue;
                     }
 
-                    if let Some(symbol) = self.scopes.get(name)
+                    if let Some(symbol) = self.lookup(name, *span)
                         && symbol.is_const
                     {
                         self.error(

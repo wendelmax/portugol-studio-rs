@@ -9,6 +9,7 @@
 
 mod outline;
 mod position;
+mod rename;
 mod run;
 
 use serde::Serialize;
@@ -18,6 +19,7 @@ use portugol_syntax::{Diagnostic, Severity, parse};
 pub use outline::{SymbolInfo, SymbolKind};
 pub use portugol_vm::{FileFilter, Host, Sound, graphics};
 pub use position::Position;
+pub use rename::{RenameEdit, RenameTarget, rename_symbol, rename_target};
 pub use run::{
     DebugFrameInfo, DebugInfo, DebugVarInfo, RunHandle, RunObserver, RunOptions, RunOutcome, start,
     start_with_host,

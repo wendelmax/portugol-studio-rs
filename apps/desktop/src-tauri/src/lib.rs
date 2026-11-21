@@ -152,6 +152,20 @@ fn format_source(source: String) -> Option<Vec<portugol_service::FormatEdit>> {
 }
 
 #[tauri::command]
+fn rename_target(source: String, offset: u32) -> Result<portugol_service::RenameTarget, String> {
+    portugol_service::rename_target(&source, offset)
+}
+
+#[tauri::command]
+fn rename_symbol(
+    source: String,
+    offset: u32,
+    name: String,
+) -> Result<Vec<portugol_service::RenameEdit>, String> {
+    portugol_service::rename_symbol(&source, offset, &name)
+}
+
+#[tauri::command]
 async fn open_bug_report() -> Result<(), String> {
     const URL: &str = "https://github.com/wendelmax/portugol-studio-rs/issues/new";
     let mut command;
@@ -298,6 +312,8 @@ pub fn run_app() {
             check,
             inspect,
             format_source,
+            rename_target,
+            rename_symbol,
             open_bug_report,
             run,
             send_input,

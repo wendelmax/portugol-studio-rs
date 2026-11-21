@@ -779,7 +779,7 @@ $("splitter").addEventListener("pointerdown", (start) => {
 
 const utilities = $("utilities");
 const utilitiesSplitter = $("utilities-splitter");
-const outline = mountOutline(goTo);
+const outline = mountOutline(goTo, renameAt);
 
 function showUtilities(visible: boolean) {
   if (visible && $("code").classList.contains("expanded")) toggleExpanded();
@@ -830,6 +830,53 @@ function centerCode() {
   }
 }
 
+async function renameAt(offset: number) {
+  const tab = activeTab();
+  if (!tab || (runTabId === tab.id && runId !== null)) return;
+  const doc = view.state.doc;
+  const dialog = $<HTMLDialogElement>("rename");
+  try {
+    const target = await api.renameTarget(doc.toString(), offset);
+    if (activeTab() !== tab || view.state.doc !== doc || document.querySelector("dialog[open]")) return;
+
+    const form = $<HTMLFormElement>("rename-form");
+    const input = $<HTMLInputElement>("rename-input");
+    const error = $("rename-error");
+    const submit = $<HTMLButtonElement>("rename-submit");
+    $("rename-description").textContent = `${target.name} · ${target.occurrences} ${target.occurrences === 1 ? "ocorrência" : "ocorrências"}`;
+    input.value = target.name;
+    error.hidden = true;
+    $("rename-cancel").onclick = () => dialog.close();
+    form.onsubmit = async (event) => {
+      event.preventDefault();
+      error.hidden = true;
+      submit.disabled = true;
+      try {
+        const changes = await api.renameSymbol(doc.toString(), offset, input.value.trim());
+        if (!dialog.open || activeTab() !== tab || view.state.doc !== doc) return;
+        if (changes.length) view.dispatch({ changes, annotations: isolateHistory.of("full"), userEvent: "input.rename" });
+        dialog.close();
+        view.focus();
+      } catch (message) {
+        error.textContent = typeof message === "string" ? message : "Não foi possível renomear o símbolo.";
+        error.hidden = false;
+      } finally {
+        submit.disabled = false;
+      }
+    };
+    dialog.showModal();
+    input.select();
+  } catch (message) {
+    if (activeTab() === tab && view.state.doc === doc) {
+      setStatus(typeof message === "string" ? message : "Não foi possível localizar o símbolo.", "error");
+    }
+  }
+}
+
+function renameSelection() {
+  return renameAt(view.state.selection.main.from);
+}
+
 async function formatCode() {
   const tab = activeTab();
   if (!tab || (runTabId === tab.id && runId !== null)) return;
@@ -856,6 +903,7 @@ function editorMenuAction(id: string, action: () => unknown) {
   };
 }
 editorMenuAction("editor-search", () => openSearchPanel(view));
+editorMenuAction("editor-rename", renameSelection);
 editorMenuAction("editor-format", formatCode);
 editorMenuAction("editor-center", centerCode);
 editorMenuAction("editor-expand", toggleExpanded);
@@ -928,6 +976,8 @@ const shortcuts: {
   { label: "Shift+F11", command: "Sair da função", matches: (e) => e.shiftKey && e.key === "F11",
     action: () => debugCommand(api.debugStepOut) },
   { label: "F1", command: "Ajuda", matches: (e) => e.key === "F1", action: () => activate(helpId) },
+  { label: "Ctrl+R", command: "Renomear símbolo",
+    matches: (e) => (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === "KeyR", action: renameSelection },
   { label: "Ctrl+Alt+F", command: "Formatar código-fonte",
     matches: (e) => (e.ctrlKey || e.metaKey) && e.altKey && !e.shiftKey && e.code === "KeyF", action: formatCode },
   { label: "F3", command: "Dicas de interface", matches: (e) => e.key === "F3", action: () => tips.open() },

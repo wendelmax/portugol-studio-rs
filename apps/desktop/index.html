@@ -97,6 +97,7 @@
                 </select>
               </label>
               <button id="editor-search">Pesquisar e substituir</button>
+              <button id="editor-rename">Renomear símbolo</button>
               <button id="editor-format">Formatar código-fonte</button>
               <button id="editor-center">Centralizar código-fonte</button>
               <button id="editor-expand">Expandir ou restaurar</button>
@@ -194,6 +195,19 @@
       <h2 id="shortcuts-title">Atalhos de teclado</h2>
       <dl id="shortcut-list"></dl>
       <form method="dialog"><button>Fechar</button></form>
+    </dialog>
+
+    <dialog id="rename" aria-labelledby="rename-title">
+      <h2 id="rename-title">Renomear símbolo</h2>
+      <p id="rename-description"></p>
+      <form id="rename-form">
+        <label>Novo nome <input id="rename-input" type="text" required autocomplete="off" spellcheck="false" /></label>
+        <p id="rename-error" role="status" hidden></p>
+        <div class="dialog-actions">
+          <button id="rename-submit" type="submit">Renomear</button>
+          <button id="rename-cancel" type="button">Cancelar</button>
+        </div>
+      </form>
     </dialog>
 
     <dialog id="tips" aria-labelledby="tips-title">
