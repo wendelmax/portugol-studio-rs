@@ -1,0 +1,22 @@
+# Relatório de implementação — FEAT-LANG-001
+
+- Branch / commit: `feat/shared-hir-portugol-rs` / atualizada após CI
+- Escopo e IDs (UI/UC/FT/AC): fundação para `UC-05` (reconhecimento de linguagem) e `UC-07` (tradução); sem mudanças visuais/IPC nesta fatia.
+- Estado anterior (evidência path/linha): `portugol-rust/src/lib.rs` continha `HProgram/HStmt/HExpr` privados; `HExpr` carregava expressão como `String` Rust. Não havia crate de HIR nem frontend Portugol-RS.
+- Arquivos alterados: `Cargo.toml`, `Cargo.lock`, `crates/portugol-hir/**`, `crates/portugol-rust/Cargo.toml`, `crates/portugol-rust/src/lib.rs`, `crates/portugol-rust/src/hir.rs`, `crates/portugol-rust/src/codegen.rs`, ADR 0002, design, plano e este relatório.
+- Alterações no contrato IPC/Rust/Tauri: sem mudanças IPC/Tauri; API Rust nova `portugol_rust::lower_to_hir(&str)` e `export(&str)` agora lower/emite através da HIR tipada.
+- Permissões/capabilities alteradas? Não.
+- Compatibilidade preservada (fixtures): `.por`, parser, semântica, VM e exportação antiga permanecem intactos; testes de exportação existentes mantidos.
+- Estados UI implementados (loading/empty/error/success/cancelled): não aplicável (sem alteração UI).
+- Testes executados:
+  - `cargo test -p portugol-rust -p portugol-hir --offline` — PASS (25 testes, incluindo compilação real do Rust exportado e equivalência golden contra o gerador legado).
+  - `cargo test --offline --locked` — PASS (membros padrão; inclui regressão do corpus Portugol).
+  - `cargo clippy --offline --locked --all-targets -- -D warnings` — PASS.
+  - `cargo fmt --all` — PASS; `git diff --check` — PASS.
+  - `npm test` — PASS (5 suites Node).
+  - `npm run build` — PASS após reutilizar temporariamente as dependências Node do checkout principal; aviso preexistente de bundle >500 kB.
+  - `cargo test --workspace --offline --locked` — BLOCKED: build Tauri não encontrou `javascriptcoregtk-4.1.pc`/WebKitGTK 4.1 via pkg-config neste ambiente.
+- Screenshot/registro visual em viewport configurado: NOT_RUN; não houve alteração visual.
+- Problemas e limitações conhecidas: o lowering/gerador antigo permanece somente em testes como oráculo, e os golden tests cobrem um conjunto representativo; ainda é preciso ampliar equivalência do subset todo. Nenhum parser, semântica ou arquivo `.pors` foi habilitado. HIR só cobre o subset de comandos já mapeado pelo exportador. Build Tauri completo depende de WebKitGTK 4.1 no ambiente.
+- Rollback: remover o membro e dependência `portugol-hir`, remover crate/adaptador e docs FEAT-LANG-001; API de exportação existente continua preservada.
+- Próxima fatia vertical: definir e implementar parser Portugol-RS, análise do dialeto e fluxo real `.pors`; só então registrar a extensão na IDE/CLI.

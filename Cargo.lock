@@ -2651,9 +2651,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "portugol-hir"
+version = "0.1.0"
+
+[[package]]
 name = "portugol-rust"
 version = "0.1.0"
 dependencies = [
+ "portugol-hir",
  "portugol-semantics",
  "portugol-syntax",
 ]

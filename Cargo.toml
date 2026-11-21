@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "crates/portugol-syntax",
+    "crates/portugol-hir",
     "crates/portugol-rust",
     "crates/portugol-semantics",
     "crates/portugol-bytecode",
@@ -14,6 +15,7 @@ members = [
 # padrão. Use `-p portugol-desktop` ou `npm run tauri` em apps/desktop.
 default-members = [
     "crates/portugol-syntax",
+    "crates/portugol-hir",
     "crates/portugol-semantics",
     "crates/portugol-bytecode",
     "crates/portugol-vm",
