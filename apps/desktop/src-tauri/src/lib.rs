@@ -20,6 +20,7 @@ mod audio;
 mod catalog;
 mod graphics;
 
+mod alerts;
 mod updates;
 
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -356,6 +357,7 @@ pub fn run_app() {
             rename_symbol,
             open_project_page,
             updates::check_updates,
+            alerts::project_alerts,
             run,
             send_input,
             stop,

@@ -93,6 +93,9 @@ type UpdateInfo =
   | { status: "current"; current: string; latest: string }
   | { status: "unpublished"; current: string };
 
+export const projectAlerts = () =>
+  invoke<{ title: string; message: string }[]>("project_alerts");
+
 export const checkUpdates = () => invoke<UpdateInfo>("check_updates");
 
 export const inspect = (source: string) => invoke<Inspection>("inspect", { source });

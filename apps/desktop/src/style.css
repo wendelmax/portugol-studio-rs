@@ -1438,6 +1438,7 @@ body {
 }
 
 
+#alerts,
 #updates {
   width: min(550px, calc(100% - 24px));
 }
@@ -1542,4 +1543,10 @@ body {
   position: relative;
   top: calc(50% - 28px);
   background-repeat: repeat-y;
+}
+
+
+#alerts-list p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
