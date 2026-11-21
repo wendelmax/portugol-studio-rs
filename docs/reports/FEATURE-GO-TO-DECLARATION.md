@@ -1,6 +1,6 @@
 # Relatório de implementação — FEAT-GO-TO-DECLARATION-001
 
-- Branch / commit: `feat/go-to-declaration` / pendente da revisão e integração do PR.
+- Branch / commit: `feat/go-to-declaration` / `b2c855972d75b7d49d62f5360fbfb650a5721013`.
 - Rastreabilidade local: UI-036, UC-21, AC-14, FT-08; relacionada a UI-011/UC-04.
 - Estado anterior: a árvore estrutural navegava para offsets de declaração; referências no editor não tinham navegação. O serviço já usava `symbol_bindings` para renomeação com escopos, mas não expunha a declaração associada.
 - Implementação: `portugol-service::resolve_symbol` localiza a declaração via os mesmos bindings de `rename_symbol`, entrega início/fim e linha/coluna em unidades UTF-16; comando Tauri e wrapper TypeScript conectam ao CodeMirror.
