@@ -52,13 +52,13 @@ são executados e validados sem tela.
 | Console com entrada (`AbaConsole`) | ✅ | entrada e engrenagem para limpar, copiar e ajustar fonte |
 | Depuração na IDE (`AbaDepuracao`, `Depurador`) | ✅ | gutter de breakpoints, início pausado com Shift+F5, pilha e variáveis |
 | Localizar e substituir (`PSFindReplace`) | ✅ | diálogo Ctrl+F com direção, palavra inteira, maiúsculas, expressões regulares e substituição em lote |
-| Atalhos do original (`TelaAtalhos`) | 🟡 | tela F11, execução, arquivos, abas e próxima instrução; atalhos restantes ainda divergem |
+| Atalhos do original (`TelaAtalhos`) | ✅ | tela F11, atalhos de edição, depuração, arquivos, abas, filtros e centralização |
 | Temas claro/escuro (`TelaEditarTemas`) | ✅ | claro, escuro, sistema e perfis personalizados com prévia |
 | Moldura e barra de comandos | ✅ | moldura de 5px, controles nativos, área de arraste, abas com ícone e barra lateral com ícones da versão 2.7.5 |
 | Expandir editor (Shift+Esc) | ✅ | barra horizontal compacta e botão de restauração |
 | Tela inicial com exemplos (`AbaInicial`, `PainelExemplos`) | 🟡 | Abrir/Novo, até seis recentes, 119 exemplos com busca, descrição, imagens e cópia de trabalho com recursos, acesso às dicas e links do rodapé |
 | Ajuda da linguagem e das bibliotecas (`abaAjuda`, `assets/ajuda`) | ✅ | aba F1, busca, tópicos e diagramas da versão 2.7.5, abertura de exemplos e referências das bibliotecas |
-| Árvore estrutural (variáveis e funções do programa) | ✅ | painel redimensionável com busca, filtros, navegação, inspetor e inclusão de bibliotecas e modelos |
+| Árvore estrutural (variáveis e funções do programa) | ✅ | painel redimensionável com busca, engrenagem de filtros, navegação, inspetor e inclusão de bibliotecas e modelos |
 | Renomear símbolo (`TelaRenomearSimbolo`) | ✅ | Ctrl+R, menu do editor e duplo clique na árvore; análise de escopo e verificação de conflitos |
 | Dobras de código | ✅ | blocos aninhados e comentários de várias linhas, com marcadores no cabeçalho |
 | Formatador de código (`editor/formatador`) | ✅ | opções do editor e Ctrl+Alt+F, com alterações de espaço e desfazer em uma etapa |

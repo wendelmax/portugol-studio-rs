@@ -88,6 +88,14 @@ const editorColors = syntaxHighlighting(HighlightStyle.define([
   { tag: tags.comment, color: "var(--syntax-comment)" },
   { tag: tags.operator, color: "var(--syntax-operator)" },
 ]));
+const centerKey = "portugol.centerSource";
+let centerActive = false;
+try {
+  centerActive = localStorage.getItem(centerKey) === "true";
+} catch {
+  // A opção também funciona sem armazenamento.
+}
+
 const darkEditor = EditorView.theme({}, { dark: true });
 const editorTheme = (): Extension => isDark() ? darkEditor : [];
 
@@ -241,6 +249,11 @@ function extensions(): Extension[] {
     EditorView.updateListener.of((update) => {
       if (update.docChanged) renderTabs();
       if (update.selectionSet || update.docChanged) renderCursor();
+      if (centerActive && update.selectionSet) {
+        queueMicrotask(() => {
+          if (centerActive && view.state === update.state) centerSelection();
+        });
+      }
     }),
   ];
 }
@@ -336,6 +349,7 @@ function activate(id: number) {
   outline.show(tab.symbols, current !== tab);
   updateLibraryButtons(tab.symbols);
   renderCursor();
+  if (centerActive) centerSelection();
   view.focus();
 }
 
@@ -895,11 +909,26 @@ $("btn-open").onclick = () => void openFiles();
 const editorOptions = $<HTMLDetailsElement>("editor-options");
 const consoleOptions = $<HTMLDetailsElement>("console-tools");
 
-function centerCode() {
-  if (activeTab()) {
-    view.dispatch({ effects: EditorView.scrollIntoView(view.state.selection.main.head, { y: "center" }) });
-    view.focus();
+const outlineOptions = $<HTMLDetailsElement>("outline-options");
+const optionMenus = [editorOptions, consoleOptions, outlineOptions];
+const centerButton = $("editor-center");
+centerButton.setAttribute("aria-pressed", String(centerActive));
+
+function centerSelection() {
+  view.dispatch({ effects: EditorView.scrollIntoView(view.state.selection.main.head, { y: "center" }) });
+}
+
+function toggleCenterSource() {
+  if (!activeTab()) return;
+  centerActive = !centerActive;
+  centerButton.setAttribute("aria-pressed", String(centerActive));
+  try {
+    localStorage.setItem(centerKey, String(centerActive));
+  } catch {
+    // A preferência permanece válida nesta sessão.
   }
+  if (centerActive) centerSelection();
+  view.focus();
 }
 
 async function renameAt(offset: number) {
@@ -990,14 +1019,14 @@ editorMenuAction("editor-exercise", () => {
 editorMenuAction("editor-search", () => openSearchPanel(view));
 editorMenuAction("editor-rename", renameSelection);
 editorMenuAction("editor-format", formatCode);
-editorMenuAction("editor-center", centerCode);
+editorMenuAction("editor-center", toggleCenterSource);
 editorMenuAction("editor-expand", toggleExpanded);
 editorMenuAction("btn-utilities", toggleUtilities);
 $("btn-unexpand").onclick = toggleExpanded;
 
 document.addEventListener("click", (event) => {
   if (!(event.target instanceof Node)) return;
-  for (const options of [editorOptions, consoleOptions]) {
+  for (const options of optionMenus) {
     if (options.open && !options.contains(event.target)) options.open = false;
   }
 });
@@ -1073,8 +1102,8 @@ const shortcuts: {
   { label: "Alt+Home", command: "Tela inicial", matches: (e) => e.altKey && e.key === "Home", action: () => activate(0) },
   { label: "Alt+←", command: "Aba anterior", matches: (e) => e.altKey && e.key === "ArrowLeft", action: () => cycleTab(-1) },
   { label: "Alt+→", command: "Próxima aba", matches: (e) => e.altKey && e.key === "ArrowRight", action: () => cycleTab(1) },
-  { label: "Shift+Pause", command: "Centralizar código-fonte",
-    matches: (e) => e.shiftKey && e.key === "Pause", action: centerCode },
+  { label: "Shift+Pause", command: "Ativar/desativar centralização",
+    matches: (e) => e.shiftKey && e.key === "Pause", action: toggleCenterSource },
   { label: "Shift+Esc", command: "Expandir/restaurar editor",
     matches: (e) => e.shiftKey && e.key === "Escape", action: toggleExpanded },
 ];
@@ -1109,9 +1138,9 @@ fileShortcut("Q", true, "Fechar todas as abas", async () => {
   if (helpOpen) await closeTab(helpId);
 });
 
-for (const [key, ty] of Object.entries({ I: "inteiro", C: "caracter", R: "real", A: "cadeia", L: "logico", V: "vazio" })) {
+for (const [key, ty] of Object.entries({ I: "inteiro", C: "caracter", R: "real", A: "cadeia", L: "logico", V: "vazio", T: "" })) {
   shortcuts.push({
-    label: `Alt+Shift+${key}`, command: `Filtrar tipo ${ty}`,
+    label: `Alt+Shift+${key}`, command: ty ? `Filtrar tipo ${ty}` : "Mostrar todos os tipos",
     matches: (e) => e.altKey && e.shiftKey && e.code === `Key${key}`,
     action: () => { if (activeTab()) { showUtilities(true); outline.filterType(ty); } },
   });
@@ -1243,7 +1272,7 @@ $("home-help").onclick = $("btn-help").onclick = () => activate(helpId);
 window.addEventListener("keydown", (e) => {
   if (e.defaultPrevented || document.querySelector("dialog[open]")) return;
   if (e.key === "Escape" && !e.shiftKey) {
-    const menu = [editorOptions, consoleOptions].find((options) => options.open);
+    const menu = optionMenus.find((options) => options.open);
     if (menu) {
       e.preventDefault();
       menu.open = false;
