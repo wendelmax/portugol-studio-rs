@@ -11,3 +11,4 @@ portugol-semantics = { path = "../portugol-semantics" }
 portugol-bytecode = { path = "../portugol-bytecode" }
 portugol-vm = { path = "../portugol-vm" }
 serde = { version = "1", features = ["derive"] }
+roxmltree = "0.20"

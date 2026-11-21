@@ -734,8 +734,7 @@ impl<'a> Vm<'a> {
             Op::Write(argc) => {
                 let args = self.pop_n(argc);
                 for arg in args {
-                    let text = arg.display();
-                    self.io.write(&text);
+                    self.io.write_value(&arg);
                 }
             }
             Op::Read(ty) => {

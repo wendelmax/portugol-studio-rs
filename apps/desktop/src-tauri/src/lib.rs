@@ -152,6 +152,21 @@ fn format_source(source: String) -> Option<Vec<portugol_service::FormatEdit>> {
 }
 
 #[tauri::command]
+fn exercise_catalog() -> Vec<portugol_service::Exercise> {
+    portugol_service::exercises()
+}
+
+#[tauri::command]
+async fn check_exercise(
+    id: u32,
+    source: String,
+) -> Result<portugol_service::ExerciseResult, String> {
+    tauri::async_runtime::spawn_blocking(move || portugol_service::check_exercise(id, &source))
+        .await
+        .map_err(|error| error.to_string())?
+}
+
+#[tauri::command]
 fn rename_target(source: String, offset: u32) -> Result<portugol_service::RenameTarget, String> {
     portugol_service::rename_target(&source, offset)
 }
@@ -312,6 +327,8 @@ pub fn run_app() {
             check,
             inspect,
             format_source,
+            exercise_catalog,
+            check_exercise,
             rename_target,
             rename_symbol,
             open_bug_report,
