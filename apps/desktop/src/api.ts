@@ -115,6 +115,8 @@ export interface RustExport {
 }
 
 export const exportRust = (source: string) => invoke<RustExport>("export_rust", { source });
+export const inspectPortugolRs = (source: string) => invoke<Inspection>("inspect_portugol_rs", { source });
+export const exportPortugolRs = (source: string) => invoke<RustExport>("export_portugol_rs", { source });
 
 /** Id da execução; rejeita com a lista de erros se o programa não compila. */
 export const run = (source: string, args: string[], path: string | null, breakpoints: number[] = [], pauseOnStart = false) =>

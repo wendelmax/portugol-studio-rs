@@ -224,3 +224,55 @@ export function portugol(): LanguageSupport {
     language.data.of({ autocomplete: complete }),
   ]);
 }
+
+const PORS_WORDS: Completion[] = [
+  ...["funcao", "inicio", "seja", "mutavel", "se", "senao"].map((label) => ({ label, type: "keyword" })),
+  ...["inteiro", "real", "logico", "cadeia", "caracter"].map((label) => ({ label, type: "type" })),
+  { label: "verdadeiro", type: "constant" }, { label: "falso", type: "constant" },
+  { label: "escreva", type: "function", apply: "escreva(" },
+];
+const porsKeywords = new Set(["funcao", "inicio", "seja", "mutavel", "se", "senao"]);
+const porsTypes = new Set(["inteiro", "real", "logico", "cadeia", "caracter"]);
+const porsParser: StreamParser<State> = {
+  name: "portugol-rs",
+  startState: () => ({ inComment: false, afterDot: false }),
+  token(stream, state) {
+    if (state.inComment) {
+      if (stream.skipTo("*/")) { stream.next(); stream.next(); state.inComment = false; }
+      else stream.skipToEnd();
+      return "comment";
+    }
+    if (stream.eatSpace()) return null;
+    if (stream.match("//")) { stream.skipToEnd(); return "comment"; }
+    if (stream.match("/*")) { state.inComment = true; return "comment"; }
+    if (stream.match(/^"(?:\\.|[^"\\])*"?/)) return "string";
+    if (stream.match(/^'(?:\\.|[^'\\])*'?/)) return "string";
+    if (stream.match(/^\d+(?:\.\d+)?/)) return "number";
+    const word = stream.match(/^[A-Za-z_][A-Za-z0-9_]*/) as RegExpMatchArray | null;
+    if (word) {
+      const text = word[0];
+      if (text === "verdadeiro" || text === "falso") return "bool";
+      if (porsTypes.has(text)) return "typeName";
+      if (porsKeywords.has(text)) return "keyword";
+      if (text === "escreva") return "builtin";
+      if (stream.match(/^\s*\(/, false)) return "function";
+      return "variableName";
+    }
+    if (stream.match(/^[+\-*/%=<>!&|^]+/)) return "operator";
+    stream.next();
+    return null;
+  },
+  languageData: { commentTokens: { line: "//", block: { open: "/*", close: "*/" } }, closeBrackets: { brackets: ["(", "{", '"'] } },
+  tokenTable: { builtin: tags.standard(tags.function(tags.variableName)), function: tags.function(tags.variableName) },
+};
+const porsLanguage = StreamLanguage.define(porsParser);
+
+/** Suporte de edição para o subconjunto atual do dialeto Portugol-RS. */
+export function portugolRs(): LanguageSupport {
+  const completePors = (context: CompletionContext): CompletionResult | null => {
+    const word = context.matchBefore(/[A-Za-z_]\w*/);
+    if (!word && !context.explicit) return null;
+    return { from: word?.from ?? context.pos, options: PORS_WORDS, validFor: /^\w*$/ };
+  };
+  return new LanguageSupport(porsLanguage, [indentUnit.of("    "), porsLanguage.data.of({ autocomplete: completePors })]);
+}

@@ -9,6 +9,8 @@ description = "Fachada do núcleo do Portugol para a IDE: análise e execução 
 portugol-syntax = { path = "../portugol-syntax" }
 portugol-semantics = { path = "../portugol-semantics" }
 portugol-rust = { path = "../portugol-rust" }
+portugol-rs-frontend = { path = "../portugol-rs-frontend" }
+portugol-hir = { path = "../portugol-hir" }
 portugol-bytecode = { path = "../portugol-bytecode" }
 portugol-vm = { path = "../portugol-vm" }
 serde = { version = "1", features = ["derive"] }

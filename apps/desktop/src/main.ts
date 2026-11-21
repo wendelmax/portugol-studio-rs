@@ -34,7 +34,8 @@ import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
 import { mountOutline, symbolKindLabels } from "./outline";
 import { panelContentId, type PanelName } from "./panel-tabs";
-import { LIBRARIES, portugol, SNIPPETS } from "./portugol";
+import { LIBRARIES, portugol, portugolRs, SNIPPETS } from "./portugol";
+import { detectSourceLanguage, ensureSourceExtension, type SourceLanguage } from "./document-language";
 import { conceptsForMode, resolveConceptForMode } from "./learning-content";
 import { loadLearningMode, saveLearningMode, type LearningMode } from "./learning-mode";
 import {
@@ -57,6 +58,7 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 interface Tab {
   id: number;
   path: string | null;
+  language: SourceLanguage;
   exampleName?: string;
   examplePath?: string;
   exercise?: ExerciseDocument;
@@ -70,6 +72,7 @@ interface Tab {
 // Tema: "system" segue o sistema operacional; a escolha fica salva.
 const THEME_KEY = "portugol.theme";
 const theme = new Compartment();
+const sourceLanguage = new Compartment();
 const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
 function themeChoice(): string {
@@ -207,7 +210,11 @@ const portugolLinter = linter(
   async (view) => {
     const doc = view.state.doc;
     const tab = activeTab();
-    const { diagnostics, symbols } = await api.inspect(doc.toString());
+    const language = tab?.language ?? "portugol";
+    const inspection = language === "portugol-rs"
+      ? await api.inspectPortugolRs(doc.toString())
+      : await api.inspect(doc.toString());
+    const { diagnostics, symbols } = inspection;
     if (tab && tab === activeTab() && view.state.doc === doc) {
       tab.diagnostics = diagnostics;
       tab.symbols = symbols;
@@ -220,7 +227,7 @@ const portugolLinter = linter(
   { delay: 350 },
 );
 
-function extensions(): Extension[] {
+function extensions(language: SourceLanguage): Extension[] {
   return [
     lineNumbers(),
     highlightActiveLineGutter(),
@@ -235,7 +242,7 @@ function extensions(): Extension[] {
     highlightSelectionMatches(),
     findDialog,
     EditorState.tabSize.of(4),
-    portugol(),
+    sourceLanguage.of(language === "portugol-rs" ? portugolRs() : portugol()),
     portugolFolding,
     foldGutter({ markerDOM: (open) => {
       const marker = document.createElement("span");
@@ -332,15 +339,18 @@ function isDirty(tab: Tab): boolean {
 }
 
 const NEW_PROGRAM = TEMPLATE.replace("\t\t\n", '\t\tescreva("Olá Mundo")\n');
+const PORS_TEMPLATE = "funcao inicio() {\n    seja mutavel idade: inteiro = 16;\n    idade += 1;\n    escreva(idade);\n}\n";
 
-function newTab(text = NEW_PROGRAM, path: string | null = null, exampleName?: string, examplePath?: string, exercise?: ExerciseDocument): Tab {
+function newTab(text = NEW_PROGRAM, path: string | null = null, exampleName?: string, examplePath?: string, exercise?: ExerciseDocument, explicitLanguage?: SourceLanguage): Tab {
+  const language = explicitLanguage ?? detectSourceLanguage(path ?? "programa.por");
   const tab: Tab = {
     id: nextTabId++,
     path,
+    language,
     exampleName,
     examplePath,
     exercise,
-    state: EditorState.create({ doc: text, extensions: extensions() }),
+    state: EditorState.create({ doc: text, extensions: extensions(language) }),
     saved: text,
     diagnostics: [],
     symbols: [],
@@ -372,6 +382,7 @@ function activate(id: number) {
   view.setState(tab.state);
   view.dispatch({ effects: [
     theme.reconfigure(editorTheme()),
+    sourceLanguage.reconfigure(tab.language === "portugol-rs" ? portugolRs() : portugol()),
     setDebugLine.of(tab.id === runTabId ? paused?.position.line ?? null : null),
   ] });
   renderTabs();
@@ -381,7 +392,37 @@ function activate(id: number) {
   renderCursor();
   if (centerActive) centerSelection();
   if (learningMode === "bridge") scheduleRustExport();
+  syncLanguageControls(tab);
   view.focus();
+}
+
+function syncLanguageControls(tab: Tab) {
+  const pors = tab.language === "portugol-rs";
+  const reason = "Disponível quando o Portugol-RS tiver execução e depuração integradas.";
+  for (const id of ["btn-run", "btn-debug", "btn-debug-pause", "btn-debug-continue", "btn-debug-step-over", "btn-debug-step-into", "btn-debug-step-out"]) {
+    const button = $<HTMLButtonElement>(id);
+    button.disabled = pors || (id === "btn-debug-pause"
+      ? runId === null || paused !== null
+      : id === "btn-run" || id === "btn-debug"
+        ? (runId !== null || pendingEvents !== null) && paused === null
+        : paused === null);
+    button.dataset.defaultTitle ??= button.title;
+    if (pors) button.title = reason;
+    else button.title = button.dataset.defaultTitle;
+    button.setAttribute("aria-description", pors ? reason : "");
+  }
+  const format = $<HTMLButtonElement>("editor-format");
+  format.disabled = pors;
+  format.title = pors ? "Formatador clássico indisponível para Portugol-RS." : "Formatar código-fonte";
+  for (const [name, button] of libraryButtons) {
+    button.disabled = pors || tab.symbols.some((symbol) => symbol.kind === "library" && symbol.name.split(" → ", 1)[0] === name);
+    button.title = pors ? "Bibliotecas clássicas não se aplicam ao Portugol-RS." : `Incluir biblioteca ${name}`;
+  }
+  for (const id of ["editor-definition", "editor-rename"]) {
+    const button = $<HTMLButtonElement>(id);
+    button.disabled = pors;
+    button.setAttribute("aria-description", pors ? "Navegação e renomeação Portugol-RS ainda não estão implementadas." : "");
+  }
 }
 
 async function closeTab(id: number): Promise<boolean> {
@@ -475,7 +516,7 @@ function renderCursor() {
 // Arquivos
 // ---------------------------------------------------------------------------
 
-const FILTERS = [{ name: "Programa Portugol", extensions: ["por"] }];
+const FILTERS = [{ name: "Programas Portugol", extensions: ["por", "pors"] }];
 
 const RECENT_KEY = "portugol.recent";
 
@@ -546,10 +587,11 @@ async function save(as = false): Promise<boolean> {
   if (!tab) return false;
   let path = tab.path;
   if (!path || as) {
+    const extension = tab.language === "portugol-rs" ? "pors" : "por";
     const exerciseName = tab.exercise ? tab.exercise.name.replace(/\.pex$/i, "") + ".por" : undefined;
-    path = await saveDialog({ filters: FILTERS, defaultPath: tab.path ?? exerciseName ?? tab.exampleName ?? "programa.por" });
+    path = await saveDialog({ filters: FILTERS, defaultPath: tab.path ?? exerciseName ?? tab.exampleName ?? `programa.${extension}` });
     if (!path) return false;
-    if (!path.endsWith(".por")) path += ".por";
+    path = ensureSourceExtension(path, tab.language);
   }
   const text = view.state.doc.toString();
   try {
@@ -559,6 +601,8 @@ async function save(as = false): Promise<boolean> {
     return false;
   }
   tab.path = path;
+  tab.language = detectSourceLanguage(path);
+  if (tab.id === activeId) view.dispatch({ effects: sourceLanguage.reconfigure(tab.language === "portugol-rs" ? portugolRs() : portugol()) });
   tab.saved = text;
   rememberFile(path);
   renderTabs();
@@ -599,14 +643,15 @@ function appendConsole(text: string, className?: string) {
 }
 
 function setRunning(running: boolean) {
-  $<HTMLButtonElement>("btn-run").disabled = running && paused === null;
-  $<HTMLButtonElement>("btn-debug").disabled = running && paused === null;
+  const pors = activeTab()?.language === "portugol-rs";
+  $<HTMLButtonElement>("btn-run").disabled = pors || (running && paused === null);
+  $<HTMLButtonElement>("btn-debug").disabled = pors || (running && paused === null);
   $<HTMLButtonElement>("btn-stop").disabled = !running;
-  $<HTMLButtonElement>("btn-debug-pause").disabled = !running || paused !== null;
+  $<HTMLButtonElement>("btn-debug-pause").disabled = pors || !running || paused !== null;
   for (const id of [
     "btn-debug-continue", "btn-debug-step-over", "btn-debug-step-into", "btn-debug-step-out",
   ]) {
-    $<HTMLButtonElement>(id).disabled = paused === null;
+    $<HTMLButtonElement>(id).disabled = pors || paused === null;
   }
   if (!running) inputForm.hidden = true;
   $("debug-vars").hidden = paused === null || paused.variables.length === 0;
@@ -643,6 +688,10 @@ function setPaused(info: api.DebugInfo | null) {
 }
 
 async function debugCommand(command: (id: number) => Promise<void>) {
+  if (activeTab()?.language === "portugol-rs") {
+    setStatus("O Portugol-RS ainda não possui execução e depuração integradas.");
+    return;
+  }
   if (runId === null || paused === null) return;
   const id = runId;
   view.dispatch({ effects: setDebugLine.of(null) });
@@ -689,6 +738,10 @@ async function runProgram(pauseOnStart = false) {
   if (runId !== null || pendingEvents !== null) return;
   const tab = activeTab();
   if (!tab) return;
+  if (tab.language === "portugol-rs") {
+    setStatus("O Portugol-RS ainda não possui execução e depuração integradas.");
+    return;
+  }
   view.dispatch({ effects: setRuntimeError.of(null) });
   view.dispatch({ effects: setDebugLine.of(null) });
   paused = null;
@@ -995,6 +1048,10 @@ for (const name of LIBRARIES) {
   button.onclick = async () => {
     const tab = activeTab();
     if (!tab || (tab.id === runTabId && runId !== null)) return;
+    if (tab.language === "portugol-rs") {
+      setStatus("Bibliotecas clássicas ainda não estão disponíveis no Portugol-RS.");
+      return;
+    }
     const doc = view.state.doc;
     try {
       const change = await api.includeLibrary(doc.toString(), name);
@@ -1013,7 +1070,8 @@ for (const name of LIBRARIES) {
 function updateLibraryButtons(symbols: api.SymbolInfo[]) {
   const included = new Set(symbols.filter((symbol) => symbol.kind === "library")
     .map(({ name }) => name.split(" → ", 1)[0]));
-  for (const [name, button] of libraryButtons) button.disabled = included.has(name);
+  const pors = activeTab()?.language === "portugol-rs";
+  for (const [name, button] of libraryButtons) button.disabled = pors || included.has(name);
 }
 
 for (const snippet of SNIPPETS) {
@@ -1080,6 +1138,12 @@ function toggleExpanded() {
 // ---------------------------------------------------------------------------
 
 $("home-new").onclick = () => newTab();
+const newPorsButton = document.createElement("button");
+newPorsButton.id = "home-new-pors";
+newPorsButton.title = "Novo arquivo Portugol-RS (.pors)";
+newPorsButton.textContent = "Novo Portugol-RS";
+newPorsButton.onclick = () => newTab(PORS_TEMPLATE, null, undefined, undefined, undefined, "portugol-rs");
+$("home-new").parentElement!.append(newPorsButton);
 $("home-open").onclick = () => void openFiles();
 $("btn-open").onclick = () => void openFiles();
 const editorOptions = $<HTMLDetailsElement>("editor-options");
@@ -1110,6 +1174,10 @@ function toggleCenterSource() {
 async function renameAt(offset: number) {
   const tab = activeTab();
   if (!tab || (runTabId === tab.id && runId !== null)) return;
+  if (tab.language === "portugol-rs") {
+    setStatus("Renomeação semântica ainda não está disponível no Portugol-RS.");
+    return;
+  }
   const doc = view.state.doc;
   const dialog = $<HTMLDialogElement>("rename");
   try {
@@ -1153,6 +1221,10 @@ async function renameAt(offset: number) {
 async function goToDeclarationAt(offset: number, quiet = false) {
   const tab = activeTab();
   if (!tab) return;
+  if (tab.language === "portugol-rs") {
+    if (!quiet) setStatus("Navegação semântica ainda não está disponível no Portugol-RS.");
+    return;
+  }
   const doc = view.state.doc;
   const request = ++definitionNavigationGeneration;
   try {
@@ -1181,6 +1253,10 @@ function goToDeclarationSelection() {
 async function formatCode() {
   const tab = activeTab();
   if (!tab || (runTabId === tab.id && runId !== null)) return;
+  if (tab.language === "portugol-rs") {
+    setStatus("O formatador clássico não atende à sintaxe Portugol-RS.");
+    return;
+  }
   const doc = view.state.doc;
   try {
     const changes = await api.formatSource(doc.toString());
@@ -1292,7 +1368,10 @@ $<HTMLButtonElement>("rust-save").onclick = async () => {
 };
 $("btn-debug").onclick = () => void stepOrStart();
 $("btn-stop").onclick = () => void stopProgram();
-$("btn-debug-pause").onclick = () => { if (runId !== null) void api.debugPause(runId); };
+$("btn-debug-pause").onclick = () => {
+  if (activeTab()?.language === "portugol-rs") return;
+  if (runId !== null) void api.debugPause(runId);
+};
 $("btn-debug-continue").onclick = () => void debugCommand(api.debugContinue);
 $("btn-debug-step-over").onclick = () => void debugCommand(api.debugStepOver);
 $("btn-debug-step-into").onclick = () => void debugCommand(api.debugStepInto);
@@ -1346,7 +1425,10 @@ function scheduleRustExport() {
   rustExportTimer = window.setTimeout(async () => {
     let result: api.RustExport;
     try {
-      result = await api.exportRust(view.state.doc.toString());
+      const tab = activeTab();
+      result = tab?.language === "portugol-rs"
+        ? await api.exportPortugolRs(view.state.doc.toString())
+        : await api.exportRust(view.state.doc.toString());
     } catch (error) {
       if (generation !== rustExportGeneration) return;
       status.textContent = "Falha ao solicitar a tradução: " + String(error);
@@ -1698,12 +1780,15 @@ async function openIncomingFiles(paths: string[], warnUnsupported = false) {
       } else if (/\.por$/i.test(path)) {
         supported = true;
         await openFile(path);
+      } else if (/\.pors$/i.test(path)) {
+        supported = true;
+        await openFile(path);
       }
     } catch (error) {
       setStatus(typeof error === "string" ? error : "Não foi possível abrir o arquivo.", "error");
     }
   }
-  if (warnUnsupported && !supported && paths.length) setStatus("Escolha um arquivo .por ou .pex.", "error");
+  if (warnUnsupported && !supported && paths.length) setStatus("Escolha um arquivo .por, .pors ou .pex.", "error");
 }
 
 async function consumeSystemFiles() {

@@ -151,8 +151,20 @@ fn inspect(source: String) -> portugol_service::Inspection {
 }
 
 #[tauri::command]
+fn inspect_portugol_rs(source: String) -> portugol_service::Inspection {
+    portugol_service::inspect_portugol_rs(&source)
+}
+
+#[tauri::command]
 async fn export_rust(source: String) -> Result<portugol_service::RustExport, String> {
     tauri::async_runtime::spawn_blocking(move || portugol_service::export_rust(&source))
+        .await
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn export_portugol_rs(source: String) -> Result<portugol_service::RustExport, String> {
+    tauri::async_runtime::spawn_blocking(move || portugol_service::export_portugol_rs(&source))
         .await
         .map_err(|error| error.to_string())
 }
@@ -372,7 +384,9 @@ pub fn run_app() {
         .invoke_handler(tauri::generate_handler![
             check,
             inspect,
+            inspect_portugol_rs,
             export_rust,
+            export_portugol_rs,
             format_source,
             include_library,
             exercise_catalog,
