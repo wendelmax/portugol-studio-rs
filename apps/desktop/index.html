@@ -96,6 +96,7 @@
                   <option value="dark">Dark</option>
                 </select>
               </label>
+              <button id="editor-themes">Editar temas</button>
               <button id="editor-search">Pesquisar e substituir</button>
               <button id="editor-rename">Renomear símbolo</button>
               <button id="editor-format">Formatar código-fonte</button>
@@ -195,6 +196,38 @@
       <h2 id="shortcuts-title">Atalhos de teclado</h2>
       <dl id="shortcut-list"></dl>
       <form method="dialog"><button>Fechar</button></form>
+    </dialog>
+
+    <dialog id="theme-editor" aria-labelledby="theme-title">
+      <h2 id="theme-title">Editar temas</h2>
+      <form id="theme-form">
+        <div class="theme-profile">
+          <label>Tema <select id="theme-profiles"></select></label>
+          <label>Nome <input id="theme-name" required maxlength="60" /></label>
+          <label>Base <select id="theme-base"><option value="light">Portugol</option><option value="dark">Dark</option></select></label>
+        </div>
+        <div id="theme-preview" class="theme-palette">
+          <pre><span class="theme-comment">// Prévia do editor</span>
+<span class="theme-keyword">programa</span>
+{
+  <span class="theme-keyword">funcao</span> inicio()
+  {
+    <span class="theme-type">inteiro</span> numero <span class="theme-operator">=</span> <span class="theme-number">42</span>
+    escreva(<span class="theme-string">"Olá, Portugol!"</span>, numero)
+  }
+}</pre>
+          <div class="theme-preview-console">Olá, Portugol!42</div>
+        </div>
+        <div id="theme-colors"></div>
+        <p id="theme-error" role="status" hidden></p>
+        <div class="dialog-actions">
+          <button type="submit">Salvar e aplicar</button>
+          <button type="button" id="theme-apply-base">Aplicar tema base</button>
+          <button type="button" id="theme-reset">Restaurar cores da base</button>
+          <button type="button" id="theme-remove">Remover tema</button>
+          <button type="button" id="theme-cancel">Cancelar</button>
+        </div>
+      </form>
     </dialog>
 
     <dialog id="rename" aria-labelledby="rename-title">
