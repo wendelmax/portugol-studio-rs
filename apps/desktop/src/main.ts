@@ -28,7 +28,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import { renderDiagnostics } from "./diagnostics";
 import { mountExamples } from "./examples";
-import { mountExercises } from "./exercises";
+import { mountExercises, type ExerciseDocument } from "./exercises";
 import { portugolFolding } from "./folding";
 import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
@@ -49,7 +49,7 @@ interface Tab {
   path: string | null;
   exampleName?: string;
   examplePath?: string;
-  exercise?: api.Exercise;
+  exercise?: ExerciseDocument;
   state: EditorState;
   /** Texto da última gravação, para saber se há alterações. */
   saved: string;
@@ -291,7 +291,7 @@ function isDirty(tab: Tab): boolean {
 
 const NEW_PROGRAM = TEMPLATE.replace("\t\t\n", '\t\tescreva("Olá Mundo")\n');
 
-function newTab(text = NEW_PROGRAM, path: string | null = null, exampleName?: string, examplePath?: string, exercise?: api.Exercise): Tab {
+function newTab(text = NEW_PROGRAM, path: string | null = null, exampleName?: string, examplePath?: string, exercise?: ExerciseDocument): Tab {
   const tab: Tab = {
     id: nextTabId++,
     path,
@@ -974,13 +974,13 @@ function editorMenuAction(id: string, action: () => unknown) {
     action();
   };
 }
-const exercises = mountExercises((exercise) => {
+const exercises = mountExercises((exerciseDocument) => {
   const source = `/*
-${exercise.statement.replaceAll("*/", "* /")}
+${exerciseDocument.exercise.statement.replaceAll("*/", "* /")}
 */
 
 ${TEMPLATE}`;
-  newTab(source, null, `Exercício ${exercise.id}`, undefined, exercise);
+  newTab(source, null, exerciseDocument.name, undefined, exerciseDocument);
 });
 $("home-exercises").onclick = exercises.browse;
 editorMenuAction("editor-exercise", () => {

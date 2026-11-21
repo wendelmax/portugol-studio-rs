@@ -1,10 +1,19 @@
-import { checkExercise, listExercises, type Exercise } from "./api";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
+import { checkExercise, inspectExercise, listExercises, readFile, type Exercise } from "./api";
 
-export function mountExercises(openSource: (exercise: Exercise) => void) {
+export interface ExerciseDocument {
+  exercise: Exercise;
+  name: string;
+  contents?: string;
+}
+
+export function mountExercises(openSource: (document: ExerciseDocument) => void) {
   const chooser = document.querySelector<HTMLDialogElement>("#exercises")!;
   const list = document.querySelector<HTMLSelectElement>("#exercise-list")!;
   const statement = document.querySelector<HTMLElement>("#exercise-statement")!;
   const solve = document.querySelector<HTMLButtonElement>("#exercise-solve")!;
+  const open = document.querySelector<HTMLButtonElement>("#exercise-import")!;
+  const loadError = document.querySelector<HTMLElement>("#exercise-error")!;
   const results = document.querySelector<HTMLDialogElement>("#exercise-results")!;
   const summary = document.querySelector<HTMLElement>("#exercise-summary")!;
   const failures = document.querySelector<HTMLUListElement>("#exercise-failures")!;
@@ -23,10 +32,30 @@ export function mountExercises(openSource: (exercise: Exercise) => void) {
     const exercise = catalog.find(({ id }) => id === Number(list.value));
     if (!exercise) return;
     chooser.close();
-    openSource(exercise);
+    openSource({ exercise, name: `Exercício ${exercise.id}` });
+  };
+
+  open.onclick = async () => {
+    open.disabled = true;
+    loadError.hidden = true;
+    try {
+      const path = await openDialog({ filters: [{ name: "Exercício do Portugol", extensions: ["pex"] }] });
+      if (typeof path !== "string" || !chooser.open) return;
+      const contents = await readFile(path);
+      const exercise = await inspectExercise(contents);
+      if (!chooser.open) return;
+      chooser.close();
+      openSource({ exercise, name: path.split(/[\\/]/).pop() ?? "Exercício", contents });
+    } catch (message) {
+      loadError.textContent = typeof message === "string" ? message : "Não foi possível abrir o exercício.";
+      loadError.hidden = false;
+    } finally {
+      open.disabled = false;
+    }
   };
 
   async function browse() {
+    loadError.hidden = true;
     chooser.showModal();
     if (catalog.length) return;
     statement.textContent = "Carregando exercícios…";
@@ -40,13 +69,13 @@ export function mountExercises(openSource: (exercise: Exercise) => void) {
     }
   }
 
-  async function grade(exercise: Exercise, source: string) {
+  async function grade({ exercise, name, contents }: ExerciseDocument, source: string) {
     const id = ++attempt;
-    summary.textContent = `Corrigindo exercício ${exercise.id}…`;
+    summary.textContent = `Corrigindo ${name}…`;
     failures.replaceChildren();
     results.showModal();
     try {
-      const result = await checkExercise(exercise.id, source);
+      const result = await checkExercise(exercise.id, source, contents);
       if (id !== attempt) return;
       summary.textContent = `${result.passed} de ${result.total} casos aprovados.`;
       for (const failure of result.failures) {
