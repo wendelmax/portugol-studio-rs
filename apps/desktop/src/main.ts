@@ -35,6 +35,7 @@ import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
 import { mountOutline, symbolKindLabels } from "./outline";
 import { panelContentId, type PanelName } from "./panel-tabs";
+import { clampPaneSize, DEFAULT_PANE_LAYOUT, loadPaneLayout, normalizePaneLayout, resizePaneForKey, savePaneLayout, type PaneLayout } from "./pane-layout";
 import { LIBRARIES, portugol, portugolRs, SNIPPETS } from "./portugol";
 import { detectSourceLanguage, ensureSourceExtension, type SourceLanguage } from "./document-language";
 import { flattenWorkspaceEntries, workspaceFileKind, workspaceRenameFileName, workspaceSourceFileName, type WorkspaceEntry } from "./workspace-explorer";
@@ -53,6 +54,24 @@ import * as api from "./api";
 const TEMPLATE = "programa\n{\n\tfuncao inicio()\n\t{\n\t\t\n\t}\n}\n";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+
+function loadSavedPaneLayout(): PaneLayout {
+  try {
+    return loadPaneLayout(localStorage);
+  } catch {
+    return { ...DEFAULT_PANE_LAYOUT };
+  }
+}
+
+let paneLayout = loadSavedPaneLayout();
+
+function persistPaneLayout() {
+  try {
+    savePaneLayout(localStorage, paneLayout);
+  } catch {
+    // A configuração permanece ativa enquanto a janela estiver aberta.
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Editor
@@ -414,6 +433,9 @@ function activate(id: number) {
     portugolTools.reconfigure(tab.language === "rust" ? [] : [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]),
     setDebugLine.of(tab.id === runTabId ? paused?.position.line ?? null : null),
   ] });
+  applyBottomPaneSize();
+  if (!explorer.hidden) applyExplorerPaneSize();
+  if (!utilities.hidden) applyUtilitiesPaneSize();
   if (tab.language === "rust") view.dispatch(setDiagnostics(view.state, []));
   renderTabs();
   $<HTMLElement>("rust-preview").hidden = learningMode !== "bridge" || tab.language === "rust";
@@ -564,7 +586,9 @@ let workspaceDeletePending = false;
 
 function setWorkspaceExplorerVisible(visible: boolean) {
   $("workspace-explorer").hidden = !visible;
+  $("workspace-explorer-splitter").hidden = !visible;
   $("btn-explorer").setAttribute("aria-expanded", String(visible));
+  if (visible) applyExplorerPaneSize();
 }
 
 function renderWorkspaceExplorer() {
@@ -1705,18 +1729,133 @@ inputForm.addEventListener("submit", (e) => {
 // ---------------------------------------------------------------------------
 
 const panel = document.querySelector<HTMLElement>(".panel")!;
-$("splitter").addEventListener("pointerdown", (start) => {
-  const splitter = start.currentTarget as HTMLElement;
-  splitter.setPointerCapture(start.pointerId);
-  const startY = start.clientY;
-  const startHeight = panel.getBoundingClientRect().height;
-  const move = (e: PointerEvent) => {
-    const height = Math.max(90, Math.min(window.innerHeight - 200, startHeight - (e.clientY - startY)));
-    panel.style.height = `${height}px`;
-  };
-  splitter.addEventListener("pointermove", move);
-  splitter.addEventListener("pointerup", () => splitter.removeEventListener("pointermove", move), { once: true });
-});
+const bottomSplitter = $("splitter");
+const explorer = $("workspace-explorer");
+const explorerSplitter = $("workspace-explorer-splitter");
+
+function explorerPaneBounds() {
+  const available = Math.max(430, $("code").clientWidth || window.innerWidth);
+  const minimum = 180;
+  const utilitiesWidth = utilities.hidden ? 0 : utilities.getBoundingClientRect().width + utilitiesSplitter.offsetWidth;
+  const maximum = Math.max(minimum, Math.min(420, available * 0.42, available - 250 - utilitiesWidth));
+  return { minimum, maximum, available };
+}
+
+function bottomPaneBounds() {
+  const available = Math.max(280, panel.parentElement?.clientHeight || window.innerHeight - 100);
+  const minimum = 90;
+  const maximum = Math.max(minimum, Math.min(available - 90, available * 0.65));
+  return { minimum, maximum, available };
+}
+
+function utilitiesPaneBounds() {
+  const available = Math.max(430, $("code").clientWidth || window.innerWidth);
+  const minimum = 210;
+  const explorerWidth = explorer.hidden ? 0 : explorer.getBoundingClientRect().width + explorerSplitter.offsetWidth;
+  const maximum = Math.max(minimum, Math.min(available * 0.55, 720, available - 350 - explorerWidth));
+  return { minimum, maximum, available };
+}
+
+function setSeparatorValue(separator: HTMLElement, value: number, bounds: { minimum: number; maximum: number }) {
+  separator.setAttribute("aria-valuemin", String(Math.round(bounds.minimum)));
+  separator.setAttribute("aria-valuemax", String(Math.round(bounds.maximum)));
+  separator.setAttribute("aria-valuenow", String(Math.round(value)));
+}
+
+function applyExplorerPaneSize(width = paneLayout.explorer * explorerPaneBounds().available) {
+  const bounds = explorerPaneBounds();
+  const size = clampPaneSize(width, bounds.minimum, bounds.maximum);
+  explorer.style.flexBasis = `${size}px`;
+  setSeparatorValue(explorerSplitter, size, bounds);
+  return { size, ...bounds };
+}
+
+function applyBottomPaneSize(height = paneLayout.bottom * bottomPaneBounds().available) {
+  const bounds = bottomPaneBounds();
+  const size = clampPaneSize(height, bounds.minimum, bounds.maximum);
+  panel.style.flex = `0 0 ${size}px`;
+  setSeparatorValue(bottomSplitter, size, bounds);
+  return { size, ...bounds };
+}
+
+function applyUtilitiesPaneSize(width = paneLayout.utilities * utilitiesPaneBounds().available) {
+  const bounds = utilitiesPaneBounds();
+  const size = clampPaneSize(width, bounds.minimum, bounds.maximum);
+  utilities.style.flex = `0 0 ${size}px`;
+  setSeparatorValue(utilitiesSplitter, size, bounds);
+  return { size, ...bounds };
+}
+
+function rememberPaneSize(key: keyof PaneLayout, size: number, available: number) {
+  paneLayout = normalizePaneLayout({ ...paneLayout, [key]: size / available });
+  persistPaneLayout();
+}
+
+function installPointerResize(
+  separator: HTMLElement,
+  orientation: "horizontal" | "vertical",
+  readSize: () => number,
+  applySize: (size: number) => { size: number; minimum: number; maximum: number; available: number },
+  onCommit: (size: number, available: number) => void,
+  deltaSign: 1 | -1,
+) {
+  separator.addEventListener("pointerdown", (start) => {
+    if (start.button !== 0) return;
+    separator.setPointerCapture(start.pointerId);
+    const origin = orientation === "horizontal" ? start.clientY : start.clientX;
+    const initial = readSize();
+    const move = (event: PointerEvent) => {
+      const coordinate = orientation === "horizontal" ? event.clientY : event.clientX;
+      applySize(initial + (coordinate - origin) * deltaSign);
+    };
+    const finish = () => {
+      const bounds = applySize(readSize());
+      onCommit(bounds.size, bounds.available);
+      separator.removeEventListener("pointermove", move);
+      separator.removeEventListener("pointerup", finish);
+      separator.removeEventListener("pointercancel", finish);
+      separator.removeEventListener("lostpointercapture", finish);
+    };
+    separator.addEventListener("pointermove", move);
+    separator.addEventListener("pointerup", finish, { once: true });
+    separator.addEventListener("pointercancel", finish, { once: true });
+    separator.addEventListener("lostpointercapture", finish, { once: true });
+  });
+}
+
+function installKeyboardResize(
+  separator: HTMLElement,
+  orientation: "horizontal" | "vertical",
+  readSize: () => number,
+  applySize: (size: number) => { size: number; minimum: number; maximum: number; available: number },
+  onCommit: (size: number, available: number) => void,
+  direction: 1 | -1,
+) {
+  separator.addEventListener("keydown", (event) => {
+    const bounds = applySize(readSize());
+    const next = resizePaneForKey(event.key, orientation, direction, bounds.size, bounds);
+    if (next === null) return;
+    event.preventDefault();
+    const updated = applySize(next);
+    onCommit(updated.size, updated.available);
+  });
+}
+
+function installPaneResize(
+  separator: HTMLElement,
+  orientation: "horizontal" | "vertical",
+  readSize: () => number,
+  applySize: (size: number) => { size: number; minimum: number; maximum: number; available: number },
+  key: keyof PaneLayout,
+  direction: 1 | -1,
+) {
+  const commit = (size: number, available: number) => rememberPaneSize(key, size, available);
+  installPointerResize(separator, orientation, readSize, applySize, commit, direction);
+  installKeyboardResize(separator, orientation, readSize, applySize, commit, direction);
+}
+
+installPaneResize(explorerSplitter, "vertical", () => explorer.getBoundingClientRect().width, applyExplorerPaneSize, "explorer", 1);
+installPaneResize(bottomSplitter, "horizontal", () => panel.getBoundingClientRect().height, applyBottomPaneSize, "bottom", -1);
 
 const utilities = $("utilities");
 const utilitiesSplitter = $("utilities-splitter");
@@ -1787,23 +1926,19 @@ function showUtilities(visible: boolean) {
   if (visible && $("code").classList.contains("expanded")) toggleExpanded();
   utilities.hidden = utilitiesSplitter.hidden = !visible;
   $("btn-utilities").setAttribute("aria-expanded", String(visible));
+  if (visible) applyUtilitiesPaneSize();
 }
 
 function toggleUtilities() {
   if (activeTab()) showUtilities(utilities.hidden === true);
 }
 
-utilitiesSplitter.addEventListener("pointerdown", (start) => {
-  utilitiesSplitter.setPointerCapture(start.pointerId);
-  const width = utilities.offsetWidth;
-  const move = (event: PointerEvent) => {
-    const next = Math.min(window.innerWidth * 0.55, Math.max(210, width + start.clientX - event.clientX));
-    utilities.style.width = `${next}px`;
-  };
-  utilitiesSplitter.addEventListener("pointermove", move);
-  utilitiesSplitter.addEventListener("lostpointercapture", () => {
-    utilitiesSplitter.removeEventListener("pointermove", move);
-  }, { once: true });
+installPaneResize(utilitiesSplitter, "vertical", () => utilities.getBoundingClientRect().width, applyUtilitiesPaneSize, "utilities", -1);
+applyBottomPaneSize();
+window.addEventListener("resize", () => {
+  applyBottomPaneSize();
+  if (!explorer.hidden) applyExplorerPaneSize();
+  if (!utilities.hidden) applyUtilitiesPaneSize();
 });
 
 function toggleExpanded() {
