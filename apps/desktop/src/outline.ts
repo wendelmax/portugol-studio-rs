@@ -14,7 +14,7 @@ const types = ["inteiro", "caracter", "real", "cadeia", "logico", "vazio"];
 const typeLabels: Record<string, string> = { logico: "Lógico" };
 const normalize = (text: string) => text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 
-export function mountOutline(jump: (offset: number) => void) {
+export function mountOutline(jump: (offset: number) => void, rename: (offset: number) => void) {
   const filter = document.querySelector<HTMLInputElement>("#outline-search")!;
   const type = document.querySelector<HTMLSelectElement>("#outline-type")!;
   const kind = document.querySelector<HTMLSelectElement>("#outline-kind")!;
@@ -49,6 +49,7 @@ export function mountOutline(jump: (offset: number) => void) {
     link.append(label, name, annotation);
     link.title = `Linha ${symbol.position.line}, coluna ${symbol.position.column}`;
     link.onclick = () => jump(symbol.position.offset);
+    if (symbol.kind !== "library") link.ondblclick = () => rename(symbol.position.offset);
 
     if (children.length) {
       const expand = document.createElement("button");

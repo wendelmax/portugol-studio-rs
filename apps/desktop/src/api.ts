@@ -66,6 +66,12 @@ export interface Inspection {
 export const formatSource = (source: string) =>
   invoke<{ from: number; to: number; insert: string }[] | null>("format_source", { source });
 
+export const renameTarget = (source: string, offset: number) =>
+  invoke<{ name: string; occurrences: number }>("rename_target", { source, offset });
+
+export const renameSymbol = (source: string, offset: number, name: string) =>
+  invoke<{ from: number; to: number; insert: string }[]>("rename_symbol", { source, offset, name });
+
 export const openBugReport = () => invoke<void>("open_bug_report");
 
 export const inspect = (source: string) => invoke<Inspection>("inspect", { source });
