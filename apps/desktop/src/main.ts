@@ -34,6 +34,7 @@ import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
 import { mountOutline, symbolKindLabels } from "./outline";
 import { LIBRARIES, portugol, SNIPPETS } from "./portugol";
+import { loadLearningMode, saveLearningMode, type LearningMode } from "./learning-mode";
 import * as api from "./api";
 
 const TEMPLATE = "programa\n{\n\tfuncao inicio()\n\t{\n\t\t\n\t}\n}\n";
@@ -248,7 +249,7 @@ function extensions(): Extension[] {
     ]),
     EditorView.updateListener.of((update) => {
       if (update.docChanged) renderTabs();
-      if (update.docChanged && !$<HTMLElement>("rust-preview").hidden) scheduleRustExport();
+      if (update.docChanged && learningMode === "bridge") scheduleRustExport();
       if (update.selectionSet || update.docChanged) renderCursor();
       if (centerActive && update.selectionSet) {
         queueMicrotask(() => {
@@ -292,6 +293,7 @@ let helpOpen = false;
 let nextTabId = 1;
 let rustExportTimer: number | undefined;
 let rustExportGeneration = 0;
+let learningMode: LearningMode = loadLearningMode();
 
 const activeTab = () => tabs.find((t) => t.id === activeId);
 
@@ -354,7 +356,7 @@ function activate(id: number) {
   updateLibraryButtons(tab.symbols);
   renderCursor();
   if (centerActive) centerSelection();
-  if (!$<HTMLElement>("rust-preview").hidden) scheduleRustExport();
+  if (learningMode === "bridge") scheduleRustExport();
   view.focus();
 }
 
@@ -1044,15 +1046,35 @@ $("utilities-close").onclick = () => {
 $("btn-save").onclick = () => void save();
 $("btn-save-as").onclick = () => void save(true);
 $("btn-run").onclick = () => void runOrContinue();
-$<HTMLButtonElement>("btn-rust").onclick = () => {
+function applyLearningMode(mode: LearningMode, persist = true) {
+  learningMode = mode;
+  const selector = $<HTMLSelectElement>("learning-mode");
+  selector.value = mode;
+  if (persist) saveLearningMode(mode);
+
   const preview = $<HTMLElement>("rust-preview");
-  preview.hidden = !preview.hidden;
-  if (preview.hidden) rustExportGeneration++;
-  else scheduleRustExport();
+  const bridgeEnabled = mode === "bridge";
+  preview.hidden = !bridgeEnabled;
+  $<HTMLButtonElement>("btn-rust").setAttribute("aria-pressed", String(bridgeEnabled));
+  if (bridgeEnabled) {
+    if (activeTab()) scheduleRustExport();
+  } else {
+    rustExportGeneration++;
+    if (rustExportTimer !== undefined) window.clearTimeout(rustExportTimer);
+    rustExportTimer = undefined;
+  }
+}
+
+$<HTMLSelectElement>("learning-mode").onchange = (event) => {
+  const selected = (event.currentTarget as HTMLSelectElement).value;
+  if (selected === "beginner" || selected === "bridge") applyLearningMode(selected);
+};
+applyLearningMode(learningMode, false);
+$<HTMLButtonElement>("btn-rust").onclick = () => {
+  applyLearningMode(learningMode === "bridge" ? "beginner" : "bridge");
 };
 $<HTMLButtonElement>("rust-close").onclick = () => {
-  rustExportGeneration++;
-  $<HTMLElement>("rust-preview").hidden = true;
+  applyLearningMode("beginner");
   view.focus();
 };
 $<HTMLButtonElement>("rust-copy").onclick = async () => {
