@@ -44,3 +44,30 @@ export function workspaceSourceFileName(name: string, language: "por" | "pors"):
   }
   return `${trimmed}.${language}`;
 }
+
+export function workspaceRenameFileName(name: string, currentPath: string): string {
+  const currentName = currentPath.split(/[\\/]/).pop() ?? currentPath;
+  if (name === currentName) return currentName;
+  const trimmed = name.trim();
+  if (!trimmed || trimmed === "." || trimmed === ".." || /[\\/]/.test(trimmed)) {
+    throw new Error("Informe um nome de arquivo sem pastas.");
+  }
+  if (trimmed.endsWith(".")) {
+    throw new Error("O nome do arquivo não pode terminar com ponto.");
+  }
+
+  const currentDot = currentName.lastIndexOf(".");
+  const extension = currentDot >= 0 ? currentName.slice(currentDot + 1).toLowerCase() : "";
+  if (extension !== "por" && extension !== "pors" && extension !== "pex") {
+    throw new Error("A extensão deste arquivo não pode ser alterada no Explorador.");
+  }
+
+  const dot = trimmed.lastIndexOf(".");
+  if (dot >= 0) {
+    if (trimmed.slice(dot + 1).toLowerCase() !== extension) {
+      throw new Error(`A extensão deve continuar sendo .${extension}.`);
+    }
+    return trimmed;
+  }
+  return `${trimmed}.${extension}`;
+}

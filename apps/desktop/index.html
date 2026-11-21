@@ -351,6 +351,19 @@
       </form>
     </dialog>
 
+    <dialog id="workspace-rename-dialog" aria-labelledby="workspace-rename-title">
+      <h2 id="workspace-rename-title">Renomear arquivo</h2>
+      <form id="workspace-rename-form">
+        <label for="workspace-rename-name">Novo nome</label>
+        <input id="workspace-rename-name" type="text" required maxlength="120" autocomplete="off" spellcheck="false" aria-describedby="workspace-rename-error" />
+        <p id="workspace-rename-error" role="status" aria-live="polite" hidden></p>
+        <div class="dialog-actions">
+          <button id="workspace-rename-submit" type="submit">Renomear</button>
+          <button id="workspace-rename-cancel" type="button">Cancelar</button>
+        </div>
+      </form>
+    </dialog>
+
     <template id="find-template">
       <dialog class="find-dialog" aria-labelledby="find-title">
         <h2 id="find-title">Localizar e substituir</h2>

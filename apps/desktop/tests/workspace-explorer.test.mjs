@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { flattenWorkspaceEntries, workspaceFileKind, workspaceSourceFileName } from "../src/workspace-explorer.ts";
+import { flattenWorkspaceEntries, workspaceFileKind, workspaceRenameFileName, workspaceSourceFileName } from "../src/workspace-explorer.ts";
 
 test("collapsed folders hide descendants and expanded folders preserve tree depth", () => {
   const entries = [
@@ -42,6 +42,20 @@ test("rejects empty names, path separators, and extensions that conflict with th
   assert.throws(() => workspaceSourceFileName("programa.por", "pors"), /extensão/i);
 });
 
+test("renames a workspace file while preserving its original extension", () => {
+  assert.equal(workspaceRenameFileName("novo", "antigo.por"), "novo.por");
+  assert.equal(workspaceRenameFileName("ponte.pors", "classico.pors"), "ponte.pors");
+  assert.equal(workspaceRenameFileName("atividade.pex", "exercicio.pex"), "atividade.pex");
+  assert.equal(workspaceRenameFileName(" nome.por ", " nome.por "), " nome.por ");
+});
+
+test("rejects unsafe rename names and extension changes", () => {
+  assert.throws(() => workspaceRenameFileName("", "antigo.por"), /nome/i);
+  assert.throws(() => workspaceRenameFileName("../fora", "antigo.por"), /nome/i);
+  assert.throws(() => workspaceRenameFileName("novo.pors", "antigo.por"), /extensão/i);
+  assert.throws(() => workspaceRenameFileName("novo", "notas.txt"), /extensão/i);
+});
+
 test("home action and explorer tree expose stable accessible controls", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   assert.match(html, /id="home-open-folder"/);
@@ -68,4 +82,21 @@ test("startup has a typed Tauri route to restore the last workspace", () => {
   assert.match(api, /restoreWorkspace\s*=\s*\(\)\s*=>\s*invoke<WorkspaceListing\s*\|\s*null>\("workspace_restore"\)/);
   assert.match(main, /restoreWorkspaceOnStartup\(\)/);
   assert.match(main, /api\.restoreWorkspace\(\)/);
+});
+
+test("workspace rename has an accessible dialog and a typed Tauri route", () => {
+  const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+  const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
+  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../src/style.css", import.meta.url), "utf8");
+  assert.match(main, /workspace-rename-file/);
+  assert.match(html, /id="workspace-rename-dialog"[^>]*aria-labelledby="workspace-rename-title"/);
+  assert.match(html, /id="workspace-rename-name"[^>]*aria-describedby="workspace-rename-error"/);
+  assert.match(html, /id="workspace-rename-error"[^>]*role="status"/);
+  assert.match(html, /id="workspace-rename-submit"/);
+  assert.match(html, /id="workspace-rename-cancel"/);
+  assert.match(api, /renameWorkspaceFile/);
+  assert.match(api, /"workspace_rename_file"/);
+  assert.match(main, /prepareWorkspaceRename/);
+  assert.match(css, /@media \(hover: none\), \(pointer: coarse\)[\s\S]*?\.workspace-file-actions\s*\{\s*opacity: 1;/);
 });

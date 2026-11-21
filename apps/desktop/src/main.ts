@@ -36,7 +36,8 @@ import { mountOutline, symbolKindLabels } from "./outline";
 import { panelContentId, type PanelName } from "./panel-tabs";
 import { LIBRARIES, portugol, portugolRs, SNIPPETS } from "./portugol";
 import { detectSourceLanguage, ensureSourceExtension, type SourceLanguage } from "./document-language";
-import { flattenWorkspaceEntries, workspaceFileKind, workspaceSourceFileName, type WorkspaceEntry } from "./workspace-explorer";
+import { flattenWorkspaceEntries, workspaceFileKind, workspaceRenameFileName, workspaceSourceFileName, type WorkspaceEntry } from "./workspace-explorer";
+import { applyWorkspaceRenameToTabs, prepareWorkspaceRename } from "./workspace-file-actions";
 import { conceptsForMode, resolveConceptForMode } from "./learning-content";
 import { loadLearningMode, saveLearningMode, type LearningMode } from "./learning-mode";
 import {
@@ -536,6 +537,8 @@ const FILTERS = [{ name: "Programas Portugol", extensions: ["por", "pors"] }];
 
 let workspaceError: string | null = null;
 let workspaceFileCreationPending = false;
+let workspaceRenameTarget: Extract<WorkspaceEntry, { kind: "file" }> | null = null;
+let workspaceRenamePending = false;
 
 function setWorkspaceExplorerVisible(visible: boolean) {
   $("workspace-explorer").hidden = !visible;
@@ -577,7 +580,7 @@ function renderWorkspaceExplorer() {
     button.setAttribute("aria-posinset", String(position));
     button.setAttribute("aria-setsize", String(setSize));
     button.setAttribute("aria-selected", String(!isFolder && selectedWorkspacePath === entry.path));
-    button.style.paddingInlineStart = `${8 + depth * 16}px`;
+    button.style.paddingInlineStart = "8px";
     if (isFolder) {
       button.setAttribute("aria-expanded", String(isExpanded));
       button.setAttribute("aria-label", `${entry.name}, pasta${isExpanded ? ", expandida" : ", recolhida"}`);
@@ -600,7 +603,27 @@ function renderWorkspaceExplorer() {
       };
     }
     button.append(marker, label);
-    item.append(button);
+    const row = document.createElement("div");
+    row.className = "workspace-tree-row";
+    row.style.paddingInlineStart = `${depth * 16}px`;
+    row.append(button);
+    if (!isFolder) {
+      const actions = document.createElement("div");
+      actions.className = "workspace-file-actions";
+      const renameButton = document.createElement("button");
+      renameButton.type = "button";
+      renameButton.textContent = "✎";
+      renameButton.title = `Renomear ${entry.name}`;
+      renameButton.setAttribute("aria-label", `Renomear ${entry.name}`);
+      renameButton.dataset.action = "workspace-rename-file";
+      renameButton.onclick = (event) => {
+        event.stopPropagation();
+        openWorkspaceRenameDialog(entry);
+      };
+      actions.append(renameButton);
+      row.append(actions);
+    }
+    item.append(row);
     return item;
   });
   tree.replaceChildren(...items);
@@ -726,6 +749,120 @@ function showWorkspaceCreateError(message: string | null) {
   $("workspace-create-name").setAttribute("aria-invalid", String(Boolean(message)));
 }
 
+function showWorkspaceRenameError(message: string | null) {
+  const error = $("workspace-rename-error");
+  error.textContent = message ?? "";
+  error.hidden = !message;
+  $("workspace-rename-name").setAttribute("aria-invalid", String(Boolean(message)));
+}
+
+function openWorkspaceRenameDialog(entry: Extract<WorkspaceEntry, { kind: "file" }>) {
+  if (!workspaceState || workspaceRenamePending) return;
+  workspaceRenameTarget = entry;
+  const input = $<HTMLInputElement>("workspace-rename-name");
+  showWorkspaceRenameError(null);
+  $<HTMLFormElement>("workspace-rename-form").reset();
+  input.value = entry.name;
+  $<HTMLDialogElement>("workspace-rename-dialog").showModal();
+  const dot = entry.name.lastIndexOf(".");
+  input.setSelectionRange(0, dot > 0 ? dot : entry.name.length);
+  input.focus();
+}
+
+function replaceRecentFile(oldPath: string, newPath: string) {
+  recent = [newPath, ...recent.filter((path) => path !== oldPath && path !== newPath)].slice(0, 6);
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
+  } catch {
+    // A lista em memória permanece disponível.
+  }
+  renderRecent();
+}
+
+async function submitWorkspaceRenameDialog(event: SubmitEvent) {
+  event.preventDefault();
+  const workspace = workspaceState;
+  const original = workspaceRenameTarget;
+  if (!workspace || !original) return;
+
+  const input = $<HTMLInputElement>("workspace-rename-name");
+  let newName: string;
+  try {
+    newName = workspaceRenameFileName(input.value, original.path);
+  } catch (error) {
+    showWorkspaceRenameError(String(error).replace(/^Error: /, ""));
+    input.focus();
+    return;
+  }
+  if (newName === original.name) {
+    $<HTMLDialogElement>("workspace-rename-dialog").close();
+    workspaceRenameTarget = null;
+    return;
+  }
+
+  const submit = $<HTMLButtonElement>("workspace-rename-submit");
+  const cancel = $<HTMLButtonElement>("workspace-rename-cancel");
+  workspaceRenamePending = true;
+  submit.disabled = true;
+  cancel.disabled = true;
+  showWorkspaceRenameError(null);
+  try {
+    const openTabs = tabs.filter((tab) => tab.workspaceId === workspace.id &&
+      (tab.workspacePath === original.path || tab.workspaceExercisePath === original.path));
+    const previousActive = activeId;
+    const preparation = await prepareWorkspaceRename({
+      tabs: openTabs,
+      sourcePath: original.path,
+      isDirty,
+      confirmSave: () => ask(`"${original.name}" tem alterações não salvas. Salvar antes de renomear?`, {
+        title: "Renomear arquivo",
+        kind: "warning",
+        okLabel: "Salvar e renomear",
+        cancelLabel: "Cancelar",
+      }),
+      saveTab: async (tab) => {
+        activate(tab.id);
+        try {
+          return await save();
+        } catch {
+          return false;
+        }
+      },
+    });
+    activate(previousActive);
+    if (preparation === "cancelled") return;
+    if (preparation === "save-failed") {
+      showWorkspaceRenameError("Não foi possível salvar. O arquivo não foi renomeado.");
+      return;
+    }
+
+    const renamed = await api.renameWorkspaceFile(workspace.id, original.path, newName);
+    if (workspaceState?.id !== workspace.id) return;
+    for (const oldPath of applyWorkspaceRenameToTabs(openTabs, original.path, renamed.file)) {
+      replaceRecentFile(oldPath, renamed.file.path);
+    }
+    workspaceState = renamed.listing;
+    workspaceError = null;
+    selectedWorkspacePath = renamed.file.relativePath;
+    renderWorkspaceExplorer();
+    renderTabs();
+    $<HTMLDialogElement>("workspace-rename-dialog").close();
+    $<HTMLFormElement>("workspace-rename-form").reset();
+    workspaceRenameTarget = null;
+    rememberFile(renamed.file.path);
+    setStatus(`Renomeado: ${newName}`, "ok");
+    queueMicrotask(() => $("workspace-tree").querySelector<HTMLButtonElement>(`[data-path="${CSS.escape(renamed.file.relativePath)}"]`)?.focus());
+  } catch (error) {
+    const message = String(error).replace(/^Error: /, "");
+    showWorkspaceRenameError(message);
+    input.focus();
+  } finally {
+    workspaceRenamePending = false;
+    submit.disabled = false;
+    cancel.disabled = false;
+  }
+}
+
 function openWorkspaceCreateDialog() {
   if (!workspaceState) return;
   const dialog = $<HTMLDialogElement>("workspace-create-dialog");
@@ -801,6 +938,16 @@ $("workspace-create-cancel").onclick = () => {
   $<HTMLFormElement>("workspace-create-form").reset();
   showWorkspaceCreateError(null);
 };
+$("workspace-rename-form").addEventListener("submit", (event) => void submitWorkspaceRenameDialog(event as SubmitEvent));
+$("workspace-rename-dialog").addEventListener("cancel", (event) => {
+  if (workspaceRenamePending) event.preventDefault();
+});
+$("workspace-rename-cancel").onclick = () => {
+  $<HTMLDialogElement>("workspace-rename-dialog").close();
+  $<HTMLFormElement>("workspace-rename-form").reset();
+  workspaceRenameTarget = null;
+  showWorkspaceRenameError(null);
+};
 $("btn-explorer").onclick = () => {
   if (!workspaceState) {
     void openWorkspaceFolder();
@@ -812,7 +959,7 @@ $("btn-explorer").onclick = () => {
 $("workspace-tree").addEventListener("keydown", (event) => {
   if (!(event instanceof KeyboardEvent)) return;
   const current = event.target instanceof HTMLButtonElement ? event.target : null;
-  if (!current) return;
+  if (!current?.matches("[role=treeitem]")) return;
   const items = [...$("workspace-tree").querySelectorAll<HTMLButtonElement>("[role=treeitem]")];
   const index = items.indexOf(current);
   const focus = (item?: HTMLButtonElement) => {

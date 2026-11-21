@@ -154,6 +154,11 @@ export interface WorkspaceFile {
   source: string;
 }
 
+export interface WorkspaceRenameResult {
+  listing: WorkspaceListing;
+  file: { path: string; relativePath: string };
+}
+
 export const openWorkspace = () => invoke<WorkspaceListing | null>("workspace_open");
 export const restoreWorkspace = () => invoke<WorkspaceListing | null>("workspace_restore");
 export const readWorkspaceFile = (workspaceId: string, relativePath: string) =>
@@ -162,6 +167,8 @@ export const writeWorkspaceFile = (workspaceId: string, relativePath: string, so
   invoke<void>("workspace_write_file", { workspaceId, relativePath, source });
 export const createWorkspaceFile = (workspaceId: string, fileName: string) =>
   invoke<WorkspaceListing>("workspace_create_file", { workspaceId, fileName });
+export const renameWorkspaceFile = (workspaceId: string, relativePath: string, newName: string) =>
+  invoke<WorkspaceRenameResult>("workspace_rename_file", { workspaceId, relativePath, newName });
 
 export type CatalogEntry =
   | { kind: "folder"; name: string; entries: CatalogEntry[] }
