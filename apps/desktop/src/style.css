@@ -328,47 +328,96 @@ select {
   border-color: var(--accent);
 }
 
-/* Mensagens */
+/* Mensagens e faixa de diagnósticos */
 .messages {
   flex: 1;
   overflow: auto;
-  margin: 0;
-  padding: 4px 0;
-  list-style: none;
+  min-height: 0;
 }
 
-.messages li {
-  display: flex;
-  gap: 10px;
-  padding: 4px 12px;
+#diagnostic-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#diagnostic-table thead {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+}
+
+#diagnostic-table th,
+#diagnostic-table td {
+  padding: 2px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+#diagnostic-table th:first-child,
+#diagnostic-table th:nth-child(2) {
+  width: 1%;
+}
+
+#diagnostic-table tbody tr {
+  height: 24px;
   cursor: pointer;
 }
 
-.messages li:hover {
-  background: var(--bg);
+#diagnostic-table tbody tr:hover,
+#diagnostic-table tbody tr:focus-within {
+  color: #fff;
+  background: #005494;
 }
 
-.messages .where {
-  color: var(--muted);
+#diagnostic-table button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+}
+
+.diagnostic-line {
   font-family: var(--mono);
-  white-space: nowrap;
 }
 
-.messages .error .kind {
-  color: var(--error);
+.diagnostic-help {
+  display: block;
+  opacity: 0.8;
 }
 
-.messages .warning .kind {
-  color: var(--warning);
-}
-
-.messages .help {
+#no-diagnostics {
+  margin: 0;
+  padding: 8px 12px;
   color: var(--muted);
 }
 
-.messages .empty {
-  color: var(--muted);
-  cursor: default;
+.error-strip {
+  flex: 0 0 12px;
+  position: relative;
+  background: var(--editor-bg);
+  border-left: 1px solid var(--border);
+}
+
+#error-strip {
+  position: absolute;
+  inset: 8px 0;
+}
+
+.strip-marker {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  height: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  transform: translateY(-50%);
+  background: var(--warning);
+}
+
+.strip-marker.error {
+  background: var(--error);
 }
 
 /* Barra de status */
@@ -1104,11 +1153,6 @@ body {
   height: 14px;
 }
 
-.messages .kind.ui-icon {
-  width: 14px;
-  height: 14px;
-}
-
 
 #about {
   max-width: min(580px, 90vw);
@@ -1135,7 +1179,7 @@ body {
 .editor-options {
   position: absolute;
   top: 3px;
-  right: 8px;
+  right: 18px;
 }
 
 .panel-tabs {

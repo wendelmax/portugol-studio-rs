@@ -80,6 +80,7 @@
       <div class="workspace">
         <div class="editor-area">
           <section id="editor" class="editor"></section>
+          <aside class="error-strip" aria-label="Diagnósticos por linha"><div id="error-strip"></div></aside>
           <details id="editor-options" class="options editor-options">
             <summary title="Opções do editor" aria-label="Opções do editor"><span data-icon="pequeno/gear_in"></span></summary>
             <div class="options-menu">
@@ -127,7 +128,13 @@
               <input id="console-input" type="text" spellcheck="false" autocomplete="off" />
             </form>
           </div>
-          <ul id="messages" class="messages" hidden></ul>
+          <section id="messages" class="messages" aria-label="Mensagens do compilador" hidden>
+            <p id="no-diagnostics">Nenhum problema encontrado.</p>
+            <table id="diagnostic-table" hidden>
+              <thead><tr><th scope="col" aria-label="Tipo"></th><th scope="col">Linha</th><th scope="col">Mensagem</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </section>
           <div id="debug" class="debug" hidden>
           <div class="group" id="debug-controls" title="Durante a execução, clique na margem esquerda para criar pontos de parada">
             <button id="btn-debug-pause" title="Pausar (F9)" disabled>⏸ Pausar</button>
