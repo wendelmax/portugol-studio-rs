@@ -888,6 +888,7 @@ fn rename_relative_file(root: &Path, relative: &Path, new_name: &str) -> Result<
         .map_err(|error| format!("Não foi possível acessar o arquivo renomeado: {error}"))
 }
 
+#[cfg(test)]
 fn delete_relative_file(root: &Path, relative: &Path) -> Result<PathBuf, String> {
     let directory = cap_std::fs::Dir::open_ambient_dir(root, cap_std::ambient_authority())
         .map_err(|error| format!("Não foi possível abrir a pasta do projeto: {error}"))?;
