@@ -1,6 +1,6 @@
 # Relatório de implementação — FEAT-WORKSPACE-005
 
-- Branch / commit: `feat/workspace-file-delete` / pendente de commit e PR.
+- Branch / commit: `feat/workspace-file-delete` / `6a2d6bb` (PR pendente).
 - Escopo e IDs (UI/UC/FT/AC): UI-009 `ExplorerFileActions`, UC-03, AC-14; exclusão scoped de `.por`, `.pors` e `.pex`.
 - Estado anterior (evidência path/linha): a árvore tinha somente criação e renomeação (`apps/desktop/src/main.ts`, renderizador `renderWorkspaceExplorer`); serviço Rust oferecia `checked_file` para leitura/gravação, sem exclusão (`apps/desktop/src-tauri/src/workspace.rs`).
 - Arquivos alterados: `apps/desktop/index.html`, `apps/desktop/src-tauri/src/lib.rs`, `apps/desktop/src-tauri/src/workspace.rs`, `apps/desktop/src/api.ts`, `apps/desktop/src/main.ts`, `apps/desktop/src/style.css`, `apps/desktop/src/workspace-file-actions.ts`, `apps/desktop/tests/workspace-explorer.test.mjs`, `apps/desktop/tests/workspace-file-actions.test.mjs`, spec e plano da feature.
