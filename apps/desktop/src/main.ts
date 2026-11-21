@@ -16,7 +16,7 @@ import {
 } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import {
-  syntaxHighlighting, HighlightStyle, bracketMatching, indentOnInput,
+  syntaxHighlighting, HighlightStyle, bracketMatching, indentOnInput, foldGutter, foldKeymap,
 } from "@codemirror/language";
 import { linter, lintGutter, type Diagnostic } from "@codemirror/lint";
 import { openSearchPanel, searchKeymap, highlightSelectionMatches } from "@codemirror/search";
@@ -27,6 +27,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import { renderDiagnostics } from "./diagnostics";
 import { mountExamples } from "./examples";
+import { portugolFolding } from "./folding";
 import { icon, mountIcons } from "./icons";
 import { mountOutline, symbolKindLabels } from "./outline";
 import { portugol } from "./portugol";
@@ -208,6 +209,14 @@ function extensions(): Extension[] {
     highlightSelectionMatches(),
     EditorState.tabSize.of(4),
     portugol(),
+    portugolFolding,
+    foldGutter({ markerDOM: (open) => {
+      const marker = document.createElement("span");
+      marker.textContent = open ? "−" : "+";
+      marker.title = open ? "Recolher bloco" : "Expandir bloco";
+      marker.setAttribute("aria-label", marker.title);
+      return marker;
+    }}),
     editorColors,
     theme.of(editorTheme()),
     lintGutter(),
@@ -218,7 +227,7 @@ function extensions(): Extension[] {
     debugLine,
     keymap.of([
       ...closeBracketsKeymap, ...defaultKeymap, ...searchKeymap,
-      ...historyKeymap, ...completionKeymap, indentWithTab,
+      ...historyKeymap, ...completionKeymap, ...foldKeymap, indentWithTab,
     ]),
     EditorView.updateListener.of((update) => {
       if (update.docChanged) renderTabs();
