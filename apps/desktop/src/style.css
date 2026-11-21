@@ -768,9 +768,7 @@ select {
   max-width: 100%;
 }
 
-#shortcuts,
-#tips,
-#about {
+dialog {
   color: var(--text);
   background: var(--surface);
   border: 1px solid var(--border);
@@ -778,15 +776,11 @@ select {
   max-height: calc(100% - 24px);
 }
 
-#shortcuts::backdrop,
-#tips::backdrop,
-#about::backdrop {
+dialog::backdrop {
   background: rgb(0 0 0 / 55%);
 }
 
-#shortcuts h2,
-#tips h2,
-#about h2 {
+dialog h2 {
   margin-top: 0;
 }
 
@@ -1278,4 +1272,17 @@ body {
 
 .tips-actions label {
   margin-inline-end: auto;
+}
+
+
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+#report {
+  max-width: min(440px, calc(100% - 24px));
 }

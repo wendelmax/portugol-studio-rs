@@ -51,6 +51,7 @@
       <footer class="home-links">
         <button id="home-shortcuts">Atalhos de teclado (F11)</button>
         <button id="home-tips">Dicas (F3)</button>
+        <button id="home-alerts">Mostrar alertas</button>
         <button id="home-about">Sobre (F12)</button>
       </footer>
     </main>
@@ -208,6 +209,22 @@
       </div>
     </dialog>
 
+    <dialog id="alerts" aria-labelledby="alerts-title">
+      <h2 id="alerts-title">Alertas</h2>
+      <p>Não há alertas ou avisos.</p>
+      <form method="dialog"><button>Fechar</button></form>
+    </dialog>
+
+    <dialog id="report" aria-labelledby="report-title">
+      <h2 id="report-title">Houve algum problema?</h2>
+      <p>No GitHub, inclua a versão, os passos para reproduzir o problema e o que aconteceu.</p>
+      <p id="report-error" role="status" hidden></p>
+      <div class="dialog-actions">
+        <button id="report-open">Reportar erro</button>
+        <form method="dialog"><button>Fechar</button></form>
+      </div>
+    </dialog>
+
     <dialog id="about" aria-labelledby="about-title">
       <h2 id="about-title">Sobre o Portugol Studio RS</h2>
       <p id="about-version"></p>
@@ -216,7 +233,10 @@
         <summary>Licença LGPL-3.0</summary>
         <pre id="about-license"></pre>
       </details>
-      <form method="dialog"><button>Fechar</button></form>
+      <div class="dialog-actions">
+        <button id="about-report">Relatar bug</button>
+        <form method="dialog"><button>Fechar</button></form>
+      </div>
     </dialog>
 
     <footer class="statusbar">

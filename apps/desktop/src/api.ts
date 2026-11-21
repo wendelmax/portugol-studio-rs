@@ -66,6 +66,8 @@ export interface Inspection {
 export const formatSource = (source: string) =>
   invoke<{ from: number; to: number; insert: string }[] | null>("format_source", { source });
 
+export const openBugReport = () => invoke<void>("open_bug_report");
+
 export const inspect = (source: string) => invoke<Inspection>("inspect", { source });
 
 /** Id da execução; rejeita com a lista de erros se o programa não compila. */
