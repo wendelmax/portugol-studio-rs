@@ -535,6 +535,7 @@ function renderCursor() {
 const FILTERS = [{ name: "Programas Portugol", extensions: ["por", "pors"] }];
 
 let workspaceError: string | null = null;
+let workspaceFileCreationPending = false;
 
 function setWorkspaceExplorerVisible(visible: boolean) {
   $("workspace-explorer").hidden = !visible;
@@ -735,7 +736,10 @@ async function submitWorkspaceCreateDialog(event: SubmitEvent) {
   }
 
   const submit = $<HTMLButtonElement>("workspace-create-submit");
+  const cancel = $<HTMLButtonElement>("workspace-create-cancel");
+  workspaceFileCreationPending = true;
   submit.disabled = true;
+  cancel.disabled = true;
   showWorkspaceCreateError(null);
   try {
     const refreshed = await api.createWorkspaceFile(selected.id, fileName);
@@ -763,7 +767,9 @@ async function submitWorkspaceCreateDialog(event: SubmitEvent) {
       setStatus(message, "error");
     }
   } finally {
+    workspaceFileCreationPending = false;
     submit.disabled = false;
+    cancel.disabled = false;
   }
 }
 
@@ -771,6 +777,9 @@ $("home-open-folder").onclick = () => void openWorkspaceFolder();
 $("workspace-open-folder").onclick = () => void openWorkspaceFolder();
 $("workspace-new-file").onclick = openWorkspaceCreateDialog;
 $("workspace-create-form").addEventListener("submit", (event) => void submitWorkspaceCreateDialog(event as SubmitEvent));
+$("workspace-create-dialog").addEventListener("cancel", (event) => {
+  if (workspaceFileCreationPending) event.preventDefault();
+});
 $("workspace-create-cancel").onclick = () => {
   $<HTMLDialogElement>("workspace-create-dialog").close();
   $<HTMLFormElement>("workspace-create-form").reset();
