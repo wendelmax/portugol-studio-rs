@@ -27,6 +27,17 @@ pub struct RenameEdit {
     pub insert: String,
 }
 
+#[derive(Clone, Copy)]
+struct PortugolRsOccurrence {
+    binding: portugol_hir::BindingId,
+    span: portugol_hir::Span,
+}
+
+struct PortugolRsBindings {
+    declarations: Vec<portugol_hir::Binding>,
+    occurrences: Vec<PortugolRsOccurrence>,
+}
+
 struct Bindings {
     tokens: Vec<Token>,
     symbols: HashMap<usize, usize>,
@@ -161,9 +172,246 @@ pub fn rename_symbol(source: &str, offset: u32, name: &str) -> Result<Vec<Rename
         .collect())
 }
 
+fn portugol_rs_bindings(source: &str) -> Result<PortugolRsBindings, String> {
+    let program = portugol_rs_frontend::lower(source)
+        .map_err(|_| "Corrija os erros de sintaxe e semântica antes de renomear.".to_string())?;
+    let mut occurrences: Vec<_> = program
+        .bindings
+        .iter()
+        .map(|binding| PortugolRsOccurrence {
+            binding: binding.id,
+            span: binding.span,
+        })
+        .collect();
+    collect_portugol_rs_statements(&program.body, &program.bindings, &mut occurrences);
+    occurrences.sort_by_key(|occurrence| occurrence.span.start);
+    Ok(PortugolRsBindings {
+        declarations: program.bindings,
+        occurrences,
+    })
+}
+
+fn collect_portugol_rs_statements(
+    statements: &[portugol_hir::Stmt],
+    declarations: &[portugol_hir::Binding],
+    occurrences: &mut Vec<PortugolRsOccurrence>,
+) {
+    use portugol_hir::StmtKind;
+
+    for statement in statements {
+        match &statement.kind {
+            StmtKind::Declare { initializer, .. } => {
+                if let Some(initializer) = initializer {
+                    collect_portugol_rs_expression(initializer, occurrences);
+                }
+            }
+            StmtKind::Assign { binding, value, .. } => {
+                if let Some(declaration) = declarations.get(binding.0 as usize) {
+                    occurrences.push(PortugolRsOccurrence {
+                        binding: *binding,
+                        span: portugol_hir::Span::new(
+                            statement.span.start,
+                            statement.span.start + declaration.source_name.len() as u32,
+                        ),
+                    });
+                }
+                collect_portugol_rs_expression(value, occurrences);
+            }
+            StmtKind::Write(values) => {
+                for value in values {
+                    collect_portugol_rs_expression(value, occurrences);
+                }
+            }
+            StmtKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                collect_portugol_rs_expression(condition, occurrences);
+                collect_portugol_rs_statements(then_branch, declarations, occurrences);
+                if let Some(else_branch) = else_branch {
+                    collect_portugol_rs_statements(else_branch, declarations, occurrences);
+                }
+            }
+        }
+    }
+}
+
+fn collect_portugol_rs_expression(
+    expression: &portugol_hir::Expr,
+    occurrences: &mut Vec<PortugolRsOccurrence>,
+) {
+    use portugol_hir::ExprKind;
+
+    match &expression.kind {
+        ExprKind::Binding(binding) => occurrences.push(PortugolRsOccurrence {
+            binding: *binding,
+            span: expression.span,
+        }),
+        ExprKind::Parenthesized(inner) | ExprKind::Unary { operand: inner, .. } => {
+            collect_portugol_rs_expression(inner, occurrences);
+        }
+        ExprKind::Binary { left, right, .. } => {
+            collect_portugol_rs_expression(left, occurrences);
+            collect_portugol_rs_expression(right, occurrences);
+        }
+        ExprKind::Integer(_)
+        | ExprKind::Real(_)
+        | ExprKind::Boolean(_)
+        | ExprKind::String(_)
+        | ExprKind::Character(_) => {}
+    }
+}
+
+fn locate_portugol_rs(
+    offset: u32,
+    index: &LineIndex<'_>,
+    bindings: &PortugolRsBindings,
+) -> Result<(portugol_hir::BindingId, String, Vec<portugol_hir::Span>), String> {
+    let selected = bindings
+        .occurrences
+        .iter()
+        .find(|occurrence| {
+            let start = index.position(occurrence.span.start).offset;
+            let end = index.position(occurrence.span.end).offset;
+            start <= offset && offset <= end
+        })
+        .ok_or("Posicione o cursor em um símbolo do programa.")?;
+    let declaration = bindings
+        .declarations
+        .get(selected.binding.0 as usize)
+        .ok_or("Não foi possível resolver o símbolo selecionado.")?;
+    let spans = bindings
+        .occurrences
+        .iter()
+        .filter(|occurrence| occurrence.binding == selected.binding)
+        .map(|occurrence| occurrence.span)
+        .collect();
+    Ok((selected.binding, declaration.source_name.clone(), spans))
+}
+
+pub fn rename_target_portugol_rs(source: &str, offset: u32) -> Result<RenameTarget, String> {
+    let bindings = portugol_rs_bindings(source)?;
+    let index = LineIndex::new(source);
+    let (_, name, spans) = locate_portugol_rs(offset, &index, &bindings)?;
+    Ok(RenameTarget {
+        name,
+        occurrences: spans.len(),
+    })
+}
+
+pub fn resolve_symbol_portugol_rs(source: &str, offset: u32) -> Result<SymbolLocation, String> {
+    let bindings = portugol_rs_bindings(source)?;
+    let index = LineIndex::new(source);
+    let (binding, _, _) = locate_portugol_rs(offset, &index, &bindings)?;
+    let declaration = &bindings.declarations[binding.0 as usize];
+    Ok(SymbolLocation {
+        start: index.position(declaration.span.start),
+        end: index.position(declaration.span.end),
+    })
+}
+
+pub fn rename_symbol_portugol_rs(
+    source: &str,
+    offset: u32,
+    name: &str,
+) -> Result<Vec<RenameEdit>, String> {
+    let probe = format!("funcao inicio() {{ seja {name}: inteiro = 1; }}");
+    if portugol_rs_frontend::lower(&probe).is_err() {
+        return Err("Digite um identificador válido do Portugol-RS.".into());
+    }
+
+    let old = portugol_rs_bindings(source)?;
+    let index = LineIndex::new(source);
+    let (binding, old_name, spans) = locate_portugol_rs(offset, &index, &old)?;
+    if name == old_name {
+        return Ok(Vec::new());
+    }
+
+    let mut updated = source.to_owned();
+    for span in spans.iter().rev() {
+        updated.replace_range(span.start as usize..span.end as usize, name);
+    }
+    let checked = portugol_rs_bindings(&updated).map_err(|_| {
+        "Esse nome entra em conflito com outro símbolo ou altera as referências.".to_string()
+    })?;
+    let old_signature: Vec<_> = old
+        .occurrences
+        .iter()
+        .map(|occurrence| occurrence.binding)
+        .collect();
+    let new_signature: Vec<_> = checked
+        .occurrences
+        .iter()
+        .map(|occurrence| occurrence.binding)
+        .collect();
+    if old_signature != new_signature
+        || !spans
+            .iter()
+            .any(|span| span == &old.declarations[binding.0 as usize].span)
+    {
+        return Err(
+            "Esse nome entra em conflito com outro símbolo ou altera as referências.".into(),
+        );
+    }
+
+    let mut edits: Vec<_> = spans
+        .into_iter()
+        .map(|span| RenameEdit {
+            from: index.position(span.start).offset,
+            to: index.position(span.end).offset,
+            insert: name.to_owned(),
+        })
+        .collect();
+    edits.sort_by_key(|edit| edit.from);
+    Ok(edits)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn portugol_rs_resolves_semantic_bindings_with_shadowing_and_utf16_offsets() {
+        let source = "funcao inicio() {\n    seja mutavel valor: inteiro = 1;\n    escreva(\"😀 valor\");\n    valor += 1;\n    se (verdadeiro) {\n        seja valor: inteiro = 2;\n        escreva(valor);\n    }\n    escreva(valor);\n}\n";
+        let outer_use = source.rfind("escreva(valor)").unwrap() + "escreva(".len();
+        let inner_use = source.find("escreva(valor)").unwrap() + "escreva(".len();
+        let as_utf16 = |byte_offset: usize| source[..byte_offset].encode_utf16().count() as u32;
+
+        let outer = resolve_symbol_portugol_rs(source, as_utf16(outer_use)).unwrap();
+        let inner = resolve_symbol_portugol_rs(source, as_utf16(inner_use)).unwrap();
+
+        assert_eq!(outer.start.offset, as_utf16(source.find("valor:").unwrap()));
+        assert_eq!(
+            inner.start.offset,
+            as_utf16(source.find("seja valor").unwrap() + "seja ".len())
+        );
+    }
+
+    #[test]
+    fn portugol_rs_rename_updates_only_the_selected_binding() {
+        let source = "funcao inicio() { seja mutavel valor: inteiro = 1; escreva(\"valor\"); valor += 1; se (verdadeiro) { seja valor: inteiro = 2; escreva(valor); } escreva(valor); }";
+        let cursor_byte = source.rfind("escreva(valor)").unwrap() + "escreva(".len();
+        let cursor = source[..cursor_byte].encode_utf16().count() as u32;
+
+        let target = rename_target_portugol_rs(source, cursor).unwrap();
+        let edits = rename_symbol_portugol_rs(source, cursor, "total").unwrap();
+
+        assert_eq!(target.name, "valor");
+        assert_eq!(target.occurrences, 3);
+        assert_eq!(edits.len(), 3);
+        assert!(edits.iter().all(|edit| edit.insert == "total"));
+    }
+
+    #[test]
+    fn portugol_rs_rename_rejects_capture_and_keeps_entry_function_name() {
+        let source = "funcao inicio() { seja mutavel valor: inteiro = 1; seja outro: inteiro = 2; escreva(valor, outro); }";
+        let value = source.find("valor:").unwrap() as u32;
+        let entry = source.find("inicio").unwrap() as u32;
+
+        assert!(rename_symbol_portugol_rs(source, value, "outro").is_err());
+        assert!(rename_target_portugol_rs(source, entry).is_err());
+    }
 
     #[test]
     fn resolve_symbol_returns_the_declaration_for_a_local_use() {

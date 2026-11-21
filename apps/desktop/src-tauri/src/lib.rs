@@ -213,8 +213,24 @@ fn rename_target(source: String, offset: u32) -> Result<portugol_service::Rename
 }
 
 #[tauri::command]
+fn rename_target_portugol_rs(
+    source: String,
+    offset: u32,
+) -> Result<portugol_service::RenameTarget, String> {
+    portugol_service::rename_target_portugol_rs(&source, offset)
+}
+
+#[tauri::command]
 fn resolve_symbol(source: String, offset: u32) -> Result<portugol_service::SymbolLocation, String> {
     portugol_service::resolve_symbol(&source, offset)
+}
+
+#[tauri::command]
+fn resolve_symbol_portugol_rs(
+    source: String,
+    offset: u32,
+) -> Result<portugol_service::SymbolLocation, String> {
+    portugol_service::resolve_symbol_portugol_rs(&source, offset)
 }
 
 #[tauri::command]
@@ -224,6 +240,15 @@ fn rename_symbol(
     name: String,
 ) -> Result<Vec<portugol_service::RenameEdit>, String> {
     portugol_service::rename_symbol(&source, offset, &name)
+}
+
+#[tauri::command]
+fn rename_symbol_portugol_rs(
+    source: String,
+    offset: u32,
+    name: String,
+) -> Result<Vec<portugol_service::RenameEdit>, String> {
+    portugol_service::rename_symbol_portugol_rs(&source, offset, &name)
 }
 
 #[derive(serde::Deserialize)]
@@ -395,8 +420,11 @@ pub fn run_app() {
             check_exercise,
             inspect_exercise,
             rename_target,
+            rename_target_portugol_rs,
             rename_symbol,
+            rename_symbol_portugol_rs,
             resolve_symbol,
+            resolve_symbol_portugol_rs,
             open_project_page,
             updates::check_updates,
             alerts::project_alerts,

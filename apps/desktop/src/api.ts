@@ -88,12 +88,18 @@ export const checkExercise = (id: number, source: string, contents?: string) =>
 
 export const renameTarget = (source: string, offset: number) =>
   invoke<{ name: string; occurrences: number }>("rename_target", { source, offset });
+export const renameTargetPortugolRs = (source: string, offset: number) =>
+  invoke<{ name: string; occurrences: number }>("rename_target_portugol_rs", { source, offset });
 
 export const renameSymbol = (source: string, offset: number, name: string) =>
   invoke<{ from: number; to: number; insert: string }[]>("rename_symbol", { source, offset, name });
+export const renameSymbolPortugolRs = (source: string, offset: number, name: string) =>
+  invoke<{ from: number; to: number; insert: string }[]>("rename_symbol_portugol_rs", { source, offset, name });
 
 export const resolveSymbol = (source: string, offset: number) =>
   invoke<SymbolLocation>("resolve_symbol", { source, offset });
+export const resolveSymbolPortugolRs = (source: string, offset: number) =>
+  invoke<SymbolLocation>("resolve_symbol_portugol_rs", { source, offset });
 
 export const openProjectPage = (page: "bug_report" | "releases" | "contribute") =>
   invoke<void>("open_project_page", { page });

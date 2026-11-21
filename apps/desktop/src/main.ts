@@ -38,6 +38,7 @@ import { panelContentId, panelNameForKey, type PanelName } from "./panel-tabs";
 import { calculateSidePaneMinimums, clampPaneSize, DEFAULT_PANE_LAYOUT, loadPaneLayout, normalizePaneLayout, resizePaneForKey, savePaneLayout, type PaneLayout } from "./pane-layout";
 import { LIBRARIES, portugol, portugolRs, SNIPPETS } from "./portugol";
 import { detectSourceLanguage, ensureSourceExtension, type SourceLanguage } from "./document-language";
+import { semanticSymbolLanguage } from "./semantic-symbol-actions";
 import { collectWorkspaceFiles, flattenWorkspaceEntries, workspaceFileKind, workspaceRenameFileName, workspaceSourceFileName, type WorkspaceEntry } from "./workspace-explorer";
 import { workspaceExportStatus } from "./workspace-export-state";
 import { applyWorkspaceRenameToTabs, deleteWorkspaceFileFlow, prepareWorkspaceRename } from "./workspace-file-actions";
@@ -457,9 +458,10 @@ function activate(id: number) {
 }
 
 function syncLanguageControls(tab: Tab) {
-  const pors = tab.language === "portugol-rs";
+  const semanticLanguage = semanticSymbolLanguage(tab.language);
+  const pors = semanticLanguage === "portugol-rs";
   const rustFile = tab.language === "rust";
-  const reason = rustFile ? "Execução Rust não configurada nesta versão." : "Disponível quando o Portugol-RS tiver execução e depuração integradas.";
+  const reason = rustFile ? "Execução Rust não configurada nesta versão." : "O Portugol-RS ainda não possui execução e depuração integradas.";
   for (const id of ["btn-run", "btn-debug", "btn-debug-pause", "btn-debug-continue", "btn-debug-step-over", "btn-debug-step-into", "btn-debug-step-out"]) {
     const button = $<HTMLButtonElement>(id);
     button.disabled = (pors || rustFile) || (id === "btn-debug-pause"
@@ -481,8 +483,8 @@ function syncLanguageControls(tab: Tab) {
   }
   for (const id of ["editor-definition", "editor-rename"]) {
     const button = $<HTMLButtonElement>(id);
-    button.disabled = pors || rustFile;
-    button.setAttribute("aria-description", rustFile ? "Navegação e renomeação de símbolos Rust ainda não estão implementadas." : pors ? "Navegação e renomeação Portugol-RS ainda não estão implementadas." : "");
+    button.disabled = rustFile;
+    button.setAttribute("aria-description", rustFile ? "Navegação e renomeação de símbolos Rust ainda não estão implementadas." : "");
   }
 }
 
@@ -2153,15 +2155,13 @@ function toggleCenterSource() {
 
 async function renameAt(offset: number) {
   const tab = activeTab();
-  if (!tab || (runTabId === tab.id && runId !== null)) return;
-  if (tab.language === "portugol-rs") {
-    setStatus("Renomeação semântica ainda não está disponível no Portugol-RS.");
-    return;
-  }
+  if (!tab || tab.language === "rust" || (runTabId === tab.id && runId !== null)) return;
   const doc = view.state.doc;
   const dialog = $<HTMLDialogElement>("rename");
   try {
-    const target = await api.renameTarget(doc.toString(), offset);
+    const target = semanticSymbolLanguage(tab.language) === "portugol-rs"
+      ? await api.renameTargetPortugolRs(doc.toString(), offset)
+      : await api.renameTarget(doc.toString(), offset);
     if (activeTab() !== tab || view.state.doc !== doc || document.querySelector("dialog[open]")) return;
 
     const form = $<HTMLFormElement>("rename-form");
@@ -2177,7 +2177,9 @@ async function renameAt(offset: number) {
       error.hidden = true;
       submit.disabled = true;
       try {
-        const changes = await api.renameSymbol(doc.toString(), offset, input.value.trim());
+        const changes = semanticSymbolLanguage(tab.language) === "portugol-rs"
+          ? await api.renameSymbolPortugolRs(doc.toString(), offset, input.value.trim())
+          : await api.renameSymbol(doc.toString(), offset, input.value.trim());
         if (!dialog.open || activeTab() !== tab || view.state.doc !== doc) return;
         if (changes.length) view.dispatch({ changes, annotations: isolateHistory.of("full"), userEvent: "input.rename" });
         dialog.close();
@@ -2201,16 +2203,16 @@ async function renameAt(offset: number) {
 async function goToDeclarationAt(offset: number, quiet = false) {
   const tab = activeTab();
   if (!tab) return;
-  if (tab.language !== "portugol") {
-    if (!quiet) setStatus(tab.language === "rust"
-      ? "Navegação de símbolos Rust ainda não está configurada."
-      : "Navegação semântica ainda não está disponível no Portugol-RS.");
+  if (tab.language === "rust") {
+    if (!quiet) setStatus("Navegação de símbolos Rust ainda não está configurada.");
     return;
   }
   const doc = view.state.doc;
   const request = ++definitionNavigationGeneration;
   try {
-    const location = await api.resolveSymbol(doc.toString(), offset);
+    const location = semanticSymbolLanguage(tab.language) === "portugol-rs"
+      ? await api.resolveSymbolPortugolRs(doc.toString(), offset)
+      : await api.resolveSymbol(doc.toString(), offset);
     if (request !== definitionNavigationGeneration || activeTab() !== tab || view.state.doc !== doc) return;
     view.dispatch({
       selection: { anchor: location.start.offset, head: location.end.offset },

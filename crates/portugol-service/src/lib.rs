@@ -25,7 +25,8 @@ pub use outline::{SymbolInfo, SymbolKind};
 pub use portugol_vm::{FileFilter, Host, Sound, graphics};
 pub use position::Position;
 pub use rename::{
-    RenameEdit, RenameTarget, SymbolLocation, rename_symbol, rename_target, resolve_symbol,
+    RenameEdit, RenameTarget, SymbolLocation, rename_symbol, rename_symbol_portugol_rs,
+    rename_target, rename_target_portugol_rs, resolve_symbol, resolve_symbol_portugol_rs,
 };
 pub use run::{
     DebugFrameInfo, DebugInfo, DebugVarInfo, RunHandle, RunObserver, RunOptions, RunOutcome, start,
