@@ -82,12 +82,14 @@ fn reports_unclosed_literals_and_comments_without_panicking() {
 }
 
 #[test]
-fn rejects_unimplemented_control_flow_with_a_diagnostic() {
-    let source = "funcao inicio() { enquanto (verdadeiro) {} }";
-    let diagnostics = lower(source).unwrap_err();
-    assert!(
-        diagnostics
-            .iter()
-            .any(|d| d.code == "pors.unsupported-construct")
-    );
+fn parses_while_loop_with_typed_condition_and_mutable_binding() {
+    let program = lower(
+        "funcao inicio() { seja mutavel i: inteiro = 0; enquanto (i < 3) { i += 1; } escreva(i); }",
+    )
+    .expect("enquanto deve gerar HIR tipada");
+    let StmtKind::While { condition, body } = &program.body[1].kind else {
+        panic!("esperava enquanto");
+    };
+    assert_eq!(condition.ty, Type::Boolean);
+    assert!(matches!(body[0].kind, StmtKind::Assign { .. }));
 }

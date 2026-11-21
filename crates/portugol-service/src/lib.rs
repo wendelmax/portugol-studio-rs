@@ -24,7 +24,9 @@ pub use exercises::{
     Exercise, ExerciseResult, check_exercise, check_imported_exercise, exercises, inspect_exercise,
 };
 pub use outline::{SymbolInfo, SymbolKind};
-pub use pors_run::{PortugolRsRunResult, run_portugol_rs, rust_toolchain_available};
+pub use pors_run::{
+    PortugolRsRunResult, PortugolRsRuntimeLimitReason, run_portugol_rs, rust_toolchain_available,
+};
 pub use portugol_vm::{FileFilter, Host, Sound, graphics};
 pub use position::Position;
 pub use rename::{

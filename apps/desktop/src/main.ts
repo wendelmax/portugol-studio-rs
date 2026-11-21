@@ -1618,6 +1618,15 @@ async function runProgram(pauseOnStart = false) {
             : `Programa Portugol-RS terminou com código ${result.exitCode ?? "desconhecido"}.`,
           result.exitCode === 0 ? "ok" : "error",
         );
+      } else if (result.status === "runtime_limit") {
+        if (result.stdout) appendConsole(result.stdout);
+        if (result.stderr) appendConsole(result.stderr, "error");
+        const descriptions = {
+          time: "tempo máximo de 3 segundos",
+          output: "limite de saída de 1 MiB",
+          string_memory: "limite de memória para cadeias de 16 MiB",
+        } as const;
+        setStatus(`Execução Portugol-RS interrompida: ${descriptions[result.reason]}.`, "error");
       } else {
         const diagnostics = result.diagnostics.map(sourceDiagnostic).filter((item): item is api.DiagnosticInfo => item !== null);
         tab.porsCompileDiagnostics = diagnostics;

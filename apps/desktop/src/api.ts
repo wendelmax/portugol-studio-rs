@@ -156,6 +156,12 @@ export type PortugolRsRunResult =
       status: "compile_error";
       diagnostics: PortugolRsCompileDiagnostic[];
       stderr: string;
+    }
+  | {
+      status: "runtime_limit";
+      stdout: string;
+      stderr: string;
+      reason: "time" | "output" | "string_memory";
     };
 export const rustToolchainAvailable = () => invoke<boolean>("rust_toolchain_available");
 export const runPortugolRs = (source: string) =>
