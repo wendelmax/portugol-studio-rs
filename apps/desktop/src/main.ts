@@ -49,6 +49,7 @@ import {
   type OwnershipBindingState,
   type OwnershipScenarioId,
 } from "./ownership-lab";
+import { filterCommands, isDebugCommandAvailable, nextCommandIndex } from "./command-palette";
 import * as api from "./api";
 
 const TEMPLATE = "programa\n{\n\tfuncao inicio()\n\t{\n\t\t\n\t}\n}\n";
@@ -2360,6 +2361,123 @@ function cycleTab(step: number) {
 
 const shortcutDialog = $<HTMLDialogElement>("shortcuts");
 
+const commandPalette = $<HTMLDialogElement>("command-palette");
+const commandSearch = $<HTMLInputElement>("command-search");
+const commandResults = $("command-results");
+const commandEmpty = $("command-empty");
+let paletteReturnFocus: HTMLElement | null = null;
+let paletteCommands: typeof shortcuts = [];
+let selectedCommandIndex = -1;
+
+const tabCommands = new Set([
+  "Executar", "Depurar", "Interromper", "Pausar", "Continuar", "Próxima instrução",
+  "Entrar na função", "Sair da função", "Renomear símbolo", "Formatar código-fonte",
+  "Salvar", "Salvar como", "Parâmetros de execução", "Fechar aba", "Fechar todas as abas", "Localizar e substituir",
+  "Buscar na estrutura", "Filtrar variável", "Filtrar vetor", "Filtrar matriz", "Filtrar função",
+  "Filtrar constante", "Mostrar todos os tipos", "Filtrar tipo inteiro", "Filtrar tipo caracter",
+  "Filtrar tipo real", "Filtrar tipo cadeia", "Filtrar tipo logico", "Filtrar tipo vazio",
+]);
+const rustUnsupportedCommands = new Set([
+  "Executar", "Depurar", "Interromper", "Pausar", "Continuar", "Próxima instrução",
+  "Entrar na função", "Sair da função", "Renomear símbolo", "Formatar código-fonte",
+  "Buscar na estrutura", "Filtrar variável", "Filtrar vetor", "Filtrar matriz", "Filtrar função",
+  "Filtrar constante", "Mostrar todos os tipos", "Filtrar tipo inteiro", "Filtrar tipo caracter",
+  "Filtrar tipo real", "Filtrar tipo cadeia", "Filtrar tipo logico", "Filtrar tipo vazio",
+]);
+const debugCommands = new Set([
+  "Depurar", "Interromper", "Pausar", "Continuar", "Próxima instrução", "Entrar na função", "Sair da função",
+]);
+
+function availablePaletteCommands() {
+  const tab = activeTab();
+  return shortcuts.filter(({ command }) => {
+    if (command === "Paleta de comandos") return false;
+    if (command === "Sobre (fora do editor); ir à declaração (no editor)") return false;
+    if (tabCommands.has(command) && !tab) return false;
+    if (tab?.language === "rust" && rustUnsupportedCommands.has(command)) return false;
+    if (debugCommands.has(command) && !isDebugCommandAvailable(command, tab?.language ?? null, runId !== null, paused !== null)) return false;
+    return true;
+  });
+}
+
+function renderCommandPalette() {
+  paletteCommands = filterCommands(availablePaletteCommands(), commandSearch.value);
+  selectedCommandIndex = paletteCommands.length > 0 ? Math.min(Math.max(selectedCommandIndex, 0), paletteCommands.length - 1) : -1;
+  commandResults.replaceChildren();
+  commandEmpty.hidden = paletteCommands.length > 0;
+  commandSearch.setAttribute("aria-expanded", "true");
+  for (const [index, item] of paletteCommands.entries()) {
+    const option = document.createElement("button");
+    option.type = "button";
+    option.className = "command-option";
+    option.id = `command-option-${index}`;
+    option.setAttribute("role", "option");
+    option.setAttribute("aria-selected", String(index === selectedCommandIndex));
+    const name = document.createElement("span");
+    name.textContent = item.command;
+    const shortcut = document.createElement("kbd");
+    shortcut.textContent = item.label;
+    option.append(name, shortcut);
+    option.addEventListener("mouseenter", () => {
+      selectedCommandIndex = index;
+      updateSelectedPaletteCommand();
+    });
+    option.addEventListener("click", () => executePaletteCommand(index));
+    commandResults.append(option);
+  }
+  updateSelectedPaletteCommand();
+}
+
+function updateSelectedPaletteCommand() {
+  for (const [index, option] of [...commandResults.querySelectorAll<HTMLElement>("[role=option]")].entries()) {
+    option.setAttribute("aria-selected", String(index === selectedCommandIndex));
+  }
+  const id = selectedCommandIndex >= 0 ? `command-option-${selectedCommandIndex}` : "";
+  if (id) commandSearch.setAttribute("aria-activedescendant", id);
+  else commandSearch.removeAttribute("aria-activedescendant");
+}
+
+function executePaletteCommand(index: number) {
+  const item = paletteCommands[index];
+  if (!item) return;
+  if (!availablePaletteCommands().includes(item)) {
+    renderCommandPalette();
+    return;
+  }
+  commandPalette.close();
+  void item.action();
+}
+
+function showCommandPalette() {
+  if (commandPalette.open) return;
+  paletteReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  commandSearch.value = "";
+  selectedCommandIndex = 0;
+  renderCommandPalette();
+  commandPalette.showModal();
+  commandSearch.focus();
+}
+
+commandSearch.addEventListener("input", () => {
+  selectedCommandIndex = 0;
+  renderCommandPalette();
+});
+commandSearch.addEventListener("keydown", (event) => {
+  if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+    event.preventDefault();
+    selectedCommandIndex = nextCommandIndex(paletteCommands.length, selectedCommandIndex, event.key);
+    updateSelectedPaletteCommand();
+  } else if (event.key === "Enter") {
+    event.preventDefault();
+    executePaletteCommand(selectedCommandIndex);
+  }
+});
+commandPalette.addEventListener("close", () => {
+  const focusTarget = paletteReturnFocus;
+  paletteReturnFocus = null;
+  if (focusTarget?.isConnected && !focusTarget.hasAttribute("disabled")) focusTarget.focus();
+});
+
 function showShortcuts() {
   if (!shortcutDialog.open) shortcutDialog.showModal();
 }
@@ -2402,6 +2520,8 @@ const shortcuts: {
     matches: (e) => e.shiftKey && e.key === "Pause", action: toggleCenterSource },
   { label: "Shift+Esc", command: "Expandir/restaurar editor",
     matches: (e) => e.shiftKey && e.key === "Escape", action: toggleExpanded },
+  { label: "Ctrl+Shift+P", command: "Paleta de comandos", matches: (e) =>
+    (e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.code === "KeyP", action: showCommandPalette },
 ];
 
 function fileShortcut(key: string, shift: boolean, command: string, action: () => unknown) {
@@ -2437,6 +2557,8 @@ fileShortcut("Q", true, "Fechar todas as abas", async () => {
   for (const tab of [...tabs]) if (!(await closeTab(tab.id))) return;
   if (helpOpen) await closeTab(helpId);
 });
+shortcuts.push({ label: "Ctrl+F", command: "Localizar e substituir", matches: (e) =>
+  (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === "KeyF", action: () => openSearchPanel(view) });
 
 for (const [key, ty] of Object.entries({ I: "inteiro", C: "caracter", R: "real", A: "cadeia", L: "logico", V: "vazio", T: "" })) {
   shortcuts.push({
@@ -2455,7 +2577,7 @@ for (const [key, kind] of Object.entries(symbolShortcuts)) {
   });
 }
 
-for (const { label, command } of [...shortcuts, { label: "Ctrl+F", command: "Localizar e substituir" }]) {
+for (const { label, command } of shortcuts) {
   const term = document.createElement("dt");
   const shortcut = document.createElement("kbd");
   const description = document.createElement("dd");
