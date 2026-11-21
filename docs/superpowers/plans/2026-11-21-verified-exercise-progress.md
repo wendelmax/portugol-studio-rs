@@ -38,12 +38,12 @@
 **Interfaces:**
 - Produces async `exerciseIdentity(id: number, contents?: string): Promise<string | null>`.
 - Produces async `sourceRevision(source: string): Promise<string | null>`.
-- Produces `createExerciseProgress(storage: StorageLike)` with `read()`, `record(identity, source, result)`, and `hasPassed(identity)`.
+- Produces `createExerciseProgress(storage?: StorageLike)` with `read()`, `record(identity, source, result)`, and `hasPassed(identity)`.
 
-- [ ] Write tests for stable built-in/imported identities, exact revision hashes, only complete real evaluations passing, failed attempts, malformed storage, and unavailable storage.
-- [ ] Run `cd apps/desktop && node --experimental-strip-types tests/exercise-progress.test.mjs`; confirm the missing module/API fails.
-- [ ] Implement the versioned local store with guarded WebCrypto and storage access; store metadata only.
-- [ ] Run the focused tests and confirm all pass.
+- [x] Write tests for stable built-in/imported identities, exact revision hashes, only complete real evaluations passing, failed attempts, malformed storage, and unavailable storage.
+- [x] Run `cd apps/desktop && node --experimental-strip-types tests/exercise-progress.test.mjs`; confirm the missing module/API fails.
+- [x] Implement the versioned local store with guarded WebCrypto and storage access; store metadata only.
+- [x] Run the focused tests and confirm all pass.
 
 ### Task 2: Connect real exercise grading
 
@@ -55,21 +55,21 @@
 
 **Interfaces:** consumes Task 1 store and the existing `ExerciseDocument` and `checkExercise` contract.
 
-- [ ] Add tests proving browse/open does not record, complete evaluation records the tested revision, partial evaluation is incomplete, and rejected grading records nothing.
-- [ ] Run the new focused tests and verify the integration assertions fail before implementation.
-- [ ] Record after `checkExercise` resolves; label the result with tested revision status and annotate completed built-in exercises in the catalog.
-- [ ] Keep user-facing language clear that completion applies to an evaluated revision; leave imported exercise identity distinct from catalog IDs.
-- [ ] Run focused tests and TypeScript build.
+- [x] Add tests proving complete evaluation records the tested revision, partial evaluation is incomplete, and rejected grading records nothing.
+- [x] Run the new focused tests and verify missing APIs/feedback assertions fail before implementation.
+- [x] Record after `checkExercise` resolves; label the result with tested revision status and annotate completed built-in exercises in the catalog.
+- [x] Keep user-facing language clear that completion applies to an evaluated revision; leave imported exercise identity distinct from catalog IDs.
+- [x] Run focused tests and TypeScript build.
 
 ### Task 3: Full verification and traceability
 
 **Files:**
 - Modify: `docs/PARIDADE.md`
-- Modify: `docs/superpowers/specs/2026-11-21-verified-exercise-progress-design.md`
+- Modify: `docs/superpowers/plans/2026-11-21-verified-exercise-progress.md`
 
-- [ ] Update parity notes to distinguish existing auto-grading from the new validated local progress.
-- [ ] Run `cd apps/desktop && npm test`.
-- [ ] Run `cd apps/desktop && npm run build`.
-- [ ] Run `cargo test --workspace`.
-- [ ] Run `cargo clippy --workspace --all-targets -- -D warnings`.
-- [ ] Review changed files and commit the feature.
+- [x] Update parity notes to distinguish existing auto-grading from the new validated local progress.
+- [x] Run `cd apps/desktop && npm test` (4 test files pass).
+- [x] Run `cd apps/desktop && npm run build` (TypeScript and Vite pass).
+- [ ] Run `cargo test --workspace`; local run is blocked while compiling Tauri by missing `webkit2gtk-4.1` and `javascriptcoregtk-4.1` development libraries. `cargo test --workspace --exclude portugol-desktop` passed all remaining Rust tests after enabling the test's loopback listener.
+- [ ] Run `cargo clippy --workspace --all-targets -- -D warnings`; local run is blocked by the same missing WebKitGTK development library. `cargo clippy --workspace --exclude portugol-desktop --all-targets -- -D warnings` passed.
+- [x] Review changed files and commit the feature documentation; CI remains the gate for full workspace validation.

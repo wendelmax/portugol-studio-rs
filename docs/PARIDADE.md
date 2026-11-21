@@ -63,7 +63,7 @@ são executados e validados sem tela.
 | Renomear símbolo (`TelaRenomearSimbolo`) | ✅ | Ctrl+R, menu do editor e duplo clique na árvore; análise de escopo e verificação de conflitos |
 | Dobras de código | ✅ | blocos aninhados e comentários de várias linhas, com marcadores no cabeçalho |
 | Formatador de código (`editor/formatador`) | ✅ | opções do editor e Ctrl+Alt+F, com alterações de espaço e desfazer em uma etapa |
-| Exercícios com correção automática (`assets/exercicios`, módulo `checker`) | ✅ | 54 exercícios originais, arquivos `.pex` externos, correção dinâmica tipada e seis regras estáticas opcionais |
+| Exercícios com correção automática e progresso validado (`assets/exercicios`, módulo `checker`) | ✅ | 54 exercícios originais, arquivos `.pex` externos e seis regras estáticas opcionais. Conclusões locais só são registradas quando todos os casos reais passam e ficam vinculadas ao hash da revisão avaliada; abrir/executar não registra progresso. |
 | Tamanho da fonte do editor | ✅ | ajuste de 10 a 50, salvo localmente |
 | Dicas de interface (`TelaDicas`) | ✅ | 18 dicas do original, F3, setas, acesso ao editor de temas e opção de mostrar ao iniciar |
 | Sobre / licenças (`Sobre`, `TelaLicencas`) | ✅ | diálogo F12, versão, origem e texto da licença |
