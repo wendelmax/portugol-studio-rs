@@ -1075,6 +1075,48 @@ const aboutDialog = $<HTMLDialogElement>("about");
 const reportDialog = $<HTMLDialogElement>("report");
 const reportError = $("report-error");
 $("home-about").onclick = () => aboutDialog.showModal();
+const updates = $<HTMLDialogElement>("updates");
+const updateStatus = $("update-status");
+const updateNotes = $("update-notes");
+const updateDownload = $<HTMLButtonElement>("update-download");
+let updateRequest = 0;
+$("about-updates").onclick = async () => {
+  const request = ++updateRequest;
+  updateNotes.hidden = true;
+  updateDownload.textContent = "Ver versões no GitHub";
+  updateStatus.textContent = "Verificando atualizações…";
+  $("update-error").hidden = true;
+  updates.showModal();
+  try {
+    const result = await api.checkUpdates();
+    if (request !== updateRequest) return;
+    if (result.status === "available") {
+      updateStatus.textContent = `Versão ${result.latest} disponível. Versão instalada ${result.current}.`;
+      updateNotes.textContent = result.notes;
+      updateNotes.hidden = !result.notes;
+      updateDownload.textContent = "Baixar atualização";
+    } else if (result.status === "current") {
+      updateStatus.textContent = `O Portugol Studio RS ${result.current} está atualizado.`;
+    } else {
+      updateStatus.textContent = "Ainda não há uma versão estável publicada no GitHub.";
+    }
+  } catch (message) {
+    if (request === updateRequest) {
+      updateStatus.textContent = typeof message === "string" ? message : "Não foi possível verificar atualizações.";
+    }
+  }
+};
+updateDownload.onclick = async () => {
+  updateDownload.disabled = true;
+  $("update-error").hidden = true;
+  try {
+    await api.openProjectPage("releases");
+  } catch {
+    $("update-error").hidden = false;
+  } finally {
+    updateDownload.disabled = false;
+  }
+};
 $("home-alerts").onclick = () => $<HTMLDialogElement>("alerts").showModal();
 $("about-report").onclick = () => {
   reportError.hidden = true;
@@ -1085,7 +1127,7 @@ $("report-open").onclick = async () => {
   button.disabled = true;
   reportError.hidden = true;
   try {
-    await api.openBugReport();
+    await api.openProjectPage("bug_report");
     reportDialog.close();
   } catch {
     reportError.textContent = "Não foi possível abrir o navegador. Use github.com/wendelmax/portugol-studio-rs/issues/new.";

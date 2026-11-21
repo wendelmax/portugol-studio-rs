@@ -82,7 +82,15 @@ export const renameTarget = (source: string, offset: number) =>
 export const renameSymbol = (source: string, offset: number, name: string) =>
   invoke<{ from: number; to: number; insert: string }[]>("rename_symbol", { source, offset, name });
 
-export const openBugReport = () => invoke<void>("open_bug_report");
+export const openProjectPage = (page: "bug_report" | "releases") =>
+  invoke<void>("open_project_page", { page });
+
+type UpdateInfo =
+  | { status: "available"; current: string; latest: string; notes: string }
+  | { status: "current"; current: string; latest: string }
+  | { status: "unpublished"; current: string };
+
+export const checkUpdates = () => invoke<UpdateInfo>("check_updates");
 
 export const inspect = (source: string) => invoke<Inspection>("inspect", { source });
 

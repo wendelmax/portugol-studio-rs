@@ -2641,11 +2641,13 @@ version = "0.1.0"
 dependencies = [
  "portugol-service",
  "rodio",
+ "semver",
  "serde",
  "serde_json",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",
+ "ureq",
 ]
 
 [[package]]

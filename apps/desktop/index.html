@@ -291,6 +291,17 @@
       </div>
     </dialog>
 
+    <dialog id="updates" aria-labelledby="update-title">
+      <h2 id="update-title">Atualizações</h2>
+      <p id="update-status" role="status"></p>
+      <pre id="update-notes" hidden></pre>
+      <p id="update-error" role="status" hidden>Não foi possível abrir o navegador. Use github.com/wendelmax/portugol-studio-rs/releases.</p>
+      <div class="dialog-actions">
+        <button id="update-download">Ver versões no GitHub</button>
+        <form method="dialog"><button>Fechar</button></form>
+      </div>
+    </dialog>
+
     <dialog id="about" aria-labelledby="about-title">
       <h2 id="about-title">Sobre o Portugol Studio RS</h2>
       <p id="about-version"></p>
@@ -300,6 +311,7 @@
         <pre id="about-license"></pre>
       </details>
       <div class="dialog-actions">
+        <button id="about-updates">Verificar atualizações</button>
         <button id="about-report">Relatar bug</button>
         <form method="dialog"><button>Fechar</button></form>
       </div>
