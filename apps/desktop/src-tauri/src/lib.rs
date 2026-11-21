@@ -146,6 +146,11 @@ fn inspect(source: String) -> portugol_service::Inspection {
     portugol_service::inspect(&source)
 }
 
+#[tauri::command]
+fn format_source(source: String) -> Option<Vec<portugol_service::FormatEdit>> {
+    portugol_service::format_source(&source)
+}
+
 /// Inicia uma execução, parando a anterior se ainda estiver rodando.
 #[tauri::command]
 fn run(
@@ -262,6 +267,7 @@ pub fn run_app() {
         .invoke_handler(tauri::generate_handler![
             check,
             inspect,
+            format_source,
             run,
             send_input,
             stop,

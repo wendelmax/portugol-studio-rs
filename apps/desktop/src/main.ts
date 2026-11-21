@@ -14,7 +14,7 @@ import {
   EditorView, GutterMarker, gutter, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter,
   drawSelection, highlightSpecialChars, Decoration, type DecorationSet,
 } from "@codemirror/view";
-import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
+import { defaultKeymap, history, historyKeymap, indentWithTab, isolateHistory } from "@codemirror/commands";
 import {
   syntaxHighlighting, HighlightStyle, bracketMatching, indentOnInput, foldGutter, foldKeymap,
 } from "@codemirror/language";
@@ -830,6 +830,25 @@ function centerCode() {
   }
 }
 
+async function formatCode() {
+  const tab = activeTab();
+  if (!tab || (runTabId === tab.id && runId !== null)) return;
+  const doc = view.state.doc;
+  try {
+    const changes = await api.formatSource(doc.toString());
+    if (activeTab() !== tab || view.state.doc !== doc) return;
+    if (!changes) {
+      setStatus("Não foi possível formatar. Confira a sintaxe do programa.", "error");
+      return;
+    }
+    if (changes.length) view.dispatch({ changes, annotations: isolateHistory.of("full"), userEvent: "input.format" });
+    setStatus(changes.length ? "Código formatado." : "O código já está formatado.", "ok");
+    view.focus();
+  } catch {
+    if (activeTab() === tab) setStatus("Não foi possível executar o formatador.", "error");
+  }
+}
+
 function editorMenuAction(id: string, action: () => unknown) {
   $(id).onclick = () => {
     editorOptions.open = false;
@@ -837,6 +856,7 @@ function editorMenuAction(id: string, action: () => unknown) {
   };
 }
 editorMenuAction("editor-search", () => openSearchPanel(view));
+editorMenuAction("editor-format", formatCode);
 editorMenuAction("editor-center", centerCode);
 editorMenuAction("editor-expand", toggleExpanded);
 editorMenuAction("btn-utilities", toggleUtilities);
@@ -908,6 +928,8 @@ const shortcuts: {
   { label: "Shift+F11", command: "Sair da função", matches: (e) => e.shiftKey && e.key === "F11",
     action: () => debugCommand(api.debugStepOut) },
   { label: "F1", command: "Ajuda", matches: (e) => e.key === "F1", action: () => activate(helpId) },
+  { label: "Ctrl+Alt+F", command: "Formatar código-fonte",
+    matches: (e) => (e.ctrlKey || e.metaKey) && e.altKey && !e.shiftKey && e.code === "KeyF", action: formatCode },
   { label: "F3", command: "Dicas de interface", matches: (e) => e.key === "F3", action: () => tips.open() },
   { label: "F12", command: "Sobre", matches: (e) => e.key === "F12", action: () =>
     $<HTMLDialogElement>("about").showModal() },
