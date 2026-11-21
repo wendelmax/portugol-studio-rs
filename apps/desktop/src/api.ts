@@ -164,6 +164,11 @@ export interface WorkspaceDeleteResult {
   file: { path: string; relativePath: string };
 }
 
+export interface WorkspaceExportResult {
+  projectName: string;
+  fileCount: number;
+}
+
 export const openWorkspace = () => invoke<WorkspaceListing | null>("workspace_open");
 export const restoreWorkspace = () => invoke<WorkspaceListing | null>("workspace_restore");
 export const readWorkspaceFile = (workspaceId: string, relativePath: string) =>
@@ -176,6 +181,8 @@ export const renameWorkspaceFile = (workspaceId: string, relativePath: string, n
   invoke<WorkspaceRenameResult>("workspace_rename_file", { workspaceId, relativePath, newName });
 export const deleteWorkspaceFile = (workspaceId: string, relativePath: string) =>
   invoke<WorkspaceDeleteResult>("workspace_delete_file", { workspaceId, relativePath });
+export const exportWorkspaceFiles = (workspaceId: string, relativePaths: string[]) =>
+  invoke<WorkspaceExportResult | null>("workspace_export", { workspaceId, relativePaths });
 
 export type CatalogEntry =
   | { kind: "folder"; name: string; entries: CatalogEntry[] }

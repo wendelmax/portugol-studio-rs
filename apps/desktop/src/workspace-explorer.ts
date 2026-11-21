@@ -2,6 +2,17 @@ export type WorkspaceEntry =
   | { kind: "folder"; name: string; path: string; entries: WorkspaceEntry[] }
   | { kind: "file"; name: string; path: string };
 
+export type WorkspaceFileEntry = Extract<WorkspaceEntry, { kind: "file" }>;
+
+export function collectWorkspaceFiles(entries: readonly WorkspaceEntry[]): WorkspaceFileEntry[] {
+  const files: WorkspaceFileEntry[] = [];
+  for (const entry of entries) {
+    if (entry.kind === "file") files.push(entry);
+    else files.push(...collectWorkspaceFiles(entry.entries));
+  }
+  return files;
+}
+
 export function flattenWorkspaceEntries(
   entries: WorkspaceEntry[],
   expanded: ReadonlySet<string> = new Set(),

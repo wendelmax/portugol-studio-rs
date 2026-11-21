@@ -38,7 +38,8 @@ import { panelContentId, panelNameForKey, type PanelName } from "./panel-tabs";
 import { calculateSidePaneMinimums, clampPaneSize, DEFAULT_PANE_LAYOUT, loadPaneLayout, normalizePaneLayout, resizePaneForKey, savePaneLayout, type PaneLayout } from "./pane-layout";
 import { LIBRARIES, portugol, portugolRs, SNIPPETS } from "./portugol";
 import { detectSourceLanguage, ensureSourceExtension, type SourceLanguage } from "./document-language";
-import { flattenWorkspaceEntries, workspaceFileKind, workspaceRenameFileName, workspaceSourceFileName, type WorkspaceEntry } from "./workspace-explorer";
+import { collectWorkspaceFiles, flattenWorkspaceEntries, workspaceFileKind, workspaceRenameFileName, workspaceSourceFileName, type WorkspaceEntry } from "./workspace-explorer";
+import { workspaceExportStatus } from "./workspace-export-state";
 import { applyWorkspaceRenameToTabs, deleteWorkspaceFileFlow, prepareWorkspaceRename } from "./workspace-file-actions";
 import { conceptsForMode, resolveConceptForMode } from "./learning-content";
 import { loadLearningMode, saveLearningMode, type LearningMode } from "./learning-mode";
@@ -580,6 +581,7 @@ const FILTERS = [{ name: "Programas", extensions: ["por", "pors", "rs"] }];
 
 let workspaceError: string | null = null;
 let workspaceFileCreationPending = false;
+let workspaceExportPending = false;
 let workspaceRenameTarget: Extract<WorkspaceEntry, { kind: "file" }> | null = null;
 let workspaceRenamePending = false;
 let workspaceDeleteTarget: Extract<WorkspaceEntry, { kind: "file" }> | null = null;
@@ -602,6 +604,7 @@ function renderWorkspaceExplorer() {
   const name = $("workspace-name");
   const openButtons = [$<HTMLButtonElement>("home-open-folder"), $<HTMLButtonElement>("workspace-open-folder")];
   openButtons.forEach((button) => { button.disabled = workspaceLoading; });
+  $<HTMLButtonElement>("workspace-export").disabled = !workspaceState || workspaceLoading || workspaceExportPending;
   $<HTMLButtonElement>("workspace-new-file").disabled = !workspaceState || workspaceLoading;
   name.hidden = !workspaceState;
   name.textContent = workspaceState?.name ?? "";
@@ -1053,6 +1056,97 @@ function openWorkspaceCreateDialog() {
   $("workspace-create-name").focus();
 }
 
+function updateWorkspaceExportSelection() {
+  const selectedCount = document.querySelectorAll<HTMLInputElement>("#workspace-export-files input:checked").length;
+  document.querySelectorAll<HTMLInputElement>("#workspace-export-files input").forEach((input) => {
+    input.disabled = workspaceExportPending;
+  });
+  const submit = $<HTMLButtonElement>("workspace-export-submit");
+  submit.disabled = workspaceExportPending || selectedCount === 0;
+  $<HTMLButtonElement>("workspace-export-select-all").disabled = workspaceExportPending;
+  $<HTMLButtonElement>("workspace-export-select-none").disabled = workspaceExportPending;
+  $<HTMLButtonElement>("workspace-export-cancel").disabled = workspaceExportPending;
+  if (!workspaceExportPending) $("workspace-export-status").textContent = workspaceExportStatus(selectedCount);
+}
+
+function renderWorkspaceExportSelection() {
+  const files = collectWorkspaceFiles(workspaceState?.entries ?? []);
+  const list = $("workspace-export-files");
+  list.replaceChildren();
+  for (const [index, entry] of files.entries()) {
+    const label = document.createElement("label");
+    label.className = "workspace-export-file";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = entry.path;
+    checkbox.checked = true;
+    checkbox.id = `workspace-export-file-${index}`;
+    checkbox.addEventListener("change", updateWorkspaceExportSelection);
+    const name = document.createElement("span");
+    name.textContent = entry.path;
+    label.htmlFor = checkbox.id;
+    label.append(checkbox, name);
+    list.append(label);
+  }
+  $("workspace-export-empty").hidden = files.length > 0;
+  $<HTMLButtonElement>("workspace-export-select-all").hidden = files.length === 0;
+  $<HTMLButtonElement>("workspace-export-select-none").hidden = files.length === 0;
+  updateWorkspaceExportSelection();
+}
+
+function openWorkspaceExportDialog() {
+  if (!workspaceState || workspaceExportPending) return;
+  $("workspace-export-error").hidden = true;
+  $("workspace-export-error").textContent = "";
+  renderWorkspaceExportSelection();
+  const dialog = $<HTMLDialogElement>("workspace-export-dialog");
+  dialog.showModal();
+  document.querySelector<HTMLInputElement>("#workspace-export-files input")?.focus();
+}
+
+async function submitWorkspaceExport() {
+  const workspace = workspaceState;
+  if (!workspace || workspaceExportPending) return;
+  const relativePaths = [...document.querySelectorAll<HTMLInputElement>("#workspace-export-files input:checked")]
+    .map((input) => input.value);
+  const error = $("workspace-export-error");
+  error.hidden = true;
+  error.textContent = "";
+  if (relativePaths.length === 0) {
+    error.textContent = "Selecione ao menos um arquivo para exportar.";
+    error.hidden = false;
+    return;
+  }
+
+  workspaceExportPending = true;
+  $("workspace-export-dialog").setAttribute("aria-busy", "true");
+  $("workspace-export-status").textContent = "Escolha uma pasta de destino no seletor do sistema…";
+  updateWorkspaceExportSelection();
+  renderWorkspaceExplorer();
+  let cancelled = false;
+  try {
+    const result = await api.exportWorkspaceFiles(workspace.id, relativePaths);
+    if (!result) {
+      cancelled = true;
+      return;
+    }
+    $<HTMLDialogElement>("workspace-export-dialog").close();
+    setStatus(`${result.fileCount} ${result.fileCount === 1 ? "arquivo exportado" : "arquivos exportados"} para a pasta “${result.projectName}”.`, "ok");
+  } catch (message) {
+    error.textContent = typeof message === "string" ? message : String(message);
+    error.hidden = false;
+  } finally {
+    workspaceExportPending = false;
+    $("workspace-export-dialog").removeAttribute("aria-busy");
+    updateWorkspaceExportSelection();
+    if (cancelled) {
+      const selectedCount = document.querySelectorAll<HTMLInputElement>("#workspace-export-files input:checked").length;
+      $("workspace-export-status").textContent = workspaceExportStatus(selectedCount, "cancelled");
+    }
+    renderWorkspaceExplorer();
+  }
+}
+
 async function submitWorkspaceCreateDialog(event: SubmitEvent) {
   event.preventDefault();
   const selected = workspaceState;
@@ -1109,6 +1203,20 @@ async function submitWorkspaceCreateDialog(event: SubmitEvent) {
 
 $("home-open-folder").onclick = () => void openWorkspaceFolder();
 $("workspace-open-folder").onclick = () => void openWorkspaceFolder();
+$("workspace-export").onclick = openWorkspaceExportDialog;
+$("workspace-export-select-all").onclick = () => {
+  document.querySelectorAll<HTMLInputElement>("#workspace-export-files input").forEach((input) => { input.checked = true; });
+  updateWorkspaceExportSelection();
+};
+$("workspace-export-select-none").onclick = () => {
+  document.querySelectorAll<HTMLInputElement>("#workspace-export-files input").forEach((input) => { input.checked = false; });
+  updateWorkspaceExportSelection();
+};
+$("workspace-export-submit").onclick = () => void submitWorkspaceExport();
+$<HTMLButtonElement>("workspace-export-cancel").onclick = () => $<HTMLDialogElement>("workspace-export-dialog").close();
+$<HTMLDialogElement>("workspace-export-dialog").addEventListener("cancel", (event) => {
+  if (workspaceExportPending) event.preventDefault();
+});
 $("workspace-new-file").onclick = openWorkspaceCreateDialog;
 $("workspace-create-form").addEventListener("submit", (event) => void submitWorkspaceCreateDialog(event as SubmitEvent));
 $("workspace-create-dialog").addEventListener("cancel", (event) => {
