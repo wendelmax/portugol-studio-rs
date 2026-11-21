@@ -20,6 +20,8 @@ mod audio;
 mod catalog;
 mod graphics;
 
+mod updates;
+
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -180,24 +182,34 @@ fn rename_symbol(
     portugol_service::rename_symbol(&source, offset, &name)
 }
 
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum ProjectPage {
+    BugReport,
+    Releases,
+}
+
 #[tauri::command]
-async fn open_bug_report() -> Result<(), String> {
-    const URL: &str = "https://github.com/wendelmax/portugol-studio-rs/issues/new";
+async fn open_project_page(page: ProjectPage) -> Result<(), String> {
+    let url = match page {
+        ProjectPage::BugReport => "https://github.com/wendelmax/portugol-studio-rs/issues/new",
+        ProjectPage::Releases => "https://github.com/wendelmax/portugol-studio-rs/releases",
+    };
     let mut command;
     #[cfg(target_os = "linux")]
     {
         command = std::process::Command::new("xdg-open");
-        command.arg(URL);
+        command.arg(url);
     }
     #[cfg(target_os = "macos")]
     {
         command = std::process::Command::new("open");
-        command.arg(URL);
+        command.arg(url);
     }
     #[cfg(target_os = "windows")]
     {
         command = std::process::Command::new("rundll32.exe");
-        command.args(["url.dll,FileProtocolHandler", URL]);
+        command.args(["url.dll,FileProtocolHandler", url]);
     }
     let status = tauri::async_runtime::spawn_blocking(move || command.status())
         .await
@@ -331,7 +343,8 @@ pub fn run_app() {
             check_exercise,
             rename_target,
             rename_symbol,
-            open_bug_report,
+            open_project_page,
+            updates::check_updates,
             run,
             send_input,
             stop,

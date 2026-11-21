@@ -1357,3 +1357,15 @@ body {
   align-self: start;
   margin-block-start: 6px;
 }
+
+
+#updates {
+  width: min(550px, calc(100% - 24px));
+}
+
+#update-notes {
+  max-height: 40vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  font: inherit;
+}
