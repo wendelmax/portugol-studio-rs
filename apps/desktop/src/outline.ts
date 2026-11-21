@@ -18,6 +18,7 @@ export function mountOutline(jump: (offset: number) => void, rename: (offset: nu
   const filter = document.querySelector<HTMLInputElement>("#outline-search")!;
   const type = document.querySelector<HTMLSelectElement>("#outline-type")!;
   const kind = document.querySelector<HTMLSelectElement>("#outline-kind")!;
+  const options = document.querySelector<HTMLDetailsElement>("#outline-options")!;
   const tree = document.querySelector<HTMLUListElement>("#outline-tree")!;
   const empty = document.querySelector<HTMLElement>("#outline-empty")!;
   let symbols: SymbolInfo[] = [];
@@ -82,6 +83,7 @@ export function mountOutline(jump: (offset: number) => void, rename: (offset: nu
     const query = normalize(filter.value.trim());
     const entries = symbols.flatMap((symbol) => entry(symbol, query) ?? []);
     tree.replaceChildren(...entries);
+    options.classList.toggle("has-filters", Boolean(type.value || kind.value));
     empty.hidden = Boolean(entries.length);
     empty.textContent = symbols.length ? "Nenhum símbolo encontrado." : "O programa ainda não tem símbolos.";
   }

@@ -106,7 +106,7 @@
               <button id="editor-exercise" hidden>Corrigir solução</button>
               <button id="editor-rename">Renomear símbolo</button>
               <button id="editor-format">Formatar código-fonte</button>
-              <button id="editor-center">Centralizar código-fonte</button>
+              <button id="editor-center" aria-pressed="false" title="Shift+Pause">Centralizar código-fonte</button>
               <button id="editor-expand">Expandir ou restaurar</button>
               <button id="btn-utilities" title="Ctrl+B" aria-controls="utilities" aria-expanded="false">Painel Utilitários</button>
               <label class="args" for="args">Parâmetros de execução
@@ -176,10 +176,15 @@
           <div id="utilities-models" role="tabpanel" aria-labelledby="utilities-models-tab" hidden></div>
         </section>
         <section class="outline" aria-label="Árvore estrutural">
-          <input id="outline-search" type="search" placeholder="Localizar (Ctrl+L)" aria-label="Buscar na estrutura (Ctrl+L)" />
-          <div class="outline-filters">
-            <select id="outline-type" aria-label="Tipo de dado"><option value="">Todos os tipos</option></select>
-            <select id="outline-kind" aria-label="Tipo de símbolo"><option value="">Todos os símbolos</option></select>
+          <div class="outline-heading">
+            <input id="outline-search" type="search" placeholder="Localizar (Ctrl+L)" aria-label="Buscar na estrutura (Ctrl+L)" />
+            <details id="outline-options" class="options">
+              <summary title="Filtros da estrutura" aria-label="Filtros da estrutura"><span data-icon="pequeno/gear_in"></span></summary>
+              <div class="options-menu">
+                <label>Tipo de dado <select id="outline-type"><option value="">Todos os tipos</option></select></label>
+                <label>Tipo de símbolo <select id="outline-kind"><option value="">Todos os símbolos</option></select></label>
+              </div>
+            </details>
           </div>
           <div class="outline-results">
             <ul id="outline-tree"></ul>

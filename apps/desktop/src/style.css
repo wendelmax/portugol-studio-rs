@@ -977,7 +977,6 @@ dialog h2 {
 }
 
 .utilities header,
-.outline-filters,
 .outline-row,
 .outline-symbol {
   display: flex;
@@ -1016,9 +1015,24 @@ dialog h2 {
   gap: 6px;
 }
 
-.outline-filters select {
+.outline-heading {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.outline-heading > input {
+  flex: 1;
   min-width: 0;
-  max-width: 50%;
+}
+
+#outline-options {
+  position: relative;
+}
+
+#outline-options.has-filters > summary,
+#editor-center[aria-pressed="true"] {
+  box-shadow: inset 0 -2px var(--accent);
 }
 
 .outline-results,
