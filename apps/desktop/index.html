@@ -67,6 +67,7 @@
         <header class="workspace-explorer-header">
           <h2 id="workspace-title">Explorador</h2>
           <div class="workspace-explorer-actions">
+            <button id="workspace-export" title="Exportar arquivos do projeto localmente" aria-label="Exportar projeto" disabled>⇧</button>
             <button id="workspace-new-file" title="Novo arquivo .por, .pors ou .rs" aria-label="Novo arquivo" disabled>＋</button>
             <button id="workspace-open-folder" title="Abrir outra pasta" aria-label="Abrir outra pasta"><span data-icon="pequeno/folder_closed"></span></button>
           </div>
@@ -359,6 +360,23 @@
           <button id="workspace-create-cancel" type="button">Cancelar</button>
         </div>
       </form>
+    </dialog>
+
+    <dialog id="workspace-export-dialog" aria-labelledby="workspace-export-title" aria-describedby="workspace-export-description">
+      <h2 id="workspace-export-title">Exportar projeto</h2>
+      <p id="workspace-export-description">Cópia local: escolha os arquivos que deseja copiar para uma nova pasta. O projeto original não será alterado.</p>
+      <div class="workspace-export-selection-actions">
+        <button id="workspace-export-select-all" type="button">Selecionar todos</button>
+        <button id="workspace-export-select-none" type="button">Limpar seleção</button>
+      </div>
+      <div id="workspace-export-files" role="group" aria-label="Arquivos para exportar"></div>
+      <p id="workspace-export-empty" role="status" hidden>Nenhum arquivo compatível neste projeto.</p>
+      <p id="workspace-export-status" role="status" aria-live="polite"></p>
+      <p id="workspace-export-error" role="alert" aria-live="assertive" hidden></p>
+      <div class="dialog-actions">
+        <button id="workspace-export-submit" type="button" disabled>Exportar selecionados</button>
+        <button id="workspace-export-cancel" type="button">Cancelar</button>
+      </div>
     </dialog>
 
     <dialog id="workspace-rename-dialog" aria-labelledby="workspace-rename-title">

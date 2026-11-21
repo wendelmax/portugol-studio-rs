@@ -1,8 +1,9 @@
 #[cfg(test)]
 mod tests {
     use super::{
-        WorkspaceEntry, create_source_file, delete_relative_file, list_entries, read_relative_file,
-        rename_relative_file, restore_saved_workspace, save_last_workspace,
+        WorkspaceEntry, copy_selected_files, copy_selected_files_with_hook, create_source_file,
+        delete_relative_file, list_entries, read_relative_file, rename_relative_file,
+        restore_saved_workspace, save_last_workspace,
     };
     use std::fs;
     use std::path::Path;
@@ -77,6 +78,122 @@ mod tests {
         let content = read_relative_file(&temp.0, Path::new("aula/programa.por")).unwrap();
 
         assert_eq!(content, "escreva(42)");
+    }
+
+    #[test]
+    fn exports_selected_supported_files_and_preserves_relative_paths() {
+        let source = TempDir::new();
+        let destination = TempDir::new();
+        let root = source.0.join("Minha Aula");
+        fs::create_dir_all(root.join("Aulas/Nível 1")).unwrap();
+        fs::write(root.join("Aulas/Nível 1/inicio.por"), "escreva(42)").unwrap();
+        fs::write(root.join("Aulas/atividade.pex"), "{\"id\":1}").unwrap();
+        fs::write(root.join("ponte.pors"), "funcao inicio() {}").unwrap();
+        fs::write(root.join("ignorar.rs"), "fn main() {} ").unwrap();
+        fs::write(root.join("notas.txt"), "não exportar").unwrap();
+
+        let result = copy_selected_files(
+            &root,
+            &destination.0,
+            &[
+                "Aulas/Nível 1/inicio.por".into(),
+                "Aulas/atividade.pex".into(),
+                "ponte.pors".into(),
+                "ponte.pors".into(),
+            ],
+        )
+        .unwrap();
+
+        let exported = destination.0.join("Minha Aula");
+        assert_eq!(result.project_name, "Minha Aula");
+        assert_eq!(result.file_count, 3);
+        assert_eq!(
+            fs::read_to_string(exported.join("Aulas/Nível 1/inicio.por")).unwrap(),
+            "escreva(42)"
+        );
+        assert_eq!(
+            fs::read_to_string(exported.join("Aulas/atividade.pex")).unwrap(),
+            "{\"id\":1}"
+        );
+        assert_eq!(
+            fs::read_to_string(exported.join("ponte.pors")).unwrap(),
+            "funcao inicio() {}"
+        );
+        assert!(!exported.join("ignorar.rs").exists());
+        assert!(root.join("notas.txt").exists());
+    }
+
+    #[test]
+    fn removes_partial_export_when_copy_fails_midway() {
+        let source = TempDir::new();
+        let destination = TempDir::new();
+        let root = source.0.join("projeto");
+        fs::create_dir_all(&root).unwrap();
+        fs::write(root.join("a.por"), "copiado antes da falha").unwrap();
+        fs::write(root.join("b.por"), "falha aqui").unwrap();
+
+        let result = copy_selected_files_with_hook(
+            &root,
+            &destination.0,
+            &["a.por".into(), "b.por".into()],
+            |relative| {
+                if relative == "b.por" {
+                    Err("falha de leitura injetada".into())
+                } else {
+                    Ok(())
+                }
+            },
+        );
+
+        assert!(result.is_err());
+        assert!(!destination.0.join("projeto").exists());
+    }
+
+    #[test]
+    fn export_rejects_empty_or_unsafe_selections_without_creating_output() {
+        let source = TempDir::new();
+        let destination = TempDir::new();
+        let root = source.0.join("projeto");
+        fs::create_dir_all(&root).unwrap();
+        fs::write(root.join("programa.por"), "origem").unwrap();
+
+        assert!(copy_selected_files(&root, &destination.0, &[]).is_err());
+        for invalid in ["../fora.por", "/tmp/fora.por", "notas.txt", "missing.por"] {
+            assert!(
+                copy_selected_files(&root, &destination.0, &[invalid.into()]).is_err(),
+                "{invalid}"
+            );
+            assert!(!destination.0.join("projeto").exists());
+        }
+    }
+
+    #[test]
+    fn export_refuses_symlinks_destinations_inside_workspace_and_collisions() {
+        let source = TempDir::new();
+        let destination = TempDir::new();
+        let root = source.0.join("projeto");
+        fs::create_dir_all(&root).unwrap();
+        fs::write(root.join("programa.por"), "origem").unwrap();
+        fs::create_dir_all(destination.0.join("projeto")).unwrap();
+        assert!(copy_selected_files(&root, &destination.0, &["programa.por".into()]).is_err());
+        assert!(copy_selected_files(&root, &root, &["programa.por".into()]).is_err());
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::symlink;
+            let outside = TempDir::new();
+            let symlink_destination = TempDir::new();
+            fs::write(outside.0.join("segredo.por"), "segredo").unwrap();
+            symlink(outside.0.join("segredo.por"), root.join("link.por")).unwrap();
+            assert!(
+                copy_selected_files(&root, &symlink_destination.0, &["link.por".into()]).is_err()
+            );
+            assert!(!symlink_destination.0.join("projeto").exists());
+            assert_eq!(
+                fs::read_to_string(outside.0.join("segredo.por")).unwrap(),
+                "segredo"
+            );
+        }
     }
 
     #[test]
@@ -473,7 +590,7 @@ mod tests {
         );
     }
 }
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -663,6 +780,104 @@ pub struct WorkspaceRenameResult {
 pub struct WorkspaceDeleteResult {
     listing: WorkspaceListing,
     file: WorkspaceFilePath,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceExportResult {
+    project_name: String,
+    file_count: usize,
+}
+
+fn copy_selected_files(
+    source_root: &Path,
+    destination_parent: &Path,
+    selected_paths: &[String],
+) -> Result<WorkspaceExportResult, String> {
+    copy_selected_files_with_hook(source_root, destination_parent, selected_paths, |_| Ok(()))
+}
+
+fn copy_selected_files_with_hook(
+    source_root: &Path,
+    destination_parent: &Path,
+    selected_paths: &[String],
+    mut before_copy: impl FnMut(&str) -> Result<(), String>,
+) -> Result<WorkspaceExportResult, String> {
+    if selected_paths.is_empty() {
+        return Err("Selecione ao menos um arquivo para exportar.".into());
+    }
+
+    let source_root = fs::canonicalize(source_root)
+        .map_err(|_| "A pasta aberta não está mais disponível.".to_string())?;
+    let destination_parent = fs::canonicalize(destination_parent)
+        .map_err(|_| "A pasta de destino não está mais disponível.".to_string())?;
+    if !source_root.is_dir() || !destination_parent.is_dir() {
+        return Err("A origem ou o destino não é uma pasta disponível.".into());
+    }
+    if destination_parent.starts_with(&source_root) {
+        return Err("Escolha uma pasta de destino fora do projeto aberto.".into());
+    }
+
+    let project_name = source_root
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("Projeto")
+        .to_string();
+    let selected_paths: BTreeSet<_> = selected_paths.iter().cloned().collect();
+    for relative in &selected_paths {
+        checked_file(&source_root, Path::new(relative), true)?;
+    }
+
+    let destination =
+        cap_std::fs::Dir::open_ambient_dir(&destination_parent, cap_std::ambient_authority())
+            .map_err(|error| format!("Não foi possível abrir a pasta de destino: {error}"))?;
+    destination.create_dir(&project_name).map_err(|error| {
+        if error.kind() == std::io::ErrorKind::AlreadyExists {
+            format!("Já existe uma pasta chamada ‘{project_name}’ no destino escolhido.")
+        } else {
+            format!("Não foi possível criar a pasta exportada: {error}")
+        }
+    })?;
+
+    let copy_result = (|| {
+        let source = cap_std::fs::Dir::open_ambient_dir(&source_root, cap_std::ambient_authority())
+            .map_err(|error| format!("Não foi possível abrir o projeto: {error}"))?;
+        let exported = destination
+            .open_dir(&project_name)
+            .map_err(|error| format!("Não foi possível acessar a pasta exportada: {error}"))?;
+
+        for relative in &selected_paths {
+            before_copy(relative)?;
+            let relative_path = Path::new(relative);
+            let mut input = source
+                .open(relative_path)
+                .map_err(|error| format!("Não foi possível ler ‘{relative}’: {error}"))?;
+            if let Some(parent) = relative_path
+                .parent()
+                .filter(|parent| !parent.as_os_str().is_empty())
+            {
+                exported.create_dir_all(parent).map_err(|error| {
+                    format!("Não foi possível criar a subpasta de ‘{relative}’: {error}")
+                })?;
+            }
+            let mut output = exported.create(relative_path).map_err(|error| {
+                format!("Não foi possível criar o arquivo exportado ‘{relative}’: {error}")
+            })?;
+            std::io::copy(&mut input, &mut output)
+                .map_err(|error| format!("Não foi possível copiar ‘{relative}’: {error}"))?;
+        }
+        Ok(())
+    })();
+
+    if let Err(error) = copy_result {
+        let _ = destination.remove_dir_all(&project_name);
+        return Err(error);
+    }
+
+    Ok(WorkspaceExportResult {
+        project_name,
+        file_count: selected_paths.len(),
+    })
 }
 
 fn supported_source(path: &Path) -> bool {
@@ -1153,4 +1368,33 @@ pub fn workspace_delete_file(
             relative_path: deleted_relative_path,
         },
     })
+}
+
+#[tauri::command]
+pub async fn workspace_export(
+    app: AppHandle,
+    workspace_id: String,
+    relative_paths: Vec<String>,
+    session: State<'_, WorkspaceSession>,
+) -> Result<Option<WorkspaceExportResult>, String> {
+    if relative_paths.is_empty() {
+        return Err("Selecione ao menos um arquivo para exportar.".into());
+    }
+    let root = session.root(&workspace_id)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let Some(selected) = app
+            .dialog()
+            .file()
+            .set_title("Exportar projeto para uma pasta")
+            .blocking_pick_folder()
+        else {
+            return Ok(None);
+        };
+        let destination = selected
+            .into_path()
+            .map_err(|error| format!("Não foi possível acessar a pasta selecionada: {error}"))?;
+        copy_selected_files(&root, &destination, &relative_paths).map(Some)
+    })
+    .await
+    .map_err(|error| format!("Não foi possível exportar o projeto: {error}"))?
 }

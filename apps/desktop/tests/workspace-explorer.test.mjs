@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { flattenWorkspaceEntries, workspaceFileKind, workspaceRenameFileName, workspaceSourceFileName } from "../src/workspace-explorer.ts";
+import { collectWorkspaceFiles, flattenWorkspaceEntries, workspaceFileKind, workspaceRenameFileName, workspaceSourceFileName } from "../src/workspace-explorer.ts";
 
 test("collapsed folders hide descendants and expanded folders preserve tree depth", () => {
   const entries = [
@@ -20,6 +20,22 @@ test("collapsed folders hide descendants and expanded folders preserve tree dept
     { entry: entries[0].entries[0], depth: 1, position: 1, setSize: 1 },
     { entry: entries[1], depth: 0, position: 2, setSize: 2 },
   ]);
+});
+
+test("collects all workspace files recursively in tree order", () => {
+  const entries = [
+    { kind: "folder", name: "Aulas", path: "Aulas", entries: [
+      { kind: "file", name: "inicio.por", path: "Aulas/inicio.por" },
+      { kind: "folder", name: "Avançado", path: "Aulas/Avançado", entries: [
+        { kind: "file", name: "ownership.rs", path: "Aulas/Avançado/ownership.rs" },
+      ] },
+    ] },
+    { kind: "file", name: "atividade.pex", path: "atividade.pex" },
+  ];
+  assert.deepEqual(collectWorkspaceFiles(entries), [
+    entries[0].entries[0], entries[0].entries[1].entries[0], entries[1],
+  ]);
+  assert.deepEqual(collectWorkspaceFiles([]), []);
 });
 
 test("classifies Portugol, Portugol-RS, Rust, and exercise files case-insensitively", () => {
