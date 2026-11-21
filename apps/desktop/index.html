@@ -206,6 +206,31 @@
       <article id="help-article" class="help-article" tabindex="-1"></article>
     </main>
 
+    <template id="find-template">
+      <dialog class="find-dialog" aria-labelledby="find-title">
+        <h2 id="find-title">Localizar e substituir</h2>
+        <form>
+          <label class="find-field">Procurar <input type="text" main-field="true" spellcheck="false" autocomplete="off" /></label>
+          <label class="find-field">Substituir <input type="text" name="replace" spellcheck="false" autocomplete="off" /></label>
+          <div class="find-settings">
+            <label><input type="checkbox" name="case" /> Diferenciar maiúsculas/minúsculas</label>
+            <label><input type="radio" name="direction" value="forward" checked /> Avançar</label>
+            <label><input type="checkbox" name="mark" checked /> Marcar todas</label>
+            <label><input type="radio" name="direction" value="back" /> Voltar</label>
+            <label><input type="checkbox" name="regex" /> Expressão regular</label>
+            <label><input type="checkbox" name="whole" /> Palavra inteira</label>
+          </div>
+          <div class="dialog-actions">
+            <button type="submit">Procurar</button>
+            <button type="button" name="replace-one">Substituir</button>
+            <button type="button" name="replace-all">Substituir todas</button>
+            <button type="button" name="cancel">Cancelar</button>
+          </div>
+          <p role="status"></p>
+        </form>
+      </dialog>
+    </template>
+
     <dialog id="shortcuts" aria-labelledby="shortcuts-title">
       <h2 id="shortcuts-title">Atalhos de teclado</h2>
       <dl id="shortcut-list"></dl>

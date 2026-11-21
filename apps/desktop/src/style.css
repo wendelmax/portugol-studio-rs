@@ -1550,3 +1550,35 @@ body {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+
+.find-dialog {
+  width: min(550px, calc(100% - 24px));
+}
+
+.find-field {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  margin-block: 4px;
+}
+
+.find-settings {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-block: 10px;
+}
+
+.find-dialog [role="status"] {
+  margin: 8px 0 0;
+}
+
+.find-dialog [role="status"]:empty {
+  display: none;
+}
+
+.cm-editor:not(.find-mark-all) .cm-searchMatch:not(.cm-searchMatch-selected) {
+  background: transparent;
+  outline: 0;
+}

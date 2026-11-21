@@ -20,7 +20,7 @@ import {
   syntaxHighlighting, HighlightStyle, bracketMatching, indentOnInput, foldGutter, foldKeymap,
 } from "@codemirror/language";
 import { linter, lintGutter, type Diagnostic } from "@codemirror/lint";
-import { openSearchPanel, searchKeymap, highlightSelectionMatches } from "@codemirror/search";
+import { openSearchPanel, highlightSelectionMatches } from "@codemirror/search";
 import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from "@codemirror/autocomplete";
 import { tags } from "@lezer/highlight";
 import { open as openDialog, save as saveDialog, ask } from "@tauri-apps/plugin-dialog";
@@ -30,6 +30,7 @@ import { renderDiagnostics } from "./diagnostics";
 import { mountExamples } from "./examples";
 import { mountExercises } from "./exercises";
 import { portugolFolding } from "./folding";
+import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
 import { mountOutline, symbolKindLabels } from "./outline";
 import { LIBRARIES, portugol, SNIPPETS } from "./portugol";
@@ -214,6 +215,7 @@ function extensions(): Extension[] {
     autocompletion(),
     highlightActiveLine(),
     highlightSelectionMatches(),
+    findDialog,
     EditorState.tabSize.of(4),
     portugol(),
     portugolFolding,
@@ -233,7 +235,7 @@ function extensions(): Extension[] {
     breakpointGutter,
     debugLine,
     keymap.of([
-      ...closeBracketsKeymap, ...defaultKeymap, ...searchKeymap,
+      ...closeBracketsKeymap, ...defaultKeymap, ...editorSearchKeys,
       ...historyKeymap, ...completionKeymap, ...foldKeymap, indentWithTab,
     ]),
     EditorView.updateListener.of((update) => {
