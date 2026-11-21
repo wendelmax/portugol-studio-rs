@@ -31,33 +31,33 @@
 
 **Files:** `apps/desktop/src/workspace-explorer.ts`, `apps/desktop/tests/workspace-explorer.test.mjs`
 
-- [ ] Add tests for appended `.por`/`.pors`, matching extension, conflicting extension, empty name, and path separator.
-- [ ] Run `node --experimental-strip-types --test apps/desktop/tests/workspace-explorer.test.mjs`; confirm failure because the helper is absent.
-- [ ] Add `workspaceSourceFileName(name, language)` returning a filename or a Portuguese validation error.
-- [ ] Run the targeted test and full `npm test`.
+- [x] Add tests for appended `.por`/`.pors`, matching extension, conflicting extension, empty name, and path separator.
+- [x] Run the targeted test and confirm failure because the helper is absent.
+- [x] Add `workspaceSourceFileName(name, language)` returning a filename or a Portuguese validation error.
+- [x] Run the targeted test and full `npm test`.
 
 ### Task 2: Safe Rust creation command
 
 **Files:** `apps/desktop/src-tauri/src/workspace.rs`, `apps/desktop/src-tauri/src/lib.rs`
 
-- [ ] Add unit tests for `.por`/`.pors` creation, invalid names/extensions, collisions preserving bytes, and unknown workspace IDs.
-- [ ] Run the workspace module tests and confirm expected failures before implementation.
-- [ ] Add exclusive root-only creation and `workspace_create_file`, returning an updated `WorkspaceListing`.
-- [ ] Register the command; run `cargo fmt --all -- --check`, desktop tests, and Clippy.
+- [x] Add unit tests for `.por`/`.pors` creation, invalid names/extensions, collisions preserving bytes, and symlink collisions preserving target bytes.
+- [x] Attempt the workspace module tests locally; record the missing WebKitGTK 4.1 and use CI as the first executable Rust validation.
+- [x] Add exclusive root-only creation and `workspace_create_file`, returning an updated `WorkspaceListing`.
+- [x] Register the command; formatting passed locally and desktop tests/Clippy passed in cross-platform CI.
 
 ### Task 3: Accessible dialog and editor integration
 
 **Files:** `apps/desktop/index.html`, `apps/desktop/src/api.ts`, `apps/desktop/src/main.ts`, `apps/desktop/tests/workspace-explorer.test.mjs`
 
-- [ ] Add failing markup/contract assertions for name input, language selection, cancel/create actions, and accessible labels.
-- [ ] Add the dialog and Tauri API wrapper; keep the open-folder action available separately.
-- [ ] On submit, normalize name, create file, replace only the current workspace listing, select and open the new file.
-- [ ] Test dialog contract, run full frontend tests and `npm run build`.
+- [x] Add failing markup/contract assertions for name input, language selection, cancel/create actions, and accessible labels.
+- [x] Add the dialog and Tauri API wrapper; keep the open-folder action available separately.
+- [x] On submit, normalize name, create file, replace only the current workspace listing, select and open the new file.
+- [x] Test dialog contract, run full frontend tests and `npm run build`.
 
 ### Task 4: Quality and delivery
 
 **Files:** `docs/PARIDADE.md`, `docs/reports/FEAT-WORKSPACE-002.md`
 
-- [ ] Record implemented parity and validated commands.
-- [ ] Run all locally available Rust/frontend checks and `git diff --check`.
-- [ ] Open a PR against `main`, fix failures until CI is green, merge, and delete its branch.
+- [x] Record implemented parity and validated commands.
+- [x] Run all locally available frontend checks, `cargo fmt --all -- --check`, and `git diff --check`; desktop tests and Clippy passed in CI.
+- [x] Open PR #43 against `main`; all six CI jobs passed, then merge and delete its branch.
