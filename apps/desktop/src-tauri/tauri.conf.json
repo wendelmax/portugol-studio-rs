@@ -51,6 +51,13 @@
         "description": "Programa Portugol",
         "role": "Editor",
         "mimeType": "text/x-portugol"
+      },
+      {
+        "ext": ["pex"],
+        "name": "Exercício Portugol",
+        "description": "Exercício do Portugol Studio",
+        "role": "Editor",
+        "mimeType": "application/x-portugol-exercicio"
       }
     ],
     "windows": {

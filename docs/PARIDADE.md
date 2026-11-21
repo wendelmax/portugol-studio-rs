@@ -99,5 +99,5 @@ janela gráfica, o teclado e o mouse em Xvfb.
 | Instalador Windows | ✅ | `.exe` (NSIS) e `.msi`, assinatura configurável (docs/DISTRIBUICAO.md) |
 | Instalador Linux | ✅ | `.deb`, `.rpm`, `.AppImage` |
 | Instalador macOS | ✅ | `.dmg`, assinatura e notarização configuráveis |
-| Associação de arquivos `.por` | ✅ | |
+| Associação de arquivos `.por` e `.pex` | ✅ | abertura via sistema e arraste na IDE |
 | Versão de console (módulo `console`) | ✅ | `portugol executar` |

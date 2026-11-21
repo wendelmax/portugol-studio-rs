@@ -28,7 +28,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import { renderDiagnostics } from "./diagnostics";
 import { mountExamples } from "./examples";
-import { mountExercises, type ExerciseDocument } from "./exercises";
+import { mountExercises, readExercise, type ExerciseDocument } from "./exercises";
 import { portugolFolding } from "./folding";
 import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
@@ -515,7 +515,8 @@ async function save(as = false): Promise<boolean> {
   if (!tab) return false;
   let path = tab.path;
   if (!path || as) {
-    path = await saveDialog({ filters: FILTERS, defaultPath: tab.path ?? tab.exampleName ?? "programa.por" });
+    const exerciseName = tab.exercise ? tab.exercise.name.replace(/\.pex$/i, "") + ".por" : undefined;
+    path = await saveDialog({ filters: FILTERS, defaultPath: tab.path ?? exerciseName ?? tab.exampleName ?? "programa.por" });
     if (!path) return false;
     if (!path.endsWith(".por")) path += ".por";
   }
@@ -1003,14 +1004,15 @@ function editorMenuAction(id: string, action: () => unknown) {
     action();
   };
 }
-const exercises = mountExercises((exerciseDocument) => {
+function openExercise(exerciseDocument: ExerciseDocument) {
   const source = `/*
 ${exerciseDocument.exercise.statement.replaceAll("*/", "* /")}
 */
 
 ${TEMPLATE}`;
   newTab(source, null, exerciseDocument.name, undefined, exerciseDocument);
-});
+}
+const exercises = mountExercises(openExercise);
 $("home-exercises").onclick = exercises.browse;
 editorMenuAction("editor-exercise", () => {
   const exercise = activeTab()?.exercise;
@@ -1366,3 +1368,35 @@ showPanel("console");
 showUtilities(true);
 const tips = mountTips(themeEditor.open);
 $("home-tips").onclick = tips.open;
+
+
+async function openIncomingFiles(paths: string[], warnUnsupported = false) {
+  let supported = false;
+  for (const path of paths) {
+    try {
+      if (/\.pex$/i.test(path)) {
+        supported = true;
+        openExercise(await readExercise(path));
+      } else if (/\.por$/i.test(path)) {
+        supported = true;
+        await openFile(path);
+      }
+    } catch (error) {
+      setStatus(typeof error === "string" ? error : "Não foi possível abrir o arquivo.", "error");
+    }
+  }
+  if (warnUnsupported && !supported && paths.length) setStatus("Escolha um arquivo .por ou .pex.", "error");
+}
+
+async function consumeSystemFiles() {
+  try {
+    await openIncomingFiles(await api.pendingFiles());
+  } catch {
+    setStatus("Não foi possível receber arquivos do sistema.", "error");
+  }
+}
+
+void api.onSystemFiles(() => { void consumeSystemFiles(); }).then(consumeSystemFiles, consumeSystemFiles);
+void getCurrentWindow().onDragDropEvent(({ payload }) => {
+  if (payload.type === "drop") void openIncomingFiles(payload.paths, true);
+}).catch(() => {});
