@@ -7,6 +7,7 @@
 //!
 //! Não depende do Tauri: a camada da janela só traduz os eventos.
 
+mod exercise_rules;
 mod exercises;
 mod outline;
 mod position;

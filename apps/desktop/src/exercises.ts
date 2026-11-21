@@ -17,6 +17,8 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
   const results = document.querySelector<HTMLDialogElement>("#exercise-results")!;
   const summary = document.querySelector<HTMLElement>("#exercise-summary")!;
   const failures = document.querySelector<HTMLUListElement>("#exercise-failures")!;
+  const hints = document.querySelector<HTMLElement>("#exercise-hints")!;
+  const hintItems = hints.querySelector("ul")!;
   let pending: Promise<Exercise[]> | null = null;
   let catalog: Exercise[] = [];
   let attempt = 0;
@@ -73,16 +75,26 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
     const id = ++attempt;
     summary.textContent = `Corrigindo ${name}…`;
     failures.replaceChildren();
+    hints.hidden = true;
+    hintItems.replaceChildren();
     results.showModal();
     try {
       const result = await checkExercise(exercise.id, source, contents);
       if (id !== attempt) return;
-      summary.textContent = `${result.passed} de ${result.total} casos aprovados.`;
+      summary.textContent = result.total
+        ? `${result.passed} de ${result.total} casos aprovados.`
+        : result.hints.length ? "Análise estática concluída." : "A análise estática não encontrou observações.";
       for (const failure of result.failures) {
         const item = document.createElement("li");
         item.textContent = failure;
         failures.append(item);
       }
+      for (const hint of result.hints) {
+        const item = document.createElement("li");
+        item.textContent = hint;
+        hintItems.append(item);
+      }
+      hints.hidden = !result.hints.length;
     } catch (message) {
       if (id === attempt) {
         summary.textContent = typeof message === "string" ? message : "Não foi possível corrigir a solução.";

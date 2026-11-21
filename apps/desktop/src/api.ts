@@ -78,7 +78,7 @@ export interface Exercise {
 export const listExercises = () => invoke<Exercise[]>("exercise_catalog");
 export const inspectExercise = (contents: string) => invoke<Exercise>("inspect_exercise", { contents });
 export const checkExercise = (id: number, source: string, contents?: string) =>
-  invoke<{ total: number; passed: number; failures: string[] }>("check_exercise", { id, source, contents });
+  invoke<{ total: number; passed: number; failures: string[]; hints: string[] }>("check_exercise", { id, source, contents });
 
 export const renameTarget = (source: string, offset: number) =>
   invoke<{ name: string; occurrences: number }>("rename_target", { source, offset });

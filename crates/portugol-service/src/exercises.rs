@@ -5,6 +5,8 @@ use portugol_syntax::Severity;
 use portugol_vm::{Io, Status, Value, Vm};
 use serde::Serialize;
 
+use crate::exercise_rules::{self, Model};
+
 macro_rules! exercise_catalog {
     ($(($id:literal, $file:literal)),+ $(,)?) => {
         const CATALOG: &[(u32, &str)] = &[
@@ -26,6 +28,7 @@ pub struct ExerciseResult {
     pub total: usize,
     pub passed: usize,
     pub failures: Vec<String>,
+    pub hints: Vec<String>,
 }
 
 struct Datum {
@@ -86,7 +89,13 @@ impl Case {
     }
 }
 
-fn parse_exercise(id: u32, raw: &str) -> Result<(Exercise, Vec<Case>), String> {
+struct ExerciseDefinition {
+    info: Exercise,
+    cases: Vec<Case>,
+    models: Vec<Model>,
+}
+
+fn parse_exercise(id: u32, raw: &str) -> Result<ExerciseDefinition, String> {
     let doc = roxmltree::Document::parse(raw).map_err(|_| "O arquivo .pex contém XML inválido.")?;
     let root = doc.root_element();
     if !root.has_tag_name("questao") {
@@ -106,8 +115,8 @@ fn parse_exercise(id: u32, raw: &str) -> Result<(Exercise, Vec<Case>), String> {
         .filter(|node| node.has_tag_name("caso"))
         .map(Case::parse)
         .collect();
-    if statement.is_empty() || cases.is_empty() {
-        return Err("O exercício precisa de enunciado e pelo menos um caso de teste.".into());
+    if statement.is_empty() {
+        return Err("O exercício precisa de enunciado.".into());
     }
     if cases
         .iter()
@@ -121,17 +130,22 @@ fn parse_exercise(id: u32, raw: &str) -> Result<(Exercise, Vec<Case>), String> {
     {
         return Err("Uma entrada ou saída do exercício tem tipo de dado inválido.".into());
     }
-    Ok((
-        Exercise {
+    let models = exercise_rules::models(root)?;
+    if models.is_empty() && cases.is_empty() {
+        return Err("O exercício está sem casos de teste e soluções modelo.".into());
+    }
+    Ok(ExerciseDefinition {
+        info: Exercise {
             id,
             statement,
             cases: cases.len(),
         },
         cases,
-    ))
+        models,
+    })
 }
 
-static EXERCISES: LazyLock<Vec<(Exercise, Vec<Case>)>> = LazyLock::new(|| {
+static EXERCISES: LazyLock<Vec<ExerciseDefinition>> = LazyLock::new(|| {
     CATALOG
         .iter()
         .map(|&(id, raw)| parse_exercise(id, raw).expect("exercício do catálogo inválido"))
@@ -139,18 +153,18 @@ static EXERCISES: LazyLock<Vec<(Exercise, Vec<Case>)>> = LazyLock::new(|| {
 });
 
 pub fn inspect_exercise(raw: &str) -> Result<Exercise, String> {
-    parse_exercise(0, raw).map(|(exercise, _)| exercise)
+    parse_exercise(0, raw).map(|exercise| exercise.info)
 }
 
 pub fn check_imported_exercise(raw: &str, source: &str) -> Result<ExerciseResult, String> {
-    let (_, cases) = parse_exercise(0, raw)?;
-    check_cases(&cases, source)
+    let exercise = parse_exercise(0, raw)?;
+    check_definition(&exercise, source)
 }
 
 pub fn exercises() -> Vec<Exercise> {
     EXERCISES
         .iter()
-        .map(|(exercise, _)| exercise.clone())
+        .map(|exercise| exercise.info.clone())
         .collect()
 }
 
@@ -233,14 +247,15 @@ impl GradingIo<'_> {
 }
 
 pub fn check_exercise(id: u32, source: &str) -> Result<ExerciseResult, String> {
-    let (_, cases) = EXERCISES
+    let exercise = EXERCISES
         .iter()
-        .find(|(exercise, _)| exercise.id == id)
+        .find(|exercise| exercise.info.id == id)
         .ok_or("Exercício não encontrado.")?;
-    check_cases(cases, source)
+    check_definition(exercise, source)
 }
 
-fn check_cases(cases: &[Case], source: &str) -> Result<ExerciseResult, String> {
+fn check_definition(exercise: &ExerciseDefinition, source: &str) -> Result<ExerciseResult, String> {
+    let cases = &exercise.cases;
     let (diagnostics, program) = crate::analyze(source);
     let program = program.ok_or_else(|| {
         diagnostics
@@ -249,6 +264,15 @@ fn check_cases(cases: &[Case], source: &str) -> Result<ExerciseResult, String> {
             .map(|diagnostic| diagnostic.message)
             .unwrap_or_else(|| "Não foi possível analisar a solução.".into())
     })?;
+    let hints = exercise_rules::hints(&exercise.models, &program, source);
+    if cases.is_empty() {
+        return Ok(ExerciseResult {
+            total: 0,
+            passed: 0,
+            failures: Vec::new(),
+            hints,
+        });
+    }
     if program
         .includes
         .iter()
@@ -279,6 +303,7 @@ fn check_cases(cases: &[Case], source: &str) -> Result<ExerciseResult, String> {
         total: cases.len(),
         passed: cases.len() - failures.len(),
         failures,
+        hints,
     })
 }
 
@@ -321,6 +346,58 @@ mod tests {
         assert_eq!(wrong_type.passed, 0);
         assert!(wrong_type.failures[0].contains("tenta ler cadeia"));
         assert!(inspect_exercise("<questao/>").is_err());
+    }
+
+    #[test]
+    fn checks_static_rules_without_executing_the_model() {
+        let exercise = r#"<questao>
+          <enunciado>Troque os valores.</enunciado>
+          <solucoes>
+            <solucao>
+              <modelo><![CDATA[
+                programa {
+                    funcao inicio() {
+                        inteiro primeiro, segundo, aux
+                        leia(primeiro, segundo)
+                        enquanto (falso) {}
+                        aux = primeiro
+                        primeiro = segundo
+                        segundo = aux
+                        escreva(primeiro, segundo)
+                    }
+                }
+              ]]></modelo>
+              <visitors>
+                <visitor class-name="MandatoryInstructions"><parametro><valores><valor valor="br.univali.NoEnquanto"/></valores></parametro></visitor>
+                <visitor class-name="ProhibitedInstructions"><parametro><valores><valor>NoPara</valor></valores></parametro></visitor>
+                <visitor class-name="ReadWriteOrder"/>
+                <visitor class-name="ReadAfterOperation"/>
+                <visitor class-name="UsingAux"/>
+                <visitor class-name="VarIsNotUsed"/>
+              </visitors>
+            </solucao>
+          </solucoes>
+        </questao>"#;
+        let incorrect = "programa { funcao inicio() { inteiro primeiro, segundo, inutil primeiro = 1 leia(primeiro, segundo) para (inteiro i = 0; i < 1; i++) {} escreva(segundo, primeiro) } }";
+        let verdict = check_imported_exercise(exercise, incorrect).unwrap();
+        assert_eq!(verdict.total, 0);
+        assert_eq!(verdict.hints.len(), 6, "{:?}", verdict.hints);
+        for text in [
+            "NoEnquanto",
+            "NoPara",
+            "ordem",
+            "atribuições",
+            "auxiliar",
+            "inutil",
+        ] {
+            assert!(
+                verdict.hints.iter().any(|hint| hint.contains(text)),
+                "{text}"
+            );
+        }
+        let valid = "programa { funcao inicio() { inteiro primeiro, segundo, aux leia(primeiro, segundo) enquanto (falso) {} aux = primeiro primeiro = segundo segundo = aux escreva(primeiro, segundo) } }";
+        let verdict = check_imported_exercise(exercise, valid).unwrap();
+        assert!(verdict.hints.is_empty(), "{:?}", verdict.hints);
     }
 
     #[test]
