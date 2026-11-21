@@ -53,6 +53,13 @@
         "mimeType": "text/x-portugol"
       },
       {
+        "ext": ["pors"],
+        "name": "Programa Portugol-RS",
+        "description": "Programa Portugol-RS",
+        "role": "Editor",
+        "mimeType": "text/x-portugol-rs"
+      },
+      {
         "ext": ["pex"],
         "name": "Exercício Portugol",
         "description": "Exercício do Portugol Studio",

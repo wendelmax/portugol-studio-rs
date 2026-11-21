@@ -2684,6 +2684,8 @@ name = "portugol-service"
 version = "0.1.0"
 dependencies = [
  "portugol-bytecode",
+ "portugol-hir",
+ "portugol-rs-frontend",
  "portugol-rust",
  "portugol-semantics",
  "portugol-syntax",

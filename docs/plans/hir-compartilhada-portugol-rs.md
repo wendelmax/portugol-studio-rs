@@ -17,15 +17,16 @@
 
 ## Fatia 3 — arquivos `.pors`
 
-- [ ] Registrar `.pors` no abrir/salvar/associação do Tauri e CLI somente após análise real estar integrada.
+- [x] Registrar `.pors` no abrir/salvar/associação do Tauri e IDE após integrar análise e exportação reais.
 - [ ] Preservar conteúdo e buffers não salvos ao alternar modo.
 - [ ] Distinguir linguagem detectada da preferência visual; nunca inferir sucesso pelo sufixo.
 - [ ] Testar abrir, editar, salvar, reabrir, analisar e mensagens de erro em fluxo real.
 
 ## Fatia 4 — tradução e execução
 
-- [ ] Implementar geração Rust semântica a partir da HIR, com mapas de origem e subset explícito.
-- [ ] Tratar resultados obsoletos por revisão de documento quando a aplicação suportar revisão no contrato.
+- [x] Implementar geração Rust semântica a partir da HIR para o subset explícito.
+- [ ] Adicionar mapas de origem para navegação Rust↔Portugol-RS.
+- [x] Descartar resultados de preview obsoletos ao trocar documento ou editar o buffer.
 - [ ] Adicionar execução Rust apenas por serviço limitado, com toolchain/configuração validada e sem shell arbitrário no frontend.
 
 ## Fatia 5 — aprendizagem de ownership
@@ -36,7 +37,7 @@
 
 ## Estado desta entrega
 
-A HIR clássica e o backend compartilhado foram integrados no PR #39. Esta worktree implementa o subset inicial de Portugol-RS e API de geração Rust. A extensão `.pors` ainda não está integrada à UI/CLI/abertura e salvamento; ownership e execução do dialeto também permanecem pendentes. Consulte `docs/reports/FEAT-LANG-002-portugol-rs-frontend.md`.
+A HIR clássica e o backend compartilhado foram integrados no PR #39. O frontend Portugol-RS e seu fluxo de documentos `.pors` agora têm análise e exportação Rust reais, associação/abertura/salvamento no desktop e editor por dialeto. A CLI ainda não aceita `.pors`; ownership e execução do dialeto também permanecem pendentes. A validação do crate Tauri requer WebKitGTK 4.1 no Linux. Consulte `docs/reports/FEAT-LANG-002-portugol-rs-frontend.md` e `docs/reports/FEAT-LANG-003-pors-document-flow.md`.
 
 ## Regras de encerramento
 

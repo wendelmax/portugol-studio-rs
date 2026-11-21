@@ -147,6 +147,56 @@ pub fn export_rust(source: &str) -> RustExport {
     }
 }
 
+/// Analisa o dialeto Portugol-RS e expõe spans no formato UTF-16 do editor.
+pub fn inspect_portugol_rs(source: &str) -> Inspection {
+    let index = position::LineIndex::new(source);
+    match portugol_rs_frontend::lower(source) {
+        Ok(program) => Inspection {
+            diagnostics: Vec::new(),
+            symbols: program
+                .bindings
+                .iter()
+                .map(|binding| SymbolInfo {
+                    name: binding.source_name.clone(),
+                    // O dialeto não possui `const`: `seja` é um binding local
+                    // imutável, não uma constante global da linguagem clássica.
+                    kind: SymbolKind::Variable,
+                    ty: match binding.ty {
+                        portugol_hir::Type::Integer => "inteiro",
+                        portugol_hir::Type::Real => "real",
+                        portugol_hir::Type::Boolean => "logico",
+                        portugol_hir::Type::String => "cadeia",
+                        portugol_hir::Type::Character => "caracter",
+                    },
+                    position: index.position(binding.span.start),
+                    children: Vec::new(),
+                })
+                .collect(),
+        },
+        Err(diagnostics) => Inspection {
+            diagnostics: present_diagnostics(&index, &diagnostics),
+            symbols: Vec::new(),
+        },
+    }
+}
+
+/// Traduz o dialeto Portugol-RS para Rust usando o backend compartilhado.
+pub fn export_portugol_rs(source: &str) -> RustExport {
+    let index = position::LineIndex::new(source);
+    match portugol_rust::export_portugol_rs(source) {
+        Ok(code) => RustExport {
+            code: Some(code),
+            diagnostic: None,
+        },
+        Err(diagnostics) => RustExport {
+            code: None,
+            diagnostic: diagnostics
+                .first()
+                .map(|diagnostic| describe(&index, diagnostic)),
+        },
+    }
+}
+
 /// Analisa o código como a IDE faz a cada edição.
 pub fn check(source: &str) -> Vec<DiagnosticInfo> {
     let parsed = analyze_source(source);
@@ -248,5 +298,38 @@ mod rust_export {
             source.find("enquanto").unwrap() as u32
         );
         assert!(diagnostic.message.contains("enquanto"));
+    }
+}
+
+#[cfg(test)]
+mod portugol_rs_service {
+    use super::{export_portugol_rs, inspect_portugol_rs};
+
+    #[test]
+    fn inspection_returns_typed_symbols_for_portugol_rs() {
+        let inspection = inspect_portugol_rs("funcao inicio() { seja idade: inteiro = 16; }");
+        assert!(inspection.diagnostics.is_empty());
+        assert_eq!(inspection.symbols[0].name, "idade");
+        assert_eq!(inspection.symbols[0].ty, "inteiro");
+        assert_eq!(inspection.symbols[0].kind, super::SymbolKind::Variable);
+    }
+
+    #[test]
+    fn diagnostics_use_utf16_offsets_after_non_bmp_text() {
+        let source = "// 🧠\nfuncao inicio() { seja idade: inteiro = ; }";
+        let inspection = inspect_portugol_rs(source);
+        let diagnostic = &inspection.diagnostics[0];
+        let byte_offset = source.find(";").unwrap();
+        let utf16_offset = source[..byte_offset].encode_utf16().count();
+        assert_eq!(diagnostic.start.offset as usize, utf16_offset);
+        assert!(diagnostic.code.starts_with("pors."));
+    }
+
+    #[test]
+    fn export_uses_the_shared_rust_backend() {
+        let result =
+            export_portugol_rs("funcao inicio() { seja idade: inteiro = 16; escreva(idade); }");
+        assert!(result.diagnostic.is_none());
+        assert!(result.code.unwrap().contains("print!(\"{}\""));
     }
 }
