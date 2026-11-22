@@ -36,11 +36,27 @@ pub enum PortugolRsRunResult {
         diagnostics: Vec<PortugolRsCompileDiagnostic>,
         stderr: String,
     },
+    CompileLimit {
+        stderr: String,
+        reason: RustSourceLimitReason,
+    },
     RuntimeLimit {
         stdout: String,
         stderr: String,
         reason: PortugolRsRuntimeLimitReason,
     },
+    Cancelled {
+        phase: PortugolRsRunPhase,
+        stdout: String,
+        stderr: String,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PortugolRsRunPhase {
+    Compilation,
+    Runtime,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -181,6 +197,15 @@ pub fn rust_toolchain_available() -> bool {
 
 /// Compila e executa apenas o Rust gerado pelo subset validado de Portugol-RS.
 pub fn run_portugol_rs(source: &str) -> Result<PortugolRsRunResult, String> {
+    let cancel = AtomicBool::new(false);
+    run_portugol_rs_with_cancel(source, &cancel)
+}
+
+/// Compila e executa Portugol-RS observando um token de cancelamento.
+pub fn run_portugol_rs_with_cancel(
+    source: &str,
+    cancel: &AtomicBool,
+) -> Result<PortugolRsRunResult, String> {
     if source.len() > MAX_SOURCE_BYTES {
         return Err("O arquivo Portugol-RS excede o limite de 1 MiB para compilação.".into());
     }
@@ -203,7 +228,7 @@ pub fn run_portugol_rs(source: &str) -> Result<PortugolRsRunResult, String> {
         )
     })?;
 
-    compile_and_run_generated(&generated, source)
+    compile_and_run_generated(&generated, source, Some(cancel))
 }
 
 /// Compiles and runs one standalone Rust 2021 source file with fixed rustc arguments.
@@ -328,6 +353,7 @@ fn source_limit_reason(reason: ProcessLimitReason) -> Result<RustSourceLimitReas
 fn compile_and_run_generated(
     generated: &GeneratedRust,
     source: &str,
+    cancel: Option<&AtomicBool>,
 ) -> Result<PortugolRsRunResult, String> {
     let temporary = TemporaryDirectory::create()?;
     let source_path = temporary.0.join("program.rs");
@@ -348,10 +374,34 @@ fn compile_and_run_generated(
         .arg(&source_path)
         .arg("-o")
         .arg(&executable_path)
-        .output()
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
         .map_err(|error| format!("Não foi possível iniciar rustc: {error}"))?;
-    if !compilation.status.success() {
-        let stderr = String::from_utf8_lossy(&compilation.stderr).into_owned();
+    let compilation = supervise(compilation, COMPILATION_LIMIT, cancel)?;
+    let compile_stdout = String::from_utf8_lossy(&compilation.stdout).into_owned();
+    let compile_stderr = String::from_utf8_lossy(&compilation.stderr).into_owned();
+    if let Some(reason) = compilation.limit {
+        if reason == ProcessLimitReason::Cancelled {
+            return Ok(PortugolRsRunResult::Cancelled {
+                phase: PortugolRsRunPhase::Compilation,
+                stdout: compile_stdout,
+                stderr: compile_stderr,
+            });
+        }
+        let reason = source_limit_reason(reason)?;
+        return Ok(PortugolRsRunResult::CompileLimit {
+            stderr: if compile_stdout.is_empty() {
+                compile_stderr
+            } else {
+                format!("{compile_stdout}{compile_stderr}")
+            },
+            reason,
+        });
+    }
+    if compilation.status != Some(0) {
+        let stderr = compile_stderr;
         let diagnostics =
             parse_rustc_diagnostics(&stderr, &generated.code, source, &generated.mappings);
         return Ok(PortugolRsRunResult::CompileError {
@@ -367,10 +417,17 @@ fn compile_and_run_generated(
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|error| format!("Não foi possível executar o programa compilado: {error}"))?;
-    let execution = supervise(execution, RUNTIME_LIMIT, None)?;
+    let execution = supervise(execution, RUNTIME_LIMIT, cancel)?;
     let stdout = String::from_utf8_lossy(&execution.stdout).into_owned();
     let stderr = String::from_utf8_lossy(&execution.stderr).into_owned();
     if let Some(reason) = execution.limit {
+        if reason == ProcessLimitReason::Cancelled {
+            return Ok(PortugolRsRunResult::Cancelled {
+                phase: PortugolRsRunPhase::Runtime,
+                stdout,
+                stderr,
+            });
+        }
         return Ok(PortugolRsRunResult::RuntimeLimit {
             stdout,
             stderr,
@@ -962,7 +1019,7 @@ mod tests {
                 quality: RustSourceMapQuality::Approximate,
             }],
         };
-        let result = super::compile_and_run_generated(&generated, source).unwrap();
+        let result = super::compile_and_run_generated(&generated, source, None).unwrap();
         match result {
             super::PortugolRsRunResult::CompileError {
                 diagnostics,
@@ -976,7 +1033,9 @@ mod tests {
             super::PortugolRsRunResult::Executed { .. } => {
                 panic!("código Rust inválido não deveria executar")
             }
-            super::PortugolRsRunResult::RuntimeLimit { .. } => {
+            super::PortugolRsRunResult::RuntimeLimit { .. }
+            | super::PortugolRsRunResult::CompileLimit { .. }
+            | super::PortugolRsRunResult::Cancelled { .. } => {
                 panic!("rejeição de compilação não deveria atingir limite de runtime")
             }
         }

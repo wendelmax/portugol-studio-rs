@@ -1753,10 +1753,19 @@ async function runProgram(pauseOnStart = false) {
     runTabId = tab.id;
     setRunning(true);
     setStatus("Compilando e executando com rustc…");
+    let porsRunId: number | null = null;
     try {
-      const result = await api.runPortugolRs(source);
+      porsRunId = await api.registerRustSourceRun();
+      runId = porsRunId;
+      setRunning(true);
+      const result = await api.runPortugolRs(porsRunId, source);
       if (activeTab() !== tab || view.state.doc !== documentState) return;
-      if (result.status === "executed") {
+      if (result.status === "cancelled") {
+        if (result.stdout) appendConsole(result.stdout);
+        if (result.stderr) appendConsole(result.stderr, "error");
+        const phase = result.phase === "compilation" ? "compilação" : "execução";
+        setStatus(`Execução Portugol-RS cancelada durante a ${phase}.`);
+      } else if (result.status === "executed") {
         if (result.stdout) appendConsole(result.stdout);
         if (result.stderr) appendConsole(result.stderr, "error");
         setStatus(
@@ -1765,6 +1774,10 @@ async function runProgram(pauseOnStart = false) {
             : `Programa Portugol-RS terminou com código ${result.exitCode ?? "desconhecido"}.`,
           result.exitCode === 0 ? "ok" : "error",
         );
+      } else if (result.status === "compile_limit") {
+        if (result.stderr) appendConsole(result.stderr, "error");
+        const reason = result.reason === "time" ? "tempo máximo de compilação de 20 segundos" : "limite de saída de compilação de 1 MiB";
+        setStatus(`Compilação Portugol-RS interrompida: ${reason}.`, "error");
       } else if (result.status === "runtime_limit") {
         if (result.stdout) appendConsole(result.stdout);
         if (result.stderr) appendConsole(result.stderr, "error");
@@ -1793,6 +1806,7 @@ async function runProgram(pauseOnStart = false) {
         setStatus("Não foi possível compilar ou executar o Portugol-RS.", "error");
       }
     } finally {
+      if (runId === porsRunId) runId = null;
       porsRunPending = false;
       runTabId = null;
       setRunning(runId !== null);
