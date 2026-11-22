@@ -27,7 +27,7 @@ mod workspace;
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, mpsc};
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
@@ -42,6 +42,8 @@ struct Runs {
     next_id: AtomicU32,
     current: Mutex<Option<(u32, RunHandle)>>,
     rust_source_cancellations: Mutex<HashMap<u32, Arc<AtomicBool>>>,
+    portugol_rs_input_senders: Mutex<HashMap<u32, mpsc::Sender<String>>>,
+    portugol_rs_input_receivers: Mutex<HashMap<u32, mpsc::Receiver<String>>>,
 }
 
 impl Runs {
@@ -59,6 +61,20 @@ impl Runs {
                 return Err("Já existe uma execução Rust com este identificador.".into());
             }
         }
+        Ok(id)
+    }
+
+    fn register_portugol_rs(&self) -> Result<u32, String> {
+        let id = self.register_rust_source()?;
+        let (sender, receiver) = mpsc::channel();
+        self.portugol_rs_input_senders
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .insert(id, sender);
+        self.portugol_rs_input_receivers
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .insert(id, receiver);
         Ok(id)
     }
 
@@ -111,7 +127,7 @@ struct IdEvent {
 #[derive(Clone, Serialize)]
 struct InputEvent {
     id: u32,
-    expected: &'static str,
+    expected: String,
 }
 
 #[derive(Clone, Serialize)]
@@ -147,7 +163,7 @@ impl RunObserver for EventSink {
             "run:input",
             InputEvent {
                 id: self.id,
-                expected,
+                expected: expected.to_owned(),
             },
         );
     }
@@ -221,6 +237,7 @@ fn rust_toolchain_available() -> bool {
 
 #[tauri::command]
 async fn run_portugol_rs(
+    app: AppHandle,
     runs: State<'_, Runs>,
     id: u32,
     source: String,
@@ -232,11 +249,53 @@ async fn run_portugol_rs(
         .get(&id)
         .cloned()
         .ok_or_else(|| "A execução Portugol-RS não está mais registrada.".to_string())?;
+    let receiver = runs
+        .portugol_rs_input_receivers
+        .lock()
+        .unwrap_or_else(|error| error.into_inner())
+        .remove(&id)
+        .ok_or_else(|| "O canal de entrada Portugol-RS não está mais registrado.".to_string())?;
+    let input_app = app.clone();
+    let output_app = app;
     let joined = tauri::async_runtime::spawn_blocking(move || {
-        portugol_service::run_portugol_rs_with_cancel(&source, &cancellation)
+        portugol_service::run_portugol_rs_with_io(
+            &source,
+            &cancellation,
+            |expected| {
+                input_app
+                    .emit(
+                        "run:input",
+                        InputEvent {
+                            id,
+                            expected: expected.to_owned(),
+                        },
+                    )
+                    .map_err(|error| error.to_string())?;
+                loop {
+                    match receiver.recv_timeout(std::time::Duration::from_millis(50)) {
+                        Ok(line) => return Ok(line),
+                        Err(mpsc::RecvTimeoutError::Timeout)
+                            if !cancellation.load(std::sync::atomic::Ordering::Acquire) => {}
+                        Err(mpsc::RecvTimeoutError::Timeout) => {
+                            return Ok(String::new());
+                        }
+                        Err(mpsc::RecvTimeoutError::Disconnected) => {
+                            return Err("O canal de entrada Portugol-RS foi encerrado.".into());
+                        }
+                    }
+                }
+            },
+            |text| {
+                let _ = output_app.emit("run:output", OutputEvent { id, text });
+            },
+        )
     })
     .await;
     runs.rust_source_cancellations
+        .lock()
+        .unwrap_or_else(|error| error.into_inner())
+        .remove(&id);
+    runs.portugol_rs_input_senders
         .lock()
         .unwrap_or_else(|error| error.into_inner())
         .remove(&id);
@@ -246,6 +305,11 @@ async fn run_portugol_rs(
 #[tauri::command]
 fn register_rust_source_run(runs: State<'_, Runs>) -> Result<u32, String> {
     runs.register_rust_source()
+}
+
+#[tauri::command]
+fn register_portugol_rs_run(runs: State<'_, Runs>) -> Result<u32, String> {
+    runs.register_portugol_rs()
 }
 
 #[tauri::command]
@@ -441,7 +505,19 @@ fn run(
 
 #[tauri::command]
 fn send_input(runs: State<'_, Runs>, id: u32, line: String) {
-    runs.with_current(id, |handle| handle.send_input(line));
+    let mut line = Some(line);
+    runs.with_current(id, |handle| {
+        handle.send_input(line.take().unwrap_or_default())
+    });
+    if let Some(line) = line
+        && let Some(sender) = runs
+            .portugol_rs_input_senders
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .get(&id)
+    {
+        let _ = sender.send(line);
+    }
 }
 
 #[tauri::command]
@@ -519,6 +595,7 @@ pub fn run_app() {
             rust_toolchain_available,
             run_portugol_rs,
             register_rust_source_run,
+            register_portugol_rs_run,
             run_rust_source,
             format_source,
             include_library,
@@ -594,5 +671,28 @@ mod rust_source_run_tests {
         assert_ne!(first, second);
         assert!(runs.request_stop(first));
         assert!(!runs.request_stop(u32::MAX));
+    }
+
+    #[test]
+    fn portugol_rs_run_registers_a_stoppable_input_channel() {
+        let runs = Runs::default();
+        let id = runs.register_portugol_rs().unwrap();
+        let sender = runs
+            .portugol_rs_input_senders
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .get(&id)
+            .unwrap()
+            .clone();
+        let receiver = runs
+            .portugol_rs_input_receivers
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .remove(&id)
+            .unwrap();
+
+        sender.send("42".into()).unwrap();
+        assert_eq!(receiver.recv().unwrap(), "42");
+        assert!(runs.request_stop(id));
     }
 }

@@ -21,8 +21,8 @@ test("PORS run API distinguishes execution, compiler diagnostics, limits and can
 
 test("PORS execution uses the shared registered cancellation token", () => {
   const tauri = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
-  assert.match(tauri, /async fn run_portugol_rs\([\s\S]*id: u32,[\s\S]*run_portugol_rs_with_cancel[\s\S]*remove\(&id\)/);
-  assert.match(main, /api\.registerRustSourceRun\(\)[\s\S]*runId = porsRunId[\s\S]*api\.runPortugolRs\(porsRunId, source\)/);
+  assert.match(tauri, /async fn run_portugol_rs\([\s\S]*id: u32,[\s\S]*run_portugol_rs_with_io[\s\S]*remove\(&id\)/);
+  assert.match(main, /api\.registerPortugolRsRun\(\)[\s\S]*runId = porsRunId[\s\S]*api\.runPortugolRs\(porsRunId, source\)/);
   assert.match(main, /result\.status === "cancelled"[\s\S]*Execução Portugol-RS cancelada durante/);
 });
 

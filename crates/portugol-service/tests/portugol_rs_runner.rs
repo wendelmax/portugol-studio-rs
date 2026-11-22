@@ -1,5 +1,6 @@
 use portugol_service::{
     PortugolRsRunPhase, PortugolRsRunResult, run_portugol_rs, run_portugol_rs_with_cancel,
+    run_portugol_rs_with_io,
 };
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -23,6 +24,105 @@ fn compiles_and_runs_supported_portugol_rs_with_real_rustc() {
         }
         other => panic!("esperava execução bem-sucedida, recebido {other:?}"),
     }
+}
+
+#[test]
+fn pauses_at_leia_requests_typed_input_and_resumes_the_program() {
+    let cancel = AtomicBool::new(false);
+    let mut streamed = Vec::new();
+    let result = run_portugol_rs_with_io(
+        "funcao inicio() { seja mutavel idade: inteiro = 0; escreva(\"idade? \"); leia(idade); escreva(idade); }",
+        &cancel,
+        |expected| {
+            assert_eq!(expected, "inteiro");
+            Ok("42".to_owned())
+        },
+        |text| streamed.push(text.to_owned()),
+    )
+    .unwrap();
+
+    assert_eq!(streamed.concat(), "idade? ");
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { stdout, exit_code: Some(0), .. } if stdout == "42")
+    );
+}
+
+#[test]
+fn parses_string_real_boolean_and_character_inputs() {
+    for (ty, value) in [
+        ("cadeia", "Olá, Rust"),
+        ("real", "3.5"),
+        ("logico", "verdadeiro"),
+        ("caracter", "ç"),
+    ] {
+        let source = format!(
+            "funcao inicio() {{ seja mutavel valor: {ty} = {}; leia(valor); escreva(valor); }}",
+            match ty {
+                "cadeia" => "\"\"".to_owned(),
+                "real" => "0.0".to_owned(),
+                "logico" => "falso".to_owned(),
+                "caracter" => "'a'".to_owned(),
+                _ => unreachable!(),
+            }
+        );
+        let cancel = AtomicBool::new(false);
+        let result =
+            run_portugol_rs_with_io(&source, &cancel, |_| Ok(value.to_owned()), |_| {}).unwrap();
+        assert!(matches!(
+            result,
+            PortugolRsRunResult::Executed { stdout, exit_code: Some(0), .. } if stdout == value
+        ));
+    }
+}
+
+#[test]
+fn cancellation_interrupts_a_run_waiting_for_input() {
+    let cancel = Arc::new(AtomicBool::new(false));
+    let worker_cancel = Arc::clone(&cancel);
+    let (requested, request) = std::sync::mpsc::channel();
+    let worker = std::thread::spawn(move || {
+        run_portugol_rs_with_io(
+            "funcao inicio() { seja mutavel valor: inteiro = 0; leia(valor); }",
+            &worker_cancel,
+            |expected| {
+                requested.send(expected.to_owned()).unwrap();
+                while !worker_cancel.load(Ordering::Acquire) {
+                    std::thread::sleep(std::time::Duration::from_millis(10));
+                }
+                Ok(String::new())
+            },
+            |_| {},
+        )
+    });
+    assert_eq!(
+        request
+            .recv_timeout(std::time::Duration::from_secs(5))
+            .unwrap(),
+        "inteiro"
+    );
+    cancel.store(true, Ordering::Release);
+    let result = worker.join().unwrap().unwrap();
+    assert!(matches!(
+        result,
+        PortugolRsRunResult::Cancelled {
+            phase: PortugolRsRunPhase::Runtime,
+            ..
+        }
+    ));
+}
+
+#[test]
+fn rejects_an_input_line_larger_than_one_mib() {
+    let cancel = AtomicBool::new(false);
+    let oversized = "x".repeat(1_048_577);
+    let error = run_portugol_rs_with_io(
+        "funcao inicio() { seja mutavel valor: cadeia = \"\"; leia(valor); }",
+        &cancel,
+        |_| Ok(oversized.clone()),
+        |_| {},
+    )
+    .unwrap_err();
+    assert!(error.contains("1 MiB por linha"));
 }
 
 #[test]

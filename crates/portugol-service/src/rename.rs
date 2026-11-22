@@ -222,6 +222,10 @@ fn collect_portugol_rs_statements(
                     collect_portugol_rs_expression(value, occurrences);
                 }
             }
+            StmtKind::Read { binding, name_span } => occurrences.push(PortugolRsOccurrence {
+                binding: *binding,
+                span: *name_span,
+            }),
             StmtKind::If {
                 condition,
                 then_branch,
@@ -425,6 +429,16 @@ mod tests {
         assert_eq!(target.occurrences, 3);
         assert_eq!(edits.len(), 3);
         assert!(edits.iter().all(|edit| edit.insert == "total"));
+    }
+
+    #[test]
+    fn portugol_rs_rename_includes_the_leia_target() {
+        let source =
+            "funcao inicio() { seja mutavel idade: inteiro = 0; leia(idade); escreva(idade); }";
+        let cursor = source.find("idade:").unwrap() as u32;
+        let edits = rename_symbol_portugol_rs(source, cursor, "anos").unwrap();
+        assert_eq!(edits.len(), 3);
+        assert!(edits.iter().all(|edit| edit.insert == "anos"));
     }
 
     #[test]

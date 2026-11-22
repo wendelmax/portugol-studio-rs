@@ -1,5 +1,5 @@
 use std::fs;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
@@ -16,9 +16,13 @@ use portugol_rust::{GeneratedRust, SourceMapQuality as RustSourceMapQuality, Sou
 static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(1);
 const MAX_SOURCE_BYTES: usize = 1_048_576;
 const MAX_RUNTIME_OUTPUT_BYTES: usize = 1_048_576;
+const MAX_RUNTIME_INPUT_LINE_BYTES: usize = 1_048_576;
 const RUNTIME_LIMIT: Duration = Duration::from_secs(3);
 const COMPILATION_LIMIT: Duration = Duration::from_secs(20);
 const STRING_BUDGET_EXIT_CODE: i32 = 78;
+
+type InputHandler<'a> = dyn FnMut(&str) -> Result<String, String> + 'a;
+type OutputHandler<'a> = dyn FnMut(&str) + 'a;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(
@@ -206,6 +210,29 @@ pub fn run_portugol_rs_with_cancel(
     source: &str,
     cancel: &AtomicBool,
 ) -> Result<PortugolRsRunResult, String> {
+    run_portugol_rs_internal(source, cancel, None, None)
+}
+
+/// Compila e executa Portugol-RS, encaminhando pedidos de leia e saída anterior ao pedido.
+pub fn run_portugol_rs_with_io<I, O>(
+    source: &str,
+    cancel: &AtomicBool,
+    mut on_input: I,
+    mut on_output: O,
+) -> Result<PortugolRsRunResult, String>
+where
+    I: FnMut(&str) -> Result<String, String>,
+    O: FnMut(&str),
+{
+    run_portugol_rs_internal(source, cancel, Some(&mut on_input), Some(&mut on_output))
+}
+
+fn run_portugol_rs_internal(
+    source: &str,
+    cancel: &AtomicBool,
+    on_input: Option<&mut InputHandler<'_>>,
+    on_output: Option<&mut OutputHandler<'_>>,
+) -> Result<PortugolRsRunResult, String> {
     if source.len() > MAX_SOURCE_BYTES {
         return Err("O arquivo Portugol-RS excede o limite de 1 MiB para compilação.".into());
     }
@@ -228,7 +255,7 @@ pub fn run_portugol_rs_with_cancel(
         )
     })?;
 
-    compile_and_run_generated(&generated, source, Some(cancel))
+    compile_and_run_generated(&generated, source, Some(cancel), on_input, on_output)
 }
 
 /// Compiles and runs one standalone Rust 2021 source file with fixed rustc arguments.
@@ -354,6 +381,8 @@ fn compile_and_run_generated(
     generated: &GeneratedRust,
     source: &str,
     cancel: Option<&AtomicBool>,
+    on_input: Option<&mut InputHandler<'_>>,
+    on_output: Option<&mut OutputHandler<'_>>,
 ) -> Result<PortugolRsRunResult, String> {
     let temporary = TemporaryDirectory::create()?;
     let source_path = temporary.0.join("program.rs");
@@ -412,12 +441,17 @@ fn compile_and_run_generated(
 
     let mut executable = Command::new(&executable_path);
     configure_process_tree(&mut executable);
+    if on_input.is_some() {
+        executable
+            .env("PORTUGOL_STUDIO_INPUT_PROTOCOL", "1")
+            .stdin(Stdio::piped());
+    }
     let execution = executable
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|error| format!("Não foi possível executar o programa compilado: {error}"))?;
-    let execution = supervise(execution, RUNTIME_LIMIT, cancel)?;
+    let execution = supervise_with_io(execution, RUNTIME_LIMIT, cancel, on_input, on_output)?;
     let stdout = String::from_utf8_lossy(&execution.stdout).into_owned();
     let stderr = String::from_utf8_lossy(&execution.stderr).into_owned();
     if let Some(reason) = execution.limit {
@@ -453,6 +487,11 @@ struct SupervisedOutput {
     stderr: Vec<u8>,
     status: Option<i32>,
     limit: Option<ProcessLimitReason>,
+}
+
+enum ProcessMessage {
+    Output(bool, Vec<u8>),
+    InputRequest(String),
 }
 
 #[cfg(unix)]
@@ -583,11 +622,26 @@ impl ProcessTreeSupervisor {
 }
 
 fn supervise(
-    mut child: Child,
+    child: Child,
     time_limit: Duration,
     cancel: Option<&AtomicBool>,
 ) -> Result<SupervisedOutput, String> {
+    supervise_with_io(child, time_limit, cancel, None, None)
+}
+
+fn supervise_with_io(
+    mut child: Child,
+    time_limit: Duration,
+    cancel: Option<&AtomicBool>,
+    mut on_input: Option<&mut InputHandler<'_>>,
+    mut on_output: Option<&mut OutputHandler<'_>>,
+) -> Result<SupervisedOutput, String> {
     let process_tree = ProcessTreeSupervisor::new(&child);
+    let mut stdin = if on_input.is_some() {
+        child.stdin.take()
+    } else {
+        None
+    };
     let stdout = child
         .stdout
         .take()
@@ -596,12 +650,13 @@ fn supervise(
         .stderr
         .take()
         .ok_or("stderr do processo não foi capturado")?;
-    let (sender, receiver) = mpsc::channel::<(bool, Vec<u8>)>();
+    let (sender, receiver) = mpsc::channel::<ProcessMessage>();
     let captured = Arc::new(AtomicUsize::new(0));
     let exceeded = Arc::new(AtomicBool::new(false));
     let pipe_error = Arc::new(Mutex::new(None));
     let out_thread = pipe_reader(
         stdout,
+        true,
         true,
         sender.clone(),
         captured.clone(),
@@ -611,21 +666,67 @@ fn supervise(
     let err_thread = pipe_reader(
         stderr,
         false,
+        false,
         sender,
         captured,
         exceeded.clone(),
         pipe_error.clone(),
     );
     let started = Instant::now();
+    let mut excluded_wait = Duration::ZERO;
     let mut stdout_bytes = Vec::new();
     let mut stderr_bytes = Vec::new();
     let mut limit = None;
     let status = loop {
-        while let Ok((is_stdout, bytes)) = receiver.try_recv() {
-            if is_stdout {
-                stdout_bytes.extend(bytes);
-            } else {
-                stderr_bytes.extend(bytes);
+        while let Ok(message) = receiver.try_recv() {
+            match message {
+                ProcessMessage::Output(is_stdout, bytes) => {
+                    if is_stdout {
+                        stdout_bytes.extend(bytes);
+                    } else {
+                        stderr_bytes.extend(bytes);
+                    }
+                }
+                ProcessMessage::InputRequest(expected) => {
+                    let Some(handler) = on_input.as_deref_mut() else {
+                        stderr_bytes.extend_from_slice(
+                            format!("Entrada solicitada pelo programa: {expected}\n").as_bytes(),
+                        );
+                        continue;
+                    };
+                    if let Some(handler) = on_output.as_deref_mut()
+                        && !stdout_bytes.is_empty()
+                    {
+                        let text = String::from_utf8_lossy(&stdout_bytes).into_owned();
+                        handler(&text);
+                        stdout_bytes.clear();
+                    }
+                    let wait_started = Instant::now();
+                    let line = match handler(&expected) {
+                        Ok(line) => line,
+                        Err(error) => {
+                            process_tree.terminate(&mut child);
+                            let _ = child.wait();
+                            return Err(error);
+                        }
+                    };
+                    excluded_wait += wait_started.elapsed();
+                    if line.len() > MAX_RUNTIME_INPUT_LINE_BYTES {
+                        process_tree.terminate(&mut child);
+                        let _ = child.wait();
+                        return Err("A entrada excede o limite de 1 MiB por linha.".into());
+                    }
+                    let Some(input) = stdin.as_mut() else {
+                        process_tree.terminate(&mut child);
+                        let _ = child.wait();
+                        return Err("O canal de entrada do programa não está disponível.".into());
+                    };
+                    input
+                        .write_all(line.as_bytes())
+                        .and_then(|_| input.write_all(b"\n"))
+                        .and_then(|_| input.flush())
+                        .map_err(|error| format!("Não foi possível enviar a entrada: {error}"))?;
+                }
             }
         }
         if exceeded.load(Ordering::Relaxed) {
@@ -645,7 +746,7 @@ fn supervise(
             let _ = child.wait();
             break None;
         }
-        if started.elapsed() >= time_limit {
+        if started.elapsed().saturating_sub(excluded_wait) >= time_limit {
             limit = Some(ProcessLimitReason::Time);
             process_tree.terminate(&mut child);
             break child
@@ -683,11 +784,13 @@ fn supervise(
     {
         return Err(error);
     }
-    while let Ok((is_stdout, bytes)) = receiver.try_recv() {
-        if is_stdout {
-            stdout_bytes.extend(bytes);
-        } else {
-            stderr_bytes.extend(bytes);
+    while let Ok(message) = receiver.try_recv() {
+        if let ProcessMessage::Output(is_stdout, bytes) = message {
+            if is_stdout {
+                stdout_bytes.extend(bytes);
+            } else {
+                stderr_bytes.extend(bytes);
+            }
         }
     }
     if limit.is_none() && status == Some(STRING_BUDGET_EXIT_CODE) {
@@ -704,13 +807,15 @@ fn supervise(
 fn pipe_reader<R: Read + Send + 'static>(
     mut pipe: R,
     is_stdout: bool,
-    sender: mpsc::Sender<(bool, Vec<u8>)>,
+    detect_input_requests: bool,
+    sender: mpsc::Sender<ProcessMessage>,
     captured: Arc<AtomicUsize>,
     exceeded: Arc<AtomicBool>,
     pipe_error: Arc<Mutex<Option<String>>>,
 ) -> thread::JoinHandle<()> {
     thread::spawn(move || {
         let mut buffer = [0u8; 8192];
+        let mut line = Vec::new();
         loop {
             let read = match pipe.read(&mut buffer) {
                 Ok(read) => read,
@@ -725,7 +830,34 @@ fn pipe_reader<R: Read + Send + 'static>(
                 }
             };
             if read == 0 {
+                if !line.is_empty() {
+                    let _ = send_pipe_line(
+                        &line,
+                        is_stdout,
+                        detect_input_requests,
+                        &sender,
+                        &captured,
+                        &exceeded,
+                    );
+                }
                 break;
+            }
+            if detect_input_requests {
+                for byte in &buffer[..read] {
+                    line.push(*byte);
+                    if *byte == b'\n' || line.len() >= 8192 {
+                        let _ = send_pipe_line(
+                            &line,
+                            is_stdout,
+                            detect_input_requests,
+                            &sender,
+                            &captured,
+                            &exceeded,
+                        );
+                        line.clear();
+                    }
+                }
+                continue;
             }
             let previous = captured.fetch_add(read, Ordering::Relaxed);
             let allowed = read.min(MAX_RUNTIME_OUTPUT_BYTES.saturating_sub(previous));
@@ -734,7 +866,10 @@ fn pipe_reader<R: Read + Send + 'static>(
             }
             if allowed > 0
                 && sender
-                    .send((is_stdout, buffer[..allowed].to_vec()))
+                    .send(ProcessMessage::Output(
+                        is_stdout,
+                        buffer[..allowed].to_vec(),
+                    ))
                     .is_err()
             {
                 break;
@@ -744,6 +879,72 @@ fn pipe_reader<R: Read + Send + 'static>(
             }
         }
     })
+}
+
+fn send_pipe_line(
+    bytes: &[u8],
+    is_stdout: bool,
+    detect_input_requests: bool,
+    sender: &mpsc::Sender<ProcessMessage>,
+    captured: &AtomicUsize,
+    exceeded: &AtomicBool,
+) -> Result<(), ()> {
+    const INPUT_PREFIX: &[u8] = b"\x1ePORTUGOL_INPUT:";
+    if detect_input_requests
+        && let Some(start) = bytes
+            .windows(INPUT_PREFIX.len())
+            .position(|window| window == INPUT_PREFIX)
+        && let Some(end) = bytes[start + INPUT_PREFIX.len()..]
+            .iter()
+            .position(|byte| *byte == 0x1e)
+            .map(|end| start + INPUT_PREFIX.len() + end)
+    {
+        if start > 0 {
+            let _ = send_pipe_line(
+                &bytes[..start],
+                is_stdout,
+                false,
+                sender,
+                captured,
+                exceeded,
+            );
+        }
+        let expected =
+            String::from_utf8_lossy(&bytes[start + INPUT_PREFIX.len()..end]).into_owned();
+        let mut suffix_start = end + 1;
+        if bytes.get(suffix_start) == Some(&b'\r') {
+            suffix_start += 1;
+        }
+        if bytes.get(suffix_start) == Some(&b'\n') {
+            suffix_start += 1;
+        }
+        if bytes.len() > suffix_start {
+            let _ = send_pipe_line(
+                &bytes[suffix_start..],
+                is_stdout,
+                false,
+                sender,
+                captured,
+                exceeded,
+            );
+        }
+        return sender
+            .send(ProcessMessage::InputRequest(expected))
+            .map_err(|_| ());
+    }
+    let previous = captured.fetch_add(bytes.len(), Ordering::Relaxed);
+    let allowed = bytes
+        .len()
+        .min(MAX_RUNTIME_OUTPUT_BYTES.saturating_sub(previous));
+    if allowed < bytes.len() {
+        exceeded.store(true, Ordering::Relaxed);
+    }
+    if allowed > 0 {
+        sender
+            .send(ProcessMessage::Output(is_stdout, bytes[..allowed].to_vec()))
+            .map_err(|_| ())?;
+    }
+    Ok(())
 }
 
 fn parse_rustc_diagnostics(
@@ -1019,7 +1220,8 @@ mod tests {
                 quality: RustSourceMapQuality::Approximate,
             }],
         };
-        let result = super::compile_and_run_generated(&generated, source, None).unwrap();
+        let result =
+            super::compile_and_run_generated(&generated, source, None, None, None).unwrap();
         match result {
             super::PortugolRsRunResult::CompileError {
                 diagnostics,

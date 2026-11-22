@@ -61,3 +61,26 @@ features:
     limitations:
       - "Conteúdo é estático/local; ainda não há currículo versionado ou autoria de professor"
       - "FT-05 não possui runner Gherkin nem teste DOM/E2E configurado"
+  - id: FEAT-PORS-INPUT-001
+    title: Entrada interativa leia no Portugol-RS
+    ui: [UI-003, UI-021]
+    useCases: [UC-06]
+    backend: [portugol-rs-frontend::Parser, portugol-hir::StmtKind::Read, portugol-rust::codegen, portugol-service::run_portugol_rs_with_io]
+    tauriIpc: [register_portugol_rs_run, run_portugol_rs, send_input, stop]
+    scenarios: [FT-03]
+    acceptance:
+      - "leia aceita somente bindings mutáveis declarados e tipados"
+      - "o console solicita e encaminha a entrada para o processo ativo"
+      - "o programa retoma após receber cada linha e mostra a saída anterior ao pedido"
+      - "espera por entrada é cancelável e não consome o limite de execução ativa"
+      - "entrada textual respeita o orçamento de memória de strings do Portugol-RS"
+    implementationStatus: implemented
+    testStatus: automated_partial
+    tests:
+      - "crates/portugol-rs-frontend/tests/parser.rs"
+      - "crates/portugol-service/tests/portugol_rs_runner.rs"
+      - "apps/desktop/tests/pors-input.test.mjs"
+      - "apps/desktop/tests/pors-editor-loops.test.mjs"
+    limitations:
+      - "Somente uma variável por chamada leia"
+      - "Depuração Portugol-RS ainda não está disponível"

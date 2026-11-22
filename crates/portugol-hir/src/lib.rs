@@ -116,6 +116,10 @@ pub enum StmtKind {
         op: AssignOp,
         value: Expr,
     },
+    Read {
+        binding: BindingId,
+        name_span: Span,
+    },
     Write(Vec<Expr>),
     If {
         condition: Expr,

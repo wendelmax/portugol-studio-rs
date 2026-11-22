@@ -230,6 +230,7 @@ const PORS_WORDS: Completion[] = [
   ...["inteiro", "real", "logico", "cadeia", "caracter"].map((label) => ({ label, type: "type" })),
   { label: "verdadeiro", type: "constant" }, { label: "falso", type: "constant" },
   { label: "escreva", type: "function", apply: "escreva(" },
+  { label: "leia", type: "function", apply: "leia(", detail: "lê um valor em uma variável mutável" },
 ];
 const porsKeywords = new Set(["funcao", "inicio", "seja", "mutavel", "se", "senao", "enquanto", "para", "pare", "continue"]);
 const porsTypes = new Set(["inteiro", "real", "logico", "cadeia", "caracter"]);
@@ -254,7 +255,7 @@ const porsParser: StreamParser<State> = {
       if (text === "verdadeiro" || text === "falso") return "bool";
       if (porsTypes.has(text)) return "typeName";
       if (porsKeywords.has(text)) return "keyword";
-      if (text === "escreva") return "builtin";
+      if (text === "escreva" || text === "leia") return "builtin";
       if (stream.match(/^\s*\(/, false)) return "function";
       return "variableName";
     }

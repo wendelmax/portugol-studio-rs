@@ -21,6 +21,26 @@ fn parses_the_initial_portugol_rs_program_into_typed_hir() {
 }
 
 #[test]
+fn parses_reading_into_a_mutable_binding() {
+    let source = "funcao inicio() { seja mutavel idade: inteiro = 0; leia(idade); }";
+    let program = lower(source).expect("leia deve aceitar uma variável mutável");
+    assert!(
+        matches!(program.body[1].kind, StmtKind::Read { binding, .. } if binding == program.bindings[0].id)
+    );
+}
+
+#[test]
+fn rejects_reading_into_an_immutable_binding() {
+    let diagnostics =
+        lower("funcao inicio() { seja idade: inteiro = 0; leia(idade); }").unwrap_err();
+    assert!(
+        diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.immutable-assignment")
+    );
+}
+
+#[test]
 fn malformed_syntax_returns_a_localized_diagnostic() {
     let source = "funcao inicio() { seja idade: inteiro = 16 }";
     let diagnostics = lower(source).unwrap_err();

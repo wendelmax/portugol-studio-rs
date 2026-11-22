@@ -86,6 +86,9 @@ impl Parser {
         if self.is_keyword("escreva") {
             return self.write();
         }
+        if self.is_keyword("leia") {
+            return self.read();
+        }
         if self.is_keyword("se") {
             return self.conditional();
         }
@@ -99,7 +102,7 @@ impl Parser {
             return self.loop_control();
         }
         if let Kind::Ident(keyword) = &self.current().kind {
-            if matches!(keyword.as_str(), "faca" | "escolha" | "leia") {
+            if matches!(keyword.as_str(), "faca" | "escolha") {
                 return self.fail(
                     "pors.unsupported-construct",
                     format!("`{keyword}` ainda não faz parte do subset Portugol-RS"),
@@ -302,6 +305,35 @@ impl Parser {
         let end = self.expect(Kind::Semicolon, "Esperado `;` após escreva")?;
         Ok(hir::Stmt {
             kind: hir::StmtKind::Write(values),
+            span: to_hir_span(start.join(end.span)),
+        })
+    }
+
+    fn read(&mut self) -> Result<hir::Stmt, Vec<Diagnostic>> {
+        let start = self.advance().span;
+        self.expect(Kind::LParen, "Esperado `(` após leia")?;
+        let (name, name_span) = self.identifier()?;
+        let symbol = self.lookup(&name).ok_or_else(|| {
+            vec![Diagnostic::error(
+                "pors.unknown-name",
+                format!("A variável `{name}` não foi declarada"),
+                name_span,
+            )]
+        })?;
+        if symbol.mutability != hir::Mutability::Mutable {
+            return self.fail(
+                "pors.immutable-assignment",
+                format!("A variável `{name}` é imutável e não pode receber entrada"),
+                name_span,
+            );
+        }
+        self.expect(Kind::RParen, "Esperado `)` após a variável de leia")?;
+        let end = self.expect(Kind::Semicolon, "Esperado `;` após leia")?;
+        Ok(hir::Stmt {
+            kind: hir::StmtKind::Read {
+                binding: symbol.id,
+                name_span: to_hir_span(name_span),
+            },
             span: to_hir_span(start.join(end.span)),
         })
     }
