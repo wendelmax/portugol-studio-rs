@@ -20,10 +20,11 @@ pub mod host;
 pub mod io;
 #[cfg(feature = "stdlib")]
 pub mod stdlib;
+pub mod ui;
 pub mod value;
 pub mod vm;
 
 pub use host::{FileFilter, Host, NoHost, Sound};
 pub use io::{BufferIo, Io, StdIo};
 pub use value::Value;
-pub use vm::{RuntimeError, RuntimeLimitReason, Status, Vm, run};
+pub use vm::{HostNativeHandler, RuntimeError, RuntimeLimitReason, Status, Vm, run};
