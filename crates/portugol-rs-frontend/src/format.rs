@@ -24,6 +24,8 @@ enum SyntaxKind {
     Literal,
     LParen,
     RParen,
+    LBracket,
+    RBracket,
     LBrace,
     RBrace,
     Colon,
@@ -59,6 +61,8 @@ fn classify(kind: &Kind, prev_syntax: Option<SyntaxKind>) -> SyntaxKind {
         }
         Kind::LParen => SyntaxKind::LParen,
         Kind::RParen => SyntaxKind::RParen,
+        Kind::LBracket => SyntaxKind::LBracket,
+        Kind::RBracket => SyntaxKind::RBracket,
         Kind::LBrace => SyntaxKind::LBrace,
         Kind::RBrace => SyntaxKind::RBrace,
         Kind::Colon => SyntaxKind::Colon,
@@ -114,8 +118,9 @@ fn spacing(left: Piece, right: Piece) -> &'static str {
     match (left, right) {
         (Syntax(Se | Enquanto | Para), Syntax(LParen)) => " ",
         (Syntax(Ident), Syntax(LParen)) => "",
-        (Syntax(LParen | Bang | UnarySign), _) => "",
-        (_, Syntax(RParen | Comma | Semicolon | Colon | Eof)) => "",
+        (Syntax(LParen | LBracket | Bang | UnarySign), _) => "",
+        (Syntax(Ident | RBracket), Syntax(LBracket)) => "",
+        (_, Syntax(RParen | RBracket | Comma | Semicolon | Colon | Eof)) => "",
         (Syntax(LBrace), Syntax(RBrace)) => "",
         _ => " ",
     }
@@ -296,6 +301,17 @@ mod tests {
         let expected = "funcao vazio() {\n    retorne;\n}\n\nfuncao inicio() {\n    seja mutavel x: inteiro = 1; // ok\n    enquanto (falso) {}\n    vazio();\n}\n";
         let formatted = apply(compact, format(compact).expect("fonte válida"));
         assert_eq!(formatted, expected);
+        assert_eq!(format(&formatted), Some(Vec::new()));
+    }
+
+    #[test]
+    fn formats_vector_literals_and_indexing_without_internal_spaces() {
+        let source = "funcao inicio(){seja mutavel valores:vetor<inteiro> =[1,2];valores[0]=valores[1];escreva(tamanho(valores));}";
+        let formatted = apply(source, format(source).expect("fonte com vetor válida"));
+        assert_eq!(
+            formatted,
+            "funcao inicio() {\n    seja mutavel valores: vetor < inteiro > = [1, 2];\n    valores[0] = valores[1];\n    escreva(tamanho(valores));\n}\n"
+        );
         assert_eq!(format(&formatted), Some(Vec::new()));
     }
 
