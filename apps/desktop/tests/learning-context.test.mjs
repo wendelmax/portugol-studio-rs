@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-const { explainMappedMutability, learningContextAtSelection } = await import("../src/learning-context.ts");
+const { explainMappedConcept, learningContextAtSelection } = await import("../src/learning-context.ts");
 
 function position(offset) {
   return { offset, line: 1, column: offset + 1 };
@@ -44,6 +44,53 @@ test("maps a source caret to a current mutable Rust binding", () => {
     sourceSnippet: "inteiro idade = 16;",
     rustSnippet: "let mut idade: i32 = 16_i32;",
   });
+});
+
+test("maps exact conditionals and loops to their learning concepts", () => {
+  const countedSource = "funcao inicio() { para (seja mutavel i: inteiro = 0; i < 3; i += 1) { escreva(i); } }";
+  const snippets = [
+    {
+      conceptId: "conditionals",
+      source: "se (idade >= 18) { escreva(idade); }",
+      rust: "if idade >= 18 {\n    println!(\"{idade}\");\n}",
+    },
+    {
+      conceptId: "loops",
+      source: "enquanto (contador < 3) { contador++; }",
+      rust: "while contador < 3 {\n    contador += 1;\n}",
+    },
+    {
+      conceptId: "loops",
+      source: countedSource,
+      rust: `{\n    let mut pt_i: i32 = 0_i32;\n    'pors_for_${countedSource.indexOf("para")}: while pt_i < 3_i32 {\n        println!("{pt_i}");\n        pt_i = (pt_i).wrapping_add(1_i32);\n    }\n}`,
+    },
+  ];
+
+  for (const { conceptId, source, rust } of snippets) {
+    const result = learningContextAtSelection({
+      source,
+      selectionFrom: 0,
+      selectionTo: source.length,
+      artifact: { source, code: rust, sourceMap: [mapping(0, source.length, 0, rust.length)] },
+      stale: false,
+    });
+    assert.equal(result?.conceptId, conceptId);
+    assert.equal(result?.sourceSnippet, source);
+    assert.equal(result?.rustSnippet, rust);
+    assert.match(explainMappedConcept(result, "portugol"), conceptId === "conditionals" ? /decisão/ : /repetição/);
+  }
+});
+
+test("does not infer a learning concept from unrelated generated Rust", () => {
+  const source = "escreva(42);";
+  const rust = "println!(\"{}\", 42_i32);";
+  assert.equal(learningContextAtSelection({
+    source,
+    selectionFrom: 0,
+    selectionTo: source.length,
+    artifact: { source, code: rust, sourceMap: [mapping(0, source.length, 0, rust.length)] },
+    stale: false,
+  }), null);
 });
 
 test("classifies immutable Rust let bindings without claiming mutability", () => {
@@ -121,9 +168,9 @@ test("chooses the narrowest overlapping exact mapping that identifies a binding"
   assert.equal(result?.rustSnippet, "let mut idade: i32 = 16_i32;");
 });
 
-test("explains mutability according to the active source dialect", () => {
+test("explains mapped mutability according to the active source dialect", () => {
   const mapped = context();
-  assert.match(explainMappedMutability(mapped, "portugol"), /Portugol clássico/);
-  assert.match(explainMappedMutability(mapped, "portugol-rs"), /Portugol-RS/);
-  assert.match(explainMappedMutability(mapped, "portugol-rs"), /let mut/);
+  assert.match(explainMappedConcept(mapped, "portugol"), /Portugol clássico/);
+  assert.match(explainMappedConcept(mapped, "portugol-rs"), /Portugol-RS/);
+  assert.match(explainMappedConcept(mapped, "portugol-rs"), /let mut/);
 });

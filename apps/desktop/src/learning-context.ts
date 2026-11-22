@@ -1,9 +1,9 @@
 import type { SourceMapInfo } from "./api";
 
 export interface LearningContext {
-  conceptId: "mutability";
+  conceptId: "mutability" | "conditionals" | "loops";
   provenance: "source-map";
-  bindingMutability: "mutable" | "immutable";
+  bindingMutability?: "mutable" | "immutable";
   sourceStart: number;
   sourceEnd: number;
   generatedStart: number;
@@ -12,7 +12,15 @@ export interface LearningContext {
   rustSnippet: string;
 }
 
-export function explainMappedMutability(context: LearningContext, language: "portugol" | "portugol-rs"): string {
+export function explainMappedConcept(context: LearningContext, language: "portugol" | "portugol-rs"): string {
+  if (context.conceptId === "conditionals") {
+    return language === "portugol-rs"
+      ? "Esta decisão Portugol-RS foi mapeada para uma condição if no Rust gerado."
+      : "Esta decisão Portugol foi mapeada para uma condição if no Rust gerado.";
+  }
+  if (context.conceptId === "loops") {
+    return "Esta repetição foi mapeada para a estrutura correspondente no Rust gerado.";
+  }
   const rustBinding = context.bindingMutability === "mutable" ? "let mut" : "let";
   const rustEffect = context.bindingMutability === "mutable"
     ? "este vínculo pode ser alterado"
@@ -47,19 +55,27 @@ export function learningContextAtSelection(input: {
 
     const rustSnippet = artifact.code!.slice(generatedStart, generatedEnd).trim();
     const binding = /^let\s+(mut\s+)?[A-Za-z_]\w*\b/.exec(rustSnippet);
-    if (!binding) return [];
+    const conceptId: LearningContext["conceptId"] | null = binding
+      ? "mutability"
+      : /^if\b/.test(rustSnippet)
+        ? "conditionals"
+        : /^while\b/.test(rustSnippet) || /^\{\n[\s\S]*?'pors_for_\d+: while\b/.test(rustSnippet)
+          ? "loops"
+          : null;
+    if (!conceptId) return [];
     return [{
+      conceptId,
       sourceStart,
       sourceEnd,
       generatedStart,
       generatedEnd,
       sourceSnippet: source.slice(sourceStart, sourceEnd),
       rustSnippet,
-      bindingMutability: binding[1] ? "mutable" as const : "immutable" as const,
+      ...(binding ? { bindingMutability: binding[1] ? "mutable" as const : "immutable" as const } : {}),
     }];
   });
   candidates.sort((a, b) => (a.sourceEnd - a.sourceStart) - (b.sourceEnd - b.sourceStart)
     || (a.generatedEnd - a.generatedStart) - (b.generatedEnd - b.generatedStart));
   const match = candidates[0];
-  return match ? { conceptId: "mutability", provenance: "source-map", ...match } : null;
+  return match ? { provenance: "source-map", ...match } : null;
 }

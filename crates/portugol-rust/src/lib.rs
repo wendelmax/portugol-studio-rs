@@ -733,7 +733,7 @@ fn unsupported(feature: &str, span: Span) -> Diagnostic {
 mod tests {
     use super::{
         SourceMapQuality, SourceRange, export, export_legacy, export_portugol_rs,
-        export_portugol_rs_with_map,
+        export_portugol_rs_with_map, export_with_map,
     };
     use std::process::Command;
 
@@ -778,6 +778,22 @@ mod tests {
                 "missing mapping for {snippet}"
             );
         }
+        let source_start = source.find("enquanto (").unwrap() as u32;
+        let mapping = generated
+            .mappings
+            .iter()
+            .find(|mapping| {
+                mapping
+                    .source
+                    .is_some_and(|range| range.start == source_start)
+                    && mapping.quality == SourceMapQuality::Exact
+            })
+            .expect("enquanto deve ter um source map exato");
+        assert!(
+            generated.code[mapping.generated.start as usize..mapping.generated.end as usize]
+                .trim_start()
+                .starts_with("while ")
+        );
         assert_rust_output(generated.code, "012");
     }
 
@@ -801,6 +817,23 @@ mod tests {
                 "missing exact source mapping for {snippet}"
             );
         }
+        let source_start = source.find("para (").unwrap() as u32;
+        let mapping = generated
+            .mappings
+            .iter()
+            .find(|mapping| {
+                mapping
+                    .source
+                    .is_some_and(|range| range.start == source_start)
+                    && mapping.quality == SourceMapQuality::Exact
+            })
+            .expect("para deve ter um source map exato");
+        let generated_loop = generated.code
+            [mapping.generated.start as usize..mapping.generated.end as usize]
+            .trim_start();
+        assert!(generated_loop.starts_with("{\n"));
+        assert!(generated_loop.contains("'pors_for_"));
+        assert!(generated_loop.contains(": while "));
         assert_rust_output(generated.code, "012");
     }
 
@@ -1011,15 +1044,35 @@ mod tests {
     #[test]
     fn emits_scoped_conditionals_and_string_concatenation_as_valid_rust() {
         let source = r#"programa { funcao inicio() { cadeia nome = "Ana" escreva("Oi, " + nome) se (1 < 2) { escreva("!") } } }"#;
-        let generated = export(source).unwrap();
-        assert!(generated.contains(r#"format!("{}{}", String::from("Oi, "), pt_nome)"#));
-        assert!(generated.contains("if (1_i32) < (2_i32) {"));
+        let generated = export_with_map(source).unwrap();
+        assert!(
+            generated
+                .code
+                .contains(r#"format!("{}{}", String::from("Oi, "), pt_nome)"#)
+        );
+        assert!(generated.code.contains("if (1_i32) < (2_i32) {"));
+        let source_start = source.find("se (1 < 2)").unwrap() as u32;
+        let mapping = generated
+            .mappings
+            .iter()
+            .find(|mapping| {
+                mapping
+                    .source
+                    .is_some_and(|range| range.start == source_start)
+                    && mapping.quality == SourceMapQuality::Exact
+            })
+            .expect("se deve ter um source map exato");
+        assert!(
+            generated.code[mapping.generated.start as usize..mapping.generated.end as usize]
+                .trim_start()
+                .starts_with("if ")
+        );
         let dir =
             std::env::temp_dir().join(format!("portugol-rust-condition-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let source_path = dir.join("main.rs");
         let binary = dir.join(format!("program{}", std::env::consts::EXE_SUFFIX));
-        std::fs::write(&source_path, generated).unwrap();
+        std::fs::write(&source_path, generated.code).unwrap();
         let compilation = Command::new("rustc")
             .arg("--edition=2024")
             .arg(&source_path)
