@@ -304,6 +304,11 @@ fn pors_type_name(ty: portugol_hir::Type) -> &'static str {
         portugol_hir::Type::String => "cadeia",
         portugol_hir::Type::Character => "caracter",
         portugol_hir::Type::Unit => "vazio",
+        portugol_hir::Type::VectorInteger => "vetor<inteiro>",
+        portugol_hir::Type::VectorReal => "vetor<real>",
+        portugol_hir::Type::VectorBoolean => "vetor<logico>",
+        portugol_hir::Type::VectorString => "vetor<cadeia>",
+        portugol_hir::Type::VectorCharacter => "vetor<caracter>",
     }
 }
 

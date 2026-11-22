@@ -607,6 +607,28 @@ impl<'a> Vm<'a> {
                 let values = self.pop_n(count);
                 self.push(Value::Array(Rc::new(RefCell::new(values))));
             }
+            Op::ArrayLen => {
+                let array = self.pop();
+                let Value::Array(array) = array else {
+                    return Err(not_a("vetor", &array));
+                };
+                self.push(Value::Int(array.borrow().len() as i32));
+            }
+            Op::CloneArray => {
+                let array = self.pop();
+                let Value::Array(array) = array else {
+                    return Err(not_a("vetor", &array));
+                };
+                let values = array.borrow();
+                let mut cloned = Vec::with_capacity(values.len());
+                for value in values.iter() {
+                    if let Value::Str(text) = value {
+                        self.charge_string(text.len())?;
+                    }
+                    cloned.push(value.clone());
+                }
+                self.push(Value::Array(Rc::new(RefCell::new(cloned))));
+            }
             Op::MatrixLit { rows, cols } => {
                 let data = self.pop_n(rows * cols);
                 let matrix = Matrix {

@@ -215,18 +215,32 @@ impl Parser {
 
     fn type_name(&mut self) -> Result<hir::Type, Vec<Diagnostic>> {
         let (name, span) = self.identifier()?;
-        match name.as_str() {
-            "inteiro" => Ok(hir::Type::Integer),
-            "real" => Ok(hir::Type::Real),
-            "logico" => Ok(hir::Type::Boolean),
-            "cadeia" => Ok(hir::Type::String),
-            "caracter" => Ok(hir::Type::Character),
-            _ => self.fail(
+        if name == "vetor" {
+            self.expect(Kind::Less, "Esperado `<` após `vetor`")?;
+            let (element_name, element_span) = self.identifier()?;
+            let element = scalar_type(&element_name).ok_or_else(|| {
+                vec![Diagnostic::error(
+                    "pors.unknown-type",
+                    format!("Tipo de elemento desconhecido: {element_name}"),
+                    element_span,
+                )]
+            })?;
+            self.expect(Kind::Greater, "Esperado `>` após o tipo do vetor")?;
+            return hir::Type::vector_of(element).ok_or_else(|| {
+                vec![Diagnostic::error(
+                    "pors.vector-element-type",
+                    "O tipo de elemento não pode ser um vetor",
+                    span,
+                )]
+            });
+        }
+        scalar_type(&name).ok_or_else(|| {
+            vec![Diagnostic::error(
                 "pors.unknown-type",
                 format!("Tipo desconhecido: {name}"),
                 span,
-            ),
-        }
+            )]
+        })
     }
 
     fn skip_function_body(&mut self) -> Result<(), Vec<Diagnostic>> {
@@ -361,6 +375,13 @@ impl Parser {
             if self
                 .tokens
                 .get(self.cursor + 1)
+                .is_some_and(|token| matches!(token.kind, Kind::LBracket))
+            {
+                return self.index_assignment();
+            }
+            if self
+                .tokens
+                .get(self.cursor + 1)
                 .is_some_and(|token| matches!(token.kind, Kind::LParen))
             {
                 let expression = self.expression(0)?;
@@ -405,21 +426,7 @@ impl Parser {
             );
         }
         self.expect(Kind::Colon, "Esperado `:` entre nome e tipo")?;
-        let (type_name, type_span) = self.identifier()?;
-        let ty = match type_name.as_str() {
-            "inteiro" => hir::Type::Integer,
-            "real" => hir::Type::Real,
-            "logico" => hir::Type::Boolean,
-            "cadeia" => hir::Type::String,
-            "caracter" => hir::Type::Character,
-            _ => {
-                return self.fail(
-                    "pors.unknown-type",
-                    format!("Tipo desconhecido: {type_name}"),
-                    type_span,
-                );
-            }
-        };
+        let ty = self.type_name()?;
         self.expect(
             Kind::Assign,
             "Toda variável deve receber um valor inicial (`=`)",
@@ -428,7 +435,10 @@ impl Parser {
         if initializer.ty != ty {
             return self.fail(
                 "pors.type-mismatch",
-                format!("O valor inicial de `{name}` não corresponde ao tipo `{type_name}`"),
+                format!(
+                    "O valor inicial de `{name}` não corresponde ao tipo `{}`",
+                    type_label(ty)
+                ),
                 syntax_span(initializer.span),
             );
         }
@@ -469,6 +479,64 @@ impl Parser {
 
     fn assignment(&mut self) -> Result<hir::Stmt, Vec<Diagnostic>> {
         self.assignment_with_terminator(true)
+    }
+
+    fn index_assignment(&mut self) -> Result<hir::Stmt, Vec<Diagnostic>> {
+        let (name, name_span) = self.identifier()?;
+        let symbol = self.lookup(&name).ok_or_else(|| {
+            vec![Diagnostic::error(
+                "pors.unknown-name",
+                format!("Nome não declarado: {name}"),
+                name_span,
+            )]
+        })?;
+        let Some(element_type) = symbol.ty.vector_element() else {
+            return self.fail(
+                "pors.index-non-vector",
+                format!("`{name}` não é um vetor"),
+                name_span,
+            );
+        };
+        self.expect(Kind::LBracket, "Esperado `[` após o vetor")?;
+        let index = self.expression(0)?;
+        if index.ty != hir::Type::Integer {
+            return self.fail(
+                "pors.index-type",
+                "O índice do vetor deve ter tipo inteiro",
+                syntax_span(index.span),
+            );
+        }
+        self.expect(Kind::RBracket, "Esperado `]` após índice")?;
+        self.expect(
+            Kind::Assign,
+            "A atribuição em um índice de vetor deve usar `=`",
+        )?;
+        let value = self.expression(0)?;
+        if value.ty != element_type {
+            return self.fail(
+                "pors.vector-element-type",
+                "O valor atribuído não corresponde ao tipo dos elementos do vetor",
+                syntax_span(value.span),
+            );
+        }
+        let end = self.expect(Kind::Semicolon, "Esperado `;` após atribuição")?;
+        if symbol.mutability == hir::Mutability::Immutable {
+            return self.fail(
+                "pors.immutable-assignment",
+                format!(
+                    "`{name}` é imutável; declare com `seja mutavel` para alterar seus elementos"
+                ),
+                name_span,
+            );
+        }
+        Ok(hir::Stmt {
+            kind: hir::StmtKind::IndexAssign {
+                binding: symbol.id,
+                index,
+                value,
+            },
+            span: to_hir_span(name_span.join(end.span)),
+        })
     }
 
     fn assignment_with_terminator(
@@ -565,6 +633,13 @@ impl Parser {
                         syntax_span(value.span),
                     );
                 }
+                if value.ty.is_vector() {
+                    return self.fail(
+                        "pors.vector-value",
+                        "Um vetor precisa ser acessado por índice antes de ser escrito",
+                        syntax_span(value.span),
+                    );
+                }
                 values.push(value);
                 if !self.eat(&Kind::Comma) {
                     break;
@@ -636,6 +711,13 @@ impl Parser {
                 name_span,
             )]
         })?;
+        if symbol.ty.is_vector() {
+            return self.fail(
+                "pors.read-vector-unsupported",
+                "A entrada direta de um vetor ainda não é suportada; leia cada elemento por índice",
+                name_span,
+            );
+        }
         if symbol.mutability != hir::Mutability::Mutable {
             return self.fail(
                 "pors.immutable-assignment",
@@ -842,6 +924,32 @@ impl Parser {
             }
             Kind::Ident(name) => {
                 if matches!(self.current().kind, Kind::LParen) {
+                    if name == "tamanho" {
+                        self.advance();
+                        let argument = self.expression(0)?;
+                        let close =
+                            self.expect(Kind::RParen, "Esperado `)` após argumento de tamanho")?;
+                        let Some(element_type) = argument.ty.vector_element() else {
+                            return self.fail(
+                                "pors.length-type",
+                                "`tamanho` espera um vetor",
+                                syntax_span(argument.span),
+                            );
+                        };
+                        let hir::ExprKind::Binding(binding) = argument.kind else {
+                            return self.fail(
+                                "pors.length-binding",
+                                "`tamanho` precisa receber o nome de um vetor",
+                                syntax_span(argument.span),
+                            );
+                        };
+                        let _ = element_type;
+                        return Ok(hir::Expr {
+                            kind: hir::ExprKind::Length { binding },
+                            ty: hir::Type::Integer,
+                            span: to_hir_span(span.join(close.span)),
+                        });
+                    }
                     let signature = self.signatures.get(&name).cloned().ok_or_else(|| {
                         vec![Diagnostic::error(
                             "pors.unknown-function",
@@ -897,6 +1005,40 @@ impl Parser {
                             arguments,
                         },
                         ty,
+                        span: to_hir_span(span.join(close.span)),
+                    });
+                }
+                if matches!(self.current().kind, Kind::LBracket) {
+                    let symbol = self.lookup(&name).ok_or_else(|| {
+                        vec![Diagnostic::error(
+                            "pors.unknown-name",
+                            format!("Nome não declarado: {name}"),
+                            span,
+                        )]
+                    })?;
+                    let Some(element_type) = symbol.ty.vector_element() else {
+                        return self.fail(
+                            "pors.index-non-vector",
+                            format!("`{name}` não é um vetor"),
+                            span,
+                        );
+                    };
+                    self.advance();
+                    let index = self.expression(0)?;
+                    if index.ty != hir::Type::Integer {
+                        return self.fail(
+                            "pors.index-type",
+                            "O índice do vetor deve ter tipo inteiro",
+                            syntax_span(index.span),
+                        );
+                    }
+                    let close = self.expect(Kind::RBracket, "Esperado `]` após índice")?;
+                    return Ok(hir::Expr {
+                        kind: hir::ExprKind::Index {
+                            binding: symbol.id,
+                            index: Box::new(index),
+                        },
+                        ty: element_type,
                         span: to_hir_span(span.join(close.span)),
                     });
                 }
@@ -959,6 +1101,7 @@ impl Parser {
                     span: to_hir_span(span.join(close.span)),
                 });
             }
+            Kind::LBracket => return self.vector_literal(span),
             other => {
                 return self.fail(
                     "pors.expected-expression",
@@ -971,6 +1114,45 @@ impl Parser {
             kind,
             ty,
             span: to_hir_span(span),
+        })
+    }
+
+    fn vector_literal(&mut self, start: Span) -> Result<hir::Expr, Vec<Diagnostic>> {
+        if matches!(self.current().kind, Kind::RBracket) {
+            return self.fail(
+                "pors.empty-vector-unsupported",
+                "O vetor precisa ter pelo menos um elemento; vetores vazios ainda não são suportados",
+                start.join(self.current().span),
+            );
+        }
+        let mut elements = Vec::new();
+        loop {
+            elements.push(self.expression(0)?);
+            if !self.eat(&Kind::Comma) {
+                break;
+            }
+        }
+        let close = self.expect(Kind::RBracket, "Esperado `]` após elementos do vetor")?;
+        let element_type = elements[0].ty;
+        if element_type.is_vector() || element_type == hir::Type::Unit {
+            return self.fail(
+                "pors.vector-element-type",
+                "Vetores aninhados e valores sem retorno não podem ser elementos",
+                syntax_span(elements[0].span),
+            );
+        }
+        if let Some(incompatible) = elements.iter().find(|element| element.ty != element_type) {
+            return self.fail(
+                "pors.vector-element-type",
+                "Todos os elementos do vetor devem ter o mesmo tipo",
+                syntax_span(incompatible.span),
+            );
+        }
+        let ty = hir::Type::vector_of(element_type).expect("element type is scalar");
+        Ok(hir::Expr {
+            kind: hir::ExprKind::VectorLiteral(elements),
+            ty,
+            span: to_hir_span(start.join(close.span)),
         })
     }
 
@@ -1051,6 +1233,31 @@ impl Parser {
 fn to_hir_span(value: Span) -> hir::Span {
     hir::Span::new(value.start, value.end)
 }
+fn scalar_type(name: &str) -> Option<hir::Type> {
+    Some(match name {
+        "inteiro" => hir::Type::Integer,
+        "real" => hir::Type::Real,
+        "logico" => hir::Type::Boolean,
+        "cadeia" => hir::Type::String,
+        "caracter" => hir::Type::Character,
+        _ => return None,
+    })
+}
+fn type_label(ty: hir::Type) -> &'static str {
+    match ty {
+        hir::Type::Unit => "vazio",
+        hir::Type::Integer => "inteiro",
+        hir::Type::Real => "real",
+        hir::Type::Boolean => "logico",
+        hir::Type::String => "cadeia",
+        hir::Type::Character => "caracter",
+        hir::Type::VectorInteger => "vetor<inteiro>",
+        hir::Type::VectorReal => "vetor<real>",
+        hir::Type::VectorBoolean => "vetor<logico>",
+        hir::Type::VectorString => "vetor<cadeia>",
+        hir::Type::VectorCharacter => "vetor<caracter>",
+    }
+}
 fn syntax_span(value: hir::Span) -> Span {
     Span::new(value.start, value.end)
 }
@@ -1070,6 +1277,8 @@ fn is_reserved(name: &str) -> bool {
             | "logico"
             | "cadeia"
             | "caracter"
+            | "vetor"
+            | "tamanho"
             | "verdadeiro"
             | "falso"
             | "escreva"
@@ -1119,6 +1328,9 @@ fn binary(kind: &Kind) -> Option<(hir::BinaryOp, u8)> {
 
 fn binary_type(op: hir::BinaryOp, left: hir::Type, right: hir::Type) -> Option<hir::Type> {
     use hir::Type::*;
+    if left.is_vector() || right.is_vector() {
+        return None;
+    }
     Some(match op {
         hir::BinaryOp::Add
             if left == String && right == String || left == Character && right == Character =>

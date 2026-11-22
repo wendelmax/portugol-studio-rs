@@ -35,6 +35,38 @@ fn compiles_and_runs_pors_helper_functions_with_real_rustc() {
 }
 
 #[test]
+fn compiles_and_runs_pors_vectors_with_value_semantics() {
+    let source = "funcao alterar(mutavel valores: vetor<inteiro>) { valores[0] = 9; } funcao criar() -> vetor<inteiro> { seja mutavel valores: vetor<inteiro> = [3]; retorne valores; } funcao inicio() { seja mutavel original: vetor<inteiro> = [1, 2]; alterar(original); seja mutavel copia: vetor<inteiro> = original; copia[1] = 8; seja retorno: vetor<inteiro> = criar(); escreva(original[0]); escreva(copia[1]); escreva(retorno[0]); escreva(tamanho(copia)); }";
+    let result = run_portugol_rs(source).unwrap();
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { ref stdout, exit_code: Some(0), .. } if stdout == "1832"),
+        "{result:?}"
+    );
+}
+
+#[test]
+fn generated_rust_reports_vector_index_bounds_in_portuguese() {
+    let result = run_portugol_rs(
+        "funcao inicio() { seja valores: vetor<inteiro> = [1]; seja indice: inteiro = -1; escreva(valores[indice]); }",
+    )
+    .unwrap();
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { ref stderr, exit_code: Some(code), .. } if code != 0 && stderr.contains("índice de vetor fora do intervalo")),
+        "{result:?}"
+    );
+}
+
+#[test]
+fn generated_rust_copies_vectors_of_strings_without_changing_values() {
+    let source = "funcao inicio() { seja original: vetor<cadeia> = [\"olá\"]; seja copia: vetor<cadeia> = original; escreva(original[0]); escreva(copia[0]); }";
+    let result = run_portugol_rs(source).unwrap();
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { ref stdout, exit_code: Some(0), .. } if stdout == "oláolá"),
+        "{result:?}"
+    );
+}
+
+#[test]
 fn pauses_at_leia_requests_typed_input_and_resumes_the_program() {
     let cancel = AtomicBool::new(false);
     let mut streamed = Vec::new();

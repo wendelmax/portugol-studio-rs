@@ -28,7 +28,7 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
         output.push_str("\nuse std::str::FromStr;\nfn __portugol_read_line(expected: &str) -> String {\n    if std::env::var_os(\"PORTUGOL_STUDIO_INPUT_PROTOCOL\").is_some() { print!(\"\\u{1e}PORTUGOL_INPUT:{expected}\\u{1e}\\n\"); let _ = io::stdout().flush(); }\n    let mut line = String::new();\n    if io::stdin().read_line(&mut line).is_err() { eprintln!(\"Não foi possível ler a entrada.\"); std::process::exit(1); }\n    line.trim_end_matches(['\\r', '\\n']).to_owned()\n}\nfn __portugol_parse<T: FromStr>(input: &str, expected: &str) -> T {\n    input.trim().parse().unwrap_or_else(|_| { eprintln!(\"Entrada inválida: esperado {expected}.\"); std::process::exit(1); })\n}\n");
     }
     if pors {
-        output.push_str("\nthread_local! { static __PORS_STRING_BYTES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) }; }\nfn __pors_account(len: usize) { __PORS_STRING_BYTES.with(|used| { let next = used.get().saturating_add(len); if next > 16 * 1024 * 1024 { std::process::exit(78); } used.set(next); }); }\nfn __pors_string(value: &str) -> String { __pors_account(value.len()); value.to_owned() }\nfn __pors_char(value: char) -> String { __pors_account(value.len_utf8()); value.to_string() }\nfn __pors_concat(left: &str, right: &str) -> String { let len = left.len().saturating_add(right.len()); __pors_account(len); let mut value = String::with_capacity(len); value.push_str(left); value.push_str(right); value }\n");
+        output.push_str("\nthread_local! { static __PORS_STRING_BYTES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) }; }\nfn __pors_account(len: usize) { __PORS_STRING_BYTES.with(|used| { let next = used.get().saturating_add(len); if next > 16 * 1024 * 1024 { std::process::exit(78); } used.set(next); }); }\nfn __pors_string(value: &str) -> String { __pors_account(value.len()); value.to_owned() }\nfn __pors_vec_string_clone(value: &[String]) -> Vec<String> { value.iter().map(|item| __pors_string(item)).collect() }\nfn __pors_index(index: i32, len: usize) -> usize { if index < 0 || index as usize >= len { eprintln!(\"Erro de execução: índice de vetor fora do intervalo ({index}).\"); std::process::exit(1); } index as usize }\nfn __pors_char(value: char) -> String { __pors_account(value.len_utf8()); value.to_string() }\nfn __pors_concat(left: &str, right: &str) -> String { let len = left.len().saturating_add(right.len()); __pors_account(len); let mut value = String::with_capacity(len); value.push_str(left); value.push_str(right); value }\n");
     }
     let mut mappings = Vec::new();
     for function in &program.functions {
@@ -152,7 +152,12 @@ fn render_statements(
                     push_expr(output, mappings, value, program, true, pors);
                 });
                 if initializer.is_none() {
-                    output.push_str(&format!(" = {};", default_value(map_type(declaration.ty))));
+                    if declaration.ty.is_vector() {
+                        output.push_str(" = Vec::new();");
+                    } else {
+                        output
+                            .push_str(&format!(" = {};", default_value(map_type(declaration.ty))));
+                    }
                 } else {
                     output.push(';');
                 }
@@ -208,6 +213,21 @@ fn render_statements(
                 push_expr(output, mappings, value, program, *op == AssignOp::Set, pors);
                 output.push_str(";\n");
             }
+            StmtKind::IndexAssign {
+                binding,
+                index,
+                value,
+            } => {
+                let name = rust_ident(&binding_info(program, *binding).source_name);
+                let checked_index = format!("__pors_index_{}", statement.span.start);
+                output.push_str(&format!("{indent}let {checked_index} = __pors_index("));
+                push_expr(output, mappings, index, program, false, pors);
+                output.push_str(&format!(
+                    ", {name}.len());\n{indent}{name}[{checked_index}] = "
+                ));
+                push_expr(output, mappings, value, program, false, pors);
+                output.push_str(";\n");
+            }
             StmtKind::Write(values) => {
                 let temps: Vec<String> = values
                     .iter()
@@ -241,6 +261,11 @@ fn render_statements(
                     Type::Boolean => "lógico",
                     Type::String => "cadeia",
                     Type::Character => "caracter",
+                    Type::VectorInteger
+                    | Type::VectorReal
+                    | Type::VectorBoolean
+                    | Type::VectorString
+                    | Type::VectorCharacter => "vetor",
                     Type::Unit => unreachable!("variável não pode ter tipo unit"),
                 };
                 output.push_str(&format!(
@@ -402,6 +427,32 @@ fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedExpression {
         ExprKind::Binding(id) => vec![ExpressionPart::Text(rust_ident(
             &binding_info(program, *id).source_name,
         ))],
+        ExprKind::VectorLiteral(items) => {
+            let mut parts = vec![ExpressionPart::Text("vec![".to_owned())];
+            for (index, item) in items.iter().enumerate() {
+                if index > 0 {
+                    parts.push(ExpressionPart::Text(", ".to_owned()));
+                }
+                parts.push(ExpressionPart::Nested(render_expr(item, program, pors)));
+            }
+            parts.push(ExpressionPart::Text("]".to_owned()));
+            parts
+        }
+        ExprKind::Index { binding, index } => vec![
+            ExpressionPart::Text(format!(
+                "{}[__pors_index(",
+                rust_ident(&binding_info(program, *binding).source_name)
+            )),
+            ExpressionPart::Nested(render_expr(index, program, pors)),
+            ExpressionPart::Text(format!(
+                ", {}.len())]",
+                rust_ident(&binding_info(program, *binding).source_name)
+            )),
+        ],
+        ExprKind::Length { binding } => vec![ExpressionPart::Text(format!(
+            "{}.len() as i32",
+            rust_ident(&binding_info(program, *binding).source_name)
+        ))],
         ExprKind::Call {
             function,
             arguments,
@@ -432,20 +483,39 @@ fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedExpression {
                         )
                         .ty == Type::String
                     });
-                if takes_string {
-                    parts.push(ExpressionPart::Text(if pors {
-                        "__pors_string((".to_owned()
-                    } else {
-                        "String::clone(&(".to_owned()
-                    }));
-                }
-                parts.push(ExpressionPart::Nested(render_expr(argument, program, pors)));
-                if takes_string {
-                    parts.push(ExpressionPart::Text(if pors {
-                        ").as_str())".to_owned()
-                    } else {
-                        "))".to_owned()
-                    }));
+                let takes_vector = target
+                    .and_then(|target_function| {
+                        target_function.parameters.get(index).map(|parameter_id| {
+                            binding_info(
+                                &Program {
+                                    bindings: target_function.bindings.clone(),
+                                    ..program.clone()
+                                },
+                                *parameter_id,
+                            )
+                            .ty
+                            .is_vector()
+                        })
+                    })
+                    .unwrap_or(false);
+                if takes_vector {
+                    parts.push(ExpressionPart::Nested(owned_value(argument, program, pors)));
+                } else {
+                    if takes_string {
+                        parts.push(ExpressionPart::Text(if pors {
+                            "__pors_string((".to_owned()
+                        } else {
+                            "String::clone(&(".to_owned()
+                        }));
+                    }
+                    parts.push(ExpressionPart::Nested(render_expr(argument, program, pors)));
+                    if takes_string {
+                        parts.push(ExpressionPart::Text(if pors {
+                            ").as_str())".to_owned()
+                        } else {
+                            "))".to_owned()
+                        }));
+                    }
                 }
             }
             parts.push(ExpressionPart::Text(")".to_owned()));
@@ -610,6 +680,21 @@ fn compose_expression(parts: Vec<ExpressionPart>, span: Span) -> MappedExpressio
 
 fn owned_value(expr: &Expr, program: &Program, pors: bool) -> MappedExpression {
     let value = render_expr(expr, program, pors);
+    if expr.ty.is_vector() {
+        let (prefix, suffix) = if pors && expr.ty == Type::VectorString {
+            ("__pors_vec_string_clone(&(", "))")
+        } else {
+            ("(", ").clone()")
+        };
+        return compose_expression(
+            vec![
+                ExpressionPart::Text(prefix.to_owned()),
+                ExpressionPart::Nested(value),
+                ExpressionPart::Text(suffix.to_owned()),
+            ],
+            expr.span,
+        );
+    }
     if expr.ty == Type::String {
         if pors {
             return compose_expression(
@@ -741,6 +826,11 @@ fn rust_type(ty: Type) -> &'static str {
         Type::String => "String",
         Type::Character => "char",
         Type::Unit => "()",
+        Type::VectorInteger => "Vec<i32>",
+        Type::VectorReal => "Vec<f64>",
+        Type::VectorBoolean => "Vec<bool>",
+        Type::VectorString => "Vec<String>",
+        Type::VectorCharacter => "Vec<char>",
     }
 }
 
@@ -752,5 +842,10 @@ fn map_type(ty: Type) -> crate::Ty {
         Type::String => crate::Ty::Cadeia,
         Type::Character => crate::Ty::Caracter,
         Type::Unit => unreachable!("tipo unit não possui valor Portugol"),
+        Type::VectorInteger
+        | Type::VectorReal
+        | Type::VectorBoolean
+        | Type::VectorString
+        | Type::VectorCharacter => unreachable!("vetor não possui tipo escalar"),
     }
 }

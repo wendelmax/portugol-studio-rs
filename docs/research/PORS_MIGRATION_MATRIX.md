@@ -19,10 +19,11 @@ não apenas suporte ao Portugol clássico.
 | Condições | ✅ `se`/`senao` | 🟡 `escolha`/matching exaustivo com pattern matching de Rust |
 | Repetição | ✅ `enquanto`, `para`, `pare`, `continue` | 🔎 `faca-enquanto` e alternativas pedagógicas; revisar loop labels |
 | Funções | 🟡 `inicio` e funções auxiliares com parâmetros tipados, chamadas, retorno, recursão, chamadas para frente e mutabilidade explícita; Rust gerado, debugger VM, outline, navegação e rename semânticos | Faltam formatador PORS, cobertura aprofundada de frames/limites de recursão e referências/borrowing explícitos |
-| Coleções | ⬜ Sem vetores ou matrizes | Coleções tipadas, indexação, slices/visões, iteração, bounds e estratégia de ownership |
+| Coleções | 🟡 Vetores tipados homogêneos não vazios, leitura/escrita indexada, `tamanho`, cópia por valor e bounds; sem matrizes, vetores vazios, redimensionamento, slices/visões ou vetores aninhados | Matrizes, construção vazia/redimensionamento e outras coleções; slices/visões e iteração permanecem decisões futuras |
 | Tipos compostos | ⬜ Sem structs/enums próprios | Estruturas, enums, construtores e pattern matching quando pedagógicos |
 | Rust `Option`/`Result` | ⬜ | Tipos, construtores, `match`, propagação (`?`) e diagnóstico/geração corretos |
 | Ownership/borrowing | 🟡 painel editorial com fixtures; sem analisar buffer do aluno | Moves, empréstimos `&T`/`&mut T`, regras de aliasing/lifetimes do subset; comparar com `rustc` |
+| Concorrência Rust | ⬜ | Introduzir threads e compartilhamento seguro (`Arc`/`Send`/`Sync`), depois `Mutex<T>` para estado composto e `Atomic*` para operações simples em valores compatíveis; explicar `Ordering` só após sincronização básica |
 | Diagnósticos | 🟡 códigos e spans localizados em subset | Cobertura de cada sintaxe/semântica; português, ajuda contextual e source maps |
 | Execução normal | 🟡 gera Rust subset e executa `rustc` | Igualdade observável entre todas as construções publicadas e casos diferenciados |
 | Debugger | 🟡 HIR → bytecode → VM; breakpoints, stepping, escopos, input, limites | Cobrir a gramática que for expandida; documentar diferenças inevitáveis de backend |

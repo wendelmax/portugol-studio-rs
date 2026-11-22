@@ -93,6 +93,10 @@ pub enum Op {
     NewMatrix(ValueType),
     /// `[v0, ..., vn-1]` -> `[vetor]`.
     ArrayLit(u32),
+    /// `[vetor]` -> `[inteiro]`.
+    ArrayLen,
+    /// `[vetor]` -> `[cópia profunda do vetor]`.
+    CloneArray,
     /// `[v00, v01, ..., v(r-1)(c-1)]` -> `[matriz]`, em ordem de linhas.
     MatrixLit {
         rows: u32,
