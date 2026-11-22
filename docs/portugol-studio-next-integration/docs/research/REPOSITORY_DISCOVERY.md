@@ -1,45 +1,35 @@
-# Inventário do repositório
+# Inventário atual do repositório
 
-- Commit/branch analisados originalmente: `28b686e` / `feat/next-learning-modes` (worktree isolada). Addendum de estado atualizado em 2026-11-22 sobre `main` `264d11c`.
-- Tauri: v2; dependência `tauri = "2"` em `apps/desktop/src-tauri/Cargo.toml:17`; resolução observada no Cargo.lock: 2.12.5. Plugin direto: `tauri-plugin-dialog = "2"` (`:18`; lock 2.8.4). Não há plugin shell/processo.
-- Rust workspace/crates e MSRV: workspace edition 2024, oito membros definidos em `Cargo.toml:1-23`; MSRV (`rust-version`) não declarada. `mise.toml` fixa toolchain local Rust 1.99.1 e Node 22.23.5.
-- Frontend/framework/linguagem/build: HTML/CSS + TypeScript sem framework SPA; Vite (`apps/desktop/package.json:7-11,25-29`, Vite resolvido 8.3.5, TypeScript 7.0.2).
-- Editor/highlight: CodeMirror 6 e extensões próprias Portugol em `apps/desktop/src/main.ts:13-25,213-244`; `src/portugol.ts`.
-- Parser/AST/interpreter: `crates/portugol-syntax` (lexer Logos/parser/AST), `portugol-semantics`, `portugol-bytecode`, `portugol-vm`, `portugol-service`; CLI em `crates/portugol-cli`. Debugger e runtime reais na VM.
-- Formatos: `.por` e `.pex`; leitura de UTF-8/Latin-1 e gravação UTF-8; `.rs` é exportação gerada pela subset suportada. Sem modelo de workspace/projeto persistente.
-- Contratos frontend: `src/api.ts:102-132` define `inspect(source)`, `exportRust(source)`, `run(source,args,path,breakpoints,pauseOnStart) -> number`, controles de debug/input e IO de arquivo. `src-tauri/src/lib.rs:154,255,303-356` implementa exportação, execução, controle, leitura/gravação; o run é associado a ID numérico.
-- Eventos/ciclo: `lib.rs:93-133` emite `run:output`, `run:clear`, `run:input`, `run:paused`, `run:finished`; serviço da VM executa em thread e envia stdout em lotes. Cliente filtra pelos IDs da execução. Não há `requestId`, `fileId`, revisão ou sequência no contrato de eventos.
-- Permissões: `apps/desktop/src-tauri/capabilities/default.json:8-18` concede core default, operações de janela e diálogo open/save/ask/message. Arquivos são acessados por comandos próprios com caminho selecionado; não existe capability de shell/processo. CSP e janela customizada em `tauri.conf.json`.
-- Persistência: preferências (tema, fonte, centralização, dicas e temas customizados) em `localStorage`; buffers/dirty tracking e abas são em memória. Não existe `WorkspaceStore`/ID de workspace.
-- Testes/scripts (estado observado no addendum): `npm test` executa Node test runner em 25 arquivos `.mjs`; `npm run build` roda `tsc && vite build`. Cargo workspace possui testes unitários, integração e regressão; `cargo test --workspace --offline --locked` passou com sysroot WebKitGTK local e rede autorizada no teste Internet. `graphics-smoke.mjs` existe para smoke nativo. Gherkin no pacote é especificação sem runner configurado.
-- Plataformas/CI: workflows `.github/workflows/ci.yml` e `release.yml`; CI testa core multiplataforma e build/test Tauri em Linux/Windows/macOS conforme jobs. Node 22 na CI.
+- **Snapshot:** `b98d890` (`main`, 2026-11-22), depois do merge do PR #74. Este documento substitui o inventário anterior baseado em `28b686e`/`264d11c`.
+- **Tauri:** v2 (`tauri = "2"`; lockfile resolve 2.12.5), com plugin de diálogo. Não há plugin de shell/processo; os comandos permitidos são enumerados em `apps/desktop/src-tauri/src/lib.rs`, sob capabilities explícitas.
+- **Rust workspace:** edition 2024; crates para sintaxe, HIR, frontend Portugol-RS, geração Rust, semântica, bytecode, VM, serviço e CLI, mais o app Tauri (`Cargo.toml`). O app desktop é intencionalmente excluído dos `default-members` para evitar requisitos WebKit no `cargo test` padrão. MSRV não declarada.
+- **Frontend:** HTML/CSS/TypeScript sem framework SPA, Vite 8.3.5 e TypeScript 7.0.2. CodeMirror 6 mantém os modos Portugol, Portugol-RS e Rust (`apps/desktop/package.json`, `src/main.ts`).
+- **Formatos:** `.por`, `.pors`, `.rs` e `.pex`. `.pors` é um dialeto didático com subset próprio; `.rs` standalone não implica projeto Cargo.
+- **Execução Portugol:** `api.run` chama a VM real. Eventos `run:*` são associados a ID de execução; há entrada interativa, cancelamento, saída, diagnósticos e debugger (breakpoints, pause/continue/step, pilha/variáveis) para a VM.
+- **Portugol-RS:** frontend lexer/parser e validação semântica próprios, HIR compartilhada, geração de Rust e source maps. O subset inclui declarações mutáveis, condições, `enquanto`, `para`, controle de laços e `leia` tipado. `rustc` compila o código gerado dentro do serviço supervisionado; compilação/execução têm limites, saída capada e cancelamento. Ainda não há debugger Portugol-RS.
+- **Rust standalone:** `.rs` editável em CodeMirror, lint `rustc`, `rustfmt`, execução/cancelamento e argumentos `argv`. O lint opera em um único buffer como crate `lib` Rust 2021; fonte até 1 MiB, execução do compilador até 5 s e saída até 1 MiB. Execução usa consentimento explícito e não tem sandbox; Cargo, dependências, módulos e debugger estão fora do suporte.
+- **Tradução:** `export_rust`/`export_portugol_rs` preservam semântica apenas para construções suportadas; source maps têm qualidade `exact`, `approximate` ou `generated_only`. Preview gerado é distinguido de `.rs` do aluno e mantém estados stale/detached. Não afirmar equivalência universal.
+- **Workspace:** `src-tauri/src/workspace.rs` e IPC implementam abrir/restaurar última pasta, listagem recursiva, leitura/escrita, criação, renomeação, exclusão e exportação seletiva. A lista suporta `.por`, `.pors`, `.rs` e exercícios. Há validação de paths, identidade da pasta registrada e manejo de conflitos; o explorer UI apresenta estados de loading/error/empty, ações e guarda de arquivo sujo.
+- **Aprendizagem:** modos Beginner/Bridge/Rust; conteúdo local com seleção explícita e explicação contextual baseada em mapeamento exato; progresso local gravado somente após avaliação real do exercício; laboratório de ownership com fixtures e proveniência `simulação didática`. Modo ainda é preferência global/localStorage, não por workspace.
+- **Layout e temas:** shell Portugol Studio Next, activity rail, explorer, editor, painéis inferior/lateral, temas presets/customizados e persistência local de preferências/layout. Ainda não há regressão visual automatizada do app por viewport.
+- **Segurança:** frontend não pode escolher comando de shell. Execução Rust local é não sandboxed e exige consentimento. Workspace é limitado à pasta explicitamente registrada, com validações contra escape/path mutation.
+- **Testes:** `npm test --prefix apps/desktop` usa Node `node:test`; `npm run build` usa `tsc && vite build`. O serviço tem testes de integração com `rustc`; `cargo test -p portugol-service --offline --locked` passou com 77 testes no snapshot. CI também valida Tauri e smoke gráfico em Linux, Windows e macOS. Gherkin em `docs/portugol-studio-next/features/` é especificação sem runner BDD configurado; não há E2E visual/DOM dedicado aos fluxos de edição/learning.
 
-## Tabela de lacunas
+## Gap atualizado
 
-| ID | Requisito | Situação | Evidência | Risco | Próxima ação |
-|---|---|---|---|---|---|
-| UC-04/06 | editar, executar e apresentar resultado real | EXISTS | `apps/desktop/src/main.ts`, `src/api.ts`, `src-tauri/src/lib.rs` | baixo | preservar; manter compatibilidade |
-| UI-015 / UC-07/08 | prévia/exportação Portugol→Rust | PARTIAL | `apps/desktop/index.html:91-102`, `src/main.ts:1047-1078`, `src/api.ts:104-109` | tradução cobre subset, não executa Rust | apresentar como saída gerada; melhorar subconjunto incrementalmente |
-| UI-028 / UC-05 | seletor de níveis beginner/bridge/rust | IMPLEMENTED (updated 2026-11-22) | `apps/desktop/src/learning-mode.ts`, `learning-content.ts` e consulta `rust_toolchain_available` em `main.ts`; CodeMirror Rust e executor `run_rust_source` já existiam | não confundir nível pedagógico com conversão de arquivo | habilitar Rust quando `rustc` está disponível; preservar arquivo e usar executor existente |
-| UI-023..027 / UC-13/15 | explicações, progresso, ownership visual | MISSING/PARTIAL | exercícios e debugger existentes; sem serviço de lições/snapshot de memória | inventar progresso ou proveniência seria enganoso | fatiar após definir conteúdo e modelo semântico rastreável |
-| UC-01 / UI-001..002 | workspaces/projetos com persistência | MISSING | sem store/ID de workspace; abas voláteis | requisito por workspace conflita com estado atual | usar preferência global somente como solução temporária explícita; migrar quando houver workspace real |
+| ID | Situação | Evidência | Próxima ação |
+|---|---|---|---|
+| UC-04/06 / UI-003/011/018..022/033 | Implementado para Portugol/Portugol-RS e Rust standalone, com os limites descritos acima. | `apps/desktop/src/api.ts`, `src-tauri/src/lib.rs`, `crates/portugol-service/src/` | Preservar contratos; fechar cobertura visual/E2E e corrigir bugs de fluxos observados. |
+| UI-001/002/008/009 / UC-01/03 | Workspace simples já implementado; não oferece Cargo project discovery/build. | `apps/desktop/src-tauri/src/workspace.rs`, testes `workspace-*` | Não reimplementar explorer; priorizar E2E de dirty/save/delete e decidir como preferências se associam a workspace. |
+| UI-015/016 / UC-07/08 | Preview semântico para subset; `.rs` standalone separado com lint/execução/formatação. | `portugol-service::export_rust`, `check_rust_source`, `run_rust_source`, `format_rust_source` | Cargo projects exigem projeto próprio de design/segurança: manifestação, dependências/build scripts, cwd, cancelamento e execução. |
+| UI-023/024/025 / UC-13 | Catálogo contextual e progresso validado locais; sem currículo versionado, autoria docente ou sync. | `learning-content.ts`, `learning-context.ts`, `exercise-progress.ts` | Expandir conteúdo versionado por conceitos; não inferir proficiência pela abertura da tela. |
+| UI-026/027/032 / UC-09/15 | Debugger/variáveis só para VM Portugol. Ownership lab é simulação didática verificada; trace Rust ausente. | `api.ts`, `ownership-lab.ts`, fixtures `tests/fixtures/ownership/` | Não apresentar simulação como observação real; debugger Rust é projeto separado. |
+| FT-02/03/05/07/08 / critérios visuais | Unit/integration/smoke nativo existem; BDD, interação DOM e regressão visual não estão configurados. | `package.json`, workflows CI e `docs/portugol-studio-next/features/` | Definir runner e cenários antes de declarar paridade visual/funcional completa. |
 
-## Decisões existentes a preservar
+## Decisões a preservar
 
-- Não substituir o parser/runtime; reutilizar crates e comandos atuais.
-- Não trocar framework, editor, Tauri, build ou permissões para introduzir o seletor.
-- Execução Portugol e depuração usam a VM real; exportação Rust é geração limitada, não compilação.
-- Nenhum comando shell arbitrário é exposto ao frontend.
-
-## Incompatibilidades e perguntas bloqueantes
-
-- A especificação pede preferência por workspace, mas o projeto ainda não possui identidade/store de workspace. Esta fatia usa `localStorage` global e documenta migração como dívida; não altera execução nem arquivos.
-- Atualização de 2026-11-22: CodeMirror Rust, abertura/salvamento `.rs`, detecção de `rustc` e execução standalone com consentimento já existem; o modo Rust agora usa essas capacidades sem converter arquivos.
-- Eventos atuais não carregam revisão de documento; tarefas futuras de tradução/execução precisarão tratar stale results sem presumir campos inexistentes.
-
-## Alterações propostas (fatia UI-028)
-
-- Adicionar seletor de modo em opções existentes do editor; persistir somente valores válidos.
-- `beginner`: preservar experiência atual e ocultar painel Rust; `bridge`: abrir painel de exportação real; `rust`: disabled com explicação.
-- Reutilizar `export_rust`, sem comandos/permissões/dependências Rust novos.
-- Cobrir persistência e fallback por testes Node; registrar teste Gherkin como especificação não executada.
+- Manter o projeto atual Rust + Tauri v2, CodeMirror 6, serviços e formatos; não reconstruir a arquitetura.
+- Portugol clássico permanece compatível e a VM é origem do debugger clássico.
+- Portugol-RS é subset/dialeto educacional, não uma gramática oficial do Rust.
+- Preview gerado, buffer Rust do aluno e simulação de ownership têm proveniências distintas.
+- Não adicionar shell arbitrário, execução sem consentimento ou afirmações de sandbox.

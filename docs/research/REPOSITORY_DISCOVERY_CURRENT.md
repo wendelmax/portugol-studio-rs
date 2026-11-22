@@ -1,41 +1,46 @@
 # Diagnóstico atual do repositório
 
-- Commit/base: `36ce717` (`main`, origin/main no início da worktree).
-- Tauri: v2 (`tauri = "2"` em `apps/desktop/src-tauri/Cargo.toml`; Cargo.lock resolve 2.12.5); plugin direto `tauri-plugin-dialog` 2.8.4.
-- Frontend: HTML, CSS e TypeScript sem framework SPA; Vite 8.3.5, TypeScript 7.0.2 e CodeMirror 6 (`apps/desktop/package.json`, `apps/desktop/src/main.ts`).
-- Núcleo: Rust edition 2024; crates syntax/AST, semantics, bytecode, VM, service, CLI e exportador Rust (`Cargo.toml`, `crates/*`).
-- Execução: a UI chama `run(source, ...)` via `src/api.ts`; `src-tauri/src/lib.rs` inicia a VM real e emite `run:*` com ID numérico. O debugger retorna posição, pilha e variáveis da VM Portugol. Não há trace Rust nem evento de ownership.
-- Ponte Rust existente: `export_rust(source)` usa `portugol-service` e cobre um subset; a prévia é identificada como Rust gerado/editorial. Não há toolchain/editor Rust integrado.
-- Educação existente: `learning-content.ts` contém cinco conceitos em Bridge, incluindo ownership com exemplo editorial de move. `renderLearningPanel()` mostra definição e exemplos por seleção manual. Não há navegação por passos nem visualização de stack/heap.
-- Persistência de aprendizado: progresso local registra apenas correção de exercício real ligada ao hash da revisão; abrir conceito não grava progresso.
-- Segurança: capability `default.json` não concede shell/processo; comandos permitidos são enumerados em `lib.rs`. A feature proposta não altera IPC nem capabilities.
-- Testes: `npm test` usa Node test runner; testes DOM/E2E/BDD não estão configurados. `npm run build` é `tsc && vite build`. `cargo test --offline --locked` executa o núcleo (membros padrão) e inclui corpus. CI testa Linux/Windows/macOS; o smoke gráfico Linux exercita a janela gráfica da VM, não o painel Aprender.
+- **Snapshot:** `b98d890` (`main`, 2026-11-22), depois do merge do PR #74.
+- **Tauri:** v2 (`tauri = "2"`; Cargo.lock resolve 2.12.5), com `tauri-plugin-dialog`; os comandos publicados estão enumerados em `apps/desktop/src-tauri/src/lib.rs` e as capabilities ficam em `apps/desktop/src-tauri/capabilities/`.
+- **Frontend:** HTML, CSS e TypeScript sem framework SPA; Vite 8.3.5, TypeScript 7.0.2 e CodeMirror 6, incluindo linguagens Portugol, Portugol-RS e Rust (`apps/desktop/package.json`, `apps/desktop/src/main.ts`).
+- **Núcleo:** Rust edition 2024, crates para sintaxe/AST, HIR, semântica, bytecode, VM, serviços, CLI e geração Rust (`Cargo.toml`, `crates/*`). Os membros da IDE Tauri não fazem parte dos default-members do `cargo test` padrão.
+- **Execução clássica:** editor captura código/argumentos e chama a API Tauri; `portugol-service` executa a VM real, emite eventos `run:*` correlacionados por ID e expõe debugger com pausas, stepping, pilha e variáveis. Entradas `leia` chegam pelo console.
+- **Portugol-RS (`.pors`):** parser/semântica e HIR próprias; subset suportado é convertido pelo backend Rust comum, com source maps e diagnósticos. Há `enquanto`, `para`, `pare`, `continue` e entrada tipada `leia`, com limites/cancelamento na compilação e execução. Não é a gramática completa do Rust.
+- **Rust standalone (`.rs`):** CodeMirror Rust, consentimento explícito para execução sem sandbox, argumentos `argv`, execução/cancelamento, `rustfmt` e lint `rustc` no editor. Diagnósticos do lint analisam um buffer como crate `lib` Rust 2021, limitada a 1 MiB, 5 s e 1 MiB de saída; não usam Cargo, dependências externas nem resolução de módulos. Sem debugger Rust.
+- **Tradução:** `export_rust` e `export_portugol_rs` geram somente subconjuntos semanticamente suportados; source maps distinguem mapeamento exato, aproximado e generated-only. Preview identifica fonte gerada e mantém estado stale por documento. Não é tradução universal.
+- **Workspace:** `apps/desktop/src-tauri/src/workspace.rs` e comandos em `lib.rs` abrem e restauram a última pasta, listam `.por`, `.pors`, `.rs` e exercícios, leem/escrevem fontes, criam/renomeiam/excluem arquivos e exportam seleção. Há validação de caminhos, operações relativas ao workspace e cobertura Rust; a UI contém explorer e fluxos de confirmação para arquivo sujo.
+- **Aprendizagem:** modos Beginner/Bridge/Rust, catálogo local, explicação contextual por source map exato, progresso local por exercícios verificados e laboratório visual de ownership baseado em fixtures verificadas. O laboratório está rotulado como simulação didática; não é trace de processo Rust. A preferência de modo ainda é global/local, não por workspace.
+- **UI e temas:** shell desktop Portugol Studio Next, activity rail, explorer, editor, painel inferior e inspector; temas e layout são persistidos localmente. Há testes de modelo/configuração, mas não regressão visual de páginas Tauri em viewports fixos.
+- **Segurança:** frontend não recebe shell arbitrário; processos Rust usam invocações fixas, limites e supervisão. A execução standalone não é sandboxed e a UI pede consentimento. Operações de workspace são confinadas ao diretório registrado e têm validações de caminho/identidade.
+- **Testes:** `npm test --prefix apps/desktop` (Node `node:test`, 28 testes top-level no snapshot), `npm run build --prefix apps/desktop`, `cargo test -p portugol-service --offline --locked` (77 testes), Clippy/format e CI para núcleo e Tauri em Linux, Windows e macOS. Gherkin em docs é especificação: não há runner BDD, DOM ou E2E de interação do painel.
 
-## Lacunas mapeadas
+## Lacunas verificadas para priorização
 
-| ID | Situação observada | Evidência | Próxima ação desta fatia |
+| ID | Situação no snapshot | Evidência | Próxima ação segura |
 |---|---|---|---|
-| UI-023/024, UC-13 | Parcial: explicação manual e exemplo Rust editorial | `apps/desktop/src/learning-content.ts`; `apps/desktop/src/main.ts:721-749`; `apps/desktop/index.html:194-221` | Preservar cartão e acrescentar aula guiada apenas para ownership |
-| UI-026, UC-09 | Existe para a VM Portugol | `apps/desktop/src/api.ts` (`DebugInfo`, `DebugVar`); `src-tauri/src/lib.rs` (`PausedEvent`) | Não reutilizar como se fosse trace Rust |
-| UI-027, UC-15, AC-13 | Ausente | busca por painel de memória não encontra componente; contrato pede proveniência | Criar modelo didático explícito e visualização navegável com proveniência persistente |
-| FT-07 | NOT_RUN no app | Não há runner DOM/E2E/BDD no package | Testar modelo e fixtures de compilação; reportar cobertura visual manual como pendente |
+| UI-001/002/008/009 → UC-01/03 | Implementado local: abrir/restaurar workspace, explorer, criar/renomear/excluir arquivo e exportar seleção. Não equivale a abrir projetos Cargo. | `apps/desktop/src-tauri/src/workspace.rs`; `apps/desktop/src/main.ts`; `apps/desktop/tests/workspace-explorer.test.mjs`, `workspace-file-actions.test.mjs`, `workspace-export.test.mjs` | Corrigir relatórios antigos; priorizar cobertura E2E de arquivos sujos/fluxo Tauri antes de ampliar árvore. |
+| UI-015/016 → UC-07/08 | Parcial: arquivos Rust standalone e preview gerado têm contratos distintos; lint/execução/formatação existem para `.rs`. | `apps/desktop/src/api.ts`; `crates/portugol-service/src/pors_run.rs`; `docs/PARIDADE.md` | Próxima fatia Rust é suporte explícito a projeto Cargo, após especificar execução segura, dependências, caminhos e estados; não tratar como extensão simples do runner de buffer. |
+| UI-023/024 → UC-13 | Parcial: catálogo local e explicação contextual por source map exato; sem currículo versionado/autoria docente. | `apps/desktop/src/learning-content.ts`, `learning-context.ts`, testes correspondentes | Acrescentar conteúdo somente com revisão pedagógica e associação verificável; seleção de cartão não deve gerar progresso. |
+| UI-026/027/032 → UC-09/15 | Debugger/variáveis existem para VM Portugol; breakpoints/stepping e ownership trace não existem para Rust. Ownership atual é simulação verificada. | `apps/desktop/src/api.ts` (`DebugInfo`), `apps/desktop/src/ownership-lab.ts`, fixtures `apps/desktop/tests/fixtures/ownership/` | Não reutilizar dados da VM como trace Rust. Manter proveniência de simulação e avaliar debugger Rust como projeto separado. |
+| UI-028 → UC-05 | Implementado funcionalmente; persistência do modo é global/local, não vinculada ao workspace. | `apps/desktop/src/learning-mode.ts`, testes `learning-mode.test.mjs` | Considerar preferência por workspace depois de definir o ciclo de vida e migração do store. |
+| FT-02/03/05/07/08 e critérios visuais | Cobertura unitária/integrada existe, mas features Gherkin não têm steps executáveis nem E2E visual do app. | `apps/desktop/package.json`; `docs/portugol-studio-next/features/*.feature`; workflow CI | Priorizar um runner de interação nativa/DOM e evidência visual por modo; não reportar Gherkin como teste executado. |
 
-## Baseline executado
+## Validação observada no ciclo mais recente
 
-| Comando | Resultado | Evidência/limite |
+| Comando/execução | Resultado | Evidência e limite |
 |---|---|---|
-| `cd apps/desktop && npm test` | PASS | Baseline: 4 arquivos; final: 31 testes, sem falhas, incluindo fixtures de ownership validadas com `rustc` |
-| `cd apps/desktop && npm run build` | PASS | TypeScript e Vite 8.3.5; aviso de bundle >500 kB. Usou `node_modules` temporário com lockfile idêntico ao principal |
-| `cd apps/desktop && npm ci --offline` | BLOCKED | Cache npm não contém `w3c-keyname@2.2.8`; dependências preinstaladas foram usadas somente para validar o build |
-| `cargo fmt --all --check` | PASS | Após a feature |
-| `CARGO_TARGET_DIR=/tmp/portugol-target cargo test --offline --locked` | PASS | Após permitir loopback; inclui regressão do corpus e doctests |
-| `CARGO_TARGET_DIR=/tmp/portugol-target cargo clippy --all-targets --offline -- -D warnings` | PASS | Núcleo completo, sem warnings |
-| `cargo test -p portugol-desktop` | NOT_RUN | Máquina sem dependências de desenvolvimento WebKitGTK 4.1; CI possui jobs Tauri Linux/Windows/macOS |
-| UI E2E, leitor de tela e capturas da feature | NOT_RUN | Não há runner DOM/Playwright/Chromium configurado; smoke gráfico CI é da janela da VM, não do painel Aprender |
+| `cargo fmt --all --check` | PASS | Executado antes do PR #74 e validado novamente em CI multiplataforma. |
+| `cargo test -p portugol-service --offline --locked` | PASS | 77 testes no Linux local; CI do PR #74 passou no núcleo Linux/macOS/Windows. |
+| `cargo clippy -p portugol-service --all-targets --offline --locked -- -D warnings` | PASS | Local e CI multiplataforma para núcleo. |
+| `cargo check -p portugol-desktop --offline --locked -j 1` | PASS | Local; CI também passou build/clippy/testes do Tauri e smoke gráfico nas plataformas configuradas. |
+| `npm test --prefix apps/desktop` | PASS | 28 testes top-level Node; não é E2E de interação. |
+| `npm run build --prefix apps/desktop` | PASS | Vite informa chunk principal acima de 500 kB; warning não bloqueia build. |
+| Gherkin/BDD, DOM/E2E e regressão visual | NOT_RUN | Infraestrutura de runner não configurada no snapshot. |
 
-## Decisões e compatibilidade
+## Limites de compatibilidade
 
-- A VM Portugol continua sendo a única origem de execução/debugger.
-- O laboratório é conteúdo didático versionado em código, não interpreta buffer Rust e não afirma refletir estado real do processo.
-- Nenhum comando Tauri, capability, permissão, dependência npm ou semântica de Portugol será alterado.
-- Os quatro cenários de Rust serão verificados com `rustc` nas fixtures de teste. Se o runner local não tiver toolchain, o build do frontend não depende dessas verificações; CI mantém Rust instalado.
+- Portugol clássico e formato `.por` permanecem a linguagem/runtime de compatibilidade.
+- `.pors` é dialeto didático proposto; não deve ser descrito como Rust compatível com `rustc` fora do subset emitido.
+- `.rs` standalone não implica workspace Cargo, módulos ou dependências.
+- Progresso exige resultados reais de avaliação; abrir lição ou painel não prova domínio.
+- Debugger da VM não representa execução Rust; o ownership lab continua identificado como simulação.
