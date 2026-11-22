@@ -278,16 +278,12 @@ fn cargo_run_forwards_program_arguments_without_shell_interpretation() {
 
 #[test]
 fn cargo_run_rejects_invalid_program_arguments_before_starting_cargo() {
-    if !portugol_service::cargo_available() {
-        return;
-    }
     let project = TempDir::new();
     fs::write(
         project.0.join("Cargo.toml"),
-        "[package]\nname = \"argumentos_invalidos\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
+        "this is not valid Cargo metadata",
     )
     .unwrap();
-    fs::write(project.0.join("src/main.rs"), "fn main() {}\n").unwrap();
     let nul = vec!["inválido\0".to_string()];
 
     let result = run_cargo_project_target_with_args_and_cancel(
@@ -317,6 +313,37 @@ fn cargo_run_rejects_invalid_program_arguments_before_starting_cargo() {
         &AtomicBool::new(false),
     );
     assert!(result.unwrap_err().contains("limite total"));
+}
+
+#[test]
+fn cargo_target_discovery_rejects_invalid_arguments_before_reading_metadata() {
+    let project = TempDir::new();
+    fs::write(
+        project.0.join("Cargo.toml"),
+        "this is not valid Cargo metadata",
+    )
+    .unwrap();
+
+    for (args, expected) in [
+        (vec!["inválido\0".to_string()], "NUL"),
+        (vec!["arg".to_string(); 257], "256"),
+        (
+            vec!["x".repeat(if cfg!(windows) {
+                8 * 1024 + 1
+            } else {
+                64 * 1024 + 1
+            })],
+            "limite total",
+        ),
+    ] {
+        let error = portugol_service::cargo_run_targets_with_args_and_cancel(
+            &project.0,
+            &args,
+            &AtomicBool::new(false),
+        )
+        .unwrap_err();
+        assert!(error.contains(expected), "{error}");
+    }
 }
 
 #[test]

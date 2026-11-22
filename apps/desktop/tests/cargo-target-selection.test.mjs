@@ -10,14 +10,15 @@ test("cargo run resolves workspace binaries and requires an explicit target when
   const service = readFileSync(new URL("../../../crates/portugol-service/src/cargo_project.rs", import.meta.url), "utf8");
 
   assert.match(html, /id="cargo-target-dialog"[\s\S]*id="cargo-target-select"[\s\S]*value="run"/);
-  assert.match(api, /cargoProjectRunTargets = \(id: number, workspaceId: string, relativeSource: string\)[\s\S]*invoke<CargoRunTargets>\("cargo_project_run_targets"/);
+  assert.match(api, /cargoProjectRunTargets = \(id: number, workspaceId: string, relativeSource: string, args: string\[\]\)[\s\S]*invoke<CargoRunTargets>\("cargo_project_run_targets", \{ id, workspaceId, relativeSource, args \}\)/);
   assert.match(api, /runCargoProject[\s\S]*target: CargoRunTarget \| null[\s\S]*args: string\[\]/);
-  assert.match(main, /cargoProjectRunTargets\(discoveryId, tab\.workspaceId, tab\.workspacePath\)[\s\S]*defaultTarget/);
+  assert.match(main, /cargoProjectRunTargets\(discoveryId, tab\.workspaceId, tab\.workspacePath, rustArgs\)[\s\S]*defaultTarget/);
   assert.match(main, /if \(tab\.cargoProject === true && cargoAvailable !== true\) \{[\s\S]*Instale Cargo/);
   assert.match(main, /chooseCargoTarget/);
   assert.match(main, /cargoTarget = target/);
-  assert.match(tauri, /cargo_project_run_targets[\s\S]*rust_source_cancellations[\s\S]*cargo_run_targets_with_cancel/);
+  assert.match(tauri, /cargo_project_run_targets[\s\S]*rust_source_cancellations[\s\S]*cargo_run_targets_with_args_and_cancel/);
   assert.match(tauri, /async fn run_cargo_project[\s\S]*args: Vec<String>/);
   assert.match(tauri, /run_cargo_project_target_with_args_and_cancel/);
   assert.match(service, /\.arg\("--package"\)[\s\S]*\.arg\("--bin"\)[\s\S]*\.arg\("--"\)\.args\(args\)/);
+  assert.match(service, /cargo_run_targets_with_args_and_cancel[\s\S]*validate_rust_arguments\(args\)\?[\s\S]*\.arg\("metadata"\)/);
 });

@@ -192,8 +192,8 @@ export interface CargoRunTargets {
 }
 export const workspaceCargoProjectAvailable = (workspaceId: string, relativeSource: string) =>
   invoke<boolean>("workspace_cargo_project_available", { workspaceId, relativeSource });
-export const cargoProjectRunTargets = (id: number, workspaceId: string, relativeSource: string) =>
-  invoke<CargoRunTargets>("cargo_project_run_targets", { id, workspaceId, relativeSource });
+export const cargoProjectRunTargets = (id: number, workspaceId: string, relativeSource: string, args: string[]) =>
+  invoke<CargoRunTargets>("cargo_project_run_targets", { id, workspaceId, relativeSource, args });
 export const runCargoProject = (
   id: number,
   workspaceId: string,

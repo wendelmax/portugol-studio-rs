@@ -1804,7 +1804,7 @@ async function runProgram(pauseOnStart = false) {
         setRunning(true);
         let targetInfo: api.CargoRunTargets;
         try {
-          targetInfo = await api.cargoProjectRunTargets(discoveryId, tab.workspaceId, tab.workspacePath);
+          targetInfo = await api.cargoProjectRunTargets(discoveryId, tab.workspaceId, tab.workspacePath, rustArgs);
         } finally {
           if (runId === discoveryId) runId = null;
           setRunning(false);

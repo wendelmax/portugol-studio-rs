@@ -53,7 +53,7 @@
 
 - [x] Add a failing contract test for the Tauri payload and ensure Cargo calls parse the same field used by standalone Rust.
 - [x] Pass `Vec<String>` from the command to the service and include it in `api.runCargoProject`.
-- [x] Enable the field for Cargo `.rs`, describe quoting/argv behavior, parse before target discovery, and pass the result to the run call; keep `.pors` disabled.
+- [x] Enable the field for Cargo `.rs`, describe quoting/argv behavior, parse before target discovery, validate limits in the discovery service before `cargo metadata`, and pass the result to discovery and execution; keep `.pors` disabled.
 - [x] Run focused frontend tests, the complete frontend suite (36/36), and `npm run build` (pass; existing >500 kB chunk warning).
 - [x] Run `git diff --check`; inspect that no user string is used as a shell or Cargo flag.
 

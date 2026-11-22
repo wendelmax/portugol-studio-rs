@@ -9,7 +9,7 @@ O campo de parâmetros já converte uma notação simples em `argv` para `.rs` s
 
 ## Decisão
 
-Habilitar o mesmo campo para `.rs` standalone e Cargo. Reutilizar `parseProcessArguments`, validar no serviço Rust os limites já aplicados a programas Rust (256 itens, rejeição de NUL, 64 KiB em Linux/macOS e 8 KiB em Windows) e encaminhar os itens com `Command::args` após `--` em `cargo run`. Não aceitar flags de Cargo ou shell do campo.
+Habilitar o mesmo campo para `.rs` standalone e Cargo. Reutilizar `parseProcessArguments`, validar no serviço Rust os limites já aplicados a programas Rust (256 itens, rejeição de NUL, 64 KiB em Linux/macOS e 8 KiB em Windows), inclusive antes de descobrir alvos com `cargo metadata`, e encaminhar os itens com `Command::args` após `--` em `cargo run`. Não aceitar flags de Cargo ou shell do campo.
 
 ## Consequências
 
