@@ -4,6 +4,16 @@
 **Pesquisa:** [benchmark Portugol Webstudio](../research/portugol-webstudio-benchmark-2026-11-21.md)
 **Status:** proposta técnica inicial; cada etapa deve ser entregue em PR próprio com critérios de aceite.
 
+> **Atualização em 2026-11-22:** este documento registra o plano inicial e seu
+> estado descritivo não é mais o inventário vigente. A implementação avançou
+> para runtime `.pors`, modos por workspace, Rust standalone/Cargo, source maps,
+> exercícios validados e debugger PORS. Consulte
+> [`docs/research/REPOSITORY_DISCOVERY_CURRENT.md`](../research/REPOSITORY_DISCOVERY_CURRENT.md),
+> [`docs/PARIDADE.md`](../PARIDADE.md) e
+> [`docs/plans/repriorizacao-produto-progressivo-2026-11-22.md`](repriorizacao-produto-progressivo-2026-11-22.md)
+> antes de escolher uma etapa. A sequência antiga abaixo é histórica e foi
+> substituída pelo plano de repriorização.
+
 ## Resultado visado
 
 A pessoa aprende um conceito em Portugol, vê a tradução equivalente e gradualmente passa a usar uma sintaxe explícita inspirada em Rust, até conseguir compilar código Rust verdadeiro. A IDE preserva a compatibilidade do Portugol Studio, oferece diagnósticos em português e visualiza posse/empréstimos somente onde as regras do Rust realmente se aplicam.

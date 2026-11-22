@@ -17,7 +17,7 @@ são executados e validados sem tela.
 | Sintaxe completa do Portugol 2.0 | ✅ | 194/196 exemplos; os 2 restantes têm erro no próprio arquivo |
 | Análise semântica | ✅ | casos do `AnalisadorSemanticoTest.java` portados |
 | Execução (tipos, operadores, vetores, matrizes, funções, referência) | ✅ | semântica do Java gerado pelo original |
-| Execução do subset Portugol-RS (`.pors`) | 🟡 | Execução normal compila o Rust gerado via `rustc`; `Depurar` agora tem backend inicial HIR→bytecode e reutiliza a VM, com breakpoints, snapshots, entrada tipada e saída. Diferencial verificado para declaração, incremento, `para`/`enquanto`, `continue`, curto-circuito, overflow, concatenação e linha de divisão por zero; snapshots respeitam escopos e shadowing. Sem toolchain é possível iniciar a sessão de debug. A VM aplica 3 s de runtime ativo/1 MiB de saída/16 MiB cumulativos de cadeias; pausas e espera por entrada são excluídas do limite temporal. Teste dedicado confirma que uma cadeia lida acima de 16 MiB encerra com limite de memória tipado. Permanecem maior cobertura diferencial e smoke visual KDE. Execução normal suporta loops, controle e `leia` para tipos primitivos, apresenta saída antes da entrada, valida o valor em português, limita execução e mapeia diagnósticos; veja `docs/reports/FEAT-PORTUGOL-RS-DEBUGGER.md`. Arquivos Rust standalone (`.rs`) têm análise `rustc` de buffer isolado (Rust 2021, 5 s/1 MiB, diagnósticos no linter), execução/cancelamento, argumentos `argv` e formatação com `rustfmt`. Arquivos `.rs` abertos no workspace com `Cargo.toml` ancestral usam `cargo build` para executar o alvo padrão ou o binário selecionado por pacote; a descoberta usa metadata offline sem scripts e mostra seletor acessível quando não há padrão inequívoco. Também oferecem `cargo check` explícito pela paleta, com confirmação de confiança, cancelamento, limite de 20 s e diagnósticos do arquivo aberto no painel Mensagens/linter. O campo Parâmetros de execução passa `argv` ao binário Cargo depois de `--`, sem shell e sob os mesmos limites por plataforma do Rust standalone. Build scripts/dependências podem acessar a rede e executar com permissões locais, sem sandbox. O seletor cobre alvos `bin`; lint contínuo e debugger Rust seguem pendentes. Evidências: `crates/portugol-service/tests/portugol_rs_debugger.rs`, `cargo_project.rs`, `rust_source_runner.rs`, `rust_source_check.rs` e `rust_format.rs`. |
+| Execução do subset Portugol-RS (`.pors`) | 🟡 | Execução normal compila o Rust gerado via `rustc`; `Depurar` agora tem backend inicial HIR→bytecode e reutiliza a VM, com breakpoints, snapshots, entrada tipada e saída. Diferencial verificado para declaração, incremento, `para`/`enquanto`, `continue`, curto-circuito, overflow, concatenação e linha de divisão por zero; snapshots respeitam escopos e shadowing. Sem toolchain é possível iniciar a sessão de debug. A VM aplica 3 s de runtime ativo/1 MiB de saída/16 MiB cumulativos de cadeias; pausas e espera por entrada são excluídas do limite temporal. Teste dedicado confirma que uma cadeia lida acima de 16 MiB encerra com limite de memória tipado. Permanecem maior cobertura diferencial e smoke de execução nativa KDE. Execução normal suporta loops, controle e `leia` para tipos primitivos, apresenta saída antes da entrada, valida o valor em português, limita execução e mapeia diagnósticos; veja `docs/reports/FEAT-PORTUGOL-RS-DEBUGGER.md`. Arquivos Rust standalone (`.rs`) têm análise `rustc` de buffer isolado (Rust 2021, 5 s/1 MiB, diagnósticos no linter), execução/cancelamento, argumentos `argv` e formatação com `rustfmt`. Arquivos `.rs` abertos no workspace com `Cargo.toml` ancestral usam `cargo build` para executar o alvo padrão ou o binário selecionado por pacote; a descoberta usa metadata offline sem scripts e mostra seletor acessível quando não há padrão inequívoco. Também oferecem `cargo check` explícito pela paleta, com confirmação de confiança, cancelamento, limite de 20 s e diagnósticos do arquivo aberto no painel Mensagens/linter. O campo Parâmetros de execução passa `argv` ao binário Cargo depois de `--`, sem shell e sob os mesmos limites por plataforma do Rust standalone. Build scripts/dependências podem acessar a rede e executar com permissões locais, sem sandbox. O seletor cobre alvos `bin`; lint contínuo e debugger Rust seguem pendentes. Evidências: `crates/portugol-service/tests/portugol_rs_debugger.rs`, `cargo_project.rs`, `rust_source_runner.rs`, `rust_source_check.rs` e `rust_format.rs`. |
 | `escreva`, `leia`, `limpa`, `sorteia` | ✅ | |
 | Parâmetros de execução (`inicio(cadeia params[])`) | ✅ | |
 | Mensagens de erro de execução | ✅ | mesmas mensagens do original |
@@ -51,7 +51,7 @@ são executados e validados sem tela.
 | Erros ao digitar e painel de mensagens (`AbaMensagemCompilador`) | ✅ | tabela com ícones, linha e mensagem. Faixa lateral de diagnósticos clicável |
 | Abas de arquivos, abrir, salvar, salvar como | ✅ | |
 | Console com entrada (`AbaConsole`) | ✅ | entrada e engrenagem para limpar, copiar e ajustar fonte |
-| Depuração na IDE (`AbaDepuracao`, `Depurador`) | 🟡 | gutter, início pausado, pilha e snapshots reais para Portugol clássico e primeira fatia Portugol-RS via VM; limites completos de execução e validação visual KDE pendentes |
+| Depuração na IDE (`AbaDepuracao`, `Depurador`) | 🟡 | gutter, início pausado, pilha e snapshots reais para Portugol clássico e primeira fatia Portugol-RS via VM; permanece pendente ampliar a cobertura e validar a execução nativa no KDE |
 | Laboratório pedagógico de ownership | 🟡 | quatro cenários guiados de `String` para move, `&T`, `&mut T` e escopo; fixtures verificadas com `rustc`; simulação editorial, não é trace Rust nem interpreta o buffer do aluno |
 | Painel Testes (UI-020 / FT-06) | 🟡 | aba inferior executa os casos reais de exercícios `.pex` na revisão atual e mostra aprovação/falhas; progresso só é concluído quando todos passam. Arquivos sem exercício continuam sem runner genérico configurável. Evidência: FT-19 |
 | Níveis de aprendizagem (`beginner`, `bridge`, `rust`) | ✅ | Iniciante e Ponte preservam o fluxo Portugol; Rust usa CodeMirror Rust e o executor `.rs` com `rustc` já existente, habilitado apenas quando a toolchain é detectada. O modo não converte nem modifica o arquivo ativo. O laboratório de ownership continua rotulado como simulação didática. |
@@ -63,7 +63,7 @@ são executados e validados sem tela.
 | Moldura e barra de comandos | ✅ | moldura de 5px, controles nativos, área de arraste, abas com ícone e barra lateral com ícones da versão 2.7.5 |
 | Expandir editor (Shift+Esc) | ✅ | barra horizontal compacta e botão de restauração |
 | Explorador de pasta e exportação local (`.por`, `.pors`, `.rs`, `.pex`) | ✅ | árvore navegável com teclado, abertura/salvamento escopados, criação, renomeação e exclusão; permite selecionar arquivos e copiar para uma nova pasta local sem alterar a origem |
-| Tela inicial com exemplos (`AbaInicial`, `PainelExemplos`) | 🟡 | Abrir/Novo Portugol, menu compacto para criar `.pors`/`.rs`, até seis recentes, 119 exemplos com busca, descrição, imagens e cópia de trabalho com recursos, acesso às dicas e links do rodapé. A comparação nativa equivalente com a tela inicial Java ainda está pendente. |
+| Tela inicial com exemplos (`AbaInicial`, `PainelExemplos`) | ✅ | Abrir/Novo Portugol, menu compacto para criar `.pors`/`.rs`, até seis recentes, 119 exemplos com busca, descrição, imagens e cópia de trabalho com recursos, acesso às dicas e links do rodapé. A paridade visual atual com o Java foi aceita; novos fluxos podem evoluir a partir da experiência de aprendizagem. |
 | Ajuda da linguagem e das bibliotecas (`abaAjuda`, `assets/ajuda`) | ✅ | aba F1, busca, tópicos e diagramas da versão 2.7.5, abertura de exemplos e referências das bibliotecas |
 | Árvore estrutural (variáveis e funções do programa) | ✅ | painel redimensionável com busca, engrenagem de filtros, navegação, inspetor e inclusão de bibliotecas e modelos |
 | Ir à declaração (`resolve_symbol`) | ✅ | F12 no editor, Ctrl/Cmd+clique e ação no menu; Portugol clássico e `.pors` resolvem bindings por escopo, preservam o buffer e descartam respostas obsoletas |
@@ -82,21 +82,25 @@ são executados e validados sem tela.
 
 ## Comparação visual
 
+**Critério atualizado (ADR 0015):** a paridade visual atual com o Portugol
+Studio clássico está aceita. Novas mudanças de interface devem servir aos
+fluxos progressivos Portugol → Portugol-RS → Rust e não precisam reproduzir a
+IDE Java pixel a pixel. As capturas desta seção ficam como referência histórica
+e regressão; a comparação pendente da tela inicial não bloqueia releases.
+
 Capturas em Linux sob Xvfb. As comparações do editor usam janelas de 1200 ×
 800 pixels, com a versão Java 2.7.5 à esquerda e o port em Rust à direita; a
 aba de código mostra o programa inicial de cada versão.
 
 | Tela | Dark | Portugol |
 |---|---|---|
-| Inicial | ⬜ Comparação pendente | ⬜ Comparação pendente |
+| Inicial | Fora do gate visual | Fora do gate visual |
 | Editor | [Comparar editor em Dark](imagens/paridade/editor-dark.webp) | [Comparar editor em Portugol](imagens/paridade/editor-light.webp) |
 
 As capturas `home-dark.webp` e `home-light.webp` são composições de telas
 diferentes: mostram o editor Java à esquerda e a tela inicial do port à
-direita. Elas não permitem avaliar a paridade da tela inicial e, por isso,
-não são apresentadas como comparação. Devem ser substituídas por capturas da
-tela inicial nas duas aplicações, com o mesmo tema e dimensões, antes de
-marcar essa linha como validada.
+direita. Elas não permitem avaliar a tela inicial e permanecem apenas como
+artefatos históricos, sem substituir a comparação válida do editor.
 
 Nas capturas válidas do editor, o rodapé de status, a guia Depuração e o acesso
 aos Exercícios aparecem no port. A IDE Java também apresenta o acesso a Plugins
