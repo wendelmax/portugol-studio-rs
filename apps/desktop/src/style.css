@@ -597,6 +597,28 @@ select {
   max-width: 900px;
 }
 
+.learning-explanation-sections {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0 16px;
+}
+
+.learning-explanation-sections section {
+  padding-left: 10px;
+  border-left: 2px solid var(--border);
+}
+
+.learning-explanation-sections h4 {
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.learning-explanation-sections p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .learning-examples {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr));

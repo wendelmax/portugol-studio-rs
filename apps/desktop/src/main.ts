@@ -2336,6 +2336,9 @@ function renderLearningPanel() {
   $("learning-definition").textContent = context
     ? `${concept.definition} ${explainMappedConcept(context, tab?.language === "portugol-rs" ? "portugol-rs" : "portugol")}`
     : concept.definition;
+  $("learning-what-changed").textContent = concept.whatChanged;
+  $("learning-why-it-matters").textContent = concept.whyItMatters;
+  $("learning-practice").textContent = concept.practice;
   const rustMode = learningMode === "rust";
   $("learning-portugol-example").hidden = rustMode;
   if (!rustMode) {
