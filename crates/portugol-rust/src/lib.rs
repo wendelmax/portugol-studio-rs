@@ -806,11 +806,12 @@ mod tests {
 
     #[test]
     fn exports_and_executes_portugol_rs_loop_control_with_source_maps() {
-        let source = "funcao inicio() { para (seja mutavel i: inteiro = 0; i < 5; i += 1) { se (i == 1) { continue; } se (i == 4) { pare; } escreva(i); } }";
+        let source = "funcao inicio() { seja mutavel visitas: inteiro = 0; para (seja mutavel i: inteiro = 0; i < 5; i += 1) { visitas += 1; se (visitas > 8) { pare; } se (i == 1) { continue; } se (i == 4) { pare; } escreva(i); } }";
         let generated = export_portugol_rs_with_map(source).unwrap();
+        let loop_label = source.find("para").unwrap();
         for (keyword, generated_control) in [
-            ("continue;", "break 'pors_body_"),
-            ("pare;", "break 'pors_for_"),
+            ("continue;", format!("break 'pors_body_{loop_label};")),
+            ("pare;", format!("break 'pors_for_{loop_label};")),
         ] {
             let start = source.find(keyword).unwrap() as u32;
             let end = start + keyword.len() as u32;
@@ -822,26 +823,31 @@ mod tests {
             assert_eq!(control_mapping.quality, SourceMapQuality::Exact);
             let mapped_rust = &generated.code
                 [control_mapping.generated.start as usize..control_mapping.generated.end as usize];
-            assert!(mapped_rust.contains(generated_control), "{mapped_rust}");
-            assert!(mapped_rust.ends_with(";\n"), "{mapped_rust}");
+            assert_eq!(mapped_rust.trim(), generated_control);
         }
         let step_start = source.find("i += 1)").unwrap() as u32;
         let step_end = step_start + "i += 1".len() as u32;
-        let step_mapping = generated
+        let step_mappings: Vec<_> = generated
             .mappings
             .iter()
-            .find(|mapping| {
+            .filter(|mapping| {
                 mapping.source
                     == Some(SourceRange {
                         start: step_start,
                         end: step_end,
                     })
             })
-            .expect("the for step should have one exact source mapping");
+            .collect();
+        assert_eq!(
+            step_mappings.len(),
+            1,
+            "the for step has one source mapping"
+        );
+        let step_mapping = step_mappings[0];
         assert_eq!(step_mapping.quality, SourceMapQuality::Exact);
         let mapped_step = &generated.code
             [step_mapping.generated.start as usize..step_mapping.generated.end as usize];
-        assert!(mapped_step.contains("wrapping_add(1_i32)"), "{mapped_step}");
+        assert_eq!(mapped_step.trim(), "pt_i = (pt_i).wrapping_add(1_i32);");
         assert_rust_output(generated.code, "023");
 
         let while_source = "funcao inicio() { seja mutavel i: inteiro = 0; enquanto (i < 5) { i += 1; se (i == 2) { continue; } se (i == 4) { pare; } escreva(i); } }";
