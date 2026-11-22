@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::AtomicBool;
 
@@ -11,6 +11,19 @@ use crate::pors_run::{
 use crate::{Position, position::LineIndex};
 
 const MAX_CARGO_OUTPUT_BYTES: usize = 1_048_576;
+
+fn validated_manifest(project_root: &Path) -> Result<PathBuf, String> {
+    let manifest = project_root.join("Cargo.toml");
+    let metadata = std::fs::symlink_metadata(&manifest)
+        .map_err(|error| format!("Não foi possível acessar Cargo.toml: {error}"))?;
+    if metadata.file_type().is_symlink() {
+        return Err("Cargo.toml não pode ser um link simbólico.".into());
+    }
+    if !metadata.is_file() {
+        return Err("Cargo.toml precisa ser um arquivo regular do projeto.".into());
+    }
+    Ok(manifest)
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -76,12 +89,7 @@ pub fn cargo_run_targets_with_cancel(
     if !project_root.is_dir() {
         return Err("A pasta do projeto Cargo não está disponível.".into());
     }
-    let manifest = project_root.join("Cargo.toml");
-    let metadata = std::fs::symlink_metadata(&manifest)
-        .map_err(|error| format!("Não foi possível acessar Cargo.toml: {error}"))?;
-    if metadata.file_type().is_symlink() || !metadata.is_file() {
-        return Err("Cargo.toml precisa ser um arquivo regular do projeto.".into());
-    }
+    let manifest = validated_manifest(&project_root)?;
 
     let mut command = Command::new("cargo");
     configure_process_tree(&mut command);
@@ -208,12 +216,7 @@ pub fn check_cargo_project_with_cancel(
     if !project_root.is_dir() || !source_path.is_file() || !source_path.starts_with(&project_root) {
         return Err("O arquivo Rust precisa estar dentro do projeto Cargo aberto.".into());
     }
-    let manifest = project_root.join("Cargo.toml");
-    let metadata = std::fs::symlink_metadata(&manifest)
-        .map_err(|error| format!("Não foi possível acessar Cargo.toml: {error}"))?;
-    if metadata.file_type().is_symlink() || !metadata.is_file() {
-        return Err("Cargo.toml precisa ser um arquivo regular do projeto.".into());
-    }
+    let manifest = validated_manifest(&project_root)?;
 
     let mut command = Command::new("cargo");
     configure_process_tree(&mut command);
@@ -289,10 +292,7 @@ pub fn run_cargo_project_target_with_cancel(
     if !project_root.is_dir() {
         return Err("A pasta do projeto Cargo não está disponível.".into());
     }
-    let manifest = project_root.join("Cargo.toml");
-    if !manifest.is_file() {
-        return Err("Não há Cargo.toml na pasta do projeto Rust.".into());
-    }
+    let manifest = validated_manifest(&project_root)?;
     if let Some(target) = target {
         let available = cargo_run_targets_with_cancel(&project_root, cancel)?;
         if !available.targets.contains(target) {
