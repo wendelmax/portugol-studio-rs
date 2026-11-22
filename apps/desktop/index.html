@@ -242,9 +242,9 @@
             <label class="learning-concept-picker" for="learning-concept">Conceito para estudar
               <select id="learning-concept" data-testid="learning-concept"></select>
             </label>
-            <article class="learning-card" aria-live="polite">
+            <article class="learning-card">
               <div class="learning-card-heading">
-                <h3 id="learning-title"></h3>
+                <h3 id="learning-title" aria-live="polite" aria-atomic="true"></h3>
                 <button id="learning-pin" type="button" data-testid="learning-pin" aria-pressed="false" disabled>Fixar tópico</button>
               </div>
               <p id="learning-definition"></p>

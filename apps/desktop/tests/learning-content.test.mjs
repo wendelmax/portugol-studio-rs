@@ -37,6 +37,8 @@ test("cartão Aprender apresenta seções nomeadas e renderiza o conteúdo do ca
     assert.match(html, new RegExp(`id="${id}"`));
     assert.match(main, new RegExp(`\\$\\("${id}"\\)\\.textContent = concept\\.`));
   }
+  assert.match(html, /<article class="learning-card">/);
+  assert.match(html, /<h3 id="learning-title" aria-live="polite" aria-atomic="true">/);
 });
 
 test("ownership explica move de String e identifica o trecho como exemplo editorial", async () => {

@@ -4,6 +4,7 @@
 - Implementação: cada conceito do catálogo local contém conteúdo editorial próprio; `renderLearningPanel` preenche as regiões nomeadas com `textContent`. Seleção manual, pin por aba/nível, contexto mapeado, exemplos e laboratório de ownership preservam seus fluxos.
 - Compatibilidade: nenhuma alteração a Rust/Tauri, arquivos do aluno, tradução, execução ou progresso. A seção “Praticar” é uma sugestão manual, não um exercício avaliado.
 - Proveniência: comparações, snippets e texto são conteúdo editorial; a feature não infere progresso ou domínio.
+- A revisão independente apontou risco de anúncios longos na região live; agora somente o título breve do conceito é anunciado automaticamente, e o restante pode ser navegado pelo leitor de tela.
 
 ## Validação
 
