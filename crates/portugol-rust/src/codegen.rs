@@ -17,8 +17,12 @@ pub(crate) fn render_pors_with_map(program: &Program) -> GeneratedRust {
 }
 
 fn render(program: &Program, pors: bool) -> GeneratedRust {
+    let has_read = statements_have_read(&program.body);
     let mut output = String::from("use std::io::{self, Write};\n\n");
     output.push_str(JAVA_DOUBLE_HELPER);
+    if has_read {
+        output.push_str("\nuse std::str::FromStr;\nfn __portugol_read_line(expected: &str) -> String {\n    if std::env::var_os(\"PORTUGOL_STUDIO_INPUT_PROTOCOL\").is_some() { print!(\"\\u{1e}PORTUGOL_INPUT:{expected}\\u{1e}\\n\"); let _ = io::stdout().flush(); }\n    let mut line = String::new();\n    if io::stdin().read_line(&mut line).is_err() { eprintln!(\"Não foi possível ler a entrada.\"); std::process::exit(1); }\n    line.trim_end_matches(['\\r', '\\n']).to_owned()\n}\nfn __portugol_parse<T: FromStr>(input: &str, expected: &str) -> T {\n    input.trim().parse().unwrap_or_else(|_| { eprintln!(\"Entrada inválida: esperado {expected}.\"); std::process::exit(1); })\n}\n");
+    }
     if pors {
         output.push_str("\nthread_local! { static __PORS_STRING_BYTES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) }; }\nfn __pors_account(len: usize) { __PORS_STRING_BYTES.with(|used| { let next = used.get().saturating_add(len); if next > 16 * 1024 * 1024 { std::process::exit(78); } used.set(next); }); }\nfn __pors_string(value: &str) -> String { __pors_account(value.len()); value.to_owned() }\nfn __pors_char(value: char) -> String { __pors_account(value.len_utf8()); value.to_string() }\nfn __pors_concat(left: &str, right: &str) -> String { let len = left.len().saturating_add(right.len()); __pors_account(len); let mut value = String::with_capacity(len); value.push_str(left); value.push_str(right); value }\n");
     }
@@ -174,6 +178,26 @@ fn render_statements(
                     output.push_str(&format!("{indent}print!(\"{{}}\", {expression});\n"));
                 }
                 output.push_str(&format!("{indent}let _ = io::stdout().flush();\n"));
+            }
+            StmtKind::Read { binding, .. } => {
+                let declaration = binding_info(program, *binding);
+                let name = rust_ident(&declaration.source_name);
+                let input = format!("__portugol_input_{}", statement.span.start);
+                let label = match declaration.ty {
+                    Type::Integer => "inteiro",
+                    Type::Real => "real",
+                    Type::Boolean => "lógico",
+                    Type::String => "cadeia",
+                    Type::Character => "caracter",
+                };
+                output.push_str(&format!(
+                    "{indent}let {input} = __portugol_read_line(\"{label}\");\n"
+                ));
+                match declaration.ty {
+                    Type::String if pors => output.push_str(&format!("{indent}{name} = __pors_string(&{input});\n")),
+                    Type::Boolean => output.push_str(&format!("{indent}{name} = match {input}.trim() {{ \"verdadeiro\" | \"true\" => true, \"falso\" | \"false\" => false, _ => {{ eprintln!(\"Entrada inválida: esperado lógico.\"); std::process::exit(1); }} }};\n")),
+                    _ => output.push_str(&format!("{indent}{name} = __portugol_parse::<{}>(&{input}, \"{label}\");\n", rust_type(declaration.ty))),
+                }
             }
             StmtKind::If {
                 condition,
@@ -559,6 +583,22 @@ fn binary_operator(op: BinaryOp) -> &'static str {
 
 fn binding_info(program: &Program, id: BindingId) -> &portugol_hir::Binding {
     &program.bindings[id.0 as usize]
+}
+
+fn statements_have_read(statements: &[Stmt]) -> bool {
+    statements.iter().any(|statement| match &statement.kind {
+        StmtKind::Read { .. } => true,
+        StmtKind::If {
+            then_branch,
+            else_branch,
+            ..
+        } => {
+            statements_have_read(then_branch)
+                || else_branch.as_deref().is_some_and(statements_have_read)
+        }
+        StmtKind::While { body, .. } | StmtKind::For { body, .. } => statements_have_read(body),
+        _ => false,
+    })
 }
 
 fn rust_type(ty: Type) -> &'static str {

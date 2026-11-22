@@ -31,3 +31,19 @@ test("PORS autocomplete suggests supported loop controls without promising unsup
   assert.ok(labels.includes("continue"));
   assert.ok(!labels.includes("faca"));
 });
+
+test("PORS highlights leia and completes it as a supported function", async () => {
+  const source = "funcao inicio() { seja mutavel idade: inteiro = 0; leia(idade); }";
+  const state = EditorState.create({ doc: source, extensions: [portugolRs()] });
+  const builtins = [];
+  syntaxTree(state).iterate({
+    enter(node) {
+      if (node.name === "variableName.standard") builtins.push(state.doc.sliceString(node.from, node.to));
+    },
+  });
+  const completionState = EditorState.create({ doc: "lei", extensions: [portugolRs()] });
+  const [completion] = completionState.languageDataAt("autocomplete", 3);
+  const result = await completion(new CompletionContext(completionState, 3, true));
+  assert.deepEqual(builtins, ["leia"]);
+  assert.ok(result.options.some(({ label, apply }) => label === "leia" && apply === "leia("));
+});

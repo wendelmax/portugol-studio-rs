@@ -1749,15 +1749,17 @@ async function runProgram(pauseOnStart = false) {
     paused = null;
     showPanel("console");
     output.replaceChildren();
+    inputForm.hidden = true;
     porsRunPending = true;
     runTabId = tab.id;
     setRunning(true);
     setStatus("Compilando e executando com rustc…");
     let porsRunId: number | null = null;
     try {
-      porsRunId = await api.registerRustSourceRun();
+      porsRunId = await api.registerPortugolRsRun();
       runId = porsRunId;
       setRunning(true);
+      await runListeners;
       const result = await api.runPortugolRs(porsRunId, source);
       if (activeTab() !== tab || view.state.doc !== documentState) return;
       if (result.status === "cancelled") {
@@ -1806,6 +1808,7 @@ async function runProgram(pauseOnStart = false) {
         setStatus("Não foi possível compilar ou executar o Portugol-RS.", "error");
       }
     } finally {
+      inputForm.hidden = true;
       if (runId === porsRunId) runId = null;
       porsRunPending = false;
       runTabId = null;
