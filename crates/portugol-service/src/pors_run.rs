@@ -15,6 +15,8 @@ use portugol_rust::{GeneratedRust, SourceMapQuality as RustSourceMapQuality, Sou
 
 static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(1);
 const MAX_SOURCE_BYTES: usize = 1_048_576;
+const MAX_RUST_ARGUMENT_BYTES: usize = 64 * 1024;
+const MAX_WINDOWS_RUST_ARGUMENT_BYTES: usize = 8 * 1024;
 const MAX_RUNTIME_OUTPUT_BYTES: usize = 1_048_576;
 const MAX_RUNTIME_INPUT_LINE_BYTES: usize = 1_048_576;
 const RUNTIME_LIMIT: Duration = Duration::from_secs(3);
@@ -281,18 +283,14 @@ pub fn run_rust_source_with_args_and_cancel(
     if source.len() > MAX_SOURCE_BYTES {
         return Err("O arquivo Rust excede o limite de 1 MiB para compilação.".into());
     }
-    if args.len() > 256 {
-        return Err("O programa Rust aceita no máximo 256 argumentos.".into());
-    }
-    if args.iter().any(|arg| arg.contains('\0')) {
-        return Err("Argumentos Rust não podem conter NUL.".into());
-    }
-    let argument_bytes = args.iter().fold(0usize, |total, argument| {
-        total.saturating_add(argument.len())
-    });
-    if argument_bytes > 64 * 1024 {
-        return Err("Os argumentos Rust excedem o limite total de 64 KiB.".into());
-    }
+    validate_rust_arguments(
+        args,
+        if cfg!(windows) {
+            MAX_WINDOWS_RUST_ARGUMENT_BYTES
+        } else {
+            MAX_RUST_ARGUMENT_BYTES
+        },
+    )?;
     if !rust_toolchain_available() {
         return Err(
             "Rustc não foi encontrado. Instale a toolchain Rust para executar `.rs`.".into(),
@@ -386,6 +384,25 @@ pub fn run_rust_source_with_args_and_cancel(
         },
         exit_code: execution.status,
     })
+}
+
+fn validate_rust_arguments(args: &[String], max_bytes: usize) -> Result<(), String> {
+    if args.len() > 256 {
+        return Err("O programa Rust aceita no máximo 256 argumentos.".into());
+    }
+    if args.iter().any(|arg| arg.contains('\0')) {
+        return Err("Argumentos Rust não podem conter NUL.".into());
+    }
+    let argument_bytes = args.iter().fold(0usize, |total, argument| {
+        total.saturating_add(argument.len())
+    });
+    if argument_bytes > max_bytes {
+        return Err(format!(
+            "Os argumentos Rust excedem o limite total de {} KiB.",
+            max_bytes / 1024
+        ));
+    }
+    Ok(())
 }
 
 fn source_limit_reason(reason: ProcessLimitReason) -> Result<RustSourceLimitReason, String> {
@@ -1126,6 +1143,13 @@ mod tests {
     use portugol_rust::{
         GeneratedRust, SourceMapQuality as RustSourceMapQuality, SourceMapSegment, SourceRange,
     };
+
+    #[test]
+    fn rejects_arguments_over_the_windows_command_line_budget() {
+        let args = vec!["x".repeat(8 * 1024 + 1)];
+
+        assert!(super::validate_rust_arguments(&args, 8 * 1024).is_err());
+    }
 
     #[test]
     fn maps_rustc_primary_span_to_utf16_source_positions() {

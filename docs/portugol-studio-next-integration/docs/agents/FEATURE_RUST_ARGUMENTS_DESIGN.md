@@ -13,7 +13,7 @@ Permitir que arquivos `.rs` recebam argumentos de linha de comando pelo campo j�
 
 ## Abordagem
 
-Usar o campo `Argumentos` existente com parser local de tokens. Espaços separam argumentos fora de aspas duplas; aspas agrupam espaços; `\"` e `\\` permitem incluir aspas e barras invertidas; aspas não fechadas geram mensagem clara antes de iniciar execução. O array é enviado via IPC tipado e aplicado somente a `Command::args` do executável Rust já compilado. O backend rejeita NUL, mais de 256 argumentos ou mais de 64 KiB UTF-8 acumulados.
+Usar o campo `Argumentos` existente com parser local de tokens. Espaços separam argumentos fora de aspas duplas; aspas agrupam espaços; `\"` e `\\` permitem incluir aspas e barras invertidas; aspas não fechadas geram mensagem clara antes de iniciar execução. O array é enviado via IPC tipado e aplicado somente a `Command::args` do executável Rust já compilado. O backend rejeita NUL, mais de 256 argumentos ou mais de 64 KiB UTF-8 acumulados (8 KiB no Windows para manter a linha de comando abaixo do limite do `CreateProcessW`).
 
 Nenhuma string do aluno é interpretada como shell. A invocação do compilador permanece fixa e não recebe esses argumentos.
 

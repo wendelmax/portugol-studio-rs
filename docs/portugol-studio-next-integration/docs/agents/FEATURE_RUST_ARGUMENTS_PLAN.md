@@ -14,7 +14,7 @@
 
 - Nunca executar um shell ou aceitar nome de programa/comando do frontend.
 - Executável é sempre o binário temporário compilado pelo `rustc` fixo.
-- Limites do serviço: no máximo 256 argumentos e 64 KiB UTF-8 totais; NUL é inválido.
+- Limites do serviço: no máximo 256 argumentos e 64 KiB UTF-8 totais (8 KiB no Windows para respeitar o limite de linha de comando); NUL é inválido.
 - Args não alteram fonte, extensão, consentimento, diretório temporário ou limites de execução.
 - Array vazio deve manter compatibilidade.
 

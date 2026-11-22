@@ -4,7 +4,7 @@
 - Escopo e IDs: UI-003/021/028; UC-06; FT-03.
 - Estado anterior: Rust standalone usava o executor real, mas `run_rust_source` recebia apenas fonte; campo de parâmetros era desabilitado para `.rs`.
 - Arquivos alterados: `apps/desktop/index.html`, `src/main.ts`, `src/api.ts`, parser novo `src/process-arguments.ts`, testes Node do parser, cobertura `source-map.test.mjs`/`learning-mode.test.mjs`; `apps/desktop/src-tauri/src/lib.rs`; `crates/portugol-service/src/pors_run.rs`, `src/lib.rs`, testes `rust_source_runner.rs`; `docs/PARIDADE.md`, matriz, gap report, design/plano e este relatório.
-- Contrato Rust/Tauri/IPC: `run_rust_source` agora recebe `args: Vec<String>` e chama `run_rust_source_with_args_and_cancel`. Args opcionais no frontend, limitados a 256 itens, 64 KiB UTF-8 acumulados e sem NUL.
+- Contrato Rust/Tauri/IPC: `run_rust_source` agora recebe `args: Vec<String>` e chama `run_rust_source_with_args_and_cancel`. Args opcionais no frontend, limitados a 256 itens, 64 KiB UTF-8 acumulados em Linux/macOS e 8 KiB no Windows para respeitar o limite de linha de comando, e sem NUL.
 - Segurança: `Command::args` passa cada item como `argv`; nenhum shell é iniciado. `rustc` continua fixo e argumentos só são enviados ao binário Rust compilado.
 - Permissões/capabilities: nenhuma alteração.
 - Compatibilidade: `.por` mantém parser atual; `.pors` continua com argumentos desabilitados. Rust sem argumentos usa array vazio e preserva execução anterior.
