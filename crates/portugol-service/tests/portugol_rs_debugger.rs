@@ -80,6 +80,49 @@ fn pors_debugger_returns_located_diagnostics_before_starting_the_vm() {
 }
 
 #[test]
+fn pors_debugger_maps_semantic_diagnostics_to_utf16_editor_spans() {
+    let source = "funcao inicio() { escreva(\"🦀\"); escreva(faltante); }";
+    let expected_start = source
+        .split("faltante")
+        .next()
+        .unwrap()
+        .encode_utf16()
+        .count() as u32;
+    let (tx, _rx) = mpsc::channel();
+    let observer = Arc::new(Recorder(Mutex::new(tx)));
+    let Err(diagnostics) = start_portugol_rs(source, RunOptions::default(), observer) else {
+        panic!("nome ausente não deveria iniciar a VM")
+    };
+
+    let diagnostic = diagnostics
+        .iter()
+        .find(|diagnostic| diagnostic.code == "pors.unknown-name")
+        .expect("diagnóstico de nome desconhecido");
+    assert_eq!(diagnostic.start.offset, expected_start);
+    assert_eq!(
+        diagnostic.end.offset,
+        expected_start + "faltante".encode_utf16().count() as u32
+    );
+}
+
+#[test]
+fn pors_debugger_reports_type_mismatch_before_starting_the_vm() {
+    let source = "funcao inicio() { seja idade: inteiro = \"dez\"; }";
+    let (tx, _rx) = mpsc::channel();
+    let observer = Arc::new(Recorder(Mutex::new(tx)));
+    let Err(diagnostics) = start_portugol_rs(source, RunOptions::default(), observer) else {
+        panic!("inicializador incompatível não deveria iniciar a VM")
+    };
+
+    let diagnostic = diagnostics
+        .iter()
+        .find(|diagnostic| diagnostic.code == "pors.type-mismatch")
+        .expect("diagnóstico de tipos incompatíveis");
+    assert_eq!(diagnostic.start.line, 1);
+    assert!(diagnostic.end.offset > diagnostic.start.offset);
+}
+
+#[test]
 fn pors_debugger_shows_only_the_binding_active_in_each_scope() {
     let source = "funcao inicio() {\n seja valor: inteiro = 1;\n se (verdadeiro) {\n seja valor: inteiro = 2;\n escreva(valor);\n }\n escreva(valor);\n}";
     let (tx, rx) = mpsc::channel();
