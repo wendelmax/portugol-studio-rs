@@ -38,14 +38,14 @@ test("standalone Rust API covers compile/runtime limits and Tauri registers the 
 test("standalone Rust execution registers an interruptible run before compiling", () => {
   const tauri = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
   assert.match(api, /registerRustSourceRun[\s\S]*register_rust_source_run/);
-  assert.match(api, /runRustSource = \(id: number, source: string\)[\s\S]*\{ id, source \}/);
+  assert.match(api, /runRustSource = \(id: number, source: string, args: string\[\] = \[\]\)[\s\S]*\{ id, source, args \}/);
   assert.match(api, /status: "cancelled"; phase: "compilation" \| "runtime"/);
   assert.match(tauri, /fn register_rust_source_run[\s\S]*rust_source_cancellations/);
-  assert.match(tauri, /async fn run_rust_source[\s\S]*run_rust_source_with_cancel[\s\S]*remove\(&id\)/);
+  assert.match(tauri, /async fn run_rust_source[\s\S]*run_rust_source_with_args_and_cancel[\s\S]*remove\(&id\)/);
   assert.match(tauri, /fn request_stop\(&self, id: u32\) -> bool[\s\S]*cancel\.store\(true/);
   assert.match(tauri, /fn stop\([\s\S]*\) -> bool[\s\S]*runs\.request_stop\(id\)/);
   assert.match(tauri, /generate_handler!\[[\s\S]*register_rust_source_run[\s\S]*run_rust_source/);
-  assert.match(main, /api\.registerRustSourceRun\(\)[\s\S]*runId = id[\s\S]*api\.runRustSource\(id, source\)/);
+  assert.match(main, /api\.registerRustSourceRun\(\)[\s\S]*runId = id[\s\S]*api\.runRustSource\(id, source, rustArgs\)/);
   assert.match(main, /result\.status === "cancelled"[\s\S]*Execução Rust cancelada durante/);
 });
 

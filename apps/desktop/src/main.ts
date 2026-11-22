@@ -51,6 +51,7 @@ import { semanticSymbolLanguage } from "./semantic-symbol-actions";
 import { collectWorkspaceFiles, flattenWorkspaceEntries, workspaceFileKind, workspaceRenameFileName, workspaceSourceFileName, type WorkspaceEntry } from "./workspace-explorer";
 import { workspaceExportStatus } from "./workspace-export-state";
 import { canDebugSource, canRunSource } from "./runtime-capabilities";
+import { parseProcessArguments } from "./process-arguments";
 import { hasRustExecutionConsent, rememberRustExecutionConsent } from "./rust-execution-consent";
 import { applyWorkspaceRenameToTabs, deleteWorkspaceFileFlow, prepareWorkspaceRename } from "./workspace-file-actions";
 import { conceptsForMode, resolveConceptForMode } from "./learning-content";
@@ -536,8 +537,12 @@ function syncLanguageControls(tab: Tab) {
     button.setAttribute("aria-description", unavailableReason);
   }
   const args = $<HTMLInputElement>("args");
-  args.disabled = pors || rustFile;
-  args.title = pors ? "Parâmetros ainda não são suportados em Portugol-RS." : rustFile ? "Parâmetros Rust não estão configurados." : "";
+  args.disabled = pors;
+  args.title = pors
+    ? "Parâmetros ainda não são suportados em Portugol-RS."
+    : rustFile
+      ? "Espaços separam itens; aspas duplas agrupam. O programa recebe argv, sem shell."
+      : "";
   const format = $<HTMLButtonElement>("editor-format");
   format.disabled = pors || rustFile;
   format.title = rustFile ? "Formatador Rust não configurado." : pors ? "Formatador clássico indisponível para Portugol-RS." : "Formatar código-fonte";
@@ -1646,6 +1651,13 @@ async function runProgram(pauseOnStart = false) {
       setStatus("Instale a toolchain Rust para executar arquivos .rs.", "error");
       return;
     }
+    let rustArgs: string[];
+    try {
+      rustArgs = parseProcessArguments($<HTMLInputElement>("args").value);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Argumentos inválidos.", "error");
+      return;
+    }
     const documentState = view.state.doc;
     const source = documentState.toString();
     porsRunPending = true;
@@ -1673,7 +1685,7 @@ async function runProgram(pauseOnStart = false) {
       output.replaceChildren();
       setRunning(true);
       setStatus("Compilando e executando Rust 2021 com rustc…");
-      const result = await api.runRustSource(id, source);
+      const result = await api.runRustSource(id, source, rustArgs);
       if (activeTab() !== tab || view.state.doc !== documentState) return;
       if (result.status === "cancelled") {
         if (result.stdout) appendConsole(result.stdout);
@@ -3030,7 +3042,7 @@ function availablePaletteCommands() {
     if (command === "Sobre (fora do editor); ir à declaração (no editor)") return false;
     if (tabCommands.has(command) && !tab) return false;
     if (command === "Executar" && tab?.language === "portugol-rs" && rustcAvailable !== true) return false;
-    if (command === "Parâmetros de execução" && tab && tab.language !== "portugol") return false;
+    if (command === "Parâmetros de execução" && tab?.language === "portugol-rs") return false;
     if (tab?.language === "rust" && rustUnsupportedCommands.has(command)) return false;
     if (debugCommands.has(command) && !isDebugCommandAvailable(command, tab?.language ?? null, runId !== null, paused !== null)) return false;
     return true;
