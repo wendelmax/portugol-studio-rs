@@ -15,6 +15,37 @@ test("Beginner, Bridge e Rust apresentam os conceitos próprios de cada nível",
   assert.deepEqual(rust.map(({ id }) => id), ["mutability", "ownership", "borrowing"]);
 });
 
+test("conceitos básicos apontam para exercícios existentes e Rust-only não aponta para exercício Portugol", async () => {
+  const { conceptsForMode } = await import(moduleUrl.href);
+  const concepts = new Map(conceptsForMode("bridge").map(({ id, practiceExerciseId }) => [id, practiceExerciseId]));
+
+  assert.equal(concepts.get("variables"), 2);
+  assert.equal(concepts.get("conditionals"), 12);
+  assert.equal(concepts.get("loops"), 24);
+  for (const concept of conceptsForMode("rust")) assert.equal(concept.practiceExerciseId, undefined, concept.id);
+});
+
+test("cada prompt de prática combina com o enunciado real do exercício associado", async () => {
+  const { conceptsForMode } = await import(moduleUrl.href);
+  const catalog = readFileSync(new URL("../../../crates/portugol-service/src/exercise_catalog.rs", import.meta.url), "utf8");
+  const expectedTerms = new Map([
+    ["variables", /nome/i],
+    ["conditionals", /par|ímpar/i],
+    ["loops", /ordem crescente/i],
+  ]);
+
+  for (const concept of conceptsForMode("beginner")) {
+    const catalogLine = catalog.split("\n").find((line) => line.includes(`(${concept.practiceExerciseId},`));
+    const entry = catalogLine?.match(/"([^"]+)"/);
+    assert.ok(entry, `${concept.id}: ID listado no catálogo Rust`);
+    const source = readFileSync(new URL(`../../../crates/portugol-service/assets/exercicios/${entry[1]}`, import.meta.url), "utf8");
+    const statement = source.match(/<enunciado>([\s\S]*?)<\/enunciado>/)?.[1] ?? source;
+    const term = expectedTerms.get(concept.id);
+    assert.ok(term?.test(concept.practice), `${concept.id}: o prompt de prática trata do mesmo conceito`);
+    assert.ok(term?.test(statement), `${concept.id}: o exercício real trata do mesmo conceito`);
+  }
+});
+
 test("cada conceito em Beginner, Bridge e Rust tem explicação completa, sem alegar detecção automática", async () => {
   const { conceptsForMode } = await import(moduleUrl.href);
   for (const mode of ["beginner", "bridge", "rust"]) {
@@ -39,6 +70,9 @@ test("cartão Aprender apresenta seções nomeadas e renderiza o conteúdo do ca
   }
   assert.match(html, /<article class="learning-card">/);
   assert.match(html, /<h3 id="learning-title" aria-live="polite" aria-atomic="true">/);
+  assert.match(html, /id="learning-practice-open"[^>]*hidden/);
+  assert.match(html, /id="learning-practice-status"[^>]*role="status"/);
+  assert.match(main, /exercises\.openById\(exerciseId\)/);
 });
 
 test("ownership explica move de String e identifica o trecho como exemplo editorial", async () => {

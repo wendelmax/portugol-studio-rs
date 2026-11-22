@@ -468,6 +468,7 @@ let definitionNavigationGeneration = 0;
 let learningMode: LearningMode = loadLearningMode();
 let selectedLearningConceptId = "variables";
 let learningConceptManuallySelected = false;
+let learningPracticeBusy = false;
 let ownershipScenarioId: OwnershipScenarioId = "move";
 let ownershipStepIndex = 0;
 
@@ -2319,6 +2320,10 @@ function renderLearningPanel() {
   pinButton.dataset.conceptId = concept.id;
   pinButton.setAttribute("aria-pressed", String(topicPinned));
   pinButton.textContent = topicPinned ? "Desafixar tópico" : "Fixar tópico";
+  const practiceButton = $<HTMLButtonElement>("learning-practice-open");
+  practiceButton.hidden = concept.practiceExerciseId === undefined;
+  practiceButton.disabled = !tab || learningPracticeBusy;
+  practiceButton.dataset.exerciseId = concept.practiceExerciseId === undefined ? "" : String(concept.practiceExerciseId);
   const active = activeTab();
   $("learning-mode-description").textContent = learningMode === "bridge"
     ? "Ponte didática: compare os conceitos de Portugol com exemplos Rust editoriais."
@@ -3185,6 +3190,26 @@ $<HTMLButtonElement>("learning-pin").onclick = (event) => {
   tab.learningPins = toggleLearningPin(tab.learningPins, learningMode, button.dataset.conceptId ?? selectedLearningConceptId);
   learningConceptManuallySelected = false;
   renderLearningPanel();
+};
+$<HTMLButtonElement>("learning-practice-open").onclick = async (event) => {
+  if (learningPracticeBusy) return;
+  const button = event.currentTarget as HTMLButtonElement;
+  const exerciseId = Number(button.dataset.exerciseId);
+  if (!Number.isSafeInteger(exerciseId) || exerciseId < 1 || !activeTab()) return;
+
+  learningPracticeBusy = true;
+  button.disabled = true;
+  const status = $<HTMLElement>("learning-practice-status");
+  status.textContent = `Abrindo exercício ${exerciseId}…`;
+  try {
+    await exercises.openById(exerciseId);
+    status.textContent = `Exercício ${exerciseId} aberto no editor. A abertura não registra progresso.`;
+  } catch {
+    status.textContent = "Não foi possível abrir o exercício. Tente novamente ou use a lista de exercícios.";
+  } finally {
+    learningPracticeBusy = false;
+    renderLearningPanel();
+  }
 };
 $<HTMLSelectElement>("ownership-scenario").onchange = (event) => {
   const selected = (event.currentTarget as HTMLSelectElement).value;

@@ -13,6 +13,7 @@ export interface LearningConcept {
   whatChanged: string;
   whyItMatters: string;
   practice: string;
+  practiceExerciseId?: number;
   portugolExample: LearningExample;
   rustExample?: LearningExample;
   provenance: "manual-selection";
@@ -31,7 +32,8 @@ const fundamentals: LearningConcept[] = [
     definition: "Uma variável associa um nome a um valor que o programa pode consultar. O tipo indica quais valores cabem nela.",
     whatChanged: "Você dá um nome ao valor e pode consultar esse nome em outras instruções.",
     whyItMatters: "Nomes claros ajudam a acompanhar os dados e a entender o que o algoritmo está fazendo.",
-    practice: "Crie uma variável inteiro chamada pontos, atribua 10 e escreva o valor na tela.",
+    practice: "Leia o nome de uma pessoa em uma variável cadeia e escreva o valor dessa variável na tela.",
+    practiceExerciseId: 2,
     portugolExample: example("inteiro idade = 16;\nescreva(idade);", "Exemplo Portugol"),
     rustExample: example('let idade: i32 = 16;\nprintln!("{idade}");', "Exemplo didático; não é código gerado nem compilado pela IDE."),
     provenance: "manual-selection",
@@ -42,7 +44,8 @@ const fundamentals: LearningConcept[] = [
     definition: "Uma condição escolhe qual bloco executar. O bloco senao é opcional e roda quando a condição é falsa.",
     whatChanged: "O fluxo deixa de ser apenas sequencial: uma condição escolhe qual caminho será executado.",
     whyItMatters: "Decisões permitem que o mesmo programa responda de formas diferentes conforme os dados.",
-    practice: "Leia uma idade e escreva “maior de idade” quando ela for pelo menos 18; caso contrário, escreva “menor de idade”.",
+    practice: "Leia um número inteiro e escreva verdadeiro se for par ou falso se for ímpar.",
+    practiceExerciseId: 12,
     portugolExample: example("se (idade >= 18) {\n    escreva(\"Maior de idade\");\n} senao {\n    escreva(\"Menor de idade\");\n}", "Exemplo Portugol"),
     rustExample: example('if idade >= 18 {\n    println!("Maior de idade");\n} else {\n    println!("Menor de idade");\n}', "Exemplo didático; não é código gerado nem compilado pela IDE."),
     provenance: "manual-selection",
@@ -53,7 +56,8 @@ const fundamentals: LearningConcept[] = [
     definition: "Uma repetição executa um bloco várias vezes. No enquanto, a condição é verificada antes de cada passagem.",
     whatChanged: "Um bloco pode voltar a executar enquanto uma condição continuar verdadeira.",
     whyItMatters: "Repetições evitam copiar instruções e tornam simples percorrer sequências de dados.",
-    practice: "Use enquanto para escrever os números de 1 até 5. Atualize o contador dentro do bloco.",
+    practice: "Leia dois números inteiros e escreva em ordem crescente todos os números entre o menor e o maior, incluindo os extremos.",
+    practiceExerciseId: 24,
     portugolExample: example("inteiro contador = 0;\nenquanto (contador < 3) {\n    escreva(contador);\n    contador++;\n}", "Exemplo Portugol"),
     rustExample: example('let mut contador = 0;\nwhile contador < 3 {\n    println!("{contador}");\n    contador += 1;\n}', "Exemplo didático; não é código gerado nem compilado pela IDE."),
     provenance: "manual-selection",

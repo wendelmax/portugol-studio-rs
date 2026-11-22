@@ -619,6 +619,16 @@ select {
   line-height: 1.5;
 }
 
+.learning-practice-status {
+  min-height: 1em;
+  margin-top: 6px;
+}
+
+#learning-practice-open {
+  min-height: 36px;
+  margin-top: 6px;
+}
+
 .learning-examples {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr));
