@@ -70,12 +70,11 @@ fn render_statements(
     output: &mut String,
     mappings: &mut Vec<SourceMapSegment>,
     pors: bool,
-    for_step: Option<&Stmt>,
+    for_label: Option<u32>,
 ) {
     let indent = "    ".repeat(depth);
     for statement in statements {
         let start = output.len();
-        let mut map_statement = true;
         match &statement.kind {
             StmtKind::Declare {
                 binding,
@@ -191,7 +190,7 @@ fn render_statements(
                     output,
                     mappings,
                     pors,
-                    for_step,
+                    for_label,
                 );
                 output.push_str(&format!("{indent}}}"));
                 if let Some(else_branch) = else_branch {
@@ -203,7 +202,7 @@ fn render_statements(
                         output,
                         mappings,
                         pors,
-                        for_step,
+                        for_label,
                     );
                     output.push_str(&format!("{indent}}}"));
                 }
@@ -222,6 +221,7 @@ fn render_statements(
                 step,
                 body,
             } => {
+                let label = statement.span.start;
                 output.push_str(&format!("{indent}{{\n"));
                 render_statements(
                     std::slice::from_ref(initializer.as_ref()),
@@ -233,12 +233,20 @@ fn render_statements(
                     None,
                 );
                 let loop_indent = "    ".repeat(depth + 1);
-                output.push_str(&format!("{loop_indent}while "));
+                output.push_str(&format!("{loop_indent}'pors_for_{label}: while "));
                 push_expr(output, mappings, condition, program, false, pors);
                 output.push_str(" {\n");
                 let body_scope_indent = "    ".repeat(depth + 2);
-                output.push_str(&format!("{body_scope_indent}{{\n"));
-                render_statements(body, program, depth + 3, output, mappings, pors, Some(step));
+                output.push_str(&format!("{body_scope_indent}'pors_body_{label}: {{\n"));
+                render_statements(
+                    body,
+                    program,
+                    depth + 3,
+                    output,
+                    mappings,
+                    pors,
+                    Some(label),
+                );
                 output.push_str(&format!("{body_scope_indent}}}\n"));
                 render_statements(
                     std::slice::from_ref(step.as_ref()),
@@ -253,31 +261,21 @@ fn render_statements(
             }
             StmtKind::LoopControl { control } => {
                 if *control == LoopControl::Continue {
-                    if let Some(step) = for_step {
-                        render_statements(
-                            std::slice::from_ref(step),
-                            program,
-                            depth,
-                            output,
-                            mappings,
-                            pors,
-                            None,
-                        );
-                        let control_start = output.len();
-                        output.push_str(&format!("{indent}continue;\n"));
-                        record_statement_mapping(mappings, control_start, output.len(), statement);
-                        map_statement = false;
+                    if let Some(label) = for_label {
+                        output.push_str(&format!("{indent}break 'pors_body_{label};\n"));
                     } else {
                         output.push_str(&format!("{indent}continue;\n"));
                     }
                 } else {
-                    output.push_str(&format!("{indent}break;\n"));
+                    if let Some(label) = for_label {
+                        output.push_str(&format!("{indent}break 'pors_for_{label};\n"));
+                    } else {
+                        output.push_str(&format!("{indent}break;\n"));
+                    }
                 }
             }
         }
-        if map_statement {
-            record_statement_mapping(mappings, start, output.len(), statement);
-        }
+        record_statement_mapping(mappings, start, output.len(), statement);
     }
 }
 
