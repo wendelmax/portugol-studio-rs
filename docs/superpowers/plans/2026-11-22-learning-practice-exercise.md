@@ -37,10 +37,10 @@
 
 **Files:** `apps/desktop/src/learning-content.ts`, `apps/desktop/index.html`, `apps/desktop/src/main.ts`, `apps/desktop/tests/learning-content.test.mjs`, `apps/desktop/src/style.css`.
 
-- [x] Testar os mapas 2/12/24 e ausência da ação nos conceitos Rust-only.
+- [x] Testar os mapas 2/12/24, ausência da ação nos conceitos Rust-only e alinhar cada prompt ao enunciado `.pex` real.
 - [x] Renderizar botão condicional e estado acessível de loading, sucesso ou falha.
 - [x] Testar que abertura não chama avaliador nem persistência de progresso; opener só cria e entrega `ExerciseDocument` à navegação.
-- [x] Rodar `npm test` (188/188), `npm run build`, `cargo test -p portugol-service --offline --locked` (87 testes), `cargo fmt --all --check`, `git diff --check`.
+- [x] Rodar `npm test` (189/189), `npm run build`, `cargo test -p portugol-service --offline --locked` (87 testes), `cargo fmt --all --check`, `git diff --check`.
 
 ### Task 3: integração
 
