@@ -6,7 +6,7 @@ export function canRunSource(language: SourceLanguage, rustcAvailable: boolean |
 }
 
 export function canDebugSource(language: SourceLanguage): boolean {
-  return language === "portugol";
+  return language === "portugol" || language === "portugol-rs";
 }
 
 export function canFormatSource(language: SourceLanguage, rustfmtAvailable: boolean | null): boolean {

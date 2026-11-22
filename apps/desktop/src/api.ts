@@ -245,6 +245,9 @@ export const runRustSource = (id: number, source: string, args: string[] = []) =
 export const run = (source: string, args: string[], path: string | null, breakpoints: number[] = [], pauseOnStart = false) =>
   invoke<number>("run", { source, args, path, breakpoints, pauseOnStart });
 
+export const debugPortugolRs = (source: string, breakpoints: number[] = []) =>
+  invoke<number>("debug_portugol_rs", { source, breakpoints, pauseOnStart: true });
+
 export const sendInput = (id: number, line: string) => invoke<void>("send_input", { id, line });
 
 export const stop = (id: number) => invoke<boolean>("stop", { id });
