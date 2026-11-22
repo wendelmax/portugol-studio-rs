@@ -101,6 +101,12 @@ struct Frame {
     base: usize,
 }
 
+/// Callback opcional de host para resolver chamadas nativas (`Op::CallNative`),
+/// inclusive no núcleo mínimo sem a feature `stdlib` (ex.: `UI.*` em `wasm32`).
+/// Retornar `None` delega para o tratamento padrão da VM.
+pub type HostNativeHandler<'a> =
+    dyn FnMut(&str, &str, &[Value]) -> Option<Result<Value, String>> + 'a;
+
 pub struct Vm<'a> {
     module: &'a Module,
     io: &'a mut dyn Io,
@@ -116,6 +122,7 @@ pub struct Vm<'a> {
     consts: Vec<Option<Value>>,
     #[cfg(feature = "stdlib")]
     ctx: NativeContext,
+    native_handler: Option<&'a mut HostNativeHandler<'a>>,
     interrupt: Arc<AtomicBool>,
     args: Vec<String>,
     debug: Option<DebugControl>,
@@ -124,6 +131,7 @@ pub struct Vm<'a> {
     string_memory_limit: Option<usize>,
     string_memory_used: usize,
     pending_limit: Option<RuntimeLimitReason>,
+    last_return: Value,
 }
 
 /// Executa o programa até o fim.
@@ -275,6 +283,7 @@ impl<'a> Vm<'a> {
             consts,
             #[cfg(feature = "stdlib")]
             ctx,
+            native_handler: None,
             interrupt,
             args: Vec::new(),
             debug: None,
@@ -283,7 +292,14 @@ impl<'a> Vm<'a> {
             string_memory_limit: None,
             string_memory_used: 0,
             pending_limit: None,
+            last_return: Value::Void,
         }
+    }
+
+    /// Registra um resolvedor nativo do host (compatível com `--no-default-features` e `wasm32`).
+    pub fn with_native_handler(mut self, handler: &'a mut HostNativeHandler<'a>) -> Self {
+        self.native_handler = Some(handler);
+        self
     }
 
     /// Fixa a semente do gerador de números aleatórios (útil em testes).
@@ -376,6 +392,58 @@ impl<'a> Vm<'a> {
     pub fn run(&mut self) -> Result<(), RuntimeError> {
         while self.step(100_000)? == Status::Running {}
         Ok(())
+    }
+
+    /// Invoca uma função do módulo pelo nome com orçamento explícito de instruções,
+    /// devolvendo o valor retornado. Ideal para ciclos orientados a eventos (MVU)
+    /// em Desktop e WASM sem depender de timeout fixo de janela.
+    pub fn call_function(
+        &mut self,
+        name: &str,
+        args: Vec<Value>,
+        step_budget: usize,
+    ) -> Result<Value, RuntimeError> {
+        let Some((index, function)) = self
+            .module
+            .functions
+            .iter()
+            .enumerate()
+            .find(|(_, function)| function.name == name)
+        else {
+            return Err(self.error(format!("Função não encontrada no módulo: \"{name}\".")));
+        };
+        if args.len() != function.arity as usize {
+            return Err(self.error(format!(
+                "A função \"{name}\" espera {} argumento(s), mas recebeu {}.",
+                function.arity,
+                args.len()
+            )));
+        }
+
+        self.stack.clear();
+        self.frames.clear();
+        self.active_locals.clear();
+        self.pending_limit = None;
+        self.last_return = Value::Void;
+
+        let local_slots = function.locals.len().max(args.len());
+        self.stack.extend(args);
+        self.stack.resize(local_slots, Value::Void);
+        self.active_locals
+            .push(vec![!self.tracks_local_visibility; function.locals.len()]);
+        self.frames.push(Frame {
+            function: index as u32,
+            ip: 0,
+            base: 0,
+        });
+
+        match self.step(step_budget)? {
+            Status::Finished => Ok(std::mem::replace(&mut self.last_return, Value::Void)),
+            Status::Running => {
+                self.pending_limit = Some(RuntimeLimitReason::Time);
+                Err(self.error("O limite de passos do evento foi excedido.".to_string()))
+            }
+        }
     }
 
     /// Executa até `budget` instruções.
@@ -866,25 +934,34 @@ impl<'a> Vm<'a> {
                 return Ok(true);
             }
             Op::CallNative { native, argc } => {
-                let _args = self.pop_n(argc);
+                let args = self.pop_n(argc);
+                let native_ref = &module.natives[native as usize];
+                if let Some(handler) = self.native_handler.as_deref_mut()
+                    && let Some(outcome) = handler(&native_ref.library, &native_ref.name, &args)
+                {
+                    let result = outcome?;
+                    if let Value::Str(text) = &result {
+                        self.charge_string(text.len())?;
+                    }
+                    self.push(result);
+                    return Ok(false);
+                }
                 #[cfg(feature = "stdlib")]
                 {
                     let Some(function) = self.natives[native as usize] else {
-                        let native = &module.natives[native as usize];
                         return Err(format!(
                             "A função \"{}.{}\" ainda não está disponível nesta versão.",
-                            native.library, native.name
+                            native_ref.library, native_ref.name
                         ));
                     };
-                    let result = function(&mut self.ctx, &_args)?;
+                    let result = function(&mut self.ctx, &args)?;
                     self.push(result);
                 }
                 #[cfg(not(feature = "stdlib"))]
                 {
-                    let native = &module.natives[native as usize];
                     return Err(format!(
                         "A função \"{}.{}\" não está habilitada neste núcleo mínimo da VM.",
-                        native.library, native.name
+                        native_ref.library, native_ref.name
                     ));
                 }
             }
@@ -917,6 +994,8 @@ impl<'a> Vm<'a> {
                 if let Some(caller) = self.frames.last() {
                     *frame = *caller;
                     self.push(value);
+                } else {
+                    self.last_return = value;
                 }
                 return Ok(true);
             }
