@@ -457,6 +457,19 @@
       <form method="dialog"><button>Fechar</button></form>
     </dialog>
 
+    <dialog id="cargo-target-dialog" aria-labelledby="cargo-target-title" aria-describedby="cargo-target-description">
+      <h2 id="cargo-target-title">Escolher binário Cargo</h2>
+      <p id="cargo-target-description">Este projeto contém mais de um programa executável.</p>
+      <form id="cargo-target-form" method="dialog">
+        <label for="cargo-target-select">Pacote e binário</label>
+        <select id="cargo-target-select" required></select>
+        <div class="dialog-actions">
+          <button id="cargo-target-cancel" type="button">Cancelar</button>
+          <button type="submit" value="run">Executar binário</button>
+        </div>
+      </form>
+    </dialog>
+
     <dialog id="exercises" aria-labelledby="exercises-title">
       <h2 id="exercises-title">Exercícios</h2>
       <label>Exercício <select id="exercise-list"></select></label>

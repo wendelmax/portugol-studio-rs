@@ -2,7 +2,7 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 use std::sync::atomic::AtomicBool;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::pors_run::{
@@ -43,6 +43,20 @@ pub struct CargoProjectCheckResult {
     pub reason: Option<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CargoRunTarget {
+    pub package_name: String,
+    pub target_name: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CargoRunTargets {
+    pub targets: Vec<CargoRunTarget>,
+    pub default_target: Option<CargoRunTarget>,
+}
+
 pub fn cargo_available() -> bool {
     Command::new("cargo")
         .arg("--version")
@@ -50,6 +64,134 @@ pub fn cargo_available() -> bool {
         .stderr(Stdio::null())
         .status()
         .is_ok_and(|status| status.success())
+}
+
+/// Reads local Cargo workspace metadata without resolving dependencies or running build scripts.
+pub fn cargo_run_targets_with_cancel(
+    project_root: &Path,
+    cancel: &AtomicBool,
+) -> Result<CargoRunTargets, String> {
+    let project_root = std::fs::canonicalize(project_root)
+        .map_err(|error| format!("Não foi possível acessar o projeto Rust: {error}"))?;
+    if !project_root.is_dir() {
+        return Err("A pasta do projeto Cargo não está disponível.".into());
+    }
+    let manifest = project_root.join("Cargo.toml");
+    let metadata = std::fs::symlink_metadata(&manifest)
+        .map_err(|error| format!("Não foi possível acessar Cargo.toml: {error}"))?;
+    if metadata.file_type().is_symlink() || !metadata.is_file() {
+        return Err("Cargo.toml precisa ser um arquivo regular do projeto.".into());
+    }
+
+    let mut command = Command::new("cargo");
+    configure_process_tree(&mut command);
+    let child = command
+        .arg("metadata")
+        .arg("--no-deps")
+        .arg("--offline")
+        .arg("--format-version")
+        .arg("1")
+        .arg("--manifest-path")
+        .arg(&manifest)
+        .current_dir(&project_root)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| format!("Não foi possível iniciar Cargo; instale Rust/Cargo: {error}"))?;
+    let output = supervise(child, COMPILATION_LIMIT, Some(cancel))?;
+    if let Some(reason) = output.limit {
+        return Err(match reason {
+            ProcessLimitReason::Cancelled => "Descoberta de alvos Cargo cancelada.".into(),
+            ProcessLimitReason::Time => "A descoberta de alvos Cargo excedeu 20 segundos.".into(),
+            ProcessLimitReason::Output | ProcessLimitReason::StringMemory => {
+                "A saída de metadata Cargo excedeu 1 MiB.".into()
+            }
+        });
+    }
+    if output.status != Some(0) {
+        return Err(format!(
+            "Não foi possível identificar os alvos do projeto Cargo: {}",
+            bounded_output(&output.stderr)
+        ));
+    }
+    let metadata: Value = serde_json::from_slice(&output.stdout)
+        .map_err(|error| format!("Cargo retornou metadata inválida: {error}"))?;
+    let packages = metadata
+        .get("packages")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "Cargo não retornou os pacotes do workspace.".to_string())?;
+    let mut targets = packages
+        .iter()
+        .flat_map(|package| {
+            let package_name = package
+                .get("name")
+                .and_then(Value::as_str)
+                .unwrap_or_default();
+            package
+                .get("targets")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter(|target| {
+                    target
+                        .get("kind")
+                        .and_then(Value::as_array)
+                        .is_some_and(|kinds| kinds.iter().any(|kind| kind.as_str() == Some("bin")))
+                })
+                .filter_map(move |target| {
+                    Some(CargoRunTarget {
+                        package_name: package_name.to_owned(),
+                        target_name: target.get("name")?.as_str()?.to_owned(),
+                    })
+                })
+        })
+        .collect::<Vec<_>>();
+    targets.sort_by(|left, right| {
+        (&left.package_name, &left.target_name).cmp(&(&right.package_name, &right.target_name))
+    });
+
+    let root_manifest = manifest.to_string_lossy();
+    let root_package = packages.iter().find(|package| {
+        package.get("manifest_path").and_then(Value::as_str) == Some(root_manifest.as_ref())
+    });
+    let default_member_ids = metadata
+        .get("workspace_default_members")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let default_package = root_package.or_else(|| {
+        if default_member_ids.len() != 1 {
+            return None;
+        }
+        let id = default_member_ids[0].as_str()?;
+        packages
+            .iter()
+            .find(|package| package.get("id").and_then(Value::as_str) == Some(id))
+    });
+    let default_target = default_package.and_then(|package| {
+        let package_name = package.get("name")?.as_str()?;
+        let package_targets = targets
+            .iter()
+            .filter(|target| target.package_name == package_name)
+            .collect::<Vec<_>>();
+        let default_run = package.get("default_run").and_then(Value::as_str);
+        let selected = if let Some(default_run) = default_run {
+            package_targets
+                .iter()
+                .find(|target| target.target_name == default_run)
+                .copied()
+        } else if package_targets.len() == 1 {
+            package_targets.first().copied()
+        } else {
+            None
+        }?;
+        Some(selected.clone())
+    });
+    Ok(CargoRunTargets {
+        targets,
+        default_target,
+    })
 }
 
 /// Runs Cargo's project-aware compiler diagnostics without starting the program.
@@ -134,6 +276,14 @@ pub fn run_cargo_project_with_cancel(
     project_root: &Path,
     cancel: &AtomicBool,
 ) -> Result<CargoProjectRunResult, String> {
+    run_cargo_project_target_with_cancel(project_root, None, cancel)
+}
+
+pub fn run_cargo_project_target_with_cancel(
+    project_root: &Path,
+    target: Option<&CargoRunTarget>,
+    cancel: &AtomicBool,
+) -> Result<CargoProjectRunResult, String> {
     let project_root = std::fs::canonicalize(project_root)
         .map_err(|error| format!("Não foi possível acessar o projeto Rust: {error}"))?;
     if !project_root.is_dir() {
@@ -143,14 +293,28 @@ pub fn run_cargo_project_with_cancel(
     if !manifest.is_file() {
         return Err("Não há Cargo.toml na pasta do projeto Rust.".into());
     }
+    if let Some(target) = target {
+        let available = cargo_run_targets_with_cancel(&project_root, cancel)?;
+        if !available.targets.contains(target) {
+            return Err("O alvo binário selecionado não pertence a este projeto Cargo.".into());
+        }
+    }
 
     let mut build = Command::new("cargo");
     configure_process_tree(&mut build);
-    let child = build
+    let mut build = build
         .arg("build")
         .arg("--message-format=json")
         .arg("--manifest-path")
-        .arg(&manifest)
+        .arg(&manifest);
+    if let Some(target) = target {
+        build = build
+            .arg("--package")
+            .arg(&target.package_name)
+            .arg("--bin")
+            .arg(&target.target_name);
+    }
+    let child = build
         .current_dir(&project_root)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -186,11 +350,19 @@ pub fn run_cargo_project_with_cancel(
 
     let mut run = Command::new("cargo");
     configure_process_tree(&mut run);
-    let child = run
+    let mut run = run
         .arg("run")
         .arg("--quiet")
         .arg("--manifest-path")
-        .arg(&manifest)
+        .arg(&manifest);
+    if let Some(target) = target {
+        run = run
+            .arg("--package")
+            .arg(&target.package_name)
+            .arg("--bin")
+            .arg(&target.target_name);
+    }
+    let child = run
         .current_dir(&project_root)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())

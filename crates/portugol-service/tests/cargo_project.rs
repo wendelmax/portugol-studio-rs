@@ -1,7 +1,10 @@
 use std::fs;
 use std::sync::atomic::AtomicBool;
 
-use portugol_service::{check_cargo_project_with_cancel, run_cargo_project_with_cancel};
+use portugol_service::{
+    CargoRunTarget, cargo_run_targets_with_cancel, check_cargo_project_with_cancel,
+    run_cargo_project_target_with_cancel, run_cargo_project_with_cancel,
+};
 
 struct TempDir(std::path::PathBuf);
 
@@ -94,6 +97,10 @@ fn reports_a_library_only_project_when_cargo_has_no_binary_target() {
     )
     .unwrap();
 
+    let targets = cargo_run_targets_with_cancel(&project.0, &AtomicBool::new(false)).unwrap();
+    assert!(targets.targets.is_empty());
+    assert!(targets.default_target.is_none());
+
     let result = run_cargo_project_with_cancel(&project.0, &AtomicBool::new(false)).unwrap();
 
     assert_eq!(result.status, "run_error");
@@ -185,4 +192,125 @@ fn cargo_check_maps_the_open_file_diagnostic_after_non_bmp_text() {
             .unwrap_or_default()
             .contains("error")
     );
+}
+
+#[test]
+fn discovers_all_binary_targets_and_the_default_run_across_workspace_packages() {
+    if !portugol_service::cargo_available() {
+        return;
+    }
+    let project = TempDir::new();
+    fs::create_dir_all(project.0.join("app-a/src/bin")).unwrap();
+    fs::create_dir_all(project.0.join("app-b/src")).unwrap();
+    fs::write(
+        project.0.join("Cargo.toml"),
+        "[workspace]\nmembers = [\"app-a\", \"app-b\"]\ndefault-members = [\"app-a\"]\nresolver = \"2\"\n",
+    )
+    .unwrap();
+    fs::write(
+        project.0.join("app-a/Cargo.toml"),
+        "[package]\nname = \"app_a\"\nversion = \"0.1.0\"\nedition = \"2021\"\ndefault-run = \"extra\"\n",
+    )
+    .unwrap();
+    fs::write(project.0.join("app-a/src/main.rs"), "fn main() {}").unwrap();
+    fs::write(project.0.join("app-a/src/bin/extra.rs"), "fn main() {}").unwrap();
+    fs::write(
+        project.0.join("app-b/Cargo.toml"),
+        "[package]\nname = \"app_b\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
+    )
+    .unwrap();
+    fs::write(project.0.join("app-b/src/main.rs"), "fn main() {}").unwrap();
+
+    let result = cargo_run_targets_with_cancel(&project.0, &AtomicBool::new(false)).unwrap();
+
+    assert_eq!(result.targets.len(), 3);
+    assert!(
+        result
+            .targets
+            .iter()
+            .any(|target| target.package_name == "app_b" && target.target_name == "app_b")
+    );
+    assert_eq!(result.default_target.unwrap().target_name, "extra");
+}
+
+#[test]
+fn leaves_the_default_empty_when_a_package_has_multiple_bins_without_default_run() {
+    if !portugol_service::cargo_available() {
+        return;
+    }
+    let project = TempDir::new();
+    fs::create_dir_all(project.0.join("src/bin")).unwrap();
+    fs::write(
+        project.0.join("Cargo.toml"),
+        "[package]\nname = \"escolha\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
+    )
+    .unwrap();
+    fs::write(project.0.join("src/main.rs"), "fn main() {}").unwrap();
+    fs::write(project.0.join("src/bin/um.rs"), "fn main() {}").unwrap();
+    fs::write(project.0.join("src/bin/dois.rs"), "fn main() {}").unwrap();
+
+    let targets = cargo_run_targets_with_cancel(&project.0, &AtomicBool::new(false)).unwrap();
+
+    assert_eq!(targets.targets.len(), 3);
+    assert!(targets.default_target.is_none());
+}
+
+#[test]
+fn runs_only_the_selected_binary_target() {
+    if !portugol_service::cargo_available() {
+        return;
+    }
+    let project = TempDir::new();
+    fs::create_dir_all(project.0.join("src/bin")).unwrap();
+    fs::write(
+        project.0.join("Cargo.toml"),
+        "[package]\nname = \"alvos\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
+    )
+    .unwrap();
+    fs::write(
+        project.0.join("src/main.rs"),
+        "fn main() { println!(\"principal\"); }",
+    )
+    .unwrap();
+    fs::write(
+        project.0.join("src/bin/secundario.rs"),
+        "fn main() { println!(\"secundario\"); }",
+    )
+    .unwrap();
+
+    let target = CargoRunTarget {
+        package_name: "alvos".into(),
+        target_name: "secundario".into(),
+    };
+    let result =
+        run_cargo_project_target_with_cancel(&project.0, Some(&target), &AtomicBool::new(false))
+            .unwrap();
+
+    assert_eq!(result.status, "executed", "{}", result.stderr);
+    assert!(result.stdout.contains("secundario"));
+    assert!(!result.stdout.contains("principal"));
+}
+
+#[test]
+fn rejects_a_binary_target_that_is_not_in_the_project_metadata() {
+    if !portugol_service::cargo_available() {
+        return;
+    }
+    let project = TempDir::new();
+    fs::write(
+        project.0.join("Cargo.toml"),
+        "[package]\nname = \"validacao\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
+    )
+    .unwrap();
+    fs::write(project.0.join("src/main.rs"), "fn main() {}").unwrap();
+    let target = CargoRunTarget {
+        package_name: "validacao".into(),
+        target_name: "../../arbitrary".into(),
+    };
+
+    let error =
+        run_cargo_project_target_with_cancel(&project.0, Some(&target), &AtomicBool::new(false))
+            .unwrap_err();
+
+    assert!(error.contains("alvo binário"));
 }

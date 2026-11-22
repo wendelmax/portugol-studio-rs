@@ -107,6 +107,7 @@ interface Tab {
   workspaceId?: string;
   workspacePath?: string;
   cargoProject?: boolean;
+  cargoTarget?: api.CargoRunTarget;
   workspaceExercisePath?: string;
   state: EditorState;
   rustPreview?: RustPreviewState;
@@ -1710,6 +1711,27 @@ function parseArgs(text: string): string[] {
   return [...text.matchAll(/"([^"]*)"|(\S+)/g)].map((m) => m[1] ?? m[2]);
 }
 
+function chooseCargoTarget(targets: api.CargoRunTarget[]): Promise<api.CargoRunTarget | null> {
+  const dialog = $<HTMLDialogElement>("cargo-target-dialog");
+  const select = $<HTMLSelectElement>("cargo-target-select");
+  select.replaceChildren(...targets.map((target, index) => {
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = `${target.packageName} — ${target.targetName}`;
+    return option;
+  }));
+  $<HTMLButtonElement>("cargo-target-cancel").onclick = () => dialog.close("cancel");
+  dialog.returnValue = "";
+  return new Promise((resolve) => {
+    dialog.addEventListener("close", () => {
+      const index = Number(select.value);
+      resolve(dialog.returnValue === "run" && Number.isInteger(index) ? targets[index] ?? null : null);
+    }, { once: true });
+    dialog.showModal();
+    select.focus();
+  });
+}
+
 async function runProgram(pauseOnStart = false) {
   if (runId !== null || pendingEvents !== null || porsRunPending) return;
   const tab = activeTab();
@@ -1721,6 +1743,10 @@ async function runProgram(pauseOnStart = false) {
     }
     if (pauseOnStart) {
       setStatus("Depuração de arquivos Rust ainda não está disponível.");
+      return;
+    }
+    if (tab.cargoProject === true && cargoAvailable !== true) {
+      setStatus("Instale Cargo para executar o projeto Rust.", "error");
       return;
     }
     if (rustcAvailable !== true) {
@@ -1757,7 +1783,37 @@ async function runProgram(pauseOnStart = false) {
     porsRunPending = true;
     runTabId = tab.id;
     syncLanguageControls(tab);
+    let cargoTarget: api.CargoRunTarget | null = null;
     try {
+      if (tab.cargoProject === true && tab.workspaceId && tab.workspacePath) {
+        setStatus("Identificando os binários do projeto Cargo…");
+        const discoveryId = await api.registerRustSourceRun();
+        runId = discoveryId;
+        setRunning(true);
+        let targetInfo: api.CargoRunTargets;
+        try {
+          targetInfo = await api.cargoProjectRunTargets(discoveryId, tab.workspaceId, tab.workspacePath);
+        } finally {
+          if (runId === discoveryId) runId = null;
+          setRunning(false);
+        }
+        if (activeTab() !== tab || view.state.doc !== documentState) return;
+        if (targetInfo.targets.length === 0) {
+          setStatus("Este projeto Cargo não contém um binário para executar.", "error");
+          return;
+        }
+        cargoTarget = targetInfo.targets.find((target) =>
+          target.packageName === tab.cargoTarget?.packageName && target.targetName === tab.cargoTarget?.targetName,
+        ) ?? targetInfo.defaultTarget ?? (targetInfo.targets.length === 1 ? targetInfo.targets[0] : null);
+        if (!cargoTarget) {
+          cargoTarget = await chooseCargoTarget(targetInfo.targets);
+          if (!cargoTarget) {
+            if (activeTab() === tab) setStatus("Execução Cargo cancelada.");
+            return;
+          }
+        }
+        tab.cargoTarget = cargoTarget;
+      }
       const cargoConsent = tab.cargoProject === true;
       const hasConsent = cargoConsent
         ? hasCargoExecutionConsent(sessionStorage)
@@ -1788,7 +1844,7 @@ async function runProgram(pauseOnStart = false) {
       setRunning(true);
       if (tab.cargoProject === true && tab.workspaceId && tab.workspacePath) {
         setStatus("Compilando o projeto Cargo…");
-        const result = await api.runCargoProject(id, tab.workspaceId, tab.workspacePath);
+        const result = await api.runCargoProject(id, tab.workspaceId, tab.workspacePath, cargoTarget);
         if (activeTab() !== tab || view.state.doc !== documentState) return;
         if (result.stdout) appendConsole(result.stdout);
         if (result.stderr) appendConsole(result.stderr, "error");
@@ -1852,8 +1908,13 @@ async function runProgram(pauseOnStart = false) {
       }
     } catch (error) {
       if (activeTab() === tab && view.state.doc === documentState) {
-        appendConsole(String(error) + "\n", "error");
-        setStatus("Não foi possível compilar ou executar o arquivo Rust.", "error");
+        const message = String(error);
+        if (message.includes("Descoberta de alvos Cargo cancelada")) {
+          setStatus("Execução Cargo cancelada.");
+        } else {
+          appendConsole(message + "\n", "error");
+          setStatus("Não foi possível compilar ou executar o arquivo Rust.", "error");
+        }
       }
     } finally {
       runId = null;
