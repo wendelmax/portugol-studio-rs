@@ -6,6 +6,7 @@ import { mappedPreviewSegments, sourceDiagnostic, sourceMapLinks } from "../src/
 const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
 const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
 const ui = readFileSync(new URL("../src/source-map-ui.ts", import.meta.url), "utf8");
+const css = readFileSync(new URL("../src/style.css", import.meta.url), "utf8");
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 
 test("Rust export API exposes generated and source editor ranges", () => {
@@ -85,6 +86,35 @@ test("bridge mapping gutter exposes accessible two-way navigation between source
   assert.match(main, /focusRustMapping\(/);
   assert.match(main, /Linha \$\{sourceLine\} sem correspondência direta/);
   assert.match(main, /Localização aproximada/);
+});
+
+test("Rust preview keeps a per-tab artifact marked stale until current translation succeeds", () => {
+  assert.match(main, /rustPreview\?: RustPreviewState/);
+  assert.match(main, /function renderRustPreview\(tab: Tab\)/);
+  assert.match(main, /tab\.rustPreview = beginRustPreview/);
+  assert.match(main, /tab\.rustPreview = acceptRustPreview/);
+  assert.match(main, /tab\.rustPreview = failRustPreview/);
+  assert.match(main, /rustMappingState === "stale"/);
+  assert.match(main, /state\?\.pending \|\| state\?\.stale/);
+  assert.match(main, /status\.dataset\.stale = "true"/);
+  assert.match(main, /copy\.disabled = save\.disabled = detach\.disabled = !artifact \|\| Boolean/);
+  assert.match(css, /#rust-status\[data-stale="true"\]/);
+  const renderer = main.match(/function renderRustPreview\(tab: Tab\) \{([\s\S]*?)\n\}\n\nfunction renderMappingGutter/)?.[1] ?? "";
+  assert.match(renderer, /if \(stale\) \{\s*output\.append\(document\.createTextNode\(artifact\.code\.slice\(segment\.from, segment\.to\)\)\);\s*\} else \{/);
+  assert.match(main, /let renderedRustArtifact: RustPreviewState\["artifact"\] \| null \| undefined/);
+  assert.match(main, /let renderedRustPreviewStale: boolean \| undefined/);
+  assert.match(renderer, /renderedRustArtifact === undefined \|\| renderedRustArtifact !== artifactKey \|\| renderedRustPreviewStale !== stale/);
+  assert.doesNotMatch(renderer, /output\.inert/);
+  const updateListener = main.match(/EditorView\.updateListener\.of\(\(update\) => \{([\s\S]*?)\n    \}\),/)?.[1] ?? "";
+  assert.doesNotMatch(updateListener, /renderRustPreview\(tab\)/);
+  assert.match(main, /const languageChanged = tab\.language !== previousLanguage/);
+  assert.match(main, /if \(languageChanged && tab\.rustPreview\?\.artifact\)/);
+  assert.match(main, /if \(learningMode === "bridge" && tab\.language !== "rust"\) scheduleRustExport\(\)/);
+  const save = main.match(/async function save\(as = false\): Promise<boolean> \{([\s\S]*?)\n\}\n\n\/\/ -{20,}/)?.[1] ?? "";
+  assert.match(save, /await api\.writeFile\(path, text\)[\s\S]*const previousLanguage = tab\.language[\s\S]*tab\.language = detectSourceLanguage\(path\)/);
+  const schedule = main.match(/function scheduleRustExport\(\) \{([\s\S]*?)\n\}\n\nfunction renderRustPreview/)?.[1] ?? "";
+  assert.ok(schedule, "agendamento deve estar separado da renderização do artefato");
+  assert.doesNotMatch(schedule, /\$<HTMLElement>\("rust-output"\)\.textContent = ""/);
 });
 
 test("PORS run response is discarded when its tab or document revision changes", () => {
