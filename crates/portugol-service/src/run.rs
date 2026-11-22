@@ -193,6 +193,46 @@ pub fn start(
     })
 }
 
+/// Lower, compila e inicia uma sessão de depuração Portugol-RS na VM.
+/// A execução normal do dialeto continua usando o backend Rust (`rustc`).
+pub fn start_portugol_rs(
+    source: &str,
+    options: RunOptions,
+    observer: Arc<dyn RunObserver>,
+) -> Result<RunHandle, Vec<DiagnosticInfo>> {
+    let host_observer = Arc::clone(&observer);
+    start_portugol_rs_with_host(source, options, observer, move |_| {
+        Box::new(ServiceHost {
+            observer: host_observer,
+        })
+    })
+}
+
+/// Variante com host próprio para manter a integração gráfica/arquivos da IDE.
+pub fn start_portugol_rs_with_host(
+    source: &str,
+    options: RunOptions,
+    observer: Arc<dyn RunObserver>,
+    make_host: impl FnOnce(Arc<AtomicBool>) -> Box<dyn Host> + Send + 'static,
+) -> Result<RunHandle, Vec<DiagnosticInfo>> {
+    let index = LineIndex::new(source);
+    let program = portugol_rs_frontend::lower(source).map_err(|diagnostics| {
+        diagnostics
+            .iter()
+            .map(|diagnostic| describe(&index, diagnostic))
+            .collect::<Vec<_>>()
+    })?;
+    let module = portugol_bytecode::compile_pors(&program).map_err(|error| {
+        let span = Span {
+            start: error.span.start,
+            end: error.span.end,
+        };
+        let diagnostic = Diagnostic::error("pors.debug-compile", error.message, span);
+        vec![describe(&index, &diagnostic)]
+    })?;
+    start_module(source, options, observer, make_host, module)
+}
+
 /// Executa com um host próprio, construído na thread da VM. A flag recebida
 /// pela fábrica permite interromper operações do host que aguardam a interface.
 pub fn start_with_host(
@@ -214,6 +254,18 @@ pub fn start_with_host(
         let diagnostic = Diagnostic::error("compile.error", error.message, error.span);
         vec![describe(&index, &diagnostic)]
     })?;
+
+    start_module(source, options, observer, make_host, module)
+}
+
+fn start_module(
+    source: &str,
+    options: RunOptions,
+    observer: Arc<dyn RunObserver>,
+    make_host: impl FnOnce(Arc<AtomicBool>) -> Box<dyn Host> + Send + 'static,
+    module: portugol_bytecode::Module,
+) -> Result<RunHandle, Vec<DiagnosticInfo>> {
+    let index = LineIndex::new(source);
 
     let (input_tx, input_rx) = mpsc::channel();
     let interrupt = Arc::new(AtomicBool::new(false));

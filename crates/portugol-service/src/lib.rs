@@ -47,7 +47,7 @@ pub use rename::{
 };
 pub use run::{
     DebugFrameInfo, DebugInfo, DebugVarInfo, RunHandle, RunObserver, RunOptions, RunOutcome, start,
-    start_with_host,
+    start_portugol_rs, start_portugol_rs_with_host, start_with_host,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
