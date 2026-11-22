@@ -86,11 +86,17 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
     );
     let body_end = output.len();
     output.push_str("}\n");
-    if body_start > 0 {
+    let generated_prefix_end = mappings
+        .iter()
+        .map(|mapping| mapping.generated.start)
+        .min()
+        .unwrap_or(body_start as u32)
+        .min(body_start as u32);
+    if generated_prefix_end > 0 {
         mappings.push(SourceMapSegment {
             generated: SourceRange {
                 start: 0,
-                end: body_start as u32,
+                end: generated_prefix_end,
             },
             source: None,
             quality: SourceMapQuality::GeneratedOnly,
@@ -250,6 +256,7 @@ fn render_statements(
                 function,
                 arguments,
             } => {
+                output.push_str(&indent);
                 push_expr(
                     output,
                     mappings,

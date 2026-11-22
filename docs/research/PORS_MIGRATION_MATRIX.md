@@ -1,7 +1,7 @@
 # Matriz de migração para PORS/Rust
 
-Snapshot: `main` em `1a78773` (22/11/2026), anterior à fatia de funções desta
-branch. Esta matriz é o gate vivo do
+Snapshot-base: `main` em `140a846` (PR #97; 22/11/2026), já com funções PORS.
+Esta matriz é o gate vivo do
 [ADR 0016](../adr/0016-pors-como-linguagem-autoral-e-retirada-do-por.md).
 
 Legenda: ✅ já coberto em PORS/Rust · 🟡 parcial · ⬜ ausente · 🔎 auditar e
@@ -18,7 +18,7 @@ não apenas suporte ao Portugol clássico.
 | Expressões | 🟡 aritmética, comparação, igualdade, lógica e curto-circuito | Bitwise, shifts, operações/unários restantes; validar precedência e overflow |
 | Condições | ✅ `se`/`senao` | 🟡 `escolha`/matching exaustivo com pattern matching de Rust |
 | Repetição | ✅ `enquanto`, `para`, `pare`, `continue` | 🔎 `faca-enquanto` e alternativas pedagógicas; revisar loop labels |
-| Funções | 🟡 `inicio` e funções auxiliares com parâmetros tipados, chamadas, retorno, recursão, chamadas para frente e mutabilidade explícita; execução Rust e debugger VM | Faltam formatador, navegação/rename por função, cobertura aprofundada de frames/limites de recursão e referências/borrowing explícitos |
+| Funções | 🟡 `inicio` e funções auxiliares com parâmetros tipados, chamadas, retorno, recursão, chamadas para frente e mutabilidade explícita; Rust gerado, debugger VM, outline, navegação e rename semânticos | Faltam formatador PORS, cobertura aprofundada de frames/limites de recursão e referências/borrowing explícitos |
 | Coleções | ⬜ Sem vetores ou matrizes | Coleções tipadas, indexação, slices/visões, iteração, bounds e estratégia de ownership |
 | Tipos compostos | ⬜ Sem structs/enums próprios | Estruturas, enums, construtores e pattern matching quando pedagógicos |
 | Rust `Option`/`Result` | ⬜ | Tipos, construtores, `match`, propagação (`?`) e diagnóstico/geração corretos |

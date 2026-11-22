@@ -35,9 +35,9 @@
 - Modify: `crates/portugol-rs-frontend/tests/parser.rs`
 - Modify: `crates/portugol-rs-frontend/tests/semantics.rs`
 
-- [ ] Add valid tests for typed functions, forward calls, nested calls, mutable parameters, and return completeness.
-- [ ] Add invalid tests for duplicate function, unknown call, wrong arity/type, invalid `inicio` signature, and missing return.
-- [ ] Run `cargo test -p portugol-rs-frontend --offline --locked`; confirm expected failures.
+- [x] Add valid tests for typed functions, forward calls, nested calls, mutable parameters, and return completeness.
+- [x] Add invalid tests for duplicate function, unknown call, wrong arity/type, invalid `inicio` signature, and missing return.
+- [x] Run `cargo test -p portugol-rs-frontend --offline --locked`; confirm expected failures.
 
 ### Task 2: Add typed function/call/return HIR and frontend lowering
 
@@ -46,10 +46,10 @@
 - Modify: `crates/portugol-rs-frontend/src/{lexer,parser}.rs`
 - Test: `crates/portugol-rs-frontend/tests/{parser,semantics}.rs`
 
-- [ ] Add HIR function IDs, function bindings, call expressions, return statements, and per-function scopes.
-- [ ] Collect signatures before parsing bodies; preserve declarations and expression spans.
-- [ ] Validate entrypoint, duplicate names, call arity/types, return type/context, and all-path returns.
-- [ ] Run the frontend suite and fix formatting.
+- [x] Add HIR function IDs, function bindings, call expressions, return statements, and per-function scopes.
+- [x] Collect signatures before parsing bodies; preserve declarations and expression spans.
+- [x] Validate entrypoint, duplicate names, call arity/types, return type/context, and all-path returns.
+- [x] Run the frontend suite and fix formatting.
 
 ### Task 3: Compile PORS functions to VM bytecode
 
@@ -58,10 +58,10 @@
 - Modify: `crates/portugol-bytecode/tests/pors_compiler.rs`
 - Test: `crates/portugol-service/tests/portugol_rs_debugger.rs`
 
-- [ ] Compile HIR function bodies to `portugol_bytecode::Function`; map typed calls to `Op::Call`.
-- [ ] Ensure params occupy leading local slots and runtime/debug snapshots show correct frame scopes.
-- [ ] Add VM integration tests for parameters, returns, nested/recursive calls, and debugger stepping.
-- [ ] Run focused bytecode and service tests.
+- [x] Compile HIR function bodies to `portugol_bytecode::Function`; map typed calls to `Op::Call`.
+- [x] Ensure params occupy leading local slots and runtime/debug snapshots show correct frame scopes.
+- [x] Add VM integration tests for parameters, returns, nested/recursive calls, and debugger stepping.
+- [x] Run focused bytecode and service tests.
 
 ### Task 4: Emit matching Rust functions and source maps
 
@@ -70,13 +70,15 @@
 - Modify: `crates/portugol-rust/src/lib.rs` tests
 - Test: `crates/portugol-service/tests/portugol_rs_debugger.rs`
 
-- [ ] Render top-level Rust functions with parameter mutability and return types.
-- [ ] Render calls and returns with source mappings; clone `cadeia` arguments by value.
-- [ ] Compare VM and Rust output for every valid test fixture; compile generated code with `rustc` when available.
-- [ ] Run all workspace tests, Clippy, formatting and diff checks; update PORS language docs.
+- [x] Render top-level Rust functions with parameter mutability and return types.
+- [x] Render calls and returns with source mappings; clone `cadeia` arguments by value.
+- [x] Compare VM and Rust output for every valid test fixture; compile generated code with `rustc` when available.
+- [x] Run all workspace tests, Clippy, formatting and diff checks; update PORS language docs.
 
 ### Task 5: Review and integrate
 
-- [ ] Fresh read-only code review; resolve all critical/important findings.
-- [ ] Open PR with validation evidence and no authorship/generator trailers.
-- [ ] Merge only after every CI job is green; delete the remote branch and clean worktree.
+- [x] Fresh read-only code review; resolve all critical/important findings.
+- [x] Open PR with validation evidence and no authorship/generator trailers.
+- [x] Merge only after every CI job is green; delete the remote branch and clean worktree.
+
+**Integrated:** PR #97, squash commit `140a846`.

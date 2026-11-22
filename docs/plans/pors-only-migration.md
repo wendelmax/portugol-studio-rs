@@ -11,6 +11,8 @@ design e serão conciliadas/removidas conforme a solicitação existente.
 
 - Arquivos `.pors`, parser próprio, cinco tipos primitivos, bindings imutáveis
   por padrão e `mutavel` explícito.
+- Funções auxiliares PORS com parâmetros/retornos tipados, chamadas para frente,
+  recursão e semântica de valor para `cadeia`.
 - Declaração, atribuição, expressões, `escreva`, `leia`, `se/senao`,
   `enquanto`, `para`, `pare` e `continue`.
 - Execução normal através de Rust gerado e `rustc`; fonte mapeada a Rust com
@@ -25,7 +27,7 @@ design e serão conciliadas/removidas conforme a solicitação existente.
 
 | Domínio | Estado PORS/Rust | Trabalho para fechar |
 |---|---|---|
-| Linguagem | Um `inicio`, primitivos e controle básico | Funções, parâmetros/retornos, chamadas, coleções, indexação, comandos ausentes e diagnósticos completos |
+| Linguagem | Entrada, funções auxiliares, primitivos e controle básico | Coleções, indexação, tipos compostos, comandos ausentes e diagnósticos completos |
 | Conceitos de Rust | Mutabilidade explícita; modo Rust real; ownership em simulação editorial | Ownership/borrowing verificáveis no código do aluno, estruturas/enums, `Option`/`Result`, pattern matching e explicações ligadas a diagnósticos reais |
 | Bibliotecas | I/O primitiva; execução e limites próprios | Portar/adaptar bibliotecas úteis com contratos seguros em PORS, Rust gerado e debugger |
 | Conteúdo | Conteúdo Progressivo parcial | Exemplos, ajuda, onboarding, soluções de referência e explicações próprias para PORS/Rust |
@@ -53,7 +55,7 @@ sem decisão, evidência ou critério de aceite.
 
 ### Fase 1 — Fechar a linguagem PORS
 
-1. Expandir HIR e frontend para funções declaradas pelo aluno, parâmetros,
+1. ✅ Expandir HIR e frontend para funções declaradas pelo aluno, parâmetros,
    retornos e chamadas; definir erros, ordem, escopo e recursão.
 2. Adicionar coleções e acesso/indexação com limites e spans; depois completar
    controles de fluxo de uso educacional, mantendo sintaxe PORS em português e

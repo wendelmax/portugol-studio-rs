@@ -216,33 +216,94 @@ pub fn export_rust(source: &str) -> RustExport {
 pub fn inspect_portugol_rs(source: &str) -> Inspection {
     let index = position::LineIndex::new(source);
     match portugol_rs_frontend::lower(source) {
-        Ok(program) => Inspection {
-            diagnostics: Vec::new(),
-            symbols: program
-                .bindings
+        Ok(program) => {
+            let mut symbols: Vec<_> = program
+                .functions
                 .iter()
-                .map(|binding| SymbolInfo {
-                    name: binding.source_name.clone(),
-                    // O dialeto não possui `const`: `seja` é um binding local
-                    // imutável, não uma constante global da linguagem clássica.
-                    kind: SymbolKind::Variable,
-                    ty: match binding.ty {
-                        portugol_hir::Type::Integer => "inteiro",
-                        portugol_hir::Type::Real => "real",
-                        portugol_hir::Type::Boolean => "logico",
-                        portugol_hir::Type::String => "cadeia",
-                        portugol_hir::Type::Character => "caracter",
-                        portugol_hir::Type::Unit => "vazio",
-                    },
-                    position: index.position(binding.span.start),
-                    children: Vec::new(),
+                .map(|function| {
+                    let name_start = pors_function_name_start(source, function.span.start);
+                    let mut children: Vec<_> = function
+                        .bindings
+                        .iter()
+                        .map(|binding| SymbolInfo {
+                            name: binding.source_name.clone(),
+                            kind: if function.parameters.contains(&binding.id) {
+                                SymbolKind::Parameter
+                            } else {
+                                SymbolKind::Variable
+                            },
+                            ty: pors_type_name(binding.ty),
+                            position: index.position(binding.span.start),
+                            children: Vec::new(),
+                        })
+                        .collect();
+                    children.sort_by_key(|symbol| symbol.position.offset);
+                    SymbolInfo {
+                        name: function.source_name.clone(),
+                        kind: SymbolKind::Function,
+                        ty: function.return_type.map_or("vazio", pors_type_name),
+                        position: index.position(name_start),
+                        children,
+                    }
                 })
-                .collect(),
-        },
+                .collect();
+            symbols.extend(program.bindings.iter().map(|binding| SymbolInfo {
+                name: binding.source_name.clone(),
+                // O dialeto não possui `const`: `seja` é um binding local
+                // imutável, não uma constante global da linguagem clássica.
+                kind: SymbolKind::Variable,
+                ty: pors_type_name(binding.ty),
+                position: index.position(binding.span.start),
+                children: Vec::new(),
+            }));
+            symbols.sort_by_key(|symbol| symbol.position.offset);
+            Inspection {
+                diagnostics: Vec::new(),
+                symbols,
+            }
+        }
         Err(diagnostics) => Inspection {
             diagnostics: present_diagnostics(&index, &diagnostics),
             symbols: Vec::new(),
         },
+    }
+}
+
+pub(crate) fn pors_function_name_start(source: &str, function_start: u32) -> u32 {
+    let start = function_start as usize;
+    let tail = &source[start..];
+    let mut offset = tail
+        .find("funcao")
+        .map_or(0, |position| position + "funcao".len());
+    loop {
+        let rest = &tail[offset..];
+        if let Some(character) = rest.chars().next()
+            && character.is_whitespace()
+        {
+            offset += character.len_utf8();
+            continue;
+        }
+        if rest.starts_with("//") {
+            offset += rest.find('\n').unwrap_or(rest.len());
+            continue;
+        }
+        if rest.starts_with("/*") {
+            offset += rest.find("*/").map_or(rest.len(), |end| end + 2);
+            continue;
+        }
+        break;
+    }
+    start.saturating_add(offset).min(source.len()) as u32
+}
+
+fn pors_type_name(ty: portugol_hir::Type) -> &'static str {
+    match ty {
+        portugol_hir::Type::Integer => "inteiro",
+        portugol_hir::Type::Real => "real",
+        portugol_hir::Type::Boolean => "logico",
+        portugol_hir::Type::String => "cadeia",
+        portugol_hir::Type::Character => "caracter",
+        portugol_hir::Type::Unit => "vazio",
     }
 }
 
@@ -386,6 +447,28 @@ mod portugol_rs_service {
     }
 
     #[test]
+    fn inspection_includes_helper_functions_and_parameters() {
+        let source = "funcao /* helper */ somar(a: inteiro, b: inteiro) -> inteiro { seja total: inteiro = a + b; retorne total; }\nfuncao inicio() { escreva(somar(2, 3)); }";
+        let inspection = inspect_portugol_rs(source);
+
+        let function = inspection
+            .symbols
+            .iter()
+            .find(|symbol| symbol.name == "somar")
+            .expect("a função auxiliar deve aparecer no outline");
+        assert_eq!(function.kind, super::SymbolKind::Function);
+        assert_eq!(
+            function.position.offset as usize,
+            source.find("somar").unwrap()
+        );
+        assert_eq!(function.children.len(), 3);
+        assert_eq!(function.children[0].name, "a");
+        assert_eq!(function.children[0].kind, super::SymbolKind::Parameter);
+        assert_eq!(function.children[2].name, "total");
+        assert_eq!(function.children[2].kind, super::SymbolKind::Variable);
+    }
+
+    #[test]
     fn diagnostics_use_utf16_offsets_after_non_bmp_text() {
         let source = "// 🧠\nfuncao inicio() { seja idade: inteiro = ; }";
         let inspection = inspect_portugol_rs(source);
@@ -402,6 +485,14 @@ mod portugol_rs_service {
             export_portugol_rs("funcao inicio() { seja idade: inteiro = 16; escreva(idade); }");
         assert!(result.diagnostic.is_none());
         assert!(result.code.unwrap().contains("print!(\"{}\""));
+    }
+
+    #[test]
+    fn export_indents_function_calls_inside_generated_blocks() {
+        let result =
+            export_portugol_rs("funcao mostrar() { escreva(1); }\nfuncao inicio() { mostrar(); }");
+        let code = result.code.expect("PORS de funções deve ser traduzido");
+        assert!(code.contains("    pt_mostrar();"), "{code}");
     }
 
     #[test]
@@ -435,6 +526,31 @@ mod portugol_rs_service {
         assert!(result.source_map.iter().any(|mapping| {
             mapping.quality == super::SourceMapQuality::GeneratedOnly
                 && mapping.source_start.is_none()
+        }));
+    }
+
+    #[test]
+    fn helper_function_source_mappings_are_not_marked_generated_only() {
+        let source = "funcao dobro(valor: inteiro) -> inteiro { retorne valor * 2; }\nfuncao inicio() { escreva(dobro(3)); }";
+        let result = export_portugol_rs(source);
+        assert!(result.diagnostic.is_none());
+
+        let helper_start = source.find("retorne").unwrap();
+        let helper_start_utf16 = source[..helper_start].encode_utf16().count() as u32;
+        let mapping = result
+            .source_map
+            .iter()
+            .find(|mapping| {
+                mapping
+                    .source_start
+                    .is_some_and(|position| position.offset == helper_start_utf16)
+            })
+            .expect("o corpo da função auxiliar precisa ter source map");
+        assert_eq!(mapping.quality, super::SourceMapQuality::Exact);
+        assert!(!result.source_map.iter().any(|generated_only| {
+            generated_only.quality == super::SourceMapQuality::GeneratedOnly
+                && generated_only.generated_start.offset <= mapping.generated_start.offset
+                && generated_only.generated_end.offset >= mapping.generated_end.offset
         }));
     }
 
