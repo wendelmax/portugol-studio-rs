@@ -11,16 +11,16 @@ Inventário completo: [`../research/REPOSITORY_DISCOVERY.md`](../research/REPOSI
 | UI-023/024 → UC-13 | `learning-content.ts` + aba Aprender; `learning-context.ts` associa contexto por source map exato | Parcial: catálogo editorial local e seleções manuais; Bridge associa mutabilidade, decisões e repetições somente a mapeamentos exatos da exportação atual; sem currículo versionado | manter proveniência manual/mapeada e evoluir o catálogo com validação docente | testes `learning-content.test.mjs` e `learning-context.test.mjs`; FT-05/E2E visual ainda sem runner |
 | UI-025 → UC-13 | `exercise-progress.ts` + `createValidatedExerciseGrader` | Implementado local: só resultados de casos reais registram revisão SHA-256; conclusão exige todos os casos aprovados; cartões não contam como progresso. Sem conta/sync entre dispositivos | preservar avaliação por revisão e sem coleta pessoal; considerar sincronização somente após política de identidade/privacidade | `exercise-progress.test.mjs` cobre aprovação parcial, revisão, dados inválidos, avaliação obsoleta e storage indisponível; E2E visual pendente |
 | UI-026/027/032 → UC-09/15 | debugger VM fornece variáveis e stepping; ownership trace ausente | Parcial | preservar debugger; não simular ownership | FT-07 e contrato de proveniência pendentes |
-| UI-001/002/008/009 → UC-01/03 | diálogo de arquivo e comandos de IO pontuais | Parcial; sem workspace/tree mutations | desenhar workspace/file service antes de UI dependente | FT-01/08 pendentes |
+| UI-001/002/008/009 → UC-01/03 | `workspace_open/restore/read/write/create/rename/delete/export` + explorer | Implementado local: workspace restaura a última pasta e suporta arquivos `.por`, `.pors`, `.rs` e exercícios, ações de árvore, guarda de dirty em exclusão e exportação seletiva. | Não reimplementar o workspace; cobrir fluxos ponta a ponta em Tauri e distinguir workspace simples de projeto Cargo. | Rust tests em `src-tauri/src/workspace.rs`; testes `workspace-explorer`, `workspace-file-actions`, `workspace-export`; E2E visual permanece pendente. |
 
 ## Plano incremental
 
-1. FEAT-LEARN-001 e FEAT-LEARN-003: seletor UI-028 agora inclui Rust condicionado à toolchain detectada; preferência segue global em localStorage porque não há WorkspaceStore. Source e engine não mudam ao trocar modo.
+1. FEAT-LEARN-001 e FEAT-LEARN-003: seletor UI-028 agora inclui Rust condicionado à toolchain detectada; preferência segue global em localStorage e ainda não é associada ao workspace. Source e engine não mudam ao trocar modo.
 2. Conteúdo UI-023/024 existe como catálogo local de seleção explícita. Próximo incremento: ampliar conteúdo com revisão pedagógica e associação semântica verificável, sem progresso por abertura de cartão.
-3. Workspace real e DocumentStore antes de mover preferências para escopo de projeto ou adicionar mais operações de árvore.
+3. Workspace simples já existe em `src-tauri/src/workspace.rs`; atualizar relatórios antigos. Preferências continuam globais/local, então definir ciclo de vida/migração antes de torná-las por workspace.
 4. Tradução progressiva UI-014/016 com resultado vinculado à revisão; ampliar subset no núcleo Rust e testar equivalência semântica.
 5. Laboratório de memória permanece simulação didática baseada em fixtures verificadas; trace de runtime Rust continua ausente.
-6. Rust editável, execução `.rs`, argumentos `argv` e formatação por `rustfmt` já existem em fatia básica. Permanecem pendentes debugger Rust/Portugol-RS e projetos Cargo; sem shell arbitrário.
+6. Rust editável, lint `rustc`, execução `.rs`, argumentos `argv` e formatação por `rustfmt` já existem para buffers standalone. Permanecem pendentes projetos Cargo, debugger Rust/Portugol-RS e integração E2E visual; nenhum fluxo deve executar comandos de shell arbitrários.
 
 ## Estados e limitações da fatia atual
 
