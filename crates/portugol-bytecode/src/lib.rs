@@ -10,6 +10,8 @@
 
 pub mod compiler;
 pub mod op;
+pub mod pors;
 
 pub use compiler::{CompileError, ENTRY_NAME, compile};
 pub use op::{Function, GlobalInfo, LocalInfo, Module, NativeRef, Op, ValueType};
+pub use pors::{PorsCompileError, compile_pors};
