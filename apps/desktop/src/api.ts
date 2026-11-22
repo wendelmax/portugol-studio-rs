@@ -29,6 +29,7 @@ export interface TraceFrame {
 export type RunOutcome =
   | { status: "finished" }
   | { status: "stopped" }
+  | { status: "runtime_limit"; reason: "time" | "output" | "string_memory" }
   | { status: "error"; message: string; start: Position; end: Position; trace: TraceFrame[] };
 
 export interface DebugVar {
@@ -244,6 +245,9 @@ export const runRustSource = (id: number, source: string, args: string[] = []) =
 /** Id da execução; rejeita com a lista de erros se o programa não compila. */
 export const run = (source: string, args: string[], path: string | null, breakpoints: number[] = [], pauseOnStart = false) =>
   invoke<number>("run", { source, args, path, breakpoints, pauseOnStart });
+
+export const debugPortugolRs = (source: string, breakpoints: number[] = []) =>
+  invoke<number>("debug_portugol_rs", { source, breakpoints, pauseOnStart: true });
 
 export const sendInput = (id: number, line: string) => invoke<void>("send_input", { id, line });
 

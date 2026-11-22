@@ -594,8 +594,6 @@ function syncLanguageControls(tab: Tab) {
         ? "Depuração Rust ainda não está disponível."
       : pors && isRun && rustcAvailable !== true
         ? "Instale a toolchain Rust para executar arquivos .pors."
-        : pors && !isRun
-          ? "Depuração Portugol-RS ainda não está disponível."
           : "";
     if (unavailableReason) button.title = unavailableReason;
     else if (pors && isRun) button.title = "Compilar e executar o subset suportado com rustc";
@@ -1676,21 +1674,20 @@ function setPaused(info: api.DebugInfo | null) {
     showUtilities(true);
     showPanel("debug");
     if (activeId === runTabId) goTo(info.position.offset);
-    setStatus(`Pausado na linha ${info.position.line}.`);
+    const activeRunTab = tabs.find(({ id }) => id === runTabId);
+    setStatus(activeRunTab?.language === "portugol-rs"
+      ? `VM Portugol-RS pausada na linha ${info.position.line}.`
+      : `Pausado na linha ${info.position.line}.`);
   }
 }
 
 async function debugCommand(command: (id: number) => Promise<void>) {
-  if (activeTab()?.language === "portugol-rs") {
-    setStatus("O Portugol-RS ainda não possui execução e depuração integradas.");
-    return;
-  }
   if (runId === null || paused === null) return;
   const id = runId;
   view.dispatch({ effects: setDebugLine.of(null) });
   paused = null;
   setRunning(true);
-  setStatus("Executando…");
+  setStatus(activeTab()?.language === "portugol-rs" ? "VM Portugol-RS executando…" : "Executando…");
   try {
     await command(id);
   } catch {
@@ -1939,14 +1936,6 @@ async function runProgram(pauseOnStart = false) {
     return;
   }
   if (tab.language === "portugol-rs") {
-    if (pauseOnStart) {
-      setStatus("Depuração Portugol-RS ainda não está disponível.");
-      return;
-    }
-    if (rustcAvailable !== true) {
-      setStatus("Instale a toolchain Rust para executar arquivos .pors.", "error");
-      return;
-    }
     const documentState = view.state.doc;
     const source = documentState.toString();
     view.dispatch({ effects: setRuntimeError.of(null) });
@@ -1955,6 +1944,40 @@ async function runProgram(pauseOnStart = false) {
     showPanel("console");
     output.replaceChildren();
     inputForm.hidden = true;
+    if (pauseOnStart) {
+      const events: { id: number; handle: () => void }[] = [];
+      pendingEvents = events;
+      runTabId = tab.id;
+      setRunning(true);
+      try {
+        await runListeners;
+        const id = await api.debugPortugolRs(source, breakpointLines(view.state));
+        runId = id;
+        setRunning(true);
+        setStatus("Depurando Portugol-RS pela VM.");
+        for (const event of events) {
+          if (event.id === runId) event.handle();
+        }
+      } catch (errors) {
+        runTabId = null;
+        setRunning(false);
+        if (Array.isArray(errors)) {
+          tab.diagnostics = errors;
+          renderMessages();
+          showPanel("messages");
+          setStatus("O Portugol-RS contém erros e não pode ser depurado.", "error");
+        } else {
+          setStatus(String(errors), "error");
+        }
+      } finally {
+        pendingEvents = null;
+      }
+      return;
+    }
+    if (rustcAvailable !== true) {
+      setStatus("Instale a toolchain Rust para executar arquivos .pors.", "error");
+      return;
+    }
     porsRunPending = true;
     runTabId = tab.id;
     setRunning(true);
@@ -2524,6 +2547,15 @@ const runListeners = api.listenRun({
       } else if (outcome.status === "stopped") {
         appendConsole("\nPrograma interrompido.\n", "info");
         setStatus("Programa interrompido.");
+      } else if (outcome.status === "runtime_limit") {
+        const descriptions = {
+          time: "tempo ativo de 3 segundos",
+          output: "limite de saída de 1 MiB",
+          string_memory: "limite cumulativo de cadeias de 16 MiB",
+        } as const;
+        const message = `VM Portugol-RS interrompida: ${descriptions[outcome.reason]}.`;
+        appendConsole(`\n${message}\n`, "error");
+        setStatus(message, "error");
       } else {
         const { start, message, trace } = outcome;
         let text = `\nErro na linha ${start.line}, coluna ${start.column}: ${message}\n`;

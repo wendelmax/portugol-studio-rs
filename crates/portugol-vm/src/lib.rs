@@ -25,4 +25,4 @@ pub mod vm;
 pub use host::{FileFilter, Host, NoHost, Sound};
 pub use io::{BufferIo, Io, StdIo};
 pub use value::Value;
-pub use vm::{RuntimeError, Status, Vm, run};
+pub use vm::{RuntimeError, RuntimeLimitReason, Status, Vm, run};

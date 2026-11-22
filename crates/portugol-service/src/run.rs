@@ -25,6 +25,9 @@ use crate::{DiagnosticInfo, analyze, describe};
 const FLUSH_INTERVAL: Duration = Duration::from_millis(30);
 /// Acima disso o lote é entregue na hora, sem esperar o intervalo.
 const MAX_BUFFER: usize = 64 * 1024;
+const PORS_DEBUG_RUNTIME_LIMIT: Duration = Duration::from_secs(3);
+const PORS_DEBUG_OUTPUT_LIMIT: usize = 1_048_576;
+const PORS_DEBUG_STRING_LIMIT: usize = 16 * 1024 * 1024;
 
 /// Variável exposta no inspetor, já com posições para a interface.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -108,12 +111,30 @@ pub struct TraceFrame {
 pub enum RunOutcome {
     Finished,
     Stopped,
+    RuntimeLimit {
+        reason: RunLimitReason,
+    },
     Error {
         message: String,
         start: Position,
         end: Position,
         trace: Vec<TraceFrame>,
     },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RunLimitReason {
+    Time,
+    Output,
+    StringMemory,
+}
+
+#[derive(Clone, Copy)]
+struct VmLimits {
+    runtime: Duration,
+    output_bytes: usize,
+    string_bytes: usize,
 }
 
 /// Controle de uma execução em andamento.
@@ -193,6 +214,57 @@ pub fn start(
     })
 }
 
+/// Lower, compila e inicia uma sessão de depuração Portugol-RS na VM.
+/// A execução normal do dialeto continua usando o backend Rust (`rustc`).
+pub fn start_portugol_rs(
+    source: &str,
+    options: RunOptions,
+    observer: Arc<dyn RunObserver>,
+) -> Result<RunHandle, Vec<DiagnosticInfo>> {
+    let host_observer = Arc::clone(&observer);
+    start_portugol_rs_with_host(source, options, observer, move |_| {
+        Box::new(ServiceHost {
+            observer: host_observer,
+        })
+    })
+}
+
+/// Variante com host próprio para manter a integração gráfica/arquivos da IDE.
+pub fn start_portugol_rs_with_host(
+    source: &str,
+    options: RunOptions,
+    observer: Arc<dyn RunObserver>,
+    make_host: impl FnOnce(Arc<AtomicBool>) -> Box<dyn Host> + Send + 'static,
+) -> Result<RunHandle, Vec<DiagnosticInfo>> {
+    let index = LineIndex::new(source);
+    let program = portugol_rs_frontend::lower(source).map_err(|diagnostics| {
+        diagnostics
+            .iter()
+            .map(|diagnostic| describe(&index, diagnostic))
+            .collect::<Vec<_>>()
+    })?;
+    let module = portugol_bytecode::compile_pors(&program).map_err(|error| {
+        let span = Span {
+            start: error.span.start,
+            end: error.span.end,
+        };
+        let diagnostic = Diagnostic::error("pors.debug-compile", error.message, span);
+        vec![describe(&index, &diagnostic)]
+    })?;
+    start_module(
+        source,
+        options,
+        observer,
+        make_host,
+        module,
+        Some(VmLimits {
+            runtime: PORS_DEBUG_RUNTIME_LIMIT,
+            output_bytes: PORS_DEBUG_OUTPUT_LIMIT,
+            string_bytes: PORS_DEBUG_STRING_LIMIT,
+        }),
+    )
+}
+
 /// Executa com um host próprio, construído na thread da VM. A flag recebida
 /// pela fábrica permite interromper operações do host que aguardam a interface.
 pub fn start_with_host(
@@ -215,8 +287,22 @@ pub fn start_with_host(
         vec![describe(&index, &diagnostic)]
     })?;
 
+    start_module(source, options, observer, make_host, module, None)
+}
+
+fn start_module(
+    source: &str,
+    options: RunOptions,
+    observer: Arc<dyn RunObserver>,
+    make_host: impl FnOnce(Arc<AtomicBool>) -> Box<dyn Host> + Send + 'static,
+    module: portugol_bytecode::Module,
+    limits: Option<VmLimits>,
+) -> Result<RunHandle, Vec<DiagnosticInfo>> {
+    let index = LineIndex::new(source);
+
     let (input_tx, input_rx) = mpsc::channel();
     let interrupt = Arc::new(AtomicBool::new(false));
+    let output_limited = Arc::new(AtomicBool::new(false));
     let source = Arc::new(source.to_string());
     let flag = Arc::clone(&interrupt);
 
@@ -265,6 +351,10 @@ pub fn start_with_host(
             let output = Arc::new(Output {
                 buffer: Mutex::new(String::new()),
                 observer: Arc::clone(&observer),
+                max_bytes: limits.map(|limits| limits.output_bytes),
+                written_bytes: std::sync::atomic::AtomicUsize::new(0),
+                interrupt: Arc::clone(&flag),
+                output_limited: Arc::clone(&output_limited),
             });
             let done = Arc::new(AtomicBool::new(false));
             let flusher = spawn_flusher(Arc::clone(&output), Arc::clone(&done));
@@ -278,6 +368,11 @@ pub fn start_with_host(
                 .with_interrupt(Arc::clone(&flag))
                 .with_debug(debug)
                 .with_host(make_host(Arc::clone(&flag)));
+            if let Some(limits) = limits {
+                vm = vm
+                    .with_runtime_limit(limits.runtime)
+                    .with_string_memory_limit(limits.string_bytes);
+            }
             if let Some(dir) = options.working_dir {
                 vm = vm.with_working_dir(dir);
             }
@@ -290,6 +385,17 @@ pub fn start_with_host(
 
             let outcome = match result {
                 Ok(()) => RunOutcome::Finished,
+                Err(_) if output_limited.load(Ordering::Relaxed) => RunOutcome::RuntimeLimit {
+                    reason: RunLimitReason::Output,
+                },
+                Err(error) if error.limit.is_some() => RunOutcome::RuntimeLimit {
+                    reason: match error.limit.unwrap() {
+                        portugol_vm::RuntimeLimitReason::Time => RunLimitReason::Time,
+                        portugol_vm::RuntimeLimitReason::StringMemory => {
+                            RunLimitReason::StringMemory
+                        }
+                    },
+                },
                 Err(_) if flag.load(Ordering::Relaxed) => RunOutcome::Stopped,
                 Err(error) => {
                     let index = LineIndex::new(&source);
@@ -327,6 +433,10 @@ pub fn start_with_host(
 struct Output {
     buffer: Mutex<String>,
     observer: Arc<dyn RunObserver>,
+    max_bytes: Option<usize>,
+    written_bytes: std::sync::atomic::AtomicUsize,
+    interrupt: Arc<AtomicBool>,
+    output_limited: Arc<AtomicBool>,
 }
 
 impl Output {
@@ -336,6 +446,26 @@ impl Output {
             self.observer.output(&buffer);
             buffer.clear();
         }
+    }
+
+    fn append(&self, text: &str) -> bool {
+        let mut buffer = self.buffer.lock().unwrap_or_else(|e| e.into_inner());
+        let previous = self.written_bytes.load(Ordering::Relaxed);
+        let allowed = self.max_bytes.map_or(text.len(), |limit| {
+            limit.saturating_sub(previous).min(text.len())
+        });
+        let mut end = allowed;
+        while !text.is_char_boundary(end) {
+            end -= 1;
+        }
+        buffer.push_str(&text[..end]);
+        self.written_bytes.fetch_add(end, Ordering::Relaxed);
+        let exceeded = end < text.len();
+        if exceeded {
+            self.output_limited.store(true, Ordering::Relaxed);
+            self.interrupt.store(true, Ordering::Relaxed);
+        }
+        exceeded || buffer.len() >= MAX_BUFFER
     }
 }
 
@@ -355,11 +485,7 @@ struct ServiceIo {
 
 impl Io for ServiceIo {
     fn write(&mut self, text: &str) {
-        let full = {
-            let mut buffer = self.output.buffer.lock().unwrap_or_else(|e| e.into_inner());
-            buffer.push_str(text);
-            buffer.len() >= MAX_BUFFER
-        };
+        let full = self.output.append(text);
         if full {
             self.output.flush();
         }

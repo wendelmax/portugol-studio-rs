@@ -7,3 +7,4 @@ description = "Conjunto de instruções e compilador AST -> bytecode do Portugol
 
 [dependencies]
 portugol-syntax = { path = "../portugol-syntax" }
+portugol-hir = { path = "../portugol-hir" }

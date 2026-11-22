@@ -679,6 +679,30 @@ fn run(
 }
 
 #[tauri::command]
+fn debug_portugol_rs(
+    app: AppHandle,
+    runs: State<'_, Runs>,
+    source: String,
+    breakpoints: Vec<u32>,
+    pause_on_start: Option<bool>,
+) -> Result<u32, Vec<DiagnosticInfo>> {
+    let id = runs.next_id.fetch_add(1, Ordering::Relaxed) + 1;
+    let mut current = runs.current.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some((_, previous)) = current.take() {
+        previous.stop();
+    }
+    let observer: Arc<dyn RunObserver> = Arc::new(EventSink { app, id });
+    let options = RunOptions {
+        breakpoints,
+        pause_on_start: pause_on_start.unwrap_or(true),
+        ..RunOptions::default()
+    };
+    let handle = portugol_service::start_portugol_rs(&source, options, observer)?;
+    *current = Some((id, handle));
+    Ok(id)
+}
+
+#[tauri::command]
 fn send_input(runs: State<'_, Runs>, id: u32, line: String) {
     let mut line = Some(line);
     runs.with_current(id, |handle| {
@@ -794,6 +818,7 @@ pub fn run_app() {
             updates::check_updates,
             alerts::project_alerts,
             run,
+            debug_portugol_rs,
             send_input,
             stop,
             debug_pause,

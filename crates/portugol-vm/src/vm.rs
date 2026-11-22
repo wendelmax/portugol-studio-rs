@@ -7,6 +7,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::{Duration, Instant};
 
 use portugol_bytecode::{Module, Op, ValueType};
 use portugol_syntax::Span;
@@ -28,6 +29,14 @@ pub struct RuntimeError {
     pub span: Span,
     /// Pilha de chamadas, da função atual para a de entrada.
     pub trace: Vec<(String, Span)>,
+    /// Motivo tipado quando a execução parou por um limite configurado.
+    pub limit: Option<RuntimeLimitReason>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RuntimeLimitReason {
+    Time,
+    StringMemory,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -48,6 +57,8 @@ pub struct Vm<'a> {
     io: &'a mut dyn Io,
     stack: Vec<Value>,
     frames: Vec<Frame>,
+    active_locals: Vec<Vec<bool>>,
+    tracks_local_visibility: bool,
     globals: Vec<Value>,
     strings: Vec<Rc<str>>,
     natives: Vec<Option<NativeFn>>,
@@ -56,6 +67,12 @@ pub struct Vm<'a> {
     interrupt: Arc<AtomicBool>,
     args: Vec<String>,
     debug: Option<DebugControl>,
+    runtime_limit: Option<Duration>,
+    runtime_started: Instant,
+    excluded_runtime: Duration,
+    string_memory_limit: Option<usize>,
+    string_memory_used: usize,
+    pending_limit: Option<RuntimeLimitReason>,
 }
 
 /// Executa o programa até o fim.
@@ -174,6 +191,13 @@ impl<'a> Vm<'a> {
 
         let entry = &module.functions[module.entry as usize];
         let stack = vec![Value::Void; entry.locals.len()];
+        let tracks_local_visibility = module.functions.iter().any(|function| {
+            function
+                .code
+                .iter()
+                .any(|op| matches!(op, Op::SetLocalActive { .. }))
+        });
+        let active_locals = vec![vec![!tracks_local_visibility; entry.locals.len()]];
 
         Vm {
             module,
@@ -184,6 +208,8 @@ impl<'a> Vm<'a> {
                 ip: 0,
                 base: 0,
             }],
+            active_locals,
+            tracks_local_visibility,
             globals,
             strings,
             natives,
@@ -192,6 +218,12 @@ impl<'a> Vm<'a> {
             interrupt,
             args: Vec::new(),
             debug: None,
+            runtime_limit: None,
+            runtime_started: Instant::now(),
+            excluded_runtime: Duration::ZERO,
+            string_memory_limit: None,
+            string_memory_used: 0,
+            pending_limit: None,
         }
     }
 
@@ -247,6 +279,19 @@ impl<'a> Vm<'a> {
         self
     }
 
+    /// Limita o tempo de CPU lógico da execução. Pausas no debugger e espera
+    /// por entrada não entram no orçamento.
+    pub fn with_runtime_limit(mut self, limit: Duration) -> Self {
+        self.runtime_limit = Some(limit);
+        self
+    }
+
+    /// Limita cumulativamente as alocações de cadeia feitas pela VM.
+    pub fn with_string_memory_limit(mut self, bytes: usize) -> Self {
+        self.string_memory_limit = Some(bytes);
+        self
+    }
+
     /// Usa um sinalizador de interrupção criado fora da VM (por exemplo,
     /// antes de mover a execução para outra thread).
     pub fn with_interrupt(mut self, interrupt: Arc<AtomicBool>) -> Self {
@@ -280,15 +325,31 @@ impl<'a> Vm<'a> {
                 self.sync(frame);
                 return Err(self.error("O programa foi interrompido.".to_string()));
             }
+            if executed % 1024 == 0
+                && self.runtime_limit.is_some_and(|limit| {
+                    self.runtime_started
+                        .elapsed()
+                        .saturating_sub(self.excluded_runtime)
+                        >= limit
+                })
+            {
+                self.sync(frame);
+                self.pending_limit = Some(RuntimeLimitReason::Time);
+                return Err(self.error("O limite de tempo da execução foi excedido.".to_string()));
+            }
             if let Some(debug) = &self.debug {
                 let function = &module.functions[frame.function as usize];
                 let span = function.spans.get(frame.ip).copied().unwrap_or_default();
                 // As instruções sintéticas de entrada usam o trecho de todo o
                 // programa; parar nelas não corresponde a nenhuma linha útil.
-                let synthetic = frame.function == module.entry && span == function.span;
+                let synthetic = (frame.function == module.entry && span == function.span)
+                    || matches!(code.get(frame.ip), Some(Op::SetLocalActive { .. }));
                 if !synthetic && debug.should_pause(self.frames.len(), span) {
                     let info = self.debug_info(&frame);
-                    if !debug.pause_and_wait(&info) {
+                    let pause_started = Instant::now();
+                    let resumed = debug.pause_and_wait(&info);
+                    self.excluded_runtime += pause_started.elapsed();
+                    if !resumed {
                         self.sync(frame);
                         return Err(self.error("O programa foi interrompido.".to_string()));
                     }
@@ -371,6 +432,9 @@ impl<'a> Vm<'a> {
             if info.name.is_empty() {
                 continue; // temporário do compilador
             }
+            if !self.active_locals.last().unwrap()[slot] {
+                continue;
+            }
             let value = &self.stack[frame.base + slot];
             debug_value(
                 &mut variables,
@@ -408,7 +472,18 @@ impl<'a> Vm<'a> {
             message,
             span: trace.first().map(|(_, span)| *span).unwrap_or_default(),
             trace,
+            limit: self.pending_limit,
         }
+    }
+
+    fn charge_string(&mut self, bytes: usize) -> Exec<()> {
+        let next = self.string_memory_used.saturating_add(bytes);
+        if self.string_memory_limit.is_some_and(|limit| next > limit) {
+            self.pending_limit = Some(RuntimeLimitReason::StringMemory);
+            return Err("O limite de memória para cadeias foi excedido.".to_string());
+        }
+        self.string_memory_used = next;
+        Ok(())
     }
 
     fn pop(&mut self) -> Value {
@@ -437,6 +512,8 @@ impl<'a> Vm<'a> {
             Op::PushBool(value) => self.push(Value::Bool(value)),
             Op::PushChar(value) => self.push(Value::Char(value)),
             Op::PushStr(index) => {
+                // Literais pertencem ao pool do módulo. `Rc::clone` só cria
+                // outra referência ao mesmo texto, não uma nova cadeia.
                 let value = Value::Str(Rc::clone(&self.strings[index as usize]));
                 self.push(value);
             }
@@ -457,6 +534,9 @@ impl<'a> Vm<'a> {
             Op::StoreLocal(slot) => {
                 let value = self.pop();
                 self.stack[base + slot as usize] = value;
+            }
+            Op::SetLocalActive { local, active } => {
+                self.active_locals.last_mut().expect("frame ativo")[local as usize] = active;
             }
             Op::LoadGlobal(slot) => {
                 let value = self.globals[slot as usize].clone();
@@ -615,6 +695,9 @@ impl<'a> Vm<'a> {
                 let right = self.pop();
                 let left = self.pop();
                 let result = binary(op, &left, &right)?;
+                if let Value::Str(text) = &result {
+                    self.charge_string(text.len())?;
+                }
                 self.push(result);
             }
             Op::Neg => {
@@ -683,6 +766,8 @@ impl<'a> Vm<'a> {
                 let base = self.stack.len() - argc as usize;
                 self.stack
                     .resize(base + callee.locals.len().max(argc as usize), Value::Void);
+                self.active_locals
+                    .push(vec![!self.tracks_local_visibility; callee.locals.len()]);
                 // O topo de `self.frames` guarda o ponto de retorno do chamador.
                 self.sync(*frame);
                 *frame = Frame {
@@ -718,6 +803,7 @@ impl<'a> Vm<'a> {
             Op::Return => {
                 let value = self.pop();
                 self.frames.pop();
+                self.active_locals.pop();
                 self.stack.truncate(frame.base);
                 if let Some(caller) = self.frames.last() {
                     *frame = *caller;
@@ -738,8 +824,13 @@ impl<'a> Vm<'a> {
                 }
             }
             Op::Read(ty) => {
+                let wait_started = Instant::now();
                 let line = self.io.read_line(ty);
+                self.excluded_runtime += wait_started.elapsed();
                 let value = parse_input(ty, line)?;
+                if let Value::Str(text) = &value {
+                    self.charge_string(text.len())?;
+                }
                 self.push(value);
             }
             Op::Clear => self.io.clear(),
