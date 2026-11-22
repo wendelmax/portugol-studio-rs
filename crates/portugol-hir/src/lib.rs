@@ -120,6 +120,12 @@ pub enum StmtKind {
         condition: Expr,
         body: Vec<Stmt>,
     },
+    For {
+        initializer: Box<Stmt>,
+        condition: Expr,
+        step: Box<Stmt>,
+        body: Vec<Stmt>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]

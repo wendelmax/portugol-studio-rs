@@ -33,6 +33,40 @@ fn tracks_string_literals_clones_and_concatenation_without_changing_values() {
 }
 
 #[test]
+fn counted_loop_step_runs_after_body_shadowing_scope_ends() {
+    let source = "funcao inicio() { para (seja mutavel i: inteiro = 0; i < 2; i += 1) { seja mutavel i: inteiro = 9; escreva(i); } }";
+    let result = run_portugol_rs(source).unwrap();
+    assert!(matches!(
+        result,
+        portugol_service::PortugolRsRunResult::Executed {
+            stdout,
+            exit_code: Some(0),
+            ..
+        } if stdout == "99"
+    ));
+}
+
+#[test]
+fn counted_loop_division_and_remainder_by_zero_preserve_runtime_failure() {
+    for step in ["i /= 0", "i %= 0"] {
+        let source =
+            format!("funcao inicio() {{ para (seja mutavel i: inteiro = 1; i < 2; {step}) {{}} }}");
+        let result = run_portugol_rs(&source).unwrap();
+        assert!(
+            matches!(
+                result,
+                portugol_service::PortugolRsRunResult::Executed {
+                    stderr,
+                    exit_code: Some(code),
+                    ..
+                } if code != 0 && stderr.contains("panicked")
+            ),
+            "{step} must retain the Rust runtime failure"
+        );
+    }
+}
+
+#[test]
 fn charges_character_concatenation_to_the_string_budget() {
     let result =
         run_portugol_rs("funcao inicio() { seja texto: cadeia = 'a' + 'b'; escreva(texto); }")

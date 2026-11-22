@@ -112,3 +112,78 @@ fn keeps_loop_shadowed_bindings_distinct_and_rejects_break_continue() {
         assert!(lower(&source).is_err(), "{keyword} ainda não é suportado");
     }
 }
+
+#[test]
+fn counted_loop_control_does_not_escape_its_scope() {
+    let source = "funcao inicio() { para (seja mutavel i: inteiro = 0; i < 2; i += 1) { escreva(i); } escreva(i); }";
+    assert!(
+        lower(source)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.unknown-name")
+    );
+}
+
+#[test]
+fn counted_loop_rejects_non_boolean_condition_and_non_numeric_control() {
+    let condition = "funcao inicio() { para (seja mutavel i: inteiro = 0; i; i += 1) {} }";
+    assert!(
+        lower(condition)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.condition-type")
+    );
+
+    let control = "funcao inicio() { para (seja mutavel ativo: logico = verdadeiro; ativo; ativo = falso) {} }";
+    assert!(
+        lower(control)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.for-control-type")
+    );
+}
+
+#[test]
+fn counted_loop_requires_the_seja_keyword_before_its_control_declaration() {
+    let source = "funcao inicio() { para (banana mutavel i: inteiro = 0; i < 2; i += 1) {} }";
+    let errors = lower(source).unwrap_err();
+    assert!(errors.iter().any(|diagnostic| {
+        diagnostic.code == "pors.expected-keyword" && diagnostic.message.contains("Esperado `seja`")
+    }));
+}
+
+#[test]
+fn counted_loop_step_must_compound_assign_its_mutable_control() {
+    let wrong_binding = "funcao inicio() { seja mutavel j: inteiro = 0; para (seja mutavel i: inteiro = 0; i < 2; j += 1) {} }";
+    assert!(
+        lower(wrong_binding)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.for-step-binding")
+    );
+
+    let plain_assignment =
+        "funcao inicio() { para (seja mutavel i: inteiro = 0; i < 2; i = i + 1) {} }";
+    assert!(
+        lower(plain_assignment)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.for-step-operator")
+    );
+
+    let immutable = "funcao inicio() { para (seja i: inteiro = 0; i < 2; i += 1) {} }";
+    assert!(
+        lower(immutable)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.immutable-assignment")
+    );
+}
+
+#[test]
+fn nested_counted_loops_keep_shadowed_control_bindings_separate() {
+    let source = "funcao inicio() { para (seja mutavel i: inteiro = 0; i < 2; i += 1) { para (seja mutavel i: inteiro = 0; i < 2; i += 1) { escreva(i); } escreva(i); } }";
+    let program = lower(source).expect("loops internos podem sombrear controles externos");
+    assert_eq!(program.bindings.len(), 2);
+    assert_ne!(program.bindings[0].id, program.bindings[1].id);
+}

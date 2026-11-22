@@ -189,6 +189,39 @@ fn render_statements(
                 render_statements(body, program, depth + 1, output, mappings, pors);
                 output.push_str(&format!("{indent}}}\n"));
             }
+            StmtKind::For {
+                initializer,
+                condition,
+                step,
+                body,
+            } => {
+                output.push_str(&format!("{indent}{{\n"));
+                render_statements(
+                    std::slice::from_ref(initializer.as_ref()),
+                    program,
+                    depth + 1,
+                    output,
+                    mappings,
+                    pors,
+                );
+                let loop_indent = "    ".repeat(depth + 1);
+                output.push_str(&format!("{loop_indent}while "));
+                push_expr(output, mappings, condition, program, false, pors);
+                output.push_str(" {\n");
+                let body_scope_indent = "    ".repeat(depth + 2);
+                output.push_str(&format!("{body_scope_indent}{{\n"));
+                render_statements(body, program, depth + 3, output, mappings, pors);
+                output.push_str(&format!("{body_scope_indent}}}\n"));
+                render_statements(
+                    std::slice::from_ref(step.as_ref()),
+                    program,
+                    depth + 2,
+                    output,
+                    mappings,
+                    pors,
+                );
+                output.push_str(&format!("{loop_indent}}}\n{indent}}}\n"));
+            }
         }
         record_statement_mapping(mappings, start, output.len(), statement);
     }

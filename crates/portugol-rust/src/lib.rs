@@ -781,6 +781,82 @@ mod tests {
     }
 
     #[test]
+    fn exports_and_executes_portugol_rs_for_with_source_maps() {
+        let source =
+            "funcao inicio() { para (seja mutavel i: inteiro = 0; i < 3; i += 1) { escreva(i); } }";
+        let generated = export_portugol_rs_with_map(source).unwrap();
+        assert!(
+            generated
+                .code
+                .contains("pt_i = (pt_i).wrapping_add(1_i32);")
+        );
+        for snippet in ["seja mutavel i", "i < 3", "i += 1", "escreva(i)"] {
+            let start = source.find(snippet).unwrap() as u32;
+            assert!(
+                generated.mappings.iter().any(|mapping| {
+                    mapping.source.is_some_and(|range| range.start == start)
+                        && mapping.quality == SourceMapQuality::Exact
+                }),
+                "missing exact source mapping for {snippet}"
+            );
+        }
+        assert_rust_output(generated.code, "012");
+    }
+
+    #[test]
+    fn counted_loop_keeps_utf8_source_maps_in_bounds_and_executes_nested_shadowing() {
+        let source = "// comentário antes do loop: café 😃\nfuncao inicio() { para (seja mutavel i: inteiro = 0; i < 2; i += 1) { para (seja mutavel i: inteiro = 0; i < 2; i += 1) { escreva(\"é\", i); } escreva(i); } }";
+        let generated = export_portugol_rs_with_map(source).unwrap();
+        assert!(generated.mappings.iter().all(|mapping| {
+            mapping.generated.start < mapping.generated.end
+                && mapping.generated.end as usize <= generated.code.len()
+                && generated
+                    .code
+                    .is_char_boundary(mapping.generated.start as usize)
+                && generated
+                    .code
+                    .is_char_boundary(mapping.generated.end as usize)
+                && mapping.source.is_none_or(|range| {
+                    range.start < range.end
+                        && range.end as usize <= source.len()
+                        && source.is_char_boundary(range.start as usize)
+                        && source.is_char_boundary(range.end as usize)
+                })
+        }));
+        for snippet in [
+            "para (",
+            "seja mutavel i",
+            "i < 2",
+            "i += 1",
+            "escreva(\"é\", i)",
+        ] {
+            let start = source.find(snippet).unwrap() as u32;
+            assert!(
+                generated.mappings.iter().any(|mapping| {
+                    mapping.source.is_some_and(|range| range.start == start)
+                        && mapping.quality == SourceMapQuality::Exact
+                }),
+                "missing exact source mapping for {snippet}"
+            );
+        }
+        assert!(
+            generated
+                .mappings
+                .iter()
+                .filter(|mapping| mapping.quality == SourceMapQuality::GeneratedOnly)
+                .all(|mapping| mapping.source.is_none())
+        );
+        assert_rust_output(generated.code, "é0é10é0é11");
+    }
+
+    #[test]
+    fn counted_loop_supports_real_control_values() {
+        let source = "funcao inicio() { para (seja mutavel i: real = 0.0; i < 1.5; i += 0.5) { escreva(i); } }";
+        let generated = export_portugol_rs(source).unwrap();
+        assert_rust_output(generated, "0.00.51.0");
+    }
+
+    #[test]
     fn adds_string_budget_only_to_portugol_rs_codegen() {
         let pors = export_portugol_rs("funcao inicio() { escreva(\"olá\"); }").unwrap();
         assert!(pors.contains("__pors_account"));

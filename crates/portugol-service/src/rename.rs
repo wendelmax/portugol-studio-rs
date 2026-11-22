@@ -237,6 +237,25 @@ fn collect_portugol_rs_statements(
                 collect_portugol_rs_expression(condition, occurrences);
                 collect_portugol_rs_statements(body, declarations, occurrences);
             }
+            StmtKind::For {
+                initializer,
+                condition,
+                step,
+                body,
+            } => {
+                collect_portugol_rs_statements(
+                    std::slice::from_ref(initializer.as_ref()),
+                    declarations,
+                    occurrences,
+                );
+                collect_portugol_rs_expression(condition, occurrences);
+                collect_portugol_rs_statements(
+                    std::slice::from_ref(step.as_ref()),
+                    declarations,
+                    occurrences,
+                );
+                collect_portugol_rs_statements(body, declarations, occurrences);
+            }
         }
     }
 }
@@ -405,6 +424,20 @@ mod tests {
         assert_eq!(target.occurrences, 3);
         assert_eq!(edits.len(), 3);
         assert!(edits.iter().all(|edit| edit.insert == "total"));
+    }
+
+    #[test]
+    fn portugol_rs_rename_in_counted_loop_updates_header_and_body_bindings() {
+        let source = "funcao inicio() { para (seja mutavel i: inteiro = 1; i < 4; i += i) { para (seja mutavel i: inteiro = 0; i < 1; i += 1) { escreva(i); } escreva(i); } }";
+        let cursor = source.rfind("escreva(i)").unwrap() as u32 + "escreva(".len() as u32;
+
+        let target = rename_target_portugol_rs(source, cursor).unwrap();
+        let edits = rename_symbol_portugol_rs(source, cursor, "contador").unwrap();
+
+        assert_eq!(target.name, "i");
+        assert_eq!(target.occurrences, 5);
+        assert_eq!(edits.len(), 5);
+        assert!(edits.iter().all(|edit| edit.insert == "contador"));
     }
 
     #[test]

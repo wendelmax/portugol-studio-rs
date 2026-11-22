@@ -90,10 +90,13 @@ impl Parser {
         if self.is_keyword("enquanto") {
             return self.while_loop();
         }
+        if self.is_keyword("para") {
+            return self.for_loop();
+        }
         if let Kind::Ident(keyword) = &self.current().kind {
             if matches!(
                 keyword.as_str(),
-                "faca" | "para" | "escolha" | "leia" | "pare" | "continue"
+                "faca" | "escolha" | "leia" | "pare" | "continue"
             ) {
                 return self.fail(
                     "pors.unsupported-construct",
@@ -123,7 +126,8 @@ impl Parser {
     }
 
     fn declaration(&mut self) -> Result<hir::Stmt, Vec<Diagnostic>> {
-        let start = self.advance().span;
+        let start = self.current().span;
+        self.keyword("seja")?;
         let mutable = self.eat_keyword("mutavel");
         let (name, name_span) = self.identifier()?;
         if is_reserved(&name) {
@@ -197,6 +201,13 @@ impl Parser {
     }
 
     fn assignment(&mut self) -> Result<hir::Stmt, Vec<Diagnostic>> {
+        self.assignment_with_terminator(true)
+    }
+
+    fn assignment_with_terminator(
+        &mut self,
+        needs_semicolon: bool,
+    ) -> Result<hir::Stmt, Vec<Diagnostic>> {
         let (name, name_span) = self.identifier()?;
         let symbol = self.lookup(&name).ok_or_else(|| {
             vec![Diagnostic::error(
@@ -222,7 +233,12 @@ impl Parser {
             }
         };
         let value = self.expression(0)?;
-        let semi = self.expect(Kind::Semicolon, "Esperado `;` após atribuição")?;
+        let end = if needs_semicolon {
+            self.expect(Kind::Semicolon, "Esperado `;` após atribuição")?
+                .span
+        } else {
+            syntax_span(value.span)
+        };
         if symbol.mutability == hir::Mutability::Immutable {
             return self.fail(
                 "pors.immutable-assignment",
@@ -264,7 +280,7 @@ impl Parser {
                 op,
                 value,
             },
-            span: to_hir_span(name_span.join(semi.span)),
+            span: to_hir_span(name_span.join(end)),
         })
     }
 
@@ -332,6 +348,65 @@ impl Parser {
         let (body, end) = self.block(false)?;
         Ok(hir::Stmt {
             kind: hir::StmtKind::While { condition, body },
+            span: to_hir_span(start.join(end)),
+        })
+    }
+
+    fn for_loop(&mut self) -> Result<hir::Stmt, Vec<Diagnostic>> {
+        let start = self.advance().span;
+        self.expect(Kind::LParen, "Esperado `(` após para")?;
+        self.scopes.push(HashMap::new());
+        let initializer = self.declaration()?;
+        let control = match initializer.kind {
+            hir::StmtKind::Declare { binding, .. } => self.bindings[binding.0 as usize].clone(),
+            _ => unreachable!("declaration() sempre retorna uma declaração"),
+        };
+        if !matches!(control.ty, hir::Type::Integer | hir::Type::Real) {
+            return self.fail(
+                "pors.for-control-type",
+                "O controle de para deve ter tipo inteiro ou real",
+                syntax_span(control.span),
+            );
+        }
+
+        let condition = self.expression(0)?;
+        if condition.ty != hir::Type::Boolean {
+            return self.fail(
+                "pors.condition-type",
+                "A condição de para deve ser logica",
+                syntax_span(condition.span),
+            );
+        }
+        self.expect(Kind::Semicolon, "Esperado `;` após condição de para")?;
+        let step = self.assignment_with_terminator(false)?;
+        let (step_binding, step_op) = match step.kind {
+            hir::StmtKind::Assign { binding, op, .. } => (binding, op),
+            _ => unreachable!("assignment_with_terminator sempre retorna atribuição"),
+        };
+        if step_binding != control.id {
+            return self.fail(
+                "pors.for-step-binding",
+                "A atualização de para deve alterar a variável declarada no inicializador",
+                syntax_span(step.span),
+            );
+        }
+        if step_op == hir::AssignOp::Set {
+            return self.fail(
+                "pors.for-step-operator",
+                "Use um operador composto para atualizar o controle de para (por exemplo, `+= 1`)",
+                syntax_span(step.span),
+            );
+        }
+        self.expect(Kind::RParen, "Esperado `)` após atualização de para")?;
+        let (body, end) = self.block(false)?;
+        self.scopes.pop();
+        Ok(hir::Stmt {
+            kind: hir::StmtKind::For {
+                initializer: Box::new(initializer),
+                condition,
+                step: Box::new(step),
+                body,
+            },
             span: to_hir_span(start.join(end)),
         })
     }
