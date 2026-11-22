@@ -804,6 +804,29 @@ mod tests {
     }
 
     #[test]
+    fn exports_and_executes_portugol_rs_loop_control_with_source_maps() {
+        let source = "funcao inicio() { para (seja mutavel i: inteiro = 0; i < 5; i += 1) { se (i == 1) { continue; } se (i == 4) { pare; } escreva(i); } }";
+        let generated = export_portugol_rs_with_map(source).unwrap();
+        for keyword in ["continue;", "pare;"] {
+            let start = source.find(keyword).unwrap() as u32;
+            assert!(
+                generated.mappings.iter().any(|mapping| {
+                    mapping.source.is_some_and(|range| range.start == start)
+                        && mapping.quality == SourceMapQuality::Exact
+                }),
+                "missing exact source mapping for {keyword}"
+            );
+        }
+        assert_rust_output(generated.code, "023");
+
+        let while_source = "funcao inicio() { seja mutavel i: inteiro = 0; enquanto (i < 5) { i += 1; se (i == 2) { continue; } se (i == 4) { pare; } escreva(i); } }";
+        assert_rust_output(export_portugol_rs(while_source).unwrap(), "13");
+
+        let nested_source = "funcao inicio() { para (seja mutavel i: inteiro = 0; i < 3; i += 1) { seja mutavel j: inteiro = 0; enquanto (j < 3) { j += 1; se (j == 1) { continue; } se (j == 2) { pare; } escreva(j); } escreva(i); } }";
+        assert_rust_output(export_portugol_rs(nested_source).unwrap(), "012");
+    }
+
+    #[test]
     fn counted_loop_keeps_utf8_source_maps_in_bounds_and_executes_nested_shadowing() {
         let source = "// comentário antes do loop: café 😃\nfuncao inicio() { para (seja mutavel i: inteiro = 0; i < 2; i += 1) { para (seja mutavel i: inteiro = 0; i < 2; i += 1) { escreva(\"é\", i); } escreva(i); } }";
         let generated = export_portugol_rs_with_map(source).unwrap();

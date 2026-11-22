@@ -71,6 +71,16 @@ fn rejects_reserved_words_as_variable_names() {
             .iter()
             .any(|d| d.code == "pors.reserved-name")
     );
+    for keyword in ["pare", "continue"] {
+        let source = format!("funcao inicio() {{ seja mutavel {keyword}: inteiro = 1; }}");
+        assert!(
+            lower(&source)
+                .unwrap_err()
+                .iter()
+                .any(|d| d.code == "pors.reserved-name"),
+            "{keyword} não deve ser usado como identificador"
+        );
+    }
 }
 
 #[test]
@@ -102,15 +112,17 @@ fn enforces_boolean_conditions_and_loop_scope() {
 }
 
 #[test]
-fn keeps_loop_shadowed_bindings_distinct_and_rejects_break_continue() {
+fn keeps_loop_shadowed_bindings_distinct_and_accepts_loop_control() {
     let source = "funcao inicio() { seja valor: inteiro = 1; enquanto (falso) { seja valor: inteiro = 2; escreva(valor); } escreva(valor); }";
     let program = lower(source).expect("sombreamento dentro do loop deve ser aceito");
     assert_eq!(program.bindings.len(), 2);
     assert_ne!(program.bindings[0].id, program.bindings[1].id);
-    for keyword in ["pare", "continue"] {
-        let source = format!("funcao inicio() {{ enquanto (verdadeiro) {{ {keyword}; }} }}");
-        assert!(lower(&source).is_err(), "{keyword} ainda não é suportado");
-    }
+    let source =
+        "funcao inicio() { enquanto (verdadeiro) { se (verdadeiro) { pare; } continue; } }";
+    assert!(
+        lower(source).is_ok(),
+        "controles são válidos dentro do laço"
+    );
 }
 
 #[test]
