@@ -103,7 +103,7 @@ export const BUILTIN_THEMES: Readonly<Record<string, Theme>> = {
     number: "#79c0ff", string: "#a5d6ff", comment: "#8b949e", operator: "#e6edf3",
   }),
   "preset:one-dark-pro": theme("One Dark Pro", "dark", {
-    bg: "#282c34", surface: "#21252b", border: "#3e4451", text: "#abb2bf", muted: "#5c6370",
+    bg: "#282c34", surface: "#21252b", border: "#3e4451", text: "#abb2bf", muted: "#9da4b0",
     accent: "#61afef", accentText: "#282c34", error: "#e06c75", warning: "#e5c07b", ok: "#98c379",
     frame: "#21252b", console: "#21252b", examples: "#21252b", editor: "#282c34", caret: "#528bff",
     editorError: "#3b2529", line: "#2c313a", selection: "#3e4451", gutter: "#636d83",
@@ -111,7 +111,7 @@ export const BUILTIN_THEMES: Readonly<Record<string, Theme>> = {
     number: "#d19a66", string: "#98c379", comment: "#5c6370", operator: "#56b6c2",
   }),
   "preset:dracula": theme("Dracula", "dark", {
-    bg: "#282a36", surface: "#21222c", border: "#44475a", text: "#f8f8f2", muted: "#6272a4",
+    bg: "#282a36", surface: "#21222c", border: "#44475a", text: "#f8f8f2", muted: "#a5aec9",
     accent: "#bd93f9", accentText: "#282a36", error: "#ff5555", warning: "#f1fa8c", ok: "#50fa7b",
     frame: "#21222c", console: "#21222c", examples: "#21222c", editor: "#282a36", caret: "#f8f8f0",
     editorError: "#4a292f", line: "#303241", selection: "#44475a", gutter: "#6272a4",
@@ -127,7 +127,7 @@ export const BUILTIN_THEMES: Readonly<Record<string, Theme>> = {
     number: "#fab387", string: "#a6e3a1", comment: "#a6adc8", operator: "#94e2d5",
   }),
   "preset:night-owl": theme("Night Owl", "dark", {
-    bg: "#011627", surface: "#0b253a", border: "#1d3b53", text: "#d6deeb", muted: "#637777",
+    bg: "#011627", surface: "#0b253a", border: "#1d3b53", text: "#d6deeb", muted: "#8ea6b0",
     accent: "#82aaff", accentText: "#011627", error: "#ef5350", warning: "#ffeb95", ok: "#addb67",
     frame: "#01111d", console: "#0b253a", examples: "#0b253a", editor: "#011627", caret: "#80a4c2",
     editorError: "#442f3c", line: "#0b253a", selection: "#1d3b53", gutter: "#5f7e97",
