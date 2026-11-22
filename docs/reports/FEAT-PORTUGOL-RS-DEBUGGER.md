@@ -13,12 +13,14 @@
 - O compilador preserva escopos lexicais e bindings sombreados em slots distintos; snapshots mostram somente o binding visível e reativam o anterior ao sair do bloco.
 - Regressões verificam shadowing em blocos condicionais e restauração após o término de um `para`.
 - O limite de memória conta cadeias alocadas durante a sessão (concatenações e entrada); literais no pool não consomem o orçamento ao serem reutilizados.
+- Regressão dedicada envia ao `leia` uma cadeia ASCII de 16 MiB + 1 byte e confirma o resultado tipado `RuntimeLimit::StringMemory`.
 - A VM aplica limites tipados de 3 s de runtime ativo, 1 MiB de saída e 16 MiB cumulativos de cadeias; pausa e espera de entrada são excluídas do relógio.
 
 ## Validação
 
 - `cargo test -p portugol-bytecode --offline --locked`
 - `cargo test -p portugol-service --offline --locked --test portugol_rs_debugger`
+- `CARGO_TARGET_DIR=/tmp/portugol-target cargo test -p portugol-service --offline --locked --test portugol_rs_debugger pors_debugger_applies_string_memory_limit_to_chain_input -- --exact`
 - `cargo test --workspace --offline --locked -- --skip bibliotecas_internet_e_servicos_web`
 - `cargo check -p portugol-desktop --offline --locked`
 - Clippy (`portugol-bytecode`, `portugol-vm`, `portugol-service`, `-D warnings`)
