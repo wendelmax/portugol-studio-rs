@@ -18,6 +18,7 @@ pub mod debug;
 pub mod graphics;
 pub mod host;
 pub mod io;
+#[cfg(feature = "stdlib")]
 pub mod stdlib;
 pub mod value;
 pub mod vm;
