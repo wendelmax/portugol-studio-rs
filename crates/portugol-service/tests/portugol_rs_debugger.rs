@@ -66,18 +66,17 @@ fn run_vm_to_output(source: &str) -> (String, RunOutcome) {
 
 #[test]
 fn pors_debugger_returns_located_diagnostics_before_starting_the_vm() {
-    for (source, code) in [(
+    let (source, code) = (
         "funcao inicio() { escreva(faltante); }",
         "pors.unknown-name",
-    )] {
-        let (tx, _rx) = mpsc::channel();
-        let observer = Arc::new(Recorder(Mutex::new(tx)));
-        let Err(diagnostics) = start_portugol_rs(source, RunOptions::default(), observer) else {
-            panic!("fonte não suportada não deveria iniciar")
-        };
-        assert_eq!(diagnostics[0].code, code);
-        assert_eq!(diagnostics[0].start.line, 1);
-    }
+    );
+    let (tx, _rx) = mpsc::channel();
+    let observer = Arc::new(Recorder(Mutex::new(tx)));
+    let Err(diagnostics) = start_portugol_rs(source, RunOptions::default(), observer) else {
+        panic!("fonte não suportada não deveria iniciar")
+    };
+    assert_eq!(diagnostics[0].code, code);
+    assert_eq!(diagnostics[0].start.line, 1);
 }
 
 #[test]
