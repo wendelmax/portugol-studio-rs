@@ -1,48 +1,78 @@
-# Diagnóstico atual do repositório
+# Descoberta atual do repositório
 
-- **Snapshot base:** `432fe02` (`main`, 2026-11-22), após o merge da PR #93. A consulta seguinte não encontrou PRs nem issues abertas. Não use esta pesquisa como backlog sem reler `docs/PARIDADE.md` e os relatórios de feature mais recentes.
-- **Worktrees:** 21 worktrees anteriores foram auditadas; 15 limpas, vinculadas a trabalho já mesclado, foram removidas. Seis foram preservadas por conter alterações locais, documentos não rastreados ou dependências compartilhadas. A worktree `53fd` foi mantida porque seu rascunho se sobrepõe às PRs #89/#90 e contém arquivos locais.
-- **Tauri:** v2 (`tauri = "2"`; Cargo.lock resolve 2.12.5), com `tauri-plugin-dialog`; os comandos publicados estão enumerados em `apps/desktop/src-tauri/src/lib.rs` e as capabilities ficam em `apps/desktop/src-tauri/capabilities/`.
-- **Frontend:** HTML, CSS e TypeScript sem framework SPA; Vite 8.3.5, TypeScript 7.0.2 e CodeMirror 6, incluindo linguagens Portugol, Portugol-RS e Rust (`apps/desktop/package.json`, `apps/desktop/src/main.ts`).
-- **Núcleo:** Rust edition 2024, crates para sintaxe/AST, HIR, semântica, bytecode, VM, serviços, CLI e geração Rust (`Cargo.toml`, `crates/*`). Os membros da IDE Tauri não fazem parte dos default-members do `cargo test` padrão.
-- **Execução clássica:** editor captura código/argumentos e chama a API Tauri; `portugol-service` executa a VM real, emite eventos `run:*` correlacionados por ID e expõe debugger com pausas, stepping, pilha e variáveis. Entradas `leia` chegam pelo console.
-- **Portugol-RS (`.pors`):** parser/semântica e HIR próprias; subset suportado é convertido pelo backend Rust comum, com source maps e diagnósticos. Há `enquanto`, `para`, `pare`, `continue` e entrada tipada `leia`, com limites/cancelamento na compilação e execução. Não é a gramática completa do Rust.
-- **Rust (`.rs`):** CodeMirror Rust, execução/cancelamento, `rustfmt` e lint `rustc` para arquivos standalone. No workspace, um `Cargo.toml` ancestral seleciona build/runtime Cargo supervisionados; build scripts e dependências exigem consentimento porque não há sandbox. `cargo check` sob demanda associa diagnósticos ao arquivo aberto. Descoberta offline e seleção explícita de binários em workspaces multi-bin estão implementadas; lint Cargo contínuo e debugger Rust continuam pendentes.
-- **Tradução:** `export_rust` e `export_portugol_rs` geram somente subconjuntos semanticamente suportados; source maps distinguem mapeamento exato, aproximado e generated-only. A Ponte exibe Rust em EditorView CodeMirror somente leitura com sintaxe, navegação source-map e estado stale por documento. Não é tradução universal.
-- **Workspace:** `apps/desktop/src-tauri/src/workspace.rs` e comandos em `lib.rs` abrem e restauram a última pasta, listam `.por`, `.pors`, `.rs` e exercícios, leem/escrevem fontes, criam/renomeiam/excluem arquivos e exportam seleção. Há validação de caminhos, operações relativas ao workspace e cobertura Rust; a UI contém explorer e fluxos de confirmação para arquivo sujo.
-- **Aprendizagem:** modos Beginner/Bridge/Rust, catálogo local, explicação contextual por source map exato, progresso local por exercícios verificados e laboratório visual de ownership baseado em fixtures verificadas. O laboratório está rotulado como simulação didática; não é trace de processo Rust. Modo de aprendizagem e layout de painéis são associados ao workspace; exercícios standalone mantêm a preferência global legada.
-- **UI e temas:** shell desktop Portugol Studio Next, activity rail, explorer, editor, painel inferior e inspector; temas e layout são persistidos localmente. A paridade visual com o Portugol Studio clássico foi aceita (ADR 0015); novas mudanças de interface devem servir aos fluxos progressivos. Cobertura de modelo/configuração existe; E2E de interação e regressão visual de telas Tauri continuam limitados.
-- **Segurança:** frontend não recebe shell arbitrário; processos Rust usam invocações fixas, limites e supervisão. A execução standalone não é sandboxed e a UI pede consentimento. Operações de workspace são confinadas ao diretório registrado e têm validações de caminho/identidade.
-- **Testes:** `npm test --prefix apps/desktop` (Node `node:test`, 32 arquivos top-level/163 testes), `npm run build --prefix apps/desktop`, `cargo test -p portugol-service --offline --locked` (87 testes), Clippy/format e CI para núcleo e Tauri em Linux, Windows e macOS. Gherkin em docs é especificação: não há runner BDD, DOM ou E2E de interação do painel.
+Snapshot: `main` em `660a779` (22/11/2026), após PR #95. A direção atual é o
+[ADR 0016](../adr/0016-pors-como-linguagem-autoral-e-retirada-do-por.md):
+PORS/Rust como produto, sem renomear a aplicação; `.por`/`.pex` só saem depois
+do gate em [`PORS_MIGRATION_MATRIX.md`](PORS_MIGRATION_MATRIX.md).
 
-## Lacunas verificadas para priorização
+## Arquitetura observada
 
-| ID | Situação no snapshot | Evidência | Próxima ação segura |
-|---|---|---|---|
-| UI-001/002/008/009 → UC-01/03 | Implementado local: abrir/restaurar workspace, explorer, criar/renomear/excluir arquivo e exportar seleção. Não equivale a abrir projetos Cargo. | `apps/desktop/src-tauri/src/workspace.rs`; `apps/desktop/src/main.ts`; `apps/desktop/tests/workspace-explorer.test.mjs`, `workspace-file-actions.test.mjs`, `workspace-export.test.mjs` | Corrigir relatórios antigos; priorizar cobertura E2E de arquivos sujos/fluxo Tauri antes de ampliar árvore. |
-| UI-015/016/017 → UC-07/08 | Parcial: saída gerada usa EditorView CodeMirror somente leitura, com mapeamento e stale; desvincular confirma cópia para aba `.rs` independente; comparação lado a lado conserva a tradução válida anterior e atual sem editar a fonte. Rust standalone e projetos Cargo mantêm contratos distintos. Cargo compila/executa binário padrão/alvo escolhido; `cargo check` explícito associa diagnósticos; não há debugger nem lint contínuo Cargo. | `apps/desktop/src/generated-rust-editor.ts`, `apps/desktop/src/generated-rust-detach.ts`, `apps/desktop/src/generated-rust-diff.ts`, `apps/desktop/src/rust-preview-state.ts`; `crates/portugol-service/src/cargo_project.rs`; ADRs 0006–0008 e 0012 | E2E da comparação, do diálogo nativo e regressão visual ainda sem runner; avaliar lint contínuo sob consentimento e debugger Rust. |
-| UI-023/024 → UC-13 | Parcial: catálogo local, explicação contextual por source map exato, pin temporário por aba/nível, seções editoriais e ações que abrem exercícios Portugol existentes para conceitos básicos explicitamente mapeados. Conceitos Rust sem exercício compatível ficam sem CTA. Ainda sem currículo versionado/autoria docente. | `apps/desktop/src/learning-content.ts`, `learning-context.ts`, `learning-pins.ts`, `exercise-opening.ts`, testes correspondentes | Conteúdo editorial não é avaliação; abrir exercício não executa nem registra progresso; pins não persistem após fechar a aba. |
-| UI-026/027/032 → UC-09/15 | Debugger com breakpoints, stepping e variáveis existe para Portugol clássico e para uma primeira fatia `.pors` via VM. Debugger Rust e ownership trace não existem. Ownership atual é simulação verificada. | `crates/portugol-service/tests/portugol_rs_debugger.rs`, `apps/desktop/src/api.ts` (`DebugInfo`), `apps/desktop/src/ownership-lab.ts`, fixtures `apps/desktop/tests/fixtures/ownership/` | Cobrir troca de documento/eventos obsoletos no debugger PORS; não reutilizar dados da VM como trace Rust. Manter proveniência de simulação e planejar debugger Rust separadamente. |
-| UI-028 → UC-05 | Implementado; a preferência é associada ao workspace por hash do caminho canônico, preserva fallback global e mantém arquivos standalone na chave global. | `apps/desktop/src/learning-mode.ts`, `apps/desktop/src-tauri/src/workspace.rs`, testes `learning-mode.test.mjs` e unitário Rust | Interação real no Tauri e E2E visual ainda pendentes. |
-| UI-031 → UC-18 | Divisórias redimensionáveis por mouse/teclado e proporções persistidas por workspace, preservando fallback global. | `apps/desktop/src/pane-layout.ts`, `apps/desktop/src/main.ts`, `apps/desktop/tests/pane-layout.test.mjs` | Validar a troca de abas/workspaces no desktop por testes de interação; screenshots não são gate de paridade com a IDE Java. |
-| FT-02/03/05/07/08 e critérios de fluxo | Cobertura unitária/integrada existe, mas features Gherkin não têm steps executáveis nem E2E de interação do app. | `apps/desktop/package.json`; `docs/portugol-studio-next/features/*.feature`; workflow CI | Priorizar fluxos nativos reproduzíveis; não reportar Gherkin como teste executado. |
+- **Desktop:** Tauri v2, `tauri-plugin-dialog`, comandos e capacidades em
+  `apps/desktop/src-tauri/`. O produto permanece desktop; Vite serve ao bundle
+  frontend.
+- **Frontend:** HTML/CSS/TypeScript sem framework SPA, Vite, CodeMirror 6 e
+  Node `node:test`. Editor e workspace já distinguem `.por`, `.pors`, `.rs` e
+  `.pex` em vários fluxos.
+- **Núcleo Rust:** workspace edition 2024 com crates de syntax, HIR, semântica,
+  bytecode, VM, geração Rust e service. Dependências clássicas e PORS convivem
+  neste snapshot.
+- **Portugol clássico:** `portugol-syntax` → `portugol-semantics` → compilador
+  bytecode/VM; mantém APIs públicas `check`, `start`, `inspect`, `export_rust`,
+  CLI, corpus, bibliotecas e 54 exercícios XML `.pex`.
+- **PORS:** `portugol-rs-frontend` → HIR; geração Rust via `portugol-rust` para
+  execução normal; `portugol-bytecode::compile_pors` → VM compartilhada para
+  debugger. O frontend aceita entrypoint `funcao inicio()` sem parâmetros,
+  cinco tipos primitivos, bindings explícitos, expressões, I/O, condições,
+  loops, `pare` e `continue`. Não tem funções do usuário, coleções ou
+  bibliotecas. A gramática não é Rust completo.
+- **Rust:** `.rs` standalone usa `rustc`/`rustfmt`, supervisão, cancelamento,
+  diagnósticos e argumentos. Projetos com `Cargo.toml` têm discovery offline,
+  build/run do alvo selecionado e `cargo check` sob demanda; debugger Rust e lint
+  contínuo Cargo ainda não existem. Scripts/dependências Cargo não são
+  sandboxed e exigem consentimento.
+- **Tauri e processos:** frontend não invoca shell arbitrário. Chamadas de Rust
+  usam processos supervisionados/limites e APIs Tauri; a execução standalone
+  mantém aviso de que não é sandbox.
+- **Aprendizagem:** modos Beginner/Bridge/Rust, source maps, conteúdos e
+  progresso de exercícios. Ownership está implementado como simulação
+  editorial com fixtures; não analisa o buffer nem é trace do processo Rust.
 
-## Validação observada no ciclo mais recente
+## Dependências clássicas a portar ou retirar
 
-| Comando/execução | Resultado | Evidência e limite |
-|---|---|---|
-| `cargo fmt --all --check` | PASS | Executado antes do PR #74 e validado novamente em CI multiplataforma. |
-| `cargo test -p portugol-service --offline --locked` | Histórico: PASS | O número de testes varia com a revisão; consultar o CI da PR correspondente em vez de reutilizar a contagem antiga de 87. |
-| `cargo clippy -p portugol-service --all-targets --offline --locked -- -D warnings` | PASS | Local para o serviço. |
-| `cargo test -p portugol-desktop --offline --locked --lib` | CI PASS / local NOT_RUN | Localmente a compilação GTK/Wry excedeu a quota temporária de disco; PR #79 passou testes e Clippy Tauri no CI Linux/Windows/macOS. |
-| `npm test --prefix apps/desktop` | PASS | 193 testes em 37 arquivos, executados com `TMPDIR` sob `target/` para evitar a quota de `/tmp`. |
-| `npx tsc --noEmit` e `npx vite build` | PASS | Bundle Vite emitido sob `target/`; permanece o aviso de chunk principal acima de 500 kB. |
-| Gherkin/BDD e E2E de interação do app | NOT_RUN | Gherkin continua sendo especificação; a regressão visual da IDE clássica não é gate sob o ADR 0015. |
+O parser/analisador/compiler clássico sustenta `portugol-service`, CLI,
+corpus/regressões, bibliotecas, exportador classic, ajuda e exemplos. Tauri,
+`workspace.rs`, `open_files.rs`, configuração de associação de arquivos e
+frontend também codificam `.por`/`.pex`. Catálogo de exemplos, ajuda e checker
+de exercícios refletem o produto Java. Detalhes e ordem estão na matriz PORS.
 
-## Limites de compatibilidade
+A VM não é exclusivamente clássica: `compile_pors` usa `Module`/`Vm` para o
+debugger. A remoção deverá procurar consumidores e deixar esse caminho intacto.
 
-- Portugol clássico e formato `.por` permanecem a linguagem/runtime de compatibilidade.
-- `.pors` é dialeto didático proposto; não deve ser descrito como Rust compatível com `rustc` fora do subset emitido.
-- `.rs` standalone não implica workspace Cargo, módulos ou dependências.
-- Progresso exige resultados reais de avaliação; abrir lição ou painel não prova domínio.
-- Debugger da VM não representa execução Rust; o ownership lab continua identificado como simulação.
+## Lacunas de migração prioritárias
+
+1. Funções, parâmetros/retornos, chamadas e política de recursão.
+2. Coleções, indexação, tipos compostos, controle/matching e conceitos
+   ownership/borrowing verificáveis.
+3. Bibliotecas e contratos para execução PORS e debugger.
+4. Conteúdo, ajuda e exercícios PORS/Rust; avaliador próprio versionado.
+5. CLI PORS e fluxos PORS/Rust sem fallback implícito para linguagem clássica.
+6. Retirada `.por`/`.pex` apenas após todos os gates da matriz.
+
+## Evidência recente
+
+- PR #93: roteamento por ID e descarte/replay ordenado de eventos de execução.
+- PR #94: comparação diferencial VM/Rust gerado para operadores e span de
+  operador não suportado.
+- PR #95: diagnóstico de nome desconhecido com offsets UTF-16 após Unicode e
+  rejeição semântica de incompatibilidade de tipos.
+- PRs #93–#95 passaram CI de núcleo e Tauri em Linux, Windows e macOS. Consulte
+  os checks de cada PR para logs; não extrapolar esta evidência a recursos
+  PORS ainda não implementados.
+
+## Registro de auditoria de worktrees
+
+Em 22/11/2026, 21 worktrees antigas foram auditadas: 15 limpas de trabalho já
+mesclado foram removidas; seis foram preservadas por alterações, documentos
+não rastreados ou dependências compartilhadas. As worktrees preservadas
+precisam de nova conferência antes da limpeza documental final. Documentos
+untracked do usuário devem continuar intactos.

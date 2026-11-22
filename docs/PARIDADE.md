@@ -1,4 +1,6 @@
-# Paridade com o Portugol Studio (Java)
+# Inventário histórico do Portugol Studio clássico
+
+> **Direção atual:** conforme o [ADR 0016](adr/0016-pors-como-linguagem-autoral-e-retirada-do-por.md), este inventário documenta capacidades do produto Java que podem ser portadas para PORS/Rust. Ele não define que `.por` será mantido no produto final, nem representa paridade já alcançada por PORS. A fonte de estado e dos critérios de migração é [`PORS_MIGRATION_MATRIX.md`](research/PORS_MIGRATION_MATRIX.md).
 
 Inventário do que o Portugol Studio original oferece e o estado no port.
 Atualize esta tabela junto com cada recurso entregue.

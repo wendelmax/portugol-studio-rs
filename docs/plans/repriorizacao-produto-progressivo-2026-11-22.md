@@ -1,130 +1,73 @@
 # Repriorização do produto progressivo — 2026-11-22
 
-## Direção
+## Direção vigente
 
-O objetivo passa a ser um ambiente desktop que leva o aluno de Portugol a
-Portugol-RS e Rust real. A paridade visual com o Portugol Studio clássico já é
-suficiente; a evolução de UI deve atender ao fluxo de aprendizagem e às
-features novas, conforme o [ADR 0015](../adr/0015-evolucao-visual-orientada-a-aprendizagem.md).
+O produto Rust + Tauri ensinará a linguagem autoral Portugol-RS (`.pors`) e
+permitirá avançar para Rust real (`.rs`/Cargo). O Portugol Studio original
+continua sendo o destino de arquivos e materiais `.por`/`.pex`. `portugol-studio-next`
+e seus documentos são referências de design e requisitos; não há renomeação do
+produto. Ver [ADR 0016](../adr/0016-pors-como-linguagem-autoral-e-retirada-do-por.md)
+e [plano de migração](pors-only-migration.md).
 
 ## Estado-base
 
-- `main` em `0adeecb`, após merge da PR #92; não havia issues ou PRs abertas na
-  consulta de 2026-11-22.
-- Tag atual `v0.1.0`.
-- Portugol clássico, shell Tauri, modos Beginner/Bridge/Rust, `.pors`, arquivos
-  `.rs`, source maps, exemplos, exercícios, execução e primeira fatia de
-  debugger já existem. Consultar [`PARIDADE.md`](../PARIDADE.md) e
-  [`REPOSITORY_DISCOVERY_CURRENT.md`](../research/REPOSITORY_DISCOVERY_CURRENT.md)
-  antes de abrir novas tarefas.
-- Ownership é uma simulação editorial validada por fixtures; não interpreta o
-  buffer do aluno nem produz trace do Rust.
-- A matriz visual do Java permanece como evidência histórica; screenshots
-  equivalentes não são gate para novas releases.
+- `main` está no commit `660a779` (PR #95); os PRs #93–#95 fecharam os eventos
+  obsoletos, ampliaram testes diferenciais e cobriram spans UTF-16 de erros
+  semânticos PORS.
+- Tag continua `v0.1.0`; manter a linha `v0.x`.
+- PORS tem tipos primitivos, mutabilidade explícita, expressões, entrada/saída,
+  condicionais, loops, geração de Rust, source maps e primeira fatia de
+  debugger VM.
+- Ainda faltam funções definidas pelo aluno, coleções, bibliotecas, CLI PORS,
+  formato de exercícios PORS e muito conteúdo PORS/Rust.
+- A VM permanece necessária ao debugger PORS e não será removida junto ao
+  compilador clássico.
+- Ownership continua uma simulação editorial verificada; não é análise do
+  buffer do aluno nem trace de execução Rust.
+- O inventário histórico do Portugol Java permanece em `docs/PARIDADE.md`; não
+  é gate visual nem afirma paridade de linguagem PORS.
 
 ## Ordem de trabalho
 
-### P0 — Recuperar e consolidar o estado de trabalho
-
-Antes de abrir mais frentes, comparar cada worktree com `main`, registrar PR ou
-commit correspondente e recuperar qualquer delta único. Não remover worktrees
-com alterações ou arquivos não rastreados. Corrigir as cópias locais de
-relatórios antigos somente depois de confirmar quais documentos são fonte
-vigente. A pasta `docs/portugol-studio-next-integration` permanece até seus
-requisitos terem sido conciliados e implementados; ela não deve ser copiada
-para PRs como se fosse documentação rastreada.
-
-**Saída:** inventário de worktrees com decisão preservar/descartar, matriz de
-paridade coerente com `main` e kit de integração pronto para remoção somente no
-fechamento do objetivo original.
-
-**Auditoria concluída em 2026-11-22:** 21 worktrees anteriores foram
-comparadas com a `main` e os PRs. Quinze worktrees limpas de mudanças já
-mescladas foram removidas. Seis foram preservadas por conter modificações,
-documentação não rastreada ou links compartilhados para dependências. A
-worktree `53fd` contém uma implementação antiga que se sobrepõe às PRs #89 e
-#90; ela não foi reaplicada nem removida. A matriz de paridade já estava
-atualizada pela PR #92. As seis worktrees preservadas ainda precisam ser
-revisitadas antes da remoção do kit de integração.
-
-Na P1, a PR #93 extraiu e cobriu o roteamento de eventos por ID, fechando a
-primeira regressão de sessões obsoletas. Esta fatia amplia a comparação VM ↔
-Rust gerado para famílias aritméticas, comparações e lógica curta, e confirma
-que operadores bit a bit fora do subset recebem diagnóstico com span. A
-cobertura de outras categorias de erro e spans continua pendente.
-
-### P1 — Tornar o fluxo Portugol-RS confiável de ponta a ponta
-
-Fechar as regressões do ciclo editar → diagnosticar → executar/depurar → ver
-resultado. Priorizar correlação de eventos e troca de documento durante uma
-sessão, cobertura diferencial do subset VM/Rust gerado, erros com spans e
-limites de runtime/saída/memória. Cada construção suportada deve ter casos de
-sucesso e falha; construção não suportada deve ser diagnosticada sem alegar
-compatibilidade.
-
-**Saída:** subset `.pors` documentado e reproduzível em runtime normal e
-debugger, com regressões que não contaminam a aba ativa com eventos obsoletos.
-
-### P2 — Ligar conceitos a prática verificável
-
-Ampliar o caminho de conceitos e prática para além dos três mapeamentos atuais
-de exercícios Portugol. Definir o formato de exercícios progressivos para
-`.pors` e/ou Rust antes de reutilizar o formato `.pex`; executar casos reais e
-registrar progresso somente após aprovação. Conteúdo editorial deve ser
-claramente distinguido de código gerado, compilado ou executado.
-
-**Saída:** conceitos mapeados a exercícios existentes ou a um formato novo com
-testes determinísticos, sem CTA para prática inexistente e sem progresso por
-abertura de cartão.
-
-### P3 — Evoluir a interface conforme os fluxos de aprendizagem
-
-Redesenhar painéis e navegação quando uma feature precisar de melhor
-hierarquia, comparação de linguagens, explicação de origem, prática ou
-depuração. Preservar familiaridade dos comandos clássicos, temas, teclado e
-acessibilidade. Não criar mudanças visuais sem comportamento correspondente.
-
-**Saída:** incrementos de UI medidos por tarefa concluída e compreensão do
-estado, executados no app Tauri; screenshot de comparação com a IDE antiga não
-é requisito de aceite.
-
-### P4 — Ownership real e ferramentas Rust avançadas
-
-Separar em projetos próprios: análise de ownership para um subconjunto Rust
-declarado, debugger de Rust e lint de projetos Cargo. A análise deve usar spans
-e resultados comparados com `rustc`; o debugger clássico/VM não é fonte de
-eventos de memória Rust. Não ampliar o laboratório atual por cenários
-roteirizados sem atualizar sua proveniência.
-
-**Saída:** cada feature tem limites explícitos, diagnóstico ou trace verificável
-e critérios independentes de entrega. Reutilizar estruturas existentes apenas
-quando a semântica for compatível; não iniciar refactor arquitetural preventivo.
-
-### P5 — Lançamento e limpeza documental
-
-Depois dos gates P1/P2 e do smoke desktop Linux, revisar instalação,
-compatibilidade, README conciso, créditos/licenças e notas de release. Manter a
-linha `v0.x` até uma decisão explícita de versão 1.0. Só então remover o kit
-`portugol-studio-next-integration`, após confirmar que nenhuma decisão ou
-requisito ainda depende dele.
+1. **Inventário de migração:** fechar a matriz por capacidade, evidência, risco,
+   backend, aceite e licença. Não remover `.por` enquanto existirem linhas sem
+   destino.
+2. **Linguagem PORS:** ampliar HIR, parser, semântica, geração Rust e debugger
+   em PRs pequenos: funções, coleções, controles e tipos compostos.
+3. **Conceitos Rust verificáveis:** moves, empréstimos, ownership, `Option`,
+   `Result`, structs/enums e ferramentas reais `rustc`/Cargo, comparando
+   diagnósticos sempre que aplicável.
+4. **Bibliotecas/IDE:** portar as APIs e fluxos mantidos com contratos de
+   segurança, limites e testes VM/Rust; manter shell, temas e experiência
+   visual atuais, evoluindo UI apenas para servir esses fluxos.
+5. **Aprendizagem:** trocar exemplos, ajuda, currículo e exercícios clássicos
+   por conteúdo PORS/Rust original e verificável. Progresso somente após
+   aprovação em testes reais.
+6. **PORS por padrão:** CLI, arquivos, workspace, diálogos e associações passam
+   a `.pors`/`.rs`; extensão desconhecida não cai para o parser clássico.
+7. **Corte final:** depois de todos os gates, remover rotas `.por`/`.pex`,
+   parser/semântica/compiler classic-only, catálogo, formatos e associações;
+   preservar a VM compartilhada. Atualizar instalação, README, créditos e notas
+   de release com a incompatibilidade.
 
 ## Critérios transversais
 
-- Manter Portugol clássico e `.por` compatíveis.
-- Preservar Rust + Tauri desktop e os contratos existentes; não tratar Vite
-  dev server como produto web.
-- Não executar comandos de shell arbitrários pelo frontend nem declarar
-  sandbox quando a execução não for isolada.
-- Associar explicações contextuais somente a source maps válidos da revisão
-  atual; rejeitar respostas obsoletas.
-- Validar testes locais pertinentes e CI multiplataforma; relatar limite de
-  ambiente como `NOT_RUN`, nunca como PASS.
-- Trabalhar em worktree isolada e mesclar PR após checks verdes; remover a
-  branch integrada.
+- Não alterar nem apagar arquivos antigos do usuário.
+- PORS é linguagem educacional autoral; não prometer que seja todo o Rust.
+- Execução normal e debugger concordam nas capacidades equivalentes; toda
+  diferença de backend é explícita e testada.
+- Manter Rust + Tauri desktop, supervisão de processos, limites, consentimento
+  e proteção do workspace.
+- Ownership simulado sempre aparece rotulado; explicações ligadas a código
+  devem pertencer à revisão ativa.
+- Usar worktree, TDD, revisão e CI multiplataforma; merge apenas com checks
+  verdes e excluir a branch integrada.
+- Não adicionar trailers de coautoria nem “Generated by” a commits/PRs.
 
-## Próxima fatia recomendada
+## Próxima fatia
 
-Continuar em P1: ampliar testes diferenciais de erros e spans do subset PORS,
-incluindo categorias em que o runtime da VM e o processo Rust gerado reportam
-resultados distintos. Depois fechar os limites e então avançar para P2,
-formatando exercícios progressivos com resultados verificáveis.
+Completar e revisar `docs/research/PORS_MIGRATION_MATRIX.md` contra o inventário
+de `docs/PARIDADE.md` e os contratos existentes em `docs/portugol-studio-next/`.
+O primeiro incremento de linguagem será escolhido a partir das lacunas com
+maior valor pedagógico e dependências mais claras; nenhuma feature PORS deve
+ser tratada como equivalente só por compilar no Rust gerado.

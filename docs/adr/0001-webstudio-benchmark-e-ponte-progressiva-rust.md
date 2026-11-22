@@ -1,6 +1,12 @@
 # ADR-0001: usar o Webstudio como referência e evoluir Portugol para Rust por etapas
 
-- **Status:** Aceita como direção de produto
+> **Escopo atualizado:** os itens sobre manter `.por` como linguagem de
+> compatibilidade e começar por um fluxo clássico foram supersedidos pelo
+> [ADR 0016](0016-pors-como-linguagem-autoral-e-retirada-do-por.md). O benchmark
+> de experiência, a separação de semânticas por frontend, a segurança e as
+> decisões de licença/crédito permanecem referências válidas.
+
+- **Status:** Referência aceita; estratégia de manter `.por` supersedida pelo ADR 0016
 - **Data:** 21/11/2026
 - **Pesquisa:** [Benchmark Portugol Webstudio](../research/portugol-webstudio-benchmark-2026-11-21.md)
 
@@ -14,10 +20,10 @@ O Portugol Webstudio serve de referência de experiência. A interface pública 
 
 ## Decisão
 
-1. Preservar o dialeto e os arquivos `.por` atuais como modo de compatibilidade, com o runtime/VM Rust existente.
-2. Introduzir a aprendizagem de Rust como modo opcional e explícito, sem alterar a interpretação de Portugol clássico.
+1. Portar para PORS as capacidades que o produto manterá; retirar `.por` depois do gate de migração do ADR 0016.
+2. Ensinar PORS e Rust em modos explícitos, sem confundir a semântica do dialeto com Rust real.
 3. Usar um modelo intermediário semântico comum para conceitos realmente partilhados, com frontends e regras de análise específicos por dialeto. Ownership, borrowing e mutabilidade pertencem ao analisador Rust-like e não devem ser simulados por conversões de tokens do Portugol.
-4. Começar a ponte por uma conversão lado a lado de um subconjunto documentado e testado; só depois introduzir Portugol-RS, compilação Rust real e laboratório de ownership.
+4. Construir a linguagem PORS e sua ponte lado a lado com Rust real por subconjuntos documentados e testados; os cenários de ownership precisam de evidência do compilador ou trace real.
 5. Gerar código Rust semanticamente correto e tratar construções não suportadas com diagnósticos explícitos. Não apresentar uma tradução aproximada como código correto.
 6. Manter exercícios, progresso e rascunhos local/offline por padrão. Publicação em link requer decisão separada sobre serviço, retenção, revogação e aviso de dados.
 7. Reimplementar os fluxos de forma independente com os crates do projeto. Não copiar código ou assets GPL-3.0 do Webstudio para este repositório sem revisão de licença e decisão de relicenciamento.
