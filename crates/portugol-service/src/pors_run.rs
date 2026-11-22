@@ -76,6 +76,18 @@ pub enum RustSourceRunResult {
         stderr: String,
         reason: RustSourceLimitReason,
     },
+    Cancelled {
+        phase: RustSourceRunPhase,
+        stdout: String,
+        stderr: String,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RustSourceRunPhase {
+    Compilation,
+    Runtime,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -101,6 +113,7 @@ enum ProcessLimitReason {
     Time,
     Output,
     StringMemory,
+    Cancelled,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -195,6 +208,15 @@ pub fn run_portugol_rs(source: &str) -> Result<PortugolRsRunResult, String> {
 
 /// Compiles and runs one standalone Rust 2021 source file with fixed rustc arguments.
 pub fn run_rust_source(source: &str) -> Result<RustSourceRunResult, String> {
+    let cancel = AtomicBool::new(false);
+    run_rust_source_with_cancel(source, &cancel)
+}
+
+/// Compila e executa uma fonte Rust, observando o sinal de cancelamento entre ciclos do supervisor.
+pub fn run_rust_source_with_cancel(
+    source: &str,
+    cancel: &AtomicBool,
+) -> Result<RustSourceRunResult, String> {
     if source.len() > MAX_SOURCE_BYTES {
         return Err("O arquivo Rust excede o limite de 1 MiB para compilação.".into());
     }
@@ -228,10 +250,17 @@ pub fn run_rust_source(source: &str) -> Result<RustSourceRunResult, String> {
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|error| format!("Não foi possível iniciar rustc: {error}"))?;
-    let compilation = supervise(compilation, COMPILATION_LIMIT)?;
+    let compilation = supervise(compilation, COMPILATION_LIMIT, Some(cancel))?;
     let compile_stdout = String::from_utf8_lossy(&compilation.stdout).into_owned();
     let compile_stderr = String::from_utf8_lossy(&compilation.stderr).into_owned();
     if let Some(reason) = compilation.limit {
+        if reason == ProcessLimitReason::Cancelled {
+            return Ok(RustSourceRunResult::Cancelled {
+                phase: RustSourceRunPhase::Compilation,
+                stdout: compile_stdout,
+                stderr: compile_stderr,
+            });
+        }
         return Ok(RustSourceRunResult::CompileLimit {
             stderr: if compile_stdout.is_empty() {
                 compile_stderr
@@ -257,10 +286,17 @@ pub fn run_rust_source(source: &str) -> Result<RustSourceRunResult, String> {
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|error| format!("Não foi possível executar o programa Rust: {error}"))?;
-    let execution = supervise(execution, RUNTIME_LIMIT)?;
+    let execution = supervise(execution, RUNTIME_LIMIT, Some(cancel))?;
     let stdout = String::from_utf8_lossy(&execution.stdout).into_owned();
     let stderr = String::from_utf8_lossy(&execution.stderr).into_owned();
     if let Some(reason) = execution.limit {
+        if reason == ProcessLimitReason::Cancelled {
+            return Ok(RustSourceRunResult::Cancelled {
+                phase: RustSourceRunPhase::Runtime,
+                stdout,
+                stderr,
+            });
+        }
         return Ok(RustSourceRunResult::RuntimeLimit {
             stdout,
             stderr,
@@ -285,6 +321,7 @@ fn source_limit_reason(reason: ProcessLimitReason) -> Result<RustSourceLimitReas
         ProcessLimitReason::StringMemory => {
             Err("Limite de memória exclusivo do Portugol-RS.".into())
         }
+        ProcessLimitReason::Cancelled => Err("Cancelamento não é limite de execução.".into()),
     }
 }
 
@@ -330,7 +367,7 @@ fn compile_and_run_generated(
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|error| format!("Não foi possível executar o programa compilado: {error}"))?;
-    let execution = supervise(execution, RUNTIME_LIMIT)?;
+    let execution = supervise(execution, RUNTIME_LIMIT, None)?;
     let stdout = String::from_utf8_lossy(&execution.stdout).into_owned();
     let stderr = String::from_utf8_lossy(&execution.stderr).into_owned();
     if let Some(reason) = execution.limit {
@@ -341,6 +378,9 @@ fn compile_and_run_generated(
                 ProcessLimitReason::Time => PortugolRsRuntimeLimitReason::Time,
                 ProcessLimitReason::Output => PortugolRsRuntimeLimitReason::Output,
                 ProcessLimitReason::StringMemory => PortugolRsRuntimeLimitReason::StringMemory,
+                ProcessLimitReason::Cancelled => {
+                    return Err("Cancelamento inesperado no executor Portugol-RS.".into());
+                }
             },
         });
     }
@@ -485,7 +525,11 @@ impl ProcessTreeSupervisor {
     }
 }
 
-fn supervise(mut child: Child, time_limit: Duration) -> Result<SupervisedOutput, String> {
+fn supervise(
+    mut child: Child,
+    time_limit: Duration,
+    cancel: Option<&AtomicBool>,
+) -> Result<SupervisedOutput, String> {
     let process_tree = ProcessTreeSupervisor::new(&child);
     let stdout = child
         .stdout
@@ -557,6 +601,14 @@ fn supervise(mut child: Child, time_limit: Duration) -> Result<SupervisedOutput,
             .map_err(|error| format!("Não foi possível acompanhar o processo: {error}"))?
         {
             break status.code();
+        }
+        if cancel.is_some_and(|flag| flag.load(Ordering::Acquire)) {
+            limit = Some(ProcessLimitReason::Cancelled);
+            process_tree.terminate(&mut child);
+            break child
+                .wait()
+                .map_err(|error| format!("Não foi possível recolher o processo: {error}"))?
+                .code();
         }
         thread::sleep(Duration::from_millis(5));
     };

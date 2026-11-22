@@ -26,8 +26,8 @@ pub use exercises::{
 pub use outline::{SymbolInfo, SymbolKind};
 pub use pors_run::{
     PortugolRsRunResult, PortugolRsRuntimeLimitReason, RustSourceCompileDiagnostic,
-    RustSourceLimitReason, RustSourceRunResult, run_portugol_rs, run_rust_source,
-    rust_toolchain_available,
+    RustSourceLimitReason, RustSourceRunPhase, RustSourceRunResult, run_portugol_rs,
+    run_rust_source, run_rust_source_with_cancel, rust_toolchain_available,
 };
 pub use portugol_vm::{FileFilter, Host, Sound, graphics};
 pub use position::Position;

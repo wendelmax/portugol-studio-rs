@@ -187,10 +187,12 @@ export type RustSourceRunResult =
   | { status: "executed"; stdout: string; stderr: string; exitCode: number | null }
   | { status: "compile_error"; diagnostics: RustSourceCompileDiagnostic[]; stderr: string }
   | { status: "compile_limit"; stderr: string; reason: "time" | "output" }
-  | { status: "runtime_limit"; stdout: string; stderr: string; reason: "time" | "output" };
+  | { status: "runtime_limit"; stdout: string; stderr: string; reason: "time" | "output" }
+  | { status: "cancelled"; phase: "compilation" | "runtime"; stdout: string; stderr: string };
 
-export const runRustSource = (source: string) =>
-  invoke<RustSourceRunResult>("run_rust_source", { source });
+export const registerRustSourceRun = () => invoke<number>("register_rust_source_run");
+export const runRustSource = (id: number, source: string) =>
+  invoke<RustSourceRunResult>("run_rust_source", { id, source });
 
 /** Id da execução; rejeita com a lista de erros se o programa não compila. */
 export const run = (source: string, args: string[], path: string | null, breakpoints: number[] = [], pauseOnStart = false) =>
@@ -198,7 +200,7 @@ export const run = (source: string, args: string[], path: string | null, breakpo
 
 export const sendInput = (id: number, line: string) => invoke<void>("send_input", { id, line });
 
-export const stop = (id: number) => invoke<void>("stop", { id });
+export const stop = (id: number) => invoke<boolean>("stop", { id });
 
 export const debugPause = (id: number) => invoke<void>("debug_pause", { id });
 export const debugContinue = (id: number) => invoke<void>("debug_continue", { id });

@@ -1664,6 +1664,8 @@ async function runProgram(pauseOnStart = false) {
         rememberRustExecutionConsent(sessionStorage, true);
       }
       if (activeTab() !== tab || view.state.doc !== documentState) return;
+      const id = await api.registerRustSourceRun();
+      runId = id;
       view.dispatch({ effects: setRuntimeError.of(null) });
       view.dispatch({ effects: setDebugLine.of(null) });
       paused = null;
@@ -1671,9 +1673,14 @@ async function runProgram(pauseOnStart = false) {
       output.replaceChildren();
       setRunning(true);
       setStatus("Compilando e executando Rust 2021 com rustc…");
-      const result = await api.runRustSource(source);
+      const result = await api.runRustSource(id, source);
       if (activeTab() !== tab || view.state.doc !== documentState) return;
-      if (result.status === "executed") {
+      if (result.status === "cancelled") {
+        if (result.stdout) appendConsole(result.stdout);
+        if (result.stderr) appendConsole(result.stderr, "error");
+        const phase = result.phase === "compilation" ? "compilação" : "execução";
+        setStatus(`Execução Rust cancelada durante a ${phase}.`);
+      } else if (result.status === "executed") {
         if (result.stdout) appendConsole(result.stdout);
         if (result.stderr) appendConsole(result.stderr, "error");
         setStatus(
@@ -1717,6 +1724,7 @@ async function runProgram(pauseOnStart = false) {
         setStatus("Não foi possível compilar ou executar o arquivo Rust.", "error");
       }
     } finally {
+      runId = null;
       porsRunPending = false;
       runTabId = null;
       setRunning(runId !== null);
@@ -1838,7 +1846,16 @@ function stepOrStart() {
 }
 
 async function stopProgram() {
-  if (runId !== null) await api.stop(runId);
+  if (runId === null) return;
+  const id = runId;
+  try {
+    const accepted = await api.stop(id);
+    if (accepted && runId === id && activeId === runTabId) {
+      setStatus("Interrupção solicitada…");
+    }
+  } catch (error) {
+    if (runId === id && activeId === runTabId) setStatus(`Não foi possível interromper: ${String(error)}`, "error");
+  }
 }
 
 const ownershipStateLabels: Record<OwnershipBindingState, string> = {

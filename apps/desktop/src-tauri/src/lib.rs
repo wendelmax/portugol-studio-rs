@@ -25,7 +25,8 @@ mod open_files;
 mod updates;
 mod workspace;
 
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
 
 use serde::Serialize;
@@ -40,9 +41,52 @@ use tauri_plugin_dialog::DialogExt;
 struct Runs {
     next_id: AtomicU32,
     current: Mutex<Option<(u32, RunHandle)>>,
+    rust_source_cancellations: Mutex<HashMap<u32, Arc<AtomicBool>>>,
 }
 
 impl Runs {
+    fn register_rust_source(&self) -> Result<u32, String> {
+        let id = self.next_id.fetch_add(1, Ordering::Relaxed).wrapping_add(1);
+        let mut cancellations = self
+            .rust_source_cancellations
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        match cancellations.entry(id) {
+            std::collections::hash_map::Entry::Vacant(entry) => {
+                entry.insert(Arc::new(AtomicBool::new(false)));
+            }
+            std::collections::hash_map::Entry::Occupied(_) => {
+                return Err("Já existe uma execução Rust com este identificador.".into());
+            }
+        }
+        Ok(id)
+    }
+
+    fn request_stop(&self, id: u32) -> bool {
+        {
+            let current = self
+                .current
+                .lock()
+                .unwrap_or_else(|error| error.into_inner());
+            if let Some((current_id, handle)) = current.as_ref()
+                && *current_id == id
+            {
+                handle.stop();
+                return true;
+            }
+        }
+        let cancellations = self
+            .rust_source_cancellations
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        if let Some(cancel) = cancellations.get(&id) {
+            cancel.store(true, Ordering::Release);
+            true
+        } else {
+            false
+        }
+    }
+
     fn with_current(&self, id: u32, action: impl FnOnce(&RunHandle)) {
         let current = self.current.lock().unwrap_or_else(|e| e.into_inner());
         if let Some((current_id, handle)) = current.as_ref()
@@ -183,10 +227,32 @@ async fn run_portugol_rs(source: String) -> Result<portugol_service::PortugolRsR
 }
 
 #[tauri::command]
-async fn run_rust_source(source: String) -> Result<portugol_service::RustSourceRunResult, String> {
-    tauri::async_runtime::spawn_blocking(move || portugol_service::run_rust_source(&source))
-        .await
-        .map_err(|error| error.to_string())?
+fn register_rust_source_run(runs: State<'_, Runs>) -> Result<u32, String> {
+    runs.register_rust_source()
+}
+
+#[tauri::command]
+async fn run_rust_source(
+    runs: State<'_, Runs>,
+    id: u32,
+    source: String,
+) -> Result<portugol_service::RustSourceRunResult, String> {
+    let cancellation = runs
+        .rust_source_cancellations
+        .lock()
+        .unwrap_or_else(|error| error.into_inner())
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| "A execução Rust não está mais registrada.".to_string())?;
+    let joined = tauri::async_runtime::spawn_blocking(move || {
+        portugol_service::run_rust_source_with_cancel(&source, &cancellation)
+    })
+    .await;
+    runs.rust_source_cancellations
+        .lock()
+        .unwrap_or_else(|error| error.into_inner())
+        .remove(&id);
+    joined.map_err(|error| error.to_string())?
 }
 
 #[tauri::command]
@@ -362,8 +428,8 @@ fn send_input(runs: State<'_, Runs>, id: u32, line: String) {
 }
 
 #[tauri::command]
-fn stop(runs: State<'_, Runs>, id: u32) {
-    runs.with_current(id, RunHandle::stop);
+fn stop(runs: State<'_, Runs>, id: u32) -> bool {
+    runs.request_stop(id)
 }
 
 #[tauri::command]
@@ -435,6 +501,7 @@ pub fn run_app() {
             export_portugol_rs,
             rust_toolchain_available,
             run_portugol_rs,
+            register_rust_source_run,
             run_rust_source,
             format_source,
             include_library,
@@ -480,4 +547,35 @@ pub fn run_app() {
         .build(tauri::generate_context!())
         .expect("erro ao iniciar a IDE")
         .run(open_files::application_event);
+}
+
+#[cfg(test)]
+mod rust_source_run_tests {
+    use super::Runs;
+    use std::sync::atomic::Ordering;
+
+    #[test]
+    fn stop_targets_only_a_registered_rust_run() {
+        let runs = Runs::default();
+        let id = runs.register_rust_source().expect("id deve ser registrado");
+
+        assert!(!runs.request_stop(id + 1));
+        assert!(runs.request_stop(id));
+        let cancellations = runs
+            .rust_source_cancellations
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        assert!(cancellations[&id].load(Ordering::Acquire));
+    }
+
+    #[test]
+    fn each_rust_run_gets_a_unique_id_and_stop_acceptance() {
+        let runs = Runs::default();
+        let first = runs.register_rust_source().unwrap();
+        let second = runs.register_rust_source().unwrap();
+
+        assert_ne!(first, second);
+        assert!(runs.request_stop(first));
+        assert!(!runs.request_stop(u32::MAX));
+    }
 }
