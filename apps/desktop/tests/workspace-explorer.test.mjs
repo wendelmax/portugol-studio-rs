@@ -89,6 +89,27 @@ test("home action and explorer tree expose stable accessible controls", () => {
   assert.match(html, /data-testid="project-tree"/);
 });
 
+test("home start page keeps classic new file primary and groups alternate languages", () => {
+  const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../src/style.css", import.meta.url), "utf8");
+
+  assert.match(html, /<button id="home-new"[^>]*>[^<]*<span[^>]*>[^<]*<\/span>Novo Arquivo<\/button>/);
+  assert.match(html, /<details id="home-new-menu"[^>]*data-testid="home-new-menu"/);
+  assert.match(html, /<summary[^>]*aria-label="Criar arquivo em outra linguagem"/);
+  assert.match(html, /id="home-new-pors"[^>]*data-home-new-language="portugol-rs"[^>]*>Novo Portugol-RS \(\.pors\)<\/button>/);
+  assert.match(html, /id="home-new-rust"[^>]*data-home-new-language="rust"[^>]*>Novo Rust \(\.rs\)<\/button>/);
+  assert.match(main, /\$\("home-new"\)\.onclick = \(\) => newTab\(\);/);
+  assert.match(main, /mountHomeNewFileMenu\(/);
+  assert.match(main, /"portugol-rs": \(\) => newTab\(PORS_TEMPLATE, null, undefined, undefined, undefined, "portugol-rs"\)/);
+  assert.match(main, /rust: \(\) => newTab\("fn main\(\) \{\\n    \\n\}\\n", null, undefined, undefined, undefined, "rust"\)/);
+  assert.doesNotMatch(main, /const newPorsButton = document\.createElement/);
+  assert.doesNotMatch(main, /const newRustButton = document\.createElement/);
+  assert.match(css, /\.home-actions > button,\s*\.home-new-file-group > button/);
+  assert.match(css, /\.home-new-menu-items\s*\{[^}]*background: var\(--surface\)/);
+  assert.match(css, /\.home-new-menu > summary:focus-visible,[\s\S]*?outline: 2px solid var\(--accent\)/);
+});
+
 test("workspace create dialog exposes the .por, .pors, and .rs choices and an error status", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   assert.match(html, /id="workspace-new-file"/);

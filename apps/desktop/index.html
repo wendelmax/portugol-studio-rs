@@ -19,7 +19,16 @@
     <main id="home" class="home" tabindex="-1">
       <section class="home-welcome" aria-label="Portugol Studio">
         <div class="home-actions">
-          <button id="home-new" title="Novo arquivo (Ctrl+N)"><span data-icon="grande/newfile64"></span>Novo Arquivo</button>
+          <div class="home-new-file-group">
+            <button id="home-new" title="Novo arquivo Portugol (Ctrl+N)"><span data-icon="grande/newfile64"></span>Novo Arquivo</button>
+            <details id="home-new-menu" class="home-new-menu" data-testid="home-new-menu">
+              <summary id="home-new-menu-toggle" aria-label="Criar arquivo em outra linguagem" aria-controls="home-new-menu-items" title="Criar arquivo em outra linguagem"><span aria-hidden="true">▾</span></summary>
+              <div id="home-new-menu-items" class="home-new-menu-items" aria-label="Outras linguagens">
+                <button id="home-new-pors" type="button" data-home-new-language="portugol-rs" title="Novo arquivo Portugol-RS (.pors)">Novo Portugol-RS (.pors)</button>
+                <button id="home-new-rust" type="button" data-home-new-language="rust" title="Novo arquivo Rust (.rs)">Novo Rust (.rs)</button>
+              </div>
+            </details>
+          </div>
           <button id="home-open" title="Abrir arquivo (Ctrl+O)"><span data-icon="grande/openfile64"></span>Abrir Arquivo</button>
           <button id="home-open-folder" title="Abrir pasta de projeto"><span data-icon="pequeno/folder_closed"></span>Abrir Pasta</button>
           <button id="home-help" title="Ajuda (F1)"><span data-icon="grande/helplow"></span>Ajuda</button>

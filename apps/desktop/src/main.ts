@@ -30,6 +30,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { renderDiagnostics } from "./diagnostics";
 import { mappedPreviewSegments, sourceDiagnostic, sourceMapLinks, type SourceMapLink } from "./source-map-ui";
 import { mountExamples } from "./examples";
+import { mountHomeNewFileMenu } from "./home-new-file-menu";
 import { mountExercises, readExercise, type ExerciseDocument } from "./exercises";
 import { portugolFolding } from "./folding";
 import { editorSearchKeys, findDialog } from "./find";
@@ -2209,18 +2210,10 @@ function toggleExpanded() {
 // ---------------------------------------------------------------------------
 
 $("home-new").onclick = () => newTab();
-const newPorsButton = document.createElement("button");
-newPorsButton.id = "home-new-pors";
-newPorsButton.title = "Novo arquivo Portugol-RS (.pors)";
-newPorsButton.textContent = "Novo Portugol-RS";
-newPorsButton.onclick = () => newTab(PORS_TEMPLATE, null, undefined, undefined, undefined, "portugol-rs");
-$("home-new").parentElement!.append(newPorsButton);
-const newRustButton = document.createElement("button");
-newRustButton.id = "home-new-rust";
-newRustButton.title = "Novo arquivo Rust (.rs)";
-newRustButton.textContent = "Novo Rust";
-newRustButton.onclick = () => newTab("fn main() {\n    \n}\n", null, undefined, undefined, undefined, "rust");
-$("home-new").parentElement!.append(newRustButton);
+mountHomeNewFileMenu($<HTMLDetailsElement>("home-new-menu"), {
+  "portugol-rs": () => newTab(PORS_TEMPLATE, null, undefined, undefined, undefined, "portugol-rs"),
+  rust: () => newTab("fn main() {\n    \n}\n", null, undefined, undefined, undefined, "rust"),
+});
 $("home-open").onclick = () => void openFiles();
 $("btn-open").onclick = () => void openFiles();
 const editorOptions = $<HTMLDetailsElement>("editor-options");
