@@ -118,3 +118,7 @@ secrets existem.
 
 Pacotes `.deb`/`.rpm`/`.AppImage` não exigem assinatura para instalar. O
 checksum de cada arquivo aparece na página do release.
+
+## Toolchain Rust
+
+Os instaladores não incluem nem instalam `rustc`. O uso de execução para arquivos `.rs` e `.pors` requer a toolchain Rust instalada no computador e acessível pelo `PATH`. O Portugol clássico continua executando sem essa dependência.

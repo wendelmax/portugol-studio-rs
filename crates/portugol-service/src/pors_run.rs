@@ -17,6 +17,7 @@ static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(1);
 const MAX_SOURCE_BYTES: usize = 1_048_576;
 const MAX_RUNTIME_OUTPUT_BYTES: usize = 1_048_576;
 const RUNTIME_LIMIT: Duration = Duration::from_secs(3);
+const COMPILATION_LIMIT: Duration = Duration::from_secs(20);
 const STRING_BUDGET_EXIT_CODE: i32 = 78;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -45,6 +46,58 @@ pub enum PortugolRsRunResult {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PortugolRsRuntimeLimitReason {
+    Time,
+    Output,
+    StringMemory,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(
+    tag = "status",
+    rename_all = "snake_case",
+    rename_all_fields = "camelCase"
+)]
+pub enum RustSourceRunResult {
+    Executed {
+        stdout: String,
+        stderr: String,
+        exit_code: Option<i32>,
+    },
+    CompileError {
+        diagnostics: Vec<RustSourceCompileDiagnostic>,
+        stderr: String,
+    },
+    CompileLimit {
+        stderr: String,
+        reason: RustSourceLimitReason,
+    },
+    RuntimeLimit {
+        stdout: String,
+        stderr: String,
+        reason: RustSourceLimitReason,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RustSourceLimitReason {
+    Time,
+    Output,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RustSourceCompileDiagnostic {
+    pub severity: String,
+    pub code: Option<String>,
+    pub message: String,
+    pub rendered: Option<String>,
+    pub start: Position,
+    pub end: Position,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ProcessLimitReason {
     Time,
     Output,
     StringMemory,
@@ -140,6 +193,101 @@ pub fn run_portugol_rs(source: &str) -> Result<PortugolRsRunResult, String> {
     compile_and_run_generated(&generated, source)
 }
 
+/// Compiles and runs one standalone Rust 2021 source file with fixed rustc arguments.
+pub fn run_rust_source(source: &str) -> Result<RustSourceRunResult, String> {
+    if source.len() > MAX_SOURCE_BYTES {
+        return Err("O arquivo Rust excede o limite de 1 MiB para compilação.".into());
+    }
+    if !rust_toolchain_available() {
+        return Err(
+            "Rustc não foi encontrado. Instale a toolchain Rust para executar `.rs`.".into(),
+        );
+    }
+
+    let temporary = TemporaryDirectory::create()?;
+    let source_path = temporary.0.join("program.rs");
+    let executable_path = temporary.0.join(if cfg!(windows) {
+        "program.exe"
+    } else {
+        "program"
+    });
+    fs::write(&source_path, source)
+        .map_err(|error| format!("Não foi possível gravar o Rust temporário: {error}"))?;
+
+    let mut compiler = Command::new("rustc");
+    configure_process_tree(&mut compiler);
+    let compilation = compiler
+        .arg("--edition=2021")
+        .arg("--error-format=json")
+        .arg("--crate-name=portugol_student")
+        .arg(&source_path)
+        .arg("-o")
+        .arg(&executable_path)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| format!("Não foi possível iniciar rustc: {error}"))?;
+    let compilation = supervise(compilation, COMPILATION_LIMIT)?;
+    let compile_stdout = String::from_utf8_lossy(&compilation.stdout).into_owned();
+    let compile_stderr = String::from_utf8_lossy(&compilation.stderr).into_owned();
+    if let Some(reason) = compilation.limit {
+        return Ok(RustSourceRunResult::CompileLimit {
+            stderr: if compile_stdout.is_empty() {
+                compile_stderr
+            } else {
+                format!("{compile_stdout}{compile_stderr}")
+            },
+            reason: source_limit_reason(reason)?,
+        });
+    }
+    if compilation.status != Some(0) {
+        let diagnostics = parse_rust_source_diagnostics(&compile_stderr, source);
+        return Ok(RustSourceRunResult::CompileError {
+            diagnostics,
+            stderr: compile_stderr,
+        });
+    }
+
+    let mut executable = Command::new(&executable_path);
+    configure_process_tree(&mut executable);
+    let execution = executable
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| format!("Não foi possível executar o programa Rust: {error}"))?;
+    let execution = supervise(execution, RUNTIME_LIMIT)?;
+    let stdout = String::from_utf8_lossy(&execution.stdout).into_owned();
+    let stderr = String::from_utf8_lossy(&execution.stderr).into_owned();
+    if let Some(reason) = execution.limit {
+        return Ok(RustSourceRunResult::RuntimeLimit {
+            stdout,
+            stderr,
+            reason: source_limit_reason(reason)?,
+        });
+    }
+    Ok(RustSourceRunResult::Executed {
+        stdout,
+        stderr: if compile_stderr.is_empty() {
+            stderr
+        } else {
+            format!("{compile_stderr}{stderr}")
+        },
+        exit_code: execution.status,
+    })
+}
+
+fn source_limit_reason(reason: ProcessLimitReason) -> Result<RustSourceLimitReason, String> {
+    match reason {
+        ProcessLimitReason::Time => Ok(RustSourceLimitReason::Time),
+        ProcessLimitReason::Output => Ok(RustSourceLimitReason::Output),
+        ProcessLimitReason::StringMemory => {
+            Err("Limite de memória exclusivo do Portugol-RS.".into())
+        }
+    }
+}
+
 fn compile_and_run_generated(
     generated: &GeneratedRust,
     source: &str,
@@ -154,7 +302,9 @@ fn compile_and_run_generated(
     fs::write(&source_path, &generated.code)
         .map_err(|error| format!("Não foi possível gravar o Rust temporário: {error}"))?;
 
-    let compilation = Command::new("rustc")
+    let mut compiler = Command::new("rustc");
+    configure_process_tree(&mut compiler);
+    let compilation = compiler
         .arg("--edition=2021")
         .arg("--error-format=json")
         .arg("--crate-name=portugol_rs_program")
@@ -173,19 +323,25 @@ fn compile_and_run_generated(
         });
     }
 
-    let execution = Command::new(&executable_path)
+    let mut executable = Command::new(&executable_path);
+    configure_process_tree(&mut executable);
+    let execution = executable
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|error| format!("Não foi possível executar o programa compilado: {error}"))?;
-    let execution = supervise(execution)?;
+    let execution = supervise(execution, RUNTIME_LIMIT)?;
     let stdout = String::from_utf8_lossy(&execution.stdout).into_owned();
     let stderr = String::from_utf8_lossy(&execution.stderr).into_owned();
     if let Some(reason) = execution.limit {
         return Ok(PortugolRsRunResult::RuntimeLimit {
             stdout,
             stderr,
-            reason,
+            reason: match reason {
+                ProcessLimitReason::Time => PortugolRsRuntimeLimitReason::Time,
+                ProcessLimitReason::Output => PortugolRsRuntimeLimitReason::Output,
+                ProcessLimitReason::StringMemory => PortugolRsRuntimeLimitReason::StringMemory,
+            },
         });
     }
     Ok(PortugolRsRunResult::Executed {
@@ -199,10 +355,138 @@ struct SupervisedOutput {
     stdout: Vec<u8>,
     stderr: Vec<u8>,
     status: Option<i32>,
-    limit: Option<PortugolRsRuntimeLimitReason>,
+    limit: Option<ProcessLimitReason>,
 }
 
-fn supervise(mut child: Child) -> Result<SupervisedOutput, String> {
+#[cfg(unix)]
+fn configure_process_tree(command: &mut Command) {
+    use std::os::unix::process::CommandExt;
+    command.process_group(0);
+}
+
+#[cfg(not(unix))]
+fn configure_process_tree(_command: &mut Command) {}
+
+#[cfg(unix)]
+struct ProcessTreeSupervisor;
+
+#[cfg(unix)]
+impl ProcessTreeSupervisor {
+    fn new(_child: &Child) -> Self {
+        Self
+    }
+
+    fn terminate(&self, child: &mut Child) {
+        let process_group = -(child.id() as i32);
+        // SAFETY: the child was started in its own process group above; a negative
+        // PID targets only that group and SIGKILL cannot invoke user code.
+        unsafe {
+            libc::kill(process_group, libc::SIGKILL);
+        }
+        let _ = child.kill();
+    }
+}
+
+#[cfg(windows)]
+struct WindowsProcessJob(windows_sys::Win32::Foundation::HANDLE);
+
+#[cfg(windows)]
+impl WindowsProcessJob {
+    fn assign(child: &Child) -> Option<Self> {
+        use std::os::windows::io::AsRawHandle;
+        use windows_sys::Win32::System::JobObjects::{AssignProcessToJobObject, CreateJobObjectW};
+
+        // SAFETY: null security attributes/name are valid and the returned job
+        // handle is checked before any subsequent Windows API call.
+        let handle = unsafe { CreateJobObjectW(std::ptr::null(), std::ptr::null()) };
+        if handle.is_null() {
+            return None;
+        }
+        // SAFETY: child exposes a live process handle; the job handle is valid.
+        let assigned = unsafe { AssignProcessToJobObject(handle, child.as_raw_handle() as _) };
+        if assigned == 0 {
+            // SAFETY: this function owns the valid handle returned above.
+            unsafe { windows_sys::Win32::Foundation::CloseHandle(handle) };
+            return None;
+        }
+        Some(Self(handle))
+    }
+
+    fn terminate(&self) -> bool {
+        // SAFETY: this object owns a valid job handle until Drop.
+        unsafe { windows_sys::Win32::System::JobObjects::TerminateJobObject(self.0, 1) != 0 }
+    }
+}
+
+#[cfg(windows)]
+impl Drop for WindowsProcessJob {
+    fn drop(&mut self) {
+        self.terminate();
+        // SAFETY: this object owns the handle returned by CreateJobObjectW.
+        unsafe { windows_sys::Win32::Foundation::CloseHandle(self.0) };
+    }
+}
+
+#[cfg(windows)]
+struct ProcessTreeSupervisor(Option<WindowsProcessJob>);
+
+#[cfg(windows)]
+impl ProcessTreeSupervisor {
+    fn new(child: &Child) -> Self {
+        Self(WindowsProcessJob::assign(child))
+    }
+
+    fn terminate(&self, child: &mut Child) {
+        use std::os::windows::ffi::OsStringExt;
+        if self.0.as_ref().is_some_and(WindowsProcessJob::terminate) {
+            let _ = child.kill();
+            return;
+        }
+        let mut system_directory = [0u16; 512];
+        // SAFETY: the buffer is writable and its length matches the provided capacity.
+        let length = unsafe {
+            windows_sys::Win32::System::SystemInformation::GetSystemDirectoryW(
+                system_directory.as_mut_ptr(),
+                system_directory.len() as u32,
+            )
+        } as usize;
+        let directory = (length > 0 && length < system_directory.len())
+            .then(|| std::ffi::OsString::from_wide(&system_directory[..length]));
+        let directory = directory.or_else(|| std::env::var_os("SystemRoot"));
+        if let Some(directory) = directory {
+            let mut taskkill = std::path::PathBuf::from(directory);
+            if taskkill.file_name() != Some(std::ffi::OsStr::new("System32")) {
+                taskkill.push("System32");
+            }
+            taskkill.push("taskkill.exe");
+            let _ = Command::new(taskkill)
+                .args(["/T", "/F", "/PID"])
+                .arg(child.id().to_string())
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status();
+        }
+        let _ = child.kill();
+    }
+}
+
+#[cfg(not(any(unix, windows)))]
+struct ProcessTreeSupervisor;
+
+#[cfg(not(any(unix, windows)))]
+impl ProcessTreeSupervisor {
+    fn new(_child: &Child) -> Self {
+        Self
+    }
+
+    fn terminate(&self, child: &mut Child) {
+        let _ = child.kill();
+    }
+}
+
+fn supervise(mut child: Child, time_limit: Duration) -> Result<SupervisedOutput, String> {
+    let process_tree = ProcessTreeSupervisor::new(&child);
     let stdout = child
         .stdout
         .take()
@@ -244,8 +528,8 @@ fn supervise(mut child: Child) -> Result<SupervisedOutput, String> {
             }
         }
         if exceeded.load(Ordering::Relaxed) {
-            limit = Some(PortugolRsRuntimeLimitReason::Output);
-            let _ = child.kill();
+            limit = Some(ProcessLimitReason::Output);
+            process_tree.terminate(&mut child);
             break child
                 .wait()
                 .map_err(|error| format!("Não foi possível recolher o processo: {error}"))?
@@ -260,9 +544,9 @@ fn supervise(mut child: Child) -> Result<SupervisedOutput, String> {
             let _ = child.wait();
             break None;
         }
-        if started.elapsed() >= RUNTIME_LIMIT {
-            limit = Some(PortugolRsRuntimeLimitReason::Time);
-            let _ = child.kill();
+        if started.elapsed() >= time_limit {
+            limit = Some(ProcessLimitReason::Time);
+            process_tree.terminate(&mut child);
             break child
                 .wait()
                 .map_err(|error| format!("Não foi possível recolher o processo: {error}"))?
@@ -276,6 +560,7 @@ fn supervise(mut child: Child) -> Result<SupervisedOutput, String> {
         }
         thread::sleep(Duration::from_millis(5));
     };
+    process_tree.terminate(&mut child);
     out_thread
         .join()
         .map_err(|_| "A captura de stdout falhou inesperadamente.".to_string())?;
@@ -297,7 +582,7 @@ fn supervise(mut child: Child) -> Result<SupervisedOutput, String> {
         }
     }
     if limit.is_none() && status == Some(STRING_BUDGET_EXIT_CODE) {
-        limit = Some(PortugolRsRuntimeLimitReason::StringMemory);
+        limit = Some(ProcessLimitReason::StringMemory);
     }
     Ok(SupervisedOutput {
         stdout: stdout_bytes,
@@ -440,6 +725,64 @@ fn parse_rustc_diagnostics(
                 source_start,
                 source_end,
                 quality,
+            }
+        })
+        .collect()
+}
+
+fn parse_rust_source_diagnostics(stderr: &str, source: &str) -> Vec<RustSourceCompileDiagnostic> {
+    let index = LineIndex::new(source);
+    stderr
+        .lines()
+        .take(1000)
+        .filter_map(|line| serde_json::from_str::<Value>(line).ok())
+        .filter(|value| {
+            value.get("$message_type").and_then(Value::as_str) == Some("diagnostic")
+                || value.get("message").and_then(Value::as_str).is_some()
+                    && value.get("level").and_then(Value::as_str).is_some()
+        })
+        .take(100)
+        .map(|value| {
+            let (start, end) = value
+                .get("spans")
+                .and_then(Value::as_array)
+                .and_then(|spans| {
+                    spans
+                        .iter()
+                        .find(|span| span.get("is_primary").and_then(Value::as_bool) == Some(true))
+                })
+                .and_then(|span| {
+                    Some((
+                        u32::try_from(span.get("byte_start")?.as_u64()?).ok()?,
+                        u32::try_from(span.get("byte_end")?.as_u64()?).ok()?,
+                    ))
+                })
+                .map(|(start, end)| (index.position(start), index.position(end)))
+                .unwrap_or_else(|| {
+                    let start = index.position(0);
+                    (start, start)
+                });
+            RustSourceCompileDiagnostic {
+                severity: value
+                    .get("level")
+                    .and_then(Value::as_str)
+                    .unwrap_or("error")
+                    .to_string(),
+                code: value
+                    .pointer("/code/code")
+                    .and_then(Value::as_str)
+                    .map(str::to_string),
+                message: value
+                    .get("message")
+                    .and_then(Value::as_str)
+                    .unwrap_or("Falha ao compilar Rust.")
+                    .to_string(),
+                rendered: value
+                    .get("rendered")
+                    .and_then(Value::as_str)
+                    .map(str::to_string),
+                start,
+                end,
             }
         })
         .collect()

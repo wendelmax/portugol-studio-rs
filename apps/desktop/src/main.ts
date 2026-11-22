@@ -51,6 +51,7 @@ import { semanticSymbolLanguage } from "./semantic-symbol-actions";
 import { collectWorkspaceFiles, flattenWorkspaceEntries, workspaceFileKind, workspaceRenameFileName, workspaceSourceFileName, type WorkspaceEntry } from "./workspace-explorer";
 import { workspaceExportStatus } from "./workspace-export-state";
 import { canDebugSource, canRunSource } from "./runtime-capabilities";
+import { hasRustExecutionConsent, rememberRustExecutionConsent } from "./rust-execution-consent";
 import { applyWorkspaceRenameToTabs, deleteWorkspaceFileFlow, prepareWorkspaceRename } from "./workspace-file-actions";
 import { conceptsForMode, resolveConceptForMode } from "./learning-content";
 import { explainMappedMutability, learningContextAtSelection } from "./learning-context";
@@ -109,7 +110,7 @@ interface Tab {
   /** Texto da última gravação, para saber se há alterações. */
   saved: string;
   diagnostics: api.DiagnosticInfo[];
-  porsCompileDiagnostics?: api.DiagnosticInfo[];
+  runtimeCompileDiagnostics?: api.DiagnosticInfo[];
   symbols: api.SymbolInfo[];
 }
 
@@ -275,7 +276,7 @@ const portugolLinter = linter(
       outline.show(symbols);
       updateLibraryButtons(symbols);
     }
-    return [...diagnostics, ...(tab?.porsCompileDiagnostics ?? [])].map((d) => toCodeMirror(d, doc.length));
+    return [...diagnostics, ...(tab?.runtimeCompileDiagnostics ?? [])].map((d) => toCodeMirror(d, doc.length));
   },
   { delay: 350 },
 );
@@ -329,8 +330,8 @@ function extensions(language: SourceLanguage): Extension[] {
       ...historyKeymap, ...completionKeymap, ...foldKeymap, indentWithTab,
     ]),
     EditorView.updateListener.of((update) => {
-      if (update.docChanged && activeTab()?.porsCompileDiagnostics?.length) {
-        activeTab()!.porsCompileDiagnostics = [];
+      if (update.docChanged && activeTab()?.runtimeCompileDiagnostics?.length) {
+        activeTab()!.runtimeCompileDiagnostics = [];
         renderMessages();
       }
       if (update.docChanged) {
@@ -519,8 +520,10 @@ function syncLanguageControls(tab: Tab) {
         : paused === null;
     button.disabled = runtimeUnavailable || stateDisabled;
     button.dataset.defaultTitle ??= button.title;
-    const unavailableReason = rustFile
-      ? "Execução e depuração Rust ainda não estão configuradas."
+    const unavailableReason = rustFile && rustcAvailable !== true
+      ? "Instale a toolchain Rust para executar arquivos .rs."
+      : rustFile && !isRun
+        ? "Depuração Rust ainda não está disponível."
       : pors && isRun && rustcAvailable !== true
         ? "Instale a toolchain Rust para executar arquivos .pors."
         : pors && !isRun
@@ -528,6 +531,7 @@ function syncLanguageControls(tab: Tab) {
           : "";
     if (unavailableReason) button.title = unavailableReason;
     else if (pors && isRun) button.title = "Compilar e executar o subset suportado com rustc";
+    else if (rustFile && isRun) button.title = "Compilar e executar Rust 2021 com rustc (execução sem sandbox)";
     else button.title = button.dataset.defaultTitle;
     button.setAttribute("aria-description", unavailableReason);
   }
@@ -1634,7 +1638,91 @@ async function runProgram(pauseOnStart = false) {
   const tab = activeTab();
   if (!tab) return;
   if (tab.language === "rust") {
-    setStatus("Execução e depuração Rust ainda não estão configuradas.");
+    if (pauseOnStart) {
+      setStatus("Depuração de arquivos Rust ainda não está disponível.");
+      return;
+    }
+    if (rustcAvailable !== true) {
+      setStatus("Instale a toolchain Rust para executar arquivos .rs.", "error");
+      return;
+    }
+    const documentState = view.state.doc;
+    const source = documentState.toString();
+    porsRunPending = true;
+    runTabId = tab.id;
+    syncLanguageControls(tab);
+    try {
+      if (!hasRustExecutionConsent(sessionStorage)) {
+        const accepted = await ask(
+          "Arquivos Rust compilados e executados podem acessar arquivos, processos e recursos permitidos à sua conta. Esta execução não possui sandbox. Execute apenas código em que você confia. Deseja continuar?",
+          { title: "Executar código Rust sem sandbox", kind: "warning", okLabel: "Executar Rust", cancelLabel: "Cancelar" },
+        );
+        if (!accepted) {
+          if (activeTab() === tab) setStatus("Execução Rust cancelada.");
+          return;
+        }
+        rememberRustExecutionConsent(sessionStorage, true);
+      }
+      if (activeTab() !== tab || view.state.doc !== documentState) return;
+      view.dispatch({ effects: setRuntimeError.of(null) });
+      view.dispatch({ effects: setDebugLine.of(null) });
+      paused = null;
+      showPanel("console");
+      output.replaceChildren();
+      setRunning(true);
+      setStatus("Compilando e executando Rust 2021 com rustc…");
+      const result = await api.runRustSource(source);
+      if (activeTab() !== tab || view.state.doc !== documentState) return;
+      if (result.status === "executed") {
+        if (result.stdout) appendConsole(result.stdout);
+        if (result.stderr) appendConsole(result.stderr, "error");
+        setStatus(
+          result.exitCode === 0
+            ? "Programa Rust finalizado com rustc."
+            : `Programa Rust terminou com código ${result.exitCode ?? "desconhecido"}.`,
+          result.exitCode === 0 ? "ok" : "error",
+        );
+      } else if (result.status === "runtime_limit") {
+        if (result.stdout) appendConsole(result.stdout);
+        if (result.stderr) appendConsole(result.stderr, "error");
+        const reason = result.reason === "time" ? "tempo máximo de 3 segundos" : "limite de saída de 1 MiB";
+        setStatus(`Execução Rust interrompida: ${reason}.`, "error");
+      } else if (result.status === "compile_limit") {
+        if (result.stderr) appendConsole(result.stderr, "error");
+        const reason = result.reason === "time" ? "tempo máximo de compilação de 20 segundos" : "limite de saída de compilação de 1 MiB";
+        setStatus(`Compilação Rust interrompida: ${reason}.`, "error");
+      } else {
+        const diagnostics: api.DiagnosticInfo[] = result.diagnostics.map((item) => ({
+          severity: item.severity === "warning" ? "warning" : "error",
+          code: item.code ?? "rustc",
+          message: item.message,
+          help: item.rendered,
+          start: item.start,
+          end: item.end,
+        }));
+        tab.runtimeCompileDiagnostics = diagnostics;
+        if (result.stderr) appendConsole(result.stderr, "error");
+        if (diagnostics.length) {
+          renderMessages();
+          view.dispatch(setDiagnostics(view.state, diagnostics.map((item) => toCodeMirror(item, view.state.doc.length))));
+          showPanel("messages");
+          setStatus("rustc encontrou erros no arquivo Rust.", "error");
+        } else {
+          setStatus("rustc encontrou erros; veja o detalhe no console.", "error");
+        }
+      }
+    } catch (error) {
+      if (activeTab() === tab && view.state.doc === documentState) {
+        appendConsole(String(error) + "\n", "error");
+        setStatus("Não foi possível compilar ou executar o arquivo Rust.", "error");
+      }
+    } finally {
+      porsRunPending = false;
+      runTabId = null;
+      setRunning(runId !== null);
+      const current = activeTab();
+      if (current) syncLanguageControls(current);
+    }
     return;
   }
   if (tab.language === "portugol-rs") {
@@ -1680,7 +1768,7 @@ async function runProgram(pauseOnStart = false) {
         setStatus(`Execução Portugol-RS interrompida: ${descriptions[result.reason]}.`, "error");
       } else {
         const diagnostics = result.diagnostics.map(sourceDiagnostic).filter((item): item is api.DiagnosticInfo => item !== null);
-        tab.porsCompileDiagnostics = diagnostics;
+        tab.runtimeCompileDiagnostics = diagnostics;
         if (result.stderr) appendConsole(result.stderr, "error");
         if (diagnostics.length) {
           renderMessages();
@@ -1955,7 +2043,7 @@ function goTo(offset: number) {
 
 function renderMessages() {
   const tab = activeTab();
-  renderDiagnostics([...(tab?.diagnostics ?? []), ...(tab?.porsCompileDiagnostics ?? [])], view.state.doc.lines, goTo);
+  renderDiagnostics([...(tab?.diagnostics ?? []), ...(tab?.runtimeCompileDiagnostics ?? [])], view.state.doc.lines, goTo);
 }
 
 function renderExerciseTests() {

@@ -174,6 +174,24 @@ export const rustToolchainAvailable = () => invoke<boolean>("rust_toolchain_avai
 export const runPortugolRs = (source: string) =>
   invoke<PortugolRsRunResult>("run_portugol_rs", { source });
 
+export interface RustSourceCompileDiagnostic {
+  severity: string;
+  code: string | null;
+  message: string;
+  rendered: string | null;
+  start: Position;
+  end: Position;
+}
+
+export type RustSourceRunResult =
+  | { status: "executed"; stdout: string; stderr: string; exitCode: number | null }
+  | { status: "compile_error"; diagnostics: RustSourceCompileDiagnostic[]; stderr: string }
+  | { status: "compile_limit"; stderr: string; reason: "time" | "output" }
+  | { status: "runtime_limit"; stdout: string; stderr: string; reason: "time" | "output" };
+
+export const runRustSource = (source: string) =>
+  invoke<RustSourceRunResult>("run_rust_source", { source });
+
 /** Id da execução; rejeita com a lista de erros se o programa não compila. */
 export const run = (source: string, args: string[], path: string | null, breakpoints: number[] = [], pauseOnStart = false) =>
   invoke<number>("run", { source, args, path, breakpoints, pauseOnStart });
