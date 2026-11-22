@@ -194,6 +194,44 @@ fn cargo_check_maps_the_open_file_diagnostic_after_non_bmp_text() {
     );
 }
 
+#[cfg(unix)]
+#[test]
+fn cargo_runner_rejects_a_manifest_symlink_before_running_external_project() {
+    if !portugol_service::cargo_available() {
+        return;
+    }
+    use std::os::unix::fs::symlink;
+
+    let workspace = TempDir::new();
+    let external = TempDir::new();
+    fs::write(
+        external.0.join("Cargo.toml"),
+        "[package]\nname = \"fora_do_workspace\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
+    )
+    .unwrap();
+    fs::write(
+        external.0.join("src/main.rs"),
+        "fn main() { println!(\"executou fora\"); }",
+    )
+    .unwrap();
+    symlink(
+        external.0.join("Cargo.toml"),
+        workspace.0.join("Cargo.toml"),
+    )
+    .unwrap();
+
+    let result = run_cargo_project_with_cancel(&workspace.0, &AtomicBool::new(false));
+
+    assert!(
+        result.is_err(),
+        "Cargo não deve seguir Cargo.toml simbólico"
+    );
+    assert!(
+        result.unwrap_err().contains("link simbólico"),
+        "a falha deve explicar a restrição do manifest"
+    );
+}
+
 #[test]
 fn discovers_all_binary_targets_and_the_default_run_across_workspace_packages() {
     if !portugol_service::cargo_available() {
