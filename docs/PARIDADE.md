@@ -62,7 +62,7 @@ são executados e validados sem tela.
 | Moldura e barra de comandos | ✅ | moldura de 5px, controles nativos, área de arraste, abas com ícone e barra lateral com ícones da versão 2.7.5 |
 | Expandir editor (Shift+Esc) | ✅ | barra horizontal compacta e botão de restauração |
 | Explorador de pasta e exportação local (`.por`, `.pors`, `.rs`, `.pex`) | ✅ | árvore navegável com teclado, abertura/salvamento escopados, criação, renomeação e exclusão; permite selecionar arquivos e copiar para uma nova pasta local sem alterar a origem |
-| Tela inicial com exemplos (`AbaInicial`, `PainelExemplos`) | 🟡 | Abrir/Novo, até seis recentes, 119 exemplos com busca, descrição, imagens e cópia de trabalho com recursos, acesso às dicas e links do rodapé |
+| Tela inicial com exemplos (`AbaInicial`, `PainelExemplos`) | 🟡 | Abrir/Novo Portugol, menu compacto para criar `.pors`/`.rs`, até seis recentes, 119 exemplos com busca, descrição, imagens e cópia de trabalho com recursos, acesso às dicas e links do rodapé. A comparação nativa equivalente com a tela inicial Java ainda está pendente. |
 | Ajuda da linguagem e das bibliotecas (`abaAjuda`, `assets/ajuda`) | ✅ | aba F1, busca, tópicos e diagramas da versão 2.7.5, abertura de exemplos e referências das bibliotecas |
 | Árvore estrutural (variáveis e funções do programa) | ✅ | painel redimensionável com busca, engrenagem de filtros, navegação, inspetor e inclusão de bibliotecas e modelos |
 | Ir à declaração (`resolve_symbol`) | ✅ | F12 no editor, Ctrl/Cmd+clique e ação no menu; Portugol clássico e `.pors` resolvem bindings por escopo, preservam o buffer e descartam respostas obsoletas |
