@@ -7,6 +7,7 @@ use serde_json::Value;
 
 use crate::pors_run::{
     COMPILATION_LIMIT, ProcessLimitReason, RUNTIME_LIMIT, configure_process_tree, supervise,
+    validate_rust_arguments,
 };
 use crate::{Position, position::LineIndex};
 
@@ -287,6 +288,17 @@ pub fn run_cargo_project_target_with_cancel(
     target: Option<&CargoRunTarget>,
     cancel: &AtomicBool,
 ) -> Result<CargoProjectRunResult, String> {
+    run_cargo_project_target_with_args_and_cancel(project_root, target, &[], cancel)
+}
+
+/// Compila e executa um alvo Cargo com argumentos de processo validados, sem shell.
+pub fn run_cargo_project_target_with_args_and_cancel(
+    project_root: &Path,
+    target: Option<&CargoRunTarget>,
+    args: &[String],
+    cancel: &AtomicBool,
+) -> Result<CargoProjectRunResult, String> {
+    validate_rust_arguments(args)?;
     let project_root = std::fs::canonicalize(project_root)
         .map_err(|error| format!("Não foi possível acessar o projeto Rust: {error}"))?;
     if !project_root.is_dir() {
@@ -361,6 +373,9 @@ pub fn run_cargo_project_target_with_cancel(
             .arg(&target.package_name)
             .arg("--bin")
             .arg(&target.target_name);
+    }
+    if !args.is_empty() {
+        run = run.arg("--").args(args);
     }
     let child = run
         .current_dir(&project_root)

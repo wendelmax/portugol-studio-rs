@@ -16,4 +16,4 @@ Descobrir alvos binários com `cargo metadata --no-deps --offline` apenas após 
 - Projetos Cargo com múltiplos executáveis passam a poder ser executados pela IDE.
 - A IDE deve distinguir ausência de binários, alvo padrão existente e escolha necessária.
 - A metadata discovery usa modo offline e não executa build scripts; a execução continua coberta pelo consentimento Cargo existente.
-- Uma execução explicitamente selecionada usa o pacote/binário resolvido, mantendo os argumentos de processo Cargo desabilitados.
+- Uma execução explicitamente selecionada usa o pacote/binário resolvido. Argumentos do programa são enviados somente depois de `--`; o campo não aceita flags do próprio Cargo.

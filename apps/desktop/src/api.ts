@@ -199,7 +199,8 @@ export const runCargoProject = (
   workspaceId: string,
   relativeSource: string,
   target: CargoRunTarget | null,
-) => invoke<CargoProjectRunResult>("run_cargo_project", { id, workspaceId, relativeSource, target });
+  args: string[],
+) => invoke<CargoProjectRunResult>("run_cargo_project", { id, workspaceId, relativeSource, target, args });
 export interface CargoProjectDiagnostic extends Omit<DiagnosticInfo, "severity"> {
   severity: string;
   rendered: string | null;

@@ -3,7 +3,8 @@ use std::sync::atomic::AtomicBool;
 
 use portugol_service::{
     CargoRunTarget, cargo_run_targets_with_cancel, check_cargo_project_with_cancel,
-    run_cargo_project_target_with_cancel, run_cargo_project_with_cancel,
+    run_cargo_project_target_with_args_and_cancel, run_cargo_project_target_with_cancel,
+    run_cargo_project_with_cancel,
 };
 
 struct TempDir(std::path::PathBuf);
@@ -230,6 +231,92 @@ fn cargo_runner_rejects_a_manifest_symlink_before_running_external_project() {
         result.unwrap_err().contains("link simbólico"),
         "a falha deve explicar a restrição do manifest"
     );
+}
+
+#[test]
+fn cargo_run_forwards_program_arguments_without_shell_interpretation() {
+    if !portugol_service::cargo_available() {
+        return;
+    }
+    let project = TempDir::new();
+    fs::write(
+        project.0.join("Cargo.toml"),
+        "[package]\nname = \"argumentos\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
+    )
+    .unwrap();
+    fs::write(
+        project.0.join("src/main.rs"),
+        "fn main() { println!(\"{:?}\", std::env::args().skip(1).collect::<Vec<_>>()); }",
+    )
+    .unwrap();
+    let args = vec![
+        String::new(),
+        "João Silva".into(),
+        "aspas \" duplas".into(),
+        "$(nao-executar); *".into(),
+    ];
+    let target = CargoRunTarget {
+        package_name: "argumentos".into(),
+        target_name: "argumentos".into(),
+    };
+
+    let result = run_cargo_project_target_with_args_and_cancel(
+        &project.0,
+        Some(&target),
+        &args,
+        &AtomicBool::new(false),
+    )
+    .unwrap();
+
+    assert_eq!(result.status, "executed", "{}", result.stderr);
+    assert!(
+        result.stdout.contains(&format!("{args:?}")),
+        "{}",
+        result.stdout
+    );
+}
+
+#[test]
+fn cargo_run_rejects_invalid_program_arguments_before_starting_cargo() {
+    if !portugol_service::cargo_available() {
+        return;
+    }
+    let project = TempDir::new();
+    fs::write(
+        project.0.join("Cargo.toml"),
+        "[package]\nname = \"argumentos_invalidos\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
+    )
+    .unwrap();
+    fs::write(project.0.join("src/main.rs"), "fn main() {}\n").unwrap();
+    let nul = vec!["inválido\0".to_string()];
+
+    let result = run_cargo_project_target_with_args_and_cancel(
+        &project.0,
+        None,
+        &nul,
+        &AtomicBool::new(false),
+    );
+
+    assert!(result.unwrap_err().contains("NUL"));
+
+    let many = vec!["arg".to_string(); 257];
+    let result = run_cargo_project_target_with_args_and_cancel(
+        &project.0,
+        None,
+        &many,
+        &AtomicBool::new(false),
+    );
+    assert!(result.unwrap_err().contains("256"));
+
+    let max_bytes = if cfg!(windows) { 8 * 1024 } else { 64 * 1024 };
+    let oversized = vec!["x".repeat(max_bytes + 1)];
+    let result = run_cargo_project_target_with_args_and_cancel(
+        &project.0,
+        None,
+        &oversized,
+        &AtomicBool::new(false),
+    );
+    assert!(result.unwrap_err().contains("limite total"));
 }
 
 #[test]

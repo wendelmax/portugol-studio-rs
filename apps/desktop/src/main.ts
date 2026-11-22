@@ -605,11 +605,9 @@ function syncLanguageControls(tab: Tab) {
     button.setAttribute("aria-description", unavailableReason);
   }
   const args = $<HTMLInputElement>("args");
-  args.disabled = pors || rustFile && tab.cargoProject === true;
+  args.disabled = pors;
   args.title = pors
     ? "Parâmetros ainda não são suportados em Portugol-RS."
-    : rustFile && tab.cargoProject === true
-      ? "Argumentos de execução do projeto Cargo ainda não estão disponíveis."
     : rustFile
       ? "Espaços separam itens; aspas duplas agrupam. O programa recebe argv, sem shell."
       : "";
@@ -1772,15 +1770,11 @@ async function runProgram(pauseOnStart = false) {
       return;
     }
     let rustArgs: string[];
-    if (tab.cargoProject === true) {
-      rustArgs = [];
-    } else {
-      try {
-        rustArgs = parseProcessArguments($<HTMLInputElement>("args").value);
-      } catch (error) {
-        setStatus(error instanceof Error ? error.message : "Argumentos inválidos.", "error");
-        return;
-      }
+    try {
+      rustArgs = parseProcessArguments($<HTMLInputElement>("args").value);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Argumentos inválidos.", "error");
+      return;
     }
     if (tab.cargoProject === true && tab.workspaceId && tab.workspacePath) {
       const dirtyFiles = tabs.filter((candidate) =>
@@ -1862,7 +1856,7 @@ async function runProgram(pauseOnStart = false) {
       setRunning(true);
       if (tab.cargoProject === true && tab.workspaceId && tab.workspacePath) {
         setStatus("Compilando o projeto Cargo…");
-        const result = await api.runCargoProject(id, tab.workspaceId, tab.workspacePath, cargoTarget);
+        const result = await api.runCargoProject(id, tab.workspaceId, tab.workspacePath, cargoTarget, rustArgs);
         if (activeTab() !== tab || view.state.doc !== documentState) return;
         if (result.stdout) appendConsole(result.stdout);
         if (result.stderr) appendConsole(result.stderr, "error");

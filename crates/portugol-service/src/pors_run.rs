@@ -401,14 +401,7 @@ pub fn run_rust_source_with_args_and_cancel(
     if source.len() > MAX_SOURCE_BYTES {
         return Err("O arquivo Rust excede o limite de 1 MiB para compilação.".into());
     }
-    validate_rust_arguments(
-        args,
-        if cfg!(windows) {
-            MAX_WINDOWS_RUST_ARGUMENT_BYTES
-        } else {
-            MAX_RUST_ARGUMENT_BYTES
-        },
-    )?;
+    validate_rust_arguments(args)?;
     if !rust_toolchain_available() {
         return Err(
             "Rustc não foi encontrado. Instale a toolchain Rust para executar `.rs`.".into(),
@@ -504,7 +497,16 @@ pub fn run_rust_source_with_args_and_cancel(
     })
 }
 
-fn validate_rust_arguments(args: &[String], max_bytes: usize) -> Result<(), String> {
+pub(crate) fn validate_rust_arguments(args: &[String]) -> Result<(), String> {
+    let max_bytes = if cfg!(windows) {
+        MAX_WINDOWS_RUST_ARGUMENT_BYTES
+    } else {
+        MAX_RUST_ARGUMENT_BYTES
+    };
+    validate_rust_arguments_with_limit(args, max_bytes)
+}
+
+fn validate_rust_arguments_with_limit(args: &[String], max_bytes: usize) -> Result<(), String> {
     if args.len() > 256 {
         return Err("O programa Rust aceita no máximo 256 argumentos.".into());
     }
@@ -1276,7 +1278,7 @@ mod tests {
     fn rejects_arguments_over_the_windows_command_line_budget() {
         let args = vec!["x".repeat(8 * 1024 + 1)];
 
-        assert!(super::validate_rust_arguments(&args, 8 * 1024).is_err());
+        assert!(super::validate_rust_arguments_with_limit(&args, 8 * 1024).is_err());
     }
 
     #[test]
