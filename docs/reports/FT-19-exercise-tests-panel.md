@@ -9,8 +9,9 @@ O resultado é descartado quando a aba é fechada, a revisão muda ou uma execu�
 ## Validação executada
 
 - `node --experimental-strip-types apps/desktop/tests/tests-panel.test.mjs` — 2 testes aprovados.
-- `node --experimental-strip-types apps/desktop/tests/exercise-test-panel.test.mjs` — 5 testes aprovados para estados, revisão exata e descarte de respostas obsoletas.
-- `npm --prefix apps/desktop test` — 18 arquivos de teste aprovados.
+- `node --experimental-strip-types apps/desktop/tests/exercise-test-panel.test.mjs` — 6 testes aprovados para estados, revisão exata e descarte de respostas obsoletas.
+- `node --experimental-strip-types apps/desktop/tests/exercise-evaluation.test.mjs` — 3 testes aprovados para concorrência entre abas, invalidação de revisão/aba e ordenação da gravação por exercício.
+- `npm --prefix apps/desktop test` — 19 arquivos de teste aprovados.
 - `npm --prefix apps/desktop run build` — TypeScript e bundle de produção aprovados. Vite reportou o aviso já conhecido de chunk JS principal acima de 500 kB.
 - `git diff --check` — sem erros de whitespace.
 

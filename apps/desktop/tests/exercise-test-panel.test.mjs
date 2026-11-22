@@ -19,7 +19,7 @@ test("exercise tests report available cases without claiming they ran", () => {
   const state = exerciseTestPanelState(exercise, {}, undefined);
 
   assert.deepEqual(state, { kind: "ready", cases: 2 });
-  assert.equal(exerciseTestStatus(state), "2 casos disponíveis. Ainda não executados nesta revisão.");
+  assert.equal(exerciseTestStatus(state), "2 casos configurados para este exercício.");
 });
 
 test("exercise with no configured cases does not offer execution", () => {

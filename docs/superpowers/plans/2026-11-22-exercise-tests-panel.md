@@ -44,6 +44,7 @@
 - [x] Add tests for stale revision/tab results being discarded.
 - [x] Run tests and verify they fail before the implementation (panel integration assertion failed before adding its markup and renderer).
 - [x] Implement the view model, exercise evaluation path, and accessible panel action/results.
+- [x] Address review feedback: isolate request validity by tab, order progress by exercise, and invalidate modal grading when its source tab/revision changes.
 - [x] Run focused/full frontend tests, build, and `git diff --check`.
 - [x] Update parity and add FT-19 evidence.
 - [ ] Commit, review, open PR, fix CI until green, squash-merge, and clean branch/worktree.

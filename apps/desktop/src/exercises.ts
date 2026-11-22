@@ -2,7 +2,7 @@ import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { checkExercise, inspectExercise, listExercises, readFile, type Exercise, type ExerciseCheckResult } from "./api";
 import {
   createExerciseProgress,
-  createValidatedExerciseGrader,
+  createExerciseEvaluationRunner,
   exerciseIdentity,
   exerciseOptionLabel,
   exerciseResultSummary,
@@ -43,8 +43,13 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
   const hintItems = hints.querySelector("ul")!;
   let pending: Promise<Exercise[]> | null = null;
   let catalog: Exercise[] = [];
-  let attempt = 0;
+  let modalAttempt = 0;
   const progress = createExerciseProgress();
+  const evaluationRunner = createExerciseEvaluationRunner<ExerciseCheckResult>({
+    check: checkExercise,
+    identify: exerciseIdentity,
+    progress,
+  });
 
   function showExercise() {
     const exercise = catalog.find(({ id }) => id === Number(list.value));
@@ -103,36 +108,17 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
     }
   }
 
-  async function runEvaluation(
-    { exercise, contents }: ExerciseDocument,
-    source: string,
-    id: number,
-    isCurrent: () => boolean,
-  ): Promise<ExerciseGrade> {
-    const identity = await exerciseIdentity(exercise.id, contents);
-    const isRunCurrent = () => id === attempt && isCurrent();
-    const grader = createValidatedExerciseGrader(
-      (gradedSource) => checkExercise(exercise.id, gradedSource, contents),
-      progress,
-      identity,
-      isRunCurrent,
-    );
-    const { evaluation, result } = await grader(source);
-    return { evaluation, progress: result, current: isRunCurrent() };
-  }
-
   async function evaluate(
     exerciseDocument: ExerciseDocument,
     source: string,
     isCurrent: () => boolean = () => true,
   ): Promise<ExerciseGrade> {
-    const id = ++attempt;
-    return runEvaluation(exerciseDocument, source, id, isCurrent);
+    return evaluationRunner.evaluate(exerciseDocument, source, isCurrent);
   }
 
-  async function grade(exerciseDocument: ExerciseDocument, source: string) {
+  async function grade(exerciseDocument: ExerciseDocument, source: string, isCurrent: () => boolean = () => true) {
     const { name } = exerciseDocument;
-    const id = ++attempt;
+    const id = ++modalAttempt;
     summary.textContent = `Corrigindo ${name}…`;
     revisionStatus.textContent = "Validando esta revisão do código…";
     failures.replaceChildren();
@@ -140,7 +126,11 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
     hintItems.replaceChildren();
     results.showModal();
     try {
-      const { evaluation: result, progress: progressResult, current } = await runEvaluation(exerciseDocument, source, id, () => true);
+      const { evaluation: result, progress: progressResult, current } = await evaluationRunner.evaluate(
+        exerciseDocument,
+        source,
+        () => id === modalAttempt && isCurrent(),
+      );
       if (!current) return;
       summary.textContent = exerciseResultSummary(result, progressResult);
       revisionStatus.textContent = exerciseRevisionStatus(progressResult);
@@ -157,7 +147,7 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
       hints.hidden = !result.hints.length;
       return { evaluation: result, progress: progressResult, current };
     } catch (message) {
-      if (id === attempt) {
+      if (id === modalAttempt && isCurrent()) {
         summary.textContent = typeof message === "string" ? message : "Não foi possível corrigir a solução.";
         revisionStatus.textContent = "A correção não terminou; o progresso não foi alterado.";
       }

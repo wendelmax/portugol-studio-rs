@@ -1908,7 +1908,9 @@ function renderExerciseTests() {
   const tab = activeTab();
   const state = exerciseTestPanelState(tab?.exercise?.exercise, view.state.doc, tab?.exerciseTestRun);
   $("tests-title").textContent = tab?.exercise ? `Testes — ${tabName(tab)}` : "Testes do projeto";
-  $("tests-status").textContent = exerciseTestStatus(state);
+  const status = $("tests-status");
+  const nextStatus = exerciseTestStatus(state);
+  if (status.textContent !== nextStatus) status.textContent = nextStatus;
   const run = $<HTMLButtonElement>("tests-run");
   run.hidden = state.kind === "empty" || state.kind === "no-cases";
   run.disabled = state.kind === "running";
@@ -2475,8 +2477,13 @@ const exercises = mountExercises(openExercise);
 $("home-exercises").onclick = exercises.browse;
 $("tests-run").onclick = () => void runExerciseTests();
 editorMenuAction("editor-exercise", () => {
-  const exercise = activeTab()?.exercise;
-  if (exercise) void exercises.grade(exercise, view.state.doc.toString());
+  const tab = activeTab();
+  const exercise = tab?.exercise;
+  if (!tab || !exercise) return;
+  const documentState = view.state.doc;
+  const isCurrent = () => tabs.includes(tab)
+    && (tab.id === activeId ? view.state.doc : tab.state.doc) === documentState;
+  void exercises.grade(exercise, documentState.toString(), isCurrent);
 });
 editorMenuAction("editor-search", () => openSearchPanel(view));
 editorMenuAction("editor-definition", goToDeclarationSelection);

@@ -54,7 +54,7 @@ export function exerciseTestStatus(state: ExerciseTestPanelState): string {
   switch (state.kind) {
     case "empty": return "Nenhum teste configurado para este arquivo.";
     case "no-cases": return "Este exercício não possui casos de execução configurados.";
-    case "ready": return `${state.cases} casos disponíveis. Ainda não executados nesta revisão.`;
+    case "ready": return `${state.cases} casos configurados para este exercício.`;
     case "running": return `Executando ${state.cases} casos desta revisão…`;
     case "completed": return state.result.completed
       ? `${state.result.passed} de ${state.result.total} casos aprovados. Exercício concluído nesta revisão.`
