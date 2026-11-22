@@ -1,7 +1,7 @@
 use std::fs;
 use std::sync::atomic::AtomicBool;
 
-use portugol_service::run_cargo_project_with_cancel;
+use portugol_service::{check_cargo_project_with_cancel, run_cargo_project_with_cancel};
 
 struct TempDir(std::path::PathBuf);
 
@@ -148,4 +148,41 @@ fn preserves_successful_build_warnings_in_the_output() {
     assert_eq!(result.status, "executed");
     assert!(result.stdout.contains("warning"), "{}", result.stdout);
     assert!(result.stdout.contains("ok"), "{}", result.stdout);
+}
+
+#[test]
+fn cargo_check_maps_the_open_file_diagnostic_after_non_bmp_text() {
+    if !portugol_service::cargo_available() {
+        return;
+    }
+    let project = TempDir::new();
+    fs::write(
+        project.0.join("Cargo.toml"),
+        "[package]\nname = \"checagem\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
+    )
+    .unwrap();
+    let source = "fn main() { println!(\"🚀\"); let numero: i32 = \"texto\"; }";
+    let source_path = project.0.join("src/main.rs");
+    fs::write(&source_path, source).unwrap();
+
+    let result =
+        check_cargo_project_with_cancel(&project.0, &source_path, &AtomicBool::new(false)).unwrap();
+
+    assert_eq!(result.status, "check_error");
+    let diagnostic = result
+        .diagnostics
+        .iter()
+        .find(|diagnostic| diagnostic.message.contains("mismatched types"))
+        .expect("diagnóstico do arquivo ativo");
+    assert_eq!(diagnostic.start.line, 1);
+    let emoji = source.find("🚀").unwrap();
+    let emoji_utf16 = source[..emoji].encode_utf16().count() as u32;
+    assert!(diagnostic.start.offset > emoji_utf16);
+    assert!(
+        diagnostic
+            .rendered
+            .as_deref()
+            .unwrap_or_default()
+            .contains("error")
+    );
 }

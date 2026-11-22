@@ -21,7 +21,10 @@ use serde::Serialize;
 use portugol_rust::{GeneratedRust, SourceMapQuality as RustSourceMapQuality};
 use portugol_syntax::{Diagnostic, Severity, parse};
 
-pub use cargo_project::{CargoProjectRunResult, cargo_available, run_cargo_project_with_cancel};
+pub use cargo_project::{
+    CargoProjectCheckResult, CargoProjectDiagnostic, CargoProjectRunResult, cargo_available,
+    check_cargo_project_with_cancel, run_cargo_project_with_cancel,
+};
 pub use exercises::{
     Exercise, ExerciseResult, check_exercise, check_imported_exercise, exercises, inspect_exercise,
 };

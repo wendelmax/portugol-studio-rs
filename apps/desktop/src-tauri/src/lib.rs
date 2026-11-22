@@ -408,6 +408,54 @@ async fn run_cargo_project(
 }
 
 #[tauri::command]
+async fn check_cargo_project(
+    runs: State<'_, Runs>,
+    workspace: State<'_, workspace::WorkspaceSession>,
+    id: u32,
+    workspace_id: String,
+    relative_source: String,
+) -> Result<portugol_service::CargoProjectCheckResult, String> {
+    let cancellation = runs
+        .rust_source_cancellations
+        .lock()
+        .unwrap_or_else(|error| error.into_inner())
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| "A análise Cargo não está mais registrada.".to_string())?;
+    let (project_root, source_path) =
+        match workspace::cargo_project_and_source(&workspace, &workspace_id, &relative_source) {
+            Ok(Some(paths)) => paths,
+            Ok(None) => {
+                runs.rust_source_cancellations
+                    .lock()
+                    .unwrap_or_else(|error| error.into_inner())
+                    .remove(&id);
+                return Err("Não foi encontrado Cargo.toml acima deste arquivo Rust.".into());
+            }
+            Err(error) => {
+                runs.rust_source_cancellations
+                    .lock()
+                    .unwrap_or_else(|error| error.into_inner())
+                    .remove(&id);
+                return Err(error);
+            }
+        };
+    let joined = tauri::async_runtime::spawn_blocking(move || {
+        portugol_service::check_cargo_project_with_cancel(
+            &project_root,
+            &source_path,
+            &cancellation,
+        )
+    })
+    .await;
+    runs.rust_source_cancellations
+        .lock()
+        .unwrap_or_else(|error| error.into_inner())
+        .remove(&id);
+    joined.map_err(|error| error.to_string())?
+}
+
+#[tauri::command]
 fn format_source(source: String) -> Option<Vec<portugol_service::TextEdit>> {
     portugol_service::format_source(&source)
 }
@@ -673,6 +721,7 @@ pub fn run_app() {
             run_rust_source,
             cargo_toolchain_available,
             run_cargo_project,
+            check_cargo_project,
             format_source,
             include_library,
             exercise_catalog,
