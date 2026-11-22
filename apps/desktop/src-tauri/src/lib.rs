@@ -248,6 +248,15 @@ fn rust_toolchain_available() -> bool {
 }
 
 #[tauri::command]
+async fn check_rust_source(
+    source: String,
+) -> Result<Vec<portugol_service::RustSourceCompileDiagnostic>, String> {
+    tauri::async_runtime::spawn_blocking(move || portugol_service::check_rust_source(&source))
+        .await
+        .map_err(|error| error.to_string())?
+}
+
+#[tauri::command]
 async fn run_portugol_rs(
     app: AppHandle,
     runs: State<'_, Runs>,
@@ -608,6 +617,7 @@ pub fn run_app() {
             format_rust_source,
             rustfmt_available,
             rust_toolchain_available,
+            check_rust_source,
             run_portugol_rs,
             register_rust_source_run,
             register_portugol_rs_run,

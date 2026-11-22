@@ -175,6 +175,8 @@ export type PortugolRsRunResult =
 export const rustToolchainAvailable = () => invoke<boolean>("rust_toolchain_available");
 export const rustfmtAvailable = () => invoke<boolean>("rustfmt_available");
 export const formatRustSource = (source: string) => invoke<string>("format_rust_source", { source });
+export const checkRustSource = (source: string) =>
+  invoke<RustSourceCompileDiagnostic[]>("check_rust_source", { source });
 export const registerPortugolRsRun = () => invoke<number>("register_portugol_rs_run");
 export const runPortugolRs = (id: number, source: string) =>
   invoke<PortugolRsRunResult>("run_portugol_rs", { id, source });

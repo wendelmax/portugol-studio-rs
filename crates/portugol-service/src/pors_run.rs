@@ -21,6 +21,7 @@ const MAX_RUNTIME_OUTPUT_BYTES: usize = 1_048_576;
 const MAX_RUNTIME_INPUT_LINE_BYTES: usize = 1_048_576;
 const RUNTIME_LIMIT: Duration = Duration::from_secs(3);
 const COMPILATION_LIMIT: Duration = Duration::from_secs(20);
+const RUST_SOURCE_CHECK_LIMIT: Duration = Duration::from_secs(5);
 const RUSTFMT_LIMIT: Duration = Duration::from_secs(5);
 const STRING_BUDGET_EXIT_CODE: i32 = 78;
 
@@ -200,6 +201,56 @@ pub fn rust_toolchain_available() -> bool {
         .arg("--version")
         .output()
         .is_ok_and(|output| output.status.success())
+}
+
+/// Analisa um arquivo Rust isolado com rustc sem executar o programa.
+pub fn check_rust_source(source: &str) -> Result<Vec<RustSourceCompileDiagnostic>, String> {
+    if source.len() > MAX_SOURCE_BYTES {
+        return Err("O arquivo Rust excede o limite de 1 MiB para análise.".into());
+    }
+    let temporary = TemporaryDirectory::create()?;
+    let source_path = temporary.0.join("buffer.rs");
+    fs::write(&source_path, source)
+        .map_err(|error| format!("Não foi possível preparar a fonte Rust temporária: {error}"))?;
+
+    let mut command = Command::new("rustc");
+    configure_process_tree(&mut command);
+    let child = command
+        .arg("--edition=2021")
+        .arg("--crate-type=lib")
+        .arg("--crate-name=portugol_editor_check")
+        .arg("--error-format=json")
+        .arg("--emit=metadata")
+        .arg("--out-dir")
+        .arg(&temporary.0)
+        .arg(&source_path)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| {
+            format!("Não foi possível iniciar rustc; instale a toolchain Rust: {error}")
+        })?;
+    let output = supervise(child, RUST_SOURCE_CHECK_LIMIT, None)?;
+    if let Some(reason) = output.limit {
+        return Err(match reason {
+            ProcessLimitReason::Time => "A análise Rust excedeu o limite de 5 segundos.".into(),
+            ProcessLimitReason::Output => {
+                "A saída da análise Rust excedeu o limite de 1 MiB.".into()
+            }
+            ProcessLimitReason::StringMemory | ProcessLimitReason::Cancelled => {
+                "A análise Rust foi interrompida.".into()
+            }
+        });
+    }
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let diagnostics = parse_rust_source_diagnostics(&stderr, source);
+    if output.status == Some(0) || !diagnostics.is_empty() {
+        Ok(diagnostics)
+    } else {
+        Err("rustc encerrou a análise sem fornecer diagnósticos.".into())
+    }
 }
 
 /// Retorna se o formatador oficial de Rust está instalado e pode ser iniciado.

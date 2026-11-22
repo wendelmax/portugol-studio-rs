@@ -1,0 +1,24 @@
+# Relatório de implementação — FEAT-RUSTLINT-001
+
+- Branch / commit: `feat/rust-source-diagnostics` / baseada em `a55341e`; commit e PR pendentes.
+- Escopo e IDs (UI/UC/FT/AC): UI-011, UI-022; UC-04/07; FT-02; FEAT-RUSTLINT-001.
+- Estado anterior (evidência path/linha): arquivos `.rs` podiam executar e formatar com `rustc`/`rustfmt`, mas o editor não pedia diagnósticos de compilação ao editar.
+- Arquivos alterados: `crates/portugol-service/src/pors_run.rs`, `crates/portugol-service/src/lib.rs`, `crates/portugol-service/tests/rust_source_check.rs`, `apps/desktop/src-tauri/src/lib.rs`, `apps/desktop/src/api.ts`, `apps/desktop/src/main.ts`, `apps/desktop/src/rust-source-check.ts`, `apps/desktop/tests/rust-source-check.test.mjs`, `docs/PARIDADE.md`, `docs/portugol-studio-next-integration/docs/agents/IMPLEMENTATION_GAP_REPORT.md`, `docs/portugol-studio-next-integration/docs/quality/TRACEABILITY_MATRIX.yaml`.
+- Alterações no contrato IPC/Rust/Tauri: novo comando assíncrono `check_rust_source(source)`; usa `rustc` fixo em Rust 2021, crate `lib`, emissão de metadata, sem executar o programa/Cargo/shell. Limites: fonte 1 MiB, processo 5 s e saída combinada 1 MiB. Não executa um `rustc --version` fora do supervisor em cada lint; ausência do compilador resulta em warning acionável. Diagnósticos preservam offsets UTF-16 do editor.
+- Permissões/capabilities alteradas? Não.
+- Compatibilidade preservada (fixtures): o linter clássico Portugol/Portugol-RS permanece no caminho atual; `.rs` combina diagnósticos do compilador e de execução; resultado só é aplicado à aba e documento ainda ativos.
+- Estados UI implementados (loading/empty/error/success/cancelled): quando `rustc` falta, lint Rust não é executado e o estado da toolchain existente permanece responsável pela orientação. Erros/limites do comando aparecem como warning no editor; warnings e erros reais do `rustc` aparecem como diagnósticos. Sucesso sem diagnósticos mantém a lista vazia. Não há indicador visual de loading nem cancelamento manual do lint.
+- Testes executados (comando, status PASS/FAIL/BLOCKED/NOT_RUN, log):
+  - `cargo fmt --all --check` — PASS após normalização com `cargo fmt --all`.
+  - `cargo test -p portugol-service --offline --locked -- --test-threads=1` — PASS, 76 testes em 6 grupos de testes; 0 falhas.
+  - `cargo clippy -p portugol-service --all-targets --offline --locked -- -D warnings` — PASS.
+  - `npm test --prefix apps/desktop` — PASS, 28 arquivos/suítes Node; 0 falhas.
+  - `npm run build --prefix apps/desktop` — PASS; Vite informa chunk `ide` acima de 500 kB (aviso já relacionado ao bundle, não bloqueia build).
+  - `cargo check -p portugol-desktop --offline --locked -j 1` — PASS.
+  - `git diff --check` — PASS.
+  - Teste de regressão da reconfiguração do linter — RED antes da correção e PASS depois; cobre a ativação/salvamento de arquivo Rust mantendo `rustSourceLinter` instalado.
+  - Uma tentativa inicial de `cargo test`/`cargo check` em `/tmp` falhou por quota de disco; repetidos com `CARGO_TARGET_DIR` no workspace e concluídos com sucesso.
+- Screenshot/registro visual em viewport configurado: NOT_RUN; não existe teste DOM/E2E visual para o linter.
+- Problemas e limitações conhecidas: analisa um buffer como crate isolada; Cargo, dependências externas, resolução de módulos e debugger fora do escopo. O verificador serializa processos e descarta o request pendente substituído, mas o processo em andamento não é cancelado. Não há E2E visual do linter configurado.
+- Rollback: reverter o commit desta feature remove o comando e o linter, sem alterar contratos persistidos ou dados dos projetos.
+- Próxima fatia vertical: completar integração de projeto Rust/Cargo ou inspeção de execução/debugger conforme lacunas priorizadas; E2E desktop visual segue pendente.
