@@ -1,0 +1,23 @@
+export type HomeNewFileLanguage = "portugol-rs" | "rust";
+
+export type HomeNewFileActions = Partial<Record<HomeNewFileLanguage, () => void>>;
+
+export function mountHomeNewFileMenu(menu: HTMLDetailsElement, actions: HomeNewFileActions) {
+  const summary = menu.querySelector("summary");
+
+  for (const button of menu.querySelectorAll<HTMLButtonElement>("[data-home-new-language]")) {
+    button.addEventListener("click", () => {
+      const language = button.dataset.homeNewLanguage as HomeNewFileLanguage | undefined;
+      if (!language || !actions[language]) return;
+      menu.open = false;
+      actions[language]();
+    });
+  }
+
+  menu.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !menu.open) return;
+    event.preventDefault();
+    menu.open = false;
+    summary?.focus();
+  });
+}
