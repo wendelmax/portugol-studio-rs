@@ -18,7 +18,7 @@ não apenas suporte ao Portugol clássico.
 | Expressões | 🟡 aritmética, comparação, igualdade, lógica e curto-circuito | Bitwise, shifts, operações/unários restantes; validar precedência e overflow |
 | Condições | ✅ `se`/`senao` | 🟡 `escolha`/matching exaustivo com pattern matching de Rust |
 | Repetição | ✅ `enquanto`, `para`, `pare`, `continue` | 🔎 `faca-enquanto` e alternativas pedagógicas; revisar loop labels |
-| Funções | 🟡 `inicio` e funções auxiliares com parâmetros tipados, chamadas, retorno, recursão, chamadas para frente e mutabilidade explícita; Rust gerado, debugger VM, outline, navegação e rename semânticos | Faltam formatador PORS, cobertura aprofundada de frames/limites de recursão e referências/borrowing explícitos |
+| Funções | 🟡 `inicio` e funções auxiliares com parâmetros tipados, chamadas, retorno, recursão, chamadas para frente e mutabilidade explícita; Rust gerado, debugger VM, outline, navegação, rename e formatador PORS | Faltam cobertura aprofundada de frames/limites de recursão e referências/borrowing explícitos |
 | Coleções | 🟡 Vetores tipados homogêneos não vazios, leitura/escrita indexada, `tamanho`, cópia por valor e bounds; sem matrizes, vetores vazios, redimensionamento, slices/visões ou vetores aninhados | Matrizes, construção vazia/redimensionamento e outras coleções; slices/visões e iteração permanecem decisões futuras |
 | Tipos compostos | ⬜ Sem structs/enums próprios | Estruturas, enums, construtores e pattern matching quando pedagógicos |
 | Rust `Option`/`Result` | ⬜ | Tipos, construtores, `match`, propagação (`?`) e diagnóstico/geração corretos |
@@ -69,7 +69,7 @@ Não considerar uma biblioteca portada por implementar apenas o nome do módulo.
 | Editor: busca, abas, desfazer, teclas e preferências | ✅ genérico ou parcialmente ligado ao editor | Preservar; revisar apenas comandos exclusivos de sintaxe `.por` |
 | Open/save, diálogo nativo e drag/drop | 🟡 roteiam `.por`/`.pex` além de `.pors`/`.rs` | Manter segurança e arquivos sujos; aceitar `.pors`/`.rs` e exercícios novos; erro claro para formatos legados |
 | Snippets, autocomplete, hover e bibliotecas | 🟡 recursos clássicos ainda aparecem em caminhos por idioma | Catálogo completo derivado de PORS/Rust, sem autocompletar nomes do Portugol clássico |
-| Formatação | 🟡 Portugol usa formatador clássico, Rust usa `rustfmt`, PORS sem formatador próprio | Implementar formatador do subset PORS e manter `rustfmt` real; garantir reversibilidade e spans |
+| Formatação | 🟡 Portugol usa formatador clássico, Rust usa `rustfmt`, PORS possui formatador canônico UTF-16 preservando comentários/literais para o subset atual | Acompanhar novas construções do subset PORS (vetores, structs/enums) e manter `rustfmt` real |
 | Sobre, licença, atualização, relatos e alertas | ✅ funções de produto/desktop | Manter identidade e atribuições corretas; verificar que links/créditos não alegam suporte clássico |
 | Dicas, ajuda de atalhos e referência de sintaxe | 🟡 textos e diagramas são classic-first | Reescrever para PORS/Rust com exemplos executáveis e documentação de subset |
 | Plugins Java | ➖ implementação atual usa classes Java | Avaliar modelo de extensão Rust/WASM como feature própria; não portar bytecode/classe Java literalmente |

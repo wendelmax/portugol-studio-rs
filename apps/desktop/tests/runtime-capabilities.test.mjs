@@ -8,12 +8,14 @@ test("classic Portugol uses its existing runtime and debugger", () => {
   assert.equal(canFormatSource("portugol", null), true);
 });
 
-test("Portugol-RS can debug in the VM and run generated Rust only when rustc is available", () => {
+test("Portugol-RS can debug in the VM, format locally and run generated Rust only when rustc is available", () => {
   assert.equal(canRunSource("portugol-rs", null), false);
   assert.equal(canRunSource("portugol-rs", false), false);
   assert.equal(canRunSource("portugol-rs", true), true);
   assert.equal(canDebugSource("portugol-rs"), true);
-  assert.equal(canFormatSource("portugol-rs", true), false);
+  assert.equal(canFormatSource("portugol-rs", null), true);
+  assert.equal(canFormatSource("portugol-rs", false), true);
+  assert.equal(canFormatSource("portugol-rs", true), true);
 });
 
 test("independent Rust files require rustc and remain non-debuggable", () => {

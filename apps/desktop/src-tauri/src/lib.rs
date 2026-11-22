@@ -517,6 +517,11 @@ fn format_source(source: String) -> Option<Vec<portugol_service::TextEdit>> {
 }
 
 #[tauri::command]
+fn format_portugol_rs(source: String) -> Option<Vec<portugol_service::TextEdit>> {
+    portugol_service::format_portugol_rs(&source)
+}
+
+#[tauri::command]
 fn include_library(
     source: String,
     name: String,
@@ -804,6 +809,7 @@ pub fn run_app() {
             run_cargo_project,
             check_cargo_project,
             format_source,
+            format_portugol_rs,
             include_library,
             exercise_catalog,
             check_exercise,

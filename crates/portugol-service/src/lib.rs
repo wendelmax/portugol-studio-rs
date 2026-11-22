@@ -88,6 +88,20 @@ pub fn format_source(source: &str) -> Option<Vec<TextEdit>> {
     })
 }
 
+/// Formata código Portugol-RS (`.pors`) preservando comentários e literais.
+pub fn format_portugol_rs(source: &str) -> Option<Vec<TextEdit>> {
+    portugol_rs_frontend::format(source).map(|edits| {
+        edits
+            .into_iter()
+            .map(|edit| TextEdit {
+                from: edit.from,
+                to: edit.to,
+                insert: edit.insert,
+            })
+            .collect()
+    })
+}
+
 /// Inserção no começo do bloco programa. Usa o lexer para ignorar texto em comentários.
 pub fn include_library(source: &str, name: &str) -> Result<Option<TextEdit>, String> {
     use portugol_syntax::lexer::lex;
@@ -583,5 +597,27 @@ mod portugol_rs_service {
         assert!(mapping.get("generatedEnd").is_some());
         assert!(mapping.get("quality").is_some());
         assert!(value.get("source_map").is_none());
+    }
+
+    #[test]
+    fn format_portugol_rs_returns_utf16_whitespace_edits_and_rejects_invalid_source() {
+        let source = "funcao inicio(){escreva(\"😀\");seja x:inteiro=1+2;}";
+        let edits = super::format_portugol_rs(source).expect("fonte PORS válida deve formatar");
+        assert!(!edits.is_empty());
+        let mut units: Vec<u16> = source.encode_utf16().collect();
+        for edit in edits.into_iter().rev() {
+            units.splice(edit.from..edit.to, edit.insert.encode_utf16());
+        }
+        let formatted = String::from_utf16(&units).unwrap();
+        assert_eq!(
+            formatted,
+            "funcao inicio() {\n    escreva(\"😀\");\n    seja x: inteiro = 1 + 2;\n}\n"
+        );
+        assert!(
+            super::format_portugol_rs(&formatted)
+                .expect("fonte já formatada")
+                .is_empty()
+        );
+        assert!(super::format_portugol_rs("funcao inicio() { seja x: inteiro = ; }").is_none());
     }
 }

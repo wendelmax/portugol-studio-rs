@@ -76,6 +76,9 @@ export const includeLibrary = (source: string, name: string) =>
 export const formatSource = (source: string) =>
   invoke<{ from: number; to: number; insert: string }[] | null>("format_source", { source });
 
+export const formatPortugolRs = (source: string) =>
+  invoke<{ from: number; to: number; insert: string }[] | null>("format_portugol_rs", { source });
+
 export interface Exercise {
   id: number;
   statement: string;
