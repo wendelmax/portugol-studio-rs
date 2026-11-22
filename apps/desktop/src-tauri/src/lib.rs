@@ -370,6 +370,7 @@ async fn run_cargo_project(
     id: u32,
     workspace_id: String,
     relative_source: String,
+    target: Option<portugol_service::CargoRunTarget>,
 ) -> Result<portugol_service::CargoProjectRunResult, String> {
     let cancellation = runs
         .rust_source_cancellations
@@ -397,7 +398,55 @@ async fn run_cargo_project(
             }
         };
     let joined = tauri::async_runtime::spawn_blocking(move || {
-        portugol_service::run_cargo_project_with_cancel(&project_root, &cancellation)
+        portugol_service::run_cargo_project_target_with_cancel(
+            &project_root,
+            target.as_ref(),
+            &cancellation,
+        )
+    })
+    .await;
+    runs.rust_source_cancellations
+        .lock()
+        .unwrap_or_else(|error| error.into_inner())
+        .remove(&id);
+    joined.map_err(|error| error.to_string())?
+}
+
+#[tauri::command]
+async fn cargo_project_run_targets(
+    runs: State<'_, Runs>,
+    workspace: State<'_, workspace::WorkspaceSession>,
+    id: u32,
+    workspace_id: String,
+    relative_source: String,
+) -> Result<portugol_service::CargoRunTargets, String> {
+    let cancellation = runs
+        .rust_source_cancellations
+        .lock()
+        .unwrap_or_else(|error| error.into_inner())
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| "A descoberta de alvos Cargo não está mais registrada.".to_string())?;
+    let project_root =
+        match workspace::cargo_project_for_source(&workspace, &workspace_id, &relative_source) {
+            Ok(Some(root)) => root,
+            Ok(None) => {
+                runs.rust_source_cancellations
+                    .lock()
+                    .unwrap_or_else(|error| error.into_inner())
+                    .remove(&id);
+                return Err("Não foi encontrado Cargo.toml acima deste arquivo Rust.".into());
+            }
+            Err(error) => {
+                runs.rust_source_cancellations
+                    .lock()
+                    .unwrap_or_else(|error| error.into_inner())
+                    .remove(&id);
+                return Err(error);
+            }
+        };
+    let joined = tauri::async_runtime::spawn_blocking(move || {
+        portugol_service::cargo_run_targets_with_cancel(&project_root, &cancellation)
     })
     .await;
     runs.rust_source_cancellations
@@ -720,6 +769,7 @@ pub fn run_app() {
             register_portugol_rs_run,
             run_rust_source,
             cargo_toolchain_available,
+            cargo_project_run_targets,
             run_cargo_project,
             check_cargo_project,
             format_source,

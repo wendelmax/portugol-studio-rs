@@ -182,10 +182,24 @@ export interface CargoProjectRunResult {
   phase: "compilation" | "runtime" | null;
   reason: "time" | "output" | "memory" | "cancelled" | null;
 }
+export interface CargoRunTarget {
+  packageName: string;
+  targetName: string;
+}
+export interface CargoRunTargets {
+  targets: CargoRunTarget[];
+  defaultTarget: CargoRunTarget | null;
+}
 export const workspaceCargoProjectAvailable = (workspaceId: string, relativeSource: string) =>
   invoke<boolean>("workspace_cargo_project_available", { workspaceId, relativeSource });
-export const runCargoProject = (id: number, workspaceId: string, relativeSource: string) =>
-  invoke<CargoProjectRunResult>("run_cargo_project", { id, workspaceId, relativeSource });
+export const cargoProjectRunTargets = (id: number, workspaceId: string, relativeSource: string) =>
+  invoke<CargoRunTargets>("cargo_project_run_targets", { id, workspaceId, relativeSource });
+export const runCargoProject = (
+  id: number,
+  workspaceId: string,
+  relativeSource: string,
+  target: CargoRunTarget | null,
+) => invoke<CargoProjectRunResult>("run_cargo_project", { id, workspaceId, relativeSource, target });
 export interface CargoProjectDiagnostic extends Omit<DiagnosticInfo, "severity"> {
   severity: string;
   rendered: string | null;
