@@ -931,7 +931,8 @@ select {
   padding: 3px 6px;
 }
 
-.home-actions button,
+.home-actions > button,
+.home-new-file-group > button,
 #recent-files button {
   display: grid;
   justify-items: center;
@@ -941,9 +942,79 @@ select {
   border-color: transparent;
 }
 
-.home-actions button,
+.home-actions > button,
+.home-new-file-group > button,
 #recent-files button {
   color: var(--home-title-text);
+}
+
+.home-new-file-group {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.home-new-file-group > button {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.home-new-menu > summary {
+  display: grid;
+  width: 24px;
+  height: 100%;
+  place-items: center;
+  color: var(--home-title-text);
+  cursor: pointer;
+  list-style: none;
+  border: 1px solid transparent;
+  border-left-color: color-mix(in srgb, var(--home-title-text) 35%, transparent);
+  border-radius: 0 3px 3px 0;
+  user-select: none;
+}
+
+.home-new-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.home-new-menu > summary:hover,
+.home-new-menu[open] > summary {
+  background: var(--tab-active);
+  color: var(--text);
+}
+
+.home-new-menu > summary:focus-visible,
+.home-new-menu-items button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.home-new-menu-items {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 2px);
+  left: 0;
+  display: grid;
+  min-width: 208px;
+  padding: 4px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 25%);
+}
+
+.home-new-menu-items button {
+  padding: 7px 9px;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 2px;
+}
+
+.home-new-menu-items button:hover {
+  background: var(--tab-active);
 }
 
 .home-actions .ui-icon {

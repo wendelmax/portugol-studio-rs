@@ -54,10 +54,13 @@
 - Consumes: `mountHomeNewFileMenu` and the existing `newTab` calls/templates.
 - Produces: primary classic action plus a disclosure with the existing PORS and Rust action ids.
 
-- [ ] Add markup contract assertions for the primary classic action, disclosure label, controls and template choices.
-- [ ] Run `node --experimental-strip-types --test tests/workspace-explorer.test.mjs` and confirm the new markup assertions fail because alternate actions are dynamically inserted today.
-- [ ] Replace dynamic standalone PORS/Rust buttons with the disclosure markup; preserve the classic click handler and connect alternate callbacks to the current templates.
-- [ ] Run focused tests with `node --experimental-strip-types --test tests/home-new-file-menu.test.mjs tests/workspace-explorer.test.mjs`; verify the classic handler is unchanged and the alternate callbacks close the menu.
+- [x] Add markup and CSS contract assertions for the primary classic action, disclosure label, controls, template choices, token colors and focus-visible states.
+- [x] Run the markup test before changing the markup and confirm the expected failure because the disclosure is absent.
+- [x] Replace dynamic standalone PORS/Rust buttons with the disclosure markup; preserve the classic click handler and connect alternate callbacks to the current templates.
+- [x] Add CSS contract assertions, observe RED for the missing scoped selectors and token/focus styles, then implement those styles.
+- [x] Run `node --experimental-strip-types tests/workspace-explorer.test.mjs` and `node --experimental-strip-types tests/home-new-file-menu.test.mjs`; all 18 checks pass.
+- [x] Inspect the rendered start page and open menu using Playwright with UI-only Tauri fixtures; verify the classic toolbar, examples and both language choices render.
+- [x] Commit the markup, callback wiring, styles and regression assertions after the focused tests pass.
 
 ### Task 3: Style, document and validate
 
