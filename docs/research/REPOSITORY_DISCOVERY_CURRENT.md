@@ -1,7 +1,7 @@
 # Diagnóstico atual do repositório
 
-- **Snapshot base:** `c91bacc` (`main`, 2026-11-22), após o merge da PR #91. O repositório não tinha PRs nem issues abertas na última consulta. Não use esta pesquisa como backlog sem reler `docs/PARIDADE.md` e os relatórios de feature mais recentes.
-- **Worktrees:** além da principal havia 21 worktrees locais. Algumas têm alterações ou conteúdo não rastreado; auditar e preservar antes de remover qualquer uma.
+- **Snapshot base:** `0adeecb` (`main`, 2026-11-22), após o merge da PR #92. A consulta seguinte não encontrou PRs nem issues abertas. Não use esta pesquisa como backlog sem reler `docs/PARIDADE.md` e os relatórios de feature mais recentes.
+- **Worktrees:** 21 worktrees anteriores foram auditadas; 15 limpas, vinculadas a trabalho já mesclado, foram removidas. Seis foram preservadas por conter alterações locais, documentos não rastreados ou dependências compartilhadas. A worktree `53fd` foi mantida porque seu rascunho se sobrepõe às PRs #89/#90 e contém arquivos locais.
 - **Tauri:** v2 (`tauri = "2"`; Cargo.lock resolve 2.12.5), com `tauri-plugin-dialog`; os comandos publicados estão enumerados em `apps/desktop/src-tauri/src/lib.rs` e as capabilities ficam em `apps/desktop/src-tauri/capabilities/`.
 - **Frontend:** HTML, CSS e TypeScript sem framework SPA; Vite 8.3.5, TypeScript 7.0.2 e CodeMirror 6, incluindo linguagens Portugol, Portugol-RS e Rust (`apps/desktop/package.json`, `apps/desktop/src/main.ts`).
 - **Núcleo:** Rust edition 2024, crates para sintaxe/AST, HIR, semântica, bytecode, VM, serviços, CLI e geração Rust (`Cargo.toml`, `crates/*`). Os membros da IDE Tauri não fazem parte dos default-members do `cargo test` padrão.
@@ -35,8 +35,8 @@
 | `cargo test -p portugol-service --offline --locked` | Histórico: PASS | O número de testes varia com a revisão; consultar o CI da PR correspondente em vez de reutilizar a contagem antiga de 87. |
 | `cargo clippy -p portugol-service --all-targets --offline --locked -- -D warnings` | PASS | Local para o serviço. |
 | `cargo test -p portugol-desktop --offline --locked --lib` | CI PASS / local NOT_RUN | Localmente a compilação GTK/Wry excedeu a quota temporária de disco; PR #79 passou testes e Clippy Tauri no CI Linux/Windows/macOS. |
-| `npm test --prefix apps/desktop` | Histórico: PASS | Contagens de execuções anteriores não descrevem automaticamente o snapshot `c91bacc`; consultar CI ou executar novamente. |
-| `npm run build --prefix apps/desktop` | Histórico: PASS | Build local anterior; Vite informou chunk principal acima de 500 kB. |
+| `npm test --prefix apps/desktop` | PASS | 193 testes em 37 arquivos, executados com `TMPDIR` sob `target/` para evitar a quota de `/tmp`. |
+| `npx tsc --noEmit` e `npx vite build` | PASS | Bundle Vite emitido sob `target/`; permanece o aviso de chunk principal acima de 500 kB. |
 | Gherkin/BDD e E2E de interação do app | NOT_RUN | Gherkin continua sendo especificação; a regressão visual da IDE clássica não é gate sob o ADR 0015. |
 
 ## Limites de compatibilidade
