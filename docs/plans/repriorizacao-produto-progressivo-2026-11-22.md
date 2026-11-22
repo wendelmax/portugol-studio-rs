@@ -47,6 +47,12 @@ worktree `53fd` contém uma implementação antiga que se sobrepõe às PRs #89 
 atualizada pela PR #92. As seis worktrees preservadas ainda precisam ser
 revisitadas antes da remoção do kit de integração.
 
+Na P1, a PR #93 extraiu e cobriu o roteamento de eventos por ID, fechando a
+primeira regressão de sessões obsoletas. Esta fatia amplia a comparação VM ↔
+Rust gerado para famílias aritméticas, comparações e lógica curta, e confirma
+que operadores bit a bit fora do subset recebem diagnóstico com span. A
+cobertura de outras categorias de erro e spans continua pendente.
+
 ### P1 — Tornar o fluxo Portugol-RS confiável de ponta a ponta
 
 Fechar as regressões do ciclo editar → diagnosticar → executar/depurar → ver
@@ -118,7 +124,7 @@ requisito ainda depende dele.
 
 ## Próxima fatia recomendada
 
-Continuar em P1: fechar o caso automatizado de eventos obsoletos do debugger
-PORS iniciado após a auditoria. Em seguida, ampliar testes diferenciais do
-subset e cobrir spans e limites antes de ampliar conteúdo ou redesenhar
-painéis.
+Continuar em P1: ampliar testes diferenciais de erros e spans do subset PORS,
+incluindo categorias em que o runtime da VM e o processo Rust gerado reportam
+resultados distintos. Depois fechar os limites e então avançar para P2,
+formatando exercícios progressivos com resultados verificáveis.

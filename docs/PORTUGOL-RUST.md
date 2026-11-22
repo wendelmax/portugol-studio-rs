@@ -12,7 +12,11 @@ O exportador prefixa nomes de variáveis com `pt_` para evitar palavras reservad
 
 Quando o código usa recursos fora desse subconjunto — por exemplo `leia`, laços, bibliotecas, vetores, matrizes, funções auxiliares ou conversões implícitas — a prévia explica o primeiro recurso sem suporte e sua posição. Nenhum código parcial é apresentado como tradução válida. Editar e executar o programa original continuam usando o compilador e a VM de Portugol.
 
-Esta prévia não implementa o compilador Rust completo, o dialeto Portugol-RS, ownership ou borrowing. Essas etapas continuam planejadas separadamente.
+## Portugol-RS (`.pors`)
+
+Portugol-RS é um dialeto didático implementado separadamente da prévia do Portugol clássico. O subset atual inclui variáveis escalares tipadas, expressões aritméticas, comparações, lógica `&&`/`||`, condicionais, laços `enquanto` e `para`, `pare`, `continue`, concatenação de cadeias e `leia` tipado. Recursos fora da gramática atual, como operadores bit a bit, vetores, funções auxiliares e bibliotecas, recebem diagnósticos em português com posição de origem.
+
+Executar um `.pors` compila o Rust gerado com `rustc`; depurar um `.pors` usa a VM educacional e mostra os valores dessa VM. A depuração não representa execução, ownership ou borrowing do Rust. O laboratório de ownership continua sendo conteúdo editorial baseado em cenários, não uma análise do buffer do aluno.
 
 ## Executar arquivos Rust (`.rs`)
 
