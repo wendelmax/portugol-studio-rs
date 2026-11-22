@@ -33,6 +33,45 @@ test("saves a normalized layout and reports storage failure", () => {
   assert.equal(savePaneLayout({ setItem() { throw new Error("storage blocked"); } }, DEFAULT_PANE_LAYOUT), false);
 });
 
+test("stores and restores pane ratios independently per workspace", () => {
+  const values = new Map();
+  const target = {
+    getItem(key) { return values.get(key) ?? null; },
+    setItem(key, value) { values.set(key, value); },
+  };
+  const first = { explorer: 0.2, bottom: 0.3, utilities: 0.25 };
+  const second = { explorer: 0.35, bottom: 0.4, utilities: 0.3 };
+
+  assert.equal(savePaneLayout(target, first, "workspace-a"), true);
+  assert.equal(savePaneLayout(target, second, "workspace-b"), true);
+  assert.deepEqual(loadPaneLayout(target, "workspace-a"), first);
+  assert.deepEqual(loadPaneLayout(target, "workspace-b"), second);
+  assert.equal(values.get("portugol.pane-layout.v1.workspace.workspace-a"), JSON.stringify(first));
+});
+
+test("workspace without a valid layout inherits the global layout", () => {
+  const values = new Map([
+    ["portugol.pane-layout.v1", JSON.stringify({ explorer: 0.28, bottom: 0.32, utilities: 0.3 })],
+    ["portugol.pane-layout.v1.workspace.workspace-b", "{bad json"],
+  ]);
+  const target = {
+    getItem(key) { return values.get(key) ?? null; },
+    setItem(key, value) { values.set(key, value); },
+  };
+
+  assert.deepEqual(loadPaneLayout(target, "workspace-a"), { explorer: 0.28, bottom: 0.32, utilities: 0.3 });
+  assert.deepEqual(loadPaneLayout(target, "workspace-b"), { explorer: 0.28, bottom: 0.32, utilities: 0.3 });
+});
+
+test("standalone pane layout continues to read and write the legacy key", () => {
+  const target = storage();
+  const layout = { explorer: 0.24, bottom: 0.34, utilities: 0.29 };
+
+  assert.equal(savePaneLayout(target, layout), true);
+  assert.equal(target.value(), JSON.stringify(layout));
+  assert.deepEqual(loadPaneLayout(target), layout);
+});
+
 test("maps pane separator keys to bounded size changes", () => {
   const bounds = { minimum: 100, maximum: 400 };
   assert.equal(resizePaneForKey("ArrowUp", "horizontal", -1, 220, bounds), 244);

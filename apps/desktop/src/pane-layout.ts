@@ -1,5 +1,9 @@
 export const PANE_LAYOUT_KEY = "portugol.pane-layout.v1";
 
+function workspaceStorageKey(preferenceKey: string): string {
+  return `${PANE_LAYOUT_KEY}.workspace.${encodeURIComponent(preferenceKey)}`;
+}
+
 export const DEFAULT_PANE_LAYOUT = {
   explorer: 0.16,
   bottom: 0.25,
@@ -27,21 +31,32 @@ export function normalizePaneLayout(value: Partial<Record<keyof PaneLayout, unkn
   };
 }
 
-export function loadPaneLayout(storage: Pick<Storage, "getItem">): PaneLayout {
+function parsePaneLayout(encoded: string | null): PaneLayout | null {
+  if (!encoded) return null;
   try {
-    const encoded = storage.getItem(PANE_LAYOUT_KEY);
-    if (!encoded) return { ...DEFAULT_PANE_LAYOUT };
     const parsed: unknown = JSON.parse(encoded);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return { ...DEFAULT_PANE_LAYOUT };
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
     return normalizePaneLayout(parsed as Partial<Record<keyof PaneLayout, unknown>>);
+  } catch {
+    return null;
+  }
+}
+
+export function loadPaneLayout(storage: Pick<Storage, "getItem">, preferenceKey?: string): PaneLayout {
+  try {
+    const workspace = preferenceKey
+      ? parsePaneLayout(storage.getItem(workspaceStorageKey(preferenceKey)))
+      : null;
+    return workspace ?? parsePaneLayout(storage.getItem(PANE_LAYOUT_KEY)) ?? { ...DEFAULT_PANE_LAYOUT };
   } catch {
     return { ...DEFAULT_PANE_LAYOUT };
   }
 }
 
-export function savePaneLayout(storage: Pick<Storage, "setItem">, layout: PaneLayout): boolean {
+export function savePaneLayout(storage: Pick<Storage, "setItem">, layout: PaneLayout, preferenceKey?: string): boolean {
   try {
-    storage.setItem(PANE_LAYOUT_KEY, JSON.stringify(normalizePaneLayout(layout)));
+    const key = preferenceKey ? workspaceStorageKey(preferenceKey) : PANE_LAYOUT_KEY;
+    storage.setItem(key, JSON.stringify(normalizePaneLayout(layout)));
     return true;
   } catch {
     return false;

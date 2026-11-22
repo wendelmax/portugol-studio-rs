@@ -73,9 +73,9 @@ const TEMPLATE = "programa\n{\n\tfuncao inicio()\n\t{\n\t\t\n\t}\n}\n";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
-function loadSavedPaneLayout(): PaneLayout {
+function loadSavedPaneLayout(preferenceKey?: string): PaneLayout {
   try {
-    return loadPaneLayout(localStorage);
+    return loadPaneLayout(localStorage, preferenceKey);
   } catch {
     return { ...DEFAULT_PANE_LAYOUT };
   }
@@ -85,7 +85,7 @@ let paneLayout = loadSavedPaneLayout();
 
 function persistPaneLayout() {
   try {
-    savePaneLayout(localStorage, paneLayout);
+    savePaneLayout(localStorage, paneLayout, activeTab()?.workspacePreferenceKey);
   } catch {
     // A configuração permanece ativa enquanto a janela estiver aberta.
   }
@@ -523,6 +523,7 @@ function activate(id: number) {
     renderWorkspaceExplorer();
   }
   view.setState(tab.state);
+  paneLayout = loadSavedPaneLayout(tab.workspacePreferenceKey);
   applyLearningMode(loadLearningMode(undefined, tab.workspacePreferenceKey), false);
   view.dispatch({ effects: [
     theme.reconfigure(editorTheme()),
