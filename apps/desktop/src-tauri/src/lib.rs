@@ -231,6 +231,18 @@ async fn export_portugol_rs(source: String) -> Result<portugol_service::RustExpo
 }
 
 #[tauri::command]
+async fn format_rust_source(source: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || portugol_service::format_rust_source(&source))
+        .await
+        .map_err(|error| error.to_string())?
+}
+
+#[tauri::command]
+fn rustfmt_available() -> bool {
+    portugol_service::rustfmt_available()
+}
+
+#[tauri::command]
 fn rust_toolchain_available() -> bool {
     portugol_service::rust_toolchain_available()
 }
@@ -593,6 +605,8 @@ pub fn run_app() {
             inspect_portugol_rs,
             export_rust,
             export_portugol_rs,
+            format_rust_source,
+            rustfmt_available,
             rust_toolchain_available,
             run_portugol_rs,
             register_rust_source_run,

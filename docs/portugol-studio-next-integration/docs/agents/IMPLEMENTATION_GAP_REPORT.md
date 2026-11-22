@@ -6,7 +6,7 @@ Inventário completo: [`../research/REPOSITORY_DISCOVERY.md`](../research/REPOSI
 |---|---|---|---|---|
 | UI-003/005/033 → UC-06/09 | `run`/`stop`/`debug_*`, VM real, eventos `run:*` | Existe | manter; cobrir fluxos restantes separadamente | Rust tests e smoke nativo |
 | UI-011/022 → UC-04/12 | CodeMirror + `inspect(source)` → diagnósticos/símbolos | Existe | manter; sem trocar editor | TS build e testes do serviço |
-| UI-015/016 → UC-07/08 | `btn-rust` + `export_rust(source)` | Parcial: subset exportado, sem edição/compilação Rust | reaproveitar como preview somente; status e erros atuais | serviço `portugol-rust`, teste de UI futura |
+| UI-015/016 → UC-07/08 | preview `export_rust(source)` e documentos `.rs` editáveis com `rustc`/`rustfmt` reais | Parcial: preview gerado tem subset e fonte `.rs` executa/formata separadamente | preservar distinção preview versus arquivo Rust escrito pelo aluno; status stale já verificado | testes `rust_source_runner.rs`, `rust_format.rs`, UI capability e source-map; E2E permanece pendente |
 | **UI-028 → UC-05** | preferência de aprendizagem e visibilidade do preview | **Implementado** | `learning-mode.ts`, `main.ts` e `index.html`; três modos persistem localmente; Rust habilita quando `rust_toolchain_available` confirma `rustc`; nível Rust apresenta conceitos didáticos sem converter o documento | testes Node de persistência, catálogo, disponibilidade e preservação do documento; E2E visual ainda pendente |
 | UI-023/024 → UC-13 | `learning-content.ts` + aba Aprender, seleção explícita | Parcial: catálogo local e cartões Beginner/Bridge; sem resolver AST ou currículo versionado | manter proveniência manual, exemplos Rust editoriais, expandir conteúdo com validação docente | testes Node do catálogo passam; FT-05/E2E ainda sem runner |
 | UI-025 → UC-13 | progresso via resultados verificados de exercícios | Ausente | só modelar progresso após identidade/revisão e avaliações reais; não contar abertura de cartão | FT-05 e integração de resultados pendentes |
@@ -20,7 +20,7 @@ Inventário completo: [`../research/REPOSITORY_DISCOVERY.md`](../research/REPOSI
 3. Workspace real e DocumentStore antes de mover preferências para escopo de projeto ou adicionar mais operações de árvore.
 4. Tradução progressiva UI-014/016 com resultado vinculado à revisão; ampliar subset no núcleo Rust e testar equivalência semântica.
 5. Laboratório de memória permanece simulação didática baseada em fixtures verificadas; trace de runtime Rust continua ausente.
-6. Rust editável, execução `.rs` e argumentos `argv` já existem em fatia básica. Permanecem pendentes debugger e formatador; sem shell arbitrário.
+6. Rust editável, execução `.rs`, argumentos `argv` e formatação por `rustfmt` já existem em fatia básica. Permanecem pendentes debugger Rust/Portugol-RS e projetos Cargo; sem shell arbitrário.
 
 ## Estados e limitações da fatia atual
 

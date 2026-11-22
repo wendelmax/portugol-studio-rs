@@ -21,6 +21,7 @@ const MAX_RUNTIME_OUTPUT_BYTES: usize = 1_048_576;
 const MAX_RUNTIME_INPUT_LINE_BYTES: usize = 1_048_576;
 const RUNTIME_LIMIT: Duration = Duration::from_secs(3);
 const COMPILATION_LIMIT: Duration = Duration::from_secs(20);
+const RUSTFMT_LIMIT: Duration = Duration::from_secs(5);
 const STRING_BUDGET_EXIT_CODE: i32 = 78;
 
 type InputHandler<'a> = dyn FnMut(&str) -> Result<String, String> + 'a;
@@ -199,6 +200,72 @@ pub fn rust_toolchain_available() -> bool {
         .arg("--version")
         .output()
         .is_ok_and(|output| output.status.success())
+}
+
+/// Retorna se o formatador oficial de Rust está instalado e pode ser iniciado.
+pub fn rustfmt_available() -> bool {
+    Command::new("rustfmt")
+        .arg("--version")
+        .output()
+        .is_ok_and(|output| output.status.success())
+}
+
+/// Formata uma fonte Rust 2021 isolada sem alterar arquivos do usuário.
+pub fn format_rust_source(source: &str) -> Result<String, String> {
+    if source.len() > MAX_SOURCE_BYTES {
+        return Err("O arquivo Rust excede o limite de 1 MiB para formatação.".into());
+    }
+    if !rustfmt_available() {
+        return Err(
+            "rustfmt não foi encontrado. Instale com `rustup component add rustfmt`.".into(),
+        );
+    }
+
+    let temporary = TemporaryDirectory::create()?;
+    let source_path = temporary.0.join("buffer.rs");
+    let config_path = temporary.0.join("rustfmt.toml");
+    fs::write(&source_path, source)
+        .map_err(|error| format!("Não foi possível preparar a fonte Rust temporária: {error}"))?;
+    fs::write(&config_path, "")
+        .map_err(|error| format!("Não foi possível preparar a configuração do rustfmt: {error}"))?;
+
+    let mut command = Command::new("rustfmt");
+    configure_process_tree(&mut command);
+    let child = command
+        .arg("--quiet")
+        .arg("--emit")
+        .arg("stdout")
+        .arg("--edition")
+        .arg("2021")
+        .arg("--config-path")
+        .arg(&config_path)
+        .arg(&source_path)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| format!("Não foi possível iniciar rustfmt: {error}"))?;
+    let output = supervise(child, RUSTFMT_LIMIT, None)?;
+    if let Some(reason) = output.limit {
+        return Err(match reason {
+            ProcessLimitReason::Time => "rustfmt excedeu o limite de 5 segundos.".into(),
+            ProcessLimitReason::Output => "A saída do rustfmt excedeu o limite de 1 MiB.".into(),
+            ProcessLimitReason::StringMemory | ProcessLimitReason::Cancelled => {
+                "A formatação Rust foi interrompida.".into()
+            }
+        });
+    }
+    if output.status != Some(0) {
+        let diagnostic = String::from_utf8_lossy(&output.stderr).trim().to_owned();
+        return Err(if diagnostic.is_empty() {
+            "rustfmt não conseguiu formatar o arquivo Rust.".into()
+        } else {
+            format!("rustfmt não conseguiu formatar o arquivo Rust: {diagnostic}")
+        });
+    }
+    let formatted = String::from_utf8(output.stdout)
+        .map_err(|_| "rustfmt retornou texto que não é UTF-8 válido.".to_owned())?;
+    Ok(formatted.replace("\r\n", "\n"))
 }
 
 /// Compila e executa apenas o Rust gerado pelo subset validado de Portugol-RS.

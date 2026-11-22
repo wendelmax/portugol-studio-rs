@@ -131,3 +131,25 @@ features:
     limitations:
       - "Sem runner E2E de interação DOM/Tauri para o campo"
       - "Parser documenta aspas duplas, não executa expansão de shell nem interpreta aspas simples como agrupamento"
+  - id: FEAT-RUSTFMT-001
+    title: Formatação de buffers Rust standalone
+    ui: [UI-011, UI-035]
+    useCases: [UC-04]
+    backend: [portugol-service::format_rust_source, rustfmt]
+    tauriIpc: [rustfmt_available, format_rust_source]
+    scenarios: [FT-02]
+    acceptance:
+      - "o botão de formato habilita em .rs somente quando rustfmt está disponível"
+      - "Rust 2021 é formatado pelo rustfmt instalado, sem shell ou caminho do arquivo do aluno"
+      - "erro de sintaxe, timeout, excesso de saída ou fonte maior que 1 MiB não altera o buffer"
+      - "resultado aplica-se somente à mesma aba/documento capturados e desfaz em uma etapa"
+      - "Portugol clássico mantém o formatador existente e Portugol-RS continua sem capacidade anunciada"
+    implementationStatus: implemented
+    testStatus: automated_partial
+    tests:
+      - "crates/portugol-service/tests/rust_format.rs"
+      - "apps/desktop/tests/runtime-capabilities.test.mjs"
+      - "apps/desktop/tests/rust-formatting.test.mjs"
+    limitations:
+      - "Requer componente rustfmt; formata somente o buffer .rs, sem Cargo nem arquivos do projeto"
+      - "Sem teste DOM/E2E de interação na janela Tauri"
