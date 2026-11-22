@@ -1611,6 +1611,15 @@ pub(super) fn cargo_project_for_source(
     workspace_id: &str,
     relative_source: &str,
 ) -> Result<Option<PathBuf>, String> {
+    cargo_project_and_source(session, workspace_id, relative_source)
+        .map(|result| result.map(|(project, _source)| project))
+}
+
+pub(super) fn cargo_project_and_source(
+    session: &WorkspaceSession,
+    workspace_id: &str,
+    relative_source: &str,
+) -> Result<Option<(PathBuf, PathBuf)>, String> {
     let root = fs::canonicalize(session.root(workspace_id)?)
         .map_err(|_| "A pasta aberta não está mais disponível.".to_string())?;
     let source = checked_file(&root, Path::new(relative_source), false)?;
@@ -1630,7 +1639,7 @@ pub(super) fn cargo_project_for_source(
                 if !canonical.starts_with(&root) {
                     return Err("O projeto Cargo está fora da pasta aberta.".into());
                 }
-                return Ok(Some(canonical));
+                return Ok(Some((canonical, source)));
             }
             Ok(_) => return Err("Cargo.toml não é um arquivo regular.".into()),
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}

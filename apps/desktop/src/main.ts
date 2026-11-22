@@ -2007,6 +2007,104 @@ async function stopProgram() {
   }
 }
 
+async function checkCargoProject() {
+  if (runId !== null || pendingEvents !== null || porsRunPending) return;
+  const tab = activeTab();
+  if (!tab || tab.language !== "rust") return;
+  if (tab.workspaceId && tab.workspacePath && tab.cargoProject === undefined) {
+    setStatus("Verificando se este arquivo pertence a um projeto Cargo.");
+    return;
+  }
+  if (tab.cargoProject !== true || !tab.workspaceId || !tab.workspacePath) {
+    setStatus("Abra um arquivo Rust pelo explorador dentro de um projeto Cargo.", "error");
+    return;
+  }
+  if (cargoAvailable !== true) {
+    setStatus("Instale Cargo para analisar o projeto Rust.", "error");
+    return;
+  }
+  const dirtyFiles = tabs.filter((candidate) =>
+    candidate.workspaceId === tab.workspaceId && candidate.language === "rust" && candidate !== tab && isDirty(candidate),
+  );
+  if (dirtyFiles.length > 0) {
+    setStatus("Salve os outros arquivos Rust alterados deste workspace antes da análise Cargo.", "error");
+    return;
+  }
+  if (isDirty(tab) && !(await save())) {
+    setStatus("Salve o arquivo Rust antes de analisar o projeto Cargo.", "error");
+    return;
+  }
+  if (activeTab() !== tab) return;
+  const documentState = view.state.doc;
+  let registeredId: number | null = null;
+  porsRunPending = true;
+  runTabId = tab.id;
+  syncLanguageControls(tab);
+  try {
+    if (!hasCargoExecutionConsent(sessionStorage)) {
+      const accepted = await ask(
+        "cargo check pode acessar a rede e executar scripts de build, macros procedurais e dependências no seu usuário local. Esta análise não possui sandbox. Execute apenas projetos em que você confia. Deseja continuar?",
+        { title: "Analisar projeto Cargo sem sandbox", kind: "warning", okLabel: "Analisar Cargo", cancelLabel: "Cancelar" },
+      );
+      if (!accepted) {
+        if (activeTab() === tab) setStatus("Análise Cargo cancelada.");
+        return;
+      }
+      rememberCargoExecutionConsent(sessionStorage, true);
+    }
+    if (activeTab() !== tab || view.state.doc !== documentState) return;
+    registeredId = await api.registerRustSourceRun();
+    runId = registeredId;
+    setRunning(true);
+    view.dispatch({ effects: setRuntimeError.of(null) });
+    output.replaceChildren();
+    showPanel("messages");
+    setStatus("Analisando projeto com cargo check…");
+    const result = await api.checkCargoProject(registeredId, tab.workspaceId, tab.workspacePath);
+    if (activeTab() !== tab || view.state.doc !== documentState) return;
+    const diagnostics: api.DiagnosticInfo[] = result.diagnostics.map((item) => ({
+      severity: item.severity === "warning" ? "warning" : "error",
+      code: item.code ?? "cargo",
+      message: item.message,
+      help: item.rendered,
+      start: item.start,
+      end: item.end,
+    }));
+    tab.diagnostics = diagnostics;
+    renderMessages();
+    view.dispatch(setDiagnostics(view.state, diagnostics.map((item) => toCodeMirror(item, view.state.doc.length))));
+    if (result.stderr) appendConsole(result.stderr, result.status === "check_error" ? "error" : "");
+    if (result.status === "cancelled") {
+      setStatus("Análise Cargo cancelada.");
+    } else if (result.status === "check_limit") {
+      const reason = result.reason === "time" ? "20 segundos" : "limite de saída de 1 MiB";
+      setStatus(`Análise Cargo interrompida: ${reason}.`, "error");
+    } else if (result.status === "check_error") {
+      showPanel(diagnostics.length ? "messages" : "console");
+      setStatus(diagnostics.length
+        ? "Cargo encontrou diagnósticos no arquivo aberto; confira o Console para detalhes do projeto."
+        : "Cargo check terminou com erros em outros arquivos ou no manifesto.", "error");
+    } else {
+      showPanel(diagnostics.length ? "messages" : result.stderr ? "console" : "messages");
+      const warnings = diagnostics.filter((item) => item.severity === "warning").length;
+      setStatus(diagnostics.length ? `Análise concluída: ${warnings} aviso(s) no arquivo aberto.` : "Análise Cargo concluída sem diagnósticos no arquivo aberto.", "ok");
+    }
+  } catch (error) {
+    if (activeTab() === tab && view.state.doc === documentState) {
+      appendConsole(`${String(error)}\n`, "error");
+      showPanel("console");
+      setStatus("Não foi possível analisar o projeto Cargo.", "error");
+    }
+  } finally {
+    if (registeredId !== null && runId === registeredId) runId = null;
+    porsRunPending = false;
+    runTabId = null;
+    setRunning(false);
+    const current = activeTab();
+    if (current) syncLanguageControls(current);
+  }
+}
+
 const ownershipStateLabels: Record<OwnershipBindingState, string> = {
   owner: "Dono",
   "shared-reference": "Empréstimo compartilhado (&T)",
@@ -3148,7 +3246,7 @@ let selectedCommandIndex = -1;
 
 const tabCommands = new Set([
   "Executar", "Depurar", "Interromper", "Pausar", "Continuar", "Próxima instrução",
-  "Entrar na função", "Sair da função", "Renomear símbolo", "Formatar código-fonte",
+  "Entrar na função", "Sair da função", "Renomear símbolo", "Formatar código-fonte", "Analisar projeto Cargo",
   "Salvar", "Salvar como", "Parâmetros de execução", "Fechar aba", "Fechar todas as abas", "Localizar e substituir",
   "Buscar na estrutura", "Filtrar variável", "Filtrar vetor", "Filtrar matriz", "Filtrar função",
   "Filtrar constante", "Mostrar todos os tipos", "Filtrar tipo inteiro", "Filtrar tipo caracter",
@@ -3172,6 +3270,7 @@ function availablePaletteCommands() {
     if (command === "Sobre (fora do editor); ir à declaração (no editor)") return false;
     if (tabCommands.has(command) && !tab) return false;
     if (command === "Executar" && tab?.language === "portugol-rs" && rustcAvailable !== true) return false;
+    if (command === "Analisar projeto Cargo") return tab?.language === "rust" && tab.cargoProject === true && cargoAvailable === true && runId === null && !porsRunPending;
     if (command === "Parâmetros de execução" && tab?.language === "portugol-rs") return false;
     if (tab?.language === "rust" && rustUnsupportedCommands.has(command)) return false;
     if (debugCommands.has(command) && !isDebugCommandAvailable(command, tab?.language ?? null, runId !== null, paused !== null)) return false;
@@ -3287,6 +3386,7 @@ const shortcuts: {
     matches: (e) => (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === "KeyR", action: renameSelection },
   { label: "Ctrl+Alt+F", command: "Formatar código-fonte",
     matches: (e) => (e.ctrlKey || e.metaKey) && e.altKey && !e.shiftKey && e.code === "KeyF", action: formatCode },
+  { label: "via paleta de comandos", command: "Analisar projeto Cargo", matches: () => false, action: checkCargoProject },
   { label: "F3", command: "Dicas de interface", matches: (e) => e.key === "F3", action: () => tips.open() },
   { label: "F12", command: "Sobre (fora do editor); ir à declaração (no editor)", matches: (e) => e.key === "F12", action: () =>
     $<HTMLDialogElement>("about").showModal() },

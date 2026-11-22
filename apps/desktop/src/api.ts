@@ -186,6 +186,18 @@ export const workspaceCargoProjectAvailable = (workspaceId: string, relativeSour
   invoke<boolean>("workspace_cargo_project_available", { workspaceId, relativeSource });
 export const runCargoProject = (id: number, workspaceId: string, relativeSource: string) =>
   invoke<CargoProjectRunResult>("run_cargo_project", { id, workspaceId, relativeSource });
+export interface CargoProjectDiagnostic extends Omit<DiagnosticInfo, "severity"> {
+  severity: string;
+  rendered: string | null;
+}
+export interface CargoProjectCheckResult {
+  status: "checked" | "check_error" | "check_limit" | "cancelled";
+  diagnostics: CargoProjectDiagnostic[];
+  stderr: string;
+  reason: "time" | "output" | "memory" | "cancelled" | null;
+}
+export const checkCargoProject = (id: number, workspaceId: string, relativeSource: string) =>
+  invoke<CargoProjectCheckResult>("check_cargo_project", { id, workspaceId, relativeSource });
 export const rustfmtAvailable = () => invoke<boolean>("rustfmt_available");
 export const formatRustSource = (source: string) => invoke<string>("format_rust_source", { source });
 export const checkRustSource = (source: string) =>
