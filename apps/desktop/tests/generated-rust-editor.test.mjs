@@ -7,6 +7,7 @@ import {
   generatedRustDecorations,
   generatedRustMappings,
   mappedSourceOffsetAt,
+  mappedSourceOffsetAtSelection,
 } from "../src/generated-rust-editor.ts";
 
 test("generated Rust editor state is read-only and preserves pure Rust source", () => {
@@ -15,6 +16,7 @@ test("generated Rust editor state is read-only and preserves pure Rust source", 
   assert.equal(state.doc.toString(), 'fn main() { println!("oi"); }');
   assert.equal(state.facet(EditorState.readOnly), true);
   assert.equal(state.facet(EditorView.editable), false);
+  assert.ok(state.facet(EditorView.contentAttributes).some((attributes) => attributes["aria-keyshortcuts"] === "F12"));
   assert.ok(state.languageDataAt("commentTokens", 0).some(({ line }) => line === "//"));
 });
 
@@ -43,4 +45,18 @@ test("mapped Rust positions navigate only inside a valid mapped range", () => {
   assert.equal(mappedSourceOffsetAt(mappings, 8), 22);
   assert.equal(mappedSourceOffsetAt(mappings, 9), null);
   assert.equal(mappedSourceOffsetAt(mappings, 2), null);
+});
+
+test("F12 resolves the source offset for the generated editor selection", () => {
+  const state = createGeneratedRustEditorState("let idade = 16;");
+  const mapped = state.update({
+    effects: generatedRustMappings.of([
+      { from: 4, to: 9, sourceOffset: 22, sourceLine: 3, generatedLine: 1, quality: "exact" },
+    ]),
+    selection: { anchor: 6 },
+  }).state;
+  const unmapped = mapped.update({ selection: { anchor: 12 } }).state;
+
+  assert.equal(mappedSourceOffsetAtSelection(mapped), 22);
+  assert.equal(mappedSourceOffsetAtSelection(unmapped), null);
 });

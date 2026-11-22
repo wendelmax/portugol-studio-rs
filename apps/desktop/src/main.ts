@@ -3216,7 +3216,7 @@ function renderRustPreview(tab: Tab) {
   } else if (state?.pending) {
     status.textContent = "Atualizando tradução…";
   } else if (artifact) {
-    status.textContent = "Tradução disponível para copiar ou salvar.";
+    status.textContent = "Tradução disponível para copiar ou salvar. Clique em um trecho mapeado ou pressione F12 para voltar à origem.";
   } else {
     status.textContent = "Documento Rust independente; a prévia gerada não altera este arquivo.";
   }

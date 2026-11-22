@@ -40,6 +40,7 @@
 - [x] Trocar `<pre id="rust-output">` por mount point acessível e montar `EditorView` readonly, linha numerada e rust parser.
 - [x] Sincronizar conteúdo/decorations em toda renderização ativa, inclusive em troca de abas, e trocar `copy/save/detach` para `generatedRustEditor.state.doc.toString()`.
 - [x] Ligar clique de segmento ao offset fonte e `focusRustMapping` à linha CodeMirror; atualizar o segundo editor em `applyTheme`.
+- [x] Revisão identificou perda de navegação por teclado; F12 navega pelo segmento sob a seleção e é anunciado por `aria-keyshortcuts`.
 - [x] Reaproveitar status/stale existente e garantir ações desabilitadas conforme o renderer atual.
 - [x] Rodar teste focado de estado/source map e manter texto puro/segmentos reatribuídos por render da aba ativa.
 
@@ -48,7 +49,7 @@
 **Files:** ADR 0011, design/plan, inventário de repositório.
 
 - [x] Atualizar inventário de UI-013/014/015 para distinguir EditorView Rust gerado do preview `<pre>` anterior.
-- [x] Rodar `npm test` (32 arquivos, 162 testes), `npm run build`, `cargo fmt --all --check` e `git diff --check`.
+- [x] Rodar `npm test` (32 arquivos, 163 testes), `npm run build`, `cargo fmt --all --check` e `git diff --check`.
 - [ ] Revisão independente, PR, todos os checks CI verdes, merge e excluir branch remota.
 
 ## Self-review

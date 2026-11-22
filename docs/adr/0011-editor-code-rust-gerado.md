@@ -9,7 +9,7 @@ A Ponte já gera Rust, mantém estado stale por revisão, apresenta source maps 
 
 ## Decisão
 
-Montar um segundo `EditorView` CodeMirror na prévia existente, com linguagem Rust, números de linha, tema compartilhado e edição desabilitada. Decorar os intervalos do source map e encaminhar cliques para os offsets correspondentes na fonte. Ações de exportação leem o documento puro do editor gerado.
+Montar um segundo `EditorView` CodeMirror na prévia existente, com linguagem Rust, números de linha, tema compartilhado e edição desabilitada. Decorar os intervalos do source map e encaminhar clique ou F12 na seleção ativa para os offsets correspondentes na fonte. O atalho F12 é anunciado por `aria-keyshortcuts`. Ações de exportação leem o documento puro do editor gerado.
 
 ## Consequências
 

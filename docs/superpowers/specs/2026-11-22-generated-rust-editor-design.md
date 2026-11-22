@@ -15,7 +15,7 @@ Transformar a prévia Rust da Ponte em um segundo editor CodeMirror real, com si
 - Na Ponte, mostrar a fonte Portugol e o editor CodeMirror Rust gerado lado a lado; o layout responsivo já existente mantém a prévia como painel à direita.
 - O editor gerado não aceita edição (CodeMirror `EditorState.readOnly` e `EditorView.editable = false`) e expõe rótulo acessível que diz que é código gerado/somente leitura.
 - O editor mostra números de linha, highlight Rust e o tema atual. A troca de tema atualiza os dois editores.
-- Segmentos de source map ficam marcados visualmente; clique em segmento mapeado navega até o offset correspondente na fonte. Links do gutter focam a linha gerada no CodeMirror.
+- Segmentos de source map ficam marcados visualmente; clique ou F12 com o cursor dentro de segmento mapeado navega até o offset correspondente na fonte. O atalho é anunciado com `aria-keyshortcuts`. Links do gutter focam a linha gerada no CodeMirror.
 - Atualização, estado stale, mensagens, copiar, salvar `.rs` e desvincular continuam vinculados ao artefato/revisão já aceitos. A fonte original nunca é alterada pela tradução.
 - Texto consumido por copiar/salvar/desvincular vem de `generatedRustEditor.state.doc`, sem números de linha ou marcação HTML.
 

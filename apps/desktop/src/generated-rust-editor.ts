@@ -58,6 +58,10 @@ export function mappedSourceOffsetAt(mappings: readonly GeneratedRustMapping[], 
   return mapping?.sourceOffset ?? null;
 }
 
+export function mappedSourceOffsetAtSelection(state: EditorState): number | null {
+  return mappedSourceOffsetAt(state.field(generatedRustDecorations), state.selection.main.head);
+}
+
 export function generatedRustEditorExtensions(
   onSourceOffset: (offset: number) => void,
   additionalExtensions: Extension[] = [],
@@ -72,9 +76,18 @@ export function generatedRustEditorExtensions(
     EditorView.contentAttributes.of({
       "aria-label": "Código Rust gerado, somente leitura",
       "aria-readonly": "true",
+      "aria-keyshortcuts": "F12",
     }),
     generatedRustDecorations,
     EditorView.domEventHandlers({
+      keydown(event, editor) {
+        if (event.key !== "F12") return false;
+        const offset = mappedSourceOffsetAtSelection(editor.state);
+        if (offset === null) return false;
+        event.preventDefault();
+        onSourceOffset(offset);
+        return true;
+      },
       click(event, editor) {
         if (event.button !== 0) return false;
         const position = editor.posAtCoords({ x: event.clientX, y: event.clientY });
