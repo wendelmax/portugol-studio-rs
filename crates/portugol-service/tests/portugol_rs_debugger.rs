@@ -80,6 +80,48 @@ fn pors_debugger_returns_located_diagnostics_before_starting_the_vm() {
 }
 
 #[test]
+fn pors_debugger_executes_typed_helper_functions_and_forward_calls() {
+    let source = "funcao dobro(valor: inteiro) -> inteiro { retorne somar(valor, valor); } funcao somar(a: inteiro, b: inteiro) -> inteiro { retorne a + b; } funcao inicio() { escreva(dobro(21)); }";
+    let (output, outcome) = run_vm_to_output(source);
+    assert_eq!(outcome, RunOutcome::Finished);
+    assert_eq!(output, "42");
+}
+
+#[test]
+fn pors_debugger_exposes_helper_parameters_and_call_frames() {
+    let source = "funcao dobrar(valor: inteiro) -> inteiro {\n retorne valor * 2;\n}\nfuncao inicio() {\n seja base: inteiro = 21;\n escreva(dobrar(base));\n}";
+    let (tx, rx) = mpsc::channel();
+    let observer = Arc::new(Recorder(Mutex::new(tx)));
+    let handle = start_portugol_rs(
+        source,
+        RunOptions {
+            breakpoints: vec![2],
+            ..RunOptions::default()
+        },
+        observer,
+    )
+    .expect("programa depurável");
+    let Event::Paused(info) = rx
+        .recv_timeout(Duration::from_secs(5))
+        .expect("pausa dentro da função")
+    else {
+        panic!("esperava pausa")
+    };
+    assert_eq!(
+        info.stack.first().map(|frame| frame.function.as_str()),
+        Some("dobrar")
+    );
+    assert!(
+        info.variables
+            .iter()
+            .any(|variable| variable.name == "valor" && variable.value == "21")
+    );
+    handle.continue_run();
+    assert_eq!(run_outcome(&rx), RunOutcome::Finished);
+    handle.join();
+}
+
+#[test]
 fn pors_debugger_maps_semantic_diagnostics_to_utf16_editor_spans() {
     let source = "funcao inicio() { escreva(\"🦀\"); escreva(faltante); }";
     let expected_start = source
@@ -300,6 +342,14 @@ fn pors_vm_debug_output_matches_generated_rust_for_core_statements() {
         (
             "funcao inicio() { se (falso && verdadeiro) { escreva(1); } senao { escreva(2); } }",
             "2",
+        ),
+        (
+            "funcao repetir(texto: cadeia) -> cadeia { retorne texto + texto; } funcao inicio() { seja original: cadeia = \"oi\"; escreva(repetir(original)); escreva(original); }",
+            "oioioi",
+        ),
+        (
+            "funcao fatorial(n: inteiro) -> inteiro { se (n <= 1) { retorne 1; } senao { retorne n * fatorial(n - 1); } } funcao inicio() { escreva(fatorial(5)); }",
+            "120",
         ),
     ];
     for (source, expected) in sources {

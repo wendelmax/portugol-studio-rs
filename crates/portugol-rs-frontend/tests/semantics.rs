@@ -34,6 +34,76 @@ fn rejects_unknown_name_and_type_mismatch() {
 }
 
 #[test]
+fn rejects_wrong_function_arity_and_argument_type() {
+    let arity = "funcao dobro(valor: inteiro) -> inteiro { retorne valor * 2; } funcao inicio() { escreva(dobro()); }";
+    assert!(
+        lower(arity)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.call-arity")
+    );
+
+    let argument_type = "funcao dobro(valor: inteiro) -> inteiro { retorne valor * 2; } funcao inicio() { escreva(dobro(verdadeiro)); }";
+    assert!(
+        lower(argument_type)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.call-type-mismatch")
+    );
+}
+
+#[test]
+fn rejects_non_void_functions_without_a_return_on_every_path() {
+    let source = "funcao escolher(condicao: logico) -> inteiro { se (condicao) { retorne 1; } } funcao inicio() {}";
+    assert!(
+        lower(source)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.missing-return")
+    );
+}
+
+#[test]
+fn rejects_using_void_function_as_a_value() {
+    let source = "funcao mostrar() { retorne; } funcao inicio() { escreva(mostrar()); }";
+    assert!(
+        lower(source)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.void-value")
+    );
+}
+
+#[test]
+fn rejects_duplicate_and_unknown_functions() {
+    let duplicate = "funcao ajuda() {} funcao ajuda() {} funcao inicio() {}";
+    assert!(
+        lower(duplicate)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.function-redeclared")
+    );
+    let unknown = "funcao inicio() { ausente(); }";
+    assert!(
+        lower(unknown)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.unknown-function")
+    );
+}
+
+#[test]
+fn rejects_return_values_that_disagree_with_the_function_signature() {
+    for source in [
+        "funcao valor() -> inteiro { retorne; } funcao inicio() {}",
+        "funcao vazio() { retorne 1; } funcao inicio() {}",
+        "funcao valor() -> inteiro { retorne verdadeiro; } funcao inicio() {}",
+    ] {
+        assert!(lower(source).is_err(), "{source}");
+    }
+}
+
+#[test]
 fn resolves_shadowed_names_to_distinct_bindings() {
     let source = "funcao inicio() { seja valor: inteiro = 1; se (verdadeiro) { seja valor: inteiro = 2; escreva(valor); } escreva(valor); }";
     let program = lower(source).expect("sombreamento em bloco é permitido");

@@ -11,6 +11,24 @@ pub(super) struct Parser {
     bindings: Vec<hir::Binding>,
     scopes: Vec<HashMap<String, Symbol>>,
     loop_depth: usize,
+    signatures: HashMap<String, FunctionSignature>,
+    return_type: Option<hir::Type>,
+    in_function: bool,
+}
+
+#[derive(Clone)]
+struct FunctionParameter {
+    name: String,
+    ty: hir::Type,
+    mutable: bool,
+    span: Span,
+}
+
+#[derive(Clone)]
+struct FunctionSignature {
+    id: Option<hir::FunctionId>,
+    parameters: Vec<FunctionParameter>,
+    return_type: Option<hir::Type>,
 }
 
 #[derive(Clone, Copy)]
@@ -28,39 +46,254 @@ impl Parser {
             bindings: vec![],
             scopes: vec![HashMap::new()],
             loop_depth: 0,
+            signatures: HashMap::new(),
+            return_type: None,
+            in_function: false,
         }
     }
 
     pub(super) fn program(mut self) -> Result<hir::Program, Vec<Diagnostic>> {
+        self.collect_signatures()?;
         let start = self.current().span.start;
-        self.keyword("funcao")?;
-        let (entry, _) = self.identifier()?;
-        if entry != "inicio" {
+        let mut bindings = None;
+        let mut body = None;
+        let mut functions = Vec::new();
+        while !matches!(self.current().kind, Kind::Eof) {
+            let (name, header_span, _) = self.function_header()?;
+            let signature = self.signatures[&name].clone();
+            self.begin_function(&signature)?;
+            let (function_body, body_span) = self.block(true)?;
+            if signature.return_type.is_some() && !guarantees_return(&function_body) {
+                return self.fail(
+                    "pors.missing-return",
+                    format!("A função `{name}` precisa retornar um valor em todos os caminhos"),
+                    body_span,
+                );
+            }
+            let local_bindings = std::mem::take(&mut self.bindings);
+            let function_span = header_span.join(body_span);
+            if name == "inicio" {
+                bindings = Some(local_bindings);
+                body = Some(function_body);
+            } else {
+                functions.push(hir::Function {
+                    id: signature.id.expect("função auxiliar tem ID"),
+                    source_name: name,
+                    parameters: (0..signature.parameters.len() as u32)
+                        .map(hir::BindingId)
+                        .collect(),
+                    bindings: local_bindings,
+                    return_type: signature.return_type,
+                    body: function_body,
+                    span: to_hir_span(function_span),
+                });
+            }
+            self.scopes = vec![HashMap::new()];
+            self.return_type = None;
+            self.in_function = false;
+            self.loop_depth = 0;
+        }
+        let bindings = bindings.ok_or_else(|| {
+            vec![Diagnostic::error(
+                "pors.entry-function",
+                "O programa precisa declarar uma única função inicio()",
+                self.current().span,
+            )]
+        })?;
+        let body = body.expect("bindings e body são definidos juntos para inicio");
+        let end = self.previous_span().end;
+        Ok(hir::Program {
+            bindings,
+            body,
+            functions,
+            span: hir::Span::new(start, end),
+        })
+    }
+
+    fn collect_signatures(&mut self) -> Result<(), Vec<Diagnostic>> {
+        self.cursor = 0;
+        let mut next_id = 0;
+        while !matches!(self.current().kind, Kind::Eof) {
+            let (name, span, signature) = self.function_header()?;
+            if self.signatures.contains_key(&name) {
+                return self.fail(
+                    "pors.function-redeclared",
+                    format!("A função `{name}` já foi declarada"),
+                    span,
+                );
+            }
+            let id = if name == "inicio" {
+                if !signature.parameters.is_empty() || signature.return_type.is_some() {
+                    return self.fail(
+                        "pors.entry-signature",
+                        "A função inicio deve ser declarada sem parâmetros e sem retorno",
+                        span,
+                    );
+                }
+                None
+            } else {
+                let id = hir::FunctionId(next_id);
+                next_id += 1;
+                Some(id)
+            };
+            self.signatures
+                .insert(name, FunctionSignature { id, ..signature });
+            self.skip_function_body()?;
+        }
+        if !self.signatures.contains_key("inicio") {
             return self.fail(
                 "pors.entry-function",
-                "O ponto de entrada deve ser funcao inicio()",
-                self.previous_span(),
-            );
-        }
-        self.expect(Kind::LParen, "Esperado `(` após inicio")?;
-        self.expect(
-            Kind::RParen,
-            "A função inicio não recebe parâmetros neste modo",
-        )?;
-        let (body, body_span) = self.block(true)?;
-        if !matches!(self.current().kind, Kind::Eof) {
-            return self.fail(
-                "pors.trailing-input",
-                "Conteúdo inesperado após a função inicio",
+                "O programa precisa declarar uma função inicio()",
                 self.current().span,
             );
         }
-        let end = body_span.end;
-        Ok(hir::Program {
-            bindings: self.bindings,
-            body,
-            span: hir::Span::new(start, end),
-        })
+        self.cursor = 0;
+        Ok(())
+    }
+
+    fn function_header(&mut self) -> Result<(String, Span, FunctionSignature), Vec<Diagnostic>> {
+        let start = self.current().span;
+        self.keyword("funcao")?;
+        let (name, name_span) = self.identifier()?;
+        if name != "inicio" && is_reserved(&name) {
+            return self.fail(
+                "pors.reserved-name",
+                format!("`{name}` é reservado e não pode ser usado como nome de função"),
+                name_span,
+            );
+        }
+        self.expect(Kind::LParen, "Esperado `(` após nome da função")?;
+        let mut parameters = Vec::new();
+        if !matches!(self.current().kind, Kind::RParen) {
+            loop {
+                let mutable = self.eat_keyword("mutavel");
+                let (parameter_name, parameter_span) = self.identifier()?;
+                if is_reserved(&parameter_name) {
+                    return self.fail(
+                        "pors.reserved-name",
+                        format!("`{parameter_name}` é reservado e não pode ser usado como nome"),
+                        parameter_span,
+                    );
+                }
+                self.expect(Kind::Colon, "Esperado `:` entre parâmetro e tipo")?;
+                let ty = self.type_name()?;
+                parameters.push(FunctionParameter {
+                    name: parameter_name,
+                    ty,
+                    mutable,
+                    span: parameter_span,
+                });
+                if !self.eat(&Kind::Comma) {
+                    break;
+                }
+            }
+        }
+        let close = self.expect(Kind::RParen, "Esperado `)` após parâmetros")?;
+        let return_type = if self.eat(&Kind::Arrow) {
+            Some(self.type_name()?)
+        } else {
+            None
+        };
+        let header_span = start.join(return_type.map_or(close.span, |_| self.previous_span()));
+        if name == "inicio" && (!parameters.is_empty() || return_type.is_some()) {
+            return self.fail(
+                "pors.entry-signature",
+                "A função inicio deve ser declarada sem parâmetros e sem retorno",
+                name_span.join(header_span),
+            );
+        }
+        Ok((
+            name,
+            header_span,
+            FunctionSignature {
+                id: None,
+                parameters,
+                return_type,
+            },
+        ))
+    }
+
+    fn type_name(&mut self) -> Result<hir::Type, Vec<Diagnostic>> {
+        let (name, span) = self.identifier()?;
+        match name.as_str() {
+            "inteiro" => Ok(hir::Type::Integer),
+            "real" => Ok(hir::Type::Real),
+            "logico" => Ok(hir::Type::Boolean),
+            "cadeia" => Ok(hir::Type::String),
+            "caracter" => Ok(hir::Type::Character),
+            _ => self.fail(
+                "pors.unknown-type",
+                format!("Tipo desconhecido: {name}"),
+                span,
+            ),
+        }
+    }
+
+    fn skip_function_body(&mut self) -> Result<(), Vec<Diagnostic>> {
+        self.expect(Kind::LBrace, "Esperado `{` para iniciar o corpo da função")?;
+        let mut depth = 1usize;
+        while depth > 0 {
+            match self.advance() {
+                Token {
+                    kind: Kind::LBrace, ..
+                } => depth += 1,
+                Token {
+                    kind: Kind::RBrace, ..
+                } => depth -= 1,
+                Token {
+                    kind: Kind::Eof,
+                    span,
+                } => {
+                    return self.fail(
+                        "pors.unexpected-token",
+                        "Bloco não foi fechado com `}`",
+                        span,
+                    );
+                }
+                _ => {}
+            }
+        }
+        Ok(())
+    }
+
+    fn begin_function(&mut self, signature: &FunctionSignature) -> Result<(), Vec<Diagnostic>> {
+        self.bindings.clear();
+        self.scopes = vec![HashMap::new()];
+        self.loop_depth = 0;
+        self.return_type = signature.return_type;
+        self.in_function = true;
+        for parameter in &signature.parameters {
+            if self.scopes[0].contains_key(&parameter.name) {
+                return self.fail(
+                    "pors.redeclared",
+                    format!("`{}` já foi declarado nesta função", parameter.name),
+                    parameter.span,
+                );
+            }
+            let id = hir::BindingId(self.bindings.len() as u32);
+            let mutability = if parameter.mutable {
+                hir::Mutability::Mutable
+            } else {
+                hir::Mutability::Immutable
+            };
+            self.bindings.push(hir::Binding {
+                id,
+                source_name: parameter.name.clone(),
+                ty: parameter.ty,
+                mutability,
+                is_const: !parameter.mutable,
+                span: to_hir_span(parameter.span),
+            });
+            self.scopes[0].insert(
+                parameter.name.clone(),
+                Symbol {
+                    id,
+                    ty: parameter.ty,
+                    mutability,
+                },
+            );
+        }
+        Ok(())
     }
 
     fn block(&mut self, root: bool) -> Result<(Vec<hir::Stmt>, Span), Vec<Diagnostic>> {
@@ -98,6 +331,9 @@ impl Parser {
         if self.is_keyword("para") {
             return self.for_loop();
         }
+        if self.is_keyword("retorne") {
+            return self.return_statement();
+        }
         if self.is_keyword("pare") || self.is_keyword("continue") {
             return self.loop_control();
         }
@@ -121,6 +357,32 @@ impl Parser {
                 )
             }) {
                 return self.assignment();
+            }
+            if self
+                .tokens
+                .get(self.cursor + 1)
+                .is_some_and(|token| matches!(token.kind, Kind::LParen))
+            {
+                let expression = self.expression(0)?;
+                let end = self.expect(Kind::Semicolon, "Esperado `;` após chamada")?;
+                let hir::ExprKind::Call {
+                    function,
+                    arguments,
+                } = expression.kind
+                else {
+                    return self.fail(
+                        "pors.expected-statement",
+                        "Esperada chamada de função",
+                        syntax_span(expression.span),
+                    );
+                };
+                return Ok(hir::Stmt {
+                    kind: hir::StmtKind::Call {
+                        function,
+                        arguments,
+                    },
+                    span: to_hir_span(syntax_span(expression.span).join(end.span)),
+                });
             }
         }
         self.fail(
@@ -295,7 +557,15 @@ impl Parser {
         let mut values = Vec::new();
         if !matches!(self.current().kind, Kind::RParen) {
             loop {
-                values.push(self.expression(0)?);
+                let value = self.expression(0)?;
+                if value.ty == hir::Type::Unit {
+                    return self.fail(
+                        "pors.void-value",
+                        "Uma função sem retorno não pode ser usada como valor",
+                        syntax_span(value.span),
+                    );
+                }
+                values.push(value);
                 if !self.eat(&Kind::Comma) {
                     break;
                 }
@@ -305,6 +575,52 @@ impl Parser {
         let end = self.expect(Kind::Semicolon, "Esperado `;` após escreva")?;
         Ok(hir::Stmt {
             kind: hir::StmtKind::Write(values),
+            span: to_hir_span(start.join(end.span)),
+        })
+    }
+
+    fn return_statement(&mut self) -> Result<hir::Stmt, Vec<Diagnostic>> {
+        let start = self.advance().span;
+        let value = if matches!(self.current().kind, Kind::Semicolon) {
+            None
+        } else {
+            Some(self.expression(0)?)
+        };
+        let end = self.expect(Kind::Semicolon, "Esperado `;` após retorne")?;
+        if !self.in_function {
+            return self.fail(
+                "pors.return-outside-function",
+                "`retorne` só pode ser usado dentro de uma função",
+                start,
+            );
+        }
+        match (self.return_type, value.as_ref()) {
+            (Some(expected), Some(actual)) if expected == actual.ty => {}
+            (Some(_), Some(actual)) => {
+                return self.fail(
+                    "pors.return-type-mismatch",
+                    "O valor retornado não corresponde ao tipo da função",
+                    syntax_span(actual.span),
+                );
+            }
+            (Some(_), None) => {
+                return self.fail(
+                    "pors.return-value-required",
+                    "Esta função precisa retornar um valor",
+                    start,
+                );
+            }
+            (None, Some(actual)) => {
+                return self.fail(
+                    "pors.unexpected-return-value",
+                    "Esta função não declara tipo de retorno",
+                    syntax_span(actual.span),
+                );
+            }
+            (None, None) => {}
+        }
+        Ok(hir::Stmt {
+            kind: hir::StmtKind::Return { value },
             span: to_hir_span(start.join(end.span)),
         })
     }
@@ -525,6 +841,65 @@ impl Parser {
                 (hir::ExprKind::Boolean(false), hir::Type::Boolean)
             }
             Kind::Ident(name) => {
+                if matches!(self.current().kind, Kind::LParen) {
+                    let signature = self.signatures.get(&name).cloned().ok_or_else(|| {
+                        vec![Diagnostic::error(
+                            "pors.unknown-function",
+                            format!("Função não declarada: {name}"),
+                            span,
+                        )]
+                    })?;
+                    self.advance();
+                    let mut arguments = Vec::new();
+                    if !matches!(self.current().kind, Kind::RParen) {
+                        loop {
+                            arguments.push(self.expression(0)?);
+                            if !self.eat(&Kind::Comma) {
+                                break;
+                            }
+                        }
+                    }
+                    let close = self.expect(Kind::RParen, "Esperado `)` após argumentos")?;
+                    if arguments.len() != signature.parameters.len() {
+                        return self.fail(
+                            "pors.call-arity",
+                            format!(
+                                "A função `{name}` espera {} argumento(s), recebeu {}",
+                                signature.parameters.len(),
+                                arguments.len()
+                            ),
+                            span.join(close.span),
+                        );
+                    }
+                    for (argument, parameter) in arguments.iter().zip(&signature.parameters) {
+                        if argument.ty != parameter.ty {
+                            return self.fail(
+                                "pors.call-type-mismatch",
+                                format!(
+                                    "Argumento incompatível com o parâmetro `{}`",
+                                    parameter.name
+                                ),
+                                syntax_span(argument.span),
+                            );
+                        }
+                    }
+                    let function = signature.id.ok_or_else(|| {
+                        vec![Diagnostic::error(
+                            "pors.entry-call",
+                            "`inicio` não pode ser chamada diretamente",
+                            span,
+                        )]
+                    })?;
+                    let ty = signature.return_type.unwrap_or(hir::Type::Unit);
+                    return Ok(hir::Expr {
+                        kind: hir::ExprKind::Call {
+                            function,
+                            arguments,
+                        },
+                        ty,
+                        span: to_hir_span(span.join(close.span)),
+                    });
+                }
                 let symbol = self.lookup(&name).ok_or_else(|| {
                     vec![Diagnostic::error(
                         "pors.unknown-name",
@@ -707,7 +1082,20 @@ fn is_reserved(name: &str) -> bool {
             | "faca"
             | "escolha"
             | "leia"
+            | "retorne"
     )
+}
+
+fn guarantees_return(statements: &[hir::Stmt]) -> bool {
+    statements.iter().any(|statement| match &statement.kind {
+        hir::StmtKind::Return { .. } => true,
+        hir::StmtKind::If {
+            then_branch,
+            else_branch: Some(else_branch),
+            ..
+        } => guarantees_return(then_branch) && guarantees_return(else_branch),
+        _ => false,
+    })
 }
 
 fn binary(kind: &Kind) -> Option<(hir::BinaryOp, u8)> {

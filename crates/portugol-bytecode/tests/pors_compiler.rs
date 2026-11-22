@@ -45,6 +45,7 @@ fn compiles_hir_to_a_vm_function_with_binding_names_and_source_spans() {
                 span,
             },
         ],
+        functions: vec![],
         span,
     };
 
@@ -76,6 +77,7 @@ fn compiles_boolean_short_circuit_and_loop_control_to_jumps() {
             },
             span,
         }],
+        functions: vec![],
         span,
     };
     let module = portugol_bytecode::compile_pors(&program).expect("loop deve compilar");
@@ -157,6 +159,7 @@ fn tracks_shadowed_binding_lifetimes_with_visibility_opcodes() {
                 span: inner_span,
             },
         ],
+        functions: vec![],
         span: hir::Span::new(0, 30),
     };
 
@@ -225,6 +228,7 @@ fn compiles_string_concatenation_and_continue_with_mapped_source_spans() {
                 span,
             },
         ],
+        functions: vec![],
         span,
     };
 

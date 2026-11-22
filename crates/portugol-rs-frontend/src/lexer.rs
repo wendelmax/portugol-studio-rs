@@ -14,6 +14,7 @@ pub(super) enum Kind {
     Colon,
     Semicolon,
     Comma,
+    Arrow,
     Plus,
     Minus,
     Star,
@@ -97,6 +98,11 @@ impl Lexer<'_> {
                 ';' => self.single(start, Kind::Semicolon),
                 ',' => self.single(start, Kind::Comma),
                 '+' => self.pair(start, '=', Kind::PlusEq, Kind::Plus),
+                '-' if self.starts_with("->") => {
+                    self.bump();
+                    self.bump();
+                    self.push(start, Kind::Arrow);
+                }
                 '-' => self.pair(start, '=', Kind::MinusEq, Kind::Minus),
                 '*' => self.pair(start, '=', Kind::StarEq, Kind::Star),
                 '/' => self.pair(start, '=', Kind::SlashEq, Kind::Slash),

@@ -232,6 +232,7 @@ pub fn inspect_portugol_rs(source: &str) -> Inspection {
                         portugol_hir::Type::Boolean => "logico",
                         portugol_hir::Type::String => "cadeia",
                         portugol_hir::Type::Character => "caracter",
+                        portugol_hir::Type::Unit => "vazio",
                     },
                     position: index.position(binding.span.start),
                     children: Vec::new(),
