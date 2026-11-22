@@ -5,6 +5,7 @@ import { panelContentId, panelNameForKey } from "../src/panel-tabs.ts";
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+const exercises = readFileSync(new URL("../src/exercises.ts", import.meta.url), "utf8");
 
 test("Tests tab keeps an honest empty state and exposes real cases only for exercises", () => {
   assert.equal(panelContentId("tests"), "tests");
@@ -17,6 +18,8 @@ test("Tests tab keeps an honest empty state and exposes real cases only for exer
   assert.doesNotMatch(html, /\b\d+\s+(?:testes?\s+)?(?:aprovados?|falhos?|passaram?)\b/i);
   assert.match(main, /\$\("tab-tests"\)\.onclick\s*=\s*\(\)\s*=>\s*showPanel\("tests"\)/);
   assert.match(main, /function renderExerciseTests\(/);
+  assert.match(main, /void exercises\.grade\(exercise, documentState\.toString\(\), isCurrent\)/);
+  assert.match(exercises, /\(\) => id === modalAttempt && isCurrent\(\)/);
   assert.match(main, /\["console",\s*"tests",\s*"messages",\s*"debug",\s*"learning"\]/);
 });
 

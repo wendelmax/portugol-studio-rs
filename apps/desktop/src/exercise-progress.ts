@@ -241,16 +241,20 @@ export function createExerciseEvaluationRunner<T extends ExerciseEvaluation & { 
     const request = ++sequence;
     const scope = `${document.exercise.id}:${document.contents ?? "builtin"}`;
     latestByExercise.set(scope, request);
-    const identity = await options.identify(document.exercise.id, document.contents);
-    const isRunCurrent = () => latestByExercise.get(scope) === request && isCurrent();
-    const grader = createValidatedExerciseGrader(
-      (gradedSource) => options.check(document.exercise.id, gradedSource, document.contents),
-      options.progress,
-      identity,
-      isRunCurrent,
-    );
-    const { evaluation, result } = await grader(source);
-    return { evaluation, progress: result, current: isCurrent() };
+    try {
+      const identity = await options.identify(document.exercise.id, document.contents);
+      const isRunCurrent = () => latestByExercise.get(scope) === request && isCurrent();
+      const grader = createValidatedExerciseGrader(
+        (gradedSource) => options.check(document.exercise.id, gradedSource, document.contents),
+        options.progress,
+        identity,
+        isRunCurrent,
+      );
+      const { evaluation, result } = await grader(source);
+      return { evaluation, progress: result, current: isCurrent() };
+    } finally {
+      if (latestByExercise.get(scope) === request) latestByExercise.delete(scope);
+    }
   }
 
   return { evaluate };
