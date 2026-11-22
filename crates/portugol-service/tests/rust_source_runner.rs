@@ -214,13 +214,14 @@ fn rejects_too_many_rust_arguments_before_compilation() {
 }
 
 #[test]
-fn rejects_rust_arguments_over_sixty_four_kib_before_compilation() {
+fn rejects_rust_arguments_over_the_platform_budget_before_compilation() {
     let args = vec!["x".repeat(65_537)];
     let cancel = AtomicBool::new(false);
     let error = run_rust_source_with_args_and_cancel("fn main() {}", &args, &cancel)
         .expect_err("mais de 64 KiB de argumentos devem ser recusados");
 
-    assert!(error.contains("64 KiB"));
+    let expected_limit = if cfg!(windows) { "8 KiB" } else { "64 KiB" };
+    assert!(error.contains(expected_limit));
 }
 
 #[test]
