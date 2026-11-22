@@ -204,6 +204,34 @@ fn pors_debugger_reuses_typed_input_channel_without_repeating_pause() {
 }
 
 #[test]
+fn pors_debugger_applies_string_memory_limit_to_chain_input() {
+    const STRING_LIMIT: usize = 16 * 1024 * 1024;
+    let (tx, rx) = mpsc::channel();
+    let observer = Arc::new(Recorder(Mutex::new(tx)));
+    let handle = start_portugol_rs(
+        "funcao inicio() {\n seja mutavel texto: cadeia = \"\";\n leia(texto);\n}",
+        RunOptions::default(),
+        observer,
+    )
+    .expect("iniciar debugger com leitura de cadeia");
+
+    assert_eq!(
+        rx.recv_timeout(Duration::from_secs(5))
+            .expect("pedido de entrada"),
+        Event::Input("cadeia")
+    );
+    handle.send_input("x".repeat(STRING_LIMIT + 1));
+
+    assert_eq!(
+        run_outcome(&rx),
+        RunOutcome::RuntimeLimit {
+            reason: portugol_service::RunLimitReason::StringMemory,
+        }
+    );
+    handle.join();
+}
+
+#[test]
 fn pors_vm_debug_output_matches_generated_rust_for_core_statements() {
     if !portugol_service::rust_toolchain_available() {
         eprintln!("rustc indisponível; teste diferencial ignorado neste ambiente");
