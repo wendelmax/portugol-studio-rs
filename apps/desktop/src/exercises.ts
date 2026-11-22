@@ -1,5 +1,5 @@
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { checkExercise, inspectExercise, listExercises, readFile, type Exercise } from "./api";
+import { checkExercise, inspectExercise, listExercises, readFile, type Exercise, type ExerciseCheckResult } from "./api";
 import {
   createExerciseProgress,
   createValidatedExerciseGrader,
@@ -7,12 +7,19 @@ import {
   exerciseOptionLabel,
   exerciseResultSummary,
   exerciseRevisionStatus,
+  type ExerciseProgressOutcome,
 } from "./exercise-progress";
 
 export interface ExerciseDocument {
   exercise: Exercise;
   name: string;
   contents?: string;
+}
+
+export interface ExerciseGrade {
+  evaluation: ExerciseCheckResult;
+  progress: ExerciseProgressOutcome;
+  current: boolean;
 }
 
 export async function readExercise(path: string): Promise<ExerciseDocument> {
@@ -96,7 +103,35 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
     }
   }
 
-  async function grade({ exercise, name, contents }: ExerciseDocument, source: string) {
+  async function runEvaluation(
+    { exercise, contents }: ExerciseDocument,
+    source: string,
+    id: number,
+    isCurrent: () => boolean,
+  ): Promise<ExerciseGrade> {
+    const identity = await exerciseIdentity(exercise.id, contents);
+    const isRunCurrent = () => id === attempt && isCurrent();
+    const grader = createValidatedExerciseGrader(
+      (gradedSource) => checkExercise(exercise.id, gradedSource, contents),
+      progress,
+      identity,
+      isRunCurrent,
+    );
+    const { evaluation, result } = await grader(source);
+    return { evaluation, progress: result, current: isRunCurrent() };
+  }
+
+  async function evaluate(
+    exerciseDocument: ExerciseDocument,
+    source: string,
+    isCurrent: () => boolean = () => true,
+  ): Promise<ExerciseGrade> {
+    const id = ++attempt;
+    return runEvaluation(exerciseDocument, source, id, isCurrent);
+  }
+
+  async function grade(exerciseDocument: ExerciseDocument, source: string) {
+    const { name } = exerciseDocument;
     const id = ++attempt;
     summary.textContent = `Corrigindo ${name}…`;
     revisionStatus.textContent = "Validando esta revisão do código…";
@@ -105,15 +140,8 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
     hintItems.replaceChildren();
     results.showModal();
     try {
-      const identity = await exerciseIdentity(exercise.id, contents);
-      const grade = createValidatedExerciseGrader(
-        (gradedSource) => checkExercise(exercise.id, gradedSource, contents),
-        progress,
-        identity,
-        () => id === attempt,
-      );
-      const { evaluation: result, result: progressResult } = await grade(source);
-      if (id !== attempt) return;
+      const { evaluation: result, progress: progressResult, current } = await runEvaluation(exerciseDocument, source, id, () => true);
+      if (!current) return;
       summary.textContent = exerciseResultSummary(result, progressResult);
       revisionStatus.textContent = exerciseRevisionStatus(progressResult);
       for (const failure of result.failures) {
@@ -127,6 +155,7 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
         hintItems.append(item);
       }
       hints.hidden = !result.hints.length;
+      return { evaluation: result, progress: progressResult, current };
     } catch (message) {
       if (id === attempt) {
         summary.textContent = typeof message === "string" ? message : "Não foi possível corrigir a solução.";
@@ -135,5 +164,5 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
     }
   }
 
-  return { browse, grade };
+  return { browse, grade, evaluate };
 }

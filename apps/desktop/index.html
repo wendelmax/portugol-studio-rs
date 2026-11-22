@@ -206,10 +206,10 @@
             </form>
           </div>
           <section id="tests" class="tests-panel" role="tabpanel" aria-labelledby="tab-tests" tabindex="0" hidden>
-            <h2>Testes do projeto</h2>
+            <h2 id="tests-title">Testes do projeto</h2>
             <p id="tests-status" role="status">Nenhum teste configurado.</p>
-            <p>O runner de testes ainda não está integrado. Este painel não executou nem avaliou o programa.</p>
-            <p>Arquivos Rust podem ser editados, mas a IDE ainda não compila nem executa Rust.</p>
+            <button id="tests-run" type="button" hidden>Executar casos</button>
+            <ul id="tests-results" aria-label="Falhas dos casos de teste" hidden></ul>
           </section>
           <section id="messages" class="messages" role="tabpanel" aria-labelledby="tab-messages" aria-label="Mensagens do compilador" hidden>
             <p id="no-diagnostics">Nenhum problema encontrado.</p>

@@ -53,7 +53,7 @@ são executados e validados sem tela.
 | Console com entrada (`AbaConsole`) | ✅ | entrada e engrenagem para limpar, copiar e ajustar fonte |
 | Depuração na IDE (`AbaDepuracao`, `Depurador`) | ✅ | gutter de breakpoints, início pausado com Shift+F5, pilha e variáveis |
 | Laboratório pedagógico de ownership | 🟡 | quatro cenários guiados de `String` para move, `&T`, `&mut T` e escopo; fixtures verificadas com `rustc`; simulação editorial, não é trace Rust nem interpreta o buffer do aluno |
-| Painel Testes (UI-020 / FT-06) | 🟡 | aba inferior com estado vazio explícito; ainda não há descoberta ou execução de testes configuráveis, e nenhum resultado é simulado |
+| Painel Testes (UI-020 / FT-06) | 🟡 | aba inferior executa os casos reais de exercícios `.pex` na revisão atual e mostra aprovação/falhas; progresso só é concluído quando todos passam. Arquivos sem exercício continuam sem runner genérico configurável. Evidência: FT-19 |
 | Autocompletar bibliotecas | ✅ | opções, assinaturas e descrições da mesma referência usada pela ajuda |
 | Prévia Portugol ↔ Rust com navegação de origem | 🟡 | exportação `.por`/`.pors` inclui source maps; o gutter bridge apresenta correspondências reais da linha selecionada e navega ao trecho Rust, que continua podendo voltar à origem. Localizações aproximadas são identificadas; trechos gerados sem origem permanecem sem navegação. |
 | Localizar e substituir (`PSFindReplace`) | ✅ | diálogo Ctrl+F com direção, palavra inteira, maiúsculas, expressões regulares e substituição em lote |
