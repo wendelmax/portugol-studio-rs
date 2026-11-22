@@ -234,6 +234,28 @@ fn discovers_all_binary_targets_and_the_default_run_across_workspace_packages() 
 }
 
 #[test]
+fn leaves_the_default_empty_when_a_package_has_multiple_bins_without_default_run() {
+    if !portugol_service::cargo_available() {
+        return;
+    }
+    let project = TempDir::new();
+    fs::create_dir_all(project.0.join("src/bin")).unwrap();
+    fs::write(
+        project.0.join("Cargo.toml"),
+        "[package]\nname = \"escolha\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
+    )
+    .unwrap();
+    fs::write(project.0.join("src/main.rs"), "fn main() {}").unwrap();
+    fs::write(project.0.join("src/bin/um.rs"), "fn main() {}").unwrap();
+    fs::write(project.0.join("src/bin/dois.rs"), "fn main() {}").unwrap();
+
+    let targets = cargo_run_targets_with_cancel(&project.0, &AtomicBool::new(false)).unwrap();
+
+    assert_eq!(targets.targets.len(), 3);
+    assert!(targets.default_target.is_none());
+}
+
+#[test]
 fn runs_only_the_selected_binary_target() {
     if !portugol_service::cargo_available() {
         return;

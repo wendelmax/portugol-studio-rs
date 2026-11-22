@@ -30,7 +30,7 @@
 | Comando/execução | Resultado | Evidência e limite |
 |---|---|---|
 | `cargo fmt --all --check` | PASS | Executado antes do PR #74 e validado novamente em CI multiplataforma. |
-| `cargo test -p portugol-service --offline --locked` | PASS | 86 testes no Linux local, incluindo 9 de projetos Cargo e seleção do binário correto. |
+| `cargo test -p portugol-service --offline --locked` | PASS | 87 testes no Linux local, incluindo 10 de projetos Cargo, alvos sem padrão e seleção do binário correto. |
 | `cargo clippy -p portugol-service --all-targets --offline --locked -- -D warnings` | PASS | Local para o serviço. |
 | `cargo test -p portugol-desktop --offline --locked --lib` | NOT_RUN | A compilação local GTK/Wry excedeu a quota temporária de disco; CI desta branch ainda executará a camada Tauri. |
 | `npm test --prefix apps/desktop` | PASS | 31 testes top-level (154 subtestes Node); não é E2E de interação. |
