@@ -27,6 +27,8 @@ test("presets populares têm IDs estáveis e cores para todos os tokens da IDE",
     }
     assert.ok(contrast(theme.colors["--text"], theme.colors["--bg"]) >= 4.5, `${id} precisa manter contraste do texto`);
     assert.ok(contrast(theme.colors["--text"], theme.colors["--surface"]) >= 4.5, `${id} precisa manter contraste dos painéis`);
+    assert.ok(contrast(theme.colors["--muted"], theme.colors["--bg"]) >= 4.5, `${id} precisa manter contraste do texto secundário no fundo`);
+    assert.ok(contrast(theme.colors["--muted"], theme.colors["--surface"]) >= 4.5, `${id} precisa manter contraste do texto secundário nos painéis`);
   }
   const next = BUILTIN_THEMES["preset:portugol-studio-next"];
   assert.equal(next.colors["--bg"], "#0c1118");
