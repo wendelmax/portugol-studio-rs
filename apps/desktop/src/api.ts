@@ -173,6 +173,19 @@ export type PortugolRsRunResult =
     }
   | { status: "cancelled"; phase: "compilation" | "runtime"; stdout: string; stderr: string };
 export const rustToolchainAvailable = () => invoke<boolean>("rust_toolchain_available");
+export const cargoToolchainAvailable = () => invoke<boolean>("cargo_toolchain_available");
+export interface CargoProjectRunResult {
+  status: "executed" | "build_error" | "build_limit" | "run_error" | "runtime_limit" | "cancelled";
+  stdout: string;
+  stderr: string;
+  exitCode: number | null;
+  phase: "compilation" | "runtime" | null;
+  reason: "time" | "output" | "memory" | "cancelled" | null;
+}
+export const workspaceCargoProjectAvailable = (workspaceId: string, relativeSource: string) =>
+  invoke<boolean>("workspace_cargo_project_available", { workspaceId, relativeSource });
+export const runCargoProject = (id: number, workspaceId: string, relativeSource: string) =>
+  invoke<CargoProjectRunResult>("run_cargo_project", { id, workspaceId, relativeSource });
 export const rustfmtAvailable = () => invoke<boolean>("rustfmt_available");
 export const formatRustSource = (source: string) => invoke<string>("format_rust_source", { source });
 export const checkRustSource = (source: string) =>

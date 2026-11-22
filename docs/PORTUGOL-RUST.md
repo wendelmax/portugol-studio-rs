@@ -18,6 +18,12 @@ Esta prévia não implementa o compilador Rust completo, o dialeto Portugol-RS, 
 
 A IDE compila arquivos `.rs` como Rust 2021 usando `rustc` encontrado no `PATH`. A toolchain Rust precisa estar instalada no sistema; os instaladores do Portugol Studio não incluem nem instalam `rustc`. Sem a toolchain, o botão Executar fica indisponível. A execução de cada arquivo exige ação explícita e uma confirmação por sessão.
 
-A compilação tem limite de 20 segundos e a execução de 3 segundos. A fonte e a saída combinada têm limite de 1 MiB. A entrada padrão é fechada e projetos Cargo, dependências externas, módulos externos, entrada interativa, cancelamento manual e depuração Rust não estão disponíveis neste fluxo. O supervisor aplica o limite ao processo associado; código nativo sem sandbox ainda pode criar processos destacados ou escapar do grupo/job antes de ser associado.
+A compilação tem limite de 20 segundos e a execução de 3 segundos. A fonte e a saída combinada têm limite de 1 MiB. A entrada padrão é fechada; dependências externas, módulos externos e entrada interativa não estão disponíveis no fluxo standalone. O supervisor aplica o limite ao processo associado; código nativo sem sandbox ainda pode criar processos destacados ou escapar do grupo/job antes de ser associado.
+
+## Executar um projeto Cargo
+
+Ao abrir pelo explorador um arquivo `.rs` dentro de um workspace que contenha `Cargo.toml` ancestral, o botão Executar compila o projeto com Cargo e executa seu alvo padrão. Projetos com vários binários podem definir `default-run` no `Cargo.toml`; não há seletor de alvo na interface. Antes do primeiro build, a IDE informa que Cargo pode acessar a rede e executar scripts de build, macros procedurais e dependências com as permissões da conta local. O fluxo não possui sandbox e exige consentimento explícito separado do consentimento de Rust standalone. Arquivos Rust modificados no workspace precisam ser salvos antes da execução.
+
+O build tem limite de 20 segundos; o runtime Cargo, 3 segundos; a saída, 1 MiB. Parar/Shift+F7 cancela o processo supervisionado. Sem `Cargo.toml` ancestral, um `.rs` continua usando o fluxo standalone com `rustc`. O instalador não inclui Rust/Cargo. Seleção manual de alvo, argumentos Cargo, `cargo check` contínuo e debugger Rust ainda não estão disponíveis.
 
 **Aviso:** programas Rust nativos executam com as permissões da conta local e não possuem sandbox. Execute somente código em que você confia.

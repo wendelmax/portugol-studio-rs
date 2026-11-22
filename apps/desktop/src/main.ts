@@ -52,7 +52,7 @@ import { collectWorkspaceFiles, flattenWorkspaceEntries, workspaceFileKind, work
 import { workspaceExportStatus } from "./workspace-export-state";
 import { canDebugSource, canFormatSource, canRunSource } from "./runtime-capabilities";
 import { parseProcessArguments } from "./process-arguments";
-import { hasRustExecutionConsent, rememberRustExecutionConsent } from "./rust-execution-consent";
+import { hasCargoExecutionConsent, hasRustExecutionConsent, rememberCargoExecutionConsent, rememberRustExecutionConsent } from "./rust-execution-consent";
 import { applyWorkspaceRenameToTabs, deleteWorkspaceFileFlow, prepareWorkspaceRename } from "./workspace-file-actions";
 import { conceptsForMode, resolveConceptForMode } from "./learning-content";
 import { explainMappedConcept, learningContextAtSelection } from "./learning-context";
@@ -106,6 +106,7 @@ interface Tab {
   exerciseTestGeneration?: number;
   workspaceId?: string;
   workspacePath?: string;
+  cargoProject?: boolean;
   workspaceExercisePath?: string;
   state: EditorState;
   rustPreview?: RustPreviewState;
@@ -288,7 +289,7 @@ const rustSourceLinter = linter(
   async (editor) => {
     const doc = editor.state.doc;
     const tab = activeTab();
-    if (tab?.language !== "rust" || rustcAvailable !== true) {
+    if (tab?.language !== "rust" || tab.cargoProject === true || rustcAvailable !== true) {
       if (tab?.language === "rust") {
         tab.diagnostics = [];
         renderMessages();
@@ -555,8 +556,9 @@ function syncLanguageControls(tab: Tab) {
   for (const id of ["btn-run", "btn-debug", "btn-debug-pause", "btn-debug-continue", "btn-debug-step-over", "btn-debug-step-into", "btn-debug-step-out"]) {
     const button = $<HTMLButtonElement>(id);
     const isRun = id === "btn-run";
+    const cargoDetectionPending = rustFile && Boolean(tab.workspaceId && tab.workspacePath) && tab.cargoProject === undefined;
     const runtimeUnavailable = isRun
-      ? !canRunSource(tab.language, rustcAvailable)
+      ? !canRunSource(tab.language, rustcAvailable) || cargoDetectionPending || (rustFile && tab.cargoProject === true && cargoAvailable === false)
       : !canDebugSource(tab.language);
     const stateDisabled = id === "btn-debug-pause"
       ? runId === null || paused !== null
@@ -565,8 +567,12 @@ function syncLanguageControls(tab: Tab) {
         : paused === null;
     button.disabled = runtimeUnavailable || stateDisabled;
     button.dataset.defaultTitle ??= button.title;
-    const unavailableReason = rustFile && rustcAvailable !== true
+    const unavailableReason = cargoDetectionPending
+      ? "Verificando se este arquivo pertence a um projeto Cargo."
+      : rustFile && rustcAvailable !== true
       ? "Instale a toolchain Rust para executar arquivos .rs."
+      : rustFile && tab.cargoProject === true && cargoAvailable === false
+        ? "Instale Cargo para executar o projeto Rust."
       : rustFile && !isRun
         ? "Depuração Rust ainda não está disponível."
       : pors && isRun && rustcAvailable !== true
@@ -576,14 +582,17 @@ function syncLanguageControls(tab: Tab) {
           : "";
     if (unavailableReason) button.title = unavailableReason;
     else if (pors && isRun) button.title = "Compilar e executar o subset suportado com rustc";
+    else if (rustFile && isRun && tab.cargoProject === true) button.title = "Compilar e executar o projeto Cargo (scripts e dependências executam localmente)";
     else if (rustFile && isRun) button.title = "Compilar e executar Rust 2021 com rustc (execução sem sandbox)";
     else button.title = button.dataset.defaultTitle;
     button.setAttribute("aria-description", unavailableReason);
   }
   const args = $<HTMLInputElement>("args");
-  args.disabled = pors;
+  args.disabled = pors || rustFile && tab.cargoProject === true;
   args.title = pors
     ? "Parâmetros ainda não são suportados em Portugol-RS."
+    : rustFile && tab.cargoProject === true
+      ? "Argumentos de execução do projeto Cargo ainda não estão disponíveis."
     : rustFile
       ? "Espaços separam itens; aspas duplas agrupam. O programa recebe argv, sem shell."
       : "";
@@ -922,6 +931,19 @@ async function openWorkspaceFile(entry: Extract<WorkspaceEntry, { kind: "file" }
     path: loaded.relativePath,
   });
   tab.workspacePath = loaded.relativePath;
+  if (tab.language === "rust") {
+    void api.workspaceCargoProjectAvailable(selected.id, loaded.relativePath).then((available) => {
+      tab.cargoProject = available;
+      if (activeTab() === tab) {
+        syncLanguageControls(tab);
+        forceLinting(view);
+      }
+    }).catch((error: unknown) => {
+      tab.cargoProject = false;
+      console.error("Não foi possível verificar Cargo.toml:", error);
+      if (activeTab() === tab) syncLanguageControls(tab);
+    });
+  }
   rememberFile(loaded.path);
   setStatus(`Aberto: ${entry.path}`, "ok");
 }
@@ -1565,6 +1587,7 @@ let runId: number | null = null;
 let runTabId: number | null = null;
 let pendingEvents: { id: number; handle: () => void }[] | null = null;
 let rustcAvailable: boolean | null = null;
+let cargoAvailable: boolean | null = null;
 let rustfmtAvailable: boolean | null = null;
 let porsRunPending = false;
 let paused: api.DebugInfo | null = null;
@@ -1701,28 +1724,52 @@ async function runProgram(pauseOnStart = false) {
       return;
     }
     let rustArgs: string[];
-    try {
-      rustArgs = parseProcessArguments($<HTMLInputElement>("args").value);
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Argumentos inválidos.", "error");
-      return;
+    if (tab.cargoProject === true) {
+      rustArgs = [];
+    } else {
+      try {
+        rustArgs = parseProcessArguments($<HTMLInputElement>("args").value);
+      } catch (error) {
+        setStatus(error instanceof Error ? error.message : "Argumentos inválidos.", "error");
+        return;
+      }
     }
+    if (tab.cargoProject === true && tab.workspaceId && tab.workspacePath) {
+      const dirtyFiles = tabs.filter((candidate) => candidate.workspaceId === tab.workspaceId && candidate !== tab && isDirty(candidate));
+      if (dirtyFiles.length > 0) {
+        setStatus("Salve os outros arquivos alterados deste projeto antes de executar Cargo.", "error");
+        return;
+      }
+      if (isDirty(tab) && !(await save())) {
+        setStatus("Salve o arquivo Rust antes de executar o projeto Cargo.", "error");
+        return;
+      }
+    }
+    if (activeTab() !== tab) return;
     const documentState = view.state.doc;
     const source = documentState.toString();
     porsRunPending = true;
     runTabId = tab.id;
     syncLanguageControls(tab);
     try {
-      if (!hasRustExecutionConsent(sessionStorage)) {
+      const cargoConsent = tab.cargoProject === true;
+      const hasConsent = cargoConsent
+        ? hasCargoExecutionConsent(sessionStorage)
+        : hasRustExecutionConsent(sessionStorage);
+      if (!hasConsent) {
+        const consentText = tab.cargoProject === true
+          ? "Cargo pode acessar a rede e executar scripts de build, macros procedurais e dependências no seu usuário local. Esta execução não possui sandbox. Execute apenas projetos em que você confia. Deseja continuar?"
+          : "Arquivos Rust compilados e executados podem acessar arquivos, processos e recursos permitidos à sua conta. Esta execução não possui sandbox. Execute apenas código em que você confia. Deseja continuar?";
         const accepted = await ask(
-          "Arquivos Rust compilados e executados podem acessar arquivos, processos e recursos permitidos à sua conta. Esta execução não possui sandbox. Execute apenas código em que você confia. Deseja continuar?",
-          { title: "Executar código Rust sem sandbox", kind: "warning", okLabel: "Executar Rust", cancelLabel: "Cancelar" },
+          consentText,
+          { title: tab.cargoProject === true ? "Executar projeto Cargo sem sandbox" : "Executar código Rust sem sandbox", kind: "warning", okLabel: "Executar Rust", cancelLabel: "Cancelar" },
         );
         if (!accepted) {
           if (activeTab() === tab) setStatus("Execução Rust cancelada.");
           return;
         }
-        rememberRustExecutionConsent(sessionStorage, true);
+        if (cargoConsent) rememberCargoExecutionConsent(sessionStorage, true);
+        else rememberRustExecutionConsent(sessionStorage, true);
       }
       if (activeTab() !== tab || view.state.doc !== documentState) return;
       const id = await api.registerRustSourceRun();
@@ -1733,6 +1780,24 @@ async function runProgram(pauseOnStart = false) {
       showPanel("console");
       output.replaceChildren();
       setRunning(true);
+      if (tab.cargoProject === true && tab.workspaceId && tab.workspacePath) {
+        setStatus("Compilando o projeto Cargo…");
+        const result = await api.runCargoProject(id, tab.workspaceId, tab.workspacePath);
+        if (activeTab() !== tab || view.state.doc !== documentState) return;
+        if (result.stdout) appendConsole(result.stdout);
+        if (result.stderr) appendConsole(result.stderr, "error");
+        if (result.status === "executed") {
+          setStatus(result.exitCode === 0 ? "Projeto Cargo finalizado." : `Programa Rust terminou com código ${result.exitCode ?? "desconhecido"}.`, result.exitCode === 0 ? "ok" : "error");
+        } else if (result.status === "cancelled") {
+          setStatus(`Execução Cargo cancelada durante a ${result.phase === "compilation" ? "compilação" : "execução"}.`);
+        } else if (result.status === "build_limit" || result.status === "runtime_limit") {
+          const reason = result.reason === "time" ? (result.phase === "compilation" ? "20 segundos de compilação" : "3 segundos de execução") : "limite de saída de 1 MiB";
+          setStatus(`Projeto Cargo interrompido: ${reason}.`, "error");
+        } else {
+          setStatus(result.phase === "compilation" ? "Cargo não conseguiu compilar o projeto." : "O programa Cargo terminou com erro.", "error");
+        }
+        return;
+      }
       setStatus("Compilando e executando Rust 2021 com rustc…");
       const result = await api.runRustSource(id, source, rustArgs);
       if (activeTab() !== tab || view.state.doc !== documentState) return;
@@ -3520,6 +3585,15 @@ void api.rustToolchainAvailable().then((available) => {
     syncLanguageControls(tab);
     if (tab.language === "rust") forceLinting(view);
   }
+});
+void api.cargoToolchainAvailable().then((available) => {
+  cargoAvailable = available;
+  const tab = activeTab();
+  if (tab) syncLanguageControls(tab);
+}).catch(() => {
+  cargoAvailable = false;
+  const tab = activeTab();
+  if (tab) syncLanguageControls(tab);
 });
 void api.rustfmtAvailable().then((available) => {
   rustfmtAvailable = available;

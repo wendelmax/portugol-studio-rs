@@ -19,8 +19,8 @@ const MAX_RUST_ARGUMENT_BYTES: usize = 64 * 1024;
 const MAX_WINDOWS_RUST_ARGUMENT_BYTES: usize = 8 * 1024;
 const MAX_RUNTIME_OUTPUT_BYTES: usize = 1_048_576;
 const MAX_RUNTIME_INPUT_LINE_BYTES: usize = 1_048_576;
-const RUNTIME_LIMIT: Duration = Duration::from_secs(3);
-const COMPILATION_LIMIT: Duration = Duration::from_secs(20);
+pub(crate) const RUNTIME_LIMIT: Duration = Duration::from_secs(3);
+pub(crate) const COMPILATION_LIMIT: Duration = Duration::from_secs(20);
 const RUST_SOURCE_CHECK_LIMIT: Duration = Duration::from_secs(5);
 const RUSTFMT_LIMIT: Duration = Duration::from_secs(5);
 const STRING_BUDGET_EXIT_CODE: i32 = 78;
@@ -133,7 +133,7 @@ pub struct RustSourceCompileDiagnostic {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ProcessLimitReason {
+pub(crate) enum ProcessLimitReason {
     Time,
     Output,
     StringMemory,
@@ -639,11 +639,11 @@ fn compile_and_run_generated(
     })
 }
 
-struct SupervisedOutput {
-    stdout: Vec<u8>,
-    stderr: Vec<u8>,
-    status: Option<i32>,
-    limit: Option<ProcessLimitReason>,
+pub(crate) struct SupervisedOutput {
+    pub(crate) stdout: Vec<u8>,
+    pub(crate) stderr: Vec<u8>,
+    pub(crate) status: Option<i32>,
+    pub(crate) limit: Option<ProcessLimitReason>,
 }
 
 enum ProcessMessage {
@@ -652,13 +652,13 @@ enum ProcessMessage {
 }
 
 #[cfg(unix)]
-fn configure_process_tree(command: &mut Command) {
+pub(crate) fn configure_process_tree(command: &mut Command) {
     use std::os::unix::process::CommandExt;
     command.process_group(0);
 }
 
 #[cfg(not(unix))]
-fn configure_process_tree(_command: &mut Command) {}
+pub(crate) fn configure_process_tree(_command: &mut Command) {}
 
 #[cfg(unix)]
 struct ProcessTreeSupervisor;
@@ -778,7 +778,7 @@ impl ProcessTreeSupervisor {
     }
 }
 
-fn supervise(
+pub(crate) fn supervise(
     child: Child,
     time_limit: Duration,
     cancel: Option<&AtomicBool>,

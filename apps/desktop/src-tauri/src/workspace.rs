@@ -1,14 +1,12 @@
 #[cfg(test)]
 mod tests {
     use super::{
-        WorkspaceEntry, copy_selected_files, copy_selected_files_with_hook, create_source_file,
-        delete_relative_file, list_entries, read_relative_file, rename_relative_file,
-        restore_saved_workspace, save_last_workspace,
+        WorkspaceEntry, WorkspaceSession, cargo_project_for_source, copy_selected_files,
+        copy_selected_files_with_hook, create_source_file, delete_relative_file, list_entries,
+        read_relative_file, rename_relative_file, restore_saved_workspace, save_last_workspace,
     };
     #[cfg(unix)]
-    use super::{
-        WorkspaceSession, copy_selected_files_from_dir_with_hook, open_selected_file_with_hook,
-    };
+    use super::{copy_selected_files_from_dir_with_hook, open_selected_file_with_hook};
     use std::fs;
     use std::path::Path;
     use std::sync::atomic::{AtomicUsize, Ordering};
@@ -82,6 +80,58 @@ mod tests {
         let content = read_relative_file(&temp.0, Path::new("aula/programa.por")).unwrap();
 
         assert_eq!(content, "escreva(42)");
+    }
+
+    #[test]
+    fn finds_the_nearest_cargo_project_for_a_workspace_rust_file() {
+        let temp = TempDir::new();
+        let project = temp.0.join("aula");
+        fs::create_dir_all(project.join("src")).unwrap();
+        fs::write(project.join("Cargo.toml"), "[package]").unwrap();
+        fs::write(project.join("src/main.rs"), "fn main() {}").unwrap();
+        let session = WorkspaceSession::default();
+        let id = session.register(temp.0.clone()).unwrap();
+
+        assert_eq!(
+            cargo_project_for_source(&session, &id, "aula/src/main.rs").unwrap(),
+            Some(project.canonicalize().unwrap())
+        );
+        assert!(
+            cargo_project_for_source(&session, &id, "aula/src/main.rs/../../escape.rs").is_err()
+        );
+    }
+
+    #[test]
+    fn standalone_workspace_rust_file_has_no_cargo_project() {
+        let temp = TempDir::new();
+        fs::write(temp.0.join("main.rs"), "fn main() {}").unwrap();
+        let session = WorkspaceSession::default();
+        let id = session.register(temp.0.clone()).unwrap();
+
+        assert_eq!(
+            cargo_project_for_source(&session, &id, "main.rs").unwrap(),
+            None
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn rejects_a_cargo_manifest_symlinked_outside_the_workspace() {
+        use std::os::unix::fs::symlink;
+
+        let workspace = TempDir::new();
+        let external = TempDir::new();
+        fs::write(external.0.join("Cargo.toml"), "[package]").unwrap();
+        fs::write(workspace.0.join("main.rs"), "fn main() {}").unwrap();
+        symlink(
+            external.0.join("Cargo.toml"),
+            workspace.0.join("Cargo.toml"),
+        )
+        .unwrap();
+        let session = WorkspaceSession::default();
+        let id = session.register(workspace.0.clone()).unwrap();
+
+        assert!(cargo_project_for_source(&session, &id, "main.rs").is_err());
     }
 
     #[test]
@@ -1555,6 +1605,45 @@ fn checked_file(root: &Path, relative: &Path, allow_exercise: bool) -> Result<Pa
     Ok(canonical)
 }
 
+/// Descobre o Cargo.toml mais próximo do arquivo Rust sem sair do workspace aberto.
+pub(super) fn cargo_project_for_source(
+    session: &WorkspaceSession,
+    workspace_id: &str,
+    relative_source: &str,
+) -> Result<Option<PathBuf>, String> {
+    let root = fs::canonicalize(session.root(workspace_id)?)
+        .map_err(|_| "A pasta aberta não está mais disponível.".to_string())?;
+    let source = checked_file(&root, Path::new(relative_source), false)?;
+    if source.extension().and_then(|extension| extension.to_str()) != Some("rs") {
+        return Err("A execução Cargo exige um arquivo .rs do workspace.".into());
+    }
+    let mut directory = source.parent();
+    while let Some(candidate) = directory {
+        let manifest = candidate.join("Cargo.toml");
+        match fs::symlink_metadata(&manifest) {
+            Ok(metadata) if metadata.file_type().is_symlink() => {
+                return Err("Cargo.toml não pode ser um link simbólico.".into());
+            }
+            Ok(metadata) if metadata.is_file() => {
+                let canonical = fs::canonicalize(candidate)
+                    .map_err(|_| "A pasta do projeto Cargo não está disponível.".to_string())?;
+                if !canonical.starts_with(&root) {
+                    return Err("O projeto Cargo está fora da pasta aberta.".into());
+                }
+                return Ok(Some(canonical));
+            }
+            Ok(_) => return Err("Cargo.toml não é um arquivo regular.".into()),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(format!("Não foi possível verificar Cargo.toml: {error}")),
+        }
+        if candidate == root {
+            break;
+        }
+        directory = candidate.parent();
+    }
+    Ok(None)
+}
+
 fn is_exercise(path: &Path) -> bool {
     path.extension()
         .and_then(|extension| extension.to_str())
@@ -1759,6 +1848,15 @@ pub async fn workspace_open(
     })
     .await
     .map_err(|error| format!("Não foi possível abrir a pasta do projeto: {error}"))?
+}
+
+#[tauri::command]
+pub fn workspace_cargo_project_available(
+    workspace_id: String,
+    relative_source: String,
+    session: State<'_, WorkspaceSession>,
+) -> Result<bool, String> {
+    cargo_project_for_source(&session, &workspace_id, &relative_source).map(|root| root.is_some())
 }
 
 #[tauri::command]
