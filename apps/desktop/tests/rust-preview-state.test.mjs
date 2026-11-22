@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 const stateModule = await import("../src/rust-preview-state.ts");
-const { beginRustPreview, markRustPreviewStale, acceptRustPreview, failRustPreview } = stateModule;
+const { beginRustPreview, markRustPreviewStale, acceptRustPreview, failRustPreview, generatedRustComparison } = stateModule;
 
 const map = [{
   generatedStart: { offset: 0, line: 1, column: 1 },
@@ -68,10 +68,68 @@ test("resultado atual substitui o artefato e libera o estado stale", () => {
   });
   assert.deepEqual(next, {
     artifact: { source: "escreva(2)", code: "fn main() { println!(\"2\"); }", sourceMap: [] },
+    previousArtifact: artifact("escreva(1)"),
     pending: false,
     stale: false,
     error: undefined,
   });
+});
+
+test("nova geração válida diferente conserva o artefato anterior para comparação", () => {
+  const previousArtifact = artifact("escreva(1)", "fn main() { println!(\"1\"); }");
+  const state = { artifact: previousArtifact, pending: true, stale: true, error: undefined };
+  const next = acceptRustPreview(state, "escreva(2)", {
+    code: "fn main() { println!(\"2\"); }",
+    diagnostic: null,
+    sourceMap: [],
+  });
+
+  assert.equal(next.previousArtifact, previousArtifact);
+  assert.equal(next.artifact.code, "fn main() { println!(\"2\"); }");
+  assert.equal(next.stale, false);
+});
+
+test("regeneração idêntica não mantém um diff de uma revisão antiga", () => {
+  const previousArtifact = artifact("escreva(1)", "fn main() {}");
+  const olderArtifact = artifact("escreva(0)", "fn main() { /* antigo */ }");
+  const next = acceptRustPreview({
+    artifact: previousArtifact,
+    previousArtifact: olderArtifact,
+    pending: true,
+    stale: false,
+  }, "escreva(1)", {
+    code: "fn main() {}",
+    diagnostic: null,
+    sourceMap: [],
+  });
+
+  assert.equal(next.previousArtifact, undefined);
+});
+
+test("pendente e stale preservam a comparação sem apresentá-la como atual", () => {
+  const currentArtifact = artifact("escreva(2)", "fn main() { println!(\"2\"); }");
+  const previousArtifact = artifact("escreva(1)", "fn main() { println!(\"1\"); }");
+  const state = { artifact: currentArtifact, previousArtifact, pending: false, stale: false, error: undefined };
+
+  const pending = beginRustPreview(state, "escreva(3)");
+  assert.equal(pending.previousArtifact, previousArtifact);
+  assert.equal(pending.pending, true);
+  assert.equal(pending.stale, true);
+
+  const stale = markRustPreviewStale(state, "escreva(3)");
+  assert.equal(stale.previousArtifact, previousArtifact);
+  assert.equal(stale.stale, true);
+});
+
+test("comparação só fica disponível entre duas traduções diferentes e atuais", () => {
+  const previousArtifact = artifact("escreva(1)", "fn main() { println!(\"1\"); }");
+  const currentArtifact = artifact("escreva(2)", "fn main() { println!(\"2\"); }");
+  const ready = { artifact: currentArtifact, previousArtifact, pending: false, stale: false };
+  assert.deepEqual(generatedRustComparison(ready), { previous: previousArtifact, current: currentArtifact });
+  assert.equal(generatedRustComparison({ ...ready, stale: true }), null);
+  assert.equal(generatedRustComparison({ ...ready, pending: true }), null);
+  assert.equal(generatedRustComparison({ ...ready, previousArtifact: undefined }), null);
+  assert.equal(generatedRustComparison({ ...ready, previousArtifact: artifact("antiga", currentArtifact.code) }), null);
 });
 
 test("diagnóstico atual mantém o artefato anterior claramente stale", () => {

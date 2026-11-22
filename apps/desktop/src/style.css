@@ -2260,12 +2260,13 @@ body {
 }
 
 .rust-preview header h2 {
+  flex: 1 1 100px;
   margin: 0;
   font-size: 13px;
   font-weight: 600;
 }
 
-.rust-preview header div { display: flex; gap: 6px; }
+.rust-preview header div { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 .rust-preview header button { padding: 4px 8px; }
 .rust-preview #rust-status { margin: 0; padding: 6px 10px; color: var(--muted); font-size: 12px; }
 .rust-preview #rust-status[data-error="true"] { color: var(--error, #d73a49); }
@@ -2289,6 +2290,49 @@ body {
   cursor: pointer;
 }
 .rust-preview .cm-rust-mapped-segment[data-quality="approximate"] { text-decoration-style: dashed; }
+
+.rust-diff-output {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--editor-bg);
+  color: var(--editor-text);
+  font: 12px/1.5 var(--mono);
+}
+.rust-diff-output[hidden] { display: none; }
+.rust-diff-summary {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font: 12px/1.4 system-ui, sans-serif;
+}
+.rust-diff-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.rust-diff-table th {
+  position: sticky;
+  top: 32px;
+  z-index: 1;
+  padding: 5px 8px;
+  background: var(--surface);
+  color: var(--muted);
+  text-align: left;
+  font: 600 11px/1.4 system-ui, sans-serif;
+}
+.rust-diff-table td { width: 50%; padding: 0 5px; vertical-align: top; }
+.rust-diff-table td + td { border-left: 1px solid var(--border); }
+.rust-diff-table tr[data-kind="removed"] td:first-child { border-inline-start: 2px solid var(--error); }
+.rust-diff-table tr[data-kind="added"] td:last-child { border-inline-start: 2px solid var(--ok); }
+.rust-diff-mark { display: inline-block; width: 13px; color: var(--muted); text-align: center; }
+.rust-diff-table tr[data-kind="removed"] .rust-diff-mark { color: var(--error); }
+.rust-diff-table tr[data-kind="added"] .rust-diff-mark { color: var(--ok); }
+.rust-diff-line-number { display: inline-block; width: 30px; color: var(--muted); text-align: right; margin-right: 6px; user-select: none; }
+.rust-diff-table code { white-space: pre; }
+.rust-diff-table tr:focus-within td { outline: 1px solid var(--accent); }
+.rust-diff-table td code::selection { background: var(--editor-selection); }
 
 .editor-options {
   position: absolute;
