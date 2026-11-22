@@ -1,4 +1,4 @@
-use portugol_hir::{ExprKind, Mutability, StmtKind, Type};
+use portugol_hir::{AssignOp, ExprKind, Mutability, StmtKind, Type};
 use portugol_rs_frontend::lower;
 
 const SOURCE: &str =
@@ -92,4 +92,29 @@ fn parses_while_loop_with_typed_condition_and_mutable_binding() {
     };
     assert_eq!(condition.ty, Type::Boolean);
     assert!(matches!(body[0].kind, StmtKind::Assign { .. }));
+}
+
+#[test]
+fn parses_counted_loop_with_typed_initializer_condition_step_and_body() {
+    let program = lower(
+        "funcao inicio() { para (seja mutavel i: inteiro = 0; i < 3; i += 1) { escreva(i); } }",
+    )
+    .expect("para deve gerar HIR tipada");
+    let StmtKind::For {
+        initializer,
+        condition,
+        step,
+        body,
+    } = &program.body[0].kind
+    else {
+        panic!("esperava para");
+    };
+    assert!(
+        matches!(initializer.kind, StmtKind::Declare { binding, .. } if binding == program.bindings[0].id)
+    );
+    assert_eq!(condition.ty, Type::Boolean);
+    assert!(
+        matches!(step.kind, StmtKind::Assign { binding, op: AssignOp::Add, .. } if binding == program.bindings[0].id)
+    );
+    assert!(matches!(body[0].kind, StmtKind::Write(_)));
 }
