@@ -1,5 +1,6 @@
 use portugol_hir::{
-    AssignOp, BinaryOp, BindingId, Expr, ExprKind, Program, Span, Stmt, StmtKind, Type, UnaryOp,
+    AssignOp, BinaryOp, BindingId, Expr, ExprKind, LoopControl, Program, Span, Stmt, StmtKind,
+    Type, UnaryOp,
 };
 
 use crate::{
@@ -24,7 +25,15 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
     output.push_str("\nfn main() {\n");
     let body_start = output.len();
     let mut mappings = Vec::new();
-    render_statements(&program.body, program, 1, &mut output, &mut mappings, pors);
+    render_statements(
+        &program.body,
+        program,
+        1,
+        &mut output,
+        &mut mappings,
+        pors,
+        None,
+    );
     let body_end = output.len();
     output.push_str("}\n");
     if body_start > 0 {
@@ -61,6 +70,7 @@ fn render_statements(
     output: &mut String,
     mappings: &mut Vec<SourceMapSegment>,
     pors: bool,
+    for_label: Option<u32>,
 ) {
     let indent = "    ".repeat(depth);
     for statement in statements {
@@ -173,11 +183,27 @@ fn render_statements(
                 output.push_str(&format!("{indent}if "));
                 push_expr(output, mappings, condition, program, false, pors);
                 output.push_str(" {\n");
-                render_statements(then_branch, program, depth + 1, output, mappings, pors);
+                render_statements(
+                    then_branch,
+                    program,
+                    depth + 1,
+                    output,
+                    mappings,
+                    pors,
+                    for_label,
+                );
                 output.push_str(&format!("{indent}}}"));
                 if let Some(else_branch) = else_branch {
                     output.push_str(" else {\n");
-                    render_statements(else_branch, program, depth + 1, output, mappings, pors);
+                    render_statements(
+                        else_branch,
+                        program,
+                        depth + 1,
+                        output,
+                        mappings,
+                        pors,
+                        for_label,
+                    );
                     output.push_str(&format!("{indent}}}"));
                 }
                 output.push('\n');
@@ -186,7 +212,7 @@ fn render_statements(
                 output.push_str(&format!("{indent}while "));
                 push_expr(output, mappings, condition, program, false, pors);
                 output.push_str(" {\n");
-                render_statements(body, program, depth + 1, output, mappings, pors);
+                render_statements(body, program, depth + 1, output, mappings, pors, None);
                 output.push_str(&format!("{indent}}}\n"));
             }
             StmtKind::For {
@@ -195,6 +221,7 @@ fn render_statements(
                 step,
                 body,
             } => {
+                let label = statement.span.start;
                 output.push_str(&format!("{indent}{{\n"));
                 render_statements(
                     std::slice::from_ref(initializer.as_ref()),
@@ -203,14 +230,23 @@ fn render_statements(
                     output,
                     mappings,
                     pors,
+                    None,
                 );
                 let loop_indent = "    ".repeat(depth + 1);
-                output.push_str(&format!("{loop_indent}while "));
+                output.push_str(&format!("{loop_indent}'pors_for_{label}: while "));
                 push_expr(output, mappings, condition, program, false, pors);
                 output.push_str(" {\n");
                 let body_scope_indent = "    ".repeat(depth + 2);
-                output.push_str(&format!("{body_scope_indent}{{\n"));
-                render_statements(body, program, depth + 3, output, mappings, pors);
+                output.push_str(&format!("{body_scope_indent}'pors_body_{label}: {{\n"));
+                render_statements(
+                    body,
+                    program,
+                    depth + 3,
+                    output,
+                    mappings,
+                    pors,
+                    Some(label),
+                );
                 output.push_str(&format!("{body_scope_indent}}}\n"));
                 render_statements(
                     std::slice::from_ref(step.as_ref()),
@@ -219,8 +255,24 @@ fn render_statements(
                     output,
                     mappings,
                     pors,
+                    None,
                 );
                 output.push_str(&format!("{loop_indent}}}\n{indent}}}\n"));
+            }
+            StmtKind::LoopControl { control } => {
+                if *control == LoopControl::Continue {
+                    if let Some(label) = for_label {
+                        output.push_str(&format!("{indent}break 'pors_body_{label};\n"));
+                    } else {
+                        output.push_str(&format!("{indent}continue;\n"));
+                    }
+                } else {
+                    if let Some(label) = for_label {
+                        output.push_str(&format!("{indent}break 'pors_for_{label};\n"));
+                    } else {
+                        output.push_str(&format!("{indent}break;\n"));
+                    }
+                }
             }
         }
         record_statement_mapping(mappings, start, output.len(), statement);

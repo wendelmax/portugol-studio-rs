@@ -732,7 +732,8 @@ fn unsupported(feature: &str, span: Span) -> Diagnostic {
 #[cfg(test)]
 mod tests {
     use super::{
-        SourceMapQuality, export, export_legacy, export_portugol_rs, export_portugol_rs_with_map,
+        SourceMapQuality, SourceRange, export, export_legacy, export_portugol_rs,
+        export_portugol_rs_with_map,
     };
     use std::process::Command;
 
@@ -801,6 +802,68 @@ mod tests {
             );
         }
         assert_rust_output(generated.code, "012");
+    }
+
+    #[test]
+    fn exports_and_executes_portugol_rs_loop_control_with_source_maps() {
+        let source = "funcao inicio() { seja mutavel visitas: inteiro = 0; para (seja mutavel i: inteiro = 0; i < 5; i += 1) { visitas += 1; se (visitas > 8) { pare; } se (i == 1) { continue; } se (i == 4) { pare; } escreva(i); } }";
+        let generated = export_portugol_rs_with_map(source).unwrap();
+        let loop_label = source.find("para").unwrap();
+        for (keyword, generated_control) in [
+            ("continue;", format!("break 'pors_body_{loop_label};")),
+            ("pare;", format!("break 'pors_for_{loop_label};")),
+        ] {
+            let start = source.find(keyword).unwrap() as u32;
+            let end = start + keyword.len() as u32;
+            let control_mapping = generated
+                .mappings
+                .iter()
+                .find(|mapping| mapping.source == Some(SourceRange { start, end }))
+                .unwrap_or_else(|| panic!("missing full source mapping for {keyword}"));
+            assert_eq!(control_mapping.quality, SourceMapQuality::Exact);
+            let mapped_rust = &generated.code
+                [control_mapping.generated.start as usize..control_mapping.generated.end as usize];
+            assert_eq!(mapped_rust.trim(), generated_control);
+        }
+        let step_start = source.find("i += 1)").unwrap() as u32;
+        let step_end = step_start + "i += 1".len() as u32;
+        let step_mappings: Vec<_> = generated
+            .mappings
+            .iter()
+            .filter(|mapping| {
+                mapping.source
+                    == Some(SourceRange {
+                        start: step_start,
+                        end: step_end,
+                    })
+            })
+            .collect();
+        assert_eq!(
+            step_mappings.len(),
+            1,
+            "the for step has one source mapping"
+        );
+        let step_mapping = step_mappings[0];
+        assert_eq!(step_mapping.quality, SourceMapQuality::Exact);
+        let mapped_step = &generated.code
+            [step_mapping.generated.start as usize..step_mapping.generated.end as usize];
+        assert_eq!(mapped_step.trim(), "pt_i = (pt_i).wrapping_add(1_i32);");
+        assert_rust_output(generated.code, "023");
+
+        let while_source = "funcao inicio() { seja mutavel i: inteiro = 0; enquanto (i < 5) { i += 1; se (i == 2) { continue; } se (i == 4) { pare; } escreva(i); } }";
+        assert_rust_output(export_portugol_rs(while_source).unwrap(), "13");
+
+        let nested_source = "funcao inicio() { para (seja mutavel i: inteiro = 0; i < 3; i += 1) { seja mutavel j: inteiro = 0; enquanto (j < 3) { j += 1; se (j == 1) { continue; } se (j == 2) { pare; } escreva(j); } escreva(i); } }";
+        assert_rust_output(export_portugol_rs(nested_source).unwrap(), "012");
+    }
+
+    #[test]
+    fn counted_loop_continue_uses_header_bindings_when_body_shadows_names() {
+        let source = "funcao inicio() { seja mutavel passo: inteiro = 1; seja mutavel visitas: inteiro = 0; para (seja mutavel i: inteiro = 0; i < 4; i += passo) { visitas += 1; se (visitas > 4) { pare; } escreva(i); seja passo: inteiro = 2; continue; } }";
+        assert_rust_output(export_portugol_rs(source).unwrap(), "0123");
+
+        let source = "funcao inicio() { seja mutavel visitas: inteiro = 0; para (seja mutavel i: inteiro = 0; i < 4; i += 1) { visitas += 1; se (visitas > 4) { pare; } escreva(i); seja i: inteiro = 9; continue; } }";
+        assert_rust_output(export_portugol_rs(source).unwrap(), "0123");
     }
 
     #[test]

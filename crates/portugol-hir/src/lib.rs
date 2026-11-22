@@ -76,6 +76,12 @@ pub enum AssignOp {
     BitOr,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LoopControl {
+    Break,
+    Continue,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Program {
     pub bindings: Vec<Binding>,
@@ -125,6 +131,9 @@ pub enum StmtKind {
         condition: Expr,
         step: Box<Stmt>,
         body: Vec<Stmt>,
+    },
+    LoopControl {
+        control: LoopControl,
     },
 }
 

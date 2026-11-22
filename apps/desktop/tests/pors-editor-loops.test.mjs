@@ -6,7 +6,7 @@ import { CompletionContext } from "@codemirror/autocomplete";
 import { portugolRs } from "../src/portugol.ts";
 
 test("PORS highlighting recognizes the implemented while and counted loops", () => {
-  const source = "enquanto para";
+  const source = "enquanto para pare continue";
   const state = EditorState.create({ doc: source, extensions: [portugolRs()] });
   const keywords = [];
 
@@ -16,10 +16,10 @@ test("PORS highlighting recognizes the implemented while and counted loops", () 
     },
   });
 
-  assert.deepEqual(keywords, ["enquanto", "para"]);
+  assert.deepEqual(keywords, ["enquanto", "para", "pare", "continue"]);
 });
 
-test("PORS autocomplete suggests supported loops without promising unsupported ones", async () => {
+test("PORS autocomplete suggests supported loop controls without promising unsupported ones", async () => {
   const state = EditorState.create({ doc: "", extensions: [portugolRs()] });
   const [source] = state.languageDataAt("autocomplete", 0);
   const result = await source(new CompletionContext(state, 0, true));
@@ -27,6 +27,7 @@ test("PORS autocomplete suggests supported loops without promising unsupported o
 
   assert.ok(labels.includes("enquanto"));
   assert.ok(labels.includes("para"));
+  assert.ok(labels.includes("pare"));
+  assert.ok(labels.includes("continue"));
   assert.ok(!labels.includes("faca"));
-  assert.ok(!labels.includes("pare"));
 });

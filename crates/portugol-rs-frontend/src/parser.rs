@@ -10,6 +10,7 @@ pub(super) struct Parser {
     cursor: usize,
     bindings: Vec<hir::Binding>,
     scopes: Vec<HashMap<String, Symbol>>,
+    loop_depth: usize,
 }
 
 #[derive(Clone, Copy)]
@@ -26,6 +27,7 @@ impl Parser {
             cursor: 0,
             bindings: vec![],
             scopes: vec![HashMap::new()],
+            loop_depth: 0,
         }
     }
 
@@ -93,11 +95,11 @@ impl Parser {
         if self.is_keyword("para") {
             return self.for_loop();
         }
+        if self.is_keyword("pare") || self.is_keyword("continue") {
+            return self.loop_control();
+        }
         if let Kind::Ident(keyword) = &self.current().kind {
-            if matches!(
-                keyword.as_str(),
-                "faca" | "escolha" | "leia" | "pare" | "continue"
-            ) {
+            if matches!(keyword.as_str(), "faca" | "escolha" | "leia") {
                 return self.fail(
                     "pors.unsupported-construct",
                     format!("`{keyword}` ainda não faz parte do subset Portugol-RS"),
@@ -333,6 +335,27 @@ impl Parser {
         })
     }
 
+    fn loop_control(&mut self) -> Result<hir::Stmt, Vec<Diagnostic>> {
+        let token = self.advance();
+        let (keyword, control) = match token.kind {
+            Kind::Ident(word) if word == "pare" => (word, hir::LoopControl::Break),
+            Kind::Ident(word) if word == "continue" => (word, hir::LoopControl::Continue),
+            _ => unreachable!("loop_control só é chamado para keywords conhecidas"),
+        };
+        if self.loop_depth == 0 {
+            return self.fail(
+                "pors.loop-control-outside-loop",
+                format!("`{keyword}` só pode ser usado dentro de enquanto ou para"),
+                token.span,
+            );
+        }
+        let end = self.expect(Kind::Semicolon, "Esperado `;` após controle do laço")?;
+        Ok(hir::Stmt {
+            kind: hir::StmtKind::LoopControl { control },
+            span: to_hir_span(token.span.join(end.span)),
+        })
+    }
+
     fn while_loop(&mut self) -> Result<hir::Stmt, Vec<Diagnostic>> {
         let start = self.advance().span;
         self.expect(Kind::LParen, "Esperado `(` após enquanto")?;
@@ -345,7 +368,10 @@ impl Parser {
                 syntax_span(condition.span),
             );
         }
-        let (body, end) = self.block(false)?;
+        self.loop_depth += 1;
+        let body_result = self.block(false);
+        self.loop_depth -= 1;
+        let (body, end) = body_result?;
         Ok(hir::Stmt {
             kind: hir::StmtKind::While { condition, body },
             span: to_hir_span(start.join(end)),
@@ -398,7 +424,10 @@ impl Parser {
             );
         }
         self.expect(Kind::RParen, "Esperado `)` após atualização de para")?;
-        let (body, end) = self.block(false)?;
+        self.loop_depth += 1;
+        let body_result = self.block(false);
+        self.loop_depth -= 1;
+        let (body, end) = body_result?;
         self.scopes.pop();
         Ok(hir::Stmt {
             kind: hir::StmtKind::For {
@@ -641,6 +670,8 @@ fn is_reserved(name: &str) -> bool {
             | "senao"
             | "enquanto"
             | "para"
+            | "pare"
+            | "continue"
             | "faca"
             | "escolha"
             | "leia"

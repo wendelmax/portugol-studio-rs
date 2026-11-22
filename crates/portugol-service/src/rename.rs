@@ -256,6 +256,7 @@ fn collect_portugol_rs_statements(
                 );
                 collect_portugol_rs_statements(body, declarations, occurrences);
             }
+            StmtKind::LoopControl { .. } => {}
         }
     }
 }

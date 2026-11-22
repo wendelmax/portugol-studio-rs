@@ -118,3 +118,53 @@ fn parses_counted_loop_with_typed_initializer_condition_step_and_body() {
     );
     assert!(matches!(body[0].kind, StmtKind::Write(_)));
 }
+
+#[test]
+fn parses_break_and_continue_inside_nested_loop_blocks() {
+    let program = lower(
+        "funcao inicio() { enquanto (verdadeiro) { se (verdadeiro) { pare; } } para (seja mutavel i: inteiro = 0; i < 1; i += 1) { se (verdadeiro) { continue; } } }",
+    )
+    .expect("pare e continue devem ser válidos dentro de blocos aninhados em laços");
+
+    let StmtKind::While { body, .. } = &program.body[0].kind else {
+        panic!("esperava enquanto");
+    };
+    let StmtKind::If { then_branch, .. } = &body[0].kind else {
+        panic!("esperava se aninhado em enquanto");
+    };
+    assert!(matches!(
+        then_branch[0].kind,
+        StmtKind::LoopControl {
+            control: portugol_hir::LoopControl::Break
+        }
+    ));
+
+    let StmtKind::For { body, .. } = &program.body[1].kind else {
+        panic!("esperava para");
+    };
+    let StmtKind::If { then_branch, .. } = &body[0].kind else {
+        panic!("esperava se aninhado em para");
+    };
+    assert!(matches!(
+        then_branch[0].kind,
+        StmtKind::LoopControl {
+            control: portugol_hir::LoopControl::Continue
+        }
+    ));
+}
+
+#[test]
+fn rejects_break_and_continue_outside_loops_at_the_keyword_span() {
+    for keyword in ["pare", "continue"] {
+        let source = format!("funcao inicio() {{ se (verdadeiro) {{ {keyword}; }} }}");
+        let errors = lower(&source).unwrap_err();
+        let error = errors
+            .iter()
+            .find(|diagnostic| diagnostic.code == "pors.loop-control-outside-loop")
+            .unwrap_or_else(|| panic!("esperava diagnóstico de controle fora de laço: {keyword}"));
+        assert_eq!(
+            &source[error.span.start as usize..error.span.end as usize],
+            keyword
+        );
+    }
+}
