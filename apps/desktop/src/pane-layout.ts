@@ -1,7 +1,7 @@
 export const PANE_LAYOUT_KEY = "portugol.pane-layout.v1";
 
 export const DEFAULT_PANE_LAYOUT = {
-  explorer: 0.2,
+  explorer: 0.16,
   bottom: 0.25,
   utilities: 0.23,
 } as const;

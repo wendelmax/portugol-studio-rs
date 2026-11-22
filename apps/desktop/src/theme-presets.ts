@@ -134,4 +134,12 @@ export const BUILTIN_THEMES: Readonly<Record<string, Theme>> = {
     keyword: "#c792ea", type: "#ffcb8b", function: "#82aaff", logical: "#ff5874",
     number: "#f78c6c", string: "#ecc48d", comment: "#637777", operator: "#7fdbca",
   }),
+  "preset:portugol-studio-next": theme("Portugol Studio Next", "dark", {
+    bg: "#0c1118", surface: "#111923", border: "#263241", text: "#e6edf3", muted: "#9aa9b8",
+    accent: "#34d399", accentText: "#07140f", error: "#f87171", warning: "#fbbf24", ok: "#34d399",
+    frame: "#090e14", console: "#111923", examples: "#111923", editor: "#0d141d", caret: "#34d399",
+    editorError: "#3b2025", line: "#111923", selection: "#18352f", gutter: "#718096",
+    keyword: "#c792ea", type: "#82aaff", function: "#7dd3fc", logical: "#34d399",
+    number: "#fbbf24", string: "#a5d6a7", comment: "#718096", operator: "#89ddff",
+  }),
 };
