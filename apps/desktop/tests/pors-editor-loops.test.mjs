@@ -19,6 +19,21 @@ test("PORS highlighting recognizes the implemented while and counted loops", () 
   assert.deepEqual(keywords, ["enquanto", "para", "pare", "continue"]);
 });
 
+test("PORS highlights and completes return statements", async () => {
+  const state = EditorState.create({ doc: "retorne", extensions: [portugolRs()] });
+  const keywords = [];
+  syntaxTree(state).iterate({
+    enter(node) {
+      if (node.name === "keyword") keywords.push(state.doc.sliceString(node.from, node.to));
+    },
+  });
+  const [completion] = state.languageDataAt("autocomplete", 7);
+  const result = await completion(new CompletionContext(state, 7, true));
+
+  assert.deepEqual(keywords, ["retorne"]);
+  assert.ok(result.options.some(({ label }) => label === "retorne"));
+});
+
 test("PORS autocomplete suggests supported loop controls without promising unsupported ones", async () => {
   const state = EditorState.create({ doc: "", extensions: [portugolRs()] });
   const [source] = state.languageDataAt("autocomplete", 0);
