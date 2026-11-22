@@ -512,7 +512,8 @@ impl<'a> Vm<'a> {
             Op::PushBool(value) => self.push(Value::Bool(value)),
             Op::PushChar(value) => self.push(Value::Char(value)),
             Op::PushStr(index) => {
-                self.charge_string(self.strings[index as usize].len())?;
+                // Literais pertencem ao pool do módulo. `Rc::clone` só cria
+                // outra referência ao mesmo texto, não uma nova cadeia.
                 let value = Value::Str(Rc::clone(&self.strings[index as usize]));
                 self.push(value);
             }

@@ -598,6 +598,24 @@ fn vm_can_enforce_a_cumulative_string_budget() {
 }
 
 #[test]
+fn reusing_a_string_literal_does_not_charge_a_new_string_allocation() {
+    let source = inicio(
+        r#"cadeia texto = ""
+           inteiro i = 0
+           enquanto (i < 100) {
+               texto = "literal"
+               i++
+           }"#,
+    );
+    let module = portugol_bytecode::compile(&parse(&source).program).unwrap();
+    let mut io = BufferIo::default();
+    Vm::new(&module, &mut io)
+        .with_string_memory_limit(0)
+        .run()
+        .expect("clonar uma cadeia do pool não aloca uma cadeia nova");
+}
+
+#[test]
 fn erro_aponta_a_linha_e_a_pilha_de_chamadas() {
     let source = "programa {\n funcao f(inteiro d) {\n  escreva(10 / d)\n }\n funcao inicio() {\n  f(0)\n }\n}";
     let error = erro(source);

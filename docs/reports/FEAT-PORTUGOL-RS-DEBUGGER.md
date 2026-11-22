@@ -12,6 +12,7 @@
 - Step over atualiza o snapshot e stop interrompe a VM durante a espera de `leia`.
 - O compilador preserva escopos lexicais e bindings sombreados em slots distintos; snapshots mostram somente o binding visível e reativam o anterior ao sair do bloco.
 - Regressões verificam shadowing em blocos condicionais e restauração após o término de um `para`.
+- O limite de memória conta cadeias alocadas durante a sessão (concatenações e entrada); literais no pool não consomem o orçamento ao serem reutilizados.
 - A VM aplica limites tipados de 3 s de runtime ativo, 1 MiB de saída e 16 MiB cumulativos de cadeias; pausa e espera de entrada são excluídas do relógio.
 
 ## Validação
