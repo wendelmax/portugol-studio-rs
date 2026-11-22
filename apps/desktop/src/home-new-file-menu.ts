@@ -7,10 +7,12 @@ export function mountHomeNewFileMenu(menu: HTMLDetailsElement, actions: HomeNewF
 
   for (const button of menu.querySelectorAll<HTMLButtonElement>("[data-home-new-language]")) {
     button.addEventListener("click", () => {
-      const language = button.dataset.homeNewLanguage as HomeNewFileLanguage | undefined;
-      if (!language || !actions[language]) return;
+      const language = button.dataset.homeNewLanguage;
+      if (language !== "portugol-rs" && language !== "rust") return;
+      const action = actions[language];
+      if (!action) return;
       menu.open = false;
-      actions[language]();
+      action();
     });
   }
 

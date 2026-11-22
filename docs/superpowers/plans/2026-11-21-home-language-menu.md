@@ -69,8 +69,9 @@
 - Modify: `docs/PARIDADE.md`
 - Create: `docs/reports/FT-17-home-language-menu.md`
 
-- [ ] Scope the start toolbar’s large icon styles to direct action buttons; style the disclosure and menu using existing tokens, including hover/focus-visible and dark/light themes.
-- [ ] Run `npm test` and `npm run build`.
-- [ ] Run `cargo fmt --all -- --check`, `CARGO_TARGET_DIR=/home/wendel/Projetos/portugol-studio-rs/target cargo test --locked --workspace --exclude portugol-desktop`, `CARGO_TARGET_DIR=/home/wendel/Projetos/portugol-studio-rs/target cargo clippy --locked --workspace --exclude portugol-desktop --all-targets -- -D warnings`, `PKG_CONFIG_PATH=/tmp/ft10-pkgconfig CARGO_TARGET_DIR=/home/wendel/Projetos/portugol-studio-rs/target cargo check --locked --manifest-path apps/desktop/src-tauri/Cargo.toml --tests`, and `git diff --check`.
-- [ ] Record only actually executed tests in FT-17 and update the home-screen parity row.
+- [x] Scope the start toolbar’s large icon styles to direct action buttons; style the disclosure and menu using existing tokens, including hover/focus-visible and both built-in themes.
+- [x] Run `npm --prefix apps/desktop test` (16/16) and `npm run build` (pass; one Vite chunk-size warning).
+- [x] Run `cargo fmt --all -- --check`, `CARGO_TARGET_DIR=/home/wendel/Projetos/portugol-studio-rs/target cargo test --locked --workspace --exclude portugol-desktop`, `CARGO_TARGET_DIR=/home/wendel/Projetos/portugol-studio-rs/target cargo clippy --locked --workspace --exclude portugol-desktop --all-targets -- -D warnings`, `PKG_CONFIG_PATH=/tmp/ft10-pkgconfig CARGO_TARGET_DIR=/home/wendel/Projetos/portugol-studio-rs/target cargo check --locked --manifest-path apps/desktop/src-tauri/Cargo.toml --tests`, and `git diff --check` — all pass.
+- [x] Record executed tests in FT-17 and keep the home-screen parity row partial pending equivalent native comparison screenshots.
+- [x] Commit report and parity update before opening the PR.
 - [ ] Open a PR; fix failures until CI is green; squash-merge and delete the remote branch and worktree.

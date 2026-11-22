@@ -66,11 +66,11 @@ test("home new file menu Escape closes and restores focus", () => {
 });
 
 test("home new file menu ignores unknown language values", () => {
-  const state = setup(["unknown"]);
+  const state = setup(["toString"]);
   let invoked = false;
   mountHomeNewFileMenu(state.menu, { "portugol-rs": () => { invoked = true; }, rust: () => { invoked = true; } });
 
-  state.callbacks.get("unknown:click")();
+  state.callbacks.get("toString:click")();
 
   assert.equal(invoked, false);
   assert.equal(state.menu.open, true);
