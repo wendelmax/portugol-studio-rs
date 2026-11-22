@@ -9,8 +9,8 @@ features novas, conforme o [ADR 0015](../adr/0015-evolucao-visual-orientada-a-ap
 
 ## Estado-base
 
-- `main` em `c91bacc`, após merge da PR #91; não havia issues ou PRs abertas na
-  última consulta.
+- `main` em `0adeecb`, após merge da PR #92; não havia issues ou PRs abertas na
+  consulta de 2026-11-22.
 - Tag atual `v0.1.0`.
 - Portugol clássico, shell Tauri, modos Beginner/Bridge/Rust, `.pors`, arquivos
   `.rs`, source maps, exemplos, exercícios, execução e primeira fatia de
@@ -37,6 +37,15 @@ para PRs como se fosse documentação rastreada.
 **Saída:** inventário de worktrees com decisão preservar/descartar, matriz de
 paridade coerente com `main` e kit de integração pronto para remoção somente no
 fechamento do objetivo original.
+
+**Auditoria concluída em 2026-11-22:** 21 worktrees anteriores foram
+comparadas com a `main` e os PRs. Quinze worktrees limpas de mudanças já
+mescladas foram removidas. Seis foram preservadas por conter modificações,
+documentação não rastreada ou links compartilhados para dependências. A
+worktree `53fd` contém uma implementação antiga que se sobrepõe às PRs #89 e
+#90; ela não foi reaplicada nem removida. A matriz de paridade já estava
+atualizada pela PR #92. As seis worktrees preservadas ainda precisam ser
+revisitadas antes da remoção do kit de integração.
 
 ### P1 — Tornar o fluxo Portugol-RS confiável de ponta a ponta
 
@@ -109,7 +118,7 @@ requisito ainda depende dele.
 
 ## Próxima fatia recomendada
 
-Iniciar por P0: auditar as worktrees que restaram após os merges, preservando
-alterações não commitadas e os documentos fornecidos localmente. Em seguida,
-implementar o primeiro caso automatizado de eventos obsoletos do debugger PORS
-(P1) antes de ampliar conteúdo ou redesenhar painéis.
+Continuar em P1: fechar o caso automatizado de eventos obsoletos do debugger
+PORS iniciado após a auditoria. Em seguida, ampliar testes diferenciais do
+subset e cobrir spans e limites antes de ampliar conteúdo ou redesenhar
+painéis.

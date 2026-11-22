@@ -61,6 +61,7 @@ import { conceptsForMode, resolveConceptForMode } from "./learning-content";
 import { learningPinForMode, setLearningPin, toggleLearningPin, type LearningPins } from "./learning-pins";
 import { explainMappedConcept, learningContextAtSelection } from "./learning-context";
 import { createLatestOnlyRustSourceChecker } from "./rust-source-check";
+import { replayRunEvents, routeRunEvent as routeRunEventById, type PendingRunEvent } from "./run-event-router";
 import { loadLearningMode, saveLearningMode, type LearningMode } from "./learning-mode";
 import {
   getOwnershipScenario,
@@ -1600,7 +1601,7 @@ async function save(as = false): Promise<boolean> {
 
 let runId: number | null = null;
 let runTabId: number | null = null;
-let pendingEvents: { id: number; handle: () => void }[] | null = null;
+let pendingEvents: PendingRunEvent[] | null = null;
 let rustcAvailable: boolean | null = null;
 let cargoAvailable: boolean | null = null;
 let rustfmtAvailable: boolean | null = null;
@@ -1945,7 +1946,7 @@ async function runProgram(pauseOnStart = false) {
     output.replaceChildren();
     inputForm.hidden = true;
     if (pauseOnStart) {
-      const events: { id: number; handle: () => void }[] = [];
+      const events: PendingRunEvent[] = [];
       pendingEvents = events;
       runTabId = tab.id;
       setRunning(true);
@@ -1955,9 +1956,7 @@ async function runProgram(pauseOnStart = false) {
         runId = id;
         setRunning(true);
         setStatus("Depurando Portugol-RS pela VM.");
-        for (const event of events) {
-          if (event.id === runId) event.handle();
-        }
+        replayRunEvents(events, id);
       } catch (errors) {
         runTabId = null;
         setRunning(false);
@@ -2052,7 +2051,7 @@ async function runProgram(pauseOnStart = false) {
   const source = view.state.doc.toString();
   const args = parseArgs($<HTMLInputElement>("args").value);
   const lines = breakpointLines(view.state);
-  const events: { id: number; handle: () => void }[] = [];
+  const events: PendingRunEvent[] = [];
   pendingEvents = events;
   runTabId = tab.id;
   $<HTMLButtonElement>("btn-run").disabled = true;
@@ -2063,9 +2062,7 @@ async function runProgram(pauseOnStart = false) {
     runId = id;
     setRunning(true);
     setStatus("Executando…");
-    for (const event of events) {
-      if (event.id === runId) event.handle();
-    }
+    replayRunEvents(events, id);
   } catch (errors) {
     runTabId = null;
     setRunning(false);
@@ -2510,8 +2507,7 @@ async function runExerciseTests() {
 }
 
 function routeRunEvent(id: number, handle: () => void) {
-  if (id === runId) handle();
-  else if (pendingEvents) pendingEvents.push({ id, handle });
+  routeRunEventById(id, runId, pendingEvents, handle);
 }
 
 const runListeners = api.listenRun({
