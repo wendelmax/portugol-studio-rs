@@ -50,7 +50,7 @@ import { detectSourceLanguage, ensureSourceExtension, type SourceLanguage } from
 import { semanticSymbolLanguage } from "./semantic-symbol-actions";
 import { collectWorkspaceFiles, flattenWorkspaceEntries, workspaceFileKind, workspaceRenameFileName, workspaceSourceFileName, type WorkspaceEntry } from "./workspace-explorer";
 import { workspaceExportStatus } from "./workspace-export-state";
-import { canDebugSource, canRunSource } from "./runtime-capabilities";
+import { canDebugSource, canFormatSource, canRunSource } from "./runtime-capabilities";
 import { parseProcessArguments } from "./process-arguments";
 import { hasRustExecutionConsent, rememberRustExecutionConsent } from "./rust-execution-consent";
 import { applyWorkspaceRenameToTabs, deleteWorkspaceFileFlow, prepareWorkspaceRename } from "./workspace-file-actions";
@@ -544,8 +544,12 @@ function syncLanguageControls(tab: Tab) {
       ? "Espaços separam itens; aspas duplas agrupam. O programa recebe argv, sem shell."
       : "";
   const format = $<HTMLButtonElement>("editor-format");
-  format.disabled = pors || rustFile;
-  format.title = rustFile ? "Formatador Rust não configurado." : pors ? "Formatador clássico indisponível para Portugol-RS." : "Formatar código-fonte";
+  format.disabled = !canFormatSource(tab.language, rustfmtAvailable);
+  format.title = pors
+    ? "Formatador clássico indisponível para Portugol-RS."
+    : rustFile && rustfmtAvailable !== true
+      ? "Instale o componente rustfmt com `rustup component add rustfmt`."
+      : "Formatar código-fonte";
   for (const [name, button] of libraryButtons) {
     button.disabled = pors || rustFile || tab.symbols.some((symbol) => symbol.kind === "library" && symbol.name.split(" → ", 1)[0] === name);
     button.title = rustFile ? "Bibliotecas Portugol não se aplicam a Rust." : pors ? "Bibliotecas clássicas não se aplicam ao Portugol-RS." : `Incluir biblioteca ${name}`;
@@ -1517,6 +1521,7 @@ let runId: number | null = null;
 let runTabId: number | null = null;
 let pendingEvents: { id: number; handle: () => void }[] | null = null;
 let rustcAvailable: boolean | null = null;
+let rustfmtAvailable: boolean | null = null;
 let porsRunPending = false;
 let paused: api.DebugInfo | null = null;
 const output = $("console-output");
@@ -2625,9 +2630,17 @@ async function formatCode() {
     setStatus("O formatador clássico não atende à sintaxe Portugol-RS.");
     return;
   }
+  if (tab.language === "rust" && rustfmtAvailable !== true) {
+    setStatus("Instale o componente rustfmt com `rustup component add rustfmt`.", "error");
+    return;
+  }
   const doc = view.state.doc;
   try {
-    const changes = await api.formatSource(doc.toString());
+    const source = doc.toString();
+    const changes = tab.language === "rust"
+      ? await api.formatRustSource(source).then((formatted) =>
+        formatted === source ? [] : [{ from: 0, to: doc.length, insert: formatted }])
+      : await api.formatSource(source);
     if (activeTab() !== tab || view.state.doc !== doc) return;
     if (!changes) {
       setStatus("Não foi possível formatar. Confira a sintaxe do programa.", "error");
@@ -2636,8 +2649,10 @@ async function formatCode() {
     if (changes.length) view.dispatch({ changes, annotations: isolateHistory.of("full"), userEvent: "input.format" });
     setStatus(changes.length ? "Código formatado." : "O código já está formatado.", "ok");
     view.focus();
-  } catch {
-    if (activeTab() === tab) setStatus("Não foi possível executar o formatador.", "error");
+  } catch (error) {
+    if (activeTab() === tab && view.state.doc === doc) {
+      setStatus(error instanceof Error ? error.message : String(error), "error");
+    }
   }
 }
 
@@ -3455,6 +3470,15 @@ void api.rustToolchainAvailable().then((available) => {
   $<HTMLOptionElement>("learning-mode-rust-option").disabled = true;
   $("learning-mode-rust-help").textContent = "Não foi possível verificar rustc. Instale ou configure a toolchain Rust para habilitar este nível.";
   applyLearningMode(loadLearningMode(), false);
+  const tab = activeTab();
+  if (tab) syncLanguageControls(tab);
+});
+void api.rustfmtAvailable().then((available) => {
+  rustfmtAvailable = available;
+  const tab = activeTab();
+  if (tab) syncLanguageControls(tab);
+}).catch(() => {
+  rustfmtAvailable = false;
   const tab = activeTab();
   if (tab) syncLanguageControls(tab);
 });

@@ -8,3 +8,8 @@ export function canRunSource(language: SourceLanguage, rustcAvailable: boolean |
 export function canDebugSource(language: SourceLanguage): boolean {
   return language === "portugol";
 }
+
+export function canFormatSource(language: SourceLanguage, rustfmtAvailable: boolean | null): boolean {
+  if (language === "portugol") return true;
+  return language === "rust" && rustfmtAvailable === true;
+}
