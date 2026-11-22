@@ -574,6 +574,13 @@ select {
   font-size: 12px;
 }
 
+.learning-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 .learning-card h3,
 .learning-card h4,
 .learning-card p {
@@ -581,8 +588,10 @@ select {
 }
 
 .learning-card h3 {
+  flex: 1 1 120px;
   font-size: 14px;
 }
+.learning-card-heading button { min-height: 32px; padding: 5px 8px; font-size: 11px; }
 
 .learning-card > p {
   max-width: 900px;

@@ -60,6 +60,17 @@ test("inspector Aprender identifica seleção manual, deixa exemplos Rust inicia
   assert.match(html, /Estudar um conceito não registra progresso/);
 });
 
+test("inspetor oferece pin acessível por aba sem confundir escolha manual com contexto detectado", () => {
+  const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+  assert.match(html, /id="learning-pin"[^>]*aria-pressed="false"[^>]*disabled>Fixar tópico/);
+  assert.match(main, /learningPins\?: LearningPins/);
+  assert.match(main, /learningPinForMode\(tab\?\.learningPins, learningMode/);
+  assert.match(main, /Tópico fixado — escolha manual nesta aba/);
+  assert.match(main, /\$<HTMLButtonElement>\("learning-pin"\)\.onclick/);
+  assert.match(main, /if \(tab && learningPinForMode\(tab\.learningPins, learningMode/);
+});
+
 test("todas as abas resolvem para o ID real de seu painel", async () => {
   const { panelContentId } = await import(new URL("../src/panel-tabs.ts", import.meta.url).href);
   assert.deepEqual(

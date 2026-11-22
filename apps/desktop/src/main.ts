@@ -58,6 +58,7 @@ import { parseProcessArguments } from "./process-arguments";
 import { hasCargoExecutionConsent, hasRustExecutionConsent, rememberCargoExecutionConsent, rememberRustExecutionConsent } from "./rust-execution-consent";
 import { applyWorkspaceRenameToTabs, deleteWorkspaceFileFlow, prepareWorkspaceRename } from "./workspace-file-actions";
 import { conceptsForMode, resolveConceptForMode } from "./learning-content";
+import { learningPinForMode, setLearningPin, toggleLearningPin, type LearningPins } from "./learning-pins";
 import { explainMappedConcept, learningContextAtSelection } from "./learning-context";
 import { createLatestOnlyRustSourceChecker } from "./rust-source-check";
 import { loadLearningMode, saveLearningMode, type LearningMode } from "./learning-mode";
@@ -115,6 +116,7 @@ interface Tab {
   workspaceExercisePath?: string;
   state: EditorState;
   rustPreview?: RustPreviewState;
+  learningPins?: LearningPins;
   showRustDiff?: boolean;
   /** Texto da última gravação, para saber se há alterações. */
   saved: string;
@@ -2290,8 +2292,9 @@ function renderOwnershipLab() {
 function renderLearningPanel() {
   const concepts = conceptsForMode(learningMode);
   const tab = activeTab();
+  const pinnedConceptId = learningPinForMode(tab?.learningPins, learningMode, concepts.map(({ id }) => id));
   const source = view.state.doc.toString();
-  const context = learningMode === "bridge" && !learningConceptManuallySelected && tab?.language !== "rust"
+  const context = !pinnedConceptId && learningMode === "bridge" && !learningConceptManuallySelected && tab?.language !== "rust"
     ? learningContextAtSelection({
       source,
       selectionFrom: view.state.selection.main.from,
@@ -2300,7 +2303,7 @@ function renderLearningPanel() {
       stale: Boolean(tab?.rustPreview?.stale || tab?.rustPreview?.pending),
     })
     : null;
-  const concept = resolveConceptForMode(learningMode, context?.conceptId ?? selectedLearningConceptId);
+  const concept = resolveConceptForMode(learningMode, pinnedConceptId ?? context?.conceptId ?? selectedLearningConceptId);
 
   const picker = $<HTMLSelectElement>("learning-concept");
   picker.replaceChildren(...concepts.map((item) => {
@@ -2310,6 +2313,12 @@ function renderLearningPanel() {
     return option;
   }));
   picker.value = concept.id;
+  const pinButton = $<HTMLButtonElement>("learning-pin");
+  const topicPinned = pinnedConceptId === concept.id;
+  pinButton.disabled = !tab;
+  pinButton.dataset.conceptId = concept.id;
+  pinButton.setAttribute("aria-pressed", String(topicPinned));
+  pinButton.textContent = topicPinned ? "Desafixar tópico" : "Fixar tópico";
   const active = activeTab();
   $("learning-mode-description").textContent = learningMode === "bridge"
     ? "Ponte didática: compare os conceitos de Portugol com exemplos Rust editoriais."
@@ -2319,9 +2328,11 @@ function renderLearningPanel() {
         : "Nível Rust: abra ou crie um arquivo .rs para programar em Rust. O arquivo atual permanece intacto."
       : "Fundamentos de lógica e programação em Portugol.";
   $("learning-title").textContent = concept.title;
-  $("learning-provenance").textContent = context
-    ? "Relacionado à seleção por mapeamento exato da tradução atual"
-    : "Conceito selecionado manualmente";
+  $("learning-provenance").textContent = topicPinned
+    ? "Tópico fixado — escolha manual nesta aba"
+    : context
+      ? "Relacionado à seleção por mapeamento exato da tradução atual"
+      : "Conceito selecionado manualmente";
   $("learning-definition").textContent = context
     ? `${concept.definition} ${explainMappedConcept(context, tab?.language === "portugol-rs" ? "portugol-rs" : "portugol")}`
     : concept.definition;
@@ -3156,7 +3167,20 @@ document.querySelectorAll<HTMLButtonElement>("[data-activity]").forEach((button)
 });
 $<HTMLSelectElement>("learning-concept").onchange = (event) => {
   selectedLearningConceptId = (event.currentTarget as HTMLSelectElement).value;
+  const tab = activeTab();
+  const availableConceptIds = conceptsForMode(learningMode).map(({ id }) => id);
+  if (tab && learningPinForMode(tab.learningPins, learningMode, availableConceptIds)) {
+    tab.learningPins = setLearningPin(tab.learningPins, learningMode, selectedLearningConceptId);
+  }
   learningConceptManuallySelected = true;
+  renderLearningPanel();
+};
+$<HTMLButtonElement>("learning-pin").onclick = (event) => {
+  const tab = activeTab();
+  if (!tab) return;
+  const button = event.currentTarget as HTMLButtonElement;
+  tab.learningPins = toggleLearningPin(tab.learningPins, learningMode, button.dataset.conceptId ?? selectedLearningConceptId);
+  learningConceptManuallySelected = false;
   renderLearningPanel();
 };
 $<HTMLSelectElement>("ownership-scenario").onchange = (event) => {
