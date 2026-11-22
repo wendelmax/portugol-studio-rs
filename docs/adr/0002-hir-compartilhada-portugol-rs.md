@@ -1,6 +1,11 @@
 # ADR 0002: HIR tipada compartilhada para Portugol e Portugol-RS
 
-- Status: proposta para implementação incremental
+> A política inicial de manter `.por` permanentemente foi supersedida pelo
+> [ADR 0016](0016-pors-como-linguagem-autoral-e-retirada-do-por.md). A HIR
+> independente de frontend e backend e a separação entre parser, semântica,
+> bytecode, VM e gerador Rust continuam válidas para a evolução PORS/Rust.
+
+- Status: arquitetura implementada; política de manter `.por` permanentemente supersedida pelo ADR 0016
 - Data: 2026-11-21
 
 ## Contexto
