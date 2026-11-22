@@ -1,4 +1,8 @@
-use portugol_service::{RustSourceRunResult, run_rust_source};
+use portugol_service::{
+    RustSourceRunPhase, RustSourceRunResult, run_rust_source, run_rust_source_with_cancel,
+};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 #[test]
 fn compiles_and_executes_a_standalone_rust_source() {
@@ -47,6 +51,56 @@ fn stops_an_infinite_rust_program_at_the_runtime_limit() {
         result,
         RustSourceRunResult::RuntimeLimit {
             reason: portugol_service::RustSourceLimitReason::Time,
+            ..
+        }
+    ));
+}
+
+#[test]
+fn cancels_a_running_rust_program_and_reports_runtime_phase() {
+    let marker = std::env::temp_dir().join(format!("portugol-rust-cancel-{}", std::process::id()));
+    let _ = std::fs::remove_file(&marker);
+    let source =
+        format!("fn main() {{ std::fs::write({marker:?}, \"started\").unwrap(); loop {{}} }}");
+    let cancel = Arc::new(AtomicBool::new(false));
+    let worker_cancel = Arc::clone(&cancel);
+    let worker = std::thread::spawn(move || run_rust_source_with_cancel(&source, &worker_cancel));
+
+    let started = std::time::Instant::now();
+    while !marker.exists() && started.elapsed() < std::time::Duration::from_secs(10) {
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    assert!(
+        marker.exists(),
+        "programa deve iniciar antes do cancelamento"
+    );
+    cancel.store(true, Ordering::Release);
+
+    let result = worker
+        .join()
+        .expect("worker deve concluir")
+        .expect("execução deve retornar resultado");
+    let _ = std::fs::remove_file(marker);
+    assert!(matches!(
+        result,
+        RustSourceRunResult::Cancelled {
+            phase: RustSourceRunPhase::Runtime,
+            ..
+        }
+    ));
+    assert!(started.elapsed() < std::time::Duration::from_secs(2));
+}
+
+#[test]
+fn cancellation_requested_before_rustc_finishes_reports_compilation_phase() {
+    let cancel = AtomicBool::new(true);
+    let result = run_rust_source_with_cancel("fn main() { println!(\"ready\"); }", &cancel)
+        .expect("cancelamento deve ser um resultado tipado");
+
+    assert!(matches!(
+        result,
+        RustSourceRunResult::Cancelled {
+            phase: RustSourceRunPhase::Compilation,
             ..
         }
     ));
