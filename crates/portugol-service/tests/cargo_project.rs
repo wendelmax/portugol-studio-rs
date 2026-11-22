@@ -125,3 +125,27 @@ fn sets_cargo_manifest_directory_for_the_launched_binary() {
         project.0.canonicalize().unwrap().to_string_lossy()
     );
 }
+
+#[test]
+fn preserves_successful_build_warnings_in_the_output() {
+    if !portugol_service::cargo_available() {
+        return;
+    }
+    let project = TempDir::new();
+    fs::write(
+        project.0.join("Cargo.toml"),
+        "[package]\nname = \"aviso\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
+    )
+    .unwrap();
+    fs::write(
+        project.0.join("src/main.rs"),
+        "fn main() { let nao_usada = 1; println!(\"ok\"); }",
+    )
+    .unwrap();
+
+    let result = run_cargo_project_with_cancel(&project.0, &AtomicBool::new(false)).unwrap();
+
+    assert_eq!(result.status, "executed");
+    assert!(result.stdout.contains("warning"), "{}", result.stdout);
+    assert!(result.stdout.contains("ok"), "{}", result.stdout);
+}

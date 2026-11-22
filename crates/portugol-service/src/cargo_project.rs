@@ -62,6 +62,7 @@ pub fn run_cargo_project_with_cancel(
     let build = supervise(child, COMPILATION_LIMIT, Some(cancel))?;
     let build_stdout = String::new();
     let build_stderr = bounded_output(&build.stderr);
+    let build_messages = cargo_rendered_diagnostics(&build.stdout);
     if let Some(reason) = build.limit {
         return Ok(limit_result(
             reason,
@@ -71,11 +72,10 @@ pub fn run_cargo_project_with_cancel(
         ));
     }
     if build.status != Some(0) {
-        let diagnostics = cargo_rendered_diagnostics(&build.stdout);
         return Ok(CargoProjectRunResult {
             status: "build_error".into(),
             stdout: build_stdout,
-            stderr: [build_stderr, diagnostics]
+            stderr: [build_stderr, build_messages]
                 .into_iter()
                 .filter(|text| !text.is_empty())
                 .collect::<Vec<_>>()
@@ -112,7 +112,11 @@ pub fn run_cargo_project_with_cancel(
             "run_error"
         }
         .into(),
-        stdout,
+        stdout: [build_messages, stdout]
+            .into_iter()
+            .filter(|text| !text.is_empty())
+            .collect::<Vec<_>>()
+            .join("\n"),
         stderr,
         exit_code: execution.status,
         phase: Some("runtime".into()),

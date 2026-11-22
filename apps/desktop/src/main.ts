@@ -1715,6 +1715,10 @@ async function runProgram(pauseOnStart = false) {
   const tab = activeTab();
   if (!tab) return;
   if (tab.language === "rust") {
+    if (tab.workspaceId && tab.workspacePath && tab.cargoProject === undefined) {
+      setStatus("Verificando se este arquivo pertence a um projeto Cargo.");
+      return;
+    }
     if (pauseOnStart) {
       setStatus("Depuração de arquivos Rust ainda não está disponível.");
       return;
@@ -1735,7 +1739,9 @@ async function runProgram(pauseOnStart = false) {
       }
     }
     if (tab.cargoProject === true && tab.workspaceId && tab.workspacePath) {
-      const dirtyFiles = tabs.filter((candidate) => candidate.workspaceId === tab.workspaceId && candidate !== tab && isDirty(candidate));
+      const dirtyFiles = tabs.filter((candidate) =>
+        candidate.workspaceId === tab.workspaceId && candidate.language === "rust" && candidate !== tab && isDirty(candidate),
+      );
       if (dirtyFiles.length > 0) {
         setStatus("Salve os outros arquivos alterados deste projeto antes de executar Cargo.", "error");
         return;
