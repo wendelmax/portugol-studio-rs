@@ -27,6 +27,14 @@ fn compiles_and_runs_supported_portugol_rs_with_real_rustc() {
 }
 
 #[test]
+fn compiles_and_runs_pors_helper_functions_with_real_rustc() {
+    let result = run_portugol_rs("funcao dobro(valor: inteiro) -> inteiro { retorne valor * 2; } funcao inicio() { escreva(dobro(21)); }").unwrap();
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { stdout, exit_code: Some(0), .. } if stdout == "42")
+    );
+}
+
+#[test]
 fn pauses_at_leia_requests_typed_input_and_resumes_the_program() {
     let cancel = AtomicBool::new(false);
     let mut streamed = Vec::new();

@@ -17,7 +17,11 @@ pub(crate) fn render_pors_with_map(program: &Program) -> GeneratedRust {
 }
 
 fn render(program: &Program, pors: bool) -> GeneratedRust {
-    let has_read = statements_have_read(&program.body);
+    let has_read = statements_have_read(&program.body)
+        || program
+            .functions
+            .iter()
+            .any(|f| statements_have_read(&f.body));
     let mut output = String::from("use std::io::{self, Write};\n\n");
     output.push_str(JAVA_DOUBLE_HELPER);
     if has_read {
@@ -26,9 +30,51 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
     if pors {
         output.push_str("\nthread_local! { static __PORS_STRING_BYTES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) }; }\nfn __pors_account(len: usize) { __PORS_STRING_BYTES.with(|used| { let next = used.get().saturating_add(len); if next > 16 * 1024 * 1024 { std::process::exit(78); } used.set(next); }); }\nfn __pors_string(value: &str) -> String { __pors_account(value.len()); value.to_owned() }\nfn __pors_char(value: char) -> String { __pors_account(value.len_utf8()); value.to_string() }\nfn __pors_concat(left: &str, right: &str) -> String { let len = left.len().saturating_add(right.len()); __pors_account(len); let mut value = String::with_capacity(len); value.push_str(left); value.push_str(right); value }\n");
     }
+    let mut mappings = Vec::new();
+    for function in &program.functions {
+        let function_program = Program {
+            bindings: function.bindings.clone(),
+            ..program.clone()
+        };
+        let params = function
+            .parameters
+            .iter()
+            .map(|id| {
+                let parameter = binding_info(&function_program, *id);
+                format!(
+                    "{}{}: {}",
+                    if parameter.mutability == portugol_hir::Mutability::Mutable {
+                        "mut "
+                    } else {
+                        ""
+                    },
+                    rust_ident(&parameter.source_name),
+                    rust_type(parameter.ty)
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+        output.push_str(&format!(
+            "\nfn {}({params}){} {{\n",
+            rust_ident(&function.source_name),
+            function
+                .return_type
+                .map(|ty| format!(" -> {}", rust_type(ty)))
+                .unwrap_or_default()
+        ));
+        render_statements(
+            &function.body,
+            &function_program,
+            1,
+            &mut output,
+            &mut mappings,
+            pors,
+            None,
+        );
+        output.push_str("}\n");
+    }
     output.push_str("\nfn main() {\n");
     let body_start = output.len();
-    let mut mappings = Vec::new();
     render_statements(
         &program.body,
         program,
@@ -189,6 +235,7 @@ fn render_statements(
                     Type::Boolean => "lógico",
                     Type::String => "cadeia",
                     Type::Character => "caracter",
+                    Type::Unit => unreachable!("variável não pode ter tipo unit"),
                 };
                 output.push_str(&format!(
                     "{indent}let {input} = __portugol_read_line(\"{label}\");\n"
@@ -198,6 +245,35 @@ fn render_statements(
                     Type::Boolean => output.push_str(&format!("{indent}{name} = match {input}.trim() {{ \"verdadeiro\" | \"true\" => true, \"falso\" | \"false\" => false, _ => {{ eprintln!(\"Entrada inválida: esperado lógico.\"); std::process::exit(1); }} }};\n")),
                     _ => output.push_str(&format!("{indent}{name} = __portugol_parse::<{}>(&{input}, \"{label}\");\n", rust_type(declaration.ty))),
                 }
+            }
+            StmtKind::Call {
+                function,
+                arguments,
+            } => {
+                push_expr(
+                    output,
+                    mappings,
+                    &Expr {
+                        kind: ExprKind::Call {
+                            function: *function,
+                            arguments: arguments.clone(),
+                        },
+                        ty: Type::Boolean,
+                        span: statement.span,
+                    },
+                    program,
+                    false,
+                    pors,
+                );
+                output.push_str(";\n");
+            }
+            StmtKind::Return { value } => {
+                output.push_str(&format!("{indent}return"));
+                if let Some(value) = value {
+                    output.push(' ');
+                    push_expr(output, mappings, value, program, false, pors);
+                }
+                output.push_str(";\n");
             }
             StmtKind::If {
                 condition,
@@ -319,6 +395,55 @@ fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedExpression {
         ExprKind::Binding(id) => vec![ExpressionPart::Text(rust_ident(
             &binding_info(program, *id).source_name,
         ))],
+        ExprKind::Call {
+            function,
+            arguments,
+        } => {
+            let target = program.functions.iter().find(|item| item.id == *function);
+            let name = target
+                .map(|item| rust_ident(&item.source_name))
+                .unwrap_or_else(|| "__invalid_function".to_owned());
+            let mut parts = vec![ExpressionPart::Text(format!("{name}("))];
+            for (index, argument) in arguments.iter().enumerate() {
+                if index > 0 {
+                    parts.push(ExpressionPart::Text(", ".to_owned()));
+                }
+                let takes_string = target
+                    .and_then(|target_function| {
+                        target_function
+                            .parameters
+                            .get(index)
+                            .map(|parameter_id| (target_function, parameter_id))
+                    })
+                    .is_some_and(|(target_function, parameter_id)| {
+                        binding_info(
+                            &Program {
+                                bindings: target_function.bindings.clone(),
+                                ..program.clone()
+                            },
+                            *parameter_id,
+                        )
+                        .ty == Type::String
+                    });
+                if takes_string {
+                    parts.push(ExpressionPart::Text(if pors {
+                        "__pors_string((".to_owned()
+                    } else {
+                        "String::clone(&(".to_owned()
+                    }));
+                }
+                parts.push(ExpressionPart::Nested(render_expr(argument, program, pors)));
+                if takes_string {
+                    parts.push(ExpressionPart::Text(if pors {
+                        ").as_str())".to_owned()
+                    } else {
+                        "))".to_owned()
+                    }));
+                }
+            }
+            parts.push(ExpressionPart::Text(")".to_owned()));
+            parts
+        }
         ExprKind::Integer(value) if *value == i32::MIN => {
             vec![ExpressionPart::Text("i32::MIN".to_owned())]
         }
@@ -608,6 +733,7 @@ fn rust_type(ty: Type) -> &'static str {
         Type::Boolean => "bool",
         Type::String => "String",
         Type::Character => "char",
+        Type::Unit => "()",
     }
 }
 
@@ -618,5 +744,6 @@ fn map_type(ty: Type) -> crate::Ty {
         Type::Boolean => crate::Ty::Logico,
         Type::String => crate::Ty::Cadeia,
         Type::Character => crate::Ty::Caracter,
+        Type::Unit => unreachable!("tipo unit não possui valor Portugol"),
     }
 }

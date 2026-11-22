@@ -222,6 +222,16 @@ fn collect_portugol_rs_statements(
                     collect_portugol_rs_expression(value, occurrences);
                 }
             }
+            StmtKind::Call { arguments, .. } => {
+                for value in arguments {
+                    collect_portugol_rs_expression(value, occurrences);
+                }
+            }
+            StmtKind::Return { value } => {
+                if let Some(value) = value {
+                    collect_portugol_rs_expression(value, occurrences);
+                }
+            }
             StmtKind::Read { binding, name_span } => occurrences.push(PortugolRsOccurrence {
                 binding: *binding,
                 span: *name_span,
@@ -282,6 +292,11 @@ fn collect_portugol_rs_expression(
         ExprKind::Binary { left, right, .. } => {
             collect_portugol_rs_expression(left, occurrences);
             collect_portugol_rs_expression(right, occurrences);
+        }
+        ExprKind::Call { arguments, .. } => {
+            for argument in arguments {
+                collect_portugol_rs_expression(argument, occurrences);
+            }
         }
         ExprKind::Integer(_)
         | ExprKind::Real(_)

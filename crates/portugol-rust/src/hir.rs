@@ -81,6 +81,7 @@ impl Lowerer {
         Ok(hir::Program {
             bindings: self.bindings,
             body,
+            functions: vec![],
             span: span(program.span),
         })
     }

@@ -17,6 +17,7 @@ impl Span {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Type {
+    Unit,
     Integer,
     Real,
     Boolean,
@@ -26,6 +27,9 @@ pub enum Type {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BindingId(pub u32);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct FunctionId(pub u32);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mutability {
@@ -86,6 +90,20 @@ pub enum LoopControl {
 pub struct Program {
     pub bindings: Vec<Binding>,
     pub body: Vec<Stmt>,
+    /// Funções auxiliares. `body` representa o corpo da única função `inicio`.
+    pub functions: Vec<Function>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Function {
+    pub id: FunctionId,
+    pub source_name: String,
+    pub parameters: Vec<BindingId>,
+    /// Inclui parâmetros nos primeiros slots e declarações locais depois deles.
+    pub bindings: Vec<Binding>,
+    pub return_type: Option<Type>,
+    pub body: Vec<Stmt>,
     pub span: Span,
 }
 
@@ -120,6 +138,10 @@ pub enum StmtKind {
         binding: BindingId,
         name_span: Span,
     },
+    Call {
+        function: FunctionId,
+        arguments: Vec<Expr>,
+    },
     Write(Vec<Expr>),
     If {
         condition: Expr,
@@ -139,6 +161,9 @@ pub enum StmtKind {
     LoopControl {
         control: LoopControl,
     },
+    Return {
+        value: Option<Expr>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -151,6 +176,10 @@ pub struct Expr {
 #[derive(Debug, Clone, PartialEq)]
 pub enum ExprKind {
     Binding(BindingId),
+    Call {
+        function: FunctionId,
+        arguments: Vec<Expr>,
+    },
     Integer(i32),
     Real(f64),
     Boolean(bool),

@@ -26,6 +26,7 @@ fn records_binding_identity_mutability_and_source_spans() {
             },
             span,
         }],
+        functions: vec![],
         span,
     };
     assert_eq!(program.bindings[0].id, id);

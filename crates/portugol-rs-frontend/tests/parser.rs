@@ -21,6 +21,20 @@ fn parses_the_initial_portugol_rs_program_into_typed_hir() {
 }
 
 #[test]
+fn parses_typed_helper_functions_forward_calls_and_returns() {
+    let source = "funcao dobro(valor: inteiro) -> inteiro { retorne somar(valor, valor); }\nfuncao somar(a: inteiro, b: inteiro) -> inteiro { retorne a + b; }\nfuncao inicio() { escreva(dobro(21)); }";
+    let program = lower(source).expect("funções tipadas e chamadas para frente devem ser válidas");
+    assert_eq!(program.body.len(), 1);
+}
+
+#[test]
+fn parses_mutable_parameter_and_void_helper_return() {
+    let source = "funcao incrementar(mutavel valor: inteiro) -> inteiro { valor += 1; retorne valor; }\nfuncao mostrar(valor: inteiro) { escreva(valor); retorne; }\nfuncao inicio() { mostrar(incrementar(4)); }";
+    let program = lower(source).expect("parâmetro mutável e retorno vazio devem ser válidos");
+    assert!(matches!(program.body[0].kind, StmtKind::Call { .. }));
+}
+
+#[test]
 fn parses_reading_into_a_mutable_binding() {
     let source = "funcao inicio() { seja mutavel idade: inteiro = 0; leia(idade); }";
     let program = lower(source).expect("leia deve aceitar uma variável mutável");

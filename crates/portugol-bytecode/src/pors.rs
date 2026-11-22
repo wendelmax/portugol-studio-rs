@@ -12,7 +12,7 @@ pub struct PorsCompileError {
 }
 
 pub fn compile_pors(program: &hir::Program) -> Result<Module, PorsCompileError> {
-    Compiler::new(program).compile(program)
+    Compiler::compile_program(program)
 }
 
 struct LoopFrame {
@@ -33,9 +33,8 @@ struct Compiler {
 }
 
 impl Compiler {
-    fn new(program: &hir::Program) -> Self {
-        let locals = program
-            .bindings
+    fn new(bindings: &[hir::Binding]) -> Self {
+        let locals = bindings
             .iter()
             .map(|binding| LocalInfo {
                 name: binding.source_name.clone(),
@@ -55,29 +54,97 @@ impl Compiler {
         }
     }
 
-    fn compile(mut self, program: &hir::Program) -> Result<Module, PorsCompileError> {
-        for stmt in &program.body {
-            self.stmt(stmt)?;
+    fn compile_program(program: &hir::Program) -> Result<Module, PorsCompileError> {
+        let mut functions = Vec::with_capacity(program.functions.len() + 1);
+        let mut strings = Vec::new();
+        let mut ordered: Vec<_> = program.functions.iter().collect();
+        ordered.sort_by_key(|function| function.id.0);
+        for function in ordered {
+            let (compiled, function_strings) = Self::compile_function(
+                &function.source_name,
+                &function.bindings,
+                &function.body,
+                function
+                    .return_type
+                    .map(value_type_hir)
+                    .unwrap_or(ValueType::Vazio),
+                function.parameters.len() as u32,
+                function.span,
+            )?;
+            let base = strings.len() as u32;
+            let mut compiled = compiled;
+            for op in &mut compiled.code {
+                if let Op::PushStr(index) = op {
+                    *index += base;
+                }
+            }
+            strings.extend(function_strings);
+            functions.push(compiled);
         }
-        self.emit(Op::PushVoid, program.span);
-        self.emit(Op::Return, program.span);
-        let function = Function {
-            name: "inicio".into(),
-            arity: 0,
-            return_type: ValueType::Vazio,
-            locals: self.locals,
-            code: self.code,
-            spans: self.spans,
-            span: convert_span(program.span),
-        };
+        let entry = functions.len() as u32;
+        let (compiled, function_strings) = Self::compile_function(
+            "inicio",
+            &program.bindings,
+            &program.body,
+            ValueType::Vazio,
+            0,
+            program.span,
+        )?;
+        let base = strings.len() as u32;
+        let mut compiled = compiled;
+        for op in &mut compiled.code {
+            if let Op::PushStr(index) = op {
+                *index += base;
+            }
+        }
+        strings.extend(function_strings);
+        functions.push(compiled);
         Ok(Module {
-            functions: vec![function],
-            entry: 0,
+            functions,
+            entry,
             globals: vec![],
-            strings: self.strings,
+            strings,
             natives: vec![],
             native_consts: vec![],
         })
+    }
+
+    fn compile_function(
+        name: &str,
+        bindings: &[hir::Binding],
+        body: &[hir::Stmt],
+        return_type: ValueType,
+        arity: u32,
+        span: hir::Span,
+    ) -> Result<(Function, Vec<String>), PorsCompileError> {
+        let mut self_ = Self::new(bindings);
+        for local in 0..arity {
+            self_.emit(
+                Op::SetLocalActive {
+                    local,
+                    active: true,
+                },
+                span,
+            );
+            self_.scope_locals[0].push(local);
+        }
+        for stmt in body {
+            self_.stmt(stmt)?;
+        }
+        self_.emit(Op::PushVoid, span);
+        self_.emit(Op::Return, span);
+        Ok((
+            Function {
+                name: name.into(),
+                arity,
+                return_type,
+                locals: self_.locals,
+                code: self_.code,
+                spans: self_.spans,
+                span: convert_span(span),
+            },
+            self_.strings,
+        ))
     }
 
     fn emit(&mut self, op: Op, span: hir::Span) -> usize {
@@ -175,6 +242,30 @@ impl Compiler {
                     self.expr(arg)?;
                 }
                 self.emit(Op::Write(args.len() as u32), stmt.span);
+            }
+            S::Call {
+                function,
+                arguments,
+            } => {
+                for arg in arguments {
+                    self.expr(arg)?;
+                }
+                self.emit(
+                    Op::Call {
+                        function: function.0,
+                        argc: arguments.len() as u32,
+                    },
+                    stmt.span,
+                );
+                self.emit(Op::Pop, stmt.span);
+            }
+            S::Return { value } => {
+                if let Some(value) = value {
+                    self.expr(value)?;
+                } else {
+                    self.emit(Op::PushVoid, stmt.span);
+                }
+                self.emit(Op::Return, stmt.span);
             }
             S::If {
                 condition,
@@ -348,6 +439,21 @@ impl Compiler {
                 }
                 self.emit(Op::LoadLocal(id.0), expr.span);
             }
+            E::Call {
+                function,
+                arguments,
+            } => {
+                for arg in arguments {
+                    self.expr(arg)?;
+                }
+                self.emit(
+                    Op::Call {
+                        function: function.0,
+                        argc: arguments.len() as u32,
+                    },
+                    expr.span,
+                );
+            }
             E::Integer(value) => {
                 self.emit(Op::PushInt(*value), expr.span);
             }
@@ -414,12 +520,16 @@ impl Compiler {
 
 fn classic_type(ty: hir::Type) -> portugol_syntax::ast::Type {
     match ty {
+        hir::Type::Unit => portugol_syntax::ast::Type::Vazio,
         hir::Type::Integer => portugol_syntax::ast::Type::Inteiro,
         hir::Type::Real => portugol_syntax::ast::Type::Real,
         hir::Type::Boolean => portugol_syntax::ast::Type::Logico,
         hir::Type::String => portugol_syntax::ast::Type::Cadeia,
         hir::Type::Character => portugol_syntax::ast::Type::Caracter,
     }
+}
+fn value_type_hir(ty: hir::Type) -> ValueType {
+    value_type(classic_type(ty))
 }
 fn value_type(ty: portugol_syntax::ast::Type) -> ValueType {
     ty.into()
