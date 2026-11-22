@@ -62,6 +62,7 @@ import {
   type OwnershipScenarioId,
 } from "./ownership-lab";
 import { filterCommands, isDebugCommandAvailable, nextCommandIndex } from "./command-palette";
+import { acceptRustPreview, beginRustPreview, failRustPreview, markRustPreviewStale, type RustPreviewState } from "./rust-preview-state";
 import * as api from "./api";
 
 const TEMPLATE = "programa\n{\n\tfuncao inicio()\n\t{\n\t\t\n\t}\n}\n";
@@ -103,6 +104,7 @@ interface Tab {
   workspacePath?: string;
   workspaceExercisePath?: string;
   state: EditorState;
+  rustPreview?: RustPreviewState;
   /** Texto da última gravação, para saber se há alterações. */
   saved: string;
   diagnostics: api.DiagnosticInfo[];
@@ -339,7 +341,13 @@ function extensions(language: SourceLanguage): Extension[] {
         }
         renderTabs();
       }
-      if (update.docChanged && learningMode === "bridge" && activeTab()?.language !== "rust") scheduleRustExport();
+      if (update.docChanged && activeTab()?.language !== "rust") {
+        const tab = activeTab();
+        if (tab?.rustPreview) {
+          tab.rustPreview = markRustPreviewStale(tab.rustPreview, update.state.doc.toString());
+        }
+        if (learningMode === "bridge") scheduleRustExport();
+      }
       if (update.selectionSet || update.docChanged) renderCursor();
       if (update.selectionSet || update.docChanged) renderMappingGutter();
       if (centerActive && update.selectionSet) {
@@ -390,7 +398,9 @@ let nextTabId = 1;
 let rustExportTimer: number | undefined;
 let rustExportGeneration = 0;
 let rustMappingLinks: SourceMapLink[] = [];
-let rustMappingState: "idle" | "generating" | "ready" | "error" = "idle";
+let rustMappingState: "idle" | "generating" | "ready" | "stale" | "error" = "idle";
+let renderedRustArtifact: RustPreviewState["artifact"] | null | undefined;
+let renderedRustPreviewStale: boolean | undefined;
 let definitionNavigationGeneration = 0;
 let learningMode: LearningMode = loadLearningMode();
 let selectedLearningConceptId = "variables";
@@ -472,6 +482,7 @@ function activate(id: number) {
   renderTabs();
   renderExerciseTests();
   $<HTMLElement>("rust-preview").hidden = learningMode !== "bridge" || tab.language === "rust";
+  if (tab.language !== "rust") renderRustPreview(tab);
   renderMappingGutter();
   renderMessages();
   outline.show(tab.symbols, current !== tab);
@@ -481,8 +492,6 @@ function activate(id: number) {
   if (learningMode === "bridge" && tab.language !== "rust") scheduleRustExport();
   if (tab.language === "rust") {
     rustExportGeneration++;
-    $<HTMLElement>("rust-status").textContent = "Documento Rust independente; a prévia gerada não altera este arquivo.";
-    $<HTMLElement>("rust-output").textContent = "";
   }
   syncLanguageControls(tab);
   view.focus();
@@ -1450,13 +1459,27 @@ async function save(as = false): Promise<boolean> {
     tab.workspacePath = undefined;
     tab.workspaceExercisePath = undefined;
   }
+  const previousLanguage = tab.language;
   tab.language = detectSourceLanguage(path);
+  const languageChanged = tab.language !== previousLanguage;
+  if (languageChanged && tab.rustPreview?.artifact) {
+    tab.rustPreview = { artifact: tab.rustPreview.artifact, pending: false, stale: true, error: undefined };
+  }
   if (tab.id === activeId) {
     view.dispatch({ effects: [
       sourceLanguage.reconfigure(tab.language === "rust" ? rust() : tab.language === "portugol-rs" ? portugolRs() : portugol()),
       portugolTools.reconfigure(tab.language === "rust" ? [] : [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]),
     ] });
     syncLanguageControls(tab);
+    if (languageChanged) {
+      rustExportGeneration++;
+      if (rustExportTimer !== undefined) window.clearTimeout(rustExportTimer);
+      rustExportTimer = undefined;
+      $<HTMLElement>("rust-preview").hidden = learningMode !== "bridge" || tab.language === "rust";
+      renderRustPreview(tab);
+      if (learningMode === "bridge" && tab.language !== "rust") scheduleRustExport();
+      else renderMappingGutter();
+    }
   }
   if (tab.language === "rust") {
     if (tab.id === activeId) view.dispatch(setDiagnostics(view.state, []));
@@ -2659,87 +2682,102 @@ $<HTMLButtonElement>("ownership-restart").onclick = () => {
 };
 
 function scheduleRustExport() {
-  if (activeTab()?.language === "rust") {
+  const tab = activeTab();
+  if (!tab || tab.language === "rust") {
     rustExportGeneration++;
     return;
   }
+  const source = view.state.doc.toString();
+  const tabId = tab.id;
   const generation = ++rustExportGeneration;
   if (rustExportTimer !== undefined) window.clearTimeout(rustExportTimer);
-  const status = $<HTMLElement>("rust-status");
-  rustMappingLinks = [];
-  rustMappingState = "generating";
-  renderMappingGutter();
-  status.textContent = "Atualizando tradução…";
-  delete status.dataset.error;
-  $<HTMLButtonElement>("rust-copy").disabled = true;
-  $<HTMLButtonElement>("rust-save").disabled = true;
-  $<HTMLButtonElement>("rust-detach").disabled = true;
-  $<HTMLElement>("rust-output").textContent = "";
+  tab.rustPreview = beginRustPreview(tab.rustPreview, source);
+  renderRustPreview(tab);
   rustExportTimer = window.setTimeout(async () => {
     let result: api.RustExport;
     try {
-      const tab = activeTab();
-      result = tab?.language === "portugol-rs"
-        ? await api.exportPortugolRs(view.state.doc.toString())
-        : await api.exportRust(view.state.doc.toString());
+      result = tab.language === "portugol-rs"
+        ? await api.exportPortugolRs(source)
+        : await api.exportRust(source);
     } catch (error) {
-      if (generation !== rustExportGeneration) return;
-      rustMappingState = "error";
-      renderMappingGutter();
-      status.textContent = "Falha ao solicitar a tradução: " + String(error);
-      status.dataset.error = "true";
-      $<HTMLButtonElement>("rust-copy").disabled = true;
-      $<HTMLButtonElement>("rust-save").disabled = true;
-      $<HTMLButtonElement>("rust-detach").disabled = true;
-      $<HTMLElement>("rust-output").textContent = "";
+      if (generation !== rustExportGeneration || activeTab()?.id !== tabId || view.state.doc.toString() !== source) return;
+      tab.rustPreview = failRustPreview(tab.rustPreview ?? { pending: false, stale: false }, "Falha ao solicitar a tradução: " + String(error));
+      renderRustPreview(tab);
       return;
     }
-    if (generation !== rustExportGeneration) return;
-    const output = $<HTMLElement>("rust-output");
-    const copy = $<HTMLButtonElement>("rust-copy");
-    const save = $<HTMLButtonElement>("rust-save");
-    if (result.code !== null) {
-      const segments = mappedPreviewSegments(result.code, result.sourceMap);
-      rustMappingLinks = sourceMapLinks(result.sourceMap);
-      rustMappingState = "ready";
-      output.replaceChildren();
+    if (generation !== rustExportGeneration || activeTab()?.id !== tabId || view.state.doc.toString() !== source) return;
+    tab.rustPreview = acceptRustPreview(tab.rustPreview ?? { pending: false, stale: false }, source, result);
+    renderRustPreview(tab);
+  }, 220);
+}
+
+function renderRustPreview(tab: Tab) {
+  if (activeTab()?.id !== tab.id) return;
+  const state = tab.rustPreview;
+  const output = $<HTMLElement>("rust-output");
+  const status = $<HTMLElement>("rust-status");
+  const copy = $<HTMLButtonElement>("rust-copy");
+  const save = $<HTMLButtonElement>("rust-save");
+  const detach = $<HTMLButtonElement>("rust-detach");
+  const artifact = state?.artifact;
+
+  const artifactKey = artifact ?? null;
+  const stale = Boolean(state?.stale);
+  if (renderedRustArtifact === undefined || renderedRustArtifact !== artifactKey || renderedRustPreviewStale !== stale) {
+    output.replaceChildren();
+    if (artifact) {
+      const segments = mappedPreviewSegments(artifact.code, artifact.sourceMap);
       let cursor = 0;
       for (const segment of segments) {
         if (segment.from < cursor) continue;
-        output.append(document.createTextNode(result.code.slice(cursor, segment.from)));
-        const mapped = document.createElement("button");
-        mapped.type = "button";
-        mapped.className = "rust-mapped-segment";
-        mapped.dataset.sourceLine = String(segment.sourceLine);
-        mapped.dataset.generatedLine = String(segment.generatedLine);
-        mapped.textContent = result.code.slice(segment.from, segment.to);
-        mapped.title = segment.quality === "approximate"
-          ? `Localização aproximada: linha ${segment.sourceLine} da origem`
-          : `Ir para linha ${segment.sourceLine} da origem`;
-        mapped.setAttribute("aria-label", mapped.title);
-        mapped.onclick = () => goTo(segment.sourceOffset);
-        output.append(mapped);
+        output.append(document.createTextNode(artifact.code.slice(cursor, segment.from)));
+        if (stale) {
+          output.append(document.createTextNode(artifact.code.slice(segment.from, segment.to)));
+        } else {
+          const mapped = document.createElement("button");
+          mapped.type = "button";
+          mapped.className = "rust-mapped-segment";
+          mapped.dataset.sourceLine = String(segment.sourceLine);
+          mapped.dataset.generatedLine = String(segment.generatedLine);
+          mapped.textContent = artifact.code.slice(segment.from, segment.to);
+          mapped.title = segment.quality === "approximate"
+            ? `Localização aproximada: linha ${segment.sourceLine} da origem`
+            : `Ir para linha ${segment.sourceLine} da origem`;
+          mapped.setAttribute("aria-label", mapped.title);
+          mapped.onclick = () => goTo(segment.sourceOffset);
+          output.append(mapped);
+        }
         cursor = segment.to;
       }
-      output.append(document.createTextNode(result.code.slice(cursor)));
-      status.textContent = "Tradução disponível para copiar ou salvar.";
-      copy.disabled = save.disabled = false;
-      $<HTMLButtonElement>("rust-detach").disabled = false;
-      delete status.dataset.error;
-    } else {
-      rustMappingLinks = [];
-      rustMappingState = "ready";
-      output.textContent = "";
-      const diagnostic = result.diagnostic;
-      status.textContent = diagnostic
-        ? "Linha " + diagnostic.start.line + ", coluna " + diagnostic.start.column + ": " + diagnostic.message
-        : "Não foi possível gerar Rust para este programa.";
-      copy.disabled = save.disabled = true;
-      $<HTMLButtonElement>("rust-detach").disabled = true;
-      status.dataset.error = "true";
+      output.append(document.createTextNode(artifact.code.slice(cursor)));
     }
-    renderMappingGutter();
-  }, 220);
+    renderedRustArtifact = artifactKey;
+    renderedRustPreviewStale = stale;
+  }
+
+  rustMappingLinks = artifact && !state?.stale ? sourceMapLinks(artifact.sourceMap) : [];
+  rustMappingState = state?.stale ? "stale" : state?.error && !artifact ? "error" : artifact ? "ready" : state?.pending ? "generating" : "idle";
+  if (state?.stale) {
+    status.textContent = state.pending
+      ? "Tradução desatualizada — atualizando…"
+      : `Tradução desatualizada. ${state.error ?? "Aguardando tradução da versão atual."}`;
+  } else if (state?.error) {
+    status.textContent = state.error;
+  } else if (state?.pending && artifact) {
+    status.textContent = "Atualizando tradução; exibindo versão da fonte atual.";
+  } else if (state?.pending) {
+    status.textContent = "Atualizando tradução…";
+  } else if (artifact) {
+    status.textContent = "Tradução disponível para copiar ou salvar.";
+  } else {
+    status.textContent = "Documento Rust independente; a prévia gerada não altera este arquivo.";
+  }
+  if (state?.error) status.dataset.error = "true";
+  else delete status.dataset.error;
+  if (state?.stale) status.dataset.stale = "true";
+  else delete status.dataset.stale;
+  copy.disabled = save.disabled = detach.disabled = !artifact || Boolean(state?.pending || state?.stale);
+  renderMappingGutter();
 }
 
 function renderMappingGutter() {
@@ -2754,6 +2792,10 @@ function renderMappingGutter() {
   const status = $<HTMLElement>("rust-mapping-status");
   const links = $<HTMLElement>("rust-mapping-links");
   links.replaceChildren();
+  if (rustMappingState === "stale") {
+    status.textContent = "Mapeamento desatualizado; aguarde a tradução atual.";
+    return;
+  }
   if (rustMappingState === "generating" || rustMappingState === "idle") {
     status.textContent = "Atualizando mapa…";
     return;

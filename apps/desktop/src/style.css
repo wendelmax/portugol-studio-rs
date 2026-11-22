@@ -2255,6 +2255,7 @@ body {
 .rust-preview header button { padding: 4px 8px; }
 .rust-preview #rust-status { margin: 0; padding: 6px 10px; color: var(--muted); font-size: 12px; }
 .rust-preview #rust-status[data-error="true"] { color: var(--error, #d73a49); }
+.rust-preview #rust-status[data-stale="true"] { color: var(--warning, #a66b00); }
 .rust-preview pre {
   flex: 1;
   min-height: 0;
