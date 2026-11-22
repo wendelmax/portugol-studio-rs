@@ -127,15 +127,15 @@ test("Rust editor keeps the per-tab artifact marked stale until current translat
   assert.match(main, /tab\.rustPreview = acceptRustPreview/);
   assert.match(main, /tab\.rustPreview = failRustPreview/);
   assert.match(main, /rustMappingState === "stale"/);
-  assert.match(main, /state\?\.pending \|\| state\?\.stale/);
+  assert.match(main, /const pending = Boolean\(state\?\.pending\)/);
   assert.match(main, /status\.dataset\.stale = "true"/);
-  assert.match(main, /copy\.disabled = save\.disabled = detach\.disabled = !artifact \|\| Boolean/);
+  assert.match(main, /copy\.disabled = save\.disabled = detach\.disabled = !artifact \|\| Boolean\(pending \|\| stale\)/);
   assert.match(css, /#rust-status\[data-stale="true"\]/);
   assert.match(html, /id="rust-output" class="rust-generated-editor"/);
   assert.match(main, /const generatedRustEditor = new EditorView\([\s\S]*createGeneratedRustEditorState/);
   assert.match(main, /generatedRustEditor\.state\.doc\.toString\(\)/);
   assert.match(main, /generatedRustTheme\.reconfigure\(editorTheme\(\)\)/);
-  const renderer = main.match(/function renderRustPreview\(tab: Tab\) \{([\s\S]*?)\n\}\n\nfunction renderMappingGutter/)?.[1] ?? "";
+  const renderer = main.match(/function renderRustPreview\(tab: Tab\) \{([\s\S]*?)\n\}/)?.[1] ?? "";
   assert.match(renderer, /artifact && !stale[\s\S]*mappedPreviewSegments\(artifact\.code, artifact\.sourceMap\)/);
   assert.match(renderer, /generatedRustMappings\.of\(mappings\)/);
   assert.match(renderer, /generatedDocument\.toString\(\) === code/);
@@ -154,6 +154,18 @@ test("Rust editor keeps the per-tab artifact marked stale until current translat
   const schedule = main.match(/function scheduleRustExport\(\) \{([\s\S]*?)\n\}\n\nfunction renderRustPreview/)?.[1] ?? "";
   assert.ok(schedule, "agendamento deve estar separado da renderização do artefato");
   assert.doesNotMatch(schedule, /\$<HTMLElement>\("rust-output"\)\.textContent = ""/);
+});
+
+test("generated Rust diff is read-only, accessible, bounded, and hidden when the preview is stale", () => {
+  assert.match(html, /id="rust-diff-toggle"[^>]*aria-pressed="false"[^>]*disabled>Mostrar diferenças/);
+  assert.match(html, /id="rust-diff-output"[^>]*aria-label="Diferenças entre traduções Rust"[^>]*hidden/);
+  assert.match(main, /generatedRustComparison\(state\)/);
+  assert.match(main, /generatedOutput\.hidden = showDiff[\s\S]*diffOutput\.hidden = !showDiff/);
+  assert.match(main, /if \(showDiff && comparison\) renderGeneratedRustDiff/);
+  assert.match(main, /code\.textContent = text/);
+  assert.match(main, /rust-diff-toggle"\)\.onclick = \(\) =>[\s\S]*renderRustPreview\(tab\)/);
+  assert.match(css, /\.rust-diff-table tr\[data-kind="removed"\]/);
+  assert.match(css, /\.rust-diff-table tr\[data-kind="added"\]/);
 });
 
 test("PORS run response is discarded when its tab or document revision changes", () => {

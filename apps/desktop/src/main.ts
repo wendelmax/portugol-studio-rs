@@ -25,6 +25,7 @@ import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } 
 import { rust } from "@codemirror/lang-rust";
 import { createGeneratedRustEditorState, generatedRustMappings, type GeneratedRustMapping } from "./generated-rust-editor";
 import { generatedRustDetachIsCurrent } from "./generated-rust-detach";
+import { diffGeneratedRust, generatedRustDiffSummary } from "./generated-rust-diff";
 import { tags } from "@lezer/highlight";
 import { open as openDialog, save as saveDialog, ask } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -68,7 +69,7 @@ import {
   type OwnershipScenarioId,
 } from "./ownership-lab";
 import { filterCommands, isDebugCommandAvailable, nextCommandIndex } from "./command-palette";
-import { acceptRustPreview, beginRustPreview, failRustPreview, markRustPreviewStale, type RustPreviewState } from "./rust-preview-state";
+import { acceptRustPreview, beginRustPreview, failRustPreview, generatedRustComparison, markRustPreviewStale, type RustPreviewState } from "./rust-preview-state";
 import * as api from "./api";
 
 const TEMPLATE = "programa\n{\n\tfuncao inicio()\n\t{\n\t\t\n\t}\n}\n";
@@ -114,6 +115,7 @@ interface Tab {
   workspaceExercisePath?: string;
   state: EditorState;
   rustPreview?: RustPreviewState;
+  showRustDiff?: boolean;
   /** Texto da última gravação, para saber se há alterações. */
   saved: string;
   diagnostics: api.DiagnosticInfo[];
@@ -1560,7 +1562,7 @@ async function save(as = false): Promise<boolean> {
   tab.language = detectSourceLanguage(path);
   const languageChanged = tab.language !== previousLanguage;
   if (languageChanged && tab.rustPreview?.artifact) {
-    tab.rustPreview = { artifact: tab.rustPreview.artifact, pending: false, stale: true, error: undefined };
+    tab.rustPreview = { ...tab.rustPreview, pending: false, stale: true, error: undefined };
   }
   if (tab.id === activeId) {
     view.dispatch({ effects: [
@@ -3063,6 +3065,12 @@ $<HTMLButtonElement>("rust-save").onclick = async () => {
     setStatus(String(error), "error");
   }
 };
+$<HTMLButtonElement>("rust-diff-toggle").onclick = () => {
+  const tab = activeTab();
+  if (!tab || !tab.rustPreview?.previousArtifact) return;
+  tab.showRustDiff = !tab.showRustDiff;
+  renderRustPreview(tab);
+};
 $<HTMLButtonElement>("rust-detach").onclick = async () => {
   const sourceTab = activeTab();
   const previewState = sourceTab?.rustPreview;
@@ -3207,10 +3215,25 @@ function renderRustPreview(tab: Tab) {
   const status = $<HTMLElement>("rust-status");
   const copy = $<HTMLButtonElement>("rust-copy");
   const save = $<HTMLButtonElement>("rust-save");
+  const diffToggle = $<HTMLButtonElement>("rust-diff-toggle");
+  const generatedOutput = $<HTMLElement>("rust-output");
+  const diffOutput = $<HTMLElement>("rust-diff-output");
   const detach = $<HTMLButtonElement>("rust-detach");
   const artifact = state?.artifact;
 
   const stale = Boolean(state?.stale);
+  const pending = Boolean(state?.pending);
+  const comparison = generatedRustComparison(state);
+  const canShowDiff = Boolean(comparison);
+  if (!canShowDiff) tab.showRustDiff = false;
+  const showDiff = Boolean(tab.showRustDiff && canShowDiff);
+  diffToggle.disabled = !canShowDiff;
+  diffToggle.textContent = showDiff ? "Voltar ao código atual" : "Mostrar diferenças";
+  diffToggle.setAttribute("aria-pressed", String(showDiff));
+  generatedOutput.hidden = showDiff;
+  diffOutput.hidden = !showDiff;
+  if (showDiff && comparison) renderGeneratedRustDiff(diffOutput, comparison.previous.code, comparison.current.code);
+
   const code = artifact?.code ?? "";
   const mappings: GeneratedRustMapping[] = artifact && !stale
     ? mappedPreviewSegments(artifact.code, artifact.sourceMap).map((segment) => ({
@@ -3247,9 +3270,58 @@ function renderRustPreview(tab: Tab) {
   else delete status.dataset.error;
   if (state?.stale) status.dataset.stale = "true";
   else delete status.dataset.stale;
-  copy.disabled = save.disabled = detach.disabled = !artifact || Boolean(state?.pending || state?.stale);
+  copy.disabled = save.disabled = detach.disabled = !artifact || Boolean(pending || stale);
   renderMappingGutter();
   if (!$<HTMLElement>("learning-panel").hidden) renderLearningPanel();
+}
+
+function renderGeneratedRustDiff(container: HTMLElement, previous: string, current: string) {
+  const diff = diffGeneratedRust(previous, current);
+  const summary = document.createElement("p");
+  summary.className = "rust-diff-summary";
+  summary.setAttribute("role", "status");
+  summary.textContent = generatedRustDiffSummary(diff);
+
+  const table = document.createElement("table");
+  table.className = "rust-diff-table";
+  table.setAttribute("aria-label", "Diferenças entre a tradução Rust anterior e a atual");
+  const head = document.createElement("thead");
+  const headings = document.createElement("tr");
+  for (const label of ["Versão anterior", "Versão atual"]) {
+    const heading = document.createElement("th");
+    heading.scope = "col";
+    heading.textContent = label;
+    headings.append(heading);
+  }
+  head.append(headings);
+  const body = document.createElement("tbody");
+  for (const row of diff.rows) {
+    const line = document.createElement("tr");
+    line.dataset.kind = row.kind;
+    line.setAttribute("aria-label", row.kind === "removed" ? "Linha removida" : row.kind === "added" ? "Linha adicionada" : "Linha sem alteração");
+    const createCell = (lineNumber: number | null, text: string, kind: "removed" | "added" | "context") => {
+      const cell = document.createElement("td");
+      const mark = document.createElement("span");
+      mark.className = "rust-diff-mark";
+      mark.textContent = kind === "removed" ? "−" : kind === "added" ? "+" : " ";
+      mark.setAttribute("aria-hidden", "true");
+      const number = document.createElement("span");
+      number.className = "rust-diff-line-number";
+      number.textContent = lineNumber === null ? "" : String(lineNumber);
+      number.setAttribute("aria-hidden", "true");
+      const code = document.createElement("code");
+      code.textContent = text;
+      cell.append(mark, number, code);
+      return cell;
+    };
+    line.append(
+      createCell(row.oldLine, row.kind === "added" ? "" : row.text, row.kind === "added" ? "context" : row.kind),
+      createCell(row.newLine, row.kind === "removed" ? "" : row.text, row.kind === "removed" ? "context" : row.kind),
+    );
+    body.append(line);
+  }
+  table.append(head, body);
+  container.replaceChildren(summary, table);
 }
 
 function renderMappingGutter() {
