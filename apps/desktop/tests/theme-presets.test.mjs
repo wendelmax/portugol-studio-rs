@@ -14,6 +14,7 @@ test("presets populares têm IDs estáveis e cores para todos os tokens da IDE",
     "preset:dracula": ["Dracula", "dark"],
     "preset:catppuccin-mocha": ["Catppuccin Mocha", "dark"],
     "preset:night-owl": ["Night Owl", "dark"],
+    "preset:portugol-studio-next": ["Portugol Studio Next", "dark"],
   };
 
   assert.deepEqual(Object.keys(BUILTIN_THEMES), Object.keys(expected));
@@ -27,6 +28,11 @@ test("presets populares têm IDs estáveis e cores para todos os tokens da IDE",
     assert.ok(contrast(theme.colors["--text"], theme.colors["--bg"]) >= 4.5, `${id} precisa manter contraste do texto`);
     assert.ok(contrast(theme.colors["--text"], theme.colors["--surface"]) >= 4.5, `${id} precisa manter contraste dos painéis`);
   }
+  const next = BUILTIN_THEMES["preset:portugol-studio-next"];
+  assert.equal(next.colors["--bg"], "#0c1118");
+  assert.equal(next.colors["--surface"], "#111923");
+  assert.equal(next.colors["--editor-bg"], "#0d141d");
+  assert.equal(next.colors["--accent"], "#34d399");
 });
 
 test("seletor mantém os temas originais e oferece cada preset pelo ID estável", () => {
@@ -34,6 +40,7 @@ test("seletor mantém os temas originais e oferece cada preset pelo ID estável"
   for (const value of ["system", "light", "dark", ...[
     "preset:github-light", "preset:github-dark", "preset:one-dark-pro", "preset:dracula",
     "preset:catppuccin-mocha", "preset:night-owl",
+    "preset:portugol-studio-next",
   ]]) assert.ok(html.includes(`value="${value}"`), `seletor deve conter ${value}`);
 });
 

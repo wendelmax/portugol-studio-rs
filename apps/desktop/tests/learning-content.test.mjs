@@ -39,10 +39,12 @@ test("mudança de modo mantém o conceito compatível ou volta ao primeiro dispo
   assert.equal(resolveConceptForMode("beginner", "ownership").id, "variables");
 });
 
-test("aba Aprender identifica seleção manual, deixa exemplos Rust inicialmente ocultos e sem progresso", () => {
+test("inspector Aprender identifica seleção manual, deixa exemplos Rust inicialmente ocultos e sem progresso", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
-  assert.match(html, /id="tab-learning"[^>]*aria-controls="learning-panel"/);
-  assert.match(html, /id="learning-panel"[^>]*role="tabpanel"/);
+  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+  assert.match(html, /id="learning-inspector-slot"/);
+  assert.match(html, /id="learning-panel"[^>]*role="region"/);
+  assert.match(main, /\$\("learning-inspector-slot"\)\.append\(\$\("learning-panel"\)\)/);
   assert.match(html, /Conceito selecionado manualmente/);
   assert.match(html, /id="learning-rust-example" hidden/);
   assert.match(html, /Estudar um conceito não registra progresso/);

@@ -20,7 +20,7 @@ test("Tests tab keeps an honest empty state and exposes real cases only for exer
   assert.match(main, /function renderExerciseTests\(/);
   assert.match(main, /void exercises\.grade\(exercise, documentState\.toString\(\), isCurrent\)/);
   assert.match(exercises, /\(\) => id === modalAttempt && isCurrent\(\)/);
-  assert.match(main, /\["console",\s*"tests",\s*"messages",\s*"debug",\s*"learning"\]/);
+  assert.match(main, /\["console",\s*"tests",\s*"messages",\s*"debug"\]/);
 });
 
 test("bottom tabs support arrow, Home, and End keyboard navigation", () => {

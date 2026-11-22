@@ -124,7 +124,7 @@ function themeChoice(): string {
   } catch {
     // Sem armazenamento local: fica no padrão.
   }
-  return "dark";
+  return "preset:portugol-studio-next";
 }
 
 let appliedTheme = themeChoice();
@@ -1868,16 +1868,25 @@ function renderLearningPanel() {
   if (showOwnershipLab) renderOwnershipLab();
 }
 
-const bottomPanelNames: PanelName[] = ["console", "tests", "messages", "debug", "learning"];
+const bottomPanelNames: PanelName[] = ["console", "tests", "messages", "debug"];
 
 function showPanel(which: PanelName) {
+  const learningActive = which === "learning";
+  $("learning-panel").hidden = !learningActive;
+  for (const id of ["utilities-insert", "outline", "variable-inspector"]) {
+    $<HTMLElement>(id).hidden = learningActive;
+  }
+  if (learningActive) {
+    showUtilities(true);
+    renderLearningPanel();
+    return;
+  }
   for (const name of bottomPanelNames) {
     $(`tab-${name}`).classList.toggle("active", which === name);
     $(`tab-${name}`).setAttribute("aria-selected", String(which === name));
     $(panelContentId(name)).hidden = which !== name;
   }
   $("console-tools").hidden = which !== "console";
-  if (which === "learning") renderLearningPanel();
   if (which === "tests") renderExerciseTests();
 }
 
@@ -2208,6 +2217,7 @@ installPaneResize(bottomSplitter, "horizontal", () => panel.getBoundingClientRec
 
 const utilities = $("utilities");
 const utilitiesSplitter = $("utilities-splitter");
+$("learning-inspector-slot").append($("learning-panel"));
 const outline = mountOutline(goTo, renameAt);
 
 const libraryButtons = new Map<string, HTMLButtonElement>();
@@ -2592,7 +2602,33 @@ $("tab-console").onclick = () => showPanel("console");
 $("tab-tests").onclick = () => showPanel("tests");
 $("tab-messages").onclick = () => showPanel("messages");
 $("tab-debug").onclick = () => showPanel("debug");
-$("tab-learning").onclick = () => showPanel("learning");
+document.querySelectorAll<HTMLButtonElement>("[data-activity]").forEach((button) => {
+  button.onclick = () => {
+    document.querySelectorAll<HTMLButtonElement>("[data-activity]").forEach((activity) => {
+      activity.setAttribute("aria-pressed", String(activity === button));
+    });
+    switch (button.dataset.activity) {
+      case "project":
+        $("btn-explorer").click();
+        button.setAttribute("aria-pressed", $("btn-explorer").getAttribute("aria-expanded") ?? "false");
+        break;
+      case "learn":
+        showPanel("learning");
+        break;
+      case "examples":
+        activate(homeId);
+        break;
+      case "debug":
+        showUtilities(true);
+        showPanel("debug");
+        break;
+      case "settings":
+        $("editor-options").setAttribute("open", "");
+        $<HTMLSelectElement>("theme").focus();
+        break;
+    }
+  };
+});
 $<HTMLSelectElement>("learning-concept").onchange = (event) => {
   selectedLearningConceptId = (event.currentTarget as HTMLSelectElement).value;
   renderLearningPanel();
@@ -3186,7 +3222,8 @@ mountExamples((source, file, workPath) => newTab(source, null, file, workPath));
 activate(0);
 applyTheme(themeChoice());
 showPanel("console");
-showUtilities(true);
+setWorkspaceExplorerVisible(window.innerWidth >= 1440);
+showUtilities(window.innerWidth >= 1440);
 void api.rustToolchainAvailable().then((available) => {
   rustcAvailable = available;
   const tab = activeTab();

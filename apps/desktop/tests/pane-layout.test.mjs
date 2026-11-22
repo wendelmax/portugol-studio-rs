@@ -22,6 +22,10 @@ test("invalid or unavailable layout storage falls back to defaults", () => {
   assert.deepEqual(loadPaneLayout({ getItem() { throw new Error("storage blocked"); } }), DEFAULT_PANE_LAYOUT);
 });
 
+test("default layout reserves about 232 px for the explorer at 1536 px", () => {
+  assert.equal(DEFAULT_PANE_LAYOUT.explorer, 0.16);
+});
+
 test("saves a normalized layout and reports storage failure", () => {
   const target = storage();
   assert.equal(savePaneLayout(target, { explorer: 0.25, bottom: -1, utilities: 0.4 }), true);
