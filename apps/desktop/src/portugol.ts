@@ -226,12 +226,12 @@ export function portugol(): LanguageSupport {
 }
 
 const PORS_WORDS: Completion[] = [
-  ...["funcao", "inicio", "seja", "mutavel", "se", "senao"].map((label) => ({ label, type: "keyword" })),
+  ...["funcao", "inicio", "seja", "mutavel", "se", "senao", "enquanto", "para"].map((label) => ({ label, type: "keyword" })),
   ...["inteiro", "real", "logico", "cadeia", "caracter"].map((label) => ({ label, type: "type" })),
   { label: "verdadeiro", type: "constant" }, { label: "falso", type: "constant" },
   { label: "escreva", type: "function", apply: "escreva(" },
 ];
-const porsKeywords = new Set(["funcao", "inicio", "seja", "mutavel", "se", "senao"]);
+const porsKeywords = new Set(["funcao", "inicio", "seja", "mutavel", "se", "senao", "enquanto", "para"]);
 const porsTypes = new Set(["inteiro", "real", "logico", "cadeia", "caracter"]);
 const porsParser: StreamParser<State> = {
   name: "portugol-rs",
