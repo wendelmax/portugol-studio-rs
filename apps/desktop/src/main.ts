@@ -53,6 +53,7 @@ import { workspaceExportStatus } from "./workspace-export-state";
 import { canDebugSource, canRunSource } from "./runtime-capabilities";
 import { applyWorkspaceRenameToTabs, deleteWorkspaceFileFlow, prepareWorkspaceRename } from "./workspace-file-actions";
 import { conceptsForMode, resolveConceptForMode } from "./learning-content";
+import { explainMappedMutability, learningContextAtSelection } from "./learning-context";
 import { loadLearningMode, saveLearningMode, type LearningMode } from "./learning-mode";
 import {
   getOwnershipScenario,
@@ -348,6 +349,8 @@ function extensions(language: SourceLanguage): Extension[] {
         }
         if (learningMode === "bridge") scheduleRustExport();
       }
+      if (update.selectionSet) learningConceptManuallySelected = false;
+      if ((update.selectionSet || update.docChanged) && !$<HTMLElement>("learning-panel").hidden) renderLearningPanel();
       if (update.selectionSet || update.docChanged) renderCursor();
       if (update.selectionSet || update.docChanged) renderMappingGutter();
       if (centerActive && update.selectionSet) {
@@ -404,6 +407,7 @@ let renderedRustPreviewStale: boolean | undefined;
 let definitionNavigationGeneration = 0;
 let learningMode: LearningMode = loadLearningMode();
 let selectedLearningConceptId = "variables";
+let learningConceptManuallySelected = false;
 let ownershipScenarioId: OwnershipScenarioId = "move";
 let ownershipStepIndex = 0;
 
@@ -1857,8 +1861,18 @@ function renderOwnershipLab() {
 
 function renderLearningPanel() {
   const concepts = conceptsForMode(learningMode);
-  const concept = resolveConceptForMode(learningMode, selectedLearningConceptId);
-  selectedLearningConceptId = concept.id;
+  const tab = activeTab();
+  const source = view.state.doc.toString();
+  const context = learningMode === "bridge" && !learningConceptManuallySelected && tab?.language !== "rust"
+    ? learningContextAtSelection({
+      source,
+      selectionFrom: view.state.selection.main.from,
+      selectionTo: view.state.selection.main.to,
+      artifact: tab?.rustPreview?.artifact,
+      stale: Boolean(tab?.rustPreview?.stale || tab?.rustPreview?.pending),
+    })
+    : null;
+  const concept = resolveConceptForMode(learningMode, context?.conceptId ?? selectedLearningConceptId);
 
   const picker = $<HTMLSelectElement>("learning-concept");
   picker.replaceChildren(...concepts.map((item) => {
@@ -1872,17 +1886,21 @@ function renderLearningPanel() {
     ? "Ponte didática: compare os conceitos de Portugol com exemplos Rust editoriais."
     : "Fundamentos de lógica e programação em Portugol.";
   $("learning-title").textContent = concept.title;
-  $("learning-definition").textContent = concept.definition;
-  $("learning-provenance").textContent = "Conceito selecionado manualmente";
-  $("learning-portugol-caption").textContent = concept.portugolExample.caption;
-  $("learning-portugol-code").textContent = concept.portugolExample.code;
+  $("learning-provenance").textContent = context
+    ? "Relacionado à seleção por mapeamento exato da tradução atual"
+    : "Conceito selecionado manualmente";
+  $("learning-definition").textContent = context
+    ? `${concept.definition} ${explainMappedMutability(context, tab?.language === "portugol-rs" ? "portugol-rs" : "portugol")}`
+    : concept.definition;
+  $("learning-portugol-caption").textContent = context ? "Trecho selecionado na fonte" : concept.portugolExample.caption;
+  $("learning-portugol-code").textContent = context ? context.sourceSnippet : concept.portugolExample.code;
 
   const rustSection = $<HTMLElement>("learning-rust-example");
-  const showRustExample = learningMode === "bridge" && concept.rustExample !== undefined;
+  const showRustExample = learningMode === "bridge" && (context !== null || concept.rustExample !== undefined);
   rustSection.hidden = !showRustExample;
-  if (showRustExample && concept.rustExample) {
-    $("learning-rust-caption").textContent = concept.rustExample.caption;
-    $("learning-rust-code").textContent = concept.rustExample.code;
+  if (showRustExample) {
+    $("learning-rust-caption").textContent = context ? "Rust gerado para este trecho" : concept.rustExample!.caption;
+    $("learning-rust-code").textContent = context ? context.rustSnippet : concept.rustExample!.code;
   }
 
   const ownershipLab = $<HTMLElement>("ownership-lab");
@@ -2659,6 +2677,7 @@ document.querySelectorAll<HTMLButtonElement>("[data-activity]").forEach((button)
 });
 $<HTMLSelectElement>("learning-concept").onchange = (event) => {
   selectedLearningConceptId = (event.currentTarget as HTMLSelectElement).value;
+  learningConceptManuallySelected = true;
   renderLearningPanel();
 };
 $<HTMLSelectElement>("ownership-scenario").onchange = (event) => {
@@ -2778,6 +2797,7 @@ function renderRustPreview(tab: Tab) {
   else delete status.dataset.stale;
   copy.disabled = save.disabled = detach.disabled = !artifact || Boolean(state?.pending || state?.stale);
   renderMappingGutter();
+  if (!$<HTMLElement>("learning-panel").hidden) renderLearningPanel();
 }
 
 function renderMappingGutter() {
