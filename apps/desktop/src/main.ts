@@ -24,6 +24,7 @@ import { openSearchPanel, highlightSelectionMatches } from "@codemirror/search";
 import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from "@codemirror/autocomplete";
 import { rust } from "@codemirror/lang-rust";
 import { createGeneratedRustEditorState, generatedRustMappings, type GeneratedRustMapping } from "./generated-rust-editor";
+import { generatedRustDetachIsCurrent } from "./generated-rust-detach";
 import { tags } from "@lezer/highlight";
 import { open as openDialog, save as saveDialog, ask } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -3062,12 +3063,34 @@ $<HTMLButtonElement>("rust-save").onclick = async () => {
     setStatus(String(error), "error");
   }
 };
-$<HTMLButtonElement>("rust-detach").onclick = () => {
-  const code = generatedRustEditor.state.doc.toString();
-  if (!code || activeTab()?.language === "rust") return;
-  const tab = newTab(code, null, undefined, undefined, undefined, "rust");
-  $<HTMLElement>("rust-preview").hidden = true;
-  setStatus("Rust desvinculado em uma nova aba .rs. O arquivo de origem permanece intacto.", "ok");
+$<HTMLButtonElement>("rust-detach").onclick = async () => {
+  const sourceTab = activeTab();
+  const previewState = sourceTab?.rustPreview;
+  const artifact = previewState?.artifact;
+  if (!sourceTab || sourceTab.language === "rust" || !artifact || previewState.pending || previewState.stale) return;
+
+  const snapshot = { tab: sourceTab, document: view.state.doc, artifact };
+  const accepted = await ask(
+    "O código Rust será copiado para uma nova aba independente. Alterações futuras no Portugol não atualizarão essa cópia. A origem e a prévia vinculada continuarão preservadas. Deseja continuar?",
+    { title: "Desvincular código Rust gerado", kind: "warning", okLabel: "Desvincular e editar", cancelLabel: "Cancelar" },
+  );
+  if (!accepted) return;
+
+  const currentTab = activeTab();
+  const currentPreview = currentTab?.rustPreview;
+  if (!currentTab || !currentPreview?.artifact || !generatedRustDetachIsCurrent(snapshot, {
+    tab: currentTab,
+    document: view.state.doc,
+    artifact: currentPreview.artifact,
+    pending: Boolean(currentPreview.pending),
+    stale: Boolean(currentPreview.stale),
+  })) {
+    if (currentTab === sourceTab) setStatus("A fonte ou a tradução mudou enquanto a confirmação estava aberta. Gere novamente antes de desvincular.", "error");
+    return;
+  }
+
+  const tab = newTab(artifact.code, null, undefined, undefined, undefined, "rust");
+  setStatus("Rust copiado para uma nova aba .rs independente. A origem e a prévia vinculada permanecem intactas.", "ok");
   view.focus();
   renderTabs();
   syncLanguageControls(tab);
