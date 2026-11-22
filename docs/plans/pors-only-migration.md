@@ -13,6 +13,10 @@ design e serão conciliadas/removidas conforme a solicitação existente.
   por padrão e `mutavel` explícito.
 - Funções auxiliares PORS com parâmetros/retornos tipados, chamadas para frente,
   recursão e semântica de valor para `cadeia`.
+- Vetores homogêneos tipados e não vazios (`vetor<T>`), indexação zero-based,
+  `tamanho`, cópias independentes em atribuições/parâmetros/retornos,
+  visualização no debugger e bounds checks localizados; matrizes e resize ainda
+  não fazem parte do subset PORS.
 - Declaração, atribuição, expressões, `escreva`, `leia`, `se/senao`,
   `enquanto`, `para`, `pare` e `continue`.
 - Execução normal através de Rust gerado e `rustc`; fonte mapeada a Rust com
@@ -76,7 +80,11 @@ normal e debugger; gramática fora do subset gera erro localizado.
    proveniência.
 2. Ensinar ownership, moves, empréstimos imutáveis/mutáveis, escopo, cópia e
    clone com exemplos progressivos compilados/testados por `rustc`.
-3. Acrescentar módulos, organização de projeto e ferramentas Cargo conforme
+3. Depois de ownership/borrowing e threads, ensinar compartilhamento com
+   `Arc`, `Send`/`Sync`, `Mutex<T>` para estado composto e `Atomic*` para
+   operações simples em tipos atômicos; apresentar `Ordering` após os casos
+   básicos de sincronização.
+4. Acrescentar módulos, organização de projeto e ferramentas Cargo conforme
    cada conceito tiver um caminho seguro no produto.
 
 **Gate:** UI nunca apresenta simulação como estado real; explicação e diagnóstico

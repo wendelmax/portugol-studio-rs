@@ -35,6 +35,32 @@ fn parses_mutable_parameter_and_void_helper_return() {
 }
 
 #[test]
+fn parses_vectors_with_explicit_element_types_and_length() {
+    for (ty, literal) in [
+        ("inteiro", "7"),
+        ("real", "2.5"),
+        ("logico", "verdadeiro"),
+        ("cadeia", "\"olá\""),
+        ("caracter", "'x'"),
+    ] {
+        let source = format!(
+            "funcao inicio() {{ seja valores: vetor<{ty}> = [{literal}]; escreva(tamanho(valores)); }}"
+        );
+        let program = lower(&source).expect("vetor primitivo tipado deve ser aceito");
+        assert_eq!(program.bindings.len(), 1);
+        assert!(format!("{:?}", program.bindings[0].ty).starts_with("Vector"));
+    }
+}
+
+#[test]
+fn parses_vector_index_reads_writes_and_function_parameters() {
+    let source = "funcao primeiro(mutavel valores: vetor<inteiro>) -> inteiro { valores[0] = 11; retorne valores[0]; } funcao inicio() { seja mutavel notas: vetor<inteiro> = [7, 8]; notas[1] = 10; escreva(primeiro(notas)); escreva(tamanho(notas)); }";
+    let program = lower(source).expect("vetor indexável e parâmetro por valor devem ser aceitos");
+    assert_eq!(program.functions.len(), 1);
+    assert!(format!("{:?}", program.functions[0].bindings[0].ty).starts_with("Vector"));
+}
+
+#[test]
 fn parses_reading_into_a_mutable_binding() {
     let source = "funcao inicio() { seja mutavel idade: inteiro = 0; leia(idade); }";
     let program = lower(source).expect("leia deve aceitar uma variável mutável");

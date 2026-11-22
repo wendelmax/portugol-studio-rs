@@ -23,6 +23,39 @@ pub enum Type {
     Boolean,
     String,
     Character,
+    VectorInteger,
+    VectorReal,
+    VectorBoolean,
+    VectorString,
+    VectorCharacter,
+}
+
+impl Type {
+    pub const fn vector_element(self) -> Option<Self> {
+        match self {
+            Self::VectorInteger => Some(Self::Integer),
+            Self::VectorReal => Some(Self::Real),
+            Self::VectorBoolean => Some(Self::Boolean),
+            Self::VectorString => Some(Self::String),
+            Self::VectorCharacter => Some(Self::Character),
+            _ => None,
+        }
+    }
+
+    pub const fn vector_of(element: Self) -> Option<Self> {
+        match element {
+            Self::Integer => Some(Self::VectorInteger),
+            Self::Real => Some(Self::VectorReal),
+            Self::Boolean => Some(Self::VectorBoolean),
+            Self::String => Some(Self::VectorString),
+            Self::Character => Some(Self::VectorCharacter),
+            _ => None,
+        }
+    }
+
+    pub const fn is_vector(self) -> bool {
+        self.vector_element().is_some()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -164,6 +197,11 @@ pub enum StmtKind {
     Return {
         value: Option<Expr>,
     },
+    IndexAssign {
+        binding: BindingId,
+        index: Expr,
+        value: Expr,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -179,6 +217,14 @@ pub enum ExprKind {
     Call {
         function: FunctionId,
         arguments: Vec<Expr>,
+    },
+    VectorLiteral(Vec<Expr>),
+    Index {
+        binding: BindingId,
+        index: Box<Expr>,
+    },
+    Length {
+        binding: BindingId,
     },
     Integer(i32),
     Real(f64),

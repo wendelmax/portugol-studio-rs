@@ -104,6 +104,47 @@ fn rejects_return_values_that_disagree_with_the_function_signature() {
 }
 
 #[test]
+fn rejects_heterogeneous_vector_elements_and_non_integer_indexes() {
+    let heterogeneous = "funcao inicio() { seja valores: vetor<inteiro> = [1, verdadeiro]; }";
+    assert!(
+        lower(heterogeneous)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.vector-element-type")
+    );
+    let non_integer =
+        "funcao inicio() { seja valores: vetor<inteiro> = [1, 2]; escreva(valores[0.5]); }";
+    assert!(
+        lower(non_integer)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.index-type")
+    );
+}
+
+#[test]
+fn rejects_mutating_an_immutable_vector() {
+    let source = "funcao inicio() { seja valores: vetor<inteiro> = [1, 2]; valores[0] = 3; }";
+    assert!(
+        lower(source)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.immutable-assignment")
+    );
+}
+
+#[test]
+fn rejects_tamanho_for_non_vector_values() {
+    let source = "funcao inicio() { escreva(tamanho(1)); }";
+    assert!(
+        lower(source)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.length-type")
+    );
+}
+
+#[test]
 fn resolves_shadowed_names_to_distinct_bindings() {
     let source = "funcao inicio() { seja valor: inteiro = 1; se (verdadeiro) { seja valor: inteiro = 2; escreva(valor); } escreva(valor); }";
     let program = lower(source).expect("sombreamento em bloco é permitido");

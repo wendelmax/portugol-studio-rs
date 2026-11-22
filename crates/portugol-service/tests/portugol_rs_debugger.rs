@@ -122,6 +122,82 @@ fn pors_debugger_exposes_helper_parameters_and_call_frames() {
 }
 
 #[test]
+fn pors_debugger_executes_vector_indexing_and_tamanho() {
+    let source = "funcao inicio() {\n seja mutavel valores: vetor<inteiro> = [2, 4];\n valores[1] = 5;\n escreva(valores[0] + valores[1]);\n escreva(tamanho(valores));\n}";
+    let (output, outcome) = run_vm_to_output(source);
+    assert_eq!(outcome, RunOutcome::Finished);
+    assert_eq!(output, "72");
+}
+
+#[test]
+fn pors_debugger_exposes_vector_elements_in_a_paused_snapshot() {
+    let source =
+        "funcao inicio() {\n seja valores: vetor<inteiro> = [7, 8];\n escreva(valores[0]);\n}";
+    let (tx, rx) = mpsc::channel();
+    let observer = Arc::new(Recorder(Mutex::new(tx)));
+    let handle = start_portugol_rs(
+        source,
+        RunOptions {
+            breakpoints: vec![3],
+            ..RunOptions::default()
+        },
+        observer,
+    )
+    .expect("programa com vetor depurável");
+    let Event::Paused(info) = rx
+        .recv_timeout(Duration::from_secs(5))
+        .expect("pausa antes de acessar vetor")
+    else {
+        panic!("esperava pausa")
+    };
+    assert!(
+        info.variables
+            .iter()
+            .any(|variable| variable.name == "valores[0]" && variable.value == "7")
+    );
+    assert!(
+        info.variables
+            .iter()
+            .any(|variable| variable.name == "valores[1]" && variable.value == "8")
+    );
+    handle.continue_run();
+    assert_eq!(run_outcome(&rx), RunOutcome::Finished);
+    handle.join();
+}
+
+#[test]
+fn pors_debugger_localizes_vector_out_of_bounds_runtime_error() {
+    let source =
+        "funcao inicio() {\n seja valores: vetor<inteiro> = [7];\n escreva(valores[1]);\n}";
+    let (tx, rx) = mpsc::channel();
+    let observer = Arc::new(Recorder(Mutex::new(tx)));
+    let handle = start_portugol_rs(source, RunOptions::default(), observer)
+        .expect("programa deve iniciar antes do bounds check");
+    let RunOutcome::Error { start, message, .. } = run_outcome(&rx) else {
+        panic!("esperava erro de índice")
+    };
+    assert_eq!(start.line, 3);
+    assert!(message.contains("fora do intervalo"));
+    handle.join();
+}
+
+#[test]
+fn pors_vector_parameter_mutation_does_not_change_the_callers_copy() {
+    let source = "funcao alterar(mutavel valores: vetor<inteiro>) -> inteiro { valores[0] = 9; retorne valores[0]; } funcao inicio() { seja mutavel original: vetor<inteiro> = [1]; escreva(alterar(original)); escreva(original[0]); }";
+    let (output, outcome) = run_vm_to_output(source);
+    assert_eq!(outcome, RunOutcome::Finished);
+    assert_eq!(output, "91");
+}
+
+#[test]
+fn pors_vector_assignment_and_return_keep_independent_values() {
+    let source = "funcao criar() -> vetor<inteiro> { seja mutavel valores: vetor<inteiro> = [3]; retorne valores; } funcao inicio() { seja mutavel original: vetor<inteiro> = [1, 2]; seja mutavel copia: vetor<inteiro> = original; copia[1] = 8; seja retorno: vetor<inteiro> = criar(); escreva(original[1]); escreva(copia[1]); escreva(retorno[0]); }";
+    let (output, outcome) = run_vm_to_output(source);
+    assert_eq!(outcome, RunOutcome::Finished);
+    assert_eq!(output, "283");
+}
+
+#[test]
 fn pors_debugger_maps_semantic_diagnostics_to_utf16_editor_spans() {
     let source = "funcao inicio() { escreva(\"🦀\"); escreva(faltante); }";
     let expected_start = source

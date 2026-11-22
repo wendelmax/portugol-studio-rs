@@ -30,16 +30,17 @@ struct Compiler {
     loops: Vec<LoopFrame>,
     scope_locals: Vec<Vec<u32>>,
     scope_shadowed: Vec<Vec<u32>>,
+    function_vector_parameters: Vec<Vec<bool>>,
 }
 
 impl Compiler {
-    fn new(bindings: &[hir::Binding]) -> Self {
+    fn new(bindings: &[hir::Binding], function_vector_parameters: Vec<Vec<bool>>) -> Self {
         let locals = bindings
             .iter()
             .map(|binding| LocalInfo {
                 name: binding.source_name.clone(),
-                ty: classic_type(binding.ty),
-                dims: 0,
+                ty: classic_type(binding.ty.vector_element().unwrap_or(binding.ty)),
+                dims: u8::from(binding.ty.is_vector()),
                 by_ref: false,
             })
             .collect();
@@ -51,6 +52,7 @@ impl Compiler {
             loops: Vec::new(),
             scope_locals: vec![Vec::new()],
             scope_shadowed: vec![Vec::new()],
+            function_vector_parameters,
         }
     }
 
@@ -59,6 +61,16 @@ impl Compiler {
         let mut strings = Vec::new();
         let mut ordered: Vec<_> = program.functions.iter().collect();
         ordered.sort_by_key(|function| function.id.0);
+        let function_vector_parameters: Vec<Vec<bool>> = ordered
+            .iter()
+            .map(|function| {
+                function
+                    .parameters
+                    .iter()
+                    .map(|id| function.bindings[id.0 as usize].ty.is_vector())
+                    .collect()
+            })
+            .collect();
         for function in ordered {
             let (compiled, function_strings) = Self::compile_function(
                 &function.source_name,
@@ -70,6 +82,7 @@ impl Compiler {
                     .unwrap_or(ValueType::Vazio),
                 function.parameters.len() as u32,
                 function.span,
+                function_vector_parameters.clone(),
             )?;
             let base = strings.len() as u32;
             let mut compiled = compiled;
@@ -89,6 +102,7 @@ impl Compiler {
             ValueType::Vazio,
             0,
             program.span,
+            function_vector_parameters.clone(),
         )?;
         let base = strings.len() as u32;
         let mut compiled = compiled;
@@ -116,8 +130,9 @@ impl Compiler {
         return_type: ValueType,
         arity: u32,
         span: hir::Span,
+        function_vector_parameters: Vec<Vec<bool>>,
     ) -> Result<(Function, Vec<String>), PorsCompileError> {
-        let mut self_ = Self::new(bindings);
+        let mut self_ = Self::new(bindings, function_vector_parameters);
         for local in 0..arity {
             self_.emit(
                 Op::SetLocalActive {
@@ -205,7 +220,7 @@ impl Compiler {
                         .push(previous);
                 }
                 if let Some(expr) = initializer {
-                    self.expr(expr)?;
+                    self.expr_for_value(expr)?;
                     self.emit(Op::StoreLocal(binding.0), stmt.span);
                 }
                 self.emit(
@@ -224,11 +239,25 @@ impl Compiler {
                 if *op != hir::AssignOp::Set {
                     self.emit(Op::LoadLocal(binding.0), stmt.span);
                 }
-                self.expr(value)?;
+                if self.locals[binding.0 as usize].dims > 0 && *op == hir::AssignOp::Set {
+                    self.expr_for_value(value)?;
+                } else {
+                    self.expr(value)?;
+                }
                 if let Some(op) = assign_op(*op) {
                     self.emit(op, stmt.span);
                 }
                 self.emit(Op::StoreLocal(binding.0), stmt.span);
+            }
+            S::IndexAssign {
+                binding,
+                index,
+                value,
+            } => {
+                self.expr(value)?;
+                self.emit(Op::LoadLocal(binding.0), stmt.span);
+                self.expr(index)?;
+                self.emit(Op::StoreElem, index.span);
             }
             S::Read { binding, .. } => {
                 let Some(local) = self.locals.get(binding.0 as usize) else {
@@ -247,8 +276,18 @@ impl Compiler {
                 function,
                 arguments,
             } => {
-                for arg in arguments {
-                    self.expr(arg)?;
+                for (index, arg) in arguments.iter().enumerate() {
+                    let is_vector_parameter = self
+                        .function_vector_parameters
+                        .get(function.0 as usize)
+                        .and_then(|params| params.get(index))
+                        .copied()
+                        .unwrap_or(false);
+                    if is_vector_parameter {
+                        self.expr_for_value(arg)?;
+                    } else {
+                        self.expr(arg)?;
+                    }
                 }
                 self.emit(
                     Op::Call {
@@ -261,7 +300,11 @@ impl Compiler {
             }
             S::Return { value } => {
                 if let Some(value) = value {
-                    self.expr(value)?;
+                    if value.ty.is_vector() {
+                        self.expr_for_value(value)?;
+                    } else {
+                        self.expr(value)?;
+                    }
                 } else {
                     self.emit(Op::PushVoid, stmt.span);
                 }
@@ -439,12 +482,37 @@ impl Compiler {
                 }
                 self.emit(Op::LoadLocal(id.0), expr.span);
             }
+            E::VectorLiteral(items) => {
+                for item in items {
+                    self.expr(item)?;
+                }
+                self.emit(Op::ArrayLit(items.len() as u32), expr.span);
+            }
+            E::Index { binding, index } => {
+                self.emit(Op::LoadLocal(binding.0), expr.span);
+                self.expr(index)?;
+                self.emit(Op::LoadElem, expr.span);
+            }
+            E::Length { binding } => {
+                self.emit(Op::LoadLocal(binding.0), expr.span);
+                self.emit(Op::ArrayLen, expr.span);
+            }
             E::Call {
                 function,
                 arguments,
             } => {
-                for arg in arguments {
-                    self.expr(arg)?;
+                for (index, arg) in arguments.iter().enumerate() {
+                    let is_vector_parameter = self
+                        .function_vector_parameters
+                        .get(function.0 as usize)
+                        .and_then(|params| params.get(index))
+                        .copied()
+                        .unwrap_or(false);
+                    if is_vector_parameter {
+                        self.expr_for_value(arg)?;
+                    } else {
+                        self.expr(arg)?;
+                    }
                 }
                 self.emit(
                     Op::Call {
@@ -516,6 +584,19 @@ impl Compiler {
         }
         Ok(())
     }
+
+    fn expr_for_value(&mut self, expr: &hir::Expr) -> Result<(), PorsCompileError> {
+        self.expr(expr)?;
+        if expr.ty.is_vector()
+            && !matches!(
+                expr.kind,
+                hir::ExprKind::VectorLiteral(_) | hir::ExprKind::Call { .. }
+            )
+        {
+            self.emit(Op::CloneArray, expr.span);
+        }
+        Ok(())
+    }
 }
 
 fn classic_type(ty: hir::Type) -> portugol_syntax::ast::Type {
@@ -526,10 +607,17 @@ fn classic_type(ty: hir::Type) -> portugol_syntax::ast::Type {
         hir::Type::Boolean => portugol_syntax::ast::Type::Logico,
         hir::Type::String => portugol_syntax::ast::Type::Cadeia,
         hir::Type::Character => portugol_syntax::ast::Type::Caracter,
+        hir::Type::VectorInteger
+        | hir::Type::VectorReal
+        | hir::Type::VectorBoolean
+        | hir::Type::VectorString
+        | hir::Type::VectorCharacter => {
+            unreachable!("tipo vetor precisa ser reduzido ao tipo do elemento")
+        }
     }
 }
 fn value_type_hir(ty: hir::Type) -> ValueType {
-    value_type(classic_type(ty))
+    value_type(classic_type(ty.vector_element().unwrap_or(ty)))
 }
 fn value_type(ty: portugol_syntax::ast::Type) -> ValueType {
     ty.into()
