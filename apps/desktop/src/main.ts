@@ -55,7 +55,7 @@ import { parseProcessArguments } from "./process-arguments";
 import { hasRustExecutionConsent, rememberRustExecutionConsent } from "./rust-execution-consent";
 import { applyWorkspaceRenameToTabs, deleteWorkspaceFileFlow, prepareWorkspaceRename } from "./workspace-file-actions";
 import { conceptsForMode, resolveConceptForMode } from "./learning-content";
-import { explainMappedMutability, learningContextAtSelection } from "./learning-context";
+import { explainMappedConcept, learningContextAtSelection } from "./learning-context";
 import { loadLearningMode, saveLearningMode, type LearningMode } from "./learning-mode";
 import {
   getOwnershipScenario,
@@ -2034,7 +2034,7 @@ function renderLearningPanel() {
     ? "Relacionado à seleção por mapeamento exato da tradução atual"
     : "Conceito selecionado manualmente";
   $("learning-definition").textContent = context
-    ? `${concept.definition} ${explainMappedMutability(context, tab?.language === "portugol-rs" ? "portugol-rs" : "portugol")}`
+    ? `${concept.definition} ${explainMappedConcept(context, tab?.language === "portugol-rs" ? "portugol-rs" : "portugol")}`
     : concept.definition;
   const rustMode = learningMode === "rust";
   $("learning-portugol-example").hidden = rustMode;
