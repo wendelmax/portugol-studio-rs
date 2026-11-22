@@ -1870,12 +1870,16 @@ function renderLearningPanel() {
 
 const bottomPanelNames: PanelName[] = ["console", "tests", "messages", "debug"];
 
+function setInspectorView(learning: boolean) {
+  $("learning-panel").hidden = !learning;
+  for (const id of ["utilities-insert", "outline", "variable-inspector"]) {
+    $<HTMLElement>(id).hidden = learning;
+  }
+}
+
 function showPanel(which: PanelName) {
   const learningActive = which === "learning";
-  $("learning-panel").hidden = !learningActive;
-  for (const id of ["utilities-insert", "outline", "variable-inspector"]) {
-    $<HTMLElement>(id).hidden = learningActive;
-  }
+  setInspectorView(learningActive);
   if (learningActive) {
     showUtilities(true);
     renderLearningPanel();
@@ -2607,6 +2611,7 @@ document.querySelectorAll<HTMLButtonElement>("[data-activity]").forEach((button)
     document.querySelectorAll<HTMLButtonElement>("[data-activity]").forEach((activity) => {
       activity.setAttribute("aria-pressed", String(activity === button));
     });
+    if (button.dataset.activity !== "learn") setInspectorView(false);
     switch (button.dataset.activity) {
       case "project":
         $("btn-explorer").click();

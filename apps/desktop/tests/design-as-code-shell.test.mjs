@@ -34,4 +34,5 @@ test("aprender é servido pelo inspector; variáveis e ferramentas existentes co
   assert.match(html, /id="utilities-insert"/);
   assert.match(html, /id="outline"/);
   assert.match(html, /Simulação didática — não é execução nem trace de memória Rust\./);
+  assert.ok(main.includes('if (button.dataset.activity !== "learn") setInspectorView(false);'));
 });
