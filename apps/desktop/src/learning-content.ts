@@ -65,11 +65,21 @@ const bridgeConcepts: LearningConcept[] = [
     rustExample: example('let a = String::from("Olá");\nlet b = a;\n// println!("{a}"); // erro: o valor foi movido', "Exemplo didático; não é código gerado nem compilado pela IDE."),
     provenance: "manual-selection",
   },
+  {
+    id: "borrowing",
+    title: "Empréstimos e referências",
+    definition: "Uma referência empresta acesso a um valor sem transferir sua posse. Em cada escopo, Rust permite várias referências imutáveis ou uma única referência mutável exclusiva.",
+    portugolExample: example("cadeia nome = \"Ana\";\nescreva(nome);", "Valor Portugol"),
+    rustExample: example('fn tamanho(texto: &String) -> usize { texto.len() }\nlet nome = String::from("Ana");\nlet letras = tamanho(&nome);\nprintln!("{nome}: {letras}");', "Exemplo didático; não é código gerado nem compilado pela IDE."),
+    provenance: "manual-selection",
+  },
 ];
 
 const bridge = [...fundamentals, ...bridgeConcepts];
+const rust = bridgeConcepts.filter(({ id }) => ["mutability", "ownership", "borrowing"].includes(id));
 
 export function conceptsForMode(mode: LearningMode): LearningConcept[] {
+  if (mode === "rust") return rust;
   return mode === "bridge" ? bridge : fundamentals;
 }
 

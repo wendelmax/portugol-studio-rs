@@ -4,13 +4,15 @@ import { test } from "node:test";
 
 const moduleUrl = new URL("../src/learning-content.ts", import.meta.url);
 
-test("Beginner apresenta fundamentos e Bridge acrescenta conceitos Rust", async () => {
+test("Beginner, Bridge e Rust apresentam os conceitos próprios de cada nível", async () => {
   const { conceptsForMode } = await import(moduleUrl.href);
   const beginner = conceptsForMode("beginner");
   const bridge = conceptsForMode("bridge");
+  const rust = conceptsForMode("rust");
 
   assert.deepEqual(beginner.map(({ id }) => id), ["variables", "conditionals", "loops"]);
-  assert.deepEqual(bridge.map(({ id }) => id), ["variables", "conditionals", "loops", "mutability", "ownership"]);
+  assert.deepEqual(bridge.map(({ id }) => id), ["variables", "conditionals", "loops", "mutability", "ownership", "borrowing"]);
+  assert.deepEqual(rust.map(({ id }) => id), ["mutability", "ownership", "borrowing"]);
 });
 
 test("cada cartão tem definição e exemplo Portugol, sem alegar detecção automática", async () => {
@@ -37,6 +39,7 @@ test("mudança de modo mantém o conceito compatível ou volta ao primeiro dispo
   const { resolveConceptForMode } = await import(moduleUrl.href);
   assert.equal(resolveConceptForMode("bridge", "ownership").id, "ownership");
   assert.equal(resolveConceptForMode("beginner", "ownership").id, "variables");
+  assert.equal(resolveConceptForMode("rust", "borrowing").id, "borrowing");
 });
 
 test("inspector Aprender identifica seleção manual, deixa exemplos Rust inicialmente ocultos e sem progresso", () => {

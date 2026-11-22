@@ -138,9 +138,9 @@
                 <select id="learning-mode" data-testid="learning-mode" aria-describedby="learning-mode-rust-help">
                   <option value="beginner">Portugol — iniciante</option>
                   <option value="bridge">Portugol + ponte para Rust</option>
-                  <option value="rust" disabled>Rust — indisponível</option>
+                  <option id="learning-mode-rust-option" value="rust" disabled>Rust</option>
                 </select>
-                <span id="learning-mode-rust-help" class="learning-mode-help">Rust indisponível: compilador e editor Rust ainda não configurados.</span>
+                <span id="learning-mode-rust-help" class="learning-mode-help">Verificando a toolchain Rust…</span>
               </label>
               <label class="font-size" for="editor-font">Tamanho da fonte
                 <input id="editor-font" type="number" min="10" max="50" value="12" />
@@ -244,13 +244,13 @@
               <h3 id="learning-title"></h3>
               <p id="learning-definition"></p>
               <div class="learning-examples">
-                <section>
+                <section id="learning-portugol-example">
                   <h4>Portugol</h4>
                   <p id="learning-portugol-caption"></p>
                   <pre><code id="learning-portugol-code"></code></pre>
                 </section>
                 <section id="learning-rust-example" hidden>
-                  <h4>Rust — comparação didática</h4>
+                  <h4 id="learning-rust-heading">Rust — comparação didática</h4>
                   <p id="learning-rust-caption"></p>
                   <pre><code id="learning-rust-code"></code></pre>
                 </section>
