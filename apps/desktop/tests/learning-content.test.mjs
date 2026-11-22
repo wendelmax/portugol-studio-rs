@@ -35,6 +35,13 @@ test("ownership explica move de String e identifica o trecho como exemplo editor
   assert.match(concept.rustExample.caption, /didático.*não é código gerado/i);
 });
 
+test("exemplo introdutório de borrowing usa a referência de string idiomática", async () => {
+  const { conceptsForMode } = await import(moduleUrl.href);
+  const concept = conceptsForMode("rust").find(({ id }) => id === "borrowing");
+  assert.ok(concept);
+  assert.match(concept.rustExample.code, /fn tamanho\(texto: &str\)/);
+});
+
 test("mudança de modo mantém o conceito compatível ou volta ao primeiro disponível", async () => {
   const { resolveConceptForMode } = await import(moduleUrl.href);
   assert.equal(resolveConceptForMode("bridge", "ownership").id, "ownership");

@@ -12,7 +12,7 @@
 
 ## Testes e validação
 
-- `cd apps/desktop && npm test` — PASS, 25 testes.
+- `cd apps/desktop && npm test` — PASS, 25 test suites/arquivos.
 - `cd apps/desktop && npm run build` — PASS, TypeScript e Vite; permanece o aviso Vite de chunk IDE acima de 500 kB.
 - `cargo fmt --all --check` — PASS.
 - `CARGO_TARGET_DIR=/home/wendel/Projetos/portugol-studio-rs/target cargo test --workspace --offline --locked` — PASS, inclui testes de crates, corpus e doctests. A primeira tentativa sem acesso de rede falhou somente no teste Internet; com rede autorizada, o teste isolado e a suíte completa passaram.
