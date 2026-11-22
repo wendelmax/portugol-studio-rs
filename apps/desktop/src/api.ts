@@ -266,6 +266,7 @@ export const writeFile = (path: string, text: string) => invoke<void>("write_fil
 export interface WorkspaceListing {
   id: string;
   name: string;
+  preferenceKey: string;
   entries: WorkspaceEntry[];
 }
 

@@ -4,6 +4,7 @@ mod tests {
         WorkspaceEntry, WorkspaceSession, cargo_project_for_source, copy_selected_files,
         copy_selected_files_with_hook, create_source_file, delete_relative_file, list_entries,
         read_relative_file, rename_relative_file, restore_saved_workspace, save_last_workspace,
+        workspace_preference_key,
     };
     #[cfg(unix)]
     use super::{copy_selected_files_from_dir_with_hook, open_selected_file_with_hook};
@@ -31,6 +32,19 @@ mod tests {
         fn drop(&mut self) {
             let _ = fs::remove_dir_all(&self.0);
         }
+    }
+
+    #[test]
+    fn workspace_preference_key_is_stable_and_unique_per_canonical_root() {
+        let first = TempDir::new();
+        let second = TempDir::new();
+
+        let key = workspace_preference_key(&first.0);
+
+        assert_eq!(key, workspace_preference_key(&first.0));
+        assert_ne!(key, workspace_preference_key(&second.0));
+        assert!(key.starts_with("sha256-"));
+        assert_eq!(key.len(), "sha256-".len() + 64);
     }
 
     fn file_paths(entries: &[WorkspaceEntry], output: &mut Vec<String>) {
@@ -799,6 +813,7 @@ use std::path::{Component, Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use serde::Serialize;
+use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Manager, State};
 use tauri_plugin_dialog::DialogExt;
 
@@ -875,7 +890,18 @@ pub enum WorkspaceEntry {
 pub struct WorkspaceListing {
     id: String,
     name: String,
+    preference_key: String,
     entries: Vec<WorkspaceEntry>,
+}
+
+fn workspace_preference_key(root: &Path) -> String {
+    let canonical = fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
+    let digest = Sha256::digest(canonical.to_string_lossy().as_bytes());
+    let hex = digest
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    format!("sha256-{hex}")
 }
 
 const LAST_WORKSPACE_FILE: &str = "last-workspace.json";
@@ -969,8 +995,14 @@ fn restore_saved_workspace(
         .and_then(|name| name.to_str())
         .unwrap_or("Projeto")
         .to_string();
+    let preference_key = workspace_preference_key(&root);
     let id = session.register(root)?;
-    Ok(Some(WorkspaceListing { id, name, entries }))
+    Ok(Some(WorkspaceListing {
+        id,
+        name,
+        preference_key,
+        entries,
+    }))
 }
 
 #[derive(Serialize)]
@@ -1852,8 +1884,14 @@ pub async fn workspace_open(
         {
             eprintln!("{error}");
         }
+        let preference_key = workspace_preference_key(&root);
         let id = session.register(root)?;
-        Ok(Some(WorkspaceListing { id, name, entries }))
+        Ok(Some(WorkspaceListing {
+            id,
+            name,
+            preference_key,
+            entries,
+        }))
     })
     .await
     .map_err(|error| format!("Não foi possível abrir a pasta do projeto: {error}"))?
@@ -1937,6 +1975,7 @@ pub fn workspace_create_file(
     Ok(WorkspaceListing {
         id: workspace_id,
         name,
+        preference_key: workspace_preference_key(&root),
         entries,
     })
 }
@@ -1966,6 +2005,7 @@ pub fn workspace_rename_file(
         listing: WorkspaceListing {
             id: workspace_id,
             name,
+            preference_key: workspace_preference_key(&root),
             entries,
         },
         file: WorkspaceFilePath {
@@ -2005,6 +2045,7 @@ pub fn workspace_delete_file(
         listing: WorkspaceListing {
             id: workspace_id,
             name,
+            preference_key: workspace_preference_key(&root),
             entries,
         },
         file: WorkspaceFilePath {

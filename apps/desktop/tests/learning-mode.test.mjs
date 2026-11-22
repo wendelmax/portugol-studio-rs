@@ -26,6 +26,37 @@ test("valor desconhecido ou armazenamento indisponível retorna beginner sem lan
   assert.equal(saveLearningMode("bridge", { setItem: () => { throw new Error("blocked"); } }), false);
 });
 
+test("workspace modes persist independently and fall back to the global legacy preference", async () => {
+  const { loadLearningMode, saveLearningMode } = await import(moduleUrl.href);
+  const values = new Map([["portugol.learningMode", "bridge"]]);
+  const storage = {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+  };
+
+  assert.equal(loadLearningMode(storage, "workspace-a"), "bridge");
+  assert.equal(saveLearningMode("rust", storage, "workspace-a"), true);
+  assert.equal(saveLearningMode("beginner", storage, "workspace-b"), true);
+  assert.equal(loadLearningMode(storage, "workspace-a"), "rust");
+  assert.equal(loadLearningMode(storage, "workspace-b"), "beginner");
+  assert.equal(loadLearningMode(storage), "bridge");
+  assert.equal(values.get("portugol.learningMode.workspace.workspace-a"), "rust");
+});
+
+test("workspace tabs carry their stable preference key and restore mode on activation", () => {
+  const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
+  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+  const workspace = readFileSync(new URL("../src-tauri/src/workspace.rs", import.meta.url), "utf8");
+
+  assert.match(api, /interface WorkspaceListing \{[\s\S]*preferenceKey: string/);
+  assert.match(workspace, /preference_key: String/);
+  assert.match(workspace, /Sha256::digest\(canonical\.to_string_lossy\(\)\.as_bytes\(\)\)/);
+  assert.match(main, /workspacePreferenceKey\?: string/);
+  assert.match(main, /applyLearningMode\(loadLearningMode\(undefined, tab\.workspacePreferenceKey\), false\)/);
+  assert.match(main, /saveLearningMode\(availableMode, undefined, activeTab\(\)\?\.workspacePreferenceKey\)/);
+  assert.equal((main.match(/applyLearningMode\(loadLearningMode\(undefined, activeTab\(\)\?\.workspacePreferenceKey\), false\)/g) ?? []).length, 2);
+});
+
 test("seletor associa a disponibilidade de Rust à toolchain e mantém instrução correta", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");

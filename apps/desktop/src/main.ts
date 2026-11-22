@@ -106,6 +106,7 @@ interface Tab {
   exerciseTestGeneration?: number;
   workspaceId?: string;
   workspacePath?: string;
+  workspacePreferenceKey?: string;
   cargoProject?: boolean;
   cargoTarget?: api.CargoRunTarget;
   workspaceExercisePath?: string;
@@ -474,7 +475,7 @@ function isDirty(tab: Tab): boolean {
 const NEW_PROGRAM = TEMPLATE.replace("\t\t\n", '\t\tescreva("Olá Mundo")\n');
 const PORS_TEMPLATE = "funcao inicio() {\n    seja mutavel idade: inteiro = 16;\n    idade += 1;\n    escreva(idade);\n}\n";
 
-function newTab(text = NEW_PROGRAM, path: string | null = null, exampleName?: string, examplePath?: string, exercise?: ExerciseDocument, explicitLanguage?: SourceLanguage, workspaceFile?: { id: string; path: string }): Tab {
+function newTab(text = NEW_PROGRAM, path: string | null = null, exampleName?: string, examplePath?: string, exercise?: ExerciseDocument, explicitLanguage?: SourceLanguage, workspaceFile?: { id: string; path: string; preferenceKey: string }): Tab {
   const language = explicitLanguage ?? detectSourceLanguage(path ?? "programa.por");
   const tab: Tab = {
     id: nextTabId++,
@@ -485,6 +486,7 @@ function newTab(text = NEW_PROGRAM, path: string | null = null, exampleName?: st
     exercise,
     workspaceId: workspaceFile?.id,
     workspacePath: workspaceFile?.path,
+    workspacePreferenceKey: workspaceFile?.preferenceKey,
     state: EditorState.create({ doc: text, extensions: extensions(language) }),
     saved: text,
     diagnostics: [],
@@ -521,6 +523,7 @@ function activate(id: number) {
     renderWorkspaceExplorer();
   }
   view.setState(tab.state);
+  applyLearningMode(loadLearningMode(undefined, tab.workspacePreferenceKey), false);
   view.dispatch({ effects: [
     theme.reconfigure(editorTheme()),
     sourceLanguage.reconfigure(tab.language === "rust" ? rust() : tab.language === "portugol-rs" ? portugolRs() : portugol()),
@@ -912,6 +915,7 @@ async function openWorkspaceFile(entry: Extract<WorkspaceEntry, { kind: "file" }
     openExercise({ exercise, name: loaded.path.split("/").pop() ?? entry.name, contents: loaded.source }, {
       id: selected.id,
       path: loaded.relativePath,
+      preferenceKey: selected.preferenceKey,
       exercise: true,
     });
     setStatus(`Exercício aberto: ${entry.path}`, "ok");
@@ -930,6 +934,7 @@ async function openWorkspaceFile(entry: Extract<WorkspaceEntry, { kind: "file" }
   const tab = newTab(loaded.source, loaded.path, undefined, undefined, undefined, undefined, {
     id: selected.id,
     path: loaded.relativePath,
+    preferenceKey: selected.preferenceKey,
   });
   tab.workspacePath = loaded.relativePath;
   if (tab.language === "rust") {
@@ -2936,7 +2941,7 @@ function editorMenuAction(id: string, action: () => unknown) {
     action();
   };
 }
-function openExercise(exerciseDocument: ExerciseDocument, workspaceExercise?: { id: string; path: string; exercise: true }) {
+function openExercise(exerciseDocument: ExerciseDocument, workspaceExercise?: { id: string; path: string; preferenceKey: string; exercise: true }) {
   if (workspaceExercise) {
     const existing = tabs.find((tab) =>
       tab.workspaceId === workspaceExercise.id && tab.workspaceExercisePath === workspaceExercise.path,
@@ -2957,8 +2962,10 @@ ${TEMPLATE}`;
   if (workspaceExercise) {
     tab.workspaceId = workspaceExercise.id;
     tab.workspaceExercisePath = workspaceExercise.path;
+    tab.workspacePreferenceKey = workspaceExercise.preferenceKey;
     selectedWorkspacePath = workspaceExercise.path;
     renderWorkspaceExplorer();
+    activate(tab.id);
   }
 }
 const exercises = mountExercises(openExercise);
@@ -3000,7 +3007,7 @@ function applyLearningMode(mode: LearningMode, persist = true) {
   learningMode = availableMode;
   const selector = $<HTMLSelectElement>("learning-mode");
   selector.value = availableMode;
-  if (persist) saveLearningMode(availableMode);
+  if (persist) saveLearningMode(availableMode, undefined, activeTab()?.workspacePreferenceKey);
   if (!$<HTMLElement>("learning-panel").hidden) renderLearningPanel();
 
   const preview = $<HTMLElement>("rust-preview");
@@ -3734,7 +3741,7 @@ void api.rustToolchainAvailable().then((available) => {
   $("learning-mode-rust-help").textContent = available
     ? "Toolchain rustc disponível. Novo Rust cria um arquivo .rs; trocar de nível não altera o arquivo aberto."
     : "Instale a toolchain Rust (rustc) para habilitar este nível e executar arquivos .rs.";
-  applyLearningMode(loadLearningMode(), false);
+  applyLearningMode(loadLearningMode(undefined, activeTab()?.workspacePreferenceKey), false);
   const tab = activeTab();
   if (!tab) return;
   syncLanguageControls(tab);
@@ -3746,7 +3753,7 @@ void api.rustToolchainAvailable().then((available) => {
   rustcAvailable = false;
   $<HTMLOptionElement>("learning-mode-rust-option").disabled = true;
   $("learning-mode-rust-help").textContent = "Não foi possível verificar rustc. Instale ou configure a toolchain Rust para habilitar este nível.";
-  applyLearningMode(loadLearningMode(), false);
+  applyLearningMode(loadLearningMode(undefined, activeTab()?.workspacePreferenceKey), false);
   const tab = activeTab();
   if (tab) {
     syncLanguageControls(tab);
