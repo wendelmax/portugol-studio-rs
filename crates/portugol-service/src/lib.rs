@@ -27,9 +27,9 @@ pub use outline::{SymbolInfo, SymbolKind};
 pub use pors_run::{
     PortugolRsRunPhase, PortugolRsRunResult, PortugolRsRuntimeLimitReason,
     RustSourceCompileDiagnostic, RustSourceLimitReason, RustSourceRunPhase, RustSourceRunResult,
-    format_rust_source, run_portugol_rs, run_portugol_rs_with_cancel, run_portugol_rs_with_io,
-    run_rust_source, run_rust_source_with_args_and_cancel, run_rust_source_with_cancel,
-    rust_toolchain_available, rustfmt_available,
+    check_rust_source, format_rust_source, run_portugol_rs, run_portugol_rs_with_cancel,
+    run_portugol_rs_with_io, run_rust_source, run_rust_source_with_args_and_cancel,
+    run_rust_source_with_cancel, rust_toolchain_available, rustfmt_available,
 };
 pub use portugol_vm::{FileFilter, Host, Sound, graphics};
 pub use position::Position;

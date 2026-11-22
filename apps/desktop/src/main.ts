@@ -19,7 +19,7 @@ import { defaultKeymap, history, historyKeymap, indentWithTab, isolateHistory } 
 import {
   syntaxHighlighting, HighlightStyle, bracketMatching, indentOnInput, foldGutter, foldKeymap,
 } from "@codemirror/language";
-import { linter, lintGutter, setDiagnostics, type Diagnostic } from "@codemirror/lint";
+import { forceLinting, linter, lintGutter, setDiagnostics, type Diagnostic } from "@codemirror/lint";
 import { openSearchPanel, highlightSelectionMatches } from "@codemirror/search";
 import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from "@codemirror/autocomplete";
 import { rust } from "@codemirror/lang-rust";
@@ -56,6 +56,7 @@ import { hasRustExecutionConsent, rememberRustExecutionConsent } from "./rust-ex
 import { applyWorkspaceRenameToTabs, deleteWorkspaceFileFlow, prepareWorkspaceRename } from "./workspace-file-actions";
 import { conceptsForMode, resolveConceptForMode } from "./learning-content";
 import { explainMappedConcept, learningContextAtSelection } from "./learning-context";
+import { createLatestOnlyRustSourceChecker } from "./rust-source-check";
 import { loadLearningMode, saveLearningMode, type LearningMode } from "./learning-mode";
 import {
   getOwnershipScenario,
@@ -282,12 +283,55 @@ const portugolLinter = linter(
   { delay: 350 },
 );
 
+const latestRustSourceCheck = createLatestOnlyRustSourceChecker(api.checkRustSource);
+const rustSourceLinter = linter(
+  async (editor) => {
+    const doc = editor.state.doc;
+    const tab = activeTab();
+    if (tab?.language !== "rust" || rustcAvailable !== true) {
+      if (tab?.language === "rust") {
+        tab.diagnostics = [];
+        renderMessages();
+      }
+      return [];
+    }
+
+    const checked = await latestRustSourceCheck(doc.toString());
+    if (activeTab() !== tab || editor.state.doc !== doc || checked.source !== doc.toString()) return [];
+    const diagnostics: api.DiagnosticInfo[] = checked.error
+      ? [{
+        severity: "warning",
+        code: "rustc.check",
+        message: `Não foi possível analisar este arquivo Rust: ${checked.error}`,
+        help: null,
+        start: { offset: 0, line: 1, column: 1 },
+        end: { offset: 0, line: 1, column: 1 },
+      }]
+      : checked.diagnostics.flatMap((diagnostic) => {
+        if (diagnostic.severity !== "error" && diagnostic.severity !== "warning") return [];
+        return [{
+          severity: diagnostic.severity,
+          code: diagnostic.code ?? "rustc",
+          message: diagnostic.message,
+          help: diagnostic.rendered,
+          start: diagnostic.start,
+          end: diagnostic.end,
+        }];
+      });
+    tab.diagnostics = diagnostics;
+    renderMessages();
+    return [...diagnostics, ...(tab.runtimeCompileDiagnostics ?? [])]
+      .map((diagnostic) => toCodeMirror(diagnostic, doc.length));
+  },
+  { delay: 500 },
+);
+
 function extensions(language: SourceLanguage): Extension[] {
   const isRust = language === "rust";
   const isPortugol = !isRust;
   const tools: Extension[] = isPortugol
     ? [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]
-    : [];
+    : [rustSourceLinter];
   return [
     lineNumbers(),
     highlightActiveLineGutter(),
@@ -478,7 +522,7 @@ function activate(id: number) {
   view.dispatch({ effects: [
     theme.reconfigure(editorTheme()),
     sourceLanguage.reconfigure(tab.language === "rust" ? rust() : tab.language === "portugol-rs" ? portugolRs() : portugol()),
-    portugolTools.reconfigure(tab.language === "rust" ? [] : [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]),
+    portugolTools.reconfigure(tab.language === "rust" ? [rustSourceLinter] : [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]),
     setDebugLine.of(tab.id === runTabId ? paused?.position.line ?? null : null),
   ] });
   applyBottomPaneSize();
@@ -1485,7 +1529,7 @@ async function save(as = false): Promise<boolean> {
   if (tab.id === activeId) {
     view.dispatch({ effects: [
       sourceLanguage.reconfigure(tab.language === "rust" ? rust() : tab.language === "portugol-rs" ? portugolRs() : portugol()),
-      portugolTools.reconfigure(tab.language === "rust" ? [] : [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]),
+      portugolTools.reconfigure(tab.language === "rust" ? [rustSourceLinter] : [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]),
     ] });
     syncLanguageControls(tab);
     if (languageChanged) {
@@ -3462,6 +3506,7 @@ void api.rustToolchainAvailable().then((available) => {
   const tab = activeTab();
   if (!tab) return;
   syncLanguageControls(tab);
+  if (tab.language === "rust") forceLinting(view);
   if (tab.language === "portugol-rs" && !available) {
     setStatus("Instale a toolchain Rust para executar arquivos .pors.", "error");
   }
@@ -3471,7 +3516,10 @@ void api.rustToolchainAvailable().then((available) => {
   $("learning-mode-rust-help").textContent = "Não foi possível verificar rustc. Instale ou configure a toolchain Rust para habilitar este nível.";
   applyLearningMode(loadLearningMode(), false);
   const tab = activeTab();
-  if (tab) syncLanguageControls(tab);
+  if (tab) {
+    syncLanguageControls(tab);
+    if (tab.language === "rust") forceLinting(view);
+  }
 });
 void api.rustfmtAvailable().then((available) => {
   rustfmtAvailable = available;

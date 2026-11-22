@@ -112,6 +112,30 @@ fn cancellation_interrupts_a_run_waiting_for_input() {
 }
 
 #[test]
+fn cancellation_requested_by_input_handler_wins_before_forwarding_the_value() {
+    let cancel = AtomicBool::new(false);
+    let result = run_portugol_rs_with_io(
+        "funcao inicio() { seja mutavel valor: inteiro = 0; leia(valor); escreva(valor); }",
+        &cancel,
+        |_| {
+            cancel.store(true, Ordering::Release);
+            Ok("7".to_owned())
+        },
+        |_| {},
+    )
+    .unwrap();
+
+    assert!(matches!(
+        result,
+        PortugolRsRunResult::Cancelled {
+            phase: PortugolRsRunPhase::Runtime,
+            stdout,
+            ..
+        } if stdout.is_empty()
+    ));
+}
+
+#[test]
 fn rejects_an_input_line_larger_than_one_mib() {
     let cancel = AtomicBool::new(false);
     let oversized = "x".repeat(1_048_577);

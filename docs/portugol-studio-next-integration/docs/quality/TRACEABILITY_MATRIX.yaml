@@ -153,3 +153,24 @@ features:
     limitations:
       - "Requer componente rustfmt; formata somente o buffer .rs, sem Cargo nem arquivos do projeto"
       - "Sem teste DOM/E2E de interação na janela Tauri"
+  - id: FEAT-RUSTLINT-001
+    title: Diagnósticos de compilação em buffers Rust standalone
+    ui: [UI-011, UI-022]
+    useCases: [UC-04, UC-07]
+    backend: [portugol-service::check_rust_source, rustc]
+    tauriIpc: [check_rust_source]
+    scenarios: [FT-02]
+    acceptance:
+      - "o linter Rust roda apenas quando rustc está disponível e nunca executa o programa"
+      - "erros e avisos rustc usam offsets UTF-16 e respeitam o documento/tab atual"
+      - "compilações ficam serializadas e somente a fonte mais recente aguarda na fila"
+      - "fonte tem limite de 1 MiB; verificação tem limite de 5 s e saída combinada de 1 MiB"
+      - "Portugol e Portugol-RS mantêm seus linters e diagnósticos atuais"
+    implementationStatus: implemented
+    testStatus: automated_partial
+    tests:
+      - "crates/portugol-service/tests/rust_source_check.rs"
+      - "apps/desktop/tests/rust-source-check.test.mjs"
+    limitations:
+      - "Analisa um buffer como crate lib isolada; sem Cargo, dependências externas ou resolução de módulos"
+      - "Sem teste DOM/E2E de interação na janela Tauri"
