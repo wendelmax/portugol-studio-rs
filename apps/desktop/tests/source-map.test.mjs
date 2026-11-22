@@ -18,6 +18,15 @@ test("PORS run API distinguishes execution, compiler diagnostics and runtime lim
   assert.match(api, /status: "executed"[\s\S]*status: "compile_error"[\s\S]*diagnostics: PortugolRsCompileDiagnostic\[\][\s\S]*status: "runtime_limit"[\s\S]*reason: "time" \| "output" \| "string_memory"/);
 });
 
+test("standalone Rust API covers compile/runtime limits and Tauri registers the command", () => {
+  assert.match(api, /interface RustSourceCompileDiagnostic[\s\S]*start: Position[\s\S]*end: Position/);
+  assert.match(api, /status: "compile_limit"[\s\S]*status: "runtime_limit"[\s\S]*runRustSource[\s\S]*"run_rust_source"/);
+  const tauri = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
+  assert.match(tauri, /async fn run_rust_source[\s\S]*portugol_service::run_rust_source/);
+  assert.match(tauri, /generate_handler!\[[\s\S]*run_rust_source/);
+  assert.match(main, /hasRustExecutionConsent[\s\S]*Executar código Rust sem sandbox[\s\S]*api\.runRustSource/);
+});
+
 test("mapped diagnostics and preview segments require source mappings and label approximate locations", () => {
   assert.match(ui, /if \(!diagnostic\.sourceStart \|\| !diagnostic\.sourceEnd\) return null/);
   assert.match(ui, /localização aproximada/);

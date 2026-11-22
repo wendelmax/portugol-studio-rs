@@ -14,7 +14,9 @@ test("Portugol-RS can run only when rustc is available and stays non-debuggable"
   assert.equal(canDebugSource("portugol-rs"), false);
 });
 
-test("independent Rust files remain unsupported by the IDE runtime", () => {
-  assert.equal(canRunSource("rust", true), false);
+test("independent Rust files require rustc and remain non-debuggable", () => {
+  assert.equal(canRunSource("rust", null), false);
+  assert.equal(canRunSource("rust", false), false);
+  assert.equal(canRunSource("rust", true), true);
   assert.equal(canDebugSource("rust"), false);
 });

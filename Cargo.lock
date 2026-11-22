@@ -2775,6 +2775,7 @@ dependencies = [
 name = "portugol-service"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "portugol-bytecode",
  "portugol-hir",
  "portugol-rs-frontend",
@@ -2785,6 +2786,7 @@ dependencies = [
  "roxmltree",
  "serde",
  "serde_json",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
