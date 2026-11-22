@@ -10,7 +10,7 @@
 - Estados UI implementados (loading/empty/error/success/cancelled): quando `rustc` falta, lint Rust não é executado e o estado da toolchain existente permanece responsável pela orientação. Erros/limites do comando aparecem como warning no editor; warnings e erros reais do `rustc` aparecem como diagnósticos. Sucesso sem diagnósticos mantém a lista vazia. Não há indicador visual de loading nem cancelamento manual do lint.
 - Testes executados (comando, status PASS/FAIL/BLOCKED/NOT_RUN, log):
   - `cargo fmt --all --check` — PASS após normalização com `cargo fmt --all`.
-  - `cargo test -p portugol-service --offline --locked -- --test-threads=1` — PASS, 76 testes em 6 grupos de testes; 0 falhas.
+  - `cargo test -p portugol-service --offline --locked` — PASS, 77 testes em 6 grupos de testes; 0 falhas, com paralelismo padrão.
   - `cargo clippy -p portugol-service --all-targets --offline --locked -- -D warnings` — PASS.
   - `npm test --prefix apps/desktop` — PASS, 28 arquivos/suítes Node; 0 falhas.
   - `npm run build --prefix apps/desktop` — PASS; Vite informa chunk `ide` acima de 500 kB (aviso já relacionado ao bundle, não bloqueia build).
@@ -19,6 +19,6 @@
   - Teste de regressão da reconfiguração do linter — RED antes da correção e PASS depois; cobre a ativação/salvamento de arquivo Rust mantendo `rustSourceLinter` instalado.
   - Uma tentativa inicial de `cargo test`/`cargo check` em `/tmp` falhou por quota de disco; repetidos com `CARGO_TARGET_DIR` no workspace e concluídos com sucesso.
 - Screenshot/registro visual em viewport configurado: NOT_RUN; não existe teste DOM/E2E visual para o linter.
-- Problemas e limitações conhecidas: analisa um buffer como crate isolada; Cargo, dependências externas, resolução de módulos e debugger fora do escopo. O verificador serializa processos e descarta o request pendente substituído, mas o processo em andamento não é cancelado. Não há E2E visual do linter configurado.
+- Problemas e limitações conhecidas: analisa um buffer como crate isolada; Cargo, dependências externas, resolução de módulos e debugger fora do escopo. O verificador serializa processos e descarta o request pendente substituído, mas o processo em andamento não é cancelado. O supervisor de execução Portugol-RS agora respeita cancelamento sinalizado durante o callback de entrada antes de encaminhar a linha. Não há E2E visual do linter configurado.
 - Rollback: reverter o commit desta feature remove o comando e o linter, sem alterar contratos persistidos ou dados dos projetos.
 - Próxima fatia vertical: completar integração de projeto Rust/Cargo ou inspeção de execução/debugger conforme lacunas priorizadas; E2E desktop visual segue pendente.

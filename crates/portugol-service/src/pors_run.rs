@@ -834,7 +834,7 @@ fn supervise_with_io(
     let mut stdout_bytes = Vec::new();
     let mut stderr_bytes = Vec::new();
     let mut limit = None;
-    let status = loop {
+    let status = 'supervise: loop {
         while let Ok(message) = receiver.try_recv() {
             match message {
                 ProcessMessage::Output(is_stdout, bytes) => {
@@ -868,6 +868,16 @@ fn supervise_with_io(
                         }
                     };
                     excluded_wait += wait_started.elapsed();
+                    if cancel.is_some_and(|flag| flag.load(Ordering::Acquire)) {
+                        limit = Some(ProcessLimitReason::Cancelled);
+                        process_tree.terminate(&mut child);
+                        break 'supervise child
+                            .wait()
+                            .map_err(|error| {
+                                format!("Não foi possível recolher o processo: {error}")
+                            })?
+                            .code();
+                    }
                     if line.len() > MAX_RUNTIME_INPUT_LINE_BYTES {
                         process_tree.terminate(&mut child);
                         let _ = child.wait();
