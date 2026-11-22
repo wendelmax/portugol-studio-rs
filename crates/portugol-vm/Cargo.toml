@@ -5,19 +5,54 @@ edition.workspace = true
 license.workspace = true
 description = "Máquina virtual e bibliotecas padrão de console do Portugol 2.0"
 
+[features]
+default = ["stdlib"]
+stdlib = [
+    "dep:regex",
+    "dep:libm",
+    "dep:serde_json",
+    "dep:roxmltree",
+    "dep:ureq",
+    "dep:ab_glyph",
+    "dep:ttf-parser",
+    "dep:image",
+    "dep:chrono",
+]
+
 [dependencies]
 portugol-syntax = { path = "../portugol-syntax" }
 portugol-bytecode = { path = "../portugol-bytecode" }
-regex = "1"
-libm = "0.2"
-serde_json = { version = "1", features = ["preserve_order"] }
-roxmltree = "0.20"
-ureq = "2"
-ab_glyph = "0.2"
-ttf-parser = "0.25"
-image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "bmp"] }
-chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+regex = { version = "1", optional = true }
+libm = { version = "0.2", optional = true }
+serde_json = { version = "1", features = ["preserve_order"], optional = true }
+roxmltree = { version = "0.20", optional = true }
+ureq = { version = "2", optional = true }
+ab_glyph = { version = "0.2", optional = true }
+ttf-parser = { version = "0.25", optional = true }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "bmp"], optional = true }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"], optional = true }
 
 [dev-dependencies]
 rodio = { version = "0.23", default-features = false, features = ["symphonia-mp3", "symphonia-wav", "symphonia-pcm"] }
 portugol-semantics = { path = "../portugol-semantics" }
+portugol-rs-frontend = { path = "../portugol-rs-frontend" }
+
+[[example]]
+name = "corpus"
+required-features = ["stdlib"]
+
+[[example]]
+name = "gerar_entradas"
+required-features = ["stdlib"]
+
+[[test]]
+name = "catalogo_bibliotecas"
+required-features = ["stdlib"]
+
+[[test]]
+name = "execucao"
+required-features = ["stdlib"]
+
+[[test]]
+name = "regressao"
+required-features = ["stdlib"]

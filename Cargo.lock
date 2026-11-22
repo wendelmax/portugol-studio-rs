@@ -2807,6 +2807,7 @@ dependencies = [
  "image",
  "libm",
  "portugol-bytecode",
+ "portugol-rs-frontend",
  "portugol-semantics",
  "portugol-syntax",
  "regex",

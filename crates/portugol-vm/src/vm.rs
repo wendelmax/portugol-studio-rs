@@ -7,7 +7,9 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::{Duration, Instant};
+use std::time::Duration;
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::Instant;
 
 use portugol_bytecode::{Module, Op, ValueType};
 use portugol_syntax::Span;
@@ -15,8 +17,55 @@ use portugol_syntax::ast::Type;
 
 use crate::debug::{DebugControl, DebugFrame, DebugVariable, PausedInfo};
 use crate::io::Io;
+#[cfg(feature = "stdlib")]
 use crate::stdlib::{self, NativeContext, NativeFn};
 use crate::value::{Matrix, Reference, Value};
+
+#[cfg(not(target_arch = "wasm32"))]
+struct RuntimeClock {
+    started: Instant,
+    excluded: Duration,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl RuntimeClock {
+    fn start() -> Self {
+        Self {
+            started: Instant::now(),
+            excluded: Duration::ZERO,
+        }
+    }
+
+    fn active_elapsed(&self) -> Duration {
+        self.started.elapsed().saturating_sub(self.excluded)
+    }
+
+    fn begin_pause(&self) -> Instant {
+        Instant::now()
+    }
+
+    fn end_pause(&mut self, paused_at: Instant) {
+        self.excluded += paused_at.elapsed();
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+struct RuntimeClock;
+
+#[cfg(target_arch = "wasm32")]
+impl RuntimeClock {
+    fn start() -> Self {
+        Self
+    }
+
+    fn active_elapsed(&self) -> Duration {
+        Duration::ZERO
+    }
+
+    fn begin_pause(&self) {}
+
+    fn end_pause(&mut self, _paused_at: ()) {}
+}
 
 /// Maior vetor/matriz aceito, igual ao limite da análise semântica.
 const MAX_ELEMENTS: usize = 16_777_216;
@@ -61,15 +110,17 @@ pub struct Vm<'a> {
     tracks_local_visibility: bool,
     globals: Vec<Value>,
     strings: Vec<Rc<str>>,
+    #[cfg(feature = "stdlib")]
     natives: Vec<Option<NativeFn>>,
+    #[cfg(feature = "stdlib")]
     consts: Vec<Option<Value>>,
+    #[cfg(feature = "stdlib")]
     ctx: NativeContext,
     interrupt: Arc<AtomicBool>,
     args: Vec<String>,
     debug: Option<DebugControl>,
     runtime_limit: Option<Duration>,
-    runtime_started: Instant,
-    excluded_runtime: Duration,
+    runtime_clock: RuntimeClock,
     string_memory_limit: Option<usize>,
     string_memory_used: usize,
     pending_limit: Option<RuntimeLimitReason>,
@@ -174,11 +225,13 @@ impl<'a> Vm<'a> {
             .iter()
             .map(|s| Rc::from(s.as_str()))
             .collect();
+        #[cfg(feature = "stdlib")]
         let natives = module
             .natives
             .iter()
             .map(|n| stdlib::native(&n.library, &n.name))
             .collect();
+        #[cfg(feature = "stdlib")]
         let consts = module
             .native_consts
             .iter()
@@ -186,8 +239,12 @@ impl<'a> Vm<'a> {
             .collect();
 
         let interrupt = Arc::new(AtomicBool::new(false));
+        #[cfg(feature = "stdlib")]
         let mut ctx = NativeContext::new();
-        ctx.interrupt = Arc::clone(&interrupt);
+        #[cfg(feature = "stdlib")]
+        {
+            ctx.interrupt = Arc::clone(&interrupt);
+        }
 
         let entry = &module.functions[module.entry as usize];
         let stack = vec![Value::Void; entry.locals.len()];
@@ -212,15 +269,17 @@ impl<'a> Vm<'a> {
             tracks_local_visibility,
             globals,
             strings,
+            #[cfg(feature = "stdlib")]
             natives,
+            #[cfg(feature = "stdlib")]
             consts,
+            #[cfg(feature = "stdlib")]
             ctx,
             interrupt,
             args: Vec::new(),
             debug: None,
             runtime_limit: None,
-            runtime_started: Instant::now(),
-            excluded_runtime: Duration::ZERO,
+            runtime_clock: RuntimeClock::start(),
             string_memory_limit: None,
             string_memory_used: 0,
             pending_limit: None,
@@ -228,12 +287,14 @@ impl<'a> Vm<'a> {
     }
 
     /// Fixa a semente do gerador de números aleatórios (útil em testes).
+    #[cfg(feature = "stdlib")]
     pub fn with_seed(mut self, seed: u64) -> Self {
         self.ctx.reseed(seed);
         self
     }
 
     /// Pasta usada como base para caminhos relativos (a do programa, na IDE).
+    #[cfg(feature = "stdlib")]
     pub fn with_working_dir(mut self, dir: impl Into<std::path::PathBuf>) -> Self {
         self.ctx.work_dir = dir.into();
         self
@@ -241,12 +302,14 @@ impl<'a> Vm<'a> {
 
     /// Diretório devolvido por `Util.obter_diretorio_usuario` nesta execução.
     /// Permite isolar as gravações dos exemplos na suíte de regressão.
+    #[cfg(feature = "stdlib")]
     pub fn with_user_dir(mut self, dir: impl Into<std::path::PathBuf>) -> Self {
         self.ctx.user_dir = Some(dir.into());
         self
     }
 
     /// Recursos que dependem do ambiente (diálogos, gráficos, som...).
+    #[cfg(feature = "stdlib")]
     pub fn with_host(mut self, host: Box<dyn crate::host::Host>) -> Self {
         self.ctx.host = host;
         self
@@ -254,6 +317,7 @@ impl<'a> Vm<'a> {
 
     /// Desliga o acesso à rede (Internet e ServicosWeb falham como sem
     /// conexão). Usado nos testes de regressão.
+    #[cfg(feature = "stdlib")]
     pub fn offline(mut self) -> Self {
         self.ctx.offline = true;
         self
@@ -261,6 +325,7 @@ impl<'a> Vm<'a> {
 
     /// Relógio simulado a partir de `epoch_ms` (ms desde 1970 UTC): `aguarde`
     /// não dorme e `tempo_decorrido`/Calendario ficam determinísticos.
+    #[cfg(feature = "stdlib")]
     pub fn with_simulated_time(mut self, epoch_ms: u64) -> Self {
         self.ctx.simulate_time(epoch_ms);
         self
@@ -295,7 +360,10 @@ impl<'a> Vm<'a> {
     /// Usa um sinalizador de interrupção criado fora da VM (por exemplo,
     /// antes de mover a execução para outra thread).
     pub fn with_interrupt(mut self, interrupt: Arc<AtomicBool>) -> Self {
-        self.ctx.interrupt = Arc::clone(&interrupt);
+        #[cfg(feature = "stdlib")]
+        {
+            self.ctx.interrupt = Arc::clone(&interrupt);
+        }
         self.interrupt = interrupt;
         self
     }
@@ -326,12 +394,9 @@ impl<'a> Vm<'a> {
                 return Err(self.error("O programa foi interrompido.".to_string()));
             }
             if executed % 1024 == 0
-                && self.runtime_limit.is_some_and(|limit| {
-                    self.runtime_started
-                        .elapsed()
-                        .saturating_sub(self.excluded_runtime)
-                        >= limit
-                })
+                && self
+                    .runtime_limit
+                    .is_some_and(|limit| self.runtime_clock.active_elapsed() >= limit)
             {
                 self.sync(frame);
                 self.pending_limit = Some(RuntimeLimitReason::Time);
@@ -346,9 +411,9 @@ impl<'a> Vm<'a> {
                     || matches!(code.get(frame.ip), Some(Op::SetLocalActive { .. }));
                 if !synthetic && debug.should_pause(self.frames.len(), span) {
                     let info = self.debug_info(&frame);
-                    let pause_started = Instant::now();
+                    let pause_started = self.runtime_clock.begin_pause();
                     let resumed = debug.pause_and_wait(&info);
-                    self.excluded_runtime += pause_started.elapsed();
+                    self.runtime_clock.end_pause(pause_started);
                     if !resumed {
                         self.sync(frame);
                         return Err(self.error("O programa foi interrompido.".to_string()));
@@ -801,26 +866,48 @@ impl<'a> Vm<'a> {
                 return Ok(true);
             }
             Op::CallNative { native, argc } => {
-                let args = self.pop_n(argc);
-                let Some(function) = self.natives[native as usize] else {
+                let _args = self.pop_n(argc);
+                #[cfg(feature = "stdlib")]
+                {
+                    let Some(function) = self.natives[native as usize] else {
+                        let native = &module.natives[native as usize];
+                        return Err(format!(
+                            "A função \"{}.{}\" ainda não está disponível nesta versão.",
+                            native.library, native.name
+                        ));
+                    };
+                    let result = function(&mut self.ctx, &_args)?;
+                    self.push(result);
+                }
+                #[cfg(not(feature = "stdlib"))]
+                {
                     let native = &module.natives[native as usize];
                     return Err(format!(
-                        "A função \"{}.{}\" ainda não está disponível nesta versão.",
+                        "A função \"{}.{}\" não está habilitada neste núcleo mínimo da VM.",
                         native.library, native.name
                     ));
-                };
-                let result = function(&mut self.ctx, &args)?;
-                self.push(result);
+                }
             }
             Op::LoadNativeConst(index) => {
-                let Some(value) = self.consts[index as usize].clone() else {
+                #[cfg(feature = "stdlib")]
+                {
+                    let Some(value) = self.consts[index as usize].clone() else {
+                        let constant = &module.native_consts[index as usize];
+                        return Err(format!(
+                            "A constante \"{}.{}\" ainda não está disponível nesta versão.",
+                            constant.library, constant.name
+                        ));
+                    };
+                    self.push(value);
+                }
+                #[cfg(not(feature = "stdlib"))]
+                {
                     let constant = &module.native_consts[index as usize];
                     return Err(format!(
-                        "A constante \"{}.{}\" ainda não está disponível nesta versão.",
+                        "A constante \"{}.{}\" não está habilitada neste núcleo mínimo da VM.",
                         constant.library, constant.name
                     ));
-                };
-                self.push(value);
+                }
             }
             Op::Return => {
                 let value = self.pop();
@@ -846,9 +933,9 @@ impl<'a> Vm<'a> {
                 }
             }
             Op::Read(ty) => {
-                let wait_started = Instant::now();
+                let wait_started = self.runtime_clock.begin_pause();
                 let line = self.io.read_line(ty);
-                self.excluded_runtime += wait_started.elapsed();
+                self.runtime_clock.end_pause(wait_started);
                 let value = parse_input(ty, line)?;
                 if let Value::Str(text) = &value {
                     self.charge_string(text.len())?;
@@ -859,11 +946,20 @@ impl<'a> Vm<'a> {
             Op::Random => {
                 let max = self.pop();
                 let min = self.pop();
-                let (Value::Int(min), Value::Int(max)) = (&min, &max) else {
+                let (Value::Int(_min), Value::Int(_max)) = (&min, &max) else {
                     return Err("\"sorteia\" espera dois valores inteiros".to_string());
                 };
-                let value = stdlib::sorteia(&mut self.ctx, *min, *max)?;
-                self.push(Value::Int(value));
+                #[cfg(feature = "stdlib")]
+                {
+                    let value = stdlib::sorteia(&mut self.ctx, *_min, *_max)?;
+                    self.push(Value::Int(value));
+                }
+                #[cfg(not(feature = "stdlib"))]
+                {
+                    return Err(
+                        "\"sorteia\" não está habilitada neste núcleo mínimo da VM.".to_string()
+                    );
+                }
             }
         }
         Ok(false)
