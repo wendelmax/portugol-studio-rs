@@ -2004,9 +2004,14 @@ function renderLearningPanel() {
     return option;
   }));
   picker.value = concept.id;
+  const active = activeTab();
   $("learning-mode-description").textContent = learningMode === "bridge"
     ? "Ponte didática: compare os conceitos de Portugol com exemplos Rust editoriais."
-    : "Fundamentos de lógica e programação em Portugol.";
+    : learningMode === "rust"
+      ? active?.language === "rust"
+        ? "Nível Rust: o arquivo .rs ativo é editado e executado com a toolchain Rust instalada."
+        : "Nível Rust: abra ou crie um arquivo .rs para programar em Rust. O arquivo atual permanece intacto."
+      : "Fundamentos de lógica e programação em Portugol.";
   $("learning-title").textContent = concept.title;
   $("learning-provenance").textContent = context
     ? "Relacionado à seleção por mapeamento exato da tradução atual"
@@ -2014,19 +2019,24 @@ function renderLearningPanel() {
   $("learning-definition").textContent = context
     ? `${concept.definition} ${explainMappedMutability(context, tab?.language === "portugol-rs" ? "portugol-rs" : "portugol")}`
     : concept.definition;
-  $("learning-portugol-caption").textContent = context ? "Trecho selecionado na fonte" : concept.portugolExample.caption;
-  $("learning-portugol-code").textContent = context ? context.sourceSnippet : concept.portugolExample.code;
+  const rustMode = learningMode === "rust";
+  $("learning-portugol-example").hidden = rustMode;
+  if (!rustMode) {
+    $("learning-portugol-caption").textContent = context ? "Trecho selecionado na fonte" : concept.portugolExample.caption;
+    $("learning-portugol-code").textContent = context ? context.sourceSnippet : concept.portugolExample.code;
+  }
 
   const rustSection = $<HTMLElement>("learning-rust-example");
-  const showRustExample = learningMode === "bridge" && (context !== null || concept.rustExample !== undefined);
+  const showRustExample = rustMode || (learningMode === "bridge" && (context !== null || concept.rustExample !== undefined));
   rustSection.hidden = !showRustExample;
   if (showRustExample) {
+    $("learning-rust-heading").textContent = rustMode ? "Rust — exemplo" : "Rust — comparação didática";
     $("learning-rust-caption").textContent = context ? "Rust gerado para este trecho" : concept.rustExample!.caption;
     $("learning-rust-code").textContent = context ? context.rustSnippet : concept.rustExample!.code;
   }
 
   const ownershipLab = $<HTMLElement>("ownership-lab");
-  const showOwnershipLab = learningMode === "bridge" && concept.id === "ownership";
+  const showOwnershipLab = learningMode !== "beginner" && concept.id === "ownership";
   ownershipLab.hidden = !showOwnershipLab;
   if (showOwnershipLab) renderOwnershipLab();
 }
@@ -2685,14 +2695,15 @@ $("btn-save").onclick = () => void save();
 $("btn-save-as").onclick = () => void save(true);
 $("btn-run").onclick = () => void runOrContinue();
 function applyLearningMode(mode: LearningMode, persist = true) {
-  learningMode = mode;
+  const availableMode = mode === "rust" && rustcAvailable !== true ? "beginner" : mode;
+  learningMode = availableMode;
   const selector = $<HTMLSelectElement>("learning-mode");
-  selector.value = mode;
-  if (persist) saveLearningMode(mode);
+  selector.value = availableMode;
+  if (persist) saveLearningMode(availableMode);
   if (!$<HTMLElement>("learning-panel").hidden) renderLearningPanel();
 
   const preview = $<HTMLElement>("rust-preview");
-  const bridgeEnabled = mode === "bridge" && activeTab()?.language !== "rust";
+  const bridgeEnabled = availableMode === "bridge" && activeTab()?.language !== "rust";
   preview.hidden = !bridgeEnabled;
   renderMappingGutter();
   $<HTMLButtonElement>("btn-rust").setAttribute("aria-pressed", String(bridgeEnabled));
@@ -2707,7 +2718,7 @@ function applyLearningMode(mode: LearningMode, persist = true) {
 
 $<HTMLSelectElement>("learning-mode").onchange = (event) => {
   const selected = (event.currentTarget as HTMLSelectElement).value;
-  if (selected === "beginner" || selected === "bridge") applyLearningMode(selected);
+  if (selected === "beginner" || selected === "bridge" || selected === "rust") applyLearningMode(selected);
 };
 applyLearningMode(learningMode, false);
 $<HTMLButtonElement>("btn-rust").onclick = () => {
@@ -3415,6 +3426,12 @@ setWorkspaceExplorerVisible(window.innerWidth >= 1440);
 showUtilities(window.innerWidth >= 1440);
 void api.rustToolchainAvailable().then((available) => {
   rustcAvailable = available;
+  const rustOption = $<HTMLOptionElement>("learning-mode-rust-option");
+  rustOption.disabled = !available;
+  $("learning-mode-rust-help").textContent = available
+    ? "Toolchain rustc disponível. Novo Rust cria um arquivo .rs; trocar de nível não altera o arquivo aberto."
+    : "Instale a toolchain Rust (rustc) para habilitar este nível e executar arquivos .rs.";
+  applyLearningMode(loadLearningMode(), false);
   const tab = activeTab();
   if (!tab) return;
   syncLanguageControls(tab);
@@ -3423,6 +3440,9 @@ void api.rustToolchainAvailable().then((available) => {
   }
 }).catch(() => {
   rustcAvailable = false;
+  $<HTMLOptionElement>("learning-mode-rust-option").disabled = true;
+  $("learning-mode-rust-help").textContent = "Não foi possível verificar rustc. Instale ou configure a toolchain Rust para habilitar este nível.";
+  applyLearningMode(loadLearningMode(), false);
   const tab = activeTab();
   if (tab) syncLanguageControls(tab);
 });

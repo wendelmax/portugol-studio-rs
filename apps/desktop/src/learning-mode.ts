@@ -1,4 +1,4 @@
-export type LearningMode = "beginner" | "bridge";
+export type LearningMode = "beginner" | "bridge" | "rust";
 
 const STORAGE_KEY = "portugol.learningMode";
 
@@ -8,7 +8,7 @@ type StorageWriter = Pick<Storage, "setItem">;
 export function loadLearningMode(storage?: StorageReader): LearningMode {
   try {
     const value = (storage ?? globalThis.localStorage).getItem(STORAGE_KEY);
-    return value === "bridge" ? "bridge" : "beginner";
+    return value === "bridge" || value === "rust" ? value : "beginner";
   } catch {
     return "beginner";
   }

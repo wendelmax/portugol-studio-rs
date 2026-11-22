@@ -4,13 +4,15 @@ import { test } from "node:test";
 
 const moduleUrl = new URL("../src/learning-content.ts", import.meta.url);
 
-test("Beginner apresenta fundamentos e Bridge acrescenta conceitos Rust", async () => {
+test("Beginner, Bridge e Rust apresentam os conceitos próprios de cada nível", async () => {
   const { conceptsForMode } = await import(moduleUrl.href);
   const beginner = conceptsForMode("beginner");
   const bridge = conceptsForMode("bridge");
+  const rust = conceptsForMode("rust");
 
   assert.deepEqual(beginner.map(({ id }) => id), ["variables", "conditionals", "loops"]);
-  assert.deepEqual(bridge.map(({ id }) => id), ["variables", "conditionals", "loops", "mutability", "ownership"]);
+  assert.deepEqual(bridge.map(({ id }) => id), ["variables", "conditionals", "loops", "mutability", "ownership", "borrowing"]);
+  assert.deepEqual(rust.map(({ id }) => id), ["mutability", "ownership", "borrowing"]);
 });
 
 test("cada cartão tem definição e exemplo Portugol, sem alegar detecção automática", async () => {
@@ -33,10 +35,18 @@ test("ownership explica move de String e identifica o trecho como exemplo editor
   assert.match(concept.rustExample.caption, /didático.*não é código gerado/i);
 });
 
+test("exemplo introdutório de borrowing usa a referência de string idiomática", async () => {
+  const { conceptsForMode } = await import(moduleUrl.href);
+  const concept = conceptsForMode("rust").find(({ id }) => id === "borrowing");
+  assert.ok(concept);
+  assert.match(concept.rustExample.code, /fn tamanho\(texto: &str\)/);
+});
+
 test("mudança de modo mantém o conceito compatível ou volta ao primeiro disponível", async () => {
   const { resolveConceptForMode } = await import(moduleUrl.href);
   assert.equal(resolveConceptForMode("bridge", "ownership").id, "ownership");
   assert.equal(resolveConceptForMode("beginner", "ownership").id, "variables");
+  assert.equal(resolveConceptForMode("rust", "borrowing").id, "borrowing");
 });
 
 test("inspector Aprender identifica seleção manual, deixa exemplos Rust inicialmente ocultos e sem progresso", () => {

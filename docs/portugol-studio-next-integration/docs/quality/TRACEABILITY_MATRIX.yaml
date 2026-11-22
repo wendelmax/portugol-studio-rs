@@ -37,7 +37,7 @@ features:
     acceptance:
       - "beginner preserva o editor e runtime Portugol atuais"
       - "bridge exibe somente a exportação real suportada pelo serviço atual"
-      - "rust permanece desabilitado com a capacidade ausente explicada"
+      - "rust fica desabilitado somente quando a toolchain rustc não está disponível, com motivo explicado"
       - "trocar modo não altera o texto fonte nem inicia outra engine"
     implementationStatus: implemented
     testStatus: automated_partial
@@ -61,6 +61,29 @@ features:
     limitations:
       - "Conteúdo é estático/local; ainda não há currículo versionado ou autoria de professor"
       - "FT-05 não possui runner Gherkin nem teste DOM/E2E configurado"
+  - id: FEAT-LEARN-003
+    title: Modo Rust integrado ao editor e executor existentes
+    ui: [UI-028, UI-023, UI-024, UI-027]
+    useCases: [UC-05, UC-13, UC-15]
+    backend: [LearningModePreference, rust_toolchain_available, run_rust_source]
+    tauriIpc: [rust_toolchain_available, register_rust_source_run, run_rust_source]
+    scenarios: [FT-02, FT-05, FT-07]
+    acceptance:
+      - "Rust só pode ser selecionado quando a toolchain instalada é detectada"
+      - "selecionar modo não altera o documento ou troca implicitamente sua linguagem"
+      - "arquivo .rs usa o editor CodeMirror e o executor Rust existentes"
+      - "exemplos ownership e borrowing têm seleção manual e proveniência editorial"
+      - "laboratório memory mantém rótulo de simulação didática, sem alegar runtime trace"
+      - "execução Rust preserva consentimento sem sandbox e limites do executor"
+    implementationStatus: implemented
+    testStatus: automated_partial
+    tests:
+      - "apps/desktop/tests/learning-mode.test.mjs"
+      - "apps/desktop/tests/learning-content.test.mjs"
+      - "apps/desktop/tests/ownership-lab.test.mjs"
+    limitations:
+      - "FT-02/05/07 ainda não têm runner Gherkin ou E2E visual dedicado"
+      - "formatador, argumentos e depuração Rust não estão disponíveis"
   - id: FEAT-PORS-INPUT-001
     title: Entrada interativa leia no Portugol-RS
     ui: [UI-003, UI-021]
