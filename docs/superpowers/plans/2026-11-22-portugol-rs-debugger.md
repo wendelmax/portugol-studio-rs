@@ -60,9 +60,9 @@
 **Interface:** expor execução instrumentada que usa `DebugControl`, breakpoints e snapshots, respeitando saída/string/runtime e cancelamento responsivo.
 
 - [x] Testar pausa antes de `leia`, espera sem evento de pausa repetido, retomada após entrada válida e cancelamento durante espera de entrada.
-- [ ] Testar limite de saída e orçamento cumulativo de strings no modo instrumentado.
-- [ ] Verificar que o relógio de runtime exclui pausa do debugger e espera de entrada.
-- [ ] Implementar a extensão de runtime que faltou e passar os testes focados e existentes.
+- [x] Testar limite de saída, orçamento cumulativo de strings e runtime ativo no modo instrumentado.
+- [x] Verificar que o relógio de runtime exclui pausa do debugger e espera de entrada.
+- [x] Implementar limites tipados na VM e passar os testes focados.
 
 ### Task 3: Serviço de depuração e gate diferencial
 
@@ -74,8 +74,8 @@
 
 - [x] Adicionar fixture diferencial inicial; comparar stdout em declaração, mutação, `para`, condição e `escreva`.
 - [x] Executar primeiro testes focados e confirmar que falham por falta do serviço/backend.
-- [x] Implementar serviço; teste adicional para erro de lowering e equivalência de falhas ainda pendentes.
-- [ ] Rodar suíte completa do serviço offline; documentar qualquer teste que dependa de rede.
+- [x] Implementar serviço, limites tipados e teste de erro de lowering.
+- [x] Rodar suíte do serviço e do workspace offline; documentar o teste que depende de rede.
 
 ### Task 4: Comando Tauri e eventos
 

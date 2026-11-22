@@ -7,6 +7,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::{Duration, Instant};
 
 use portugol_bytecode::{Module, Op, ValueType};
 use portugol_syntax::Span;
@@ -28,6 +29,14 @@ pub struct RuntimeError {
     pub span: Span,
     /// Pilha de chamadas, da função atual para a de entrada.
     pub trace: Vec<(String, Span)>,
+    /// Motivo tipado quando a execução parou por um limite configurado.
+    pub limit: Option<RuntimeLimitReason>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RuntimeLimitReason {
+    Time,
+    StringMemory,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -56,6 +65,12 @@ pub struct Vm<'a> {
     interrupt: Arc<AtomicBool>,
     args: Vec<String>,
     debug: Option<DebugControl>,
+    runtime_limit: Option<Duration>,
+    runtime_started: Instant,
+    excluded_runtime: Duration,
+    string_memory_limit: Option<usize>,
+    string_memory_used: usize,
+    pending_limit: Option<RuntimeLimitReason>,
 }
 
 /// Executa o programa até o fim.
@@ -192,6 +207,12 @@ impl<'a> Vm<'a> {
             interrupt,
             args: Vec::new(),
             debug: None,
+            runtime_limit: None,
+            runtime_started: Instant::now(),
+            excluded_runtime: Duration::ZERO,
+            string_memory_limit: None,
+            string_memory_used: 0,
+            pending_limit: None,
         }
     }
 
@@ -247,6 +268,19 @@ impl<'a> Vm<'a> {
         self
     }
 
+    /// Limita o tempo de CPU lógico da execução. Pausas no debugger e espera
+    /// por entrada não entram no orçamento.
+    pub fn with_runtime_limit(mut self, limit: Duration) -> Self {
+        self.runtime_limit = Some(limit);
+        self
+    }
+
+    /// Limita cumulativamente as alocações de cadeia feitas pela VM.
+    pub fn with_string_memory_limit(mut self, bytes: usize) -> Self {
+        self.string_memory_limit = Some(bytes);
+        self
+    }
+
     /// Usa um sinalizador de interrupção criado fora da VM (por exemplo,
     /// antes de mover a execução para outra thread).
     pub fn with_interrupt(mut self, interrupt: Arc<AtomicBool>) -> Self {
@@ -280,6 +314,18 @@ impl<'a> Vm<'a> {
                 self.sync(frame);
                 return Err(self.error("O programa foi interrompido.".to_string()));
             }
+            if executed % 1024 == 0
+                && self.runtime_limit.is_some_and(|limit| {
+                    self.runtime_started
+                        .elapsed()
+                        .saturating_sub(self.excluded_runtime)
+                        >= limit
+                })
+            {
+                self.sync(frame);
+                self.pending_limit = Some(RuntimeLimitReason::Time);
+                return Err(self.error("O limite de tempo da execução foi excedido.".to_string()));
+            }
             if let Some(debug) = &self.debug {
                 let function = &module.functions[frame.function as usize];
                 let span = function.spans.get(frame.ip).copied().unwrap_or_default();
@@ -288,7 +334,10 @@ impl<'a> Vm<'a> {
                 let synthetic = frame.function == module.entry && span == function.span;
                 if !synthetic && debug.should_pause(self.frames.len(), span) {
                     let info = self.debug_info(&frame);
-                    if !debug.pause_and_wait(&info) {
+                    let pause_started = Instant::now();
+                    let resumed = debug.pause_and_wait(&info);
+                    self.excluded_runtime += pause_started.elapsed();
+                    if !resumed {
                         self.sync(frame);
                         return Err(self.error("O programa foi interrompido.".to_string()));
                     }
@@ -408,7 +457,18 @@ impl<'a> Vm<'a> {
             message,
             span: trace.first().map(|(_, span)| *span).unwrap_or_default(),
             trace,
+            limit: self.pending_limit,
         }
+    }
+
+    fn charge_string(&mut self, bytes: usize) -> Exec<()> {
+        let next = self.string_memory_used.saturating_add(bytes);
+        if self.string_memory_limit.is_some_and(|limit| next > limit) {
+            self.pending_limit = Some(RuntimeLimitReason::StringMemory);
+            return Err("O limite de memória para cadeias foi excedido.".to_string());
+        }
+        self.string_memory_used = next;
+        Ok(())
     }
 
     fn pop(&mut self) -> Value {
@@ -437,6 +497,7 @@ impl<'a> Vm<'a> {
             Op::PushBool(value) => self.push(Value::Bool(value)),
             Op::PushChar(value) => self.push(Value::Char(value)),
             Op::PushStr(index) => {
+                self.charge_string(self.strings[index as usize].len())?;
                 let value = Value::Str(Rc::clone(&self.strings[index as usize]));
                 self.push(value);
             }
@@ -615,6 +676,9 @@ impl<'a> Vm<'a> {
                 let right = self.pop();
                 let left = self.pop();
                 let result = binary(op, &left, &right)?;
+                if let Value::Str(text) = &result {
+                    self.charge_string(text.len())?;
+                }
                 self.push(result);
             }
             Op::Neg => {
@@ -738,8 +802,13 @@ impl<'a> Vm<'a> {
                 }
             }
             Op::Read(ty) => {
+                let wait_started = Instant::now();
                 let line = self.io.read_line(ty);
+                self.excluded_runtime += wait_started.elapsed();
                 let value = parse_input(ty, line)?;
+                if let Value::Str(text) = &value {
+                    self.charge_string(text.len())?;
+                }
                 self.push(value);
             }
             Op::Clear => self.io.clear(),

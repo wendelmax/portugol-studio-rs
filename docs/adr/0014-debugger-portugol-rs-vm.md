@@ -1,6 +1,6 @@
 # ADR 0014: Depuração Portugol-RS pela VM compartilhada
 
-- **Estado:** aceito para a primeira fatia; limites de runtime e paridade completa permanecem pendentes.
+- **Estado:** aceito; paridade diferencial ampliada e validação visual permanecem pendentes.
 - **Data:** 2026-11-22
 
 ## Contexto
@@ -16,4 +16,5 @@ Criar um backend HIR→bytecode e executar as sessões de depuração com `portu
 - A depuração de `.pors` pode funcionar sem `rustc` e reaproveita os controles existentes.
 - VM e Rust gerado são dois backends; testes diferenciais de saída, falhas e spans são necessários antes de ampliar a gramática coberta.
 - A inspeção mostra valores do modelo Portugol-RS na VM, não ownership, stack ou heap do Rust nativo.
-- A primeira implementação cobre declarações, atribuições, expressões primitivas, `escreva`, `leia`, condicionais e laços. Sombreamento de nomes é recusado para não apresentar snapshots de escopo incorretos. Limites equivalentes à execução com `rustc`, smoke visual nativo e paridade diferencial mais ampla continuam pendentes.
+- O backend VM aplica 3 s de runtime ativo, 1 MiB de saída e 16 MiB de alocações de cadeias; pausa de debugger e espera por `leia` não consomem runtime.
+- A primeira implementação cobre declarações, atribuições, expressões primitivas, `escreva`, `leia`, condicionais e laços. Sombreamento de nomes é recusado para não apresentar snapshots de escopo incorretos. Smoke visual nativo e paridade diferencial de falhas continuam pendentes.

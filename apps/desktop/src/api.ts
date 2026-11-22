@@ -29,6 +29,7 @@ export interface TraceFrame {
 export type RunOutcome =
   | { status: "finished" }
   | { status: "stopped" }
+  | { status: "runtime_limit"; reason: "time" | "output" | "string_memory" }
   | { status: "error"; message: string; start: Position; end: Position; trace: TraceFrame[] };
 
 export interface DebugVar {

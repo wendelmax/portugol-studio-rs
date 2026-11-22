@@ -30,6 +30,40 @@ impl RunObserver for Recorder {
     }
 }
 
+fn run_outcome(rx: &mpsc::Receiver<Event>) -> RunOutcome {
+    loop {
+        match rx
+            .recv_timeout(Duration::from_secs(6))
+            .expect("resultado da VM")
+        {
+            Event::Output(_) => {}
+            Event::Finished(outcome) => return outcome,
+            Event::Paused(_) => panic!("não havia ponto de parada"),
+            Event::Input(_) => panic!("não havia leia"),
+        }
+    }
+}
+
+fn run_vm_to_output(source: &str) -> (String, RunOutcome) {
+    let (tx, rx) = mpsc::channel();
+    let observer = Arc::new(Recorder(Mutex::new(tx)));
+    let handle = start_portugol_rs(source, RunOptions::default(), observer).expect("iniciar VM");
+    let mut output = String::new();
+    let outcome = loop {
+        match rx
+            .recv_timeout(Duration::from_secs(5))
+            .expect("evento da VM")
+        {
+            Event::Output(text) => output.push_str(&text),
+            Event::Finished(outcome) => break outcome,
+            Event::Paused(_) => panic!("não havia ponto de parada"),
+            Event::Input(_) => panic!("não havia leia"),
+        }
+    };
+    handle.join();
+    (output, outcome)
+}
+
 #[test]
 fn pors_debugger_reuses_typed_input_channel_without_repeating_pause() {
     let (tx, rx) = mpsc::channel();
@@ -81,35 +115,62 @@ fn pors_vm_debug_output_matches_generated_rust_for_core_statements() {
         eprintln!("rustc indisponível; teste diferencial ignorado neste ambiente");
         return;
     }
-    let source = "funcao inicio() {\n seja mutavel total: inteiro = 0;\n para (seja mutavel n: inteiro = 1; n <= 4; n += 1) {\n total += n;\n }\n se (total == 10 && verdadeiro) {\n escreva(total);\n } senao {\n escreva(0);\n }\n}";
-    let generated = portugol_service::run_portugol_rs(source).expect("compilar Rust gerado");
-    let portugol_service::PortugolRsRunResult::Executed {
-        stdout,
-        exit_code: Some(0),
-        ..
-    } = generated
-    else {
-        panic!("Rust gerado não concluiu: {generated:?}");
-    };
-
-    let (tx, rx) = mpsc::channel();
-    let observer = Arc::new(Recorder(Mutex::new(tx)));
-    let handle = start_portugol_rs(source, RunOptions::default(), observer).expect("iniciar VM");
-    let mut vm_output = String::new();
-    loop {
-        match rx
-            .recv_timeout(Duration::from_secs(5))
-            .expect("evento final")
-        {
-            Event::Output(text) => vm_output.push_str(&text),
-            Event::Finished(RunOutcome::Finished) => break,
-            Event::Finished(other) => panic!("VM retornou erro: {other:?}"),
-            Event::Paused(_) => panic!("não havia breakpoint"),
-            Event::Input(_) => panic!("não havia leia"),
-        }
+    let sources = [
+        (
+            "funcao inicio() {\n seja mutavel total: inteiro = 0;\n para (seja mutavel n: inteiro = 1; n <= 4; n += 1) {\n total += n;\n }\n se (total == 10 && verdadeiro) {\n escreva(total);\n } senao {\n escreva(0);\n }\n}",
+            "10",
+        ),
+        (
+            "funcao inicio() { escreva(2147483647 + 1); }",
+            "-2147483648",
+        ),
+        (
+            "funcao inicio() { escreva(\"Olá \" + \"Rust\"); }",
+            "Olá Rust",
+        ),
+        (
+            "funcao inicio() {\n seja mutavel n: inteiro = 0;\n enquanto (n < 3) {\n n += 1;\n se (n == 2) { continue; }\n escreva(n);\n }\n}",
+            "13",
+        ),
+        (
+            "funcao inicio() { se (falso && verdadeiro) { escreva(1); } senao { escreva(2); } }",
+            "2",
+        ),
+    ];
+    for (source, expected) in sources {
+        let generated = portugol_service::run_portugol_rs(source).expect("compilar Rust gerado");
+        let portugol_service::PortugolRsRunResult::Executed {
+            stdout,
+            exit_code: Some(0),
+            ..
+        } = generated
+        else {
+            panic!("Rust gerado não concluiu: {generated:?}");
+        };
+        let (vm_output, outcome) = run_vm_to_output(source);
+        assert_eq!(outcome, RunOutcome::Finished);
+        assert_eq!(stdout, expected);
+        assert_eq!(vm_output, stdout);
     }
-    handle.join();
-    assert_eq!(vm_output, stdout);
+}
+
+#[test]
+fn pors_vm_and_generated_rust_agree_on_division_failure_source_line() {
+    if !portugol_service::rust_toolchain_available() {
+        eprintln!("rustc indisponível; teste diferencial ignorado neste ambiente");
+        return;
+    }
+    let source = "funcao inicio() {\n seja mutavel zero: inteiro = 0;\n escreva(1 / zero);\n}";
+    let generated = portugol_service::run_portugol_rs(source).expect("executar Rust gerado");
+    assert!(matches!(
+        generated,
+        portugol_service::PortugolRsRunResult::Executed { exit_code: Some(code), .. } if code != 0
+    ));
+    let (_, outcome) = run_vm_to_output(source);
+    let RunOutcome::Error { start, .. } = outcome else {
+        panic!("VM devia informar erro de execução: {outcome:?}");
+    };
+    assert_eq!(start.line, 3);
 }
 
 #[test]
@@ -133,6 +194,77 @@ fn pors_debugger_stop_interrupts_a_waiting_read() {
             .expect("resultado interrompido"),
         Event::Finished(RunOutcome::Stopped)
     );
+    handle.join();
+}
+
+#[test]
+fn pors_debugger_returns_typed_output_string_and_active_time_limits() {
+    let cases = [
+        (
+            "funcao inicio() { enquanto (verdadeiro) { escreva(\"x\"); } }",
+            portugol_service::RunLimitReason::Output,
+        ),
+        (
+            "funcao inicio() { seja mutavel texto: cadeia = \"\"; enquanto (verdadeiro) { texto += \"x\"; } }",
+            portugol_service::RunLimitReason::StringMemory,
+        ),
+        (
+            "funcao inicio() { enquanto (verdadeiro) { } }",
+            portugol_service::RunLimitReason::Time,
+        ),
+    ];
+    for (source, expected) in cases {
+        let (tx, rx) = mpsc::channel();
+        let observer = Arc::new(Recorder(Mutex::new(tx)));
+        let handle = start_portugol_rs(source, RunOptions::default(), observer)
+            .expect("iniciar programa Portugol-RS");
+        assert_eq!(
+            run_outcome(&rx),
+            RunOutcome::RuntimeLimit { reason: expected },
+            "limite esperado: {expected:?}"
+        );
+        handle.join();
+    }
+}
+
+#[test]
+fn pors_debugger_excludes_pause_and_input_wait_from_runtime_budget() {
+    let (tx, rx) = mpsc::channel();
+    let observer = Arc::new(Recorder(Mutex::new(tx)));
+    let handle = start_portugol_rs(
+        "funcao inicio() {\n escreva(42);\n}",
+        RunOptions {
+            breakpoints: vec![2],
+            ..RunOptions::default()
+        },
+        observer,
+    )
+    .expect("iniciar debugger");
+    assert!(matches!(
+        rx.recv_timeout(Duration::from_secs(5)).expect("breakpoint"),
+        Event::Paused(_)
+    ));
+    std::thread::sleep(Duration::from_millis(3_100));
+    handle.continue_run();
+    assert_eq!(run_outcome(&rx), RunOutcome::Finished);
+    handle.join();
+
+    let (tx, rx) = mpsc::channel();
+    let observer = Arc::new(Recorder(Mutex::new(tx)));
+    let handle = start_portugol_rs(
+        "funcao inicio() {\n seja mutavel valor: inteiro = 0;\n leia(valor);\n escreva(valor);\n}",
+        RunOptions::default(),
+        observer,
+    )
+    .expect("iniciar debugger");
+    assert_eq!(
+        rx.recv_timeout(Duration::from_secs(5))
+            .expect("pedido de leia"),
+        Event::Input("inteiro")
+    );
+    std::thread::sleep(Duration::from_millis(3_100));
+    handle.send_input("42".into());
+    assert_eq!(run_outcome(&rx), RunOutcome::Finished);
     handle.join();
 }
 

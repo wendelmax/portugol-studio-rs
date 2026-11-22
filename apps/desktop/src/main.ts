@@ -2547,6 +2547,15 @@ const runListeners = api.listenRun({
       } else if (outcome.status === "stopped") {
         appendConsole("\nPrograma interrompido.\n", "info");
         setStatus("Programa interrompido.");
+      } else if (outcome.status === "runtime_limit") {
+        const descriptions = {
+          time: "tempo ativo de 3 segundos",
+          output: "limite de saída de 1 MiB",
+          string_memory: "limite cumulativo de cadeias de 16 MiB",
+        } as const;
+        const message = `VM Portugol-RS interrompida: ${descriptions[outcome.reason]}.`;
+        appendConsole(`\n${message}\n`, "error");
+        setStatus(message, "error");
       } else {
         const { start, message, trace } = outcome;
         let text = `\nErro na linha ${start.line}, coluna ${start.column}: ${message}\n`;
