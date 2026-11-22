@@ -10,6 +10,6 @@ export function canDebugSource(language: SourceLanguage): boolean {
 }
 
 export function canFormatSource(language: SourceLanguage, rustfmtAvailable: boolean | null): boolean {
-  if (language === "portugol") return true;
+  if (language === "portugol" || language === "portugol-rs") return true;
   return language === "rust" && rustfmtAvailable === true;
 }

@@ -612,11 +612,9 @@ function syncLanguageControls(tab: Tab) {
       : "";
   const format = $<HTMLButtonElement>("editor-format");
   format.disabled = !canFormatSource(tab.language, rustfmtAvailable);
-  format.title = pors
-    ? "Formatador clássico indisponível para Portugol-RS."
-    : rustFile && rustfmtAvailable !== true
-      ? "Instale o componente rustfmt com `rustup component add rustfmt`."
-      : "Formatar código-fonte";
+  format.title = rustFile && rustfmtAvailable !== true
+    ? "Instale o componente rustfmt com `rustup component add rustfmt`."
+    : "Formatar código-fonte";
   for (const [name, button] of libraryButtons) {
     button.disabled = pors || rustFile || tab.symbols.some((symbol) => symbol.kind === "library" && symbol.name.split(" → ", 1)[0] === name);
     button.title = rustFile ? "Bibliotecas Portugol não se aplicam a Rust." : pors ? "Bibliotecas clássicas não se aplicam ao Portugol-RS." : `Incluir biblioteca ${name}`;
@@ -2956,10 +2954,6 @@ function goToDeclarationSelection() {
 async function formatCode() {
   const tab = activeTab();
   if (!tab || (runTabId === tab.id && runId !== null)) return;
-  if (tab.language === "portugol-rs") {
-    setStatus("O formatador clássico não atende à sintaxe Portugol-RS.");
-    return;
-  }
   if (tab.language === "rust" && rustfmtAvailable !== true) {
     setStatus("Instale o componente rustfmt com `rustup component add rustfmt`.", "error");
     return;
@@ -2970,7 +2964,9 @@ async function formatCode() {
     const changes = tab.language === "rust"
       ? await api.formatRustSource(source).then((formatted) =>
         formatted === source ? [] : [{ from: 0, to: doc.length, insert: formatted }])
-      : await api.formatSource(source);
+      : tab.language === "portugol-rs"
+        ? await api.formatPortugolRs(source)
+        : await api.formatSource(source);
     if (activeTab() !== tab || view.state.doc !== doc) return;
     if (!changes) {
       setStatus("Não foi possível formatar. Confira a sintaxe do programa.", "error");
