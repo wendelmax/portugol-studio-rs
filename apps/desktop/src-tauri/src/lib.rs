@@ -317,6 +317,7 @@ async fn run_rust_source(
     runs: State<'_, Runs>,
     id: u32,
     source: String,
+    args: Vec<String>,
 ) -> Result<portugol_service::RustSourceRunResult, String> {
     let cancellation = runs
         .rust_source_cancellations
@@ -326,7 +327,7 @@ async fn run_rust_source(
         .cloned()
         .ok_or_else(|| "A execução Rust não está mais registrada.".to_string())?;
     let joined = tauri::async_runtime::spawn_blocking(move || {
-        portugol_service::run_rust_source_with_cancel(&source, &cancellation)
+        portugol_service::run_rust_source_with_args_and_cancel(&source, &args, &cancellation)
     })
     .await;
     runs.rust_source_cancellations

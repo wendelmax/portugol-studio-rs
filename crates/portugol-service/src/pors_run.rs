@@ -269,8 +269,29 @@ pub fn run_rust_source_with_cancel(
     source: &str,
     cancel: &AtomicBool,
 ) -> Result<RustSourceRunResult, String> {
+    run_rust_source_with_args_and_cancel(source, &[], cancel)
+}
+
+/// Compila e executa Rust com argumentos de processo validados, sem shell.
+pub fn run_rust_source_with_args_and_cancel(
+    source: &str,
+    args: &[String],
+    cancel: &AtomicBool,
+) -> Result<RustSourceRunResult, String> {
     if source.len() > MAX_SOURCE_BYTES {
         return Err("O arquivo Rust excede o limite de 1 MiB para compilação.".into());
+    }
+    if args.len() > 256 {
+        return Err("O programa Rust aceita no máximo 256 argumentos.".into());
+    }
+    if args.iter().any(|arg| arg.contains('\0')) {
+        return Err("Argumentos Rust não podem conter NUL.".into());
+    }
+    let argument_bytes = args.iter().fold(0usize, |total, argument| {
+        total.saturating_add(argument.len())
+    });
+    if argument_bytes > 64 * 1024 {
+        return Err("Os argumentos Rust excedem o limite total de 64 KiB.".into());
     }
     if !rust_toolchain_available() {
         return Err(
@@ -333,6 +354,7 @@ pub fn run_rust_source_with_cancel(
     let mut executable = Command::new(&executable_path);
     configure_process_tree(&mut executable);
     let execution = executable
+        .args(args)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

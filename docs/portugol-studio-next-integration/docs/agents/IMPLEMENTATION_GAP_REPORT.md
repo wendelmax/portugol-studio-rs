@@ -20,7 +20,7 @@ Inventário completo: [`../research/REPOSITORY_DISCOVERY.md`](../research/REPOSI
 3. Workspace real e DocumentStore antes de mover preferências para escopo de projeto ou adicionar mais operações de árvore.
 4. Tradução progressiva UI-014/016 com resultado vinculado à revisão; ampliar subset no núcleo Rust e testar equivalência semântica.
 5. Laboratório de memória permanece simulação didática baseada em fixtures verificadas; trace de runtime Rust continua ausente.
-6. Rust editável e execução `.rs` já existem em fatia básica. Permanecem pendentes debugger, formatador e argumentos Rust; sem shell arbitrário.
+6. Rust editável, execução `.rs` e argumentos `argv` já existem em fatia básica. Permanecem pendentes debugger e formatador; sem shell arbitrário.
 
 ## Estados e limitações da fatia atual
 

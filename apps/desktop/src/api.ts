@@ -194,8 +194,8 @@ export type RustSourceRunResult =
   | { status: "cancelled"; phase: "compilation" | "runtime"; stdout: string; stderr: string };
 
 export const registerRustSourceRun = () => invoke<number>("register_rust_source_run");
-export const runRustSource = (id: number, source: string) =>
-  invoke<RustSourceRunResult>("run_rust_source", { id, source });
+export const runRustSource = (id: number, source: string, args: string[] = []) =>
+  invoke<RustSourceRunResult>("run_rust_source", { id, source, args });
 
 /** Id da execução; rejeita com a lista de erros se o programa não compila. */
 export const run = (source: string, args: string[], path: string | null, breakpoints: number[] = [], pauseOnStart = false) =>

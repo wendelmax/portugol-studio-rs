@@ -1,5 +1,6 @@
 use portugol_service::{
-    RustSourceRunPhase, RustSourceRunResult, run_rust_source, run_rust_source_with_cancel,
+    RustSourceRunPhase, RustSourceRunResult, run_rust_source, run_rust_source_with_args_and_cancel,
+    run_rust_source_with_cancel,
 };
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -177,4 +178,57 @@ fn rejects_source_larger_than_one_mib_before_compilation() {
     let error = run_rust_source(&source).expect_err("fonte acima do limite deve ser rejeitada");
 
     assert!(error.contains("1 MiB"));
+}
+
+#[test]
+fn passes_each_rust_argument_verbatim_to_std_env_args() {
+    let source = r#"fn main() {
+    println!("{}", std::env::args().skip(1).collect::<Vec<_>>().join("|"));
+}"#;
+    let args = vec![
+        "João Silva".to_owned(),
+        "19".to_owned(),
+        "aspas \" e barra \\".to_owned(),
+        String::new(),
+    ];
+    let cancel = AtomicBool::new(false);
+
+    let result = run_rust_source_with_args_and_cancel(source, &args, &cancel)
+        .expect("argumentos válidos devem compilar e executar");
+
+    assert!(matches!(
+        result,
+        RustSourceRunResult::Executed { stdout, exit_code: Some(0), .. }
+            if stdout == "João Silva|19|aspas \" e barra \\|\n"
+    ));
+}
+
+#[test]
+fn rejects_too_many_rust_arguments_before_compilation() {
+    let args = vec![String::new(); 257];
+    let cancel = AtomicBool::new(false);
+    let error = run_rust_source_with_args_and_cancel("fn main() {}", &args, &cancel)
+        .expect_err("mais de 256 argumentos devem ser recusados");
+
+    assert!(error.contains("256"));
+}
+
+#[test]
+fn rejects_rust_arguments_over_sixty_four_kib_before_compilation() {
+    let args = vec!["x".repeat(65_537)];
+    let cancel = AtomicBool::new(false);
+    let error = run_rust_source_with_args_and_cancel("fn main() {}", &args, &cancel)
+        .expect_err("mais de 64 KiB de argumentos devem ser recusados");
+
+    assert!(error.contains("64 KiB"));
+}
+
+#[test]
+fn rejects_nul_in_rust_arguments_before_compilation() {
+    let args = vec!["bad\0arg".to_owned()];
+    let cancel = AtomicBool::new(false);
+    let error = run_rust_source_with_args_and_cancel("fn main() {}", &args, &cancel)
+        .expect_err("NUL não pode ser passado como argumento de processo");
+
+    assert!(error.contains("NUL"));
 }

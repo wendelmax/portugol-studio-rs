@@ -83,7 +83,7 @@ features:
       - "apps/desktop/tests/ownership-lab.test.mjs"
     limitations:
       - "FT-02/05/07 ainda não têm runner Gherkin ou E2E visual dedicado"
-      - "formatador, argumentos e depuração Rust não estão disponíveis"
+      - "formatador e depuração Rust não estão disponíveis"
   - id: FEAT-PORS-INPUT-001
     title: Entrada interativa leia no Portugol-RS
     ui: [UI-003, UI-021]
@@ -107,3 +107,27 @@ features:
     limitations:
       - "Somente uma variável por chamada leia"
       - "Depuração Portugol-RS ainda não está disponível"
+  - id: FEAT-RUST-ARGS-001
+    title: Argumentos argv para programas Rust standalone
+    ui: [UI-028, UI-003, UI-021]
+    useCases: [UC-06]
+    backend: [process-arguments::parseProcessArguments, portugol-service::run_rust_source_with_args_and_cancel]
+    tauriIpc: [run_rust_source]
+    scenarios: [FT-03]
+    acceptance:
+      - "argumentos com espaço, Unicode, aspas literais e valor vazio chegam intactos a std::env::args()"
+      - "a execução não usa shell e o executável permanece o binário temporário compilado pela IDE"
+      - "aspas não fechadas são recusadas antes do prompt de consentimento ou execução"
+      - "mais de 256 argumentos, total acima de 64 KiB e NUL são rejeitados pelo serviço"
+      - "array vazio preserva a execução Rust anterior"
+      - "campo e atalho de parâmetros ficam disponíveis em arquivos .rs e continuam indisponíveis em .pors"
+    implementationStatus: implemented
+    testStatus: automated_partial
+    tests:
+      - "apps/desktop/tests/process-arguments.test.mjs"
+      - "apps/desktop/tests/learning-mode.test.mjs"
+      - "apps/desktop/tests/source-map.test.mjs"
+      - "crates/portugol-service/tests/rust_source_runner.rs"
+    limitations:
+      - "Sem runner E2E de interação DOM/Tauri para o campo"
+      - "Parser documenta aspas duplas, não executa expansão de shell nem interpreta aspas simples como agrupamento"
