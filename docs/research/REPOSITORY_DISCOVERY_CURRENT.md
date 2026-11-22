@@ -1,6 +1,6 @@
 # Diagnóstico atual do repositório
 
-- **Snapshot base:** `0adeecb` (`main`, 2026-11-22), após o merge da PR #92. A consulta seguinte não encontrou PRs nem issues abertas. Não use esta pesquisa como backlog sem reler `docs/PARIDADE.md` e os relatórios de feature mais recentes.
+- **Snapshot base:** `432fe02` (`main`, 2026-11-22), após o merge da PR #93. A consulta seguinte não encontrou PRs nem issues abertas. Não use esta pesquisa como backlog sem reler `docs/PARIDADE.md` e os relatórios de feature mais recentes.
 - **Worktrees:** 21 worktrees anteriores foram auditadas; 15 limpas, vinculadas a trabalho já mesclado, foram removidas. Seis foram preservadas por conter alterações locais, documentos não rastreados ou dependências compartilhadas. A worktree `53fd` foi mantida porque seu rascunho se sobrepõe às PRs #89/#90 e contém arquivos locais.
 - **Tauri:** v2 (`tauri = "2"`; Cargo.lock resolve 2.12.5), com `tauri-plugin-dialog`; os comandos publicados estão enumerados em `apps/desktop/src-tauri/src/lib.rs` e as capabilities ficam em `apps/desktop/src-tauri/capabilities/`.
 - **Frontend:** HTML, CSS e TypeScript sem framework SPA; Vite 8.3.5, TypeScript 7.0.2 e CodeMirror 6, incluindo linguagens Portugol, Portugol-RS e Rust (`apps/desktop/package.json`, `apps/desktop/src/main.ts`).

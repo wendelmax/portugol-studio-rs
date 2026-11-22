@@ -277,6 +277,67 @@ fn pors_vm_debug_output_matches_generated_rust_for_core_statements() {
 }
 
 #[test]
+fn pors_vm_and_generated_rust_match_across_binary_operator_families() {
+    if !portugol_service::rust_toolchain_available() {
+        eprintln!("rustc indisponível; teste diferencial ignorado neste ambiente");
+        return;
+    }
+    let cases = [
+        (
+            "funcao inicio() { escreva(7 - 10); escreva(\"|\"); escreva(4 * 3); escreva(\"|\"); escreva(20 / 3); escreva(\"|\"); escreva(20 % 3); }",
+            "-3|12|6|2",
+        ),
+        (
+            "funcao inicio() { seja mutavel valor: inteiro = 15; valor -= 4; valor *= 2; valor /= 3; valor %= 4; escreva(valor); }",
+            "3",
+        ),
+        ("funcao inicio() { escreva(1.5 + 2.25); }", "3.75"),
+        (
+            "funcao inicio() { se (\"Portugol\" == \"Portugol\" && \"x\" != \"y\") { escreva(\"strings\"); } senao { escreva(\"mismatch\"); } }",
+            "strings",
+        ),
+        (
+            "funcao inicio() { se (2 < 3 && 3 <= 3 && 4 > 3 && 4 >= 4 && 5 == 5 && 5 != 6) { escreva(\"comparisons\"); } senao { escreva(\"mismatch\"); } }",
+            "comparisons",
+        ),
+        (
+            "funcao inicio() { se (verdadeiro || 1 / 0 == 0) { escreva(\"or\"); } se (falso && 1 / 0 == 0) { escreva(\"mismatch\"); } se (!falso) { escreva(\"|and\"); } }",
+            "or|and",
+        ),
+    ];
+
+    for (source, expected) in cases {
+        let generated = portugol_service::run_portugol_rs(source).expect("compilar Rust gerado");
+        let portugol_service::PortugolRsRunResult::Executed {
+            stdout,
+            exit_code: Some(0),
+            ..
+        } = generated
+        else {
+            panic!("Rust gerado não concluiu: {generated:?}");
+        };
+        let (vm_output, outcome) = run_vm_to_output(source);
+        assert_eq!(outcome, RunOutcome::Finished);
+        assert_eq!(stdout, expected);
+        assert_eq!(vm_output, stdout);
+    }
+}
+
+#[test]
+fn pors_debugger_locates_bitwise_operators_outside_the_supported_subset() {
+    let source = "funcao inicio() { escreva(6 & 3); }";
+    let (tx, _rx) = mpsc::channel();
+    let observer = Arc::new(Recorder(Mutex::new(tx)));
+    let Err(diagnostics) = start_portugol_rs(source, RunOptions::default(), observer) else {
+        panic!("operador bit a bit ainda não faz parte da gramática .pors")
+    };
+    let ampersand = source.find('&').unwrap() as u32;
+    assert_eq!(diagnostics[0].code, "pors.invalid-character");
+    assert_eq!(diagnostics[0].start.offset, ampersand);
+    assert_eq!(diagnostics[0].end.offset, ampersand + 1);
+}
+
+#[test]
 fn pors_vm_and_generated_rust_agree_on_division_failure_source_line() {
     if !portugol_service::rust_toolchain_available() {
         eprintln!("rustc indisponível; teste diferencial ignorado neste ambiente");
