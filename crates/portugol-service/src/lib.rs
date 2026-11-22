@@ -23,8 +23,9 @@ use portugol_syntax::{Diagnostic, Severity, parse};
 
 pub use cargo_project::{
     CargoProjectCheckResult, CargoProjectDiagnostic, CargoProjectRunResult, CargoRunTarget,
-    CargoRunTargets, cargo_available, cargo_run_targets_with_cancel,
-    check_cargo_project_with_cancel, run_cargo_project_target_with_cancel,
+    CargoRunTargets, cargo_available, cargo_run_targets_with_args_and_cancel,
+    cargo_run_targets_with_cancel, check_cargo_project_with_cancel,
+    run_cargo_project_target_with_args_and_cancel, run_cargo_project_target_with_cancel,
     run_cargo_project_with_cancel,
 };
 pub use exercises::{

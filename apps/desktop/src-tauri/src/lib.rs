@@ -371,6 +371,7 @@ async fn run_cargo_project(
     workspace_id: String,
     relative_source: String,
     target: Option<portugol_service::CargoRunTarget>,
+    args: Vec<String>,
 ) -> Result<portugol_service::CargoProjectRunResult, String> {
     let cancellation = runs
         .rust_source_cancellations
@@ -398,9 +399,10 @@ async fn run_cargo_project(
             }
         };
     let joined = tauri::async_runtime::spawn_blocking(move || {
-        portugol_service::run_cargo_project_target_with_cancel(
+        portugol_service::run_cargo_project_target_with_args_and_cancel(
             &project_root,
             target.as_ref(),
+            &args,
             &cancellation,
         )
     })
@@ -419,6 +421,7 @@ async fn cargo_project_run_targets(
     id: u32,
     workspace_id: String,
     relative_source: String,
+    args: Vec<String>,
 ) -> Result<portugol_service::CargoRunTargets, String> {
     let cancellation = runs
         .rust_source_cancellations
@@ -446,7 +449,11 @@ async fn cargo_project_run_targets(
             }
         };
     let joined = tauri::async_runtime::spawn_blocking(move || {
-        portugol_service::cargo_run_targets_with_cancel(&project_root, &cancellation)
+        portugol_service::cargo_run_targets_with_args_and_cancel(
+            &project_root,
+            &args,
+            &cancellation,
+        )
     })
     .await;
     runs.rust_source_cancellations
