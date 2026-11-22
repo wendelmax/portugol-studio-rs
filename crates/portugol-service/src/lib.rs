@@ -7,6 +7,7 @@
 //!
 //! Não depende do Tauri: a camada da janela só traduz os eventos.
 
+mod cargo_project;
 mod exercise_rules;
 mod exercises;
 mod outline;
@@ -20,6 +21,7 @@ use serde::Serialize;
 use portugol_rust::{GeneratedRust, SourceMapQuality as RustSourceMapQuality};
 use portugol_syntax::{Diagnostic, Severity, parse};
 
+pub use cargo_project::{CargoProjectRunResult, cargo_available, run_cargo_project_with_cancel};
 pub use exercises::{
     Exercise, ExerciseResult, check_exercise, check_imported_exercise, exercises, inspect_exercise,
 };

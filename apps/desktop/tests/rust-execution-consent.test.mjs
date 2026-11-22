@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { hasRustExecutionConsent, rememberRustExecutionConsent, RUST_EXECUTION_CONSENT_KEY } from "../src/rust-execution-consent.ts";
+import { hasCargoExecutionConsent, rememberCargoExecutionConsent, CARGO_EXECUTION_CONSENT_KEY } from "../src/rust-execution-consent.ts";
 
 function memoryStorage() {
   const values = new Map();
@@ -22,4 +23,13 @@ test("declining Rust execution does not store consent", () => {
   const storage = memoryStorage();
   rememberRustExecutionConsent(storage, false);
   assert.equal(hasRustExecutionConsent(storage), false);
+});
+
+test("Cargo consent is distinct because builds may access the network and run build scripts", () => {
+  const storage = memoryStorage();
+  rememberRustExecutionConsent(storage, true);
+  assert.equal(hasCargoExecutionConsent(storage), false);
+  rememberCargoExecutionConsent(storage, true);
+  assert.equal(storage.getItem(CARGO_EXECUTION_CONSENT_KEY), "accepted");
+  assert.equal(hasCargoExecutionConsent(storage), true);
 });
