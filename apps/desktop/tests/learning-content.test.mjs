@@ -15,13 +15,27 @@ test("Beginner, Bridge e Rust apresentam os conceitos próprios de cada nível",
   assert.deepEqual(rust.map(({ id }) => id), ["mutability", "ownership", "borrowing"]);
 });
 
-test("cada cartão tem definição e exemplo Portugol, sem alegar detecção automática", async () => {
+test("cada conceito em Beginner, Bridge e Rust tem explicação completa, sem alegar detecção automática", async () => {
   const { conceptsForMode } = await import(moduleUrl.href);
-  for (const concept of conceptsForMode("bridge")) {
-    assert.ok(concept.title.trim(), `${concept.id}: título`);
-    assert.ok(concept.definition.trim(), `${concept.id}: definição`);
-    assert.ok(concept.portugolExample.code.trim(), `${concept.id}: exemplo Portugol`);
-    assert.equal(concept.provenance, "manual-selection");
+  for (const mode of ["beginner", "bridge", "rust"]) {
+    for (const concept of conceptsForMode(mode)) {
+      assert.ok(concept.title.trim(), `${mode}/${concept.id}: título`);
+      assert.ok(concept.definition.trim(), `${mode}/${concept.id}: definição`);
+      assert.ok(concept.whatChanged.trim(), `${mode}/${concept.id}: o que mudou`);
+      assert.ok(concept.whyItMatters.trim(), `${mode}/${concept.id}: por que importa`);
+      assert.ok(concept.practice.trim(), `${mode}/${concept.id}: praticar`);
+      assert.equal(concept.provenance, "manual-selection");
+      if (mode !== "rust") assert.ok(concept.portugolExample.code.trim(), `${mode}/${concept.id}: exemplo Portugol`);
+    }
+  }
+});
+
+test("cartão Aprender apresenta seções nomeadas e renderiza o conteúdo do catálogo como texto", () => {
+  const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+  for (const id of ["learning-what-changed", "learning-why-it-matters", "learning-practice"]) {
+    assert.match(html, new RegExp(`id="${id}"`));
+    assert.match(main, new RegExp(`\\$\\("${id}"\\)\\.textContent = concept\\.`));
   }
 });
 
