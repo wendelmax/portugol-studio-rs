@@ -90,7 +90,7 @@ fn compiles_boolean_short_circuit_and_loop_control_to_jumps() {
 }
 
 #[test]
-fn rejects_shadowed_names_until_the_debugger_can_report_scope_lifetimes() {
+fn tracks_shadowed_binding_lifetimes_with_visibility_opcodes() {
     let outer_span = hir::Span::new(0, 10);
     let inner_span = hir::Span::new(20, 30);
     let program = hir::Program {
@@ -112,14 +112,73 @@ fn rejects_shadowed_names_until_the_debugger_can_report_scope_lifetimes() {
                 span: inner_span,
             },
         ],
-        body: vec![],
+        body: vec![
+            hir::Stmt {
+                kind: hir::StmtKind::Declare {
+                    binding: hir::BindingId(0),
+                    initializer: Some(hir::Expr {
+                        kind: hir::ExprKind::Integer(1),
+                        ty: hir::Type::Integer,
+                        span: outer_span,
+                    }),
+                },
+                span: outer_span,
+            },
+            hir::Stmt {
+                kind: hir::StmtKind::If {
+                    condition: hir::Expr {
+                        kind: hir::ExprKind::Boolean(true),
+                        ty: hir::Type::Boolean,
+                        span: inner_span,
+                    },
+                    then_branch: vec![
+                        hir::Stmt {
+                            kind: hir::StmtKind::Declare {
+                                binding: hir::BindingId(1),
+                                initializer: Some(hir::Expr {
+                                    kind: hir::ExprKind::Integer(2),
+                                    ty: hir::Type::Integer,
+                                    span: inner_span,
+                                }),
+                            },
+                            span: inner_span,
+                        },
+                        hir::Stmt {
+                            kind: hir::StmtKind::Write(vec![hir::Expr {
+                                kind: hir::ExprKind::Binding(hir::BindingId(1)),
+                                ty: hir::Type::Integer,
+                                span: inner_span,
+                            }]),
+                            span: inner_span,
+                        },
+                    ],
+                    else_branch: None,
+                },
+                span: inner_span,
+            },
+        ],
         span: hir::Span::new(0, 30),
     };
 
-    let error = portugol_bytecode::compile_pors(&program)
-        .expect_err("não pode mostrar um snapshot de escopo incorreto");
-    assert!(error.message.contains("sombreamento"));
-    assert_eq!(error.span, inner_span);
+    let function = portugol_bytecode::compile_pors(&program)
+        .expect("sombreamento deve preservar escopos no debugger")
+        .function("inicio")
+        .unwrap()
+        .clone();
+    assert!(function.code.iter().any(|op| matches!(
+        op,
+        portugol_bytecode::Op::SetLocalActive {
+            local: 0,
+            active: true
+        }
+    )));
+    assert!(function.code.iter().any(|op| matches!(
+        op,
+        portugol_bytecode::Op::SetLocalActive {
+            local: 1,
+            active: false
+        }
+    )));
 }
 
 #[test]

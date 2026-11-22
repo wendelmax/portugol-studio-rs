@@ -10,6 +10,8 @@
 - Indicador de status `VM Portugol-RS` ao pausar.
 - Testes de breakpoint e snapshot, entrada tipada sem pausa duplicada e comparação de saída VM/Rust para laços `para`/`enquanto`, `continue`, curto-circuito, overflow inteiro e concatenação de cadeias. Divisão por zero confirma erro na mesma linha fonte.
 - Step over atualiza o snapshot e stop interrompe a VM durante a espera de `leia`.
+- O compilador preserva escopos lexicais e bindings sombreados em slots distintos; snapshots mostram somente o binding visível e reativam o anterior ao sair do bloco.
+- Regressões verificam shadowing em blocos condicionais e restauração após o término de um `para`.
 - A VM aplica limites tipados de 3 s de runtime ativo, 1 MiB de saída e 16 MiB cumulativos de cadeias; pausa e espera de entrada são excluídas do relógio.
 
 ## Validação
@@ -20,6 +22,7 @@
 - `cargo check -p portugol-desktop --offline --locked`
 - Clippy (`portugol-bytecode`, `portugol-vm`, `portugol-service`, `-D warnings`)
 - `npm test` (36/36) e `npm run build`
+- Validação final desta revisão: suíte do workspace, clippy com `-D warnings`, `cargo check -p portugol-desktop`, `cargo fmt --check`, `git diff --check` e build frontend passaram. O único teste omitido requer acesso externo à internet.
 
 ## Pendências conhecidas
 
@@ -28,4 +31,3 @@
 - Testes automatizados de troca de documento e eventos de sessão obsoletos.
 - Smoke visual da aplicação Tauri no KDE; testes de screenshots/E2E continuam indisponíveis nesta fatia.
 - Avaliar sintaxe PORS adicional suportada pelo frontend e recusar diagnósticos de backend com localização correta.
-- Sombreamento de nome é recusado pelo debugger até que a VM possa mostrar somente bindings cujo escopo está ativo.

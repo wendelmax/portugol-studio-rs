@@ -57,6 +57,8 @@ pub struct Vm<'a> {
     io: &'a mut dyn Io,
     stack: Vec<Value>,
     frames: Vec<Frame>,
+    active_locals: Vec<Vec<bool>>,
+    tracks_local_visibility: bool,
     globals: Vec<Value>,
     strings: Vec<Rc<str>>,
     natives: Vec<Option<NativeFn>>,
@@ -189,6 +191,13 @@ impl<'a> Vm<'a> {
 
         let entry = &module.functions[module.entry as usize];
         let stack = vec![Value::Void; entry.locals.len()];
+        let tracks_local_visibility = module.functions.iter().any(|function| {
+            function
+                .code
+                .iter()
+                .any(|op| matches!(op, Op::SetLocalActive { .. }))
+        });
+        let active_locals = vec![vec![!tracks_local_visibility; entry.locals.len()]];
 
         Vm {
             module,
@@ -199,6 +208,8 @@ impl<'a> Vm<'a> {
                 ip: 0,
                 base: 0,
             }],
+            active_locals,
+            tracks_local_visibility,
             globals,
             strings,
             natives,
@@ -331,7 +342,8 @@ impl<'a> Vm<'a> {
                 let span = function.spans.get(frame.ip).copied().unwrap_or_default();
                 // As instruções sintéticas de entrada usam o trecho de todo o
                 // programa; parar nelas não corresponde a nenhuma linha útil.
-                let synthetic = frame.function == module.entry && span == function.span;
+                let synthetic = (frame.function == module.entry && span == function.span)
+                    || matches!(code.get(frame.ip), Some(Op::SetLocalActive { .. }));
                 if !synthetic && debug.should_pause(self.frames.len(), span) {
                     let info = self.debug_info(&frame);
                     let pause_started = Instant::now();
@@ -419,6 +431,9 @@ impl<'a> Vm<'a> {
         for (slot, info) in function.locals.iter().enumerate() {
             if info.name.is_empty() {
                 continue; // temporário do compilador
+            }
+            if !self.active_locals.last().unwrap()[slot] {
+                continue;
             }
             let value = &self.stack[frame.base + slot];
             debug_value(
@@ -518,6 +533,9 @@ impl<'a> Vm<'a> {
             Op::StoreLocal(slot) => {
                 let value = self.pop();
                 self.stack[base + slot as usize] = value;
+            }
+            Op::SetLocalActive { local, active } => {
+                self.active_locals.last_mut().expect("frame ativo")[local as usize] = active;
             }
             Op::LoadGlobal(slot) => {
                 let value = self.globals[slot as usize].clone();
@@ -747,6 +765,8 @@ impl<'a> Vm<'a> {
                 let base = self.stack.len() - argc as usize;
                 self.stack
                     .resize(base + callee.locals.len().max(argc as usize), Value::Void);
+                self.active_locals
+                    .push(vec![!self.tracks_local_visibility; callee.locals.len()]);
                 // O topo de `self.frames` guarda o ponto de retorno do chamador.
                 self.sync(*frame);
                 *frame = Frame {
@@ -782,6 +802,7 @@ impl<'a> Vm<'a> {
             Op::Return => {
                 let value = self.pop();
                 self.frames.pop();
+                self.active_locals.pop();
                 self.stack.truncate(frame.base);
                 if let Some(caller) = self.frames.last() {
                     *frame = *caller;

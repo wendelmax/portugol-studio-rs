@@ -65,6 +65,12 @@ pub enum Op {
     // --- variáveis ---------------------------------------------------------
     LoadLocal(u32),
     StoreLocal(u32),
+    /// Controla se um binding local aparece no snapshot de debug. Usado pelo
+    /// backend Portugol-RS para encerrar a visibilidade em blocos lexicais.
+    SetLocalActive {
+        local: u32,
+        active: bool,
+    },
     LoadGlobal(u32),
     StoreGlobal(u32),
     /// Lê através da referência guardada no slot local (parâmetro `&`).

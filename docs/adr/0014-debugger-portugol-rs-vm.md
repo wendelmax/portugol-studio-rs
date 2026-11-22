@@ -17,4 +17,4 @@ Criar um backend HIR→bytecode e executar as sessões de depuração com `portu
 - VM e Rust gerado são dois backends; testes diferenciais de saída, falhas e spans são necessários antes de ampliar a gramática coberta.
 - A inspeção mostra valores do modelo Portugol-RS na VM, não ownership, stack ou heap do Rust nativo.
 - O backend VM aplica 3 s de runtime ativo, 1 MiB de saída e 16 MiB de alocações de cadeias; pausa de debugger e espera por `leia` não consomem runtime.
-- A primeira implementação cobre declarações, atribuições, expressões primitivas, `escreva`, `leia`, condicionais e laços. Sombreamento de nomes é recusado para não apresentar snapshots de escopo incorretos. Smoke visual nativo e paridade diferencial de falhas continuam pendentes.
+- A implementação cobre declarações, atribuições, expressões primitivas, `escreva`, `leia`, condicionais e laços. O bytecode marca a visibilidade dos slots para que snapshots respeitem escopos lexicais e sombreamento. Smoke visual nativo e paridade diferencial de falhas continuam pendentes.

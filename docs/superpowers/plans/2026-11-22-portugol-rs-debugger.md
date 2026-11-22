@@ -107,5 +107,5 @@
 
 - [x] Documentar escolha VM, limites, subset real e diferença da simulação de ownership.
 - [x] Atualizar paridade apenas com comportamento coberto por testes e registrar pendências de UI/E2E.
-- [ ] Rodar verificação final completa, revisar cobertura spec→testes e registrar comandos/resultados.
+- [x] Rodar verificação final completa, revisar cobertura spec→testes e registrar comandos/resultados; o teste de serviço que exige internet foi excluído no modo offline.
 

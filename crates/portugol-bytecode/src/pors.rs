@@ -2,7 +2,6 @@
 
 use portugol_hir as hir;
 use portugol_syntax::Span;
-use std::collections::HashSet;
 
 use crate::op::{Function, LocalInfo, Module, Op, ValueType};
 
@@ -13,13 +12,14 @@ pub struct PorsCompileError {
 }
 
 pub fn compile_pors(program: &hir::Program) -> Result<Module, PorsCompileError> {
-    Compiler::new(program)?.compile(program)
+    Compiler::new(program).compile(program)
 }
 
-#[derive(Default)]
 struct LoopFrame {
     breaks: Vec<usize>,
     continues: Vec<usize>,
+    break_scope_depth: usize,
+    continue_scope_depth: usize,
 }
 
 struct Compiler {
@@ -28,22 +28,12 @@ struct Compiler {
     locals: Vec<LocalInfo>,
     strings: Vec<String>,
     loops: Vec<LoopFrame>,
+    scope_locals: Vec<Vec<u32>>,
+    scope_shadowed: Vec<Vec<u32>>,
 }
 
 impl Compiler {
-    fn new(program: &hir::Program) -> Result<Self, PorsCompileError> {
-        let mut names = HashSet::new();
-        for binding in &program.bindings {
-            if !names.insert(binding.source_name.as_str()) {
-                return Err(PorsCompileError {
-                    message: format!(
-                        "sombreamento da variável `{}` ainda não pode ser depurado com snapshots confiáveis",
-                        binding.source_name
-                    ),
-                    span: binding.span,
-                });
-            }
-        }
+    fn new(program: &hir::Program) -> Self {
         let locals = program
             .bindings
             .iter()
@@ -54,13 +44,15 @@ impl Compiler {
                 by_ref: false,
             })
             .collect();
-        Ok(Self {
+        Self {
             code: Vec::new(),
             spans: Vec::new(),
             locals,
             strings: Vec::new(),
             loops: Vec::new(),
-        })
+            scope_locals: vec![Vec::new()],
+            scope_shadowed: vec![Vec::new()],
+        }
     }
 
     fn compile(mut self, program: &hir::Program) -> Result<Module, PorsCompileError> {
@@ -123,10 +115,43 @@ impl Compiler {
                 binding,
                 initializer,
             } => {
+                if let Some(previous) = self
+                    .scope_locals
+                    .iter()
+                    .rev()
+                    .flat_map(|scope| scope.iter().rev())
+                    .copied()
+                    .find(|id| {
+                        self.locals[*id as usize].name == self.locals[binding.0 as usize].name
+                    })
+                {
+                    self.emit(
+                        Op::SetLocalActive {
+                            local: previous,
+                            active: false,
+                        },
+                        stmt.span,
+                    );
+                    self.scope_shadowed
+                        .last_mut()
+                        .expect("escopo ativo")
+                        .push(previous);
+                }
                 if let Some(expr) = initializer {
                     self.expr(expr)?;
                     self.emit(Op::StoreLocal(binding.0), stmt.span);
                 }
+                self.emit(
+                    Op::SetLocalActive {
+                        local: binding.0,
+                        active: true,
+                    },
+                    stmt.span,
+                );
+                self.scope_locals
+                    .last_mut()
+                    .expect("escopo de função")
+                    .push(binding.0);
             }
             S::Assign { binding, op, value } => {
                 if *op != hir::AssignOp::Set {
@@ -158,16 +183,12 @@ impl Compiler {
             } => {
                 self.expr(condition)?;
                 let branch = self.emit(Op::JumpIfFalse(0), stmt.span);
-                for child in then_branch {
-                    self.stmt(child)?;
-                }
+                self.block(then_branch, stmt.span)?;
                 if let Some(other) = else_branch {
                     let end = self.emit(Op::Jump(0), stmt.span);
                     let else_target = self.here();
                     self.patch(branch, else_target);
-                    for child in other {
-                        self.stmt(child)?;
-                    }
+                    self.block(other, stmt.span)?;
                     let end_target = self.here();
                     self.patch(end, end_target);
                 } else {
@@ -179,10 +200,14 @@ impl Compiler {
                 let start = self.here();
                 self.expr(condition)?;
                 let end = self.emit(Op::JumpIfFalse(0), stmt.span);
-                self.loops.push(LoopFrame::default());
-                for child in body {
-                    self.stmt(child)?;
-                }
+                let loop_depth = self.scope_locals.len();
+                self.loops.push(LoopFrame {
+                    breaks: Vec::new(),
+                    continues: Vec::new(),
+                    break_scope_depth: loop_depth,
+                    continue_scope_depth: loop_depth,
+                });
+                self.block(body, stmt.span)?;
                 self.emit(Op::Jump(start), stmt.span);
                 let target = self.here();
                 self.patch(end, target);
@@ -194,14 +219,20 @@ impl Compiler {
                 step,
                 body,
             } => {
+                let outer_depth = self.scope_locals.len();
+                self.scope_locals.push(Vec::new());
+                self.scope_shadowed.push(Vec::new());
                 self.stmt(initializer)?;
                 let start = self.here();
                 self.expr(condition)?;
                 let end = self.emit(Op::JumpIfFalse(0), stmt.span);
-                self.loops.push(LoopFrame::default());
-                for child in body {
-                    self.stmt(child)?;
-                }
+                self.loops.push(LoopFrame {
+                    breaks: Vec::new(),
+                    continues: Vec::new(),
+                    break_scope_depth: outer_depth,
+                    continue_scope_depth: self.scope_locals.len(),
+                });
+                self.block(body, stmt.span)?;
                 let continue_target = self.here();
                 let continues =
                     std::mem::take(&mut self.loops.last_mut().expect("loop frame").continues);
@@ -213,12 +244,24 @@ impl Compiler {
                 let target = self.here();
                 self.patch(end, target);
                 self.finish_loop(target, continue_target);
+                self.finish_scope(stmt.span);
             }
             S::LoopControl { control } => {
-                let jump = self.emit(Op::Jump(0), stmt.span);
-                let Some(frame) = self.loops.last_mut() else {
+                let Some(frame) = self.loops.last() else {
                     return self.error("controle de laço fora de laço", stmt.span);
                 };
+                let (break_depth, continue_depth) =
+                    (frame.break_scope_depth, frame.continue_scope_depth);
+                self.hide_scopes_from(
+                    if matches!(control, hir::LoopControl::Break) {
+                        break_depth
+                    } else {
+                        continue_depth
+                    },
+                    stmt.span,
+                );
+                let jump = self.emit(Op::Jump(0), stmt.span);
+                let frame = self.loops.last_mut().expect("loop frame");
                 match control {
                     hir::LoopControl::Break => frame.breaks.push(jump),
                     hir::LoopControl::Continue => frame.continues.push(jump),
@@ -235,6 +278,64 @@ impl Compiler {
         }
         for at in frame.continues {
             self.patch(at, continue_target);
+        }
+    }
+
+    fn block(&mut self, statements: &[hir::Stmt], span: hir::Span) -> Result<(), PorsCompileError> {
+        self.scope_locals.push(Vec::new());
+        self.scope_shadowed.push(Vec::new());
+        for stmt in statements {
+            self.stmt(stmt)?;
+        }
+        self.finish_scope(span);
+        Ok(())
+    }
+
+    fn finish_scope(&mut self, span: hir::Span) {
+        let locals = self.scope_locals.pop().expect("escopo ativo");
+        let shadowed = self.scope_shadowed.pop().expect("escopo ativo");
+        for local in locals.into_iter().rev() {
+            self.emit(
+                Op::SetLocalActive {
+                    local,
+                    active: false,
+                },
+                span,
+            );
+        }
+        for local in shadowed.into_iter().rev() {
+            self.emit(
+                Op::SetLocalActive {
+                    local,
+                    active: true,
+                },
+                span,
+            );
+        }
+    }
+
+    fn hide_scopes_from(&mut self, depth: usize, span: hir::Span) {
+        for scope_index in (depth..self.scope_locals.len()).rev() {
+            let locals = self.scope_locals[scope_index].clone();
+            for local in locals.into_iter().rev() {
+                self.emit(
+                    Op::SetLocalActive {
+                        local,
+                        active: false,
+                    },
+                    span,
+                );
+            }
+            let shadowed = self.scope_shadowed[scope_index].clone();
+            for local in shadowed.into_iter().rev() {
+                self.emit(
+                    Op::SetLocalActive {
+                        local,
+                        active: true,
+                    },
+                    span,
+                );
+            }
         }
     }
 

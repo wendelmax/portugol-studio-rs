@@ -65,6 +65,101 @@ fn run_vm_to_output(source: &str) -> (String, RunOutcome) {
 }
 
 #[test]
+fn pors_debugger_returns_located_diagnostics_before_starting_the_vm() {
+    for (source, code) in [(
+        "funcao inicio() { escreva(faltante); }",
+        "pors.unknown-name",
+    )] {
+        let (tx, _rx) = mpsc::channel();
+        let observer = Arc::new(Recorder(Mutex::new(tx)));
+        let Err(diagnostics) = start_portugol_rs(source, RunOptions::default(), observer) else {
+            panic!("fonte não suportada não deveria iniciar")
+        };
+        assert_eq!(diagnostics[0].code, code);
+        assert_eq!(diagnostics[0].start.line, 1);
+    }
+}
+
+#[test]
+fn pors_debugger_shows_only_the_binding_active_in_each_scope() {
+    let source = "funcao inicio() {\n seja valor: inteiro = 1;\n se (verdadeiro) {\n seja valor: inteiro = 2;\n escreva(valor);\n }\n escreva(valor);\n}";
+    let (tx, rx) = mpsc::channel();
+    let observer = Arc::new(Recorder(Mutex::new(tx)));
+    let handle = start_portugol_rs(
+        source,
+        RunOptions {
+            breakpoints: vec![5, 7],
+            ..RunOptions::default()
+        },
+        observer,
+    )
+    .expect("programa com shadowing deve ser depurável");
+
+    let Event::Paused(inner) = rx
+        .recv_timeout(Duration::from_secs(5))
+        .expect("pausa interna")
+    else {
+        panic!("esperava pausa no bloco interno")
+    };
+    let visible: Vec<_> = inner
+        .variables
+        .iter()
+        .filter(|v| v.name == "valor")
+        .collect();
+    assert_eq!(visible.len(), 1);
+    assert_eq!(visible[0].value, "2");
+    handle.continue_run();
+
+    let Event::Paused(outer) = rx
+        .recv_timeout(Duration::from_secs(5))
+        .expect("pausa externa")
+    else {
+        panic!("esperava pausa no escopo externo")
+    };
+    let visible: Vec<_> = outer
+        .variables
+        .iter()
+        .filter(|v| v.name == "valor")
+        .collect();
+    assert_eq!(visible.len(), 1);
+    assert_eq!(visible[0].value, "1");
+    handle.continue_run();
+    assert_eq!(run_outcome(&rx), RunOutcome::Finished);
+    handle.join();
+}
+
+#[test]
+fn pors_debugger_restores_shadowed_binding_after_counted_loop() {
+    let source = "funcao inicio() {\n seja mutavel i: inteiro = 9;\n para (seja mutavel i: inteiro = 0; i < 1; i += 1) {\n escreva(i);\n }\n escreva(i);\n}";
+    let (tx, rx) = mpsc::channel();
+    let observer = Arc::new(Recorder(Mutex::new(tx)));
+    let handle = start_portugol_rs(
+        source,
+        RunOptions {
+            breakpoints: vec![4, 6],
+            ..RunOptions::default()
+        },
+        observer,
+    )
+    .expect("laço com binding sombreado deve ser depurável");
+
+    for expected in ["0", "9"] {
+        let Event::Paused(info) = rx
+            .recv_timeout(Duration::from_secs(5))
+            .expect("pausa no laço ou depois dele")
+        else {
+            panic!("esperava breakpoint")
+        };
+        let visible: Vec<_> = info.variables.iter().filter(|v| v.name == "i").collect();
+        assert_eq!(visible.len(), 1);
+        assert_eq!(visible[0].value, expected);
+        handle.continue_run();
+    }
+    assert_eq!(run_outcome(&rx), RunOutcome::Finished);
+    handle.join();
+}
+
+#[test]
 fn pors_debugger_reuses_typed_input_channel_without_repeating_pause() {
     let (tx, rx) = mpsc::channel();
     let observer = Arc::new(Recorder(Mutex::new(tx)));
