@@ -32,6 +32,13 @@ import { mappedPreviewSegments, sourceDiagnostic, sourceMapLinks, type SourceMap
 import { mountExamples } from "./examples";
 import { mountHomeNewFileMenu } from "./home-new-file-menu";
 import { mountExercises, readExercise, type ExerciseDocument } from "./exercises";
+import {
+  exerciseTestPanelState,
+  exerciseTestStatus,
+  isCurrentExerciseTestRequest,
+  type ExerciseTestRequest,
+  type ExerciseTestRun,
+} from "./exercise-test-panel";
 import { portugolFolding } from "./folding";
 import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
@@ -90,6 +97,8 @@ interface Tab {
   exampleName?: string;
   examplePath?: string;
   exercise?: ExerciseDocument;
+  exerciseTestRun?: ExerciseTestRun;
+  exerciseTestGeneration?: number;
   workspaceId?: string;
   workspacePath?: string;
   workspaceExercisePath?: string;
@@ -321,7 +330,15 @@ function extensions(language: SourceLanguage): Extension[] {
         activeTab()!.porsCompileDiagnostics = [];
         renderMessages();
       }
-      if (update.docChanged) renderTabs();
+      if (update.docChanged) {
+        const tab = activeTab();
+        if (tab?.exercise) {
+          tab.exerciseTestGeneration = (tab.exerciseTestGeneration ?? 0) + 1;
+          tab.exerciseTestRun = undefined;
+          renderExerciseTests();
+        }
+        renderTabs();
+      }
       if (update.docChanged && learningMode === "bridge" && activeTab()?.language !== "rust") scheduleRustExport();
       if (update.selectionSet || update.docChanged) renderCursor();
       if (update.selectionSet || update.docChanged) renderMappingGutter();
@@ -430,6 +447,7 @@ function activate(id: number) {
   if (!tab) {
     rustExportGeneration++;
     renderTabs();
+    renderExerciseTests();
     $("cursor").textContent = "";
     if (id === helpId) void openHelp();
     else $("home").focus();
@@ -452,6 +470,7 @@ function activate(id: number) {
   if (!utilities.hidden) applyUtilitiesPaneSize();
   if (tab.language === "rust") view.dispatch(setDiagnostics(view.state, []));
   renderTabs();
+  renderExerciseTests();
   $<HTMLElement>("rust-preview").hidden = learningMode !== "bridge" || tab.language === "rust";
   renderMappingGutter();
   renderMessages();
@@ -1859,6 +1878,7 @@ function showPanel(which: PanelName) {
   }
   $("console-tools").hidden = which !== "console";
   if (which === "learning") renderLearningPanel();
+  if (which === "tests") renderExerciseTests();
 }
 
 document.querySelector<HTMLElement>(".panel-tabs")?.addEventListener("keydown", (event) => {
@@ -1882,6 +1902,83 @@ function goTo(offset: number) {
 function renderMessages() {
   const tab = activeTab();
   renderDiagnostics([...(tab?.diagnostics ?? []), ...(tab?.porsCompileDiagnostics ?? [])], view.state.doc.lines, goTo);
+}
+
+function renderExerciseTests() {
+  const tab = activeTab();
+  const state = exerciseTestPanelState(tab?.exercise?.exercise, view.state.doc, tab?.exerciseTestRun);
+  $("tests-title").textContent = tab?.exercise ? `Testes — ${tabName(tab)}` : "Testes do projeto";
+  const status = $("tests-status");
+  const nextStatus = exerciseTestStatus(state);
+  if (status.textContent !== nextStatus) status.textContent = nextStatus;
+  const run = $<HTMLButtonElement>("tests-run");
+  run.hidden = state.kind === "empty" || state.kind === "no-cases";
+  run.disabled = state.kind === "running";
+  run.textContent = state.kind === "running" ? "Executando…" : "Executar casos";
+  const failures = $<HTMLUListElement>("tests-results");
+  failures.replaceChildren();
+  if (state.kind === "completed") {
+    for (const failure of state.result.failures) {
+      const item = document.createElement("li");
+      item.textContent = failure;
+      failures.append(item);
+    }
+  }
+  failures.hidden = state.kind !== "completed" || state.result.failures.length === 0;
+}
+
+async function runExerciseTests() {
+  const tab = activeTab();
+  if (!tab?.exercise || tab.exercise.exercise.cases <= 0) return;
+  const documentState = view.state.doc;
+  const request: ExerciseTestRequest = {
+    tabId: tab.id,
+    document: documentState,
+    generation: (tab.exerciseTestGeneration ?? 0) + 1,
+  };
+  tab.exerciseTestGeneration = request.generation;
+  tab.exerciseTestRun = { source: documentState, status: "running" };
+  renderExerciseTests();
+  const isCurrent = () => {
+    const currentDocument = tab.id === activeId ? view.state.doc : tab.state.doc;
+    return isCurrentExerciseTestRequest(request, {
+      tabId: tab.id,
+      document: currentDocument,
+      generation: tab.exerciseTestGeneration ?? 0,
+    }, tabs.includes(tab));
+  };
+  try {
+    const grade = await exercises.evaluate(tab.exercise, documentState.toString(), isCurrent);
+    if (!isCurrent()) return;
+    if (!grade.current) {
+      tab.exerciseTestRun = {
+        source: documentState,
+        status: "error",
+        message: "Esta avaliação foi substituída por outra. Execute os casos novamente.",
+      };
+      return;
+    }
+    tab.exerciseTestRun = {
+      source: documentState,
+      status: "completed",
+      result: {
+        total: grade.evaluation.total,
+        passed: grade.evaluation.passed,
+        failures: grade.evaluation.failures,
+        completed: grade.progress.completed,
+      },
+    };
+  } catch (message) {
+    if (isCurrent()) {
+      tab.exerciseTestRun = {
+        source: documentState,
+        status: "error",
+        message: typeof message === "string" ? message : "Não foi possível executar os casos do exercício.",
+      };
+    }
+  } finally {
+    renderExerciseTests();
+  }
 }
 
 function routeRunEvent(id: number, handle: () => void) {
@@ -2378,9 +2475,15 @@ ${TEMPLATE}`;
 }
 const exercises = mountExercises(openExercise);
 $("home-exercises").onclick = exercises.browse;
+$("tests-run").onclick = () => void runExerciseTests();
 editorMenuAction("editor-exercise", () => {
-  const exercise = activeTab()?.exercise;
-  if (exercise) void exercises.grade(exercise, view.state.doc.toString());
+  const tab = activeTab();
+  const exercise = tab?.exercise;
+  if (!tab || !exercise) return;
+  const documentState = view.state.doc;
+  const isCurrent = () => tabs.includes(tab)
+    && (tab.id === activeId ? view.state.doc : tab.state.doc) === documentState;
+  void exercises.grade(exercise, documentState.toString(), isCurrent);
 });
 editorMenuAction("editor-search", () => openSearchPanel(view));
 editorMenuAction("editor-definition", goToDeclarationSelection);

@@ -5,15 +5,21 @@ import { panelContentId, panelNameForKey } from "../src/panel-tabs.ts";
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+const exercises = readFileSync(new URL("../src/exercises.ts", import.meta.url), "utf8");
 
-test("Tests tab controls an accessible empty-state panel", () => {
+test("Tests tab keeps an honest empty state and exposes real cases only for exercises", () => {
   assert.equal(panelContentId("tests"), "tests");
   assert.match(html, /<button id="tab-tests"[^>]*role="tab"[^>]*aria-controls="tests"[^>]*>Testes<\/button>/);
   assert.match(html, /<section id="tests"[^>]*role="tabpanel"[^>]*aria-labelledby="tab-tests"/);
   assert.match(html, /id="tests-status"[^>]*role="status"[^>]*>Nenhum teste configurado\.<\/p>/);
-  assert.match(html, /runner de testes ainda não está integrado/i);
+  assert.match(html, /<button id="tests-run"[^>]*hidden[^>]*>Executar casos<\/button>/);
+  assert.match(html, /<ul id="tests-results"[^>]*aria-label="Falhas dos casos de teste"/);
+  assert.doesNotMatch(html, /runner de testes ainda não está integrado/i);
   assert.doesNotMatch(html, /\b\d+\s+(?:testes?\s+)?(?:aprovados?|falhos?|passaram?)\b/i);
   assert.match(main, /\$\("tab-tests"\)\.onclick\s*=\s*\(\)\s*=>\s*showPanel\("tests"\)/);
+  assert.match(main, /function renderExerciseTests\(/);
+  assert.match(main, /void exercises\.grade\(exercise, documentState\.toString\(\), isCurrent\)/);
+  assert.match(exercises, /\(\) => id === modalAttempt && isCurrent\(\)/);
   assert.match(main, /\["console",\s*"tests",\s*"messages",\s*"debug",\s*"learning"\]/);
 });
 

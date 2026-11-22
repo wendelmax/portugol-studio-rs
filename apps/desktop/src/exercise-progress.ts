@@ -213,3 +213,49 @@ export function createValidatedExerciseGrader<T extends ExerciseEvaluation & { h
     return { evaluation, result };
   };
 }
+
+export interface ExerciseEvaluationDocument {
+  exercise: { id: number };
+  contents?: string;
+}
+
+export interface ExerciseEvaluationResult<T extends ExerciseEvaluation & { hints: string[] }> {
+  evaluation: T;
+  progress: ExerciseProgressOutcome;
+  current: boolean;
+}
+
+export function createExerciseEvaluationRunner<T extends ExerciseEvaluation & { hints: string[] }>(options: {
+  check: (id: number, source: string, contents?: string) => Promise<T>;
+  identify: (id: number, contents?: string) => Promise<string | null>;
+  progress: Pick<ReturnType<typeof createExerciseProgress>, "record">;
+}) {
+  let sequence = 0;
+  const latestByExercise = new Map<string, number>();
+
+  async function evaluate(
+    document: ExerciseEvaluationDocument,
+    source: string,
+    isCurrent: () => boolean = () => true,
+  ): Promise<ExerciseEvaluationResult<T>> {
+    const request = ++sequence;
+    const scope = `${document.exercise.id}:${document.contents ?? "builtin"}`;
+    latestByExercise.set(scope, request);
+    try {
+      const identity = await options.identify(document.exercise.id, document.contents);
+      const isRunCurrent = () => latestByExercise.get(scope) === request && isCurrent();
+      const grader = createValidatedExerciseGrader(
+        (gradedSource) => options.check(document.exercise.id, gradedSource, document.contents),
+        options.progress,
+        identity,
+        isRunCurrent,
+      );
+      const { evaluation, result } = await grader(source);
+      return { evaluation, progress: result, current: isCurrent() };
+    } finally {
+      if (latestByExercise.get(scope) === request) latestByExercise.delete(scope);
+    }
+  }
+
+  return { evaluate };
+}
