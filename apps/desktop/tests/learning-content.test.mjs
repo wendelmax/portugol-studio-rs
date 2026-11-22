@@ -15,6 +15,16 @@ test("Beginner, Bridge e Rust apresentam os conceitos próprios de cada nível",
   assert.deepEqual(rust.map(({ id }) => id), ["mutability", "ownership", "borrowing"]);
 });
 
+test("conceitos básicos apontam para exercícios existentes e Rust-only não aponta para exercício Portugol", async () => {
+  const { conceptsForMode } = await import(moduleUrl.href);
+  const concepts = new Map(conceptsForMode("bridge").map(({ id, practiceExerciseId }) => [id, practiceExerciseId]));
+
+  assert.equal(concepts.get("variables"), 2);
+  assert.equal(concepts.get("conditionals"), 12);
+  assert.equal(concepts.get("loops"), 24);
+  for (const concept of conceptsForMode("rust")) assert.equal(concept.practiceExerciseId, undefined, concept.id);
+});
+
 test("cada conceito em Beginner, Bridge e Rust tem explicação completa, sem alegar detecção automática", async () => {
   const { conceptsForMode } = await import(moduleUrl.href);
   for (const mode of ["beginner", "bridge", "rust"]) {
@@ -39,6 +49,9 @@ test("cartão Aprender apresenta seções nomeadas e renderiza o conteúdo do ca
   }
   assert.match(html, /<article class="learning-card">/);
   assert.match(html, /<h3 id="learning-title" aria-live="polite" aria-atomic="true">/);
+  assert.match(html, /id="learning-practice-open"[^>]*hidden/);
+  assert.match(html, /id="learning-practice-status"[^>]*role="status"/);
+  assert.match(main, /exercises\.openById\(exerciseId\)/);
 });
 
 test("ownership explica move de String e identifica o trecho como exemplo editorial", async () => {

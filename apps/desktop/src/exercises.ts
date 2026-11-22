@@ -1,5 +1,6 @@
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { checkExercise, inspectExercise, listExercises, readFile, type Exercise, type ExerciseCheckResult } from "./api";
+import { createExerciseOpener } from "./exercise-opening";
 import {
   createExerciseProgress,
   createExerciseEvaluationRunner,
@@ -43,6 +44,7 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
   const hintItems = hints.querySelector("ul")!;
   let pending: Promise<Exercise[]> | null = null;
   let catalog: Exercise[] = [];
+  let catalogLoaded = false;
   let modalAttempt = 0;
   const progress = createExerciseProgress();
   const evaluationRunner = createExerciseEvaluationRunner<ExerciseCheckResult>({
@@ -50,6 +52,19 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
     identify: exerciseIdentity,
     progress,
   });
+  async function loadCatalog() {
+    if (catalogLoaded) return catalog;
+    pending ??= listExercises();
+    try {
+      catalog = await pending;
+      catalogLoaded = true;
+      return catalog;
+    } finally {
+      pending = null;
+    }
+  }
+
+  const openById = createExerciseOpener(loadCatalog, openSource);
 
   function showExercise() {
     const exercise = catalog.find(({ id }) => id === Number(list.value));
@@ -94,16 +109,12 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
   async function browse() {
     loadError.hidden = true;
     chooser.showModal();
-    if (catalog.length) {
-      renderCatalog();
-      return;
-    }
+    if (catalogLoaded) return renderCatalog();
     statement.textContent = "Carregando exercícios…";
     try {
-      catalog = await (pending ??= listExercises());
+      await loadCatalog();
       renderCatalog();
     } catch {
-      pending = null;
       statement.textContent = "Não foi possível carregar os exercícios.";
     }
   }
@@ -154,5 +165,5 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
     }
   }
 
-  return { browse, grade, evaluate };
+  return { browse, grade, evaluate, openById };
 }
