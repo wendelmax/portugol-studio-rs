@@ -8,6 +8,7 @@ const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
 const ui = readFileSync(new URL("../src/source-map-ui.ts", import.meta.url), "utf8");
 const css = readFileSync(new URL("../src/style.css", import.meta.url), "utf8");
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+const generatedEditor = readFileSync(new URL("../src/generated-rust-editor.ts", import.meta.url), "utf8");
 
 test("Rust export API exposes generated and source editor ranges", () => {
   assert.match(api, /interface SourceMapInfo[\s\S]*generatedStart: Position[\s\S]*generatedEnd: Position[\s\S]*sourceStart: Position \| null[\s\S]*sourceEnd: Position \| null[\s\S]*quality: "exact" \| "approximate" \| "generated_only"/);
@@ -112,14 +113,14 @@ test("bridge mapping gutter exposes accessible two-way navigation between source
   assert.match(html, /id="rust-mapping-gutter"[^>]*aria-label="Mapeamento Portugol para Rust"/);
   assert.match(html, /id="rust-mapping-status"[^>]*aria-live="polite"/);
   assert.match(main, /function renderMappingGutter\(/);
-  assert.match(main, /mapped\.dataset\.sourceLine/);
-  assert.match(main, /mapped\.dataset\.generatedLine/);
+  assert.match(generatedEditor, /"data-source-offset": String\(mapping\.sourceOffset\)/);
+  assert.match(generatedEditor, /"data-quality": mapping\.quality/);
   assert.match(main, /focusRustMapping\(/);
   assert.match(main, /Linha \$\{sourceLine\} sem correspondência direta/);
   assert.match(main, /Localização aproximada/);
 });
 
-test("Rust preview keeps a per-tab artifact marked stale until current translation succeeds", () => {
+test("Rust editor keeps the per-tab artifact marked stale until current translation succeeds", () => {
   assert.match(main, /rustPreview\?: RustPreviewState/);
   assert.match(main, /function renderRustPreview\(tab: Tab\)/);
   assert.match(main, /tab\.rustPreview = beginRustPreview/);
@@ -130,12 +131,19 @@ test("Rust preview keeps a per-tab artifact marked stale until current translati
   assert.match(main, /status\.dataset\.stale = "true"/);
   assert.match(main, /copy\.disabled = save\.disabled = detach\.disabled = !artifact \|\| Boolean/);
   assert.match(css, /#rust-status\[data-stale="true"\]/);
+  assert.match(html, /id="rust-output" class="rust-generated-editor"/);
+  assert.match(main, /const generatedRustEditor = new EditorView\([\s\S]*createGeneratedRustEditorState/);
+  assert.match(main, /generatedRustEditor\.state\.doc\.toString\(\)/);
+  assert.match(main, /generatedRustTheme\.reconfigure\(editorTheme\(\)\)/);
   const renderer = main.match(/function renderRustPreview\(tab: Tab\) \{([\s\S]*?)\n\}\n\nfunction renderMappingGutter/)?.[1] ?? "";
-  assert.match(renderer, /if \(stale\) \{\s*output\.append\(document\.createTextNode\(artifact\.code\.slice\(segment\.from, segment\.to\)\)\);\s*\} else \{/);
-  assert.match(main, /let renderedRustArtifact: RustPreviewState\["artifact"\] \| null \| undefined/);
-  assert.match(main, /let renderedRustPreviewStale: boolean \| undefined/);
-  assert.match(renderer, /renderedRustArtifact === undefined \|\| renderedRustArtifact !== artifactKey \|\| renderedRustPreviewStale !== stale/);
-  assert.doesNotMatch(renderer, /output\.inert/);
+  assert.match(renderer, /artifact && !stale[\s\S]*mappedPreviewSegments\(artifact\.code, artifact\.sourceMap\)/);
+  assert.match(renderer, /generatedRustMappings\.of\(mappings\)/);
+  assert.match(renderer, /generatedDocument\.toString\(\) === code/);
+  assert.doesNotMatch(renderer, /replaceChildren|createTextNode|innerHTML/);
+  assert.match(generatedEditor, /EditorState\.readOnly\.of\(true\)/);
+  assert.match(generatedEditor, /EditorView\.editable\.of\(false\)/);
+  assert.match(generatedEditor, /class: "cm-rust-mapped-segment"/);
+  assert.match(css, /\.cm-rust-mapped-segment\[data-quality="approximate"\]/);
   const updateListener = main.match(/EditorView\.updateListener\.of\(\(update\) => \{([\s\S]*?)\n    \}\),/)?.[1] ?? "";
   assert.doesNotMatch(updateListener, /renderRustPreview\(tab\)/);
   assert.match(main, /const languageChanged = tab\.language !== previousLanguage/);
@@ -156,5 +164,6 @@ test("PORS run response is discarded when its tab or document revision changes",
   assert.match(main, /limite de saída de 1 MiB/);
   assert.match(main, /limite de memória para cadeias de 16 MiB/);
   assert.match(main, /result\.diagnostics\.map\(sourceDiagnostic\)/);
-  assert.match(main, /mapped\.onclick = \(\) => goTo\(segment\.sourceOffset\)/);
+  assert.match(generatedEditor, /mappedSourceOffsetAt\(editor\.state\.field\(generatedRustDecorations\), position\)/);
+  assert.match(main, /function focusRustMapping\(link: SourceMapLink\)[\s\S]*generatedRustEditor\.dispatch\([\s\S]*scrollIntoView: true/);
 });

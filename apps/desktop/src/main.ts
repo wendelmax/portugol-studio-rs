@@ -23,6 +23,7 @@ import { forceLinting, linter, lintGutter, setDiagnostics, type Diagnostic } fro
 import { openSearchPanel, highlightSelectionMatches } from "@codemirror/search";
 import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from "@codemirror/autocomplete";
 import { rust } from "@codemirror/lang-rust";
+import { createGeneratedRustEditorState, generatedRustMappings, type GeneratedRustMapping } from "./generated-rust-editor";
 import { tags } from "@lezer/highlight";
 import { open as openDialog, save as saveDialog, ask } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -124,6 +125,7 @@ const THEME_KEY = "portugol.theme";
 const theme = new Compartment();
 const sourceLanguage = new Compartment();
 const portugolTools = new Compartment();
+const generatedRustTheme = new Compartment();
 const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
 function themeChoice(): string {
@@ -412,6 +414,10 @@ function extensions(language: SourceLanguage): Extension[] {
 }
 
 const view = new EditorView({ parent: $("editor") });
+const generatedRustEditor = new EditorView({
+  parent: $("rust-output"),
+  state: createGeneratedRustEditorState("", goTo, [editorColors, generatedRustTheme.of(editorTheme())]),
+});
 
 function applyTheme(choice: string) {
   appliedTheme = choice;
@@ -424,11 +430,13 @@ function applyTheme(choice: string) {
   else document.documentElement.dataset.theme = themeProfile(choice)?.base ?? choice;
   applyThemeColors(document.documentElement, themeProfile(choice)?.colors);
   view.dispatch({ effects: theme.reconfigure(editorTheme()) });
+  generatedRustEditor.dispatch({ effects: generatedRustTheme.reconfigure(editorTheme()) });
   help?.refreshTheme();
 }
 
 darkQuery.addEventListener("change", () => {
   view.dispatch({ effects: theme.reconfigure(editorTheme()) });
+  generatedRustEditor.dispatch({ effects: generatedRustTheme.reconfigure(editorTheme()) });
   help?.refreshTheme();
 });
 
@@ -451,8 +459,6 @@ let rustExportTimer: number | undefined;
 let rustExportGeneration = 0;
 let rustMappingLinks: SourceMapLink[] = [];
 let rustMappingState: "idle" | "generating" | "ready" | "stale" | "error" = "idle";
-let renderedRustArtifact: RustPreviewState["artifact"] | null | undefined;
-let renderedRustPreviewStale: boolean | undefined;
 let definitionNavigationGeneration = 0;
 let learningMode: LearningMode = loadLearningMode();
 let selectedLearningConceptId = "variables";
@@ -3039,14 +3045,14 @@ $<HTMLButtonElement>("rust-close").onclick = () => {
 };
 $<HTMLButtonElement>("rust-copy").onclick = async () => {
   try {
-    await navigator.clipboard.writeText($<HTMLElement>("rust-output").textContent ?? "");
+    await navigator.clipboard.writeText(generatedRustEditor.state.doc.toString());
     setStatus("Código Rust copiado.", "ok");
   } catch (error) {
     setStatus(String(error), "error");
   }
 };
 $<HTMLButtonElement>("rust-save").onclick = async () => {
-  const code = $<HTMLElement>("rust-output").textContent ?? "";
+  const code = generatedRustEditor.state.doc.toString();
   try {
     const path = await saveDialog({ defaultPath: "programa.rs", filters: [{ name: "Rust", extensions: ["rs"] }] });
     if (!path) return;
@@ -3057,7 +3063,7 @@ $<HTMLButtonElement>("rust-save").onclick = async () => {
   }
 };
 $<HTMLButtonElement>("rust-detach").onclick = () => {
-  const code = $<HTMLElement>("rust-output").textContent ?? "";
+  const code = generatedRustEditor.state.doc.toString();
   if (!code || activeTab()?.language === "rust") return;
   const tab = newTab(code, null, undefined, undefined, undefined, "rust");
   $<HTMLElement>("rust-preview").hidden = true;
@@ -3175,46 +3181,27 @@ function scheduleRustExport() {
 function renderRustPreview(tab: Tab) {
   if (activeTab()?.id !== tab.id) return;
   const state = tab.rustPreview;
-  const output = $<HTMLElement>("rust-output");
   const status = $<HTMLElement>("rust-status");
   const copy = $<HTMLButtonElement>("rust-copy");
   const save = $<HTMLButtonElement>("rust-save");
   const detach = $<HTMLButtonElement>("rust-detach");
   const artifact = state?.artifact;
 
-  const artifactKey = artifact ?? null;
   const stale = Boolean(state?.stale);
-  if (renderedRustArtifact === undefined || renderedRustArtifact !== artifactKey || renderedRustPreviewStale !== stale) {
-    output.replaceChildren();
-    if (artifact) {
-      const segments = mappedPreviewSegments(artifact.code, artifact.sourceMap);
-      let cursor = 0;
-      for (const segment of segments) {
-        if (segment.from < cursor) continue;
-        output.append(document.createTextNode(artifact.code.slice(cursor, segment.from)));
-        if (stale) {
-          output.append(document.createTextNode(artifact.code.slice(segment.from, segment.to)));
-        } else {
-          const mapped = document.createElement("button");
-          mapped.type = "button";
-          mapped.className = "rust-mapped-segment";
-          mapped.dataset.sourceLine = String(segment.sourceLine);
-          mapped.dataset.generatedLine = String(segment.generatedLine);
-          mapped.textContent = artifact.code.slice(segment.from, segment.to);
-          mapped.title = segment.quality === "approximate"
-            ? `Localização aproximada: linha ${segment.sourceLine} da origem`
-            : `Ir para linha ${segment.sourceLine} da origem`;
-          mapped.setAttribute("aria-label", mapped.title);
-          mapped.onclick = () => goTo(segment.sourceOffset);
-          output.append(mapped);
-        }
-        cursor = segment.to;
-      }
-      output.append(document.createTextNode(artifact.code.slice(cursor)));
-    }
-    renderedRustArtifact = artifactKey;
-    renderedRustPreviewStale = stale;
-  }
+  const code = artifact?.code ?? "";
+  const mappings: GeneratedRustMapping[] = artifact && !stale
+    ? mappedPreviewSegments(artifact.code, artifact.sourceMap).map((segment) => ({
+      ...segment,
+      quality: segment.quality === "approximate" ? "approximate" : "exact",
+    }))
+    : [];
+  const generatedDocument = generatedRustEditor.state.doc;
+  const mappingEffect = generatedRustMappings.of(mappings);
+  if (generatedDocument.toString() === code) generatedRustEditor.dispatch({ effects: mappingEffect });
+  else generatedRustEditor.dispatch({
+    changes: { from: 0, to: generatedDocument.length, insert: code },
+    effects: mappingEffect,
+  });
 
   rustMappingLinks = artifact && !state?.stale ? sourceMapLinks(artifact.sourceMap) : [];
   rustMappingState = state?.stale ? "stale" : state?.error && !artifact ? "error" : artifact ? "ready" : state?.pending ? "generating" : "idle";
@@ -3229,7 +3216,7 @@ function renderRustPreview(tab: Tab) {
   } else if (state?.pending) {
     status.textContent = "Atualizando tradução…";
   } else if (artifact) {
-    status.textContent = "Tradução disponível para copiar ou salvar.";
+    status.textContent = "Tradução disponível para copiar ou salvar. Clique em um trecho mapeado ou pressione F12 para voltar à origem.";
   } else {
     status.textContent = "Documento Rust independente; a prévia gerada não altera este arquivo.";
   }
@@ -3289,13 +3276,12 @@ function renderMappingGutter() {
 }
 
 function focusRustMapping(link: SourceMapLink) {
-  const output = $<HTMLElement>("rust-output");
-  const mapped = [...output.querySelectorAll<HTMLButtonElement>(".rust-mapped-segment")]
-    .find((button) => button.dataset.sourceLine === String(link.sourceLine)
-      && button.dataset.generatedLine === String(link.generatedLine));
-  if (!mapped) return;
-  mapped.scrollIntoView({ block: "center", inline: "nearest" });
-  mapped.focus();
+  const document = generatedRustEditor.state.doc;
+  if (link.generatedLine < 1 || link.generatedLine > document.lines) return;
+  const line = document.line(link.generatedLine);
+  const position = Math.max(line.from, Math.min(line.to, link.generatedOffset));
+  generatedRustEditor.dispatch({ selection: { anchor: position }, scrollIntoView: true });
+  generatedRustEditor.focus();
 }
 
 function cycleTab(step: number) {
