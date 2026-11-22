@@ -62,7 +62,14 @@ test("diff summary uses natural Portuguese singular and reports coarse or trunca
 
   const large = Array(1_000).fill("x").join("\n");
   const coarse = diffGeneratedRust(large, Array(1_000).fill("different").join("\n"));
-  assert.match(generatedRustDiffSummary(coarse), /Arquivo extenso: diferenças agrupadas por trecho/);
+  assert.match(generatedRustDiffSummary(coarse), /Trecho agrupado/);
+
+  const ordered = Array.from({ length: 1_000 }, (_, index) => `linha ${index}`);
+  const reordered = [...ordered.slice(1), ordered[0]];
+  const aggregated = diffGeneratedRust(ordered.join("\n"), reordered.join("\n"));
+  const aggregateSummary = generatedRustDiffSummary(aggregated);
+  assert.match(aggregateSummary, /pode incluir linhas sem alteração/);
+  assert.doesNotMatch(aggregateSummary, /1000 linhas adicionadas, 1000 linhas removidas/);
 
   const manyLines = Array(6_000).fill("x").join("\n");
   const truncated = diffGeneratedRust(manyLines, "different\n" + Array(6_000).fill("y").join("\n"));

@@ -16,10 +16,16 @@ export interface GeneratedRustDiff {
 }
 
 export function generatedRustDiffSummary(diff: GeneratedRustDiff): string {
-  const addedLabel = diff.added === 1 ? "linha adicionada" : "linhas adicionadas";
-  const removedLabel = diff.removed === 1 ? "linha removida" : "linhas removidas";
-  let summary = `${diff.added} ${addedLabel}, ${diff.removed} ${removedLabel}.`;
-  if (diff.coarse) summary += " Arquivo extenso: diferenças agrupadas por trecho.";
+  let summary: string;
+  if (diff.coarse) {
+    const currentLabel = diff.added === 1 ? "linha" : "linhas";
+    const previousLabel = diff.removed === 1 ? "linha" : "linhas";
+    summary = `Trecho agrupado: ${diff.added} ${currentLabel} na versão atual e ${diff.removed} ${previousLabel} na anterior; pode incluir linhas sem alteração.`;
+  } else {
+    const addedLabel = diff.added === 1 ? "linha adicionada" : "linhas adicionadas";
+    const removedLabel = diff.removed === 1 ? "linha removida" : "linhas removidas";
+    summary = `${diff.added} ${addedLabel}, ${diff.removed} ${removedLabel}.`;
+  }
   if (diff.truncated) summary += " Exibição limitada às primeiras linhas para manter a interface responsiva.";
   return summary;
 }
