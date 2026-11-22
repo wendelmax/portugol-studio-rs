@@ -2722,6 +2722,8 @@ name = "portugol-cli"
 version = "0.1.0"
 dependencies = [
  "portugol-bytecode",
+ "portugol-rs-frontend",
+ "portugol-rust",
  "portugol-semantics",
  "portugol-syntax",
  "portugol-vm",
