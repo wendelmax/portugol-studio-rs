@@ -164,15 +164,17 @@ export type PortugolRsRunResult =
       diagnostics: PortugolRsCompileDiagnostic[];
       stderr: string;
     }
+  | { status: "compile_limit"; stderr: string; reason: "time" | "output" }
   | {
       status: "runtime_limit";
       stdout: string;
       stderr: string;
       reason: "time" | "output" | "string_memory";
-    };
+    }
+  | { status: "cancelled"; phase: "compilation" | "runtime"; stdout: string; stderr: string };
 export const rustToolchainAvailable = () => invoke<boolean>("rust_toolchain_available");
-export const runPortugolRs = (source: string) =>
-  invoke<PortugolRsRunResult>("run_portugol_rs", { source });
+export const runPortugolRs = (id: number, source: string) =>
+  invoke<PortugolRsRunResult>("run_portugol_rs", { id, source });
 
 export interface RustSourceCompileDiagnostic {
   severity: string;

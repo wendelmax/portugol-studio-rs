@@ -220,10 +220,27 @@ fn rust_toolchain_available() -> bool {
 }
 
 #[tauri::command]
-async fn run_portugol_rs(source: String) -> Result<portugol_service::PortugolRsRunResult, String> {
-    tauri::async_runtime::spawn_blocking(move || portugol_service::run_portugol_rs(&source))
-        .await
-        .map_err(|error| error.to_string())?
+async fn run_portugol_rs(
+    runs: State<'_, Runs>,
+    id: u32,
+    source: String,
+) -> Result<portugol_service::PortugolRsRunResult, String> {
+    let cancellation = runs
+        .rust_source_cancellations
+        .lock()
+        .unwrap_or_else(|error| error.into_inner())
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| "A execução Portugol-RS não está mais registrada.".to_string())?;
+    let joined = tauri::async_runtime::spawn_blocking(move || {
+        portugol_service::run_portugol_rs_with_cancel(&source, &cancellation)
+    })
+    .await;
+    runs.rust_source_cancellations
+        .lock()
+        .unwrap_or_else(|error| error.into_inner())
+        .remove(&id);
+    joined.map_err(|error| error.to_string())?
 }
 
 #[tauri::command]

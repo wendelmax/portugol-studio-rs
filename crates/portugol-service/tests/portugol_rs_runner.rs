@@ -1,4 +1,8 @@
-use portugol_service::run_portugol_rs;
+use portugol_service::{
+    PortugolRsRunPhase, PortugolRsRunResult, run_portugol_rs, run_portugol_rs_with_cancel,
+};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 #[test]
 fn compiles_and_runs_supported_portugol_rs_with_real_rustc() {
@@ -19,6 +23,43 @@ fn compiles_and_runs_supported_portugol_rs_with_real_rustc() {
         }
         other => panic!("esperava execução bem-sucedida, recebido {other:?}"),
     }
+}
+
+#[test]
+fn reports_typed_cancellation_during_portugol_rs_compilation() {
+    let cancel = AtomicBool::new(true);
+    let result = run_portugol_rs_with_cancel("funcao inicio() { escreva(\"ready\"); }", &cancel)
+        .expect("cancelamento deve ser resultado tipado");
+
+    assert!(matches!(
+        result,
+        PortugolRsRunResult::Cancelled {
+            phase: PortugolRsRunPhase::Compilation,
+            ..
+        }
+    ));
+}
+
+#[test]
+fn cancels_a_portugol_rs_job_after_starting_its_real_compiler_or_runtime() {
+    let cancel = Arc::new(AtomicBool::new(false));
+    let worker_cancel = Arc::clone(&cancel);
+    let worker = std::thread::spawn(move || {
+        run_portugol_rs_with_cancel(
+            "funcao inicio() { enquanto (verdadeiro) { } }",
+            &worker_cancel,
+        )
+    });
+    let started = std::time::Instant::now();
+    std::thread::sleep(std::time::Duration::from_secs(1));
+    cancel.store(true, Ordering::Release);
+
+    let result = worker
+        .join()
+        .expect("worker deve concluir")
+        .expect("cancelamento deve ser retorno tipado");
+    assert!(matches!(result, PortugolRsRunResult::Cancelled { .. }));
+    assert!(started.elapsed() < std::time::Duration::from_secs(2));
 }
 
 #[test]

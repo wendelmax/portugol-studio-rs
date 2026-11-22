@@ -14,8 +14,16 @@ test("Rust export API exposes generated and source editor ranges", () => {
   assert.match(api, /interface RustExport[\s\S]*sourceMap: SourceMapInfo\[\]/);
 });
 
-test("PORS run API distinguishes execution, compiler diagnostics and runtime limits", () => {
-  assert.match(api, /status: "executed"[\s\S]*status: "compile_error"[\s\S]*diagnostics: PortugolRsCompileDiagnostic\[\][\s\S]*status: "runtime_limit"[\s\S]*reason: "time" \| "output" \| "string_memory"/);
+test("PORS run API distinguishes execution, compiler diagnostics, limits and cancellation", () => {
+  assert.match(api, /status: "executed"[\s\S]*status: "compile_error"[\s\S]*diagnostics: PortugolRsCompileDiagnostic\[\][\s\S]*status: "compile_limit"[\s\S]*status: "runtime_limit"[\s\S]*reason: "time" \| "output" \| "string_memory"[\s\S]*status: "cancelled"/);
+  assert.match(api, /runPortugolRs = \(id: number, source: string\)[\s\S]*\{ id, source \}/);
+});
+
+test("PORS execution uses the shared registered cancellation token", () => {
+  const tauri = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
+  assert.match(tauri, /async fn run_portugol_rs\([\s\S]*id: u32,[\s\S]*run_portugol_rs_with_cancel[\s\S]*remove\(&id\)/);
+  assert.match(main, /api\.registerRustSourceRun\(\)[\s\S]*runId = porsRunId[\s\S]*api\.runPortugolRs\(porsRunId, source\)/);
+  assert.match(main, /result\.status === "cancelled"[\s\S]*Execução Portugol-RS cancelada durante/);
 });
 
 test("standalone Rust API covers compile/runtime limits and Tauri registers the command", () => {
