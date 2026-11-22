@@ -2270,32 +2270,25 @@ body {
 .rust-preview #rust-status { margin: 0; padding: 6px 10px; color: var(--muted); font-size: 12px; }
 .rust-preview #rust-status[data-error="true"] { color: var(--error, #d73a49); }
 .rust-preview #rust-status[data-stale="true"] { color: var(--warning, #a66b00); }
-.rust-preview pre {
+.rust-preview .rust-generated-editor {
   flex: 1;
   min-height: 0;
-  margin: 0;
-  padding: 10px;
-  overflow: auto;
+  overflow: hidden;
+  background: var(--editor-bg);
+}
+.rust-preview .cm-editor {
+  height: 100%;
   color: var(--editor-text);
   background: var(--editor-bg);
-  font: 13px/1.5 var(--mono);
-  white-space: pre;
-  tab-size: 4;
 }
-.rust-preview .rust-mapped-segment {
-  display: inline;
-  border: 0;
-  border-radius: 0;
-  padding: 0;
-  color: inherit;
-  background: transparent;
-  font: inherit;
-  white-space: pre;
+.rust-preview .cm-gutters { background: var(--editor-bg); color: var(--editor-gutter); }
+.rust-preview .cm-scroller { font-family: var(--mono); font-size: 13px; }
+.rust-preview .cm-rust-mapped-segment {
   text-decoration: underline dotted var(--accent);
   text-underline-offset: 3px;
   cursor: pointer;
 }
-.rust-preview .rust-mapped-segment:focus-visible { outline: 1px solid var(--accent); }
+.rust-preview .cm-rust-mapped-segment[data-quality="approximate"] { text-decoration-style: dashed; }
 
 .editor-options {
   position: absolute;
