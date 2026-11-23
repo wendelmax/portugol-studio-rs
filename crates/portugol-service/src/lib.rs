@@ -15,6 +15,7 @@ mod pors_run;
 mod position;
 mod rename;
 mod run;
+mod ui_session;
 
 use serde::Serialize;
 
@@ -49,6 +50,7 @@ pub use run::{
     DebugFrameInfo, DebugInfo, DebugVarInfo, RunHandle, RunLimitReason, RunObserver, RunOptions,
     RunOutcome, start, start_portugol_rs, start_portugol_rs_with_host, start_with_host,
 };
+pub use ui_session::{PorsUiBudgetRequest, PorsUiService};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]

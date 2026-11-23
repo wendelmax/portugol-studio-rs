@@ -782,11 +782,63 @@ fn write_file(path: String, text: String) -> Result<(), String> {
     std::fs::write(&path, text).map_err(|e| format!("não foi possível gravar {path}: {e}"))
 }
 
+#[tauri::command]
+async fn pors_ui_start(
+    ui_sessions: State<'_, Arc<portugol_service::PorsUiService>>,
+    source: String,
+    max_steps: Option<usize>,
+    max_nodes: Option<usize>,
+    max_depth: Option<usize>,
+) -> Result<String, String> {
+    let service = Arc::clone(ui_sessions.inner());
+    let budget = portugol_service::PorsUiBudgetRequest {
+        max_steps,
+        max_nodes,
+        max_depth,
+    };
+    tauri::async_runtime::spawn_blocking(move || service.start(source, budget))
+        .await
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn pors_ui_dispatch(
+    ui_sessions: State<'_, Arc<portugol_service::PorsUiService>>,
+    session_id: u32,
+    kind: String,
+    target_id: String,
+    value: String,
+) -> Result<String, String> {
+    let service = Arc::clone(ui_sessions.inner());
+    tauri::async_runtime::spawn_blocking(move || {
+        service.dispatch(session_id, kind, target_id, value)
+    })
+    .await
+    .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn pors_ui_cancel(
+    ui_sessions: State<'_, Arc<portugol_service::PorsUiService>>,
+    session_id: u32,
+) -> bool {
+    ui_sessions.cancel(session_id)
+}
+
+#[tauri::command]
+fn pors_ui_close(
+    ui_sessions: State<'_, Arc<portugol_service::PorsUiService>>,
+    session_id: u32,
+) -> bool {
+    ui_sessions.close(session_id)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run_app() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(Runs::default())
+        .manage(Arc::new(portugol_service::PorsUiService::new()))
         .manage(workspace::WorkspaceSession::default())
         .manage(open_files::PendingFiles::from_args())
         .manage(graphics::GraphicsWindows::default())
@@ -810,6 +862,10 @@ pub fn run_app() {
             check_cargo_project,
             format_source,
             format_portugol_rs,
+            pors_ui_start,
+            pors_ui_dispatch,
+            pors_ui_cancel,
+            pors_ui_close,
             include_library,
             exercise_catalog,
             check_exercise,

@@ -2341,6 +2341,87 @@ body {
   font: 12px/1.5 var(--mono);
 }
 .rust-diff-output[hidden] { display: none; }
+
+.pors-ui-preview {
+  flex: 0 0 min(40%, 560px);
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+}
+.pors-ui-preview[hidden] { display: none; }
+.pors-ui-preview header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.pors-ui-preview header h2 {
+  flex: 1 1 100px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.pors-ui-preview header div { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.pors-ui-preview header button { padding: 4px 8px; }
+.pors-ui-examples-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.pors-ui-examples-bar select { flex: 1; min-width: 0; }
+.pors-ui-examples-bar button { padding: 4px 8px; }
+.pors-ui-preview #pors-ui-status {
+  margin: 0;
+  padding: 6px 10px;
+  color: var(--muted);
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.pors-ui-preview #pors-ui-status[data-error="true"] { color: var(--error, #d73a49); }
+.pors-ui-canvas {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+  background: var(--editor-bg);
+  color: var(--editor-text);
+}
+.pors-ui-column { display: flex; flex-direction: column; gap: 10px; }
+.pors-ui-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pors-ui-text { margin: 0; line-height: 1.45; }
+.pors-ui-button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: inherit;
+  cursor: pointer;
+}
+.pors-ui-button:disabled { opacity: 0.55; cursor: not-allowed; }
+.pors-ui-input {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: inherit;
+  min-width: 140px;
+}
+.pors-ui-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pors-ui-list-item { list-style: disc; }
 .rust-diff-summary {
   position: sticky;
   top: 0;
