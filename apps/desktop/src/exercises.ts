@@ -1,20 +1,38 @@
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { checkExercise, inspectExercise, listExercises, readFile, type Exercise, type ExerciseCheckResult } from "./api";
+import {
+  checkExercise,
+  checkPorsExercise,
+  inspectExercise,
+  inspectPorsExercise,
+  listExercises,
+  listPorsExercises,
+  readFile,
+  type Exercise,
+  type ExerciseCheckResult,
+  type PorsExerciseSummary,
+} from "./api";
 import { createExerciseOpener } from "./exercise-opening";
 import {
   createExerciseProgress,
   createExerciseEvaluationRunner,
+  createValidatedExerciseGrader,
   exerciseIdentity,
   exerciseOptionLabel,
   exerciseResultSummary,
   exerciseRevisionStatus,
   type ExerciseProgressOutcome,
 } from "./exercise-progress";
+import {
+  formatPorsExerciseOptionValue,
+  formatPorsExerciseOutcome,
+  parsePorsExerciseOptionValue,
+} from "./pors-catalog";
 
 export interface ExerciseDocument {
   exercise: Exercise;
   name: string;
   contents?: string;
+  pors?: PorsExerciseSummary;
 }
 
 export interface ExerciseGrade {
@@ -23,10 +41,28 @@ export interface ExerciseGrade {
   current: boolean;
 }
 
+function porsToExerciseDocument(
+  summary: PorsExerciseSummary,
+  name = summary.title,
+  contents?: string,
+): ExerciseDocument {
+  return {
+    exercise: { id: 0, statement: summary.statement, cases: summary.cases },
+    name,
+    contents,
+    pors: summary,
+  };
+}
+
 export async function readExercise(path: string): Promise<ExerciseDocument> {
   const contents = await readFile(path);
+  const fileName = path.split(/[\\/]/).pop() ?? "Exercício";
+  if (path.toLowerCase().endsWith(".json")) {
+    const summary = await inspectPorsExercise(contents);
+    return porsToExerciseDocument(summary, summary.title || fileName, contents);
+  }
   const exercise = await inspectExercise(contents);
-  return { exercise, name: path.split(/[\\/]/).pop() ?? "Exercício", contents };
+  return { exercise, name: fileName, contents };
 }
 
 export function mountExercises(openSource: (document: ExerciseDocument) => void) {
@@ -44,8 +80,11 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
   const hintItems = hints.querySelector("ul")!;
   let pending: Promise<Exercise[]> | null = null;
   let catalog: Exercise[] = [];
+  let porsCatalog: PorsExerciseSummary[] = [];
   let catalogLoaded = false;
   let modalAttempt = 0;
+  let porsAttempt = 0;
+  const latestPorsByExercise = new Map<string, number>();
   const progress = createExerciseProgress();
   const evaluationRunner = createExerciseEvaluationRunner<ExerciseCheckResult>({
     check: checkExercise,
@@ -54,7 +93,18 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
   });
   async function loadCatalog() {
     if (catalogLoaded) return catalog;
-    pending ??= listExercises();
+    pending ??= Promise.allSettled([listExercises(), listPorsExercises()]).then(([classicResult, porsResult]) => {
+      if (porsResult.status === "fulfilled") {
+        porsCatalog = porsResult.value;
+      }
+      if (classicResult.status === "fulfilled") {
+        return classicResult.value;
+      }
+      if (porsResult.status === "fulfilled") {
+        return [];
+      }
+      throw classicResult.reason;
+    });
     try {
       catalog = await pending;
       catalogLoaded = true;
@@ -67,21 +117,62 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
   const openById = createExerciseOpener(loadCatalog, openSource);
 
   function showExercise() {
+    const porsId = parsePorsExerciseOptionValue(list.value);
+    if (porsId !== null) {
+      const porsExercise = porsCatalog.find(({ id }) => id === porsId);
+      statement.textContent = porsExercise
+        ? `${porsExercise.statement}\n\nCasos de teste (.pors): ${porsExercise.cases}`
+        : "";
+      solve.disabled = !porsExercise;
+      return;
+    }
     const exercise = catalog.find(({ id }) => id === Number(list.value));
     statement.textContent = exercise ? `${exercise.statement}\n\nCasos de teste: ${exercise.cases}` : "";
     solve.disabled = !exercise;
   }
 
   function renderCatalog() {
-    list.replaceChildren(...catalog.map(({ id }) => new Option(
-      exerciseOptionLabel(`Exercício ${id}`, progress.hasPassed(`builtin:${id}`)),
-      String(id),
-    )));
+    const nodes: Array<HTMLOptionElement | HTMLOptGroupElement> = [];
+    if (porsCatalog.length > 0) {
+      const porsGroup = document.createElement("optgroup");
+      porsGroup.label = "Portugol-RS (.pors)";
+      for (const item of porsCatalog) {
+        porsGroup.append(
+          new Option(
+            exerciseOptionLabel(item.title, progress.hasPassed(`pors:${item.id}`)),
+            formatPorsExerciseOptionValue(item.id),
+          ),
+        );
+      }
+      nodes.push(porsGroup);
+    }
+    if (catalog.length > 0) {
+      const classicGroup = document.createElement("optgroup");
+      classicGroup.label = "Portugol clássico (.por)";
+      for (const { id } of catalog) {
+        classicGroup.append(
+          new Option(
+            exerciseOptionLabel(`Exercício ${id}`, progress.hasPassed(`builtin:${id}`)),
+            String(id),
+          ),
+        );
+      }
+      nodes.push(classicGroup);
+    }
+    list.replaceChildren(...nodes);
     showExercise();
   }
 
   list.onchange = showExercise;
   solve.onclick = () => {
+    const porsId = parsePorsExerciseOptionValue(list.value);
+    if (porsId !== null) {
+      const porsExercise = porsCatalog.find(({ id }) => id === porsId);
+      if (!porsExercise) return;
+      chooser.close();
+      openSource(porsToExerciseDocument(porsExercise));
+      return;
+    }
     const exercise = catalog.find(({ id }) => id === Number(list.value));
     if (!exercise) return;
     chooser.close();
@@ -92,7 +183,11 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
     open.disabled = true;
     loadError.hidden = true;
     try {
-      const path = await openDialog({ filters: [{ name: "Exercício do Portugol", extensions: ["pex"] }] });
+      const path = await openDialog({
+        filters: [
+          { name: "Exercício Portugol-RS / Portugol", extensions: ["json", "pex"] },
+        ],
+      });
       if (typeof path !== "string" || !chooser.open) return;
       const document = await readExercise(path);
       if (!chooser.open) return;
@@ -124,6 +219,28 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
     source: string,
     isCurrent: () => boolean = () => true,
   ): Promise<ExerciseGrade> {
+    if (exerciseDocument.pors) {
+      const pors = exerciseDocument.pors;
+      const scope = `pors:${pors.id}:${exerciseDocument.contents ?? "builtin"}`;
+      const request = ++porsAttempt;
+      latestPorsByExercise.set(scope, request);
+      try {
+        const isRunCurrent = () => latestPorsByExercise.get(scope) === request && isCurrent();
+        const grader = createValidatedExerciseGrader(
+          async (gradedSource) =>
+            formatPorsExerciseOutcome(
+              await checkPorsExercise(pors.id, gradedSource, exerciseDocument.contents),
+            ),
+          progress,
+          `pors:${pors.id}`,
+          isRunCurrent,
+        );
+        const { evaluation, result } = await grader(source);
+        return { evaluation, progress: result, current: isCurrent() };
+      } finally {
+        if (latestPorsByExercise.get(scope) === request) latestPorsByExercise.delete(scope);
+      }
+    }
     return evaluationRunner.evaluate(exerciseDocument, source, isCurrent);
   }
 
@@ -137,7 +254,7 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
     hintItems.replaceChildren();
     results.showModal();
     try {
-      const { evaluation: result, progress: progressResult, current } = await evaluationRunner.evaluate(
+      const { evaluation: result, progress: progressResult, current } = await evaluate(
         exerciseDocument,
         source,
         () => id === modalAttempt && isCurrent(),

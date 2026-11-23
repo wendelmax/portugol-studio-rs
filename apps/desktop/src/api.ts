@@ -343,6 +343,64 @@ export async function porsUiDispatch(sessionId: number, event: UiEvent): Promise
 export const porsUiCancel = (sessionId: number) => invoke<boolean>("pors_ui_cancel", { sessionId });
 export const porsUiClose = (sessionId: number) => invoke<boolean>("pors_ui_close", { sessionId });
 
+export interface PorsExampleInfo {
+  id: string;
+  category: string;
+  title: string;
+  file_name: string;
+  description: string;
+  is_visual: boolean;
+  license: string;
+  source: string;
+}
+
+export interface PorsExerciseSummary {
+  schema_version: number;
+  id: string;
+  title: string;
+  statement: string;
+  starter_code: string;
+  hints: string[];
+  cases: number;
+}
+
+export type PorsExerciseStatus =
+  | "passed"
+  | "failed"
+  | "compile_error"
+  | "runtime_error"
+  | "limit_exceeded";
+
+export interface PorsExerciseCaseOutcome {
+  name: string;
+  passed: boolean;
+  expected_output: string;
+  actual_output: string;
+  error: string | null;
+}
+
+export interface PorsExerciseEvaluation {
+  schema_version: number;
+  exercise_id: string;
+  status: PorsExerciseStatus;
+  total: number;
+  passed: number;
+  cases: PorsExerciseCaseOutcome[];
+  diagnostics: string[];
+  hints: string[];
+}
+
+export const listPorsExamples = () => invoke<PorsExampleInfo[]>("pors_example_catalog");
+export const listPorsExercises = () => invoke<PorsExerciseSummary[]>("pors_exercise_catalog");
+export const checkPorsExercise = (id: string | null, source: string, exerciseJson?: string) =>
+  invoke<PorsExerciseEvaluation>("check_pors_exercise", {
+    id,
+    source,
+    exerciseJson: exerciseJson ?? null,
+  });
+export const inspectPorsExercise = (rawJson: string) =>
+  invoke<PorsExerciseSummary>("inspect_pors_exercise", { rawJson });
+
 export const exampleCatalog = () => invoke<CatalogEntry[]>("example_catalog");
 export const openExample = (file: string) => invoke<{ source: string; workPath: string }>("open_example", { file });
 export const examplePreview = (file: string) => invoke<ArrayBuffer>("example_preview", { file });
