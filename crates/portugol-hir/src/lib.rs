@@ -279,6 +279,11 @@ pub enum ExprKind {
         function: FunctionId,
         arguments: Vec<Expr>,
     },
+    HostCall {
+        module: String,
+        name: String,
+        arguments: Vec<Expr>,
+    },
     RecordLiteral {
         type_id: TypeId,
         fields: Vec<Expr>,

@@ -353,3 +353,97 @@ funcao inicio() {}
         .expect_err("limite de memória de cadeias deve encerrar o evento");
     assert_eq!(err.limit, Some(RuntimeLimitReason::StringMemory));
 }
+
+#[test]
+fn runs_end_to_end_pors_source_with_records_enums_and_ui_calls_in_ui_session() {
+    let source = r#"
+enum Acao { Pronto, Editado }
+
+registro Estado {
+    contagem: inteiro,
+    nome: cadeia,
+    acao: Acao
+}
+
+funcao iniciar() -> Estado {
+    retorne Estado { contagem: 0, nome: "Visitante", acao: Acao::Pronto };
+}
+
+funcao atualizar(estado: Estado, tipo: cadeia, alvo: cadeia, valor: cadeia) -> Estado {
+    se (tipo == "clique" && alvo == "inc") {
+        retorne Estado { contagem: estado.contagem + 1, nome: estado.nome, acao: Acao::Editado };
+    }
+    se (tipo == "entrada_alterada" && alvo == "nome") {
+        retorne Estado { contagem: estado.contagem, nome: valor, acao: Acao::Editado };
+    }
+    retorne estado;
+}
+
+funcao visualizar(estado: Estado) -> inteiro {
+    seja mutavel selo: cadeia = "pronto";
+    escolha estado.acao {
+        caso Acao::Pronto => { selo = "pronto"; }
+        caso Acao::Editado => { selo = "editado"; }
+    }
+    retorne UI.coluna([
+        UI.texto("Olá, ", estado.nome, " | total=", estado.contagem, " | ", selo),
+        UI.linha([
+            UI.botao("inc", "+1"),
+            UI.entrada("nome", estado.nome, "Digite seu nome")
+        ]),
+        UI.lista([UI.texto("Passo ", estado.contagem)])
+    ]);
+}
+"#;
+    let hir = portugol_rs_frontend::lower(source).expect("fonte PORS visual válida");
+    let module = portugol_bytecode::compile_pors(&hir).expect("bytecode PORS visual válido");
+    let mut io = BufferIo::default();
+    let mut session = UiSession::start(
+        &module,
+        &mut io,
+        UiBudget::default(),
+        Arc::new(AtomicBool::new(false)),
+    )
+    .expect("iniciar sessão MVU a partir de fonte .pors");
+
+    assert!(
+        session
+            .tree()
+            .to_json()
+            .contains("\"content\":\"Olá, Visitante | total=0 | pronto\"")
+    );
+
+    let after_click = session
+        .dispatch(UiEvent::Click { id: "inc".into() }, &mut io)
+        .expect("despachar clique");
+    assert!(
+        after_click
+            .tree
+            .to_json()
+            .contains("\"content\":\"Olá, Visitante | total=1 | editado\"")
+    );
+    assert!(
+        after_click.tree.to_json().contains(
+            "\"kind\":\"lista\",\"items\":[{\"kind\":\"texto\",\"content\":\"Passo 1\"}]"
+        )
+    );
+
+    let after_input = session
+        .dispatch(
+            UiEvent::InputChanged {
+                id: "nome".into(),
+                value: "Ada".into(),
+            },
+            &mut io,
+        )
+        .expect("despachar entrada_alterada");
+    assert!(
+        after_input
+            .tree
+            .to_json()
+            .contains("\"content\":\"Olá, Ada | total=1 | editado\"")
+    );
+    assert!(after_input.tree.to_json().contains(
+        "\"kind\":\"entrada\",\"id\":\"nome\",\"value\":\"Ada\",\"placeholder\":\"Digite seu nome\""
+    ));
+}

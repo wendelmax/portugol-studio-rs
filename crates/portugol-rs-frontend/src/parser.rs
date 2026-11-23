@@ -35,6 +35,7 @@ struct FunctionSignature {
     id: Option<hir::FunctionId>,
     parameters: Vec<FunctionParameter>,
     return_type: Option<hir::Type>,
+    span: Span,
 }
 
 #[derive(Clone, Copy)]
@@ -113,14 +114,17 @@ impl Parser {
             self.in_function = false;
             self.loop_depth = 0;
         }
-        let bindings = bindings.ok_or_else(|| {
-            vec![Diagnostic::error(
-                "pors.entry-function",
-                "O programa precisa declarar uma única função inicio()",
-                self.current().span,
-            )]
-        })?;
-        let body = body.expect("bindings e body são definidos juntos para inicio");
+        let (bindings, body) = match (bindings, body) {
+            (Some(bindings), Some(body)) => (bindings, body),
+            _ if self.has_mvu_entry_triple() => (Vec::new(), Vec::new()),
+            _ => {
+                return Err(vec![Diagnostic::error(
+                    "pors.entry-function",
+                    "O programa precisa declarar uma única função inicio()",
+                    self.current().span,
+                )]);
+            }
+        };
         let end = self.previous_span().end;
         Ok(hir::Program {
             record_types: std::mem::take(&mut self.record_types),
@@ -171,13 +175,100 @@ impl Parser {
             self.skip_function_body()?;
         }
         if !self.signatures.contains_key("inicio") {
-            return self.fail(
-                "pors.entry-function",
-                "O programa precisa declarar uma função inicio()",
-                self.current().span,
-            );
+            if self.has_mvu_entry_triple() {
+                self.validate_mvu_entry_signatures()?;
+            } else {
+                return self.fail(
+                    "pors.entry-function",
+                    "O programa precisa declarar uma função inicio()",
+                    self.current().span,
+                );
+            }
         }
         self.cursor = 0;
+        Ok(())
+    }
+
+    fn has_mvu_entry_triple(&self) -> bool {
+        self.signatures.contains_key("iniciar")
+            && self.signatures.contains_key("atualizar")
+            && self.signatures.contains_key("visualizar")
+    }
+
+    fn validate_mvu_entry_signatures(&self) -> Result<(), Vec<Diagnostic>> {
+        let init = &self.signatures["iniciar"];
+        let Some(state_ty) = init.return_type else {
+            return self.fail(
+                "pors.ui-entry-signature",
+                "A função `iniciar` precisa retornar o tipo de estado da interface",
+                init.span,
+            );
+        };
+        if !init.parameters.is_empty() {
+            return self.fail(
+                "pors.ui-entry-signature",
+                "A função `iniciar` não deve receber parâmetros",
+                init.span,
+            );
+        }
+
+        let update = &self.signatures["atualizar"];
+        if !(2..=4).contains(&update.parameters.len()) {
+            return self.fail(
+                "pors.ui-entry-signature",
+                "A função `atualizar` deve receber entre 2 e 4 parâmetros (estado e dados do evento)",
+                update.span,
+            );
+        }
+        if update.parameters[0].ty != state_ty {
+            return self.fail(
+                "pors.ui-entry-signature",
+                "O primeiro parâmetro de `atualizar` precisa ter o mesmo tipo retornado por `iniciar`",
+                update.parameters[0].span,
+            );
+        }
+        for param in &update.parameters[1..] {
+            if param.ty != hir::Type::String {
+                return self.fail(
+                    "pors.ui-entry-signature",
+                    format!(
+                        "O parâmetro `{}` de `atualizar` deve ter tipo `cadeia`",
+                        param.name
+                    ),
+                    param.span,
+                );
+            }
+        }
+        if update.return_type != Some(state_ty) {
+            return self.fail(
+                "pors.ui-entry-signature",
+                "A função `atualizar` precisa retornar o mesmo tipo de estado de `iniciar`",
+                update.span,
+            );
+        }
+
+        let view = &self.signatures["visualizar"];
+        if view.parameters.len() != 1 {
+            return self.fail(
+                "pors.ui-entry-signature",
+                "A função `visualizar` deve receber exatamente 1 parâmetro (o estado atual)",
+                view.span,
+            );
+        }
+        if view.parameters[0].ty != state_ty {
+            return self.fail(
+                "pors.ui-entry-signature",
+                "O parâmetro de `visualizar` precisa ter o mesmo tipo retornado por `iniciar`",
+                view.parameters[0].span,
+            );
+        }
+        if view.return_type != Some(hir::Type::Integer) {
+            return self.fail(
+                "pors.ui-entry-signature",
+                "A função `visualizar` deve retornar `inteiro` (identificador do nó raiz de UI)",
+                view.span,
+            );
+        }
         Ok(())
     }
 
@@ -239,6 +330,7 @@ impl Parser {
                 id: None,
                 parameters,
                 return_type,
+                span: header_span,
             },
         ))
     }
@@ -1397,6 +1489,12 @@ impl Parser {
                 (hir::ExprKind::Boolean(false), hir::Type::Boolean)
             }
             Kind::Ident(name) => {
+                if name == "UI"
+                    && matches!(self.current().kind, Kind::Dot)
+                    && self.lookup("UI").is_none()
+                {
+                    return self.ui_host_call(span);
+                }
                 if matches!(self.current().kind, Kind::ColonColon) {
                     self.advance();
                     let (variant_name, variant_span) = self.identifier()?;
@@ -1732,6 +1830,135 @@ impl Parser {
             kind,
             ty,
             span: to_hir_span(span),
+        })
+    }
+
+    fn ui_host_call(&mut self, start: Span) -> Result<hir::Expr, Vec<Diagnostic>> {
+        self.advance(); // '.'
+        let (component, component_span) = self.identifier()?;
+        self.expect(Kind::LParen, "Esperado `(` após componente de UI")?;
+        let mut arguments = Vec::new();
+        if !matches!(self.current().kind, Kind::RParen) {
+            loop {
+                arguments.push(self.expression(0)?);
+                if !self.eat(&Kind::Comma) {
+                    break;
+                }
+            }
+        }
+        let close = self.expect(Kind::RParen, "Esperado `)` após argumentos de UI")?;
+        let whole_span = start.join(close.span);
+
+        match component.as_str() {
+            "texto" => {
+                if arguments.is_empty() {
+                    return self.fail(
+                        "pors.ui-call-arity",
+                        "`UI.texto` espera pelo menos 1 argumento",
+                        whole_span,
+                    );
+                }
+                for argument in &arguments {
+                    if !matches!(
+                        argument.ty,
+                        hir::Type::String
+                            | hir::Type::Integer
+                            | hir::Type::Real
+                            | hir::Type::Boolean
+                            | hir::Type::Character
+                    ) {
+                        return self.fail(
+                            "pors.ui-call-type-mismatch",
+                            format!(
+                                "`UI.texto` espera valores escalares (cadeia, inteiro, real, logico ou caracter), recebeu `{}`",
+                                type_label(argument.ty)
+                            ),
+                            syntax_span(argument.span),
+                        );
+                    }
+                }
+            }
+            "botao" => {
+                if arguments.len() != 2 {
+                    return self.fail(
+                        "pors.ui-call-arity",
+                        format!(
+                            "`UI.botao` espera 2 argumentos (id, rotulo), recebeu {}",
+                            arguments.len()
+                        ),
+                        whole_span,
+                    );
+                }
+                for (index, label) in [(0, "id"), (1, "rotulo")] {
+                    if arguments[index].ty != hir::Type::String {
+                        return self.fail(
+                            "pors.ui-call-type-mismatch",
+                            format!("O argumento `{label}` de `UI.botao` deve ter tipo `cadeia`"),
+                            syntax_span(arguments[index].span),
+                        );
+                    }
+                }
+            }
+            "entrada" => {
+                if arguments.len() != 3 {
+                    return self.fail(
+                        "pors.ui-call-arity",
+                        format!(
+                            "`UI.entrada` espera 3 argumentos (id, valor, dica), recebeu {}",
+                            arguments.len()
+                        ),
+                        whole_span,
+                    );
+                }
+                for (index, label) in [(0, "id"), (1, "valor"), (2, "dica")] {
+                    if arguments[index].ty != hir::Type::String {
+                        return self.fail(
+                            "pors.ui-call-type-mismatch",
+                            format!("O argumento `{label}` de `UI.entrada` deve ter tipo `cadeia`"),
+                            syntax_span(arguments[index].span),
+                        );
+                    }
+                }
+            }
+            "coluna" | "linha" | "lista" => {
+                if arguments.len() != 1 {
+                    return self.fail(
+                        "pors.ui-call-arity",
+                        format!(
+                            "`UI.{component}` espera 1 argumento (vetor<inteiro>), recebeu {}",
+                            arguments.len()
+                        ),
+                        whole_span,
+                    );
+                }
+                if arguments[0].ty != hir::Type::VectorInteger {
+                    return self.fail(
+                        "pors.ui-call-type-mismatch",
+                        format!(
+                            "`UI.{component}` espera `vetor<inteiro>`, recebeu `{}`",
+                            type_label(arguments[0].ty)
+                        ),
+                        syntax_span(arguments[0].span),
+                    );
+                }
+            }
+            _ => {
+                return self.fail(
+                    "pors.unknown-ui-component",
+                    format!("Componente visual desconhecido: UI.{component}"),
+                    component_span,
+                );
+            }
+        }
+
+        Ok(hir::Expr {
+            kind: hir::ExprKind::HostCall {
+                module: "UI".into(),
+                name: component,
+                arguments,
+            },
+            ty: hir::Type::Integer,
+            span: to_hir_span(whole_span),
         })
     }
 

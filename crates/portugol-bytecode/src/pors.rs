@@ -4,7 +4,7 @@ use portugol_hir as hir;
 use portugol_syntax::{Span, ast::Type};
 
 use crate::op::{
-    Function, LocalInfo, Module, Op, PorsDebugField, PorsDebugShape, PorsDebugType,
+    Function, LocalInfo, Module, NativeRef, Op, PorsDebugField, PorsDebugShape, PorsDebugType,
     PorsDebugVariant, ValueType,
 };
 
@@ -15,7 +15,7 @@ pub struct PorsCompileError {
 }
 
 pub fn compile_pors(program: &hir::Program) -> Result<Module, PorsCompileError> {
-    Compiler::compile_program(program)
+    compile_program(program)
 }
 
 struct LoopFrame {
@@ -25,22 +25,99 @@ struct LoopFrame {
     continue_scope_depth: usize,
 }
 
-struct Compiler {
+struct Compiler<'a> {
     code: Vec<Op>,
     spans: Vec<Span>,
     locals: Vec<LocalInfo>,
     strings: Vec<String>,
+    natives: &'a mut Vec<NativeRef>,
     loops: Vec<LoopFrame>,
     scope_locals: Vec<Vec<u32>>,
     scope_shadowed: Vec<Vec<u32>>,
     function_vector_parameters: Vec<Vec<bool>>,
 }
 
-impl Compiler {
+fn compile_program(program: &hir::Program) -> Result<Module, PorsCompileError> {
+    let mut functions = Vec::with_capacity(program.functions.len() + 1);
+    let mut strings = Vec::new();
+    let mut natives = Vec::new();
+    let mut ordered: Vec<_> = program.functions.iter().collect();
+    ordered.sort_by_key(|function| function.id.0);
+    let function_vector_parameters: Vec<Vec<bool>> = ordered
+        .iter()
+        .map(|function| {
+            function
+                .parameters
+                .iter()
+                .map(|id| {
+                    let ty = function.bindings[id.0 as usize].ty;
+                    ty.is_vector() || matches!(ty, hir::Type::Record(_) | hir::Type::Enum(_))
+                })
+                .collect()
+        })
+        .collect();
+    for function in ordered {
+        let (compiled, function_strings) = Compiler::compile_function(
+            &function.source_name,
+            &function.bindings,
+            &function.body,
+            function
+                .return_type
+                .map(value_type_hir)
+                .unwrap_or(ValueType::Vazio),
+            function.parameters.len() as u32,
+            function.span,
+            function_vector_parameters.clone(),
+            program,
+            &mut natives,
+        )?;
+        let base = strings.len() as u32;
+        let mut compiled = compiled;
+        for op in &mut compiled.code {
+            if let Op::PushStr(index) = op {
+                *index += base;
+            }
+        }
+        strings.extend(function_strings);
+        functions.push(compiled);
+    }
+    let entry = functions.len() as u32;
+    let (compiled, function_strings) = Compiler::compile_function(
+        "inicio",
+        &program.bindings,
+        &program.body,
+        ValueType::Vazio,
+        0,
+        program.span,
+        function_vector_parameters.clone(),
+        program,
+        &mut natives,
+    )?;
+    let base = strings.len() as u32;
+    let mut compiled = compiled;
+    for op in &mut compiled.code {
+        if let Op::PushStr(index) = op {
+            *index += base;
+        }
+    }
+    strings.extend(function_strings);
+    functions.push(compiled);
+    Ok(Module {
+        functions,
+        entry,
+        globals: vec![],
+        strings,
+        natives,
+        native_consts: vec![],
+    })
+}
+
+impl<'a> Compiler<'a> {
     fn new(
         bindings: &[hir::Binding],
         function_vector_parameters: Vec<Vec<bool>>,
         program: &hir::Program,
+        natives: &'a mut Vec<NativeRef>,
     ) -> Self {
         let locals = bindings
             .iter()
@@ -60,6 +137,7 @@ impl Compiler {
             spans: Vec::new(),
             locals,
             strings: Vec::new(),
+            natives,
             loops: Vec::new(),
             scope_locals: vec![Vec::new()],
             scope_shadowed: vec![Vec::new()],
@@ -67,79 +145,23 @@ impl Compiler {
         }
     }
 
-    fn compile_program(program: &hir::Program) -> Result<Module, PorsCompileError> {
-        let mut functions = Vec::with_capacity(program.functions.len() + 1);
-        let mut strings = Vec::new();
-        let mut ordered: Vec<_> = program.functions.iter().collect();
-        ordered.sort_by_key(|function| function.id.0);
-        let function_vector_parameters: Vec<Vec<bool>> = ordered
+    fn intern_native(&mut self, library: &str, name: &str) -> u32 {
+        if let Some(index) = self
+            .natives
             .iter()
-            .map(|function| {
-                function
-                    .parameters
-                    .iter()
-                    .map(|id| {
-                        let ty = function.bindings[id.0 as usize].ty;
-                        ty.is_vector() || matches!(ty, hir::Type::Record(_) | hir::Type::Enum(_))
-                    })
-                    .collect()
-            })
-            .collect();
-        for function in ordered {
-            let (compiled, function_strings) = Self::compile_function(
-                &function.source_name,
-                &function.bindings,
-                &function.body,
-                function
-                    .return_type
-                    .map(value_type_hir)
-                    .unwrap_or(ValueType::Vazio),
-                function.parameters.len() as u32,
-                function.span,
-                function_vector_parameters.clone(),
-                program,
-            )?;
-            let base = strings.len() as u32;
-            let mut compiled = compiled;
-            for op in &mut compiled.code {
-                if let Op::PushStr(index) = op {
-                    *index += base;
-                }
-            }
-            strings.extend(function_strings);
-            functions.push(compiled);
+            .position(|entry| entry.library == library && entry.name == name)
+        {
+            return index as u32;
         }
-        let entry = functions.len() as u32;
-        let (compiled, function_strings) = Self::compile_function(
-            "inicio",
-            &program.bindings,
-            &program.body,
-            ValueType::Vazio,
-            0,
-            program.span,
-            function_vector_parameters.clone(),
-            program,
-        )?;
-        let base = strings.len() as u32;
-        let mut compiled = compiled;
-        for op in &mut compiled.code {
-            if let Op::PushStr(index) = op {
-                *index += base;
-            }
-        }
-        strings.extend(function_strings);
-        functions.push(compiled);
-        Ok(Module {
-            functions,
-            entry,
-            globals: vec![],
-            strings,
-            natives: vec![],
-            native_consts: vec![],
-        })
+        let index = self.natives.len() as u32;
+        self.natives.push(NativeRef {
+            library: library.to_owned(),
+            name: name.to_owned(),
+        });
+        index
     }
 
-    #[allow(clippy::too_many_arguments)] // The final argument supplies nominal debugger metadata.
+    #[allow(clippy::too_many_arguments)] // Metadata de depuração nominal e tabela de nativas do módulo.
     fn compile_function(
         name: &str,
         bindings: &[hir::Binding],
@@ -149,8 +171,9 @@ impl Compiler {
         span: hir::Span,
         function_vector_parameters: Vec<Vec<bool>>,
         program: &hir::Program,
+        natives: &'a mut Vec<NativeRef>,
     ) -> Result<(Function, Vec<String>), PorsCompileError> {
-        let mut self_ = Self::new(bindings, function_vector_parameters, program);
+        let mut self_ = Self::new(bindings, function_vector_parameters, program, natives);
         for local in 0..arity {
             self_.emit(
                 Op::SetLocalActive {
@@ -380,7 +403,9 @@ impl Compiler {
             }
             S::Return { value } => {
                 if let Some(value) = value {
-                    if value.ty.is_vector() || matches!(value.ty, hir::Type::Record(_)) {
+                    if value.ty.is_vector()
+                        || matches!(value.ty, hir::Type::Record(_) | hir::Type::Enum(_))
+                    {
                         self.expr_for_value(value)?;
                     } else {
                         self.expr(value)?;
@@ -619,6 +644,23 @@ impl Compiler {
                 self.emit(
                     Op::Call {
                         function: function.0,
+                        argc: arguments.len() as u32,
+                    },
+                    expr.span,
+                );
+            }
+            E::HostCall {
+                module,
+                name,
+                arguments,
+            } => {
+                for arg in arguments {
+                    self.expr(arg)?;
+                }
+                let native = self.intern_native(module, name);
+                self.emit(
+                    Op::CallNative {
+                        native,
                         argc: arguments.len() as u32,
                     },
                     expr.span,

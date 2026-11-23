@@ -810,6 +810,7 @@ fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedExpression {
             parts.push(ExpressionPart::Text(")".to_owned()));
             parts
         }
+        ExprKind::HostCall { .. } => vec![ExpressionPart::Text("0_i32".to_owned())],
         ExprKind::Integer(value) if *value == i32::MIN => {
             vec![ExpressionPart::Text("i32::MIN".to_owned())]
         }

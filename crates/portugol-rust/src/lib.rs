@@ -125,7 +125,103 @@ pub fn export_portugol_rs(source: &str) -> Result<String, Vec<Diagnostic>> {
 /// Gera Rust para Portugol-RS e preserva os spans HIR de origem.
 pub fn export_portugol_rs_with_map(source: &str) -> Result<GeneratedRust, Vec<Diagnostic>> {
     let hir = portugol_rs_frontend::lower(source)?;
+    if let Some((module, name, span)) = find_first_host_call(&hir) {
+        return Err(vec![Diagnostic::error(
+            "portugol-rust.ui-export-unsupported",
+            format!(
+                "A exportação Rust para chamadas declarativas `{module}.{name}` ainda não está disponível."
+            ),
+            portugol_syntax::Span::new(span.start, span.end),
+        )]);
+    }
     Ok(codegen::render_pors_with_map(&hir))
+}
+
+fn find_first_host_call(
+    program: &portugol_hir::Program,
+) -> Option<(&str, &str, portugol_hir::Span)> {
+    find_host_call_in_stmts(&program.body).or_else(|| {
+        program
+            .functions
+            .iter()
+            .find_map(|function| find_host_call_in_stmts(&function.body))
+    })
+}
+
+fn find_host_call_in_stmts(
+    stmts: &[portugol_hir::Stmt],
+) -> Option<(&str, &str, portugol_hir::Span)> {
+    use portugol_hir::StmtKind as S;
+    for stmt in stmts {
+        let found = match &stmt.kind {
+            S::Declare { initializer, .. } => initializer.as_ref().and_then(find_host_call_in_expr),
+            S::Assign { value, .. } | S::FieldAssign { value, .. } => find_host_call_in_expr(value),
+            S::Choose { value, arms } => find_host_call_in_expr(value).or_else(|| {
+                arms.iter()
+                    .find_map(|arm| find_host_call_in_stmts(&arm.body))
+            }),
+            S::Read { .. } | S::LoopControl { .. } => None,
+            S::Call { arguments, .. } | S::Write(arguments) => {
+                arguments.iter().find_map(find_host_call_in_expr)
+            }
+            S::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => find_host_call_in_expr(condition)
+                .or_else(|| find_host_call_in_stmts(then_branch))
+                .or_else(|| else_branch.as_deref().and_then(find_host_call_in_stmts)),
+            S::While { condition, body } => {
+                find_host_call_in_expr(condition).or_else(|| find_host_call_in_stmts(body))
+            }
+            S::For {
+                initializer,
+                condition,
+                step,
+                body,
+            } => find_host_call_in_stmts(std::slice::from_ref(initializer.as_ref()))
+                .or_else(|| find_host_call_in_expr(condition))
+                .or_else(|| find_host_call_in_stmts(std::slice::from_ref(step.as_ref())))
+                .or_else(|| find_host_call_in_stmts(body)),
+            S::Return { value } => value.as_ref().and_then(find_host_call_in_expr),
+            S::IndexAssign { index, value, .. } => {
+                find_host_call_in_expr(index).or_else(|| find_host_call_in_expr(value))
+            }
+        };
+        if found.is_some() {
+            return found;
+        }
+    }
+    None
+}
+
+fn find_host_call_in_expr(expr: &portugol_hir::Expr) -> Option<(&str, &str, portugol_hir::Span)> {
+    use portugol_hir::ExprKind as E;
+    match &expr.kind {
+        E::HostCall { module, name, .. } => Some((module.as_str(), name.as_str(), expr.span)),
+        E::Call { arguments, .. }
+        | E::VectorLiteral(arguments)
+        | E::RecordLiteral {
+            fields: arguments, ..
+        }
+        | E::EnumConstructor {
+            payload: arguments, ..
+        } => arguments.iter().find_map(find_host_call_in_expr),
+        E::Field { value, .. }
+        | E::Index { index: value, .. }
+        | E::Parenthesized(value)
+        | E::Unary { operand: value, .. } => find_host_call_in_expr(value),
+        E::Binary { left, right, .. } => {
+            find_host_call_in_expr(left).or_else(|| find_host_call_in_expr(right))
+        }
+        E::Binding(_)
+        | E::Length { .. }
+        | E::Integer(_)
+        | E::Real(_)
+        | E::Boolean(_)
+        | E::String(_)
+        | E::Character(_) => None,
+    }
 }
 
 #[cfg(test)]
@@ -1228,6 +1324,21 @@ mod tests {
         assert!(!output.status.success());
         assert!(output.stdout.is_empty());
         std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn rejects_declarative_ui_calls_with_explicit_diagnostic_in_rust_export() {
+        let source = r#"
+funcao iniciar() -> inteiro { retorne 0; }
+funcao atualizar(estado: inteiro, alvo: cadeia) -> inteiro { retorne estado; }
+funcao visualizar(estado: inteiro) -> inteiro { retorne UI.texto("Total: ", estado); }
+"#;
+        let errors = export_portugol_rs(source).unwrap_err();
+        assert!(
+            errors
+                .iter()
+                .any(|d| d.code == "portugol-rust.ui-export-unsupported")
+        );
     }
 
     fn assert_rust_output(generated: String, expected: &str) {

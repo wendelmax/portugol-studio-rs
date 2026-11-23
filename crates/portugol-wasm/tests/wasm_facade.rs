@@ -16,6 +16,7 @@ fn local(name: &str, ty: Type) -> LocalInfo {
         ty,
         dims: 0,
         by_ref: false,
+        pors_debug: None,
     }
 }
 
@@ -318,4 +319,54 @@ fn exercises_exported_c_abi_memory_and_result_buffer() {
     unsafe {
         pors_dealloc(ptr, src_bytes.len());
     }
+}
+
+#[test]
+fn runs_pors_source_mvu_app_end_to_end_through_wasm_session_store() {
+    let source = r#"
+registro Estado {
+    contagem: inteiro,
+    nome: cadeia
+}
+
+funcao iniciar() -> Estado {
+    retorne Estado { contagem: 0, nome: "" };
+}
+
+funcao atualizar(estado: Estado, tipo: cadeia, alvo: cadeia, valor: cadeia) -> Estado {
+    se (tipo == "clique" && alvo == "inc") {
+        retorne Estado { contagem: estado.contagem + 1, nome: estado.nome };
+    }
+    se (tipo == "entrada_alterada" && alvo == "nome") {
+        retorne Estado { contagem: estado.contagem, nome: valor };
+    }
+    retorne estado;
+}
+
+funcao visualizar(estado: Estado) -> inteiro {
+    retorne UI.coluna([
+        UI.texto("Contador (", estado.nome, "): ", estado.contagem),
+        UI.botao("inc", "+1"),
+        UI.entrada("nome", estado.nome, "Nome")
+    ]);
+}
+"#;
+    let mut store = SessionStore::new();
+    let started = store.start_pors(source, UiBudget::default());
+    assert!(started.contains("\"ok\":true"), "{started}");
+    assert!(started.contains("\"session\":1"));
+    assert!(started.contains("\"content\":\"Contador (): 0\""));
+
+    let clicked = store.dispatch(1, "clique", "inc", "");
+    assert!(clicked.contains("\"ok\":true"), "{clicked}");
+    assert!(clicked.contains("\"step\":1"));
+    assert!(clicked.contains("\"content\":\"Contador (): 1\""));
+
+    let typed = store.dispatch(1, "entrada_alterada", "nome", "Grace");
+    assert!(typed.contains("\"ok\":true"), "{typed}");
+    assert!(typed.contains("\"step\":2"));
+    assert!(typed.contains("\"content\":\"Contador (Grace): 1\""));
+    assert!(typed.contains("\"value\":\"Grace\""));
+
+    assert!(store.close(1));
 }
