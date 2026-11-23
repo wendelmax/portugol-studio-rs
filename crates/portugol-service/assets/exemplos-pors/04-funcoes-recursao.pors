@@ -1,0 +1,11 @@
+funcao fatorial(n: inteiro) -> inteiro {
+    se (n <= 1) {
+        retorne 1;
+    } senao {
+        retorne n * fatorial(n - 1);
+    }
+}
+
+funcao inicio() {
+    escreva("5! = ", fatorial(5));
+}

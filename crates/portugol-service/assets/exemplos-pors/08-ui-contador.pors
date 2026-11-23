@@ -1,0 +1,21 @@
+registro Estado {
+    contagem: inteiro
+}
+
+funcao iniciar() -> Estado {
+    retorne Estado { contagem: 0 };
+}
+
+funcao atualizar(estado: Estado, alvo: cadeia) -> Estado {
+    se (alvo == "inc") {
+        retorne Estado { contagem: estado.contagem + 1 };
+    }
+    retorne estado;
+}
+
+funcao visualizar(estado: Estado) -> inteiro {
+    retorne UI.coluna([
+        UI.texto("Contagem: ", estado.contagem),
+        UI.botao("inc", "+1")
+    ]);
+}

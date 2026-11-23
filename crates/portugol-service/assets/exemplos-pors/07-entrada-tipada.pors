@@ -1,0 +1,7 @@
+funcao inicio() {
+    seja mutavel nome: cadeia = "";
+    seja mutavel idade: inteiro = 0;
+    leia(nome);
+    leia(idade);
+    escreva("Olá, ", nome, "! Próxima idade: ", idade + 1);
+}

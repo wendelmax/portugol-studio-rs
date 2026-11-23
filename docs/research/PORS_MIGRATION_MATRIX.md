@@ -57,8 +57,8 @@ Não considerar uma biblioteca portada por implementar apenas o nome do módulo.
 | Workspace/exportação | 🟡 aceita `.por`, `.pors`, `.rs`, `.pex` | Listagem, criação, rename, delete e export só PORS/Rust e exercícios novos |
 | CLI | 🟡 CLI cria (`novo`), valida, formata (`formatar`), exporta Rust (`exportar-rust`) e executa `.pors` na VM, preservando `.por` | Depuração interativa `.pors` no CLI; remover suporte `.por` apenas no gate final |
 | Ajuda/autocomplete/formatador | 🟡 Rust/PORS parcial; conteúdo dominante é Portugol clássico | Referência PORS, snippets, completions, hover e formatador do subset final |
-| Exemplos | ⬜ catálogo atual é do Portugol Studio original | Corpus próprio PORS/Rust, testado, com licença e recursos rastreáveis |
-| Exercícios | ⬜ avaliador/progresso só `.pex` clássico | Formato versionado PORS/Rust, casos executáveis, dicas e progresso por aprovação |
+| Exemplos | 🟡 corpus inicial próprio de 8 exemplos `.pors` (LGPL-3.0-only) validados, formatáveis e executados em testes (`pors_examples`) | Integrar na tela inicial da IDE e expandir corpus mantendo recursos rastreáveis |
+| Exercícios | 🟡 formato JSON versionado (`schema_version = 1`) e avaliador executável com limites (`pors_exercises`, 4 exercícios iniciais); `.pex` clássico mantido | Integrar seletor/progresso versionado na IDE e expandir catálogo antes de retirar `.pex` |
 | Modos | 🟡 Beginner/Bridge/Rust coexistem com `.por` | Beginner/Bridge editam PORS; Rust é `.rs`; troca não reescreve fontes |
 | Prévia Rust/source maps | 🟡 PORS e clássico suportados | PORS sempre; retirar frontend classic apenas no gate final |
 | Navegação de símbolos/outline/rename | 🟡 PORS e clássico têm serviços semânticos próprios | Preservar PORS; avaliar navegação/refactor real para `.rs` com spans e teste Rust |
