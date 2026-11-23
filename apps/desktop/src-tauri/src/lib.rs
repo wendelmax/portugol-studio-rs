@@ -826,6 +826,42 @@ fn pors_ui_cancel(
 }
 
 #[tauri::command]
+fn pors_example_catalog() -> Vec<portugol_service::PorsExample> {
+    portugol_service::pors_examples().to_vec()
+}
+
+#[tauri::command]
+fn pors_exercise_catalog() -> Vec<portugol_service::PorsExerciseSummary> {
+    portugol_service::pors_exercises()
+}
+
+#[tauri::command]
+async fn check_pors_exercise(
+    id: Option<String>,
+    source: String,
+    exercise_json: Option<String>,
+) -> Result<portugol_service::PorsExerciseEvaluation, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        if let Some(raw_json) = exercise_json {
+            portugol_service::check_imported_pors_exercise(&raw_json, &source)
+        } else if let Some(id) = id {
+            portugol_service::check_pors_exercise(&id, &source)
+        } else {
+            Err("Informe o identificador ou o JSON do exercício .pors.".into())
+        }
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+#[tauri::command]
+fn inspect_pors_exercise(
+    raw_json: String,
+) -> Result<portugol_service::PorsExerciseSummary, String> {
+    portugol_service::inspect_pors_exercise(&raw_json)
+}
+
+#[tauri::command]
 fn pors_ui_close(
     ui_sessions: State<'_, Arc<portugol_service::PorsUiService>>,
     session_id: u32,
@@ -866,6 +902,10 @@ pub fn run_app() {
             pors_ui_dispatch,
             pors_ui_cancel,
             pors_ui_close,
+            pors_example_catalog,
+            pors_exercise_catalog,
+            check_pors_exercise,
+            inspect_pors_exercise,
             include_library,
             exercise_catalog,
             check_exercise,

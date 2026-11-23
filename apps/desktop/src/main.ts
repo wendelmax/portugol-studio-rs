@@ -3001,14 +3001,22 @@ function openExercise(exerciseDocument: ExerciseDocument, workspaceExercise?: { 
       return;
     }
   }
+  const template = exerciseDocument.pors ? exerciseDocument.pors.starter_code : TEMPLATE;
   const source = `/*
 ${exerciseDocument.exercise.statement.replaceAll("*/", "* /")}
 */
 
-${TEMPLATE}`;
+${template}`;
   const current = activeTab();
   if (current && !current.path && !current.exampleName && !isDirty(current) && tabs.length === 1) tabs = [];
-  const tab = newTab(source, null, exerciseDocument.name, undefined, exerciseDocument);
+  const tab = newTab(
+    source,
+    null,
+    exerciseDocument.name,
+    undefined,
+    exerciseDocument,
+    exerciseDocument.pors ? "portugol-rs" : undefined,
+  );
   if (workspaceExercise) {
     tab.workspaceId = workspaceExercise.id;
     tab.workspaceExercisePath = workspaceExercise.path;
@@ -3918,7 +3926,16 @@ $("about-version").textContent = `Versão ${version}`;
 $("about-license").textContent = license;
 mountIcons();
 renderRecent();
-mountExamples((source, file, workPath) => newTab(source, null, file, workPath));
+mountExamples((source, file, workPath) =>
+  newTab(
+    source,
+    null,
+    file,
+    workPath || undefined,
+    undefined,
+    file.toLowerCase().endsWith(".pors") ? "portugol-rs" : undefined,
+  ),
+);
 activate(0);
 applyTheme(themeChoice());
 showPanel("console");
