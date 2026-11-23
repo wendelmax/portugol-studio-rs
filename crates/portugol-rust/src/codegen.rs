@@ -1,6 +1,6 @@
 use portugol_hir::{
-    AssignOp, BinaryOp, BindingId, Expr, ExprKind, LoopControl, Program, Span, Stmt, StmtKind,
-    Type, UnaryOp,
+    AssignOp, BinaryOp, BindingId, BuiltinEnum, EnumDef, Expr, ExprKind, LoopControl, Program,
+    Span, Stmt, StmtKind, Type, UnaryOp,
 };
 
 use crate::{
@@ -93,36 +93,36 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
         }
     }
     for definition in &program.enum_types {
-        output.push_str(&format!(
-            "\n#[derive(Clone)]\nenum {} {{\n",
-            rust_ident(&definition.name)
-        ));
-        for variant in &definition.variants {
-            output.push_str(&format!("    {}", rust_ident(&variant.name)));
-            if !variant.payload_types.is_empty() {
-                let fields = variant
-                    .payload_types
-                    .iter()
-                    .map(|ty| rust_type(*ty, program))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                output.push_str(&format!("({fields})"));
-            }
-            output.push_str(",\n");
-        }
-        output.push_str("}\n");
-        if pors {
-            let enum_name = rust_ident(&definition.name);
+        if definition.builtin.is_none() {
             output.push_str(&format!(
-                "fn __pors_clone_enum_{}(value: &{enum_name}) -> {enum_name} {{ match value {{\n",
-                definition.id.0
+                "\n#[derive(Clone)]\nenum {} {{\n",
+                rust_ident(&definition.name)
             ));
             for variant in &definition.variants {
-                let variant_name = rust_ident(&variant.name);
+                output.push_str(&format!("    {}", rust_ident(&variant.name)));
+                if !variant.payload_types.is_empty() {
+                    let fields = variant
+                        .payload_types
+                        .iter()
+                        .map(|ty| rust_type(*ty, program))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    output.push_str(&format!("({fields})"));
+                }
+                output.push_str(",\n");
+            }
+            output.push_str("}\n");
+        }
+        if pors {
+            let enum_ty = rust_enum_type_name(definition, program);
+            output.push_str(&format!(
+                "fn __pors_clone_enum_{}(value: &{enum_ty}) -> {enum_ty} {{ match value {{\n",
+                definition.id.0
+            ));
+            for (variant_index, variant) in definition.variants.iter().enumerate() {
+                let variant_path = rust_enum_variant_path(definition, variant_index);
                 if variant.payload_types.is_empty() {
-                    output.push_str(&format!(
-                        "    {enum_name}::{variant_name} => {enum_name}::{variant_name},\n"
-                    ));
+                    output.push_str(&format!("    {variant_path} => {variant_path},\n"));
                 } else {
                     let bindings = (0..variant.payload_types.len())
                         .map(|index| format!("field_{index}"))
@@ -135,7 +135,9 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
                         .map(|(ty, binding)| pors_clone_value(*ty, binding, program))
                         .collect::<Vec<_>>()
                         .join(", ");
-                    output.push_str(&format!("    {enum_name}::{variant_name}({pattern}) => {enum_name}::{variant_name}({values}),\n"));
+                    output.push_str(&format!(
+                        "    {variant_path}({pattern}) => {variant_path}({values}),\n"
+                    ));
                 }
             }
             output.push_str("} }\n");
@@ -514,12 +516,8 @@ fn render_statements(
                 push_expr(output, mappings, value, program, true, pors);
                 output.push_str(" {\n");
                 for arm in arms {
-                    let variant = &definition.variants[arm.variant_index];
-                    output.push_str(&format!(
-                        "{indent}    {}::{}",
-                        rust_ident(&definition.name),
-                        rust_ident(&variant.name)
-                    ));
+                    let variant_path = rust_enum_variant_path(definition, arm.variant_index);
+                    output.push_str(&format!("{indent}    {variant_path}"));
                     if !arm.payload_bindings.is_empty() {
                         let names = arm
                             .payload_bindings
@@ -702,14 +700,10 @@ fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedExpression {
                 .enum_types
                 .iter()
                 .find(|definition| definition.id == *type_id);
-            let enum_name = definition
-                .map(|definition| rust_ident(&definition.name))
-                .unwrap_or_else(|| "__invalid_enum".to_owned());
-            let variant_name = definition
-                .and_then(|definition| definition.variants.get(*variant_index))
-                .map(|variant| rust_ident(&variant.name))
-                .unwrap_or_else(|| "__invalid_variant".to_owned());
-            let mut parts = vec![ExpressionPart::Text(format!("{enum_name}::{variant_name}"))];
+            let variant_path = definition
+                .map(|definition| rust_enum_variant_path(definition, *variant_index))
+                .unwrap_or_else(|| "__invalid_enum::__invalid_variant".to_owned());
+            let mut parts = vec![ExpressionPart::Text(variant_path)];
             if !payload.is_empty() {
                 parts.push(ExpressionPart::Text("(".to_owned()));
                 for (index, item) in payload.iter().enumerate() {
@@ -855,6 +849,11 @@ fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedExpression {
             ExpressionPart::Text("(".to_owned()),
             ExpressionPart::Nested(render_expr(inner, program, pors)),
             ExpressionPart::Text(")".to_owned()),
+        ],
+        ExprKind::Try { operand } => vec![
+            ExpressionPart::Text("(".to_owned()),
+            ExpressionPart::Nested(owned_value(operand, program, pors)),
+            ExpressionPart::Text(")?".to_owned()),
         ],
         ExprKind::Unary { op, operand } => {
             let nested = render_expr(operand, program, pors);
@@ -1287,14 +1286,55 @@ fn rust_type(ty: Type, program: &Program) -> String {
             .enum_types
             .iter()
             .find(|definition| definition.id == id)
-            .map(|definition| rust_ident(&definition.name))
+            .map(|definition| rust_enum_type_name(definition, program))
             .unwrap_or_else(|| "__invalid_enum".into()),
         Type::VectorEnum(id) => program
             .enum_types
             .iter()
             .find(|definition| definition.id == id)
-            .map(|definition| format!("Vec<{}>", rust_ident(&definition.name)))
+            .map(|definition| format!("Vec<{}>", rust_enum_type_name(definition, program)))
             .unwrap_or_else(|| "Vec<()>".into()),
+    }
+}
+
+fn rust_enum_type_name(definition: &EnumDef, program: &Program) -> String {
+    match definition.builtin {
+        Some(BuiltinEnum::Option(inner)) => format!("Option<{}>", rust_type(inner, program)),
+        Some(BuiltinEnum::Result { ok, err }) => {
+            format!(
+                "Result<{}, {}>",
+                rust_type(ok, program),
+                rust_type(err, program)
+            )
+        }
+        None => rust_ident(&definition.name),
+    }
+}
+
+fn rust_enum_variant_path(definition: &EnumDef, variant_index: usize) -> String {
+    match definition.builtin {
+        Some(BuiltinEnum::Option(_)) => {
+            if variant_index == 0 {
+                "Option::Some".to_owned()
+            } else {
+                "Option::None".to_owned()
+            }
+        }
+        Some(BuiltinEnum::Result { .. }) => {
+            if variant_index == 0 {
+                "Result::Ok".to_owned()
+            } else {
+                "Result::Err".to_owned()
+            }
+        }
+        None => {
+            let variant_name = definition
+                .variants
+                .get(variant_index)
+                .map(|variant| rust_ident(&variant.name))
+                .unwrap_or_else(|| "__invalid_variant".to_owned());
+            format!("{}::{variant_name}", rust_ident(&definition.name))
+        }
     }
 }
 
@@ -1459,6 +1499,7 @@ fn expr_uses_ui(expr: &Expr) -> bool {
         ExprKind::Field { value, .. }
         | ExprKind::Index { index: value, .. }
         | ExprKind::Parenthesized(value)
+        | ExprKind::Try { operand: value }
         | ExprKind::Unary { operand: value, .. } => expr_uses_ui(value),
         ExprKind::Binary { left, right, .. } => expr_uses_ui(left) || expr_uses_ui(right),
         ExprKind::Binding(_)

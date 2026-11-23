@@ -359,3 +359,134 @@ funcao visualizar(estado: inteiro) -> inteiro { retorne UI.texto(estado); }
     let errors = lower(bad_mvu).unwrap_err();
     assert!(errors.iter().any(|d| d.code == "pors.ui-entry-signature"));
 }
+
+#[test]
+fn parses_builtin_option_result_exhaustive_choose_and_try_propagation() {
+    let source = r#"
+registro Ponto { x: inteiro, y: inteiro }
+
+funcao buscar_ponto(id: inteiro) -> Opcao<Ponto> {
+    se (id == 1) {
+        retorne Opcao::Algum(Ponto { x: 3, y: 4 });
+    }
+    retorne Opcao::Nenhum;
+}
+
+funcao soma_x(id: inteiro) -> Opcao<inteiro> {
+    seja x: inteiro = buscar_ponto(id)?.x;
+    retorne Opcao::Algum(x + 1);
+}
+
+funcao dividir(a: inteiro, b: inteiro) -> Resultado<inteiro, cadeia> {
+    se (b == 0) {
+        retorne Resultado::Erro("divisao por zero");
+    }
+    retorne Resultado::Ok(a / b);
+}
+
+funcao descrever_divisao(a: inteiro, b: inteiro) -> Resultado<cadeia, cadeia> {
+    seja q: inteiro = dividir(a, b)?;
+    se (q > 0) {
+        retorne Resultado::Ok("positivo");
+    }
+    retorne Resultado::Ok("nao positivo");
+}
+
+funcao inicio() {
+    seja itens: vetor<Opcao<inteiro>> = [Opcao::Algum(10), Opcao::Nenhum];
+    seja primeiro: Opcao<inteiro> = itens[0];
+    escolha soma_x(1) {
+        caso Opcao::Algum(v) => { escreva(v); }
+        caso Opcao::Nenhum => { escreva("vazio"); }
+    }
+    escolha descrever_divisao(10, 2) {
+        caso Resultado::Ok(msg) => { escreva(msg); }
+        caso Resultado::Erro(err) => { escreva(err); }
+    }
+    escolha primeiro {
+        caso Opcao::Algum(n) => { escreva(n); }
+        caso Opcao::Nenhum => { escreva(0); }
+    }
+}
+"#;
+    let program = lower(source).expect("programa com Opcao, Resultado e ? deve ser aceito");
+    assert_eq!(program.record_types.len(), 1);
+    assert!(
+        program
+            .enum_types
+            .iter()
+            .any(|e| matches!(e.builtin, Some(portugol_hir::BuiltinEnum::Option(_))))
+    );
+    assert!(program.enum_types.iter().any(|e| matches!(
+        e.builtin,
+        Some(portugol_hir::BuiltinEnum::Result {
+            ok: portugol_hir::Type::Integer,
+            err: portugol_hir::Type::String
+        })
+    )));
+    assert!(program.enum_types.iter().any(|e| matches!(
+        e.builtin,
+        Some(portugol_hir::BuiltinEnum::Result {
+            ok: portugol_hir::Type::String,
+            err: portugol_hir::Type::String
+        })
+    )));
+}
+
+#[test]
+fn validates_option_result_inference_exhaustiveness_try_rules_and_reserved_names() {
+    let bad_option_infer = "funcao inicio() { escreva(Opcao::Nenhum); }";
+    let errors = lower(bad_option_infer).unwrap_err();
+    assert!(
+        errors
+            .iter()
+            .any(|d| d.code == "pors.option-type-inference")
+    );
+
+    let bad_result_infer = "funcao inicio() { escreva(Resultado::Ok(1)); }";
+    let errors = lower(bad_result_infer).unwrap_err();
+    assert!(
+        errors
+            .iter()
+            .any(|d| d.code == "pors.result-type-inference")
+    );
+
+    let try_non_builtin = "funcao f() -> Opcao<inteiro> { seja x: inteiro = 1?; retorne Opcao::Algum(x); } funcao inicio() {}";
+    let errors = lower(try_non_builtin).unwrap_err();
+    assert!(errors.iter().any(|d| d.code == "pors.try-invalid-type"));
+
+    let try_in_inicio = "funcao inicio() { seja x: inteiro = Opcao::Algum(1)?; escreva(x); }";
+    let errors = lower(try_in_inicio).unwrap_err();
+    assert!(errors.iter().any(|d| d.code == "pors.try-return-mismatch"));
+
+    let try_err_mismatch = r#"
+funcao f() -> Resultado<inteiro, cadeia> { retorne Resultado::Erro("falha"); }
+funcao g() -> Resultado<inteiro, inteiro> { seja x: inteiro = f()?; retorne Resultado::Ok(x); }
+funcao inicio() {}
+"#;
+    let errors = lower(try_err_mismatch).unwrap_err();
+    assert!(errors.iter().any(|d| d.code == "pors.try-return-mismatch"));
+
+    let non_exhaustive = r#"
+funcao inicio() {
+    seja o: Opcao<inteiro> = Opcao::Algum(1);
+    escolha o {
+        caso Opcao::Algum(v) => { escreva(v); }
+    }
+}
+"#;
+    let errors = lower(non_exhaustive).unwrap_err();
+    assert!(
+        errors
+            .iter()
+            .any(|d| d.code == "pors.non-exhaustive-choice")
+    );
+
+    let reserved_enum = "enum Opcao { A } funcao inicio() {}";
+    let errors = lower(reserved_enum).unwrap_err();
+    assert!(errors.iter().any(|d| d.code == "pors.reserved-name"));
+
+    let reserved_record = "registro Resultado { x: inteiro } funcao inicio() {}";
+    let errors = lower(reserved_record).unwrap_err();
+    assert!(errors.iter().any(|d| d.code == "pors.reserved-name"));
+}

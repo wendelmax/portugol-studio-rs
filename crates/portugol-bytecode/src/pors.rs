@@ -690,6 +690,28 @@ impl<'a> Compiler<'a> {
                 self.emit(Op::PushStr(index as u32), expr.span);
             }
             E::Parenthesized(inner) => self.expr(inner)?,
+            E::Try { operand } => {
+                self.expr(operand)?;
+                self.emit(Op::Dup, expr.span);
+                self.emit(Op::PushInt(0), expr.span);
+                self.emit(Op::LoadElem, expr.span);
+                self.emit(Op::PushInt(0), expr.span);
+                self.emit(Op::Eq, expr.span);
+                let is_ok = self.emit(Op::JumpIfTrue(0), expr.span);
+                self.emit(Op::CloneArray, expr.span);
+                self.emit(Op::Return, expr.span);
+                let ok_target = self.here();
+                self.patch(is_ok, ok_target);
+                self.emit(Op::PushInt(1), expr.span);
+                self.emit(Op::LoadElem, expr.span);
+                if expr.ty == hir::Type::String {
+                    self.emit(Op::CloneString, expr.span);
+                } else if expr.ty.is_vector()
+                    || matches!(expr.ty, hir::Type::Record(_) | hir::Type::Enum(_))
+                {
+                    self.emit(Op::CloneArray, expr.span);
+                }
+            }
             E::Unary { op, operand } => {
                 self.expr(operand)?;
                 let opcode = match op {
@@ -852,14 +874,21 @@ fn debug_type_label(ty: hir::Type, program: &hir::Program) -> String {
             .enum_types
             .iter()
             .find(|item| item.id == id)
-            .map(|item| item.name.clone())
+            .map(|item| match item.builtin {
+                Some(hir::BuiltinEnum::Option(inner)) => {
+                    format!("Opcao<{}>", debug_type_label(inner, program))
+                }
+                Some(hir::BuiltinEnum::Result { ok, err }) => format!(
+                    "Resultado<{}, {}>",
+                    debug_type_label(ok, program),
+                    debug_type_label(err, program)
+                ),
+                None => item.name.clone(),
+            })
             .unwrap_or_else(|| "enum".into()),
-        hir::Type::VectorEnum(id) => program
-            .enum_types
-            .iter()
-            .find(|item| item.id == id)
-            .map(|item| format!("vetor<{}>", item.name))
-            .unwrap_or_else(|| "vetor<enum>".into()),
+        hir::Type::VectorEnum(id) => {
+            format!("vetor<{}>", debug_type_label(hir::Type::Enum(id), program))
+        }
     }
 }
 

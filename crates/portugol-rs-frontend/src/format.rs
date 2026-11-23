@@ -37,6 +37,7 @@ enum SyntaxKind {
     FatArrow,
     UnarySign,
     Bang,
+    Question,
     Operator,
     Eof,
 }
@@ -76,6 +77,7 @@ fn classify(kind: &Kind, prev_syntax: Option<SyntaxKind>) -> SyntaxKind {
         Kind::Arrow => SyntaxKind::Arrow,
         Kind::FatArrow => SyntaxKind::FatArrow,
         Kind::Bang => SyntaxKind::Bang,
+        Kind::Question => SyntaxKind::Question,
         Kind::Plus | Kind::Minus => {
             let unary = matches!(
                 prev_syntax,
@@ -126,7 +128,7 @@ fn spacing(left: Piece, right: Piece) -> &'static str {
         (Syntax(Ident), Syntax(LParen)) => "",
         (Syntax(LParen | LBracket | Bang | UnarySign), _) => "",
         (Syntax(Ident | RBracket), Syntax(LBracket)) => "",
-        (_, Syntax(RParen | RBracket | Comma | Semicolon | Colon | Eof)) => "",
+        (_, Syntax(RParen | RBracket | Comma | Semicolon | Colon | Question | Eof)) => "",
         (_, Syntax(Dot)) | (Syntax(Dot), _) => "",
         (_, Syntax(ColonColon)) | (Syntax(ColonColon), _) => "",
         (Syntax(LBrace), Syntax(RBrace)) => "",
@@ -333,5 +335,13 @@ mod tests {
         );
         assert!(format("funcao inicio() { seja x: inteiro = ; }").is_none());
         assert!(format("funcao inicio() { escreva(desconhecido); }").is_none());
+    }
+
+    #[test]
+    fn formats_try_operator_without_preceding_space() {
+        let source = "funcao f(v:Opcao<inteiro>)->Opcao<inteiro>{seja x:inteiro=v ? +1;retorne Opcao::Algum(x);}funcao inicio(){}";
+        let formatted = apply(source, format(source).expect("fonte com Opcao e ? válida"));
+        assert!(formatted.contains("seja x: inteiro = v? + 1;"));
+        assert_eq!(format(&formatted), Some(Vec::new()));
     }
 }
