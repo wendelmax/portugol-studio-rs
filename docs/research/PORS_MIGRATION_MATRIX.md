@@ -55,7 +55,7 @@ Não considerar uma biblioteca portada por implementar apenas o nome do módulo.
 |---|---|---|
 | Novo/abrir/salvar | 🟡 `.pors` e `.rs` existem; fallback desconhecido ainda seleciona Portugol | `.pors` default, linguagem desconhecida explícita, filtros `.pors`/`.rs` |
 | Workspace/exportação | 🟡 aceita `.por`, `.pors`, `.rs`, `.pex` | Listagem, criação, rename, delete e export só PORS/Rust e exercícios novos |
-| CLI | ⬜ CLI atual compila somente `.por` | CLI cria, valida, executa e depura `.pors`; projetos `.rs`/Cargo continuam |
+| CLI | 🟡 CLI cria (`novo`), valida, formata (`formatar`), exporta Rust (`exportar-rust`) e executa `.pors` na VM, preservando `.por` | Depuração interativa `.pors` no CLI; remover suporte `.por` apenas no gate final |
 | Ajuda/autocomplete/formatador | 🟡 Rust/PORS parcial; conteúdo dominante é Portugol clássico | Referência PORS, snippets, completions, hover e formatador do subset final |
 | Exemplos | ⬜ catálogo atual é do Portugol Studio original | Corpus próprio PORS/Rust, testado, com licença e recursos rastreáveis |
 | Exercícios | ⬜ avaliador/progresso só `.pex` clássico | Formato versionado PORS/Rust, casos executáveis, dicas e progresso por aprovação |
