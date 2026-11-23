@@ -122,14 +122,24 @@ pub fn export_portugol_rs(source: &str) -> Result<String, Vec<Diagnostic>> {
     export_portugol_rs_with_map(source).map(|generated| generated.code)
 }
 
+/// Projeto Cargo pronto gerado a partir de um programa `.pors` (console ou visual MVU).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExportedCargoProject {
+    pub package_name: String,
+    pub cargo_toml: String,
+    pub main_rs: String,
+    pub readme_md: String,
+    pub mappings: Vec<SourceMapSegment>,
+}
+
 /// Gera Rust para Portugol-RS e preserva os spans HIR de origem.
 pub fn export_portugol_rs_with_map(source: &str) -> Result<GeneratedRust, Vec<Diagnostic>> {
     let hir = portugol_rs_frontend::lower(source)?;
-    if let Some((module, name, span)) = find_first_host_call(&hir) {
+    if let Some((module, name, span)) = find_first_unsupported_host_call(&hir) {
         return Err(vec![Diagnostic::error(
-            "portugol-rust.ui-export-unsupported",
+            "portugol-rust.host-call-unsupported",
             format!(
-                "A exportação Rust para chamadas declarativas `{module}.{name}` ainda não está disponível."
+                "A exportação Rust para chamadas nativas `{module}.{name}` ainda não está disponível."
             ),
             portugol_syntax::Span::new(span.start, span.end),
         )]);
@@ -137,7 +147,73 @@ pub fn export_portugol_rs_with_map(source: &str) -> Result<GeneratedRust, Vec<Di
     Ok(codegen::render_pors_with_map(&hir))
 }
 
-fn find_first_host_call(
+/// Gera um projeto Cargo completo (Edition 2024, sem dependências externas) a partir
+/// de um programa `.pors`, incluindo apps visuais declarativos (`UI.*` / MVU).
+pub fn export_portugol_rs_cargo_project(
+    source: &str,
+    requested_name: &str,
+) -> Result<ExportedCargoProject, Vec<Diagnostic>> {
+    let generated = export_portugol_rs_with_map(source)?;
+    let package_name = sanitize_cargo_package_name(requested_name);
+    let is_visual = generated.code.contains("mod __pors_ui");
+    let cargo_toml =
+        format!("[package]\nname = \"{package_name}\"\nversion = \"0.1.0\"\nedition = \"2024\"\n");
+    let readme_md = if is_visual {
+        format!(
+            "# {package_name}\n\nProjeto Rust gerado a partir de Portugol-RS (`.pors`) com UI declarativa MVU.\n\n## Como executar\n\n```bash\ncargo run\n```\n\nO programa imprime o snapshot JSON inicial (`step: 0`) e lê eventos pela entrada padrão, um por linha:\n\n- `clique:<id>` ou `{{\"kind\":\"clique\",\"id\":\"<id>\"}}`\n- `entrada_alterada:<id>:<valor>` ou `{{\"kind\":\"entrada_alterada\",\"id\":\"<id>\",\"value\":\"<valor>\"}}`\n"
+        )
+    } else {
+        format!(
+            "# {package_name}\n\nProjeto Rust gerado a partir de Portugol-RS (`.pors`).\n\n## Como executar\n\n```bash\ncargo run\n```\n"
+        )
+    };
+    Ok(ExportedCargoProject {
+        package_name,
+        cargo_toml,
+        main_rs: generated.code,
+        readme_md,
+        mappings: generated.mappings,
+    })
+}
+
+/// Grava um [`ExportedCargoProject`] em disco (`Cargo.toml`, `src/main.rs` e `README.md`).
+pub fn write_cargo_project(
+    project: &ExportedCargoProject,
+    dir: &std::path::Path,
+) -> std::io::Result<()> {
+    let src_dir = dir.join("src");
+    std::fs::create_dir_all(&src_dir)?;
+    std::fs::write(dir.join("Cargo.toml"), &project.cargo_toml)?;
+    std::fs::write(src_dir.join("main.rs"), &project.main_rs)?;
+    std::fs::write(dir.join("README.md"), &project.readme_md)?;
+    Ok(())
+}
+
+fn sanitize_cargo_package_name(raw: &str) -> String {
+    let mut sanitized = String::new();
+    let mut last_dash = false;
+    for ch in raw.chars() {
+        let lower = ch.to_ascii_lowercase();
+        if lower.is_ascii_alphanumeric() || lower == '_' {
+            sanitized.push(lower);
+            last_dash = false;
+        } else if !sanitized.is_empty() && !last_dash {
+            sanitized.push('-');
+            last_dash = true;
+        }
+    }
+    let trimmed = sanitized.trim_matches('-');
+    if trimmed.is_empty() {
+        return "programa-pors".to_owned();
+    }
+    if trimmed.as_bytes()[0].is_ascii_digit() {
+        format!("pors-{trimmed}")
+    } else {
+        trimmed.to_owned()
+    }
+}
+
+fn find_first_unsupported_host_call(
     program: &portugol_hir::Program,
 ) -> Option<(&str, &str, portugol_hir::Span)> {
     find_host_call_in_stmts(&program.body).or_else(|| {
@@ -198,7 +274,17 @@ fn find_host_call_in_stmts(
 fn find_host_call_in_expr(expr: &portugol_hir::Expr) -> Option<(&str, &str, portugol_hir::Span)> {
     use portugol_hir::ExprKind as E;
     match &expr.kind {
-        E::HostCall { module, name, .. } => Some((module.as_str(), name.as_str(), expr.span)),
+        E::HostCall {
+            module,
+            name,
+            arguments,
+        } => {
+            if module != "UI" {
+                Some((module.as_str(), name.as_str(), expr.span))
+            } else {
+                arguments.iter().find_map(find_host_call_in_expr)
+            }
+        }
         E::Call { arguments, .. }
         | E::VectorLiteral(arguments)
         | E::RecordLiteral {
@@ -1327,18 +1413,115 @@ mod tests {
     }
 
     #[test]
-    fn rejects_declarative_ui_calls_with_explicit_diagnostic_in_rust_export() {
-        let source = r#"
-funcao iniciar() -> inteiro { retorne 0; }
-funcao atualizar(estado: inteiro, alvo: cadeia) -> inteiro { retorne estado; }
-funcao visualizar(estado: inteiro) -> inteiro { retorne UI.texto("Total: ", estado); }
+    fn exports_and_runs_visual_mvu_pors_apps_as_standalone_rust_and_cargo_projects() {
+        use std::io::Write;
+        use std::process::Stdio;
+
+        let counter_source = r#"
+enum Humor {
+    Neutro,
+    Animado
+}
+
+registro Estado {
+    contagem: inteiro,
+    nome: cadeia,
+    humor: Humor
+}
+
+funcao iniciar() -> Estado {
+    retorne Estado { contagem: 0, nome: "Visitante", humor: Humor::Neutro };
+}
+
+funcao atualizar(estado: Estado, tipo: cadeia, alvo: cadeia, valor: cadeia) -> Estado {
+    se (tipo == "clique" && alvo == "inc") {
+        retorne Estado { contagem: estado.contagem + 1, nome: estado.nome, humor: Humor::Animado };
+    }
+    se (tipo == "clique" && alvo == "zerar") {
+        retorne Estado { contagem: 0, nome: estado.nome, humor: Humor::Neutro };
+    }
+    se (tipo == "entrada_alterada" && alvo == "nome") {
+        retorne Estado { contagem: estado.contagem, nome: valor, humor: estado.humor };
+    }
+    retorne estado;
+}
+
+funcao visualizar(estado: Estado) -> inteiro {
+    seja mutavel selo: cadeia = "Neutro";
+    escolha estado.humor {
+        caso Humor::Neutro => { selo = "Neutro"; }
+        caso Humor::Animado => { selo = "Animado"; }
+    }
+    retorne UI.coluna([
+        UI.texto("Olá, ", estado.nome, "!"),
+        UI.texto("Contagem: ", estado.contagem, " (", selo, ")"),
+        UI.linha([
+            UI.botao("inc", "+1"),
+            UI.botao("zerar", "Zerar")
+        ]),
+        UI.entrada("nome", estado.nome, "Digite seu nome"),
+        UI.lista([UI.texto("Passo ", estado.contagem)])
+    ]);
+}
 "#;
-        let errors = export_portugol_rs(source).unwrap_err();
+        let project =
+            crate::export_portugol_rs_cargo_project(counter_source, "123 Contador Visual!")
+                .unwrap();
+        assert_eq!(project.package_name, "pors-123-contador-visual");
+        assert!(project.cargo_toml.contains("edition = \"2024\""));
+        assert!(project.readme_md.contains("UI declarativa MVU"));
+
+        let dir = std::env::temp_dir().join(format!("portugol-rust-ui-{}", std::process::id()));
+        crate::write_cargo_project(&project, &dir).unwrap();
+        let binary = dir.join(format!("counter{}", std::env::consts::EXE_SUFFIX));
+        let compilation = Command::new("rustc")
+            .arg("--edition=2024")
+            .arg(dir.join("src/main.rs"))
+            .arg("-o")
+            .arg(&binary)
+            .output()
+            .unwrap();
         assert!(
-            errors
-                .iter()
-                .any(|d| d.code == "portugol-rust.ui-export-unsupported")
+            compilation.status.success(),
+            "{}",
+            String::from_utf8_lossy(&compilation.stderr)
         );
+
+        let mut child = Command::new(&binary)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        child
+            .stdin
+            .take()
+            .unwrap()
+            .write_all(
+                b"clique:inc\nentrada_alterada:nome:Ada\n{\"kind\":\"clique\",\"id\":\"zerar\"}\n",
+            )
+            .unwrap();
+        let output = child.wait_with_output().unwrap();
+        assert!(output.status.success(), "{output:?}");
+        let lines: Vec<&str> = std::str::from_utf8(&output.stdout)
+            .unwrap()
+            .lines()
+            .collect();
+        assert_eq!(lines.len(), 4, "{lines:?}");
+        assert!(lines[0].contains("\"step\":0"));
+        assert!(lines[0].contains("\"content\":\"Contagem: 0 (Neutro)\""));
+        assert!(lines[1].contains("\"step\":1"));
+        assert!(lines[1].contains("\"content\":\"Contagem: 1 (Animado)\""));
+        assert!(lines[1].contains(
+            "\"kind\":\"lista\",\"items\":[{\"kind\":\"texto\",\"content\":\"Passo 1\"}]"
+        ));
+        assert!(lines[2].contains("\"step\":2"));
+        assert!(lines[2].contains("\"content\":\"Olá, Ada!\""));
+        assert!(lines[2].contains("\"value\":\"Ada\""));
+        assert!(lines[3].contains("\"step\":3"));
+        assert!(lines[3].contains("\"content\":\"Contagem: 0 (Neutro)\""));
+
+        std::fs::remove_dir_all(dir).unwrap();
     }
 
     fn assert_rust_output(generated: String, expected: &str) {

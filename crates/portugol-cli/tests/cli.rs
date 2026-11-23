@@ -141,3 +141,50 @@ fn preserves_classic_por_support_and_rejects_unknown_extensions() {
     assert!(!rejected.status.success());
     assert!(String::from_utf8_lossy(&rejected.stderr).contains("extensão não suportada"));
 }
+
+#[test]
+fn exports_visual_pors_mvu_app_to_rust_and_cargo_project() {
+    let dir = TempDir::new();
+    let app = dir.0.join("contador.pors");
+    fs::write(
+        &app,
+        r#"registro Estado { contagem: inteiro }
+funcao iniciar() -> Estado { retorne Estado { contagem: 0 }; }
+funcao atualizar(estado: Estado, alvo: cadeia) -> Estado {
+    se (alvo == "inc") { retorne Estado { contagem: estado.contagem + 1 }; }
+    retorne estado;
+}
+funcao visualizar(estado: Estado) -> inteiro {
+    retorne UI.coluna([UI.texto("Total: ", estado.contagem), UI.botao("inc", "+1")]);
+}
+"#,
+    )
+    .unwrap();
+
+    let rust = cli().args(["exportar-rust"]).arg(&app).output().unwrap();
+    assert!(rust.status.success(), "{rust:?}");
+    let rust_code = String::from_utf8_lossy(&rust.stdout);
+    assert!(rust_code.contains("mod __pors_ui"));
+    assert!(rust_code.contains("fn main()"));
+
+    let cargo_dir = dir.0.join("contador-cargo");
+    let exported = cli()
+        .args(["exportar-cargo"])
+        .arg(&app)
+        .arg(&cargo_dir)
+        .output()
+        .unwrap();
+    assert!(exported.status.success(), "{exported:?}");
+    assert!(cargo_dir.join("Cargo.toml").exists());
+    assert!(cargo_dir.join("src/main.rs").exists());
+    assert!(cargo_dir.join("README.md").exists());
+
+    // Recusa sobrescrever projeto Cargo existente.
+    let duplicate = cli()
+        .args(["exportar-cargo"])
+        .arg(&app)
+        .arg(&cargo_dir)
+        .output()
+        .unwrap();
+    assert!(!duplicate.status.success());
+}

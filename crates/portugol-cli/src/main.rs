@@ -35,6 +35,7 @@ fn main() -> ExitCode {
         Some("formatar") => return format_command(&args[1..]),
         Some("novo") => return new_command(&args[1..]),
         Some("exportar-rust") => return export_rust_command(&args[1..]),
+        Some("exportar-cargo") => return export_cargo_command(&args[1..]),
         _ => {}
     }
 
@@ -313,6 +314,64 @@ fn export_rust_command(args: &[String]) -> ExitCode {
     }
 }
 
+fn export_cargo_command(args: &[String]) -> ExitCode {
+    if args.len() != 2 || args.iter().any(|arg| arg == "-h" || arg == "--help") {
+        eprintln!("uso: portugol exportar-cargo <arquivo.pors> <pasta-destino>");
+        return ExitCode::FAILURE;
+    }
+    let file = &args[0];
+    let target_dir = Path::new(&args[1]);
+    let path = Path::new(file);
+    if detect_kind(path) != Some(FileKind::Pors) {
+        eprintln!("{file}: `exportar-cargo` aceita apenas arquivos .pors");
+        return ExitCode::FAILURE;
+    }
+    if target_dir.join("Cargo.toml").exists() {
+        eprintln!(
+            "{}: já existe um Cargo.toml na pasta de destino",
+            target_dir.display()
+        );
+        return ExitCode::FAILURE;
+    }
+    let source = match read_source(path) {
+        Ok(source) => source,
+        Err(error) => {
+            eprintln!("{file}: não foi possível ler: {error}");
+            return ExitCode::FAILURE;
+        }
+    };
+    let package_name = path
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+        .unwrap_or("programa-pors");
+    let project = match portugol_rust::export_portugol_rs_cargo_project(&source, package_name) {
+        Ok(project) => project,
+        Err(diagnostics) => {
+            for diagnostic in diagnostics {
+                eprintln!("{}", diagnostic.render(&source, file));
+            }
+            return ExitCode::FAILURE;
+        }
+    };
+    match portugol_rust::write_cargo_project(&project, target_dir) {
+        Ok(()) => {
+            println!(
+                "{}: projeto Cargo \"{}\" gerado",
+                target_dir.display(),
+                project.package_name
+            );
+            ExitCode::SUCCESS
+        }
+        Err(error) => {
+            eprintln!(
+                "{}: não foi possível gravar projeto Cargo: {error}",
+                target_dir.display()
+            );
+            ExitCode::FAILURE
+        }
+    }
+}
+
 fn apply_utf16_edits(source: &str, edits: Vec<(usize, usize, String)>) -> Result<String, String> {
     let mut units: Vec<u16> = source.encode_utf16().collect();
     for (from, to, insert) in edits.into_iter().rev() {
@@ -330,6 +389,7 @@ fn print_usage() {
            portugol novo <arquivo.pors>                                    cria um modelo .pors\n\
            portugol formatar [--check] <arquivo.pors | arquivo.por>        formata o código-fonte\n\
            portugol exportar-rust <arquivo.pors | arquivo.por>             imprime o Rust gerado\n\
+           portugol exportar-cargo <arquivo.pors> <pasta>                  gera um projeto Cargo pronto\n\
            portugol executar [--bytecode] <arquivo.pors | arquivo.por> [-- parâmetros...]\n\
                                                                            executa um programa na VM\n\
          \n\
