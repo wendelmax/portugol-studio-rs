@@ -279,7 +279,7 @@ fn find_host_call_in_expr(expr: &portugol_hir::Expr) -> Option<(&str, &str, port
             name,
             arguments,
         } => {
-            if module != "UI" {
+            if !matches!(module.as_str(), "UI" | "Matematica" | "Texto" | "Tipos") {
                 Some((module.as_str(), name.as_str(), expr.span))
             } else {
                 arguments.iter().find_map(find_host_call_in_expr)
@@ -1599,6 +1599,82 @@ funcao inicio() {
         assert!(!generated.contains("enum pt_Opcao"));
         assert!(!generated.contains("enum pt_Resultado"));
         assert_rust_output(generated, "14|40|N|alto|E:zero");
+    }
+
+    #[test]
+    fn exports_and_executes_pors_matematica_texto_and_tipos_with_identical_semantics() {
+        let source = r#"
+funcao somar_entradas(a: cadeia, b: cadeia) -> Resultado<inteiro, cadeia> {
+    seja x: inteiro = Tipos.para_inteiro(Texto.aparar(a))?;
+    seja y: inteiro = Tipos.para_inteiro_base(b, 16)?;
+    retorne Resultado::Ok(x + y);
+}
+
+funcao inicio() {
+    seja pi2: real = Matematica.arredondar(Matematica.PI, 2);
+    seja pot: real = Matematica.potencia(2.0, 3.0);
+    seja raiz: real = Matematica.raiz_quadrada(81.0);
+    seja abs_i: inteiro = Matematica.valor_absoluto_inteiro(-7);
+    seja max_i: inteiro = Matematica.maior_inteiro(3, 9);
+    escreva(pi2, "|", pot, "|", raiz, "|", abs_i, "|", max_i, "|");
+
+    seja frase: cadeia = "  olá 🦀  ";
+    seja limpa: cadeia = Texto.aparar(frase);
+    seja alta: cadeia = Texto.caixa_alta(limpa);
+    seja trocada: cadeia = Texto.substituir(limpa, "olá", "oi");
+    seja pad: cadeia = Texto.preencher_a_esquerda('0', 5, "42");
+    escreva(Texto.numero_caracteres(limpa), "|", alta, "|", trocada, "|", pad, "|");
+
+    escolha Texto.obter_caracter(limpa, 4) {
+        caso Opcao::Algum(c) => { escreva(c, "|"); }
+        caso Opcao::Nenhum => { escreva("N|"); }
+    }
+    escolha Texto.posicao_texto("🦀", limpa, 0) {
+        caso Opcao::Algum(pos) => { escreva(pos, "|"); }
+        caso Opcao::Nenhum => { escreva("-1|"); }
+    }
+    escolha Texto.extrair_subtexto(limpa, 0, 3) {
+        caso Resultado::Ok(sub) => { escreva(sub, "|"); }
+        caso Resultado::Erro(_) => { escreva("ERR|"); }
+    }
+    escolha Texto.extrair_subtexto(limpa, 2, 99) {
+        caso Resultado::Ok(sub) => { escreva(sub, "|"); }
+        caso Resultado::Erro(_) => { escreva("ERR|"); }
+    }
+
+    escolha somar_entradas(" 26 ", "0x10") {
+        caso Resultado::Ok(n) => { escreva(n, "|"); }
+        caso Resultado::Erro(_) => { escreva("ERR|"); }
+    }
+    escolha somar_entradas("abc", "0x10") {
+        caso Resultado::Ok(n) => { escreva(n, "|"); }
+        caso Resultado::Erro(_) => { escreva("ERR|"); }
+    }
+    escolha Tipos.para_real("2.5") {
+        caso Resultado::Ok(r) => { escreva(Tipos.real_para_cadeia(r), "|"); }
+        caso Resultado::Erro(_) => { escreva("ERR|"); }
+    }
+    escolha Tipos.inteiro_para_cadeia_base(255, 16) {
+        caso Resultado::Ok(hex) => { escreva(hex, "|"); }
+        caso Resultado::Erro(_) => { escreva("ERR|"); }
+    }
+    escreva(Tipos.cadeia_e_inteiro("123"), "|", Tipos.cadeia_e_logico("verdadeiro"));
+}
+"#;
+        let generated = export_portugol_rs(source).unwrap();
+        assert!(generated.contains("mod __pors_matematica"));
+        assert!(generated.contains("mod __pors_texto"));
+        assert!(generated.contains("mod __pors_tipos"));
+        assert!(!generated.contains("mod __pors_ui"));
+        assert_rust_output(
+            generated,
+            "3.14|8.0|9.0|7|9|5|OLÁ 🦀|oi 🦀|00042|🦀|4|olá|ERR|42|ERR|2.5|FF|verdadeiro|verdadeiro",
+        );
+
+        let minimal = export_portugol_rs("funcao inicio() { escreva(1); }").unwrap();
+        assert!(!minimal.contains("mod __pors_matematica"));
+        assert!(!minimal.contains("mod __pors_texto"));
+        assert!(!minimal.contains("mod __pors_tipos"));
     }
 
     fn assert_rust_output(generated: String, expected: &str) {

@@ -657,7 +657,13 @@ impl<'a> Compiler<'a> {
                 for arg in arguments {
                     self.expr(arg)?;
                 }
-                let native = self.intern_native(module, name);
+                let vm_module = match module.as_str() {
+                    "Matematica" => "PorsMatematica",
+                    "Texto" => "PorsTexto",
+                    "Tipos" => "PorsTipos",
+                    other => other,
+                };
+                let native = self.intern_native(vm_module, name);
                 self.emit(
                     Op::CallNative {
                         native,

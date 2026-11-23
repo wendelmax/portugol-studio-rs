@@ -1628,6 +1628,12 @@ impl Parser {
                 {
                     return self.ui_host_call(span);
                 }
+                if matches!(name.as_str(), "Matematica" | "Texto" | "Tipos")
+                    && matches!(self.current().kind, Kind::Dot)
+                    && self.lookup(&name).is_none()
+                {
+                    return self.stdlib_member_or_call(&name, span);
+                }
                 if matches!(self.current().kind, Kind::ColonColon) {
                     self.advance();
                     let (variant_name, variant_span) = self.identifier()?;
@@ -2111,6 +2117,162 @@ impl Parser {
                 arguments,
             },
             ty: hir::Type::Integer,
+            span: to_hir_span(whole_span),
+        })
+    }
+
+    fn stdlib_member_or_call(
+        &mut self,
+        module: &str,
+        start: Span,
+    ) -> Result<hir::Expr, Vec<Diagnostic>> {
+        enum StdlibReturn {
+            Scalar(hir::Type),
+            Option(hir::Type),
+            ResultString(hir::Type),
+        }
+
+        self.advance(); // '.'
+        let (member, member_span) = self.identifier()?;
+        if module == "Matematica"
+            && !matches!(self.current().kind, Kind::LParen)
+            && let Some(value) = match member.as_str() {
+                "PI" => Some(std::f64::consts::PI),
+                "E" => Some(std::f64::consts::E),
+                _ => None,
+            }
+        {
+            return Ok(hir::Expr {
+                kind: hir::ExprKind::Real(value),
+                ty: hir::Type::Real,
+                span: to_hir_span(start.join(member_span)),
+            });
+        }
+        self.expect(
+            Kind::LParen,
+            &format!("Esperado `(` após `{module}.{member}`"),
+        )?;
+        let mut arguments = Vec::new();
+        if !matches!(self.current().kind, Kind::RParen) {
+            loop {
+                arguments.push(self.expression(0)?);
+                if !self.eat(&Kind::Comma) {
+                    break;
+                }
+            }
+        }
+        let close = self.expect(
+            Kind::RParen,
+            &format!("Esperado `)` após argumentos de `{module}.{member}`"),
+        )?;
+        let whole_span = start.join(close.span);
+
+        use StdlibReturn::{Option as RetOpt, ResultString as RetRes, Scalar as Ret};
+        use hir::Type::{Boolean as B, Character as C, Integer as I, Real as R, String as S};
+
+        let signature: Option<(&[hir::Type], StdlibReturn)> = match (module, member.as_str()) {
+            ("Matematica", "potencia") => Some((&[R, R], Ret(R))),
+            ("Matematica", "raiz") => Some((&[R, R], Ret(R))),
+            ("Matematica", "raiz_quadrada") => Some((&[R], Ret(R))),
+            ("Matematica", "arredondar") => Some((&[R, I], Ret(R))),
+            ("Matematica", "piso") => Some((&[R], Ret(R))),
+            ("Matematica", "teto") => Some((&[R], Ret(R))),
+            ("Matematica", "logaritmo") => Some((&[R, R], Ret(R))),
+            ("Matematica", "seno") => Some((&[R], Ret(R))),
+            ("Matematica", "cosseno") => Some((&[R], Ret(R))),
+            ("Matematica", "tangente") => Some((&[R], Ret(R))),
+            ("Matematica", "valor_absoluto") => Some((&[R], Ret(R))),
+            ("Matematica", "valor_absoluto_inteiro") => Some((&[I], Ret(I))),
+            ("Matematica", "maior_numero") => Some((&[R, R], Ret(R))),
+            ("Matematica", "menor_numero") => Some((&[R, R], Ret(R))),
+            ("Matematica", "maior_inteiro") => Some((&[I, I], Ret(I))),
+            ("Matematica", "menor_inteiro") => Some((&[I, I], Ret(I))),
+
+            ("Texto", "numero_caracteres") => Some((&[S], Ret(I))),
+            ("Texto", "caixa_alta") => Some((&[S], Ret(S))),
+            ("Texto", "caixa_baixa") => Some((&[S], Ret(S))),
+            ("Texto", "aparar") => Some((&[S], Ret(S))),
+            ("Texto", "contem") => Some((&[S, S], Ret(B))),
+            ("Texto", "comeca_com") => Some((&[S, S], Ret(B))),
+            ("Texto", "termina_com") => Some((&[S, S], Ret(B))),
+            ("Texto", "substituir") => Some((&[S, S, S], Ret(S))),
+            ("Texto", "preencher_a_esquerda") => Some((&[C, I, S], Ret(S))),
+            ("Texto", "obter_caracter") => Some((&[S, I], RetOpt(C))),
+            ("Texto", "posicao_texto") => Some((&[S, S, I], RetOpt(I))),
+            ("Texto", "extrair_subtexto") => Some((&[S, I, I], RetRes(S))),
+
+            ("Tipos", "para_inteiro") => Some((&[S], RetRes(I))),
+            ("Tipos", "para_inteiro_base") => Some((&[S, I], RetRes(I))),
+            ("Tipos", "para_real") => Some((&[S], RetRes(R))),
+            ("Tipos", "para_logico") => Some((&[S], RetRes(B))),
+            ("Tipos", "para_caracter") => Some((&[S], RetRes(C))),
+            ("Tipos", "inteiro_para_real") => Some((&[I], Ret(R))),
+            ("Tipos", "real_para_inteiro") => Some((&[R], Ret(I))),
+            ("Tipos", "inteiro_para_cadeia") => Some((&[I], Ret(S))),
+            ("Tipos", "inteiro_para_cadeia_base") => Some((&[I, I], RetRes(S))),
+            ("Tipos", "real_para_cadeia") => Some((&[R], Ret(S))),
+            ("Tipos", "logico_para_cadeia") => Some((&[B], Ret(S))),
+            ("Tipos", "caracter_para_cadeia") => Some((&[C], Ret(S))),
+            ("Tipos", "logico_para_inteiro") => Some((&[B], Ret(I))),
+            ("Tipos", "caracter_para_inteiro") => Some((&[C], RetRes(I))),
+            ("Tipos", "inteiro_para_caracter") => Some((&[I], RetRes(C))),
+            ("Tipos", "cadeia_e_inteiro") => Some((&[S], Ret(B))),
+            ("Tipos", "cadeia_e_real") => Some((&[S], Ret(B))),
+            ("Tipos", "cadeia_e_logico") => Some((&[S], Ret(B))),
+            ("Tipos", "cadeia_e_caracter") => Some((&[S], Ret(B))),
+            _ => None,
+        };
+
+        let Some((param_types, return_spec)) = signature else {
+            return self.fail(
+                "pors.unknown-stdlib-function",
+                format!("Função desconhecida na biblioteca padrão: {module}.{member}"),
+                member_span,
+            );
+        };
+        if arguments.len() != param_types.len() {
+            return self.fail(
+                "pors.stdlib-call-arity",
+                format!(
+                    "`{module}.{member}` espera {} argumento(s), recebeu {}",
+                    param_types.len(),
+                    arguments.len()
+                ),
+                whole_span,
+            );
+        }
+        for (index, (argument, expected_ty)) in arguments.iter().zip(param_types).enumerate() {
+            if argument.ty != *expected_ty {
+                return self.fail(
+                    "pors.stdlib-call-type-mismatch",
+                    format!(
+                        "O argumento {} de `{module}.{member}` deve ter tipo `{}`, recebeu `{}`",
+                        index + 1,
+                        type_label(*expected_ty),
+                        type_label(argument.ty)
+                    ),
+                    syntax_span(argument.span),
+                );
+            }
+        }
+        let ty = match return_spec {
+            Ret(scalar) => scalar,
+            RetOpt(inner) => self.intern_builtin_enum(hir::BuiltinEnum::Option(inner), whole_span),
+            RetRes(ok) => self.intern_builtin_enum(
+                hir::BuiltinEnum::Result {
+                    ok,
+                    err: hir::Type::String,
+                },
+                whole_span,
+            ),
+        };
+        Ok(hir::Expr {
+            kind: hir::ExprKind::HostCall {
+                module: module.into(),
+                name: member,
+                arguments,
+            },
+            ty,
             span: to_hir_span(whole_span),
         })
     }

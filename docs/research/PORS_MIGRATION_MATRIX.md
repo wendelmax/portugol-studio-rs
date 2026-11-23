@@ -37,9 +37,9 @@ Não considerar uma biblioteca portada por implementar apenas o nome do módulo.
 
 | Biblioteca clássica | Estado em PORS/Rust | Decisão pendente |
 |---|---|---|
-| Matematica | ⬜ | Funções numéricas equivalentes e tipos/precisão explícitos |
-| Texto | ⬜ | Unicode, fatiamento, busca, substituição e alocações limitadas |
-| Tipos | ⬜ | Conversões explícitas, parse e falhas em `Result` |
+| Matematica | ✅ `Matematica` em PORS/Rust (constantes `PI`/`E` e 16 funções tipadas sem coerção implícita, em VM mínima, WASM e Rust gerado) | Expandir funções trigonométricas inversas/hiperbólicas se o currículo demandar |
+| Texto | ✅ `Texto` em PORS/Rust (12 funções Unicode-safe por `char`, `Opcao`/`Resultado` em busca/indexação/subtexto e orçamento de memória verificado antes de alocar, em VM mínima, WASM e Rust gerado) | Avaliar divisão (`dividir`) quando coleções dinâmicas/vetores vazios forem adicionados |
+| Tipos | ✅ `Tipos` em PORS/Rust (19 funções explícitas de conversão e validação com `Resultado<T, cadeia>` para parses falíveis e bases 2/10/16, em VM mínima, WASM e Rust gerado) | Manter alinhamento com futuros tipos numéricos se `i64`/`u32` forem expostos |
 | Util | ⬜ | Funções utilitárias que continuam úteis ao currículo |
 | Calendario | ⬜ | Datas/duração/timezone; escolher crate/contrato determinístico |
 | Arquivos | ⬜ | API confinada ao workspace/consentimento; limites e tratamento de erro |

@@ -490,3 +490,61 @@ funcao inicio() {
     let errors = lower(reserved_record).unwrap_err();
     assert!(errors.iter().any(|d| d.code == "pors.reserved-name"));
 }
+
+#[test]
+fn parses_and_validates_pors_core_libraries_matematica_texto_and_tipos() {
+    let source = r#"
+funcao somar_texto(a: cadeia, b: cadeia) -> Resultado<inteiro, cadeia> {
+    seja x: inteiro = Tipos.para_inteiro(Texto.aparar(a))?;
+    seja y: inteiro = Tipos.para_inteiro_base(b, 16)?;
+    retorne Resultado::Ok(Matematica.maior_inteiro(x, y) + x);
+}
+
+funcao primeiro_char(s: cadeia) -> Opcao<caracter> {
+    retorne Texto.obter_caracter(s, 0);
+}
+
+funcao inicio() {
+    seja pi: real = Matematica.arredondar(Matematica.PI, 2);
+    seja raiz: real = Matematica.raiz_quadrada(Matematica.potencia(3.0, 2.0) + Matematica.E);
+    seja txt: cadeia = Texto.preencher_a_esquerda('0', 5, Tipos.inteiro_para_cadeia(42));
+    seja sub: Resultado<cadeia, cadeia> = Texto.extrair_subtexto(txt, 0, 2);
+    seja ok: logico = Tipos.cadeia_e_real("3.14") && Texto.contem(txt, "42");
+    escreva(pi, raiz, ok);
+    escolha sub {
+        caso Resultado::Ok(v) => { escreva(v); }
+        caso Resultado::Erro(e) => { escreva(e); }
+    }
+    escolha primeiro_char("🦀") {
+        caso Opcao::Algum(c) => { escreva(c); }
+        caso Opcao::Nenhum => { escreva("-"); }
+    }
+    escolha somar_texto(" 10 ", "0x10") {
+        caso Resultado::Ok(n) => { escreva(n); }
+        caso Resultado::Erro(e) => { escreva(e); }
+    }
+}
+"#;
+    let program = lower(source).expect("bibliotecas Matematica, Texto e Tipos devem ser aceitas");
+    assert_eq!(program.functions.len(), 2);
+
+    let unknown_fn = "funcao inicio() { seja x: real = Matematica.inexistente(1.0); }";
+    let errors = lower(unknown_fn).unwrap_err();
+    assert!(
+        errors
+            .iter()
+            .any(|d| d.code == "pors.unknown-stdlib-function")
+    );
+
+    let bad_arity = "funcao inicio() { seja x: real = Matematica.potencia(2.0); }";
+    let errors = lower(bad_arity).unwrap_err();
+    assert!(errors.iter().any(|d| d.code == "pors.stdlib-call-arity"));
+
+    let bad_type = "funcao inicio() { seja x: real = Matematica.potencia(2, 3.0); }";
+    let errors = lower(bad_type).unwrap_err();
+    assert!(
+        errors
+            .iter()
+            .any(|d| d.code == "pors.stdlib-call-type-mismatch")
+    );
+}

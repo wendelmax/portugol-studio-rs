@@ -18,6 +18,7 @@ pub mod debug;
 pub mod graphics;
 pub mod host;
 pub mod io;
+mod pors_libs;
 #[cfg(feature = "stdlib")]
 pub mod stdlib;
 pub mod ui;
