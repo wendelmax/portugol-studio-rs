@@ -2796,3 +2796,27 @@ body {
   background: transparent;
   outline: 0;
 }
+
+.cm-pors-hover {
+  max-width: 420px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.45;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+}
+
+.cm-pors-hover-signature {
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+.cm-pors-hover-description {
+  color: var(--text);
+}
