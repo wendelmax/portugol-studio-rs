@@ -2821,6 +2821,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "portugol-wasm"
+version = "0.1.0"
+dependencies = [
+ "portugol-bytecode",
+ "portugol-rs-frontend",
+ "portugol-syntax",
+ "portugol-vm",
+]
+
+[[package]]
 name = "potential_utf"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
