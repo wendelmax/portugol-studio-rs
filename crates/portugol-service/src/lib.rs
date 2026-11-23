@@ -11,6 +11,8 @@ mod cargo_project;
 mod exercise_rules;
 mod exercises;
 mod outline;
+mod pors_examples;
+mod pors_exercises;
 mod pors_run;
 mod position;
 mod rename;
@@ -33,6 +35,13 @@ pub use exercises::{
     Exercise, ExerciseResult, check_exercise, check_imported_exercise, exercises, inspect_exercise,
 };
 pub use outline::{SymbolInfo, SymbolKind};
+pub use pors_examples::{PorsExample, find_pors_example, pors_examples};
+pub use pors_exercises::{
+    PORS_EXERCISE_SCHEMA_VERSION, PorsExerciseCase, PorsExerciseCaseOutcome,
+    PorsExerciseDefinition, PorsExerciseEvaluation, PorsExerciseStatus, PorsExerciseSummary,
+    check_imported_pors_exercise, check_pors_exercise, evaluate_pors_exercise,
+    inspect_pors_exercise, parse_pors_exercise_json, pors_exercises,
+};
 pub use pors_run::{
     PortugolRsRunPhase, PortugolRsRunResult, PortugolRsRuntimeLimitReason,
     RustSourceCompileDiagnostic, RustSourceLimitReason, RustSourceRunPhase, RustSourceRunResult,

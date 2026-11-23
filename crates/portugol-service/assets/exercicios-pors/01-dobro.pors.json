@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "pors-01-dobro",
+  "title": "Dobro de um número",
+  "statement": "Leia um número inteiro da entrada padrão e escreva o dobro dele.",
+  "starter_code": "funcao inicio() {\n    seja mutavel numero: inteiro = 0;\n    leia(numero);\n    escreva(numero);\n}\n",
+  "hints": [
+    "Multiplique a variável por 2 dentro de escreva(numero * 2)."
+  ],
+  "cases": [
+    { "name": "positivo", "input": "21\n", "expected_output": "42" },
+    { "name": "zero", "input": "0\n", "expected_output": "0" },
+    { "name": "negativo", "input": "-7\n", "expected_output": "-14" }
+  ]
+}
