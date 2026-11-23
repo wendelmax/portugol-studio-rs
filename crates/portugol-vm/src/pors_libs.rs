@@ -348,6 +348,22 @@ fn call_texto(
             check_and_charge(slice.len(), charge_string)?;
             Ok(ok_value(Value::str(slice)))
         }
+        "dividir" => {
+            arity(args, 2, "Texto.dividir")?;
+            let texto = expect_str(&args[0])?;
+            let separador = expect_str(&args[1])?;
+            if separador.is_empty() {
+                check_and_charge(texto.len(), charge_string)?;
+                let parts: Vec<Value> =
+                    texto.chars().map(|ch| Value::str(ch.to_string())).collect();
+                return Ok(Value::Array(Rc::new(RefCell::new(parts))));
+            }
+            let raw_parts: Vec<&str> = texto.split(separador).collect();
+            let total_bytes: usize = raw_parts.iter().map(|part| part.len()).sum();
+            check_and_charge(total_bytes, charge_string)?;
+            let parts: Vec<Value> = raw_parts.into_iter().map(Value::str).collect();
+            Ok(Value::Array(Rc::new(RefCell::new(parts))))
+        }
         other => Err(format!("Função desconhecida em Texto: `{other}`.")),
     }
 }

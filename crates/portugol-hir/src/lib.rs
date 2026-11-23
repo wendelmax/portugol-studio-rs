@@ -262,6 +262,13 @@ pub enum StmtKind {
         index: Expr,
         value: Expr,
     },
+    VectorPush {
+        binding: BindingId,
+        value: Expr,
+    },
+    VectorPop {
+        binding: BindingId,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -311,6 +318,13 @@ pub enum ExprKind {
     },
     Length {
         binding: BindingId,
+    },
+    VectorPop {
+        binding: BindingId,
+    },
+    VectorGet {
+        binding: BindingId,
+        index: Box<Expr>,
     },
     Integer(i32),
     Real(f64),

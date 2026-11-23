@@ -423,8 +423,18 @@ fn render_statements(
                 output.push_str(&format!(
                     ", {name}.len());\n{indent}{name}[{checked_index}] = "
                 ));
-                push_expr(output, mappings, value, program, false, pors);
+                push_expr(output, mappings, value, program, true, pors);
                 output.push_str(";\n");
+            }
+            StmtKind::VectorPush { binding, value } => {
+                let name = rust_ident(&binding_info(program, *binding).source_name);
+                output.push_str(&format!("{indent}{name}.push("));
+                push_expr(output, mappings, value, program, true, pors);
+                output.push_str(");\n");
+            }
+            StmtKind::VectorPop { binding } => {
+                let name = rust_ident(&binding_info(program, *binding).source_name);
+                output.push_str(&format!("{indent}let _ = {name}.pop();\n"));
             }
             StmtKind::Write(values) => {
                 let temps: Vec<String> = values
@@ -666,15 +676,24 @@ fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedExpression {
             &binding_info(program, *id).source_name,
         ))],
         ExprKind::VectorLiteral(items) => {
-            let mut parts = vec![ExpressionPart::Text("vec![".to_owned())];
-            for (index, item) in items.iter().enumerate() {
-                if index > 0 {
-                    parts.push(ExpressionPart::Text(", ".to_owned()));
+            if items.is_empty() {
+                let elem_ty = expr
+                    .ty
+                    .vector_element()
+                    .map(|ty| rust_type(ty, program))
+                    .unwrap_or_else(|| "_".to_owned());
+                vec![ExpressionPart::Text(format!("Vec::<{elem_ty}>::new()"))]
+            } else {
+                let mut parts = vec![ExpressionPart::Text("vec![".to_owned())];
+                for (index, item) in items.iter().enumerate() {
+                    if index > 0 {
+                        parts.push(ExpressionPart::Text(", ".to_owned()));
+                    }
+                    parts.push(ExpressionPart::Nested(owned_value(item, program, pors)));
                 }
-                parts.push(ExpressionPart::Nested(render_expr(item, program, pors)));
+                parts.push(ExpressionPart::Text("]".to_owned()));
+                parts
             }
-            parts.push(ExpressionPart::Text("]".to_owned()));
-            parts
         }
         ExprKind::RecordLiteral { type_id, fields } => {
             let definition = program
@@ -760,6 +779,26 @@ fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedExpression {
             "{}.len() as i32",
             rust_ident(&binding_info(program, *binding).source_name)
         ))],
+        ExprKind::VectorPop { binding } => vec![ExpressionPart::Text(format!(
+            "{}.pop()",
+            rust_ident(&binding_info(program, *binding).source_name)
+        ))],
+        ExprKind::VectorGet { binding, index } => {
+            let info = binding_info(program, *binding);
+            let name = rust_ident(&info.source_name);
+            let clone_item = info
+                .ty
+                .vector_element()
+                .map(|elem_ty| pors_clone_value(elem_ty, "item", program))
+                .unwrap_or_else(|| "(*item).clone()".to_owned());
+            vec![
+                ExpressionPart::Text("({ let __pors_idx = (".to_owned()),
+                ExpressionPart::Nested(render_expr(index, program, pors)),
+                ExpressionPart::Text(format!(
+                    "); if __pors_idx < 0 {{ Option::None }} else {{ {name}.get(__pors_idx as usize).map(|item| {clone_item}) }} }})"
+                )),
+            ]
+        }
         ExprKind::Call {
             function,
             arguments,
@@ -1555,6 +1594,8 @@ fn stmts_use_host_module(stmts: &[Stmt], target: &str) -> bool {
         StmtKind::IndexAssign { index, value, .. } => {
             expr_uses_host_module(index, target) || expr_uses_host_module(value, target)
         }
+        StmtKind::VectorPush { value, .. } => expr_uses_host_module(value, target),
+        StmtKind::VectorPop { .. } => false,
     })
 }
 
@@ -1580,6 +1621,7 @@ fn expr_uses_host_module(expr: &Expr, target: &str) -> bool {
             .any(|arg| expr_uses_host_module(arg, target)),
         ExprKind::Field { value, .. }
         | ExprKind::Index { index: value, .. }
+        | ExprKind::VectorGet { index: value, .. }
         | ExprKind::Parenthesized(value)
         | ExprKind::Try { operand: value }
         | ExprKind::Unary { operand: value, .. } => expr_uses_host_module(value, target),
@@ -1588,6 +1630,7 @@ fn expr_uses_host_module(expr: &Expr, target: &str) -> bool {
         }
         ExprKind::Binding(_)
         | ExprKind::Length { .. }
+        | ExprKind::VectorPop { .. }
         | ExprKind::Integer(_)
         | ExprKind::Real(_)
         | ExprKind::Boolean(_)
@@ -1949,6 +1992,16 @@ mod __pors_texto {
         let slice: String = chars[inicio as usize..fim as usize].iter().collect();
         super::__pors_account(slice.len());
         Ok(slice)
+    }
+    pub fn dividir(texto: &str, separador: &str) -> Vec<String> {
+        if separador.is_empty() {
+            super::__pors_account(texto.len());
+            return texto.chars().map(|ch| ch.to_string()).collect();
+        }
+        let parts: Vec<&str> = texto.split(separador).collect();
+        let total: usize = parts.iter().map(|part| part.len()).sum();
+        super::__pors_account(total);
+        parts.into_iter().map(str::to_owned).collect()
     }
 }
 "#;

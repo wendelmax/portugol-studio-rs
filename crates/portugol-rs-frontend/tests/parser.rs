@@ -548,3 +548,54 @@ funcao inicio() {
             .any(|d| d.code == "pors.stdlib-call-type-mismatch")
     );
 }
+
+#[test]
+fn parses_and_validates_dynamic_vectors_and_texto_dividir() {
+    let source = r#"
+funcao primeiro_ou_vazio(itens: vetor<cadeia>) -> Opcao<cadeia> {
+    seja item: cadeia = obter(itens, 0)?;
+    retorne Opcao::Algum(item);
+}
+
+funcao inicio() {
+    seja mutavel nums: vetor<inteiro> = [];
+    adicionar(nums, 10);
+    adicionar(nums, 20);
+    remover(nums);
+    seja ultimo: Opcao<inteiro> = remover(nums);
+    seja partes: vetor<cadeia> = Texto.dividir("a,b,c", ",");
+    escolha ultimo {
+        caso Opcao::Algum(v) => { escreva(v); }
+        caso Opcao::Nenhum => { escreva(0); }
+    }
+    escolha primeiro_ou_vazio(partes) {
+        caso Opcao::Algum(s) => { escreva(s); }
+        caso Opcao::Nenhum => { escreva("-"); }
+    }
+}
+"#;
+    let program = lower(source).expect("vetores dinâmicos e Texto.dividir devem ser aceitos");
+    assert_eq!(program.functions.len(), 1);
+
+    let untyped_empty = "funcao inicio() { escreva([]); }";
+    let errors = lower(untyped_empty).unwrap_err();
+    assert!(
+        errors
+            .iter()
+            .any(|d| d.code == "pors.empty-vector-type-inference")
+    );
+
+    let immutable_push = "funcao inicio() { seja v: vetor<inteiro> = []; adicionar(v, 1); }";
+    let errors = lower(immutable_push).unwrap_err();
+    assert!(errors.iter().any(|d| d.code == "pors.immutable-assignment"));
+
+    let immutable_pop =
+        "funcao inicio() { seja v: vetor<inteiro> = [1]; seja x: Opcao<inteiro> = remover(v); }";
+    let errors = lower(immutable_pop).unwrap_err();
+    assert!(errors.iter().any(|d| d.code == "pors.immutable-assignment"));
+
+    let bad_push_type =
+        "funcao inicio() { seja mutavel v: vetor<inteiro> = []; adicionar(v, \"oi\"); }";
+    let errors = lower(bad_push_type).unwrap_err();
+    assert!(errors.iter().any(|d| d.code == "pors.vector-element-type"));
+}

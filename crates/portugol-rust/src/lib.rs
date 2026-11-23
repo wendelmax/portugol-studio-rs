@@ -263,6 +263,8 @@ fn find_host_call_in_stmts(
             S::IndexAssign { index, value, .. } => {
                 find_host_call_in_expr(index).or_else(|| find_host_call_in_expr(value))
             }
+            S::VectorPush { value, .. } => find_host_call_in_expr(value),
+            S::VectorPop { .. } => None,
         };
         if found.is_some() {
             return found;
@@ -295,6 +297,7 @@ fn find_host_call_in_expr(expr: &portugol_hir::Expr) -> Option<(&str, &str, port
         } => arguments.iter().find_map(find_host_call_in_expr),
         E::Field { value, .. }
         | E::Index { index: value, .. }
+        | E::VectorGet { index: value, .. }
         | E::Parenthesized(value)
         | E::Try { operand: value }
         | E::Unary { operand: value, .. } => find_host_call_in_expr(value),
@@ -303,6 +306,7 @@ fn find_host_call_in_expr(expr: &portugol_hir::Expr) -> Option<(&str, &str, port
         }
         E::Binding(_)
         | E::Length { .. }
+        | E::VectorPop { .. }
         | E::Integer(_)
         | E::Real(_)
         | E::Boolean(_)
@@ -1675,6 +1679,61 @@ funcao inicio() {
         assert!(!minimal.contains("mod __pors_matematica"));
         assert!(!minimal.contains("mod __pors_texto"));
         assert!(!minimal.contains("mod __pors_tipos"));
+    }
+
+    #[test]
+    fn exports_and_executes_dynamic_vectors_and_texto_dividir_as_native_rust() {
+        let source = r#"
+registro Ponto { x: inteiro }
+
+funcao somar_topo_e_primeiro(mutavel itens: vetor<inteiro>) -> Opcao<inteiro> {
+    seja topo: inteiro = remover(itens)?;
+    seja primeiro: inteiro = obter(itens, 0)?;
+    retorne Opcao::Algum(topo + primeiro);
+}
+
+funcao inicio() {
+    seja mutavel nums: vetor<inteiro> = [];
+    escreva(tamanho(nums), "|");
+    adicionar(nums, 5);
+    adicionar(nums, 15);
+    adicionar(nums, 25);
+    escreva(tamanho(nums), "|");
+    escolha somar_topo_e_primeiro(nums) {
+        caso Opcao::Algum(s) => { escreva(s, "|"); }
+        caso Opcao::Nenhum => { escreva("N|"); }
+    }
+    remover(nums);
+    escreva(tamanho(nums), "|");
+    escolha obter(nums, -1) {
+        caso Opcao::Algum(v) => { escreva(v, "|"); }
+        caso Opcao::Nenhum => { escreva("N|"); }
+    }
+    escolha obter(nums, 99) {
+        caso Opcao::Algum(v) => { escreva(v, "|"); }
+        caso Opcao::Nenhum => { escreva("N|"); }
+    }
+
+    seja mutavel pontos: vetor<Ponto> = [];
+    adicionar(pontos, Ponto { x: 7 });
+    escolha obter(pontos, 0) {
+        caso Opcao::Algum(p) => { escreva(p.x, "|"); }
+        caso Opcao::Nenhum => { escreva("N|"); }
+    }
+
+    seja partes: vetor<cadeia> = Texto.dividir("um,dois,três", ",");
+    escreva(tamanho(partes), "|", partes[1], "|");
+    seja letras: vetor<cadeia> = Texto.dividir("a🦀", "");
+    escreva(tamanho(letras), "|", letras[1]);
+}
+"#;
+        let generated = export_portugol_rs(source).unwrap();
+        assert!(generated.contains("Vec::<i32>::new()"));
+        assert!(generated.contains(".push("));
+        assert!(generated.contains(".pop()"));
+        assert!(generated.contains(".get("));
+        assert!(generated.contains("__pors_texto::dividir("));
+        assert_rust_output(generated, "0|3|30|2|N|N|7|3|dois|2|🦀");
     }
 
     fn assert_rust_output(generated: String, expected: &str) {

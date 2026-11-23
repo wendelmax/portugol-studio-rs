@@ -309,6 +309,16 @@ impl<'a> Compiler<'a> {
                 self.emit(Op::PushInt(*field_index as i32), stmt.span);
                 self.emit(Op::StoreElem, stmt.span);
             }
+            S::VectorPush { binding, value } => {
+                self.emit(Op::LoadLocal(binding.0), stmt.span);
+                self.expr_for_value(value)?;
+                self.emit(Op::ArrayPush, stmt.span);
+            }
+            S::VectorPop { binding } => {
+                self.emit(Op::LoadLocal(binding.0), stmt.span);
+                self.emit(Op::ArrayPop, stmt.span);
+                self.emit(Op::Pop, stmt.span);
+            }
             S::Choose { value, arms } => {
                 let mut exits = Vec::new();
                 for arm in arms {
@@ -624,6 +634,15 @@ impl<'a> Compiler<'a> {
                 self.emit(Op::LoadLocal(binding.0), expr.span);
                 self.emit(Op::ArrayLen, expr.span);
             }
+            E::VectorPop { binding } => {
+                self.emit(Op::LoadLocal(binding.0), expr.span);
+                self.emit(Op::ArrayPop, expr.span);
+            }
+            E::VectorGet { binding, index } => {
+                self.emit(Op::LoadLocal(binding.0), expr.span);
+                self.expr(index)?;
+                self.emit(Op::ArrayGet, expr.span);
+            }
             E::Call {
                 function,
                 arguments,
@@ -766,6 +785,10 @@ impl<'a> Compiler<'a> {
                     | hir::ExprKind::RecordLiteral { .. }
                     | hir::ExprKind::EnumConstructor { .. }
                     | hir::ExprKind::Call { .. }
+                    | hir::ExprKind::HostCall { .. }
+                    | hir::ExprKind::VectorPop { .. }
+                    | hir::ExprKind::VectorGet { .. }
+                    | hir::ExprKind::Try { .. }
             )
         {
             self.emit(Op::CloneArray, expr.span);

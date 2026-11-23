@@ -95,6 +95,12 @@ pub enum Op {
     ArrayLit(u32),
     /// `[vetor]` -> `[inteiro]`.
     ArrayLen,
+    /// `[vetor, valor]` -> `[]`, inserindo ao final do vetor.
+    ArrayPush,
+    /// `[vetor]` -> `[Opcao<T>]`, removendo o último elemento do vetor.
+    ArrayPop,
+    /// `[vetor, indice]` -> `[Opcao<T>]`, leitura segura com clone por valor.
+    ArrayGet,
     /// `[vetor]` -> `[cópia profunda do vetor]`.
     CloneArray,
     /// `[cadeia]` -> `[cópia da cadeia]`, contabilizando o orçamento PORS.
