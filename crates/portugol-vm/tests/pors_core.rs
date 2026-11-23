@@ -130,3 +130,59 @@ fn reports_unavailable_native_libraries_when_stdlib_feature_is_disabled() {
     let error = run(&module, &mut io).expect_err("chamada nativa sem stdlib deve falhar");
     assert!(error.message.contains("Util.tempo_decorrido"));
 }
+
+#[test]
+fn executes_builtin_option_result_and_try_propagation_in_minimal_vm() {
+    let source = r#"
+registro Item { valor: inteiro }
+
+funcao buscar(n: inteiro) -> Opcao<Item> {
+    se (n > 0) {
+        retorne Opcao::Algum(Item { valor: n * 10 });
+    }
+    retorne Opcao::Nenhum;
+}
+
+funcao somar_com_dez(n: inteiro) -> Opcao<inteiro> {
+    retorne Opcao::Algum(10 + buscar(n)?.valor);
+}
+
+funcao dividir(a: inteiro, b: inteiro) -> Resultado<inteiro, cadeia> {
+    se (b == 0) {
+        retorne Resultado::Erro("zero");
+    }
+    retorne Resultado::Ok(a / b);
+}
+
+funcao rotular_divisao(a: inteiro, b: inteiro) -> Resultado<cadeia, cadeia> {
+    seja total: inteiro = 1 + dividir(a, b)?;
+    se (total >= 5) {
+        retorne Resultado::Ok("alto");
+    }
+    retorne Resultado::Ok("baixo");
+}
+
+funcao inicio() {
+    escolha somar_com_dez(3) {
+        caso Opcao::Algum(v) => { escreva(v, "|"); }
+        caso Opcao::Nenhum => { escreva("N|"); }
+    }
+    escolha somar_com_dez(0) {
+        caso Opcao::Algum(v) => { escreva(v, "|"); }
+        caso Opcao::Nenhum => { escreva("N|"); }
+    }
+    escolha rotular_divisao(20, 4) {
+        caso Resultado::Ok(s) => { escreva(s, "|"); }
+        caso Resultado::Erro(e) => { escreva("E:", e, "|"); }
+    }
+    escolha rotular_divisao(20, 0) {
+        caso Resultado::Ok(s) => { escreva(s); }
+        caso Resultado::Erro(e) => { escreva("E:", e); }
+    }
+}
+"#;
+    let module = compile_pors_source(source);
+    let mut io = BufferIo::default();
+    run(&module, &mut io).expect("execução de Opcao, Resultado e ? na VM mínima");
+    assert_eq!(io.output, "40|N|alto|E:zero");
+}

@@ -15,7 +15,7 @@ impl Span {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Type {
     Unit,
     Integer,
@@ -52,11 +52,18 @@ pub struct RecordField {
     pub span: Span,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum BuiltinEnum {
+    Option(Type),
+    Result { ok: Type, err: Type },
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct EnumDef {
     pub id: TypeId,
     pub name: String,
     pub variants: Vec<EnumVariant>,
+    pub builtin: Option<BuiltinEnum>,
     pub span: Span,
 }
 
@@ -311,6 +318,9 @@ pub enum ExprKind {
     String(String),
     Character(char),
     Parenthesized(Box<Expr>),
+    Try {
+        operand: Box<Expr>,
+    },
     Unary {
         op: UnaryOp,
         operand: Box<Expr>,

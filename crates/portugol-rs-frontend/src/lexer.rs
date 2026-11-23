@@ -40,6 +40,7 @@ pub(super) enum Kind {
     LessEqual,
     And,
     Or,
+    Question,
     Eof,
 }
 
@@ -110,6 +111,7 @@ impl Lexer<'_> {
                 '.' => self.single(start, Kind::Dot),
                 ';' => self.single(start, Kind::Semicolon),
                 ',' => self.single(start, Kind::Comma),
+                '?' => self.single(start, Kind::Question),
                 '+' => self.pair(start, '=', Kind::PlusEq, Kind::Plus),
                 '-' if self.starts_with("->") => {
                     self.bump();

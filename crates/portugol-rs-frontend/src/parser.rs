@@ -18,6 +18,7 @@ pub(super) struct Parser {
     record_ids: HashMap<String, hir::TypeId>,
     enum_types: Vec<hir::EnumDef>,
     enum_ids: HashMap<String, hir::TypeId>,
+    builtin_enums: HashMap<hir::BuiltinEnum, hir::TypeId>,
     declared_types: HashMap<String, hir::TypeId>,
     next_type_id: u32,
 }
@@ -60,6 +61,7 @@ impl Parser {
             record_ids: HashMap::new(),
             enum_types: vec![],
             enum_ids: HashMap::new(),
+            builtin_enums: HashMap::new(),
             declared_types: HashMap::new(),
             next_type_id: 0,
         }
@@ -335,39 +337,97 @@ impl Parser {
         ))
     }
 
+    fn intern_builtin_enum(&mut self, builtin: hir::BuiltinEnum, span: Span) -> hir::Type {
+        if let Some(&id) = self.builtin_enums.get(&builtin) {
+            return hir::Type::Enum(id);
+        }
+        let id = hir::TypeId(self.next_type_id);
+        self.next_type_id += 1;
+        let hir_span = to_hir_span(span);
+        let (name, variants) = match builtin {
+            hir::BuiltinEnum::Option(inner) => (
+                "Opcao".to_owned(),
+                vec![
+                    hir::EnumVariant {
+                        name: "Algum".to_owned(),
+                        payload_types: vec![inner],
+                        span: hir_span,
+                    },
+                    hir::EnumVariant {
+                        name: "Nenhum".to_owned(),
+                        payload_types: Vec::new(),
+                        span: hir_span,
+                    },
+                ],
+            ),
+            hir::BuiltinEnum::Result { ok, err } => (
+                "Resultado".to_owned(),
+                vec![
+                    hir::EnumVariant {
+                        name: "Ok".to_owned(),
+                        payload_types: vec![ok],
+                        span: hir_span,
+                    },
+                    hir::EnumVariant {
+                        name: "Erro".to_owned(),
+                        payload_types: vec![err],
+                        span: hir_span,
+                    },
+                ],
+            ),
+        };
+        self.enum_types.push(hir::EnumDef {
+            id,
+            name,
+            variants,
+            builtin: Some(builtin),
+            span: hir_span,
+        });
+        self.builtin_enums.insert(builtin, id);
+        hir::Type::Enum(id)
+    }
+
+    fn builtin_enum_of(&self, ty: hir::Type) -> Option<(hir::TypeId, hir::BuiltinEnum)> {
+        let hir::Type::Enum(id) = ty else {
+            return None;
+        };
+        let definition = self.enum_types.iter().find(|item| item.id == id)?;
+        definition.builtin.map(|builtin| (id, builtin))
+    }
+
     fn type_name(&mut self) -> Result<hir::Type, Vec<Diagnostic>> {
         let (name, span) = self.identifier()?;
         if name == "vetor" {
             self.expect(Kind::Less, "Esperado `<` após `vetor`")?;
-            let (element_name, element_span) = self.identifier()?;
-            let element = scalar_type(&element_name)
-                .or_else(|| {
-                    self.record_ids
-                        .get(&element_name)
-                        .copied()
-                        .map(hir::Type::Record)
-                })
-                .or_else(|| {
-                    self.enum_ids
-                        .get(&element_name)
-                        .copied()
-                        .map(hir::Type::Enum)
-                })
-                .ok_or_else(|| {
-                    vec![Diagnostic::error(
-                        "pors.unknown-type",
-                        format!("Tipo de elemento desconhecido: {element_name}"),
-                        element_span,
-                    )]
-                })?;
-            self.expect(Kind::Greater, "Esperado `>` após o tipo do vetor")?;
+            let element = self.type_name()?;
+            let close = self.expect(Kind::Greater, "Esperado `>` após o tipo do vetor")?;
             return hir::Type::vector_of(element).ok_or_else(|| {
                 vec![Diagnostic::error(
                     "pors.vector-element-type",
                     "O tipo de elemento não pode ser um vetor",
-                    span,
+                    span.join(close.span),
                 )]
             });
+        }
+        if name == "Opcao" {
+            self.expect(Kind::Less, "Esperado `<` após `Opcao`")?;
+            let inner = self.type_name()?;
+            let close = self.expect(Kind::Greater, "Esperado `>` após o tipo de `Opcao`")?;
+            return Ok(
+                self.intern_builtin_enum(hir::BuiltinEnum::Option(inner), span.join(close.span))
+            );
+        }
+        if name == "Resultado" {
+            self.expect(Kind::Less, "Esperado `<` após `Resultado`")?;
+            let ok = self.type_name()?;
+            self.expect(
+                Kind::Comma,
+                "Esperado `,` entre os tipos de sucesso e erro de `Resultado`",
+            )?;
+            let err = self.type_name()?;
+            let close = self.expect(Kind::Greater, "Esperado `>` após os tipos de `Resultado`")?;
+            return Ok(self
+                .intern_builtin_enum(hir::BuiltinEnum::Result { ok, err }, span.join(close.span)));
         }
         scalar_type(&name)
             .or_else(|| self.record_ids.get(&name).copied().map(hir::Type::Record))
@@ -383,6 +443,13 @@ impl Parser {
 
     fn collect_record_definition(&mut self) -> Result<(), Vec<Diagnostic>> {
         let (name, name_span) = self.identifier()?;
+        if is_reserved(&name) {
+            return self.fail(
+                "pors.reserved-name",
+                format!("`{name}` é reservado e não pode ser usado como nome de registro"),
+                name_span,
+            );
+        }
         if self.declared_types.contains_key(&name) {
             return self.fail(
                 "pors.type-redeclared",
@@ -452,6 +519,13 @@ impl Parser {
 
     fn collect_enum_definition(&mut self) -> Result<(), Vec<Diagnostic>> {
         let (name, name_span) = self.identifier()?;
+        if is_reserved(&name) {
+            return self.fail(
+                "pors.reserved-name",
+                format!("`{name}` é reservado e não pode ser usado como nome de enum"),
+                name_span,
+            );
+        }
         if self.declared_types.contains_key(&name) {
             return self.fail(
                 "pors.type-redeclared",
@@ -504,6 +578,7 @@ impl Parser {
             id,
             name,
             variants,
+            builtin: None,
             span: to_hir_span(name_span.join(close.span)),
         });
         Ok(())
@@ -729,7 +804,7 @@ impl Parser {
             Kind::Assign,
             "Toda variável deve receber um valor inicial (`=`)",
         )?;
-        let initializer = self.expression(0)?;
+        let initializer = self.expression_with_expected(0, Some(ty))?;
         if initializer.ty != ty {
             return self.fail(
                 "pors.type-mismatch",
@@ -834,7 +909,8 @@ impl Parser {
                 );
             }
         };
-        let value = self.expression(0)?;
+        let expected = (op == hir::AssignOp::Set).then_some(field_ty);
+        let value = self.expression_with_expected(0, expected)?;
         if value.ty != field_ty {
             return self.fail(
                 "pors.type-mismatch",
@@ -891,7 +967,7 @@ impl Parser {
             Kind::Assign,
             "A atribuição em um índice de vetor deve usar `=`",
         )?;
-        let value = self.expression(0)?;
+        let value = self.expression_with_expected(0, Some(element_type))?;
         if value.ty != element_type {
             return self.fail(
                 "pors.vector-element-type",
@@ -947,7 +1023,8 @@ impl Parser {
                 );
             }
         };
-        let value = self.expression(0)?;
+        let expected = (op == hir::AssignOp::Set).then_some(symbol.ty);
+        let value = self.expression_with_expected(0, expected)?;
         let end = if needs_semicolon {
             self.expect(Kind::Semicolon, "Esperado `;` após atribuição")?
                 .span
@@ -1042,7 +1119,7 @@ impl Parser {
         let value = if matches!(self.current().kind, Kind::Semicolon) {
             None
         } else {
-            Some(self.expression(0)?)
+            Some(self.expression_with_expected(0, self.return_type)?)
         };
         let end = self.expect(Kind::Semicolon, "Esperado `;` após retorne")?;
         if !self.in_function {
@@ -1394,7 +1471,15 @@ impl Parser {
     }
 
     fn expression(&mut self, min_precedence: u8) -> Result<hir::Expr, Vec<Diagnostic>> {
-        let mut left = self.prefix()?;
+        self.expression_with_expected(min_precedence, None)
+    }
+
+    fn expression_with_expected(
+        &mut self,
+        min_precedence: u8,
+        expected: Option<hir::Type>,
+    ) -> Result<hir::Expr, Vec<Diagnostic>> {
+        let mut left = self.prefix(expected)?;
         loop {
             if matches!(self.current().kind, Kind::Dot) {
                 self.advance();
@@ -1436,6 +1521,54 @@ impl Parser {
                 };
                 continue;
             }
+            if matches!(self.current().kind, Kind::Question) {
+                let question_span = self.advance().span;
+                let unwrapped_ty = match self.builtin_enum_of(left.ty) {
+                    Some((_, hir::BuiltinEnum::Option(inner))) => {
+                        match self.return_type.and_then(|ty| self.builtin_enum_of(ty)) {
+                            Some((_, hir::BuiltinEnum::Option(_))) => inner,
+                            _ => {
+                                return self.fail(
+                                    "pors.try-return-mismatch",
+                                    "O operador `?` em `Opcao` exige que a função retorne `Opcao<...>`",
+                                    question_span,
+                                );
+                            }
+                        }
+                    }
+                    Some((_, hir::BuiltinEnum::Result { ok, err })) => {
+                        match self.return_type.and_then(|ty| self.builtin_enum_of(ty)) {
+                            Some((_, hir::BuiltinEnum::Result { err: ret_err, .. }))
+                                if ret_err == err =>
+                            {
+                                ok
+                            }
+                            _ => {
+                                return self.fail(
+                                    "pors.try-return-mismatch",
+                                    "O operador `?` em `Resultado` exige que a função retorne `Resultado<..., E>` com o mesmo tipo de erro",
+                                    question_span,
+                                );
+                            }
+                        }
+                    }
+                    None => {
+                        return self.fail(
+                            "pors.try-invalid-type",
+                            "O operador `?` só pode ser aplicado a valores `Opcao<T>` ou `Resultado<T, E>`",
+                            question_span,
+                        );
+                    }
+                };
+                left = hir::Expr {
+                    kind: hir::ExprKind::Try {
+                        operand: Box::new(left.clone()),
+                    },
+                    ty: unwrapped_ty,
+                    span: to_hir_span(syntax_span(left.span).join(question_span)),
+                };
+                continue;
+            }
             let Some((op, precedence)) = binary(&self.current().kind) else {
                 break;
             };
@@ -1465,7 +1598,7 @@ impl Parser {
         Ok(left)
     }
 
-    fn prefix(&mut self) -> Result<hir::Expr, Vec<Diagnostic>> {
+    fn prefix(&mut self, expected: Option<hir::Type>) -> Result<hir::Expr, Vec<Diagnostic>> {
         let token = self.advance();
         let span = token.span;
         let (kind, ty) = match token.kind {
@@ -1498,10 +1631,26 @@ impl Parser {
                 if matches!(self.current().kind, Kind::ColonColon) {
                     self.advance();
                     let (variant_name, variant_span) = self.identifier()?;
+                    if name == "Opcao" {
+                        return self.parse_builtin_option_constructor(
+                            span,
+                            &variant_name,
+                            variant_span,
+                            expected,
+                        );
+                    }
+                    if name == "Resultado" {
+                        return self.parse_builtin_result_constructor(
+                            span,
+                            &variant_name,
+                            variant_span,
+                            expected,
+                        );
+                    }
                     let Some(definition) = self
                         .enum_types
                         .iter()
-                        .find(|definition| definition.name == name)
+                        .find(|definition| definition.builtin.is_none() && definition.name == name)
                         .cloned()
                     else {
                         return self.fail(
@@ -1527,7 +1676,9 @@ impl Parser {
                     let end = if self.eat(&Kind::LParen) {
                         if !matches!(self.current().kind, Kind::RParen) {
                             loop {
-                                payload.push(self.expression(0)?);
+                                let expected_payload =
+                                    variant.payload_types.get(payload.len()).copied();
+                                payload.push(self.expression_with_expected(0, expected_payload)?);
                                 if !self.eat(&Kind::Comma) {
                                     break;
                                 }
@@ -1605,7 +1756,7 @@ impl Parser {
                             );
                         }
                         self.expect(Kind::Colon, "Esperado `:` após o nome do campo")?;
-                        let value = self.expression(0)?;
+                        let value = self.expression_with_expected(0, Some(field.ty))?;
                         if value.ty != field.ty {
                             return self.fail(
                                 "pors.field-type-mismatch",
@@ -1677,7 +1828,9 @@ impl Parser {
                     let mut arguments = Vec::new();
                     if !matches!(self.current().kind, Kind::RParen) {
                         loop {
-                            arguments.push(self.expression(0)?);
+                            let expected_arg =
+                                signature.parameters.get(arguments.len()).map(|p| p.ty);
+                            arguments.push(self.expression_with_expected(0, expected_arg)?);
                             if !self.eat(&Kind::Comma) {
                                 break;
                             }
@@ -1808,7 +1961,7 @@ impl Parser {
                 });
             }
             Kind::LParen => {
-                let inner = self.expression(0)?;
+                let inner = self.expression_with_expected(0, expected)?;
                 let close = self.expect(Kind::RParen, "Esperado `)` para fechar expressão")?;
                 let ty = inner.ty;
                 return Ok(hir::Expr {
@@ -1817,7 +1970,7 @@ impl Parser {
                     span: to_hir_span(span.join(close.span)),
                 });
             }
-            Kind::LBracket => return self.vector_literal(span),
+            Kind::LBracket => return self.vector_literal(span, expected),
             other => {
                 return self.fail(
                     "pors.expected-expression",
@@ -1962,7 +2115,216 @@ impl Parser {
         })
     }
 
-    fn vector_literal(&mut self, start: Span) -> Result<hir::Expr, Vec<Diagnostic>> {
+    fn parse_builtin_option_constructor(
+        &mut self,
+        start: Span,
+        variant_name: &str,
+        variant_span: Span,
+        expected: Option<hir::Type>,
+    ) -> Result<hir::Expr, Vec<Diagnostic>> {
+        match variant_name {
+            "Algum" => {
+                let expected_inner = expected.and_then(|ty| match self.builtin_enum_of(ty) {
+                    Some((_, hir::BuiltinEnum::Option(inner))) => Some(inner),
+                    _ => None,
+                });
+                let mut payload = Vec::new();
+                let end = if self.eat(&Kind::LParen) {
+                    if !matches!(self.current().kind, Kind::RParen) {
+                        loop {
+                            let arg_expected = if payload.is_empty() {
+                                expected_inner
+                            } else {
+                                None
+                            };
+                            payload.push(self.expression_with_expected(0, arg_expected)?);
+                            if !self.eat(&Kind::Comma) {
+                                break;
+                            }
+                        }
+                    }
+                    self.expect(Kind::RParen, "Esperado `)` após valor de `Opcao::Algum`")?
+                        .span
+                } else {
+                    variant_span
+                };
+                if payload.len() != 1 {
+                    return self.fail(
+                        "pors.enum-payload-arity",
+                        "A variante `Algum` exige 1 valor(es)",
+                        variant_span,
+                    );
+                }
+                if payload[0].ty == hir::Type::Unit {
+                    return self.fail(
+                        "pors.void-value",
+                        "Uma função sem retorno não pode ser usada como valor",
+                        syntax_span(payload[0].span),
+                    );
+                }
+                let enum_ty = self
+                    .intern_builtin_enum(hir::BuiltinEnum::Option(payload[0].ty), start.join(end));
+                let hir::Type::Enum(type_id) = enum_ty else {
+                    unreachable!("intern_builtin_enum sempre retorna Type::Enum");
+                };
+                Ok(hir::Expr {
+                    kind: hir::ExprKind::EnumConstructor {
+                        type_id,
+                        variant_index: 0,
+                        payload,
+                    },
+                    ty: enum_ty,
+                    span: to_hir_span(start.join(end)),
+                })
+            }
+            "Nenhum" => {
+                let mut payload = Vec::new();
+                let end = if self.eat(&Kind::LParen) {
+                    if !matches!(self.current().kind, Kind::RParen) {
+                        loop {
+                            payload.push(self.expression(0)?);
+                            if !self.eat(&Kind::Comma) {
+                                break;
+                            }
+                        }
+                    }
+                    self.expect(Kind::RParen, "Esperado `)` após `Opcao::Nenhum`")?
+                        .span
+                } else {
+                    variant_span
+                };
+                if !payload.is_empty() {
+                    return self.fail(
+                        "pors.enum-payload-arity",
+                        "A variante `Nenhum` exige 0 valor(es)",
+                        variant_span,
+                    );
+                }
+                let Some((type_id, hir::BuiltinEnum::Option(_))) =
+                    expected.and_then(|ty| self.builtin_enum_of(ty))
+                else {
+                    return self.fail(
+                        "pors.option-type-inference",
+                        "Não foi possível inferir o tipo de `Opcao::Nenhum`; informe o tipo `Opcao<T>`",
+                        start.join(end),
+                    );
+                };
+                Ok(hir::Expr {
+                    kind: hir::ExprKind::EnumConstructor {
+                        type_id,
+                        variant_index: 1,
+                        payload: Vec::new(),
+                    },
+                    ty: hir::Type::Enum(type_id),
+                    span: to_hir_span(start.join(end)),
+                })
+            }
+            _ => self.fail(
+                "pors.unknown-variant",
+                format!("Variante `{variant_name}` não existe em `Opcao`"),
+                variant_span,
+            ),
+        }
+    }
+
+    fn parse_builtin_result_constructor(
+        &mut self,
+        start: Span,
+        variant_name: &str,
+        variant_span: Span,
+        expected: Option<hir::Type>,
+    ) -> Result<hir::Expr, Vec<Diagnostic>> {
+        let variant_index = match variant_name {
+            "Ok" => 0,
+            "Erro" => 1,
+            _ => {
+                return self.fail(
+                    "pors.unknown-variant",
+                    format!("Variante `{variant_name}` não existe em `Resultado`"),
+                    variant_span,
+                );
+            }
+        };
+        let expected_result = expected.and_then(|ty| match self.builtin_enum_of(ty) {
+            Some((type_id, hir::BuiltinEnum::Result { ok, err })) => Some((type_id, ok, err)),
+            _ => None,
+        });
+        let expected_payload =
+            expected_result.map(|(_, ok, err)| if variant_index == 0 { ok } else { err });
+        let mut payload = Vec::new();
+        let end = if self.eat(&Kind::LParen) {
+            if !matches!(self.current().kind, Kind::RParen) {
+                loop {
+                    let arg_expected = if payload.is_empty() {
+                        expected_payload
+                    } else {
+                        None
+                    };
+                    payload.push(self.expression_with_expected(0, arg_expected)?);
+                    if !self.eat(&Kind::Comma) {
+                        break;
+                    }
+                }
+            }
+            self.expect(
+                Kind::RParen,
+                "Esperado `)` após valor de variante de `Resultado`",
+            )?
+            .span
+        } else {
+            variant_span
+        };
+        if payload.len() != 1 {
+            return self.fail(
+                "pors.enum-payload-arity",
+                format!("A variante `{variant_name}` exige 1 valor(es)"),
+                variant_span,
+            );
+        }
+        if payload[0].ty == hir::Type::Unit {
+            return self.fail(
+                "pors.void-value",
+                "Uma função sem retorno não pode ser usada como valor",
+                syntax_span(payload[0].span),
+            );
+        }
+        let Some((type_id, expected_ok, expected_err)) = expected_result else {
+            return self.fail(
+                "pors.result-type-inference",
+                format!(
+                    "Não foi possível inferir os tipos de `Resultado::{variant_name}`; informe o tipo `Resultado<T, E>`"
+                ),
+                start.join(end),
+            );
+        };
+        let expected_ty = if variant_index == 0 {
+            expected_ok
+        } else {
+            expected_err
+        };
+        if payload[0].ty != expected_ty {
+            return self.fail(
+                "pors.enum-payload-type",
+                format!("Valor incompatível com o payload de `{variant_name}`"),
+                syntax_span(payload[0].span),
+            );
+        }
+        Ok(hir::Expr {
+            kind: hir::ExprKind::EnumConstructor {
+                type_id,
+                variant_index,
+                payload,
+            },
+            ty: hir::Type::Enum(type_id),
+            span: to_hir_span(start.join(end)),
+        })
+    }
+
+    fn vector_literal(
+        &mut self,
+        start: Span,
+        expected: Option<hir::Type>,
+    ) -> Result<hir::Expr, Vec<Diagnostic>> {
         if matches!(self.current().kind, Kind::RBracket) {
             return self.fail(
                 "pors.empty-vector-unsupported",
@@ -1970,9 +2332,10 @@ impl Parser {
                 start.join(self.current().span),
             );
         }
+        let expected_element = expected.and_then(hir::Type::vector_element);
         let mut elements = Vec::new();
         loop {
-            elements.push(self.expression(0)?);
+            elements.push(self.expression_with_expected(0, expected_element)?);
             if !self.eat(&Kind::Comma) {
                 break;
             }
@@ -2144,6 +2507,8 @@ fn is_reserved(name: &str) -> bool {
             | "registro"
             | "enum"
             | "caso"
+            | "Opcao"
+            | "Resultado"
     )
 }
 

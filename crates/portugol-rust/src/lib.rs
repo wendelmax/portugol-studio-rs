@@ -296,6 +296,7 @@ fn find_host_call_in_expr(expr: &portugol_hir::Expr) -> Option<(&str, &str, port
         E::Field { value, .. }
         | E::Index { index: value, .. }
         | E::Parenthesized(value)
+        | E::Try { operand: value }
         | E::Unary { operand: value, .. } => find_host_call_in_expr(value),
         E::Binary { left, right, .. } => {
             find_host_call_in_expr(left).or_else(|| find_host_call_in_expr(right))
@@ -1522,6 +1523,82 @@ funcao visualizar(estado: Estado) -> inteiro {
         assert!(lines[3].contains("\"content\":\"Contagem: 0 (Neutro)\""));
 
         std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn exports_and_executes_builtin_option_result_and_try_as_native_rust() {
+        let source = r#"
+registro Item { valor: inteiro }
+
+funcao buscar(n: inteiro) -> Opcao<Item> {
+    se (n > 0) {
+        retorne Opcao::Algum(Item { valor: n * 10 });
+    }
+    retorne Opcao::Nenhum;
+}
+
+funcao duplicar_opcional(opt: Opcao<inteiro>) -> Opcao<inteiro> {
+    seja a: inteiro = opt?;
+    seja b: inteiro = opt?;
+    retorne Opcao::Algum(a + b);
+}
+
+funcao somar_com_dez(n: inteiro) -> Opcao<inteiro> {
+    retorne Opcao::Algum(10 + buscar(n)?.valor);
+}
+
+funcao dividir(a: inteiro, b: inteiro) -> Resultado<inteiro, cadeia> {
+    se (b == 0) {
+        retorne Resultado::Erro("zero");
+    }
+    retorne Resultado::Ok(a / b);
+}
+
+funcao rotular_divisao(a: inteiro, b: inteiro) -> Resultado<cadeia, cadeia> {
+    seja total: inteiro = 1 + dividir(a, b)?;
+    se (total >= 5) {
+        retorne Resultado::Ok("alto");
+    }
+    retorne Resultado::Ok("baixo");
+}
+
+funcao inicio() {
+    seja lista: vetor<Opcao<inteiro>> = [Opcao::Algum(7), Opcao::Nenhum];
+    escolha duplicar_opcional(lista[0]) {
+        caso Opcao::Algum(v) => { escreva(v, "|"); }
+        caso Opcao::Nenhum => { escreva("N|"); }
+    }
+    escolha somar_com_dez(3) {
+        caso Opcao::Algum(v) => { escreva(v, "|"); }
+        caso Opcao::Nenhum => { escreva("N|"); }
+    }
+    escolha somar_com_dez(0) {
+        caso Opcao::Algum(v) => { escreva(v, "|"); }
+        caso Opcao::Nenhum => { escreva("N|"); }
+    }
+    escolha rotular_divisao(20, 4) {
+        caso Resultado::Ok(s) => { escreva(s, "|"); }
+        caso Resultado::Erro(e) => { escreva("E:", e, "|"); }
+    }
+    escolha rotular_divisao(20, 0) {
+        caso Resultado::Ok(s) => { escreva(s); }
+        caso Resultado::Erro(e) => { escreva("E:", e); }
+    }
+}
+"#;
+        let generated = export_portugol_rs(source).unwrap();
+        assert!(generated.contains("Option<pt_Item>"));
+        assert!(generated.contains("Option<i32>"));
+        assert!(generated.contains("Result<i32, String>"));
+        assert!(generated.contains("Result<String, String>"));
+        assert!(generated.contains("Option::Some("));
+        assert!(generated.contains("Option::None"));
+        assert!(generated.contains("Result::Ok("));
+        assert!(generated.contains("Result::Err("));
+        assert!(generated.contains(")?"));
+        assert!(!generated.contains("enum pt_Opcao"));
+        assert!(!generated.contains("enum pt_Resultado"));
+        assert_rust_output(generated, "14|40|N|alto|E:zero");
     }
 
     fn assert_rust_output(generated: String, expected: &str) {

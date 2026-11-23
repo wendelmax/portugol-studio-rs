@@ -411,7 +411,9 @@ fn collect_pors_function_calls_in_expr(
         ExprKind::Field { value, .. } => collect_pors_function_calls_in_expr(value, functions),
         ExprKind::Index { index, .. } => collect_pors_function_calls_in_expr(index, functions),
         ExprKind::Length { .. } => {}
-        ExprKind::Parenthesized(inner) | ExprKind::Unary { operand: inner, .. } => {
+        ExprKind::Parenthesized(inner)
+        | ExprKind::Try { operand: inner }
+        | ExprKind::Unary { operand: inner, .. } => {
             collect_pors_function_calls_in_expr(inner, functions);
         }
         ExprKind::Binary { left, right, .. } => {
@@ -675,7 +677,9 @@ fn collect_portugol_rs_expression(
             },
             span: expression.span,
         }),
-        ExprKind::Parenthesized(inner) | ExprKind::Unary { operand: inner, .. } => {
+        ExprKind::Parenthesized(inner)
+        | ExprKind::Try { operand: inner }
+        | ExprKind::Unary { operand: inner, .. } => {
             collect_portugol_rs_expression(inner, owner, occurrences);
         }
         ExprKind::Binary { left, right, .. } => {
