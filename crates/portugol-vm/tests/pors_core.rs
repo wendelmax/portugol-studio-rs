@@ -186,3 +186,103 @@ funcao inicio() {
     run(&module, &mut io).expect("execução de Opcao, Resultado e ? na VM mínima");
     assert_eq!(io.output, "40|N|alto|E:zero");
 }
+
+#[test]
+fn executes_pors_matematica_texto_and_tipos_in_minimal_vm() {
+    let source = r#"
+funcao somar_entradas(a: cadeia, b: cadeia) -> Resultado<inteiro, cadeia> {
+    seja x: inteiro = Tipos.para_inteiro(Texto.aparar(a))?;
+    seja y: inteiro = Tipos.para_inteiro_base(b, 16)?;
+    retorne Resultado::Ok(x + y);
+}
+
+funcao inicio() {
+    seja pi2: real = Matematica.arredondar(Matematica.PI, 2);
+    seja pot: real = Matematica.potencia(2.0, 3.0);
+    seja raiz: real = Matematica.raiz_quadrada(81.0);
+    seja abs_i: inteiro = Matematica.valor_absoluto_inteiro(-7);
+    seja max_i: inteiro = Matematica.maior_inteiro(3, 9);
+    escreva(pi2, "|", pot, "|", raiz, "|", abs_i, "|", max_i, "|");
+
+    seja frase: cadeia = "  olá 🦀  ";
+    seja limpa: cadeia = Texto.aparar(frase);
+    seja alta: cadeia = Texto.caixa_alta(limpa);
+    seja trocada: cadeia = Texto.substituir(limpa, "olá", "oi");
+    seja pad: cadeia = Texto.preencher_a_esquerda('0', 5, "42");
+    escreva(Texto.numero_caracteres(limpa), "|", alta, "|", trocada, "|", pad, "|");
+
+    escolha Texto.obter_caracter(limpa, 4) {
+        caso Opcao::Algum(c) => { escreva(c, "|"); }
+        caso Opcao::Nenhum => { escreva("N|"); }
+    }
+    escolha Texto.posicao_texto("🦀", limpa, 0) {
+        caso Opcao::Algum(pos) => { escreva(pos, "|"); }
+        caso Opcao::Nenhum => { escreva("-1|"); }
+    }
+    escolha Texto.extrair_subtexto(limpa, 0, 3) {
+        caso Resultado::Ok(sub) => { escreva(sub, "|"); }
+        caso Resultado::Erro(_) => { escreva("ERR|"); }
+    }
+    escolha Texto.extrair_subtexto(limpa, 2, 99) {
+        caso Resultado::Ok(sub) => { escreva(sub, "|"); }
+        caso Resultado::Erro(_) => { escreva("ERR|"); }
+    }
+
+    escolha somar_entradas(" 26 ", "0x10") {
+        caso Resultado::Ok(n) => { escreva(n, "|"); }
+        caso Resultado::Erro(_) => { escreva("ERR|"); }
+    }
+    escolha somar_entradas("abc", "0x10") {
+        caso Resultado::Ok(n) => { escreva(n, "|"); }
+        caso Resultado::Erro(_) => { escreva("ERR|"); }
+    }
+    escolha Tipos.para_real("2.5") {
+        caso Resultado::Ok(r) => { escreva(Tipos.real_para_cadeia(r), "|"); }
+        caso Resultado::Erro(_) => { escreva("ERR|"); }
+    }
+    escolha Tipos.inteiro_para_cadeia_base(255, 16) {
+        caso Resultado::Ok(hex) => { escreva(hex, "|"); }
+        caso Resultado::Erro(_) => { escreva("ERR|"); }
+    }
+    escreva(Tipos.cadeia_e_inteiro("123"), "|", Tipos.cadeia_e_logico("verdadeiro"));
+}
+"#;
+    let module = compile_pors_source(source);
+    let mut io = BufferIo::default();
+    run(&module, &mut io).expect("execução de Matematica, Texto e Tipos na VM mínima");
+    assert_eq!(
+        io.output,
+        "3.14|8.0|9.0|7|9|5|OLÁ 🦀|oi 🦀|00042|🦀|4|olá|ERR|42|ERR|2.5|FF|verdadeiro|verdadeiro"
+    );
+}
+
+#[test]
+fn enforces_string_memory_budget_for_pors_texto_allocations() {
+    let pad_source = r#"
+funcao inicio() {
+    seja grande: cadeia = Texto.preencher_a_esquerda('x', 2048, "a");
+    escreva(grande);
+}
+"#;
+    let module = compile_pors_source(pad_source);
+    let mut io = BufferIo::default();
+    let error = Vm::new(&module, &mut io)
+        .with_string_memory_limit(512)
+        .run()
+        .expect_err("preencher_a_esquerda acima do limite deve falhar");
+    assert_eq!(error.limit, Some(RuntimeLimitReason::StringMemory));
+
+    let replace_source = r#"
+funcao inicio() {
+    seja grande: cadeia = Texto.substituir("aaaaaaaaaa", "a", "012345678901234567890123456789012345678901234567890123456789");
+    escreva(grande);
+}
+"#;
+    let module = compile_pors_source(replace_source);
+    let mut io = BufferIo::default();
+    let error = Vm::new(&module, &mut io)
+        .with_string_memory_limit(256)
+        .run()
+        .expect_err("substituir acima do limite deve falhar");
+    assert_eq!(error.limit, Some(RuntimeLimitReason::StringMemory));
+}

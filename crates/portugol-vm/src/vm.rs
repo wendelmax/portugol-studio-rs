@@ -1116,6 +1116,16 @@ impl<'a> Vm<'a> {
                     self.push(result);
                     return Ok(false);
                 }
+                if let Some(outcome) = crate::pors_libs::call(
+                    &native_ref.library,
+                    &native_ref.name,
+                    &args,
+                    &mut |bytes| self.charge_string(bytes),
+                ) {
+                    let result = outcome?;
+                    self.push(result);
+                    return Ok(false);
+                }
                 #[cfg(feature = "stdlib")]
                 {
                     let Some(function) = self.natives[native as usize] else {

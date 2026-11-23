@@ -22,7 +22,10 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
             .functions
             .iter()
             .any(|f| statements_have_read(&f.body));
-    let uses_ui = pors && program_uses_ui_host_calls(program);
+    let uses_ui = pors && program_uses_host_module(program, "UI");
+    let uses_matematica = pors && program_uses_host_module(program, "Matematica");
+    let uses_texto = pors && program_uses_host_module(program, "Texto");
+    let uses_tipos = pors && program_uses_host_module(program, "Tipos");
     let mvu_update_arity = if pors && program.body.is_empty() {
         mvu_entry_update_arity(program)
     } else {
@@ -38,6 +41,15 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
     }
     if uses_ui || mvu_update_arity.is_some() {
         output.push_str(PORS_UI_RUNTIME);
+    }
+    if uses_matematica {
+        output.push_str(PORS_MATEMATICA_RUNTIME);
+    }
+    if uses_texto {
+        output.push_str(PORS_TEXTO_RUNTIME);
+    }
+    if uses_tipos {
+        output.push_str(PORS_TIPOS_RUNTIME);
     }
     for definition in &program.record_types {
         output.push_str(&format!(
@@ -832,6 +844,27 @@ fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedExpression {
             name,
             arguments,
         } if module == "UI" => render_ui_host_call(name, arguments, program, pors),
+        ExprKind::HostCall {
+            module,
+            name,
+            arguments,
+        } if module == "Matematica" => {
+            render_stdlib_host_call("__pors_matematica", name, arguments, program, pors)
+        }
+        ExprKind::HostCall {
+            module,
+            name,
+            arguments,
+        } if module == "Texto" => {
+            render_stdlib_host_call("__pors_texto", name, arguments, program, pors)
+        }
+        ExprKind::HostCall {
+            module,
+            name,
+            arguments,
+        } if module == "Tipos" => {
+            render_stdlib_host_call("__pors_tipos", name, arguments, program, pors)
+        }
         ExprKind::HostCall { .. } => vec![ExpressionPart::Text("0_i32".to_owned())],
         ExprKind::Integer(value) if *value == i32::MIN => {
             vec![ExpressionPart::Text("i32::MIN".to_owned())]
@@ -1424,6 +1457,31 @@ fn render_ui_host_call(
     }
 }
 
+fn render_stdlib_host_call(
+    rust_mod: &str,
+    name: &str,
+    arguments: &[Expr],
+    program: &Program,
+    pors: bool,
+) -> Vec<ExpressionPart> {
+    let mut parts = vec![ExpressionPart::Text(format!("{rust_mod}::{name}("))];
+    for (index, argument) in arguments.iter().enumerate() {
+        if index > 0 {
+            parts.push(ExpressionPart::Text(", ".to_owned()));
+        }
+        let rendered = render_expr(argument, program, pors);
+        if argument.ty == Type::String {
+            parts.push(ExpressionPart::Text("&(".to_owned()));
+            parts.push(ExpressionPart::Nested(rendered));
+            parts.push(ExpressionPart::Text(")".to_owned()));
+        } else {
+            parts.push(ExpressionPart::Nested(rendered));
+        }
+    }
+    parts.push(ExpressionPart::Text(")".to_owned()));
+    parts
+}
+
 fn mvu_entry_update_arity(program: &Program) -> Option<usize> {
     let has_init = program
         .functions
@@ -1440,54 +1498,76 @@ fn mvu_entry_update_arity(program: &Program) -> Option<usize> {
     (has_init && has_view).then_some(update.parameters.len())
 }
 
-fn program_uses_ui_host_calls(program: &Program) -> bool {
-    stmts_use_ui(&program.body)
+fn program_uses_host_module(program: &Program, target: &str) -> bool {
+    stmts_use_host_module(&program.body, target)
         || program
             .functions
             .iter()
-            .any(|function| stmts_use_ui(&function.body))
+            .any(|function| stmts_use_host_module(&function.body, target))
 }
 
-fn stmts_use_ui(stmts: &[Stmt]) -> bool {
+fn stmts_use_host_module(stmts: &[Stmt], target: &str) -> bool {
     stmts.iter().any(|stmt| match &stmt.kind {
-        StmtKind::Declare { initializer, .. } => initializer.as_ref().is_some_and(expr_uses_ui),
-        StmtKind::Assign { value, .. } | StmtKind::FieldAssign { value, .. } => expr_uses_ui(value),
+        StmtKind::Declare { initializer, .. } => initializer
+            .as_ref()
+            .is_some_and(|expr| expr_uses_host_module(expr, target)),
+        StmtKind::Assign { value, .. } | StmtKind::FieldAssign { value, .. } => {
+            expr_uses_host_module(value, target)
+        }
         StmtKind::Choose { value, arms } => {
-            expr_uses_ui(value) || arms.iter().any(|arm| stmts_use_ui(&arm.body))
+            expr_uses_host_module(value, target)
+                || arms
+                    .iter()
+                    .any(|arm| stmts_use_host_module(&arm.body, target))
         }
         StmtKind::Read { .. } | StmtKind::LoopControl { .. } => false,
-        StmtKind::Call { arguments, .. } | StmtKind::Write(arguments) => {
-            arguments.iter().any(expr_uses_ui)
-        }
+        StmtKind::Call { arguments, .. } | StmtKind::Write(arguments) => arguments
+            .iter()
+            .any(|expr| expr_uses_host_module(expr, target)),
         StmtKind::If {
             condition,
             then_branch,
             else_branch,
         } => {
-            expr_uses_ui(condition)
-                || stmts_use_ui(then_branch)
-                || else_branch.as_deref().is_some_and(stmts_use_ui)
+            expr_uses_host_module(condition, target)
+                || stmts_use_host_module(then_branch, target)
+                || else_branch
+                    .as_deref()
+                    .is_some_and(|branch| stmts_use_host_module(branch, target))
         }
-        StmtKind::While { condition, body } => expr_uses_ui(condition) || stmts_use_ui(body),
+        StmtKind::While { condition, body } => {
+            expr_uses_host_module(condition, target) || stmts_use_host_module(body, target)
+        }
         StmtKind::For {
             initializer,
             condition,
             step,
             body,
         } => {
-            stmts_use_ui(std::slice::from_ref(initializer.as_ref()))
-                || expr_uses_ui(condition)
-                || stmts_use_ui(std::slice::from_ref(step.as_ref()))
-                || stmts_use_ui(body)
+            stmts_use_host_module(std::slice::from_ref(initializer.as_ref()), target)
+                || expr_uses_host_module(condition, target)
+                || stmts_use_host_module(std::slice::from_ref(step.as_ref()), target)
+                || stmts_use_host_module(body, target)
         }
-        StmtKind::Return { value } => value.as_ref().is_some_and(expr_uses_ui),
-        StmtKind::IndexAssign { index, value, .. } => expr_uses_ui(index) || expr_uses_ui(value),
+        StmtKind::Return { value } => value
+            .as_ref()
+            .is_some_and(|expr| expr_uses_host_module(expr, target)),
+        StmtKind::IndexAssign { index, value, .. } => {
+            expr_uses_host_module(index, target) || expr_uses_host_module(value, target)
+        }
     })
 }
 
-fn expr_uses_ui(expr: &Expr) -> bool {
+fn expr_uses_host_module(expr: &Expr, target: &str) -> bool {
     match &expr.kind {
-        ExprKind::HostCall { module, .. } => module == "UI",
+        ExprKind::HostCall {
+            module, arguments, ..
+        } => {
+            module == target
+                || arguments
+                    .iter()
+                    .any(|arg| expr_uses_host_module(arg, target))
+        }
         ExprKind::Call { arguments, .. }
         | ExprKind::VectorLiteral(arguments)
         | ExprKind::RecordLiteral {
@@ -1495,13 +1575,17 @@ fn expr_uses_ui(expr: &Expr) -> bool {
         }
         | ExprKind::EnumConstructor {
             payload: arguments, ..
-        } => arguments.iter().any(expr_uses_ui),
+        } => arguments
+            .iter()
+            .any(|arg| expr_uses_host_module(arg, target)),
         ExprKind::Field { value, .. }
         | ExprKind::Index { index: value, .. }
         | ExprKind::Parenthesized(value)
         | ExprKind::Try { operand: value }
-        | ExprKind::Unary { operand: value, .. } => expr_uses_ui(value),
-        ExprKind::Binary { left, right, .. } => expr_uses_ui(left) || expr_uses_ui(right),
+        | ExprKind::Unary { operand: value, .. } => expr_uses_host_module(value, target),
+        ExprKind::Binary { left, right, .. } => {
+            expr_uses_host_module(left, target) || expr_uses_host_module(right, target)
+        }
         ExprKind::Binding(_)
         | ExprKind::Length { .. }
         | ExprKind::Integer(_)
@@ -1757,5 +1841,237 @@ mod __pors_ui {
         }
         None
     }
+}
+"#;
+
+const PORS_MATEMATICA_RUNTIME: &str = r#"
+#[allow(dead_code)]
+mod __pors_matematica {
+    pub fn potencia(base: f64, expoente: f64) -> f64 { base.powf(expoente) }
+    pub fn raiz(radicando: f64, indice: f64) -> f64 { radicando.powf(1.0 / indice) }
+    pub fn raiz_quadrada(numero: f64) -> f64 { numero.sqrt() }
+    pub fn arredondar(numero: f64, casas: i32) -> f64 {
+        let factor = 10_f64.powi(casas.clamp(0, 15));
+        (numero * factor).round() / factor
+    }
+    pub fn piso(numero: f64) -> f64 { numero.floor() }
+    pub fn teto(numero: f64) -> f64 { numero.ceil() }
+    pub fn logaritmo(numero: f64, base: f64) -> f64 { numero.ln() / base.ln() }
+    pub fn seno(angulo: f64) -> f64 { angulo.sin() }
+    pub fn cosseno(angulo: f64) -> f64 { angulo.cos() }
+    pub fn tangente(angulo: f64) -> f64 { angulo.tan() }
+    pub fn valor_absoluto(numero: f64) -> f64 { numero.abs() }
+    pub fn valor_absoluto_inteiro(numero: i32) -> i32 { numero.wrapping_abs() }
+    pub fn maior_numero(a: f64, b: f64) -> f64 { if a.is_nan() || b.is_nan() { f64::NAN } else { a.max(b) } }
+    pub fn menor_numero(a: f64, b: f64) -> f64 { if a.is_nan() || b.is_nan() { f64::NAN } else { a.min(b) } }
+    pub fn maior_inteiro(a: i32, b: i32) -> i32 { a.max(b) }
+    pub fn menor_inteiro(a: i32, b: i32) -> i32 { a.min(b) }
+}
+"#;
+
+const PORS_TEXTO_RUNTIME: &str = r#"
+#[allow(dead_code)]
+mod __pors_texto {
+    pub fn numero_caracteres(texto: &str) -> i32 { texto.chars().count() as i32 }
+    pub fn caixa_alta(texto: &str) -> String {
+        let out = texto.to_uppercase();
+        super::__pors_account(out.len());
+        out
+    }
+    pub fn caixa_baixa(texto: &str) -> String {
+        let out = texto.to_lowercase();
+        super::__pors_account(out.len());
+        out
+    }
+    pub fn aparar(texto: &str) -> String { super::__pors_string(texto.trim()) }
+    pub fn contem(texto: &str, trecho: &str) -> bool { texto.contains(trecho) }
+    pub fn comeca_com(texto: &str, prefixo: &str) -> bool { texto.starts_with(prefixo) }
+    pub fn termina_com(texto: &str, sufixo: &str) -> bool { texto.ends_with(sufixo) }
+    pub fn substituir(texto: &str, antigo: &str, novo: &str) -> String {
+        let expected = if antigo.is_empty() {
+            let slots = texto.chars().count().saturating_add(1);
+            texto.len().saturating_add(slots.saturating_mul(novo.len()))
+        } else {
+            let count = texto.matches(antigo).count();
+            let removed = count.saturating_mul(antigo.len());
+            let added = count.saturating_mul(novo.len());
+            texto.len().saturating_sub(removed).saturating_add(added)
+        };
+        super::__pors_account(expected);
+        texto.replace(antigo, novo)
+    }
+    pub fn preencher_a_esquerda(car: char, tamanho: i32, texto: &str) -> String {
+        let len = texto.chars().count();
+        if tamanho <= 0 || len >= tamanho as usize {
+            return super::__pors_string(texto);
+        }
+        let pad = tamanho as usize - len;
+        let expected = pad.saturating_mul(car.len_utf8()).saturating_add(texto.len());
+        super::__pors_account(expected);
+        let mut out = String::with_capacity(expected);
+        for _ in 0..pad {
+            out.push(car);
+        }
+        out.push_str(texto);
+        out
+    }
+    pub fn obter_caracter(texto: &str, indice: i32) -> Option<char> {
+        if indice < 0 {
+            return None;
+        }
+        texto.chars().nth(indice as usize)
+    }
+    pub fn posicao_texto(trecho: &str, texto: &str, inicio: i32) -> Option<i32> {
+        let chars: Vec<char> = texto.chars().collect();
+        let needle: Vec<char> = trecho.chars().collect();
+        let start = inicio.max(0) as usize;
+        if start > chars.len() {
+            return None;
+        }
+        if needle.is_empty() {
+            return Some(start as i32);
+        }
+        if start == chars.len() {
+            return None;
+        }
+        chars[start..]
+            .windows(needle.len())
+            .position(|window| window == needle.as_slice())
+            .map(|at| (start + at) as i32)
+    }
+    pub fn extrair_subtexto(texto: &str, inicio: i32, fim: i32) -> Result<String, String> {
+        let chars: Vec<char> = texto.chars().collect();
+        if inicio < 0 || fim < inicio || fim as usize > chars.len() {
+            return Err(super::__pors_string(
+                "Posição inicial ou final inválida para extrair subtexto",
+            ));
+        }
+        let slice: String = chars[inicio as usize..fim as usize].iter().collect();
+        super::__pors_account(slice.len());
+        Ok(slice)
+    }
+}
+"#;
+
+const PORS_TIPOS_RUNTIME: &str = r#"
+#[allow(dead_code)]
+mod __pors_tipos {
+    pub fn para_inteiro(texto: &str) -> Result<i32, String> {
+        texto.trim().parse::<i32>().map_err(|_| {
+            super::__pors_string(&format!("O valor '{texto}' não é um inteiro válido"))
+        })
+    }
+    pub fn para_inteiro_base(texto: &str, base: i32) -> Result<i32, String> {
+        if !matches!(base, 2 | 10 | 16) {
+            return Err(super::__pors_string(&format!(
+                "Base inválida ({base}); use 2, 10 ou 16"
+            )));
+        }
+        let trimmed = texto.trim();
+        let (neg, rest) = match trimmed.strip_prefix('-') {
+            Some(rest) => (true, rest),
+            None => (false, trimmed),
+        };
+        let digits = match base {
+            2 => rest
+                .strip_prefix("0b")
+                .or_else(|| rest.strip_prefix("0B"))
+                .unwrap_or(rest),
+            16 => rest
+                .strip_prefix("0x")
+                .or_else(|| rest.strip_prefix("0X"))
+                .unwrap_or(rest),
+            _ => rest,
+        };
+        if digits.is_empty() || digits.starts_with('+') || digits.starts_with('-') {
+            return Err(super::__pors_string(&format!(
+                "O valor '{texto}' não é um inteiro válido"
+            )));
+        }
+        let candidate = if neg {
+            format!("-{digits}")
+        } else {
+            digits.to_owned()
+        };
+        i32::from_str_radix(&candidate, base as u32).map_err(|_| {
+            super::__pors_string(&format!("O valor '{texto}' não é um inteiro válido"))
+        })
+    }
+    pub fn para_real(texto: &str) -> Result<f64, String> {
+        match texto.trim().parse::<f64>() {
+            Ok(valor) if valor.is_finite() => Ok(valor),
+            _ => Err(super::__pors_string(&format!(
+                "O valor '{texto}' não é um número real válido"
+            ))),
+        }
+    }
+    pub fn para_logico(texto: &str) -> Result<bool, String> {
+        match texto.trim() {
+            "verdadeiro" => Ok(true),
+            "falso" => Ok(false),
+            _ => Err(super::__pors_string(&format!(
+                "O valor '{texto}' não é um valor lógico válido"
+            ))),
+        }
+    }
+    pub fn para_caracter(texto: &str) -> Result<char, String> {
+        let mut chars = texto.chars();
+        match (chars.next(), chars.next()) {
+            (Some(ch), None) => Ok(ch),
+            _ => Err(super::__pors_string(&format!(
+                "O valor '{texto}' não é um caracter válido"
+            ))),
+        }
+    }
+    pub fn inteiro_para_real(valor: i32) -> f64 { valor as f64 }
+    pub fn real_para_inteiro(valor: f64) -> i32 { valor as i32 }
+    pub fn inteiro_para_cadeia(valor: i32) -> String { super::__pors_string(&valor.to_string()) }
+    pub fn inteiro_para_cadeia_base(valor: i32, base: i32) -> Result<String, String> {
+        let out = match base {
+            2 => format!("{:b}", valor as u32),
+            10 => valor.to_string(),
+            16 => format!("{:X}", valor as u32),
+            _ => {
+                return Err(super::__pors_string(&format!(
+                    "Base inválida ({base}); use 2, 10 ou 16"
+                )));
+            }
+        };
+        super::__pors_account(out.len());
+        Ok(out)
+    }
+    pub fn real_para_cadeia(valor: f64) -> String {
+        super::__pors_string(&super::__portugol_java_double(valor))
+    }
+    pub fn logico_para_cadeia(valor: bool) -> String {
+        super::__pors_string(if valor { "verdadeiro" } else { "falso" })
+    }
+    pub fn caracter_para_cadeia(valor: char) -> String { super::__pors_string(&valor.to_string()) }
+    pub fn logico_para_inteiro(valor: bool) -> i32 { i32::from(valor) }
+    pub fn caracter_para_inteiro(valor: char) -> Result<i32, String> {
+        match valor.to_digit(10) {
+            Some(digit) => Ok(digit as i32),
+            None => Err(super::__pors_string(&format!(
+                "O caracter '{valor}' não é um dígito válido"
+            ))),
+        }
+    }
+    pub fn inteiro_para_caracter(valor: i32) -> Result<char, String> {
+        if (0..=9).contains(&valor) {
+            Ok(char::from(b'0' + valor as u8))
+        } else {
+            Err(super::__pors_string(&format!(
+                "O inteiro '{valor}' não corresponde a um dígito (0 a 9)"
+            )))
+        }
+    }
+    pub fn cadeia_e_inteiro(texto: &str) -> bool { texto.trim().parse::<i32>().is_ok() }
+    pub fn cadeia_e_real(texto: &str) -> bool {
+        texto.trim().parse::<f64>().is_ok_and(f64::is_finite)
+    }
+    pub fn cadeia_e_logico(texto: &str) -> bool {
+        matches!(texto.trim(), "verdadeiro" | "falso")
+    }
+    pub fn cadeia_e_caracter(texto: &str) -> bool { texto.chars().count() == 1 }
 }
 "#;

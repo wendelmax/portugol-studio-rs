@@ -370,3 +370,22 @@ funcao visualizar(estado: Estado) -> inteiro {
 
     assert!(store.close(1));
 }
+
+#[test]
+fn executes_pors_core_libraries_in_zero_dep_wasm_facade() {
+    let source = r#"
+funcao dobro_parse(texto: cadeia) -> Resultado<inteiro, cadeia> {
+    seja n: inteiro = Tipos.para_inteiro(Texto.aparar(texto))?;
+    retorne Resultado::Ok(Matematica.maior_inteiro(n * 2, 10));
+}
+
+funcao inicio() {
+    escolha dobro_parse(" 21 ") {
+        caso Resultado::Ok(v) => { escreva(Texto.preencher_a_esquerda('0', 4, Tipos.inteiro_para_cadeia(v))); }
+        caso Resultado::Erro(e) => { escreva(e); }
+    }
+}
+"#;
+    let json = run_pors_json(source, "", RunBudget::default());
+    assert_eq!(json, "{\"ok\":true,\"stdout\":\"0042\",\"diagnostics\":[]}");
+}
