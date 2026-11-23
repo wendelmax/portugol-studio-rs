@@ -13,6 +13,7 @@ fn local(name: &str, ty: Type) -> LocalInfo {
         ty,
         dims: 0,
         by_ref: false,
+        pors_debug: None,
     }
 }
 

@@ -97,6 +97,8 @@ pub enum Op {
     ArrayLen,
     /// `[vetor]` -> `[cópia profunda do vetor]`.
     CloneArray,
+    /// `[cadeia]` -> `[cópia da cadeia]`, contabilizando o orçamento PORS.
+    CloneString,
     /// `[v00, v01, ..., v(r-1)(c-1)]` -> `[matriz]`, em ordem de linhas.
     MatrixLit {
         rows: u32,
@@ -183,6 +185,34 @@ pub struct LocalInfo {
     pub ty: Type,
     pub dims: u8,
     pub by_ref: bool,
+    /// Present for nominal PORS values so the debugger can expand their fields.
+    pub pors_debug: Option<PorsDebugType>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PorsDebugType {
+    pub name: String,
+    pub is_vector: bool,
+    pub shape: PorsDebugShape,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PorsDebugShape {
+    Record { fields: Vec<PorsDebugField> },
+    Enum { variants: Vec<PorsDebugVariant> },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PorsDebugField {
+    pub name: String,
+    pub ty: String,
+    pub nested: Option<Box<PorsDebugType>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PorsDebugVariant {
+    pub name: String,
+    pub payload: Vec<PorsDebugField>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

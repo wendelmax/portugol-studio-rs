@@ -18,6 +18,8 @@ fn records_binding_identity_mutability_and_source_spans() {
         span,
     };
     let program = Program {
+        record_types: vec![],
+        enum_types: vec![],
         bindings: vec![binding],
         body: vec![Stmt {
             kind: StmtKind::Declare {

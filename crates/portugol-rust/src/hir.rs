@@ -79,6 +79,8 @@ impl Lowerer {
         }
         let body = self.statements(&function.body)?;
         Ok(hir::Program {
+            record_types: vec![],
+            enum_types: vec![],
             bindings: self.bindings,
             body,
             functions: vec![],

@@ -323,6 +323,10 @@ fn pors_type_name(ty: portugol_hir::Type) -> &'static str {
         portugol_hir::Type::VectorBoolean => "vetor<logico>",
         portugol_hir::Type::VectorString => "vetor<cadeia>",
         portugol_hir::Type::VectorCharacter => "vetor<caracter>",
+        portugol_hir::Type::Record(_) => "registro",
+        portugol_hir::Type::VectorRecord(_) => "vetor<registro>",
+        portugol_hir::Type::Enum(_) => "enum",
+        portugol_hir::Type::VectorEnum(_) => "vetor<enum>",
     }
 }
 

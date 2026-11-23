@@ -15,6 +15,91 @@ fn rejects_assignment_to_immutable_binding_at_its_span() {
 }
 
 #[test]
+fn rejects_field_assignment_through_an_immutable_record_binding() {
+    let source = "registro P { x: inteiro } funcao inicio() { seja p: P = P { x: 1 }; p.x = 2; }";
+    let errors = lower(source).unwrap_err();
+    assert!(
+        errors
+            .iter()
+            .any(|error| error.code == "pors.immutable-assignment")
+    );
+}
+
+#[test]
+fn rejects_non_exhaustive_and_duplicate_enum_cases() {
+    let non_exhaustive = "enum Evento { Iniciar, Parar } funcao inicio() { seja evento: Evento = Evento::Iniciar; escolha evento { caso Evento::Iniciar => {} } }";
+    assert!(
+        lower(non_exhaustive)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.non-exhaustive-choice")
+    );
+
+    let duplicate = "enum Evento { Iniciar, Parar } funcao inicio() { seja evento: Evento = Evento::Iniciar; escolha evento { caso Evento::Iniciar => {} caso Evento::Iniciar => {} caso Evento::Parar => {} } }";
+    assert!(
+        lower(duplicate)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.duplicate-case")
+    );
+}
+
+#[test]
+fn rejects_enum_constructor_and_case_payload_mismatches() {
+    let constructor_arity = "enum Evento { Definir(inteiro) } funcao inicio() { seja evento: Evento = Evento::Definir; }";
+    assert!(
+        lower(constructor_arity)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.enum-payload-arity")
+    );
+
+    let constructor_type = "enum Evento { Definir(inteiro) } funcao inicio() { seja evento: Evento = Evento::Definir(\"x\"); }";
+    assert!(
+        lower(constructor_type)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.enum-payload-type")
+    );
+
+    let case_arity = "enum Evento { Definir(inteiro) } funcao inicio() { seja evento: Evento = Evento::Definir(1); escolha evento { caso Evento::Definir => {} } }";
+    assert!(
+        lower(case_arity)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.case-payload-arity")
+    );
+}
+
+#[test]
+fn rejects_incomplete_duplicate_and_mistyped_record_construction() {
+    let incomplete =
+        "registro P { x: inteiro, y: inteiro } funcao inicio() { seja p: P = P { x: 1 }; }";
+    assert!(
+        lower(incomplete)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.missing-field")
+    );
+
+    let duplicate = "registro P { x: inteiro } funcao inicio() { seja p: P = P { x: 1, x: 2 }; }";
+    assert!(
+        lower(duplicate)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.field-redeclared")
+    );
+
+    let mismatch = "registro P { x: inteiro } funcao inicio() { seja p: P = P { x: verdadeiro }; }";
+    assert!(
+        lower(mismatch)
+            .unwrap_err()
+            .iter()
+            .any(|diagnostic| diagnostic.code == "pors.field-type-mismatch")
+    );
+}
+
+#[test]
 fn rejects_unknown_name_and_type_mismatch() {
     let unknown = "funcao inicio() { escreva(faltante); }";
     assert!(
