@@ -245,6 +245,45 @@ impl From<RuntimeError> for UiError {
     }
 }
 
+impl std::fmt::Display for UiError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Runtime(error) => write!(f, "{}", error.message),
+            Self::NodeLimitExceeded { limit } => {
+                write!(
+                    f,
+                    "O limite máximo de {limit} nós de interface foi excedido."
+                )
+            }
+            Self::DepthLimitExceeded { limit } => {
+                write!(
+                    f,
+                    "A profundidade máxima de {limit} níveis da interface foi excedida."
+                )
+            }
+            Self::InvalidNodeHandle(handle) => {
+                write!(f, "Identificador de nó de UI inválido: {handle}.")
+            }
+            Self::InvalidRootValue(ty) => {
+                write!(
+                    f,
+                    "\"visualizar\" deve retornar um identificador inteiro de nó, mas retornou {ty}."
+                )
+            }
+            Self::MissingFunction(name) => {
+                write!(f, "O programa visual precisa definir a função \"{name}\".")
+            }
+            Self::UnsupportedArity { function, arity } => {
+                write!(
+                    f,
+                    "A função \"{function}\" possui quantidade de parâmetros não suportada ({arity})."
+                )
+            }
+            Self::Cancelled => write!(f, "Sessão visual cancelada."),
+        }
+    }
+}
+
 /// Construtor de árvore de visão acionado por chamadas nativas `UI.*` durante
 /// `visualizar(estado)`.
 pub struct UiTreeBuilder {
@@ -374,16 +413,43 @@ impl UiTreeBuilder {
     }
 }
 
+enum ModuleStorage<'a> {
+    Borrowed(&'a Module),
+    Owned(Module),
+}
+
+impl ModuleStorage<'_> {
+    fn as_ref(&self) -> &Module {
+        match self {
+            Self::Borrowed(module) => module,
+            Self::Owned(module) => module,
+        }
+    }
+}
+
 /// Sessão MVU orientada a eventos para um módulo compilado (`iniciar`,
 /// `atualizar` e `visualizar`), com orçamento isolado por evento e cancelamento.
 pub struct UiSession<'a> {
-    module: &'a Module,
+    module: ModuleStorage<'a>,
     budget: UiBudget,
     interrupt: Arc<AtomicBool>,
     state: Value,
     tree: UiNode,
     step: u64,
     history: Vec<UiSnapshot>,
+}
+
+impl UiSession<'static> {
+    /// Inicia uma sessão MVU assumindo posse do módulo compilado (útil para
+    /// hosts persistentes como WASM e Tauri).
+    pub fn start_owned(
+        module: Module,
+        io: &mut dyn Io,
+        budget: UiBudget,
+        interrupt: Arc<AtomicBool>,
+    ) -> Result<Self, UiError> {
+        Self::start_with_storage(ModuleStorage::Owned(module), io, budget, interrupt)
+    }
 }
 
 impl<'a> UiSession<'a> {
@@ -394,10 +460,20 @@ impl<'a> UiSession<'a> {
         budget: UiBudget,
         interrupt: Arc<AtomicBool>,
     ) -> Result<Self, UiError> {
+        Self::start_with_storage(ModuleStorage::Borrowed(module), io, budget, interrupt)
+    }
+
+    fn start_with_storage(
+        module: ModuleStorage<'a>,
+        io: &mut dyn Io,
+        budget: UiBudget,
+        interrupt: Arc<AtomicBool>,
+    ) -> Result<Self, UiError> {
         if interrupt.load(Ordering::Relaxed) {
             return Err(UiError::Cancelled);
         }
-        let init = module
+        let module_ref = module.as_ref();
+        let init = module_ref
             .function("iniciar")
             .ok_or(UiError::MissingFunction("iniciar"))?;
         if init.arity != 0 {
@@ -406,7 +482,7 @@ impl<'a> UiSession<'a> {
                 arity: init.arity,
             });
         }
-        let update = module
+        let update = module_ref
             .function("atualizar")
             .ok_or(UiError::MissingFunction("atualizar"))?;
         if !(2..=4).contains(&update.arity) {
@@ -415,7 +491,7 @@ impl<'a> UiSession<'a> {
                 arity: update.arity,
             });
         }
-        let view = module
+        let view = module_ref
             .function("visualizar")
             .ok_or(UiError::MissingFunction("visualizar"))?;
         if view.arity != 1 {
@@ -426,12 +502,12 @@ impl<'a> UiSession<'a> {
         }
 
         let state = {
-            let mut vm = Vm::new(module, io)
+            let mut vm = Vm::new(module_ref, io)
                 .with_interrupt(Arc::clone(&interrupt))
                 .with_string_memory_limit(budget.max_string_bytes);
             vm.call_function("iniciar", Vec::new(), budget.max_steps_per_event)?
         };
-        let tree = render_view(module, io, &state, budget, &interrupt)?;
+        let tree = render_view(module_ref, io, &state, budget, &interrupt)?;
 
         let snapshot = UiSnapshot {
             step: 0,
@@ -461,8 +537,8 @@ impl<'a> UiSession<'a> {
         if self.interrupt.load(Ordering::Relaxed) {
             return Err(UiError::Cancelled);
         }
-        let update = self
-            .module
+        let module_ref = self.module.as_ref();
+        let update = module_ref
             .function("atualizar")
             .ok_or(UiError::MissingFunction("atualizar"))?;
         let args = match update.arity {
@@ -487,12 +563,12 @@ impl<'a> UiSession<'a> {
         };
 
         let next_state = {
-            let mut vm = Vm::new(self.module, io)
+            let mut vm = Vm::new(module_ref, io)
                 .with_interrupt(Arc::clone(&self.interrupt))
                 .with_string_memory_limit(self.budget.max_string_bytes);
             vm.call_function("atualizar", args, self.budget.max_steps_per_event)?
         };
-        let next_tree = render_view(self.module, io, &next_state, self.budget, &self.interrupt)?;
+        let next_tree = render_view(module_ref, io, &next_state, self.budget, &self.interrupt)?;
 
         self.step += 1;
         self.state = next_state;
@@ -515,6 +591,10 @@ impl<'a> UiSession<'a> {
             self.history.push(snapshot);
             Ok(self.history.last().expect("snapshot ativo"))
         }
+    }
+
+    pub fn step(&self) -> u64 {
+        self.step
     }
 
     pub fn state(&self) -> &Value {

@@ -1,0 +1,16 @@
+[package]
+name = "portugol-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Fachada WebAssembly sem dependências externas para validar, formatar e executar PORS e sessões MVU de UI"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+portugol-bytecode = { path = "../portugol-bytecode" }
+portugol-rs-frontend = { path = "../portugol-rs-frontend" }
+portugol-syntax = { path = "../portugol-syntax" }
+portugol-vm = { path = "../portugol-vm", default-features = false }
