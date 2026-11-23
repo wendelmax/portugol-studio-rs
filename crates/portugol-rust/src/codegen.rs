@@ -22,6 +22,12 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
             .functions
             .iter()
             .any(|f| statements_have_read(&f.body));
+    let uses_ui = pors && program_uses_ui_host_calls(program);
+    let mvu_update_arity = if pors && program.body.is_empty() {
+        mvu_entry_update_arity(program)
+    } else {
+        None
+    };
     let mut output = String::from("use std::io::{self, Write};\n\n");
     output.push_str(JAVA_DOUBLE_HELPER);
     if has_read {
@@ -29,6 +35,9 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
     }
     if pors {
         output.push_str("\nthread_local! { static __PORS_STRING_BYTES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) }; }\nfn __pors_account(len: usize) { __PORS_STRING_BYTES.with(|used| { let next = used.get().saturating_add(len); if next > 16 * 1024 * 1024 { std::process::exit(78); } used.set(next); }); }\nfn __pors_string(value: &str) -> String { __pors_account(value.len()); value.to_owned() }\nfn __pors_vec_string_clone(value: &[String]) -> Vec<String> { value.iter().map(|item| __pors_string(item)).collect() }\nfn __pors_index(index: i32, len: usize) -> usize { if index < 0 || index as usize >= len { eprintln!(\"Erro de execução: índice de vetor fora do intervalo ({index}).\"); std::process::exit(1); } index as usize }\nfn __pors_char(value: char) -> String { __pors_account(value.len_utf8()); value.to_string() }\nfn __pors_concat(left: &str, right: &str) -> String { let len = left.len().saturating_add(right.len()); __pors_account(len); let mut value = String::with_capacity(len); value.push_str(left); value.push_str(right); value }\n");
+    }
+    if uses_ui || mvu_update_arity.is_some() {
+        output.push_str(PORS_UI_RUNTIME);
     }
     for definition in &program.record_types {
         output.push_str(&format!(
@@ -177,15 +186,29 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
     }
     output.push_str("\nfn main() {\n");
     let body_start = output.len();
-    render_statements(
-        &program.body,
-        program,
-        1,
-        &mut output,
-        &mut mappings,
-        pors,
-        None,
-    );
+    if let Some(update_arity) = mvu_update_arity {
+        let init_fn = rust_ident("iniciar");
+        let update_fn = rust_ident("atualizar");
+        let view_fn = rust_ident("visualizar");
+        let update_call = match update_arity {
+            2 => format!("{update_fn}(estado, alvo)"),
+            3 => format!("{update_fn}(estado, tipo, alvo)"),
+            _ => format!("{update_fn}(estado, tipo, alvo, valor)"),
+        };
+        output.push_str(&format!(
+            "    use std::io::BufRead;\n    let mut estado = {init_fn}();\n    let mut step: u64 = 0;\n    __pors_ui::begin_frame();\n    let root = {view_fn}(estado.clone());\n    println!(\"{{{{\\\"step\\\":{{step}},\\\"tree\\\":{{}}}}}}\", __pors_ui::finish_frame(root).to_json());\n    let _ = io::stdout().flush();\n    let stdin = io::stdin();\n    for line in stdin.lock().lines() {{\n        let Ok(line) = line else {{ break }};\n        let trimmed = line.trim();\n        if trimmed.is_empty() {{\n            continue;\n        }}\n        let Some((tipo, alvo, valor)) = __pors_ui::parse_event_line(trimmed) else {{\n            eprintln!(\"Evento inválido: {{trimmed}}\");\n            continue;\n        }};\n        let _ = (&tipo, &valor);\n        estado = {update_call};\n        step += 1;\n        __pors_ui::begin_frame();\n        let root = {view_fn}(estado.clone());\n        println!(\"{{{{\\\"step\\\":{{step}},\\\"tree\\\":{{}}}}}}\", __pors_ui::finish_frame(root).to_json());\n        let _ = io::stdout().flush();\n    }}\n"
+        ));
+    } else {
+        render_statements(
+            &program.body,
+            program,
+            1,
+            &mut output,
+            &mut mappings,
+            pors,
+            None,
+        );
+    }
     let body_end = output.len();
     output.push_str("}\n");
     let generated_prefix_end = mappings
@@ -810,6 +833,11 @@ fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedExpression {
             parts.push(ExpressionPart::Text(")".to_owned()));
             parts
         }
+        ExprKind::HostCall {
+            module,
+            name,
+            arguments,
+        } if module == "UI" => render_ui_host_call(name, arguments, program, pors),
         ExprKind::HostCall { .. } => vec![ExpressionPart::Text("0_i32".to_owned())],
         ExprKind::Integer(value) if *value == i32::MIN => {
             vec![ExpressionPart::Text("i32::MIN".to_owned())]
@@ -1288,3 +1316,405 @@ fn map_type(ty: Type) -> crate::Ty {
         Type::Record(_) | Type::Enum(_) => unreachable!("tipo nominal não possui tipo escalar"),
     }
 }
+
+fn render_ui_host_call(
+    name: &str,
+    arguments: &[Expr],
+    program: &Program,
+    pors: bool,
+) -> Vec<ExpressionPart> {
+    match name {
+        "texto" => {
+            let mut parts = vec![ExpressionPart::Text("__pors_ui::texto(&[".to_owned())];
+            for (index, argument) in arguments.iter().enumerate() {
+                if index > 0 {
+                    parts.push(ExpressionPart::Text(", ".to_owned()));
+                }
+                let rendered = render_expr(argument, program, pors);
+                match argument.ty {
+                    Type::String => {
+                        parts.push(ExpressionPart::Text("(&(".to_owned()));
+                        parts.push(ExpressionPart::Nested(rendered));
+                        parts.push(ExpressionPart::Text(")).to_string()".to_owned()));
+                    }
+                    Type::Real => {
+                        parts.push(ExpressionPart::Text("__portugol_java_double(".to_owned()));
+                        parts.push(ExpressionPart::Nested(rendered));
+                        parts.push(ExpressionPart::Text(")".to_owned()));
+                    }
+                    Type::Boolean => {
+                        parts.push(ExpressionPart::Text("(if ".to_owned()));
+                        parts.push(ExpressionPart::Nested(rendered));
+                        parts.push(ExpressionPart::Text(
+                            " { \"verdadeiro\" } else { \"falso\" }).to_owned()".to_owned(),
+                        ));
+                    }
+                    _ => {
+                        parts.push(ExpressionPart::Text("(".to_owned()));
+                        parts.push(ExpressionPart::Nested(rendered));
+                        parts.push(ExpressionPart::Text(").to_string()".to_owned()));
+                    }
+                }
+            }
+            parts.push(ExpressionPart::Text("])".to_owned()));
+            parts
+        }
+        "botao" => vec![
+            ExpressionPart::Text("__pors_ui::botao(&(".to_owned()),
+            ExpressionPart::Nested(render_expr(&arguments[0], program, pors)),
+            ExpressionPart::Text("), &(".to_owned()),
+            ExpressionPart::Nested(render_expr(&arguments[1], program, pors)),
+            ExpressionPart::Text("))".to_owned()),
+        ],
+        "entrada" => vec![
+            ExpressionPart::Text("__pors_ui::entrada(&(".to_owned()),
+            ExpressionPart::Nested(render_expr(&arguments[0], program, pors)),
+            ExpressionPart::Text("), &(".to_owned()),
+            ExpressionPart::Nested(render_expr(&arguments[1], program, pors)),
+            ExpressionPart::Text("), &(".to_owned()),
+            ExpressionPart::Nested(render_expr(&arguments[2], program, pors)),
+            ExpressionPart::Text("))".to_owned()),
+        ],
+        "coluna" | "linha" | "lista" => vec![
+            ExpressionPart::Text(format!("__pors_ui::{name}(&(")),
+            ExpressionPart::Nested(render_expr(&arguments[0], program, pors)),
+            ExpressionPart::Text("))".to_owned()),
+        ],
+        _ => vec![ExpressionPart::Text("0_i32".to_owned())],
+    }
+}
+
+fn mvu_entry_update_arity(program: &Program) -> Option<usize> {
+    let has_init = program
+        .functions
+        .iter()
+        .any(|f| f.source_name == "iniciar" && f.parameters.is_empty());
+    let has_view = program
+        .functions
+        .iter()
+        .any(|f| f.source_name == "visualizar" && f.parameters.len() == 1);
+    let update = program
+        .functions
+        .iter()
+        .find(|f| f.source_name == "atualizar" && (2..=4).contains(&f.parameters.len()))?;
+    (has_init && has_view).then_some(update.parameters.len())
+}
+
+fn program_uses_ui_host_calls(program: &Program) -> bool {
+    stmts_use_ui(&program.body)
+        || program
+            .functions
+            .iter()
+            .any(|function| stmts_use_ui(&function.body))
+}
+
+fn stmts_use_ui(stmts: &[Stmt]) -> bool {
+    stmts.iter().any(|stmt| match &stmt.kind {
+        StmtKind::Declare { initializer, .. } => initializer.as_ref().is_some_and(expr_uses_ui),
+        StmtKind::Assign { value, .. } | StmtKind::FieldAssign { value, .. } => expr_uses_ui(value),
+        StmtKind::Choose { value, arms } => {
+            expr_uses_ui(value) || arms.iter().any(|arm| stmts_use_ui(&arm.body))
+        }
+        StmtKind::Read { .. } | StmtKind::LoopControl { .. } => false,
+        StmtKind::Call { arguments, .. } | StmtKind::Write(arguments) => {
+            arguments.iter().any(expr_uses_ui)
+        }
+        StmtKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            expr_uses_ui(condition)
+                || stmts_use_ui(then_branch)
+                || else_branch.as_deref().is_some_and(stmts_use_ui)
+        }
+        StmtKind::While { condition, body } => expr_uses_ui(condition) || stmts_use_ui(body),
+        StmtKind::For {
+            initializer,
+            condition,
+            step,
+            body,
+        } => {
+            stmts_use_ui(std::slice::from_ref(initializer.as_ref()))
+                || expr_uses_ui(condition)
+                || stmts_use_ui(std::slice::from_ref(step.as_ref()))
+                || stmts_use_ui(body)
+        }
+        StmtKind::Return { value } => value.as_ref().is_some_and(expr_uses_ui),
+        StmtKind::IndexAssign { index, value, .. } => expr_uses_ui(index) || expr_uses_ui(value),
+    })
+}
+
+fn expr_uses_ui(expr: &Expr) -> bool {
+    match &expr.kind {
+        ExprKind::HostCall { module, .. } => module == "UI",
+        ExprKind::Call { arguments, .. }
+        | ExprKind::VectorLiteral(arguments)
+        | ExprKind::RecordLiteral {
+            fields: arguments, ..
+        }
+        | ExprKind::EnumConstructor {
+            payload: arguments, ..
+        } => arguments.iter().any(expr_uses_ui),
+        ExprKind::Field { value, .. }
+        | ExprKind::Index { index: value, .. }
+        | ExprKind::Parenthesized(value)
+        | ExprKind::Unary { operand: value, .. } => expr_uses_ui(value),
+        ExprKind::Binary { left, right, .. } => expr_uses_ui(left) || expr_uses_ui(right),
+        ExprKind::Binding(_)
+        | ExprKind::Length { .. }
+        | ExprKind::Integer(_)
+        | ExprKind::Real(_)
+        | ExprKind::Boolean(_)
+        | ExprKind::String(_)
+        | ExprKind::Character(_) => false,
+    }
+}
+
+const PORS_UI_RUNTIME: &str = r#"
+#[allow(dead_code)]
+mod __pors_ui {
+    use std::cell::RefCell;
+    use std::fmt::Write as _;
+
+    const MAX_NODES: usize = 1_024;
+    const MAX_DEPTH: usize = 32;
+
+    #[derive(Clone)]
+    pub enum UiNode {
+        Column(Vec<UiNode>),
+        Row(Vec<UiNode>),
+        Text(String),
+        Button { id: String, label: String },
+        Input { id: String, value: String, placeholder: String },
+        List(Vec<UiNode>),
+    }
+
+    impl UiNode {
+        pub fn to_json(&self) -> String {
+            let mut out = String::new();
+            self.write_json(&mut out);
+            out
+        }
+
+        fn children(&self) -> &[UiNode] {
+            match self {
+                Self::Column(items) | Self::Row(items) | Self::List(items) => items,
+                Self::Text(_) | Self::Button { .. } | Self::Input { .. } => &[],
+            }
+        }
+
+        fn validate(&self, depth: usize, count: &mut usize) {
+            if depth > MAX_DEPTH {
+                eprintln!("Erro de UI: profundidade máxima de {MAX_DEPTH} níveis excedida.");
+                std::process::exit(1);
+            }
+            *count += 1;
+            if *count > MAX_NODES {
+                eprintln!("Erro de UI: limite máximo de {MAX_NODES} nós excedido.");
+                std::process::exit(1);
+            }
+            for child in self.children() {
+                child.validate(depth + 1, count);
+            }
+        }
+
+        fn write_json(&self, out: &mut String) {
+            match self {
+                Self::Column(children) => {
+                    out.push_str("{\"kind\":\"coluna\",\"children\":");
+                    write_nodes(children, out);
+                    out.push('}');
+                }
+                Self::Row(children) => {
+                    out.push_str("{\"kind\":\"linha\",\"children\":");
+                    write_nodes(children, out);
+                    out.push('}');
+                }
+                Self::Text(content) => {
+                    out.push_str("{\"kind\":\"texto\",\"content\":");
+                    write_json_str(content, out);
+                    out.push('}');
+                }
+                Self::Button { id, label } => {
+                    out.push_str("{\"kind\":\"botao\",\"id\":");
+                    write_json_str(id, out);
+                    out.push_str(",\"label\":");
+                    write_json_str(label, out);
+                    out.push('}');
+                }
+                Self::Input { id, value, placeholder } => {
+                    out.push_str("{\"kind\":\"entrada\",\"id\":");
+                    write_json_str(id, out);
+                    out.push_str(",\"value\":");
+                    write_json_str(value, out);
+                    out.push_str(",\"placeholder\":");
+                    write_json_str(placeholder, out);
+                    out.push('}');
+                }
+                Self::List(items) => {
+                    out.push_str("{\"kind\":\"lista\",\"items\":");
+                    write_nodes(items, out);
+                    out.push('}');
+                }
+            }
+        }
+    }
+
+    fn write_nodes(nodes: &[UiNode], out: &mut String) {
+        out.push('[');
+        for (i, node) in nodes.iter().enumerate() {
+            if i > 0 { out.push(','); }
+            node.write_json(out);
+        }
+        out.push(']');
+    }
+
+    fn write_json_str(value: &str, out: &mut String) {
+        out.push('"');
+        for ch in value.chars() {
+            match ch {
+                '"' => out.push_str("\\\""),
+                '\\' => out.push_str("\\\\"),
+                '\n' => out.push_str("\\n"),
+                '\r' => out.push_str("\\r"),
+                '\t' => out.push_str("\\t"),
+                '\x08' => out.push_str("\\b"),
+                '\x0c' => out.push_str("\\f"),
+                c if (c as u32) < 0x20 => { let _ = write!(out, "\\u{:04x}", c as u32); }
+                other => out.push(other),
+            }
+        }
+        out.push('"');
+    }
+
+    thread_local! {
+        static NODES: RefCell<Vec<UiNode>> = const { RefCell::new(Vec::new()) };
+    }
+
+    pub fn begin_frame() {
+        NODES.with(|nodes| nodes.borrow_mut().clear());
+    }
+
+    fn push(node: UiNode) -> i32 {
+        NODES.with(|nodes| {
+            let mut list = nodes.borrow_mut();
+            if list.len() >= MAX_NODES {
+                eprintln!("Erro de UI: limite máximo de {MAX_NODES} nós excedido.");
+                std::process::exit(1);
+            }
+            let handle = list.len() as i32;
+            list.push(node);
+            handle
+        })
+    }
+
+    fn resolve(handles: &[i32]) -> Vec<UiNode> {
+        NODES.with(|nodes| {
+            let list = nodes.borrow();
+            let mut out = Vec::with_capacity(handles.len());
+            for &handle in handles {
+                let Some(node) = usize::try_from(handle).ok().and_then(|i| list.get(i)) else {
+                    eprintln!("Erro de UI: identificador de nó inválido ({handle}).");
+                    std::process::exit(1);
+                };
+                out.push(node.clone());
+            }
+            out
+        })
+    }
+
+    pub fn finish_frame(root: i32) -> UiNode {
+        let node = NODES.with(|nodes| {
+            let list = nodes.borrow();
+            usize::try_from(root)
+                .ok()
+                .and_then(|i| list.get(i))
+                .cloned()
+                .unwrap_or_else(|| {
+                    eprintln!("Erro de UI: nó raiz inválido ({root}).");
+                    std::process::exit(1);
+                })
+        });
+        let mut count = 0usize;
+        node.validate(1, &mut count);
+        node
+    }
+
+    pub fn texto(parts: &[String]) -> i32 {
+        let mut content = String::new();
+        for part in parts {
+            content.push_str(part);
+        }
+        push(UiNode::Text(content))
+    }
+
+    pub fn botao(id: &str, label: &str) -> i32 {
+        push(UiNode::Button { id: id.to_owned(), label: label.to_owned() })
+    }
+
+    pub fn entrada(id: &str, value: &str, placeholder: &str) -> i32 {
+        push(UiNode::Input {
+            id: id.to_owned(),
+            value: value.to_owned(),
+            placeholder: placeholder.to_owned(),
+        })
+    }
+
+    pub fn coluna(children: &[i32]) -> i32 {
+        push(UiNode::Column(resolve(children)))
+    }
+
+    pub fn linha(children: &[i32]) -> i32 {
+        push(UiNode::Row(resolve(children)))
+    }
+
+    pub fn lista(items: &[i32]) -> i32 {
+        push(UiNode::List(resolve(items)))
+    }
+
+    pub fn parse_event_line(line: &str) -> Option<(String, String, String)> {
+        if line.starts_with('{') {
+            let kind = json_string_field(line, "kind")?;
+            let id = json_string_field(line, "id")?;
+            let value = json_string_field(line, "value").unwrap_or_default();
+            return Some((kind, id, value));
+        }
+        if let Some(id) = line.strip_prefix("clique:") {
+            return Some(("clique".to_owned(), id.to_owned(), String::new()));
+        }
+        if let Some(rest) = line.strip_prefix("entrada_alterada:")
+            && let Some((id, value)) = rest.split_once(':')
+        {
+            return Some(("entrada_alterada".to_owned(), id.to_owned(), value.to_owned()));
+        }
+        None
+    }
+
+    fn json_string_field(raw: &str, key: &str) -> Option<String> {
+        let needle = format!("\"{key}\"");
+        let after_key = raw.split_once(&needle)?.1;
+        let after_colon = after_key.trim_start().strip_prefix(':')?.trim_start();
+        let mut chars = after_colon.strip_prefix('"')?.chars();
+        let mut out = String::new();
+        while let Some(ch) = chars.next() {
+            match ch {
+                '"' => return Some(out),
+                '\\' => match chars.next()? {
+                    '"' => out.push('"'),
+                    '\\' => out.push('\\'),
+                    '/' => out.push('/'),
+                    'n' => out.push('\n'),
+                    'r' => out.push('\r'),
+                    't' => out.push('\t'),
+                    'b' => out.push('\x08'),
+                    'f' => out.push('\x0c'),
+                    other => out.push(other),
+                },
+                other => out.push(other),
+            }
+        }
+        None
+    }
+}
+"#;
