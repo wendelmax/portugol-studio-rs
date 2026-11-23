@@ -388,6 +388,11 @@ fn collect_pors_function_calls_in_expr(
                 collect_pors_function_calls_in_expr(argument, functions);
             }
         }
+        ExprKind::HostCall { arguments, .. } => {
+            for argument in arguments {
+                collect_pors_function_calls_in_expr(argument, functions);
+            }
+        }
         ExprKind::VectorLiteral(items) => {
             for item in items {
                 collect_pors_function_calls_in_expr(item, functions);
@@ -677,7 +682,7 @@ fn collect_portugol_rs_expression(
             collect_portugol_rs_expression(left, owner, occurrences);
             collect_portugol_rs_expression(right, owner, occurrences);
         }
-        ExprKind::Call { arguments, .. } => {
+        ExprKind::Call { arguments, .. } | ExprKind::HostCall { arguments, .. } => {
             for argument in arguments {
                 collect_portugol_rs_expression(argument, owner, occurrences);
             }

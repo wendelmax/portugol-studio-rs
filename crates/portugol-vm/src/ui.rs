@@ -315,10 +315,32 @@ impl UiTreeBuilder {
     fn dispatch(&mut self, name: &str, args: &[Value]) -> Result<Value, String> {
         let node = match name {
             "texto" => {
-                check_arity(args, 1, "UI.texto")?;
-                UiNode::Text {
-                    content: expect_string(&args[0], "UI.texto")?,
+                if args.is_empty() {
+                    return Err("\"UI.texto\" espera pelo menos 1 argumento.".into());
                 }
+                let mut content = String::new();
+                for arg in args {
+                    let piece = match arg {
+                        Value::Str(text) => text.as_ref().to_owned(),
+                        Value::Int(_) | Value::Real(_) | Value::Bool(_) | Value::Char(_) => {
+                            arg.display()
+                        }
+                        other => {
+                            return Err(format!(
+                                "\"UI.texto\" espera valores escalares (cadeia, inteiro, real, logico ou caracter), mas recebeu {}.",
+                                other.type_name()
+                            ));
+                        }
+                    };
+                    if content.len().saturating_add(piece.len()) > self.budget.max_string_bytes {
+                        return Err(format!(
+                            "O limite máximo de {} bytes de texto em \"UI.texto\" foi excedido.",
+                            self.budget.max_string_bytes
+                        ));
+                    }
+                    content.push_str(&piece);
+                }
+                UiNode::Text { content }
             }
             "botao" => {
                 check_arity(args, 2, "UI.botao")?;

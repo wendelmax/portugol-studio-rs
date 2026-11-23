@@ -284,3 +284,78 @@ fn rejects_break_and_continue_outside_loops_at_the_keyword_span() {
         );
     }
 }
+
+#[test]
+fn parses_declarative_ui_mvu_program_with_records_enums_and_all_components() {
+    let source = r#"
+enum Modo { Normal, Destaque }
+
+registro Estado {
+    contagem: inteiro,
+    nome: cadeia,
+    modo: Modo
+}
+
+funcao iniciar() -> Estado {
+    retorne Estado { contagem: 0, nome: "", modo: Modo::Normal };
+}
+
+funcao atualizar(estado: Estado, tipo: cadeia, alvo: cadeia, valor: cadeia) -> Estado {
+    se (tipo == "clique" && alvo == "inc") {
+        retorne Estado { contagem: estado.contagem + 1, nome: estado.nome, modo: Modo::Destaque };
+    }
+    se (tipo == "entrada_alterada" && alvo == "nome") {
+        retorne Estado { contagem: estado.contagem, nome: valor, modo: estado.modo };
+    }
+    retorne estado;
+}
+
+funcao visualizar(estado: Estado) -> inteiro {
+    seja mutavel rotulo: cadeia = "Normal";
+    escolha estado.modo {
+        caso Modo::Normal => { rotulo = "Normal"; }
+        caso Modo::Destaque => { rotulo = "Destaque"; }
+    }
+    retorne UI.coluna([
+        UI.texto("Total: ", estado.contagem, " (", rotulo, ")"),
+        UI.linha([
+            UI.botao("inc", "+1"),
+            UI.entrada("nome", estado.nome, "Seu nome")
+        ]),
+        UI.lista([UI.texto("Item ", 1)])
+    ]);
+}
+"#;
+    let program = lower(source).expect("programa visual MVU com UI.* deve ser aceito");
+    assert!(program.body.is_empty());
+    assert_eq!(program.functions.len(), 3);
+    assert_eq!(program.record_types.len(), 1);
+    assert_eq!(program.enum_types.len(), 1);
+}
+
+#[test]
+fn validates_ui_host_calls_and_mvu_entry_signatures() {
+    let unknown = "funcao inicio() { seja no: inteiro = UI.canvas([1]); }";
+    let errors = lower(unknown).unwrap_err();
+    assert!(errors.iter().any(|d| d.code == "pors.unknown-ui-component"));
+
+    let bad_arity = "funcao inicio() { seja no: inteiro = UI.botao(\"so_um\"); }";
+    let errors = lower(bad_arity).unwrap_err();
+    assert!(errors.iter().any(|d| d.code == "pors.ui-call-arity"));
+
+    let bad_type = "funcao inicio() { seja no: inteiro = UI.coluna([\"texto\"]); }";
+    let errors = lower(bad_type).unwrap_err();
+    assert!(
+        errors
+            .iter()
+            .any(|d| d.code == "pors.ui-call-type-mismatch")
+    );
+
+    let bad_mvu = r#"
+funcao iniciar() -> inteiro { retorne 0; }
+funcao atualizar(estado: inteiro, alvo: inteiro) -> inteiro { retorne estado + alvo; }
+funcao visualizar(estado: inteiro) -> inteiro { retorne UI.texto(estado); }
+"#;
+    let errors = lower(bad_mvu).unwrap_err();
+    assert!(errors.iter().any(|d| d.code == "pors.ui-entry-signature"));
+}
