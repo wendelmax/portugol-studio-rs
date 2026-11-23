@@ -299,6 +299,9 @@ fn collect_pors_function_calls(
                 }
             }
             StmtKind::Assign { value, .. } => collect_pors_function_calls_in_expr(value, functions),
+            StmtKind::FieldAssign { value, .. } => {
+                collect_pors_function_calls_in_expr(value, functions)
+            }
             StmtKind::IndexAssign { index, value, .. } => {
                 collect_pors_function_calls_in_expr(index, functions);
                 collect_pors_function_calls_in_expr(value, functions);
@@ -354,6 +357,12 @@ fn collect_pors_function_calls(
                 collect_pors_function_calls(std::slice::from_ref(step.as_ref()), functions);
                 collect_pors_function_calls(body, functions);
             }
+            StmtKind::Choose { value, arms } => {
+                collect_pors_function_calls_in_expr(value, functions);
+                for arm in arms {
+                    collect_pors_function_calls(&arm.body, functions);
+                }
+            }
         }
     }
 }
@@ -384,6 +393,17 @@ fn collect_pors_function_calls_in_expr(
                 collect_pors_function_calls_in_expr(item, functions);
             }
         }
+        ExprKind::RecordLiteral { fields, .. } => {
+            for field in fields {
+                collect_pors_function_calls_in_expr(field, functions);
+            }
+        }
+        ExprKind::EnumConstructor { payload, .. } => {
+            for item in payload {
+                collect_pors_function_calls_in_expr(item, functions);
+            }
+        }
+        ExprKind::Field { value, .. } => collect_pors_function_calls_in_expr(value, functions),
         ExprKind::Index { index, .. } => collect_pors_function_calls_in_expr(index, functions),
         ExprKind::Length { .. } => {}
         ExprKind::Parenthesized(inner) | ExprKind::Unary { operand: inner, .. } => {
@@ -551,6 +571,21 @@ fn collect_portugol_rs_statements(
                 collect_portugol_rs_expression(index, owner, occurrences);
                 collect_portugol_rs_expression(value, owner, occurrences);
             }
+            StmtKind::FieldAssign { binding, value, .. } => {
+                if let Some(declaration) = declarations.get(binding.0 as usize) {
+                    occurrences.push(PortugolRsOccurrence {
+                        binding: PortugolRsBindingTarget {
+                            owner,
+                            id: *binding,
+                        },
+                        span: portugol_hir::Span::new(
+                            statement.span.start,
+                            statement.span.start + declaration.source_name.len() as u32,
+                        ),
+                    });
+                }
+                collect_portugol_rs_expression(value, owner, occurrences);
+            }
             StmtKind::Write(values) => {
                 for value in values {
                     collect_portugol_rs_expression(value, owner, occurrences);
@@ -609,6 +644,12 @@ fn collect_portugol_rs_statements(
                 );
                 collect_portugol_rs_statements(body, declarations, owner, occurrences);
             }
+            StmtKind::Choose { value, arms } => {
+                collect_portugol_rs_expression(value, owner, occurrences);
+                for arm in arms {
+                    collect_portugol_rs_statements(&arm.body, declarations, owner, occurrences);
+                }
+            }
             StmtKind::LoopControl { .. } => {}
         }
     }
@@ -645,6 +686,19 @@ fn collect_portugol_rs_expression(
             for item in items {
                 collect_portugol_rs_expression(item, owner, occurrences);
             }
+        }
+        ExprKind::RecordLiteral { fields, .. } => {
+            for field in fields {
+                collect_portugol_rs_expression(field, owner, occurrences);
+            }
+        }
+        ExprKind::EnumConstructor { payload, .. } => {
+            for item in payload {
+                collect_portugol_rs_expression(item, owner, occurrences);
+            }
+        }
+        ExprKind::Field { value, .. } => {
+            collect_portugol_rs_expression(value, owner, occurrences);
         }
         ExprKind::Index { binding, index } => {
             occurrences.push(PortugolRsOccurrence {

@@ -21,6 +21,62 @@ fn parses_the_initial_portugol_rs_program_into_typed_hir() {
 }
 
 #[test]
+fn parses_nominal_record_definitions_before_the_entry_function() {
+    let source = "registro Pessoa { idade: inteiro, nome: cadeia } funcao inicio() {}";
+    let program = lower(source).expect("registro declarado antes de inicio deve ser aceito");
+    assert_eq!(program.record_types.len(), 1);
+    assert_eq!(program.record_types[0].name, "Pessoa");
+    assert_eq!(program.record_types[0].fields.len(), 2);
+}
+
+#[test]
+fn parses_record_construction_and_typed_field_reads() {
+    let source = "registro Pessoa { idade: inteiro } funcao inicio() { seja pessoa: Pessoa = Pessoa { idade: 16 }; escreva(pessoa.idade); }";
+    let program = lower(source).expect("construção e leitura de campo devem ser tipadas");
+    let StmtKind::Declare {
+        initializer: Some(value),
+        ..
+    } = &program.body[0].kind
+    else {
+        panic!("declaração")
+    };
+    assert!(matches!(value.kind, ExprKind::RecordLiteral { .. }));
+    let StmtKind::Write(values) = &program.body[1].kind else {
+        panic!("escreva")
+    };
+    assert!(matches!(
+        values[0].kind,
+        ExprKind::Field { field_index: 0, .. }
+    ));
+    assert_eq!(values[0].ty, Type::Integer);
+}
+
+#[test]
+fn parses_enum_definitions_with_typed_payloads() {
+    let source = "enum Evento { Iniciar, Atualizar(inteiro, cadeia) } funcao inicio() {}";
+    let program = lower(source).expect("enum com payloads deve ser aceito");
+    assert_eq!(program.enum_types.len(), 1);
+    assert_eq!(program.enum_types[0].variants[1].name, "Atualizar");
+    assert_eq!(
+        program.enum_types[0].variants[1].payload_types,
+        [Type::Integer, Type::String]
+    );
+}
+
+#[test]
+fn parses_enum_constructors_and_exhaustive_choice_arms() {
+    let source = "enum Evento { Incrementar, Definir(inteiro) } funcao inicio() { seja evento: Evento = Evento::Definir(7); escolha evento { caso Evento::Incrementar => { escreva(0); } caso Evento::Definir(valor) => { escreva(valor); } } }";
+    let program = lower(source).expect("construtor e escolha exaustiva devem ser aceitos");
+    assert_eq!(program.enum_types.len(), 1);
+    assert!(
+        matches!(program.body[0].kind, StmtKind::Declare { initializer: Some(ref expression), .. } if matches!(expression.kind, ExprKind::EnumConstructor { .. }))
+    );
+    assert!(
+        matches!(program.body[1].kind, StmtKind::Choose { ref arms, .. } if arms.len() == 2 && arms[1].payload_bindings.len() == 1)
+    );
+}
+
+#[test]
 fn parses_typed_helper_functions_forward_calls_and_returns() {
     let source = "funcao dobro(valor: inteiro) -> inteiro { retorne somar(valor, valor); }\nfuncao somar(a: inteiro, b: inteiro) -> inteiro { retorne a + b; }\nfuncao inicio() { escreva(dobro(21)); }";
     let program = lower(source).expect("funções tipadas e chamadas para frente devem ser válidas");

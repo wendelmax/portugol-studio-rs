@@ -14,9 +14,12 @@ pub(super) enum Kind {
     LBrace,
     RBrace,
     Colon,
+    ColonColon,
+    Dot,
     Semicolon,
     Comma,
     Arrow,
+    FatArrow,
     Plus,
     Minus,
     Star,
@@ -98,7 +101,13 @@ impl Lexer<'_> {
                 ']' => self.single(start, Kind::RBracket),
                 '{' => self.single(start, Kind::LBrace),
                 '}' => self.single(start, Kind::RBrace),
+                ':' if self.starts_with("::") => {
+                    self.bump();
+                    self.bump();
+                    self.push(start, Kind::ColonColon);
+                }
                 ':' => self.single(start, Kind::Colon),
+                '.' => self.single(start, Kind::Dot),
                 ';' => self.single(start, Kind::Semicolon),
                 ',' => self.single(start, Kind::Comma),
                 '+' => self.pair(start, '=', Kind::PlusEq, Kind::Plus),
@@ -111,6 +120,11 @@ impl Lexer<'_> {
                 '*' => self.pair(start, '=', Kind::StarEq, Kind::Star),
                 '/' => self.pair(start, '=', Kind::SlashEq, Kind::Slash),
                 '%' => self.pair(start, '=', Kind::PercentEq, Kind::Percent),
+                '=' if self.starts_with("=>") => {
+                    self.bump();
+                    self.bump();
+                    self.push(start, Kind::FatArrow);
+                }
                 '=' => self.pair(start, '=', Kind::Equal, Kind::Assign),
                 '!' => self.pair(start, '=', Kind::NotEqual, Kind::Bang),
                 '>' => self.pair(start, '=', Kind::GreaterEqual, Kind::Greater),

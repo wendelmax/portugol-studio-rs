@@ -88,6 +88,95 @@ fn pors_debugger_executes_typed_helper_functions_and_forward_calls() {
 }
 
 #[test]
+fn pors_debugger_executes_record_field_updates_in_the_vm() {
+    let source = "registro Estado { contador: inteiro } funcao inicio() { seja mutavel estado: Estado = Estado { contador: 2 }; estado.contador += 3; escreva(estado.contador); }";
+    let (output, outcome) = run_vm_to_output(source);
+    assert_eq!(outcome, RunOutcome::Finished);
+    assert_eq!(output, "5");
+}
+
+#[test]
+fn pors_debugger_reads_records_stored_in_vectors() {
+    let source = "registro Pessoa { idade: inteiro } funcao inicio() { seja pessoas: vetor<Pessoa> = [Pessoa { idade: 16 }, Pessoa { idade: 17 }]; escreva(pessoas[0].idade); escreva(pessoas[1].idade); }";
+    let (output, outcome) = run_vm_to_output(source);
+    assert_eq!(outcome, RunOutcome::Finished);
+    assert_eq!(output, "1617");
+}
+
+#[test]
+fn pors_debugger_keeps_copied_records_independent() {
+    let source = "registro Pessoa { nome: cadeia } funcao inicio() { seja mutavel original: Pessoa = Pessoa { nome: \"Ana\" }; seja mutavel copia: Pessoa = original; copia.nome = \"Bia\"; escreva(original.nome); escreva(copia.nome); }";
+    let (output, outcome) = run_vm_to_output(source);
+    assert_eq!(outcome, RunOutcome::Finished);
+    assert_eq!(output, "AnaBia");
+}
+
+#[test]
+fn pors_debugger_passes_and_returns_records_by_value() {
+    let source = "registro Estado { contador: inteiro } funcao incrementar(mutavel estado: Estado) -> Estado { estado.contador += 1; retorne estado; } funcao inicio() { seja original: Estado = Estado { contador: 4 }; seja proximo: Estado = incrementar(original); escreva(original.contador); escreva(proximo.contador); }";
+    let (output, outcome) = run_vm_to_output(source);
+    assert_eq!(outcome, RunOutcome::Finished);
+    assert_eq!(output, "45");
+}
+
+#[test]
+fn pors_debugger_matches_all_enum_variants_and_binds_payloads() {
+    let source = "enum Evento { Incrementar, Definir(inteiro) } funcao inicio() { seja evento: Evento = Evento::Definir(7); escolha evento { caso Evento::Incrementar => { escreva(0); } caso Evento::Definir(valor) => { escreva(valor); } } }";
+    let (output, outcome) = run_vm_to_output(source);
+    assert_eq!(outcome, RunOutcome::Finished);
+    assert_eq!(output, "7");
+}
+
+#[test]
+fn pors_debugger_expands_records_and_shows_enum_variant_payloads() {
+    let source = "registro Detalhe { valor: inteiro }\nregistro Estado { contador: inteiro, detalhe: Detalhe }\nenum Evento { Incrementar, Definir(inteiro) }\nfuncao inicio() {\n seja estado: Estado = Estado { contador: 3, detalhe: Detalhe { valor: 9 } };\n seja evento: Evento = Evento::Definir(7);\n escolha evento { caso Evento::Incrementar => {} caso Evento::Definir(valor) => {} }\n}";
+    let (tx, rx) = mpsc::channel();
+    let observer = Arc::new(Recorder(Mutex::new(tx)));
+    let handle = start_portugol_rs(
+        source,
+        RunOptions {
+            breakpoints: vec![7],
+            ..RunOptions::default()
+        },
+        observer,
+    )
+    .expect("programa depurável");
+    let Event::Paused(info) = rx
+        .recv_timeout(Duration::from_secs(5))
+        .expect("pausa na escolha")
+    else {
+        panic!("esperava pausa")
+    };
+    assert!(
+        info.variables
+            .iter()
+            .any(|variable| variable.name == "estado" && variable.ty == "Estado")
+    );
+    assert!(
+        info.variables
+            .iter()
+            .any(|variable| variable.name == "estado.contador" && variable.value == "3")
+    );
+    assert!(
+        info.variables
+            .iter()
+            .any(|variable| variable.name == "estado.detalhe.valor" && variable.value == "9")
+    );
+    assert!(
+        info.variables
+            .iter()
+            .any(|variable| variable.name == "evento" && variable.value == "Evento::Definir")
+    );
+    assert!(
+        info.variables
+            .iter()
+            .any(|variable| variable.name == "evento.Definir[0]" && variable.value == "7")
+    );
+    handle.stop();
+    handle.join();
+}
+
+#[test]
 fn pors_debugger_exposes_helper_parameters_and_call_frames() {
     let source = "funcao dobrar(valor: inteiro) -> inteiro {\n retorne valor * 2;\n}\nfuncao inicio() {\n seja base: inteiro = 21;\n escreva(dobrar(base));\n}";
     let (tx, rx) = mpsc::channel();
@@ -426,6 +515,14 @@ fn pors_vm_debug_output_matches_generated_rust_for_core_statements() {
         (
             "funcao fatorial(n: inteiro) -> inteiro { se (n <= 1) { retorne 1; } senao { retorne n * fatorial(n - 1); } } funcao inicio() { escreva(fatorial(5)); }",
             "120",
+        ),
+        (
+            "registro Pessoa { nome: cadeia } enum Mensagem { Texto(cadeia) } funcao inicio() { seja nome: cadeia = \"Ana\"; seja pessoa: Pessoa = Pessoa { nome: nome }; escreva(nome); escreva(pessoa.nome); seja texto: cadeia = \"oi\"; seja mensagem: Mensagem = Mensagem::Texto(texto); escreva(texto); escolha mensagem { caso Mensagem::Texto(conteudo) => { escreva(conteudo); } } }",
+            "AnaAnaoioi",
+        ),
+        (
+            "registro Estado { valor: inteiro } enum Envelope { Dados(Estado) } funcao inicio() { seja mutavel original: Estado = Estado { valor: 1 }; seja envelope: Envelope = Envelope::Dados(original); original.valor = 2; escolha envelope { caso Envelope::Dados(estado) => { escreva(estado.valor); } } escreva(original.valor); }",
+            "12",
         ),
     ];
     for (source, expected) in sources {

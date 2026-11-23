@@ -16,17 +16,17 @@ não apenas suporte ao Portugol clássico.
 | Tipos | 🟡 inteiro, real, lógico, cadeia, caracter; imutabilidade padrão | 🔎 Semântica explícita de tamanhos, overflow, inferência, Unicode, unit/void |
 | Variáveis | ✅ `seja`, `seja mutavel`, atribuição e shadowing testados | Validar contrato comum em VM e Rust gerado em todos os caminhos |
 | Expressões | 🟡 aritmética, comparação, igualdade, lógica e curto-circuito | Bitwise, shifts, operações/unários restantes; validar precedência e overflow |
-| Condições | ✅ `se`/`senao` | 🟡 `escolha`/matching exaustivo com pattern matching de Rust |
+| Condições | 🟡 `se`/`senao` e `escolha` exaustivo para enums próprios, com payloads posicionais; sem guards, wildcard ou matching como expressão | `Option`/`Result`, referências e padrões aninhados |
 | Repetição | ✅ `enquanto`, `para`, `pare`, `continue` | 🔎 `faca-enquanto` e alternativas pedagógicas; revisar loop labels |
 | Funções | 🟡 `inicio` e funções auxiliares com parâmetros tipados, chamadas, retorno, recursão, chamadas para frente e mutabilidade explícita; Rust gerado, debugger VM, outline, navegação, rename e formatador PORS | Faltam cobertura aprofundada de frames/limites de recursão e referências/borrowing explícitos |
 | Coleções | 🟡 Vetores tipados homogêneos não vazios, leitura/escrita indexada, `tamanho`, cópia por valor e bounds; sem matrizes, vetores vazios, redimensionamento, slices/visões ou vetores aninhados | Matrizes, construção vazia/redimensionamento e outras coleções; slices/visões e iteração permanecem decisões futuras |
-| Tipos compostos | ⬜ Sem structs/enums próprios | Estruturas, enums, construtores e pattern matching quando pedagógicos |
+| Tipos compostos | 🟡 Registros/enums nominais, campos, construtores, vetores, mutação sob binding mutável, cópia por valor e `escolha` exaustivo; VM/debugger expande campos e payload ativo; Rust gerado usa `struct`/`enum` | Sem recursão de tipos, `Box`, vetores aninhados, mutação indexada/nested, campos mutáveis individuais ou guards; validar mais profundamente a equivalência de limites e diagnósticos |
 | Rust `Option`/`Result` | ⬜ | Tipos, construtores, `match`, propagação (`?`) e diagnóstico/geração corretos |
 | Ownership/borrowing | 🟡 painel editorial com fixtures; sem analisar buffer do aluno | Moves, empréstimos `&T`/`&mut T`, regras de aliasing/lifetimes do subset; comparar com `rustc` |
 | Concorrência Rust | ⬜ | Introduzir threads e compartilhamento seguro (`Arc`/`Send`/`Sync`), depois `Mutex<T>` para estado composto e `Atomic*` para operações simples em valores compatíveis; explicar `Ordering` só após sincronização básica |
 | Diagnósticos | 🟡 códigos e spans localizados em subset | Cobertura de cada sintaxe/semântica; português, ajuda contextual e source maps |
 | Execução normal | 🟡 gera Rust subset e executa `rustc` | Igualdade observável entre todas as construções publicadas e casos diferenciados |
-| Debugger | 🟡 HIR → bytecode → VM; breakpoints, stepping, escopos, input, limites | Cobrir a gramática que for expandida; documentar diferenças inevitáveis de backend |
+| Debugger | 🟡 HIR → bytecode → VM; breakpoints, stepping, escopos, input, limites; PORS mostra campos de registros e variante/payload de enum | Cobrir a gramática que for expandida; documentar diferenças inevitáveis de backend |
 | Segurança/limites | ✅ supervisor de Rust gerado e limites do debugger PORS | Manter saída/tempo/memória/cancelamento e consentimento em todo recurso novo |
 
 ## Bibliotecas do inventário clássico

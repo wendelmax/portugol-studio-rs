@@ -13,5 +13,8 @@ pub mod op;
 pub mod pors;
 
 pub use compiler::{CompileError, ENTRY_NAME, compile};
-pub use op::{Function, GlobalInfo, LocalInfo, Module, NativeRef, Op, ValueType};
+pub use op::{
+    Function, GlobalInfo, LocalInfo, Module, NativeRef, Op, PorsDebugField, PorsDebugShape,
+    PorsDebugType, PorsDebugVariant, ValueType,
+};
 pub use pors::{PorsCompileError, compile_pors};

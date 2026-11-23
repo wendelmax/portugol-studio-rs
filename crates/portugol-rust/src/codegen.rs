@@ -30,6 +30,108 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
     if pors {
         output.push_str("\nthread_local! { static __PORS_STRING_BYTES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) }; }\nfn __pors_account(len: usize) { __PORS_STRING_BYTES.with(|used| { let next = used.get().saturating_add(len); if next > 16 * 1024 * 1024 { std::process::exit(78); } used.set(next); }); }\nfn __pors_string(value: &str) -> String { __pors_account(value.len()); value.to_owned() }\nfn __pors_vec_string_clone(value: &[String]) -> Vec<String> { value.iter().map(|item| __pors_string(item)).collect() }\nfn __pors_index(index: i32, len: usize) -> usize { if index < 0 || index as usize >= len { eprintln!(\"Erro de execução: índice de vetor fora do intervalo ({index}).\"); std::process::exit(1); } index as usize }\nfn __pors_char(value: char) -> String { __pors_account(value.len_utf8()); value.to_string() }\nfn __pors_concat(left: &str, right: &str) -> String { let len = left.len().saturating_add(right.len()); __pors_account(len); let mut value = String::with_capacity(len); value.push_str(left); value.push_str(right); value }\n");
     }
+    for definition in &program.record_types {
+        output.push_str(&format!(
+            "\n#[derive(Clone)]\nstruct {} {{\n",
+            rust_ident(&definition.name)
+        ));
+        for field in &definition.fields {
+            output.push_str(&format!(
+                "    {}: {},\n",
+                rust_ident(&field.name),
+                rust_type(field.ty, program)
+            ));
+        }
+        output.push_str("}\n");
+        if pors {
+            output.push_str(&format!(
+                "fn __pors_clone_{}(value: &{}) -> {} {{ {} {{\n",
+                definition.id.0,
+                rust_ident(&definition.name),
+                rust_ident(&definition.name),
+                rust_ident(&definition.name)
+            ));
+            for field in &definition.fields {
+                let name = rust_ident(&field.name);
+                let clone = match field.ty {
+                    Type::String => format!("__pors_string(&value.{name})"),
+                    Type::VectorString => format!("__pors_vec_string_clone(&value.{name})"),
+                    Type::Record(id) => program
+                        .record_types
+                        .iter()
+                        .find(|item| item.id == id)
+                        .map(|item| format!("__pors_clone_{}(&value.{name})", item.id.0))
+                        .unwrap_or_else(|| format!("value.{name}.clone()")),
+                    Type::VectorRecord(id) => program
+                        .record_types
+                        .iter()
+                        .find(|item| item.id == id)
+                        .map(|item| {
+                            format!(
+                                "value.{name}.iter().map(|item| __pors_clone_{}(item)).collect()",
+                                item.id.0
+                            )
+                        })
+                        .unwrap_or_else(|| format!("value.{name}.clone()")),
+                    Type::Enum(id) => program.enum_types.iter().find(|item| item.id == id).map(|item| format!("__pors_clone_enum_{}(&value.{name})", item.id.0)).unwrap_or_else(|| format!("value.{name}.clone()")),
+                    Type::VectorEnum(id) => program.enum_types.iter().find(|item| item.id == id).map(|item| format!("value.{name}.iter().map(|item| __pors_clone_enum_{}(item)).collect()", item.id.0)).unwrap_or_else(|| format!("value.{name}.clone()")),
+                    ty if ty.is_vector() => format!("value.{name}.clone()"),
+                    _ => format!("value.{name}"),
+                };
+                output.push_str(&format!("    {name}: {clone},\n"));
+            }
+            output.push_str("} }\n");
+        }
+    }
+    for definition in &program.enum_types {
+        output.push_str(&format!(
+            "\n#[derive(Clone)]\nenum {} {{\n",
+            rust_ident(&definition.name)
+        ));
+        for variant in &definition.variants {
+            output.push_str(&format!("    {}", rust_ident(&variant.name)));
+            if !variant.payload_types.is_empty() {
+                let fields = variant
+                    .payload_types
+                    .iter()
+                    .map(|ty| rust_type(*ty, program))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                output.push_str(&format!("({fields})"));
+            }
+            output.push_str(",\n");
+        }
+        output.push_str("}\n");
+        if pors {
+            let enum_name = rust_ident(&definition.name);
+            output.push_str(&format!(
+                "fn __pors_clone_enum_{}(value: &{enum_name}) -> {enum_name} {{ match value {{\n",
+                definition.id.0
+            ));
+            for variant in &definition.variants {
+                let variant_name = rust_ident(&variant.name);
+                if variant.payload_types.is_empty() {
+                    output.push_str(&format!(
+                        "    {enum_name}::{variant_name} => {enum_name}::{variant_name},\n"
+                    ));
+                } else {
+                    let bindings = (0..variant.payload_types.len())
+                        .map(|index| format!("field_{index}"))
+                        .collect::<Vec<_>>();
+                    let pattern = bindings.join(", ");
+                    let values = variant
+                        .payload_types
+                        .iter()
+                        .zip(&bindings)
+                        .map(|(ty, binding)| pors_clone_value(*ty, binding, program))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    output.push_str(&format!("    {enum_name}::{variant_name}({pattern}) => {enum_name}::{variant_name}({values}),\n"));
+                }
+            }
+            output.push_str("} }\n");
+        }
+    }
     let mut mappings = Vec::new();
     for function in &program.functions {
         let function_program = Program {
@@ -49,7 +151,7 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
                         ""
                     },
                     rust_ident(&parameter.source_name),
-                    rust_type(parameter.ty)
+                    rust_type(parameter.ty, &function_program)
                 )
             })
             .collect::<Vec<_>>()
@@ -59,7 +161,7 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
             rust_ident(&function.source_name),
             function
                 .return_type
-                .map(|ty| format!(" -> {}", rust_type(ty)))
+                .map(|ty| format!(" -> {}", rust_type(ty, &function_program)))
                 .unwrap_or_default()
         ));
         render_statements(
@@ -145,7 +247,7 @@ fn render_statements(
                         "let mut"
                     },
                     rust_ident(&declaration.source_name),
-                    rust_type(declaration.ty)
+                    rust_type(declaration.ty, program)
                 ));
                 let initializer = initializer.as_ref().map(|value| {
                     output.push_str(" = ");
@@ -213,6 +315,65 @@ fn render_statements(
                 push_expr(output, mappings, value, program, *op == AssignOp::Set, pors);
                 output.push_str(";\n");
             }
+            StmtKind::FieldAssign {
+                binding,
+                field_index,
+                op,
+                value,
+            } => {
+                let declaration = binding_info(program, *binding);
+                let name = rust_ident(&declaration.source_name);
+                let field = match declaration.ty {
+                    Type::Record(type_id) => program
+                        .record_types
+                        .iter()
+                        .find(|definition| definition.id == type_id)
+                        .and_then(|definition| definition.fields.get(*field_index)),
+                    _ => None,
+                };
+                let field_name = field
+                    .map(|field| rust_ident(&field.name))
+                    .unwrap_or_else(|| "__invalid_field".to_owned());
+                let field_ty = field.map(|field| field.ty).unwrap_or(Type::Unit);
+                let place = format!("{name}.{field_name}");
+                if field_ty == Type::Integer {
+                    let method = match op {
+                        AssignOp::Add => Some("wrapping_add"),
+                        AssignOp::Subtract => Some("wrapping_sub"),
+                        AssignOp::Multiply => Some("wrapping_mul"),
+                        AssignOp::Divide => Some("wrapping_div"),
+                        AssignOp::Remainder => Some("wrapping_rem"),
+                        _ => None,
+                    };
+                    if let Some(method) = method {
+                        output.push_str(&format!("{indent}{place} = ({place}).{method}("));
+                        push_expr(output, mappings, value, program, false, pors);
+                        output.push_str(");\n");
+                        record_statement_mapping(mappings, start, output.len(), statement);
+                        continue;
+                    }
+                }
+                if field_ty == Type::String && *op == AssignOp::Add && pors {
+                    output.push_str(&format!("{indent}{place} = __pors_concat(&{place}, "));
+                    push_expr(output, mappings, value, program, false, pors);
+                    output.push_str(".as_str());\n");
+                } else {
+                    let assignment_op = match op {
+                        AssignOp::Set => "=",
+                        AssignOp::Add => "+=",
+                        AssignOp::Subtract => "-=",
+                        AssignOp::Multiply => "*=",
+                        AssignOp::Divide => "/=",
+                        AssignOp::Remainder => "%=",
+                        AssignOp::Xor => "^=",
+                        AssignOp::BitAnd => "&=",
+                        AssignOp::BitOr => "|=",
+                    };
+                    output.push_str(&format!("{indent}{place} {assignment_op} "));
+                    push_expr(output, mappings, value, program, *op == AssignOp::Set, pors);
+                    output.push_str(";\n");
+                }
+            }
             StmtKind::IndexAssign {
                 binding,
                 index,
@@ -266,7 +427,10 @@ fn render_statements(
                     | Type::VectorBoolean
                     | Type::VectorString
                     | Type::VectorCharacter => "vetor",
+                    Type::VectorRecord(_) | Type::VectorEnum(_) => "vetor",
                     Type::Unit => unreachable!("variável não pode ter tipo unit"),
+                    Type::Record(_) => unreachable!("leitura de registro ainda não suportada"),
+                    Type::Enum(_) => unreachable!("leitura de enum ainda não suportada"),
                 };
                 output.push_str(&format!(
                     "{indent}let {input} = __portugol_read_line(\"{label}\");\n"
@@ -274,7 +438,7 @@ fn render_statements(
                 match declaration.ty {
                     Type::String if pors => output.push_str(&format!("{indent}{name} = __pors_string(&{input});\n")),
                     Type::Boolean => output.push_str(&format!("{indent}{name} = match {input}.trim() {{ \"verdadeiro\" | \"true\" => true, \"falso\" | \"false\" => false, _ => {{ eprintln!(\"Entrada inválida: esperado lógico.\"); std::process::exit(1); }} }};\n")),
-                    _ => output.push_str(&format!("{indent}{name} = __portugol_parse::<{}>(&{input}, \"{label}\");\n", rust_type(declaration.ty))),
+                    _ => output.push_str(&format!("{indent}{name} = __portugol_parse::<{}>(&{input}, \"{label}\");\n", rust_type(declaration.ty, program))),
                 }
             }
             StmtKind::Call {
@@ -303,9 +467,50 @@ fn render_statements(
                 output.push_str(&format!("{indent}return"));
                 if let Some(value) = value {
                     output.push(' ');
-                    push_expr(output, mappings, value, program, false, pors);
+                    push_expr(
+                        output,
+                        mappings,
+                        value,
+                        program,
+                        matches!(value.ty, Type::Record(_) | Type::Enum(_)),
+                        pors,
+                    );
                 }
                 output.push_str(";\n");
+            }
+            StmtKind::Choose { value, arms } => {
+                let Type::Enum(type_id) = value.ty else {
+                    unreachable!("escolha é validada pelo frontend")
+                };
+                let definition = program
+                    .enum_types
+                    .iter()
+                    .find(|definition| definition.id == type_id)
+                    .expect("enum existe");
+                output.push_str(&format!("{indent}match "));
+                push_expr(output, mappings, value, program, true, pors);
+                output.push_str(" {\n");
+                for arm in arms {
+                    let variant = &definition.variants[arm.variant_index];
+                    output.push_str(&format!(
+                        "{indent}    {}::{}",
+                        rust_ident(&definition.name),
+                        rust_ident(&variant.name)
+                    ));
+                    if !arm.payload_bindings.is_empty() {
+                        let names = arm
+                            .payload_bindings
+                            .iter()
+                            .map(|id| rust_ident(&binding_info(program, *id).source_name))
+                            .collect::<Vec<_>>()
+                            .join(", ");
+                        output.push_str(&format!("({names})"));
+                    }
+                    output.push_str(" => {\n");
+                    render_statements(&arm.body, program, depth + 2, output, mappings, pors, None);
+                    output.push_str(&format!("{indent}    }},\n"));
+                }
+                output.push_str(&format!("{indent}}}\n"));
             }
             StmtKind::If {
                 condition,
@@ -438,6 +643,79 @@ fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedExpression {
             parts.push(ExpressionPart::Text("]".to_owned()));
             parts
         }
+        ExprKind::RecordLiteral { type_id, fields } => {
+            let definition = program
+                .record_types
+                .iter()
+                .find(|definition| definition.id == *type_id);
+            let name = definition
+                .map(|definition| rust_ident(&definition.name))
+                .unwrap_or_else(|| "__invalid_record".to_owned());
+            let mut parts = vec![ExpressionPart::Text(format!("{name} {{ "))];
+            for (index, field_value) in fields.iter().enumerate() {
+                if index > 0 {
+                    parts.push(ExpressionPart::Text(", ".to_owned()));
+                }
+                let field_name = definition
+                    .and_then(|definition| definition.fields.get(index))
+                    .map(|field| rust_ident(&field.name))
+                    .unwrap_or_else(|| "__invalid_field".to_owned());
+                parts.push(ExpressionPart::Text(format!("{field_name}: ")));
+                parts.push(ExpressionPart::Nested(owned_value(
+                    field_value,
+                    program,
+                    pors,
+                )));
+            }
+            parts.push(ExpressionPart::Text(" }".to_owned()));
+            parts
+        }
+        ExprKind::EnumConstructor {
+            type_id,
+            variant_index,
+            payload,
+        } => {
+            let definition = program
+                .enum_types
+                .iter()
+                .find(|definition| definition.id == *type_id);
+            let enum_name = definition
+                .map(|definition| rust_ident(&definition.name))
+                .unwrap_or_else(|| "__invalid_enum".to_owned());
+            let variant_name = definition
+                .and_then(|definition| definition.variants.get(*variant_index))
+                .map(|variant| rust_ident(&variant.name))
+                .unwrap_or_else(|| "__invalid_variant".to_owned());
+            let mut parts = vec![ExpressionPart::Text(format!("{enum_name}::{variant_name}"))];
+            if !payload.is_empty() {
+                parts.push(ExpressionPart::Text("(".to_owned()));
+                for (index, item) in payload.iter().enumerate() {
+                    if index > 0 {
+                        parts.push(ExpressionPart::Text(", ".to_owned()));
+                    }
+                    parts.push(ExpressionPart::Nested(owned_value(item, program, pors)));
+                }
+                parts.push(ExpressionPart::Text(")".to_owned()));
+            }
+            parts
+        }
+        ExprKind::Field { value, field_index } => {
+            let field_name = match value.ty {
+                Type::Record(type_id) => program
+                    .record_types
+                    .iter()
+                    .find(|definition| definition.id == type_id)
+                    .and_then(|definition| definition.fields.get(*field_index))
+                    .map(|field| rust_ident(&field.name)),
+                _ => None,
+            }
+            .unwrap_or_else(|| "__invalid_field".to_owned());
+            vec![
+                ExpressionPart::Text("(".to_owned()),
+                ExpressionPart::Nested(render_expr(value, program, pors)),
+                ExpressionPart::Text(format!(").{field_name}")),
+            ]
+        }
         ExprKind::Index { binding, index } => vec![
             ExpressionPart::Text(format!(
                 "{}[__pors_index(",
@@ -495,6 +773,17 @@ fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedExpression {
                             )
                             .ty
                             .is_vector()
+                                || matches!(
+                                    binding_info(
+                                        &Program {
+                                            bindings: target_function.bindings.clone(),
+                                            ..program.clone()
+                                        },
+                                        *parameter_id
+                                    )
+                                    .ty,
+                                    Type::Record(_) | Type::Enum(_)
+                                )
                         })
                     })
                     .unwrap_or(false);
@@ -680,7 +969,39 @@ fn compose_expression(parts: Vec<ExpressionPart>, span: Span) -> MappedExpressio
 
 fn owned_value(expr: &Expr, program: &Program, pors: bool) -> MappedExpression {
     let value = render_expr(expr, program, pors);
+    if matches!(
+        expr.kind,
+        ExprKind::VectorLiteral(_)
+            | ExprKind::RecordLiteral { .. }
+            | ExprKind::EnumConstructor { .. }
+            | ExprKind::Call { .. }
+    ) {
+        return value;
+    }
     if expr.ty.is_vector() {
+        if let Type::VectorRecord(id) | Type::VectorEnum(id) = expr.ty {
+            let value = render_expr(expr, program, pors);
+            let clone = match expr.ty {
+                Type::VectorRecord(_) if pors => format!("__pors_clone_{}(item)", id.0),
+                Type::VectorEnum(_) if pors => format!("__pors_clone_enum_{}(item)", id.0),
+                _ => "item.clone()".to_owned(),
+            };
+            let prefix = "(";
+            let middle = ").iter().map(|item| ";
+            let suffix = ").collect::<Vec<_>>()";
+            let code = format!("{prefix}{}{middle}{clone}{suffix}", value.code);
+            let offset = prefix.len() as u32;
+            let mappings = value
+                .mappings
+                .into_iter()
+                .map(|mut mapping| {
+                    mapping.generated.start += offset;
+                    mapping.generated.end += offset;
+                    mapping
+                })
+                .collect();
+            return MappedExpression { code, mappings };
+        }
         let (prefix, suffix) = if pors && expr.ty == Type::VectorString {
             ("__pors_vec_string_clone(&(", "))")
         } else {
@@ -689,6 +1010,51 @@ fn owned_value(expr: &Expr, program: &Program, pors: bool) -> MappedExpression {
         return compose_expression(
             vec![
                 ExpressionPart::Text(prefix.to_owned()),
+                ExpressionPart::Nested(value),
+                ExpressionPart::Text(suffix.to_owned()),
+            ],
+            expr.span,
+        );
+    }
+    if let Type::Record(type_id) = expr.ty
+        && let Some(definition) = program
+            .record_types
+            .iter()
+            .find(|definition| definition.id == type_id)
+    {
+        let id = definition.id.0;
+        let value = render_expr(expr, program, pors);
+        let clone = if pors {
+            format!("__pors_clone_{id}(&(")
+        } else {
+            "(".to_owned()
+        };
+        let suffix = if pors { "))" } else { ").clone()" };
+        return compose_expression(
+            vec![
+                ExpressionPart::Text(clone),
+                ExpressionPart::Nested(value),
+                ExpressionPart::Text(suffix.to_owned()),
+            ],
+            expr.span,
+        );
+    }
+    if let Type::Enum(type_id) = expr.ty
+        && program
+            .enum_types
+            .iter()
+            .any(|definition| definition.id == type_id)
+    {
+        let value = render_expr(expr, program, pors);
+        let prefix = if pors {
+            format!("__pors_clone_enum_{}(&(", type_id.0)
+        } else {
+            "(".to_owned()
+        };
+        let suffix = if pors { "))" } else { ").clone()" };
+        return compose_expression(
+            vec![
+                ExpressionPart::Text(prefix),
                 ExpressionPart::Nested(value),
                 ExpressionPart::Text(suffix.to_owned()),
             ],
@@ -814,23 +1180,92 @@ fn statements_have_read(statements: &[Stmt]) -> bool {
                 || else_branch.as_deref().is_some_and(statements_have_read)
         }
         StmtKind::While { body, .. } | StmtKind::For { body, .. } => statements_have_read(body),
+        StmtKind::Choose { arms, .. } => arms.iter().any(|arm| statements_have_read(&arm.body)),
         _ => false,
     })
 }
 
-fn rust_type(ty: Type) -> &'static str {
+fn pors_clone_value(ty: Type, value: &str, program: &Program) -> String {
     match ty {
-        Type::Integer => "i32",
-        Type::Real => "f64",
-        Type::Boolean => "bool",
-        Type::String => "String",
-        Type::Character => "char",
-        Type::Unit => "()",
-        Type::VectorInteger => "Vec<i32>",
-        Type::VectorReal => "Vec<f64>",
-        Type::VectorBoolean => "Vec<bool>",
-        Type::VectorString => "Vec<String>",
-        Type::VectorCharacter => "Vec<char>",
+        Type::String => format!("__pors_string({value})"),
+        Type::VectorString => format!("__pors_vec_string_clone({value})"),
+        Type::Record(id) => program
+            .record_types
+            .iter()
+            .find(|item| item.id == id)
+            .map(|item| format!("__pors_clone_{}({value})", item.id.0))
+            .unwrap_or_else(|| format!("(*{value}).clone()")),
+        Type::VectorRecord(id) => program
+            .record_types
+            .iter()
+            .find(|item| item.id == id)
+            .map(|item| {
+                format!(
+                    "{value}.iter().map(|item| __pors_clone_{}(item)).collect()",
+                    item.id.0
+                )
+            })
+            .unwrap_or_else(|| format!("{value}.clone()")),
+        Type::Enum(id) => program
+            .enum_types
+            .iter()
+            .find(|item| item.id == id)
+            .map(|item| format!("__pors_clone_enum_{}({value})", item.id.0))
+            .unwrap_or_else(|| format!("(*{value}).clone()")),
+        Type::VectorEnum(id) => program
+            .enum_types
+            .iter()
+            .find(|item| item.id == id)
+            .map(|item| {
+                format!(
+                    "{value}.iter().map(|item| __pors_clone_enum_{}(item)).collect()",
+                    item.id.0
+                )
+            })
+            .unwrap_or_else(|| format!("{value}.clone()")),
+        vector if vector.is_vector() => format!("{value}.clone()"),
+        Type::Unit => "()".to_owned(),
+        _ => format!("*{value}"),
+    }
+}
+
+fn rust_type(ty: Type, program: &Program) -> String {
+    match ty {
+        Type::Integer => "i32".into(),
+        Type::Real => "f64".into(),
+        Type::Boolean => "bool".into(),
+        Type::String => "String".into(),
+        Type::Character => "char".into(),
+        Type::Unit => "()".into(),
+        Type::VectorInteger => "Vec<i32>".into(),
+        Type::VectorReal => "Vec<f64>".into(),
+        Type::VectorBoolean => "Vec<bool>".into(),
+        Type::VectorString => "Vec<String>".into(),
+        Type::VectorCharacter => "Vec<char>".into(),
+        Type::Record(id) => program
+            .record_types
+            .iter()
+            .find(|definition| definition.id == id)
+            .map(|definition| rust_ident(&definition.name))
+            .unwrap_or_else(|| "__invalid_record".into()),
+        Type::VectorRecord(id) => program
+            .record_types
+            .iter()
+            .find(|definition| definition.id == id)
+            .map(|definition| format!("Vec<{}>", rust_ident(&definition.name)))
+            .unwrap_or_else(|| "Vec<()>".into()),
+        Type::Enum(id) => program
+            .enum_types
+            .iter()
+            .find(|definition| definition.id == id)
+            .map(|definition| rust_ident(&definition.name))
+            .unwrap_or_else(|| "__invalid_enum".into()),
+        Type::VectorEnum(id) => program
+            .enum_types
+            .iter()
+            .find(|definition| definition.id == id)
+            .map(|definition| format!("Vec<{}>", rust_ident(&definition.name)))
+            .unwrap_or_else(|| "Vec<()>".into()),
     }
 }
 
@@ -846,6 +1281,9 @@ fn map_type(ty: Type) -> crate::Ty {
         | Type::VectorReal
         | Type::VectorBoolean
         | Type::VectorString
-        | Type::VectorCharacter => unreachable!("vetor não possui tipo escalar"),
+        | Type::VectorCharacter
+        | Type::VectorRecord(_)
+        | Type::VectorEnum(_) => unreachable!("vetor não possui tipo escalar"),
+        Type::Record(_) | Type::Enum(_) => unreachable!("tipo nominal não possui tipo escalar"),
     }
 }

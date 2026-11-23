@@ -1,9 +1,12 @@
 //! Compilador HIR Portugol-RS -> bytecode da VM educacional.
 
 use portugol_hir as hir;
-use portugol_syntax::Span;
+use portugol_syntax::{Span, ast::Type};
 
-use crate::op::{Function, LocalInfo, Module, Op, ValueType};
+use crate::op::{
+    Function, LocalInfo, Module, Op, PorsDebugField, PorsDebugShape, PorsDebugType,
+    PorsDebugVariant, ValueType,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PorsCompileError {
@@ -34,14 +37,22 @@ struct Compiler {
 }
 
 impl Compiler {
-    fn new(bindings: &[hir::Binding], function_vector_parameters: Vec<Vec<bool>>) -> Self {
+    fn new(
+        bindings: &[hir::Binding],
+        function_vector_parameters: Vec<Vec<bool>>,
+        program: &hir::Program,
+    ) -> Self {
         let locals = bindings
             .iter()
             .map(|binding| LocalInfo {
                 name: binding.source_name.clone(),
                 ty: classic_type(binding.ty.vector_element().unwrap_or(binding.ty)),
-                dims: u8::from(binding.ty.is_vector()),
+                dims: u8::from(
+                    binding.ty.is_vector()
+                        || matches!(binding.ty, hir::Type::Record(_) | hir::Type::Enum(_)),
+                ),
                 by_ref: false,
+                pors_debug: debug_type(binding.ty, program),
             })
             .collect();
         Self {
@@ -67,7 +78,10 @@ impl Compiler {
                 function
                     .parameters
                     .iter()
-                    .map(|id| function.bindings[id.0 as usize].ty.is_vector())
+                    .map(|id| {
+                        let ty = function.bindings[id.0 as usize].ty;
+                        ty.is_vector() || matches!(ty, hir::Type::Record(_) | hir::Type::Enum(_))
+                    })
                     .collect()
             })
             .collect();
@@ -83,6 +97,7 @@ impl Compiler {
                 function.parameters.len() as u32,
                 function.span,
                 function_vector_parameters.clone(),
+                program,
             )?;
             let base = strings.len() as u32;
             let mut compiled = compiled;
@@ -103,6 +118,7 @@ impl Compiler {
             0,
             program.span,
             function_vector_parameters.clone(),
+            program,
         )?;
         let base = strings.len() as u32;
         let mut compiled = compiled;
@@ -123,6 +139,7 @@ impl Compiler {
         })
     }
 
+    #[allow(clippy::too_many_arguments)] // The final argument supplies nominal debugger metadata.
     fn compile_function(
         name: &str,
         bindings: &[hir::Binding],
@@ -131,8 +148,9 @@ impl Compiler {
         arity: u32,
         span: hir::Span,
         function_vector_parameters: Vec<Vec<bool>>,
+        program: &hir::Program,
     ) -> Result<(Function, Vec<String>), PorsCompileError> {
-        let mut self_ = Self::new(bindings, function_vector_parameters);
+        let mut self_ = Self::new(bindings, function_vector_parameters, program);
         for local in 0..arity {
             self_.emit(
                 Op::SetLocalActive {
@@ -249,6 +267,68 @@ impl Compiler {
                 }
                 self.emit(Op::StoreLocal(binding.0), stmt.span);
             }
+            S::FieldAssign {
+                binding,
+                field_index,
+                op,
+                value,
+            } => {
+                if *op != hir::AssignOp::Set {
+                    self.emit(Op::LoadLocal(binding.0), stmt.span);
+                    self.emit(Op::PushInt(*field_index as i32), stmt.span);
+                    self.emit(Op::LoadElem, stmt.span);
+                }
+                self.expr_for_value(value)?;
+                if let Some(opcode) = assign_op(*op) {
+                    self.emit(opcode, stmt.span);
+                }
+                self.emit(Op::LoadLocal(binding.0), stmt.span);
+                self.emit(Op::PushInt(*field_index as i32), stmt.span);
+                self.emit(Op::StoreElem, stmt.span);
+            }
+            S::Choose { value, arms } => {
+                let mut exits = Vec::new();
+                for arm in arms {
+                    self.expr(value)?;
+                    self.emit(Op::PushInt(0), arm.span);
+                    self.emit(Op::LoadElem, arm.span);
+                    self.emit(Op::PushInt(arm.variant_index as i32), arm.span);
+                    self.emit(Op::Eq, arm.span);
+                    let next_arm = self.emit(Op::JumpIfFalse(0), arm.span);
+                    for (payload_index, binding) in arm.payload_bindings.iter().enumerate() {
+                        self.expr(value)?;
+                        self.emit(Op::PushInt((payload_index + 1) as i32), arm.span);
+                        self.emit(Op::LoadElem, arm.span);
+                        if self.locals[binding.0 as usize].ty == Type::Cadeia {
+                            self.emit(Op::CloneString, arm.span);
+                        } else if self.locals[binding.0 as usize].dims > 0 {
+                            self.emit(Op::CloneArray, arm.span);
+                        }
+                        self.emit(Op::StoreLocal(binding.0), arm.span);
+                    }
+                    self.scope_locals
+                        .push(arm.payload_bindings.iter().map(|id| id.0).collect());
+                    self.scope_shadowed.push(Vec::new());
+                    for binding in &arm.payload_bindings {
+                        self.emit(
+                            Op::SetLocalActive {
+                                local: binding.0,
+                                active: true,
+                            },
+                            arm.span,
+                        );
+                    }
+                    self.block(&arm.body, arm.span)?;
+                    self.finish_scope(arm.span);
+                    exits.push(self.emit(Op::Jump(0), arm.span));
+                    let next = self.here();
+                    self.patch(next_arm, next);
+                }
+                let end = self.here();
+                for exit in exits {
+                    self.patch(exit, end);
+                }
+            }
             S::IndexAssign {
                 binding,
                 index,
@@ -300,7 +380,7 @@ impl Compiler {
             }
             S::Return { value } => {
                 if let Some(value) = value {
-                    if value.ty.is_vector() {
+                    if value.ty.is_vector() || matches!(value.ty, hir::Type::Record(_)) {
                         self.expr_for_value(value)?;
                     } else {
                         self.expr(value)?;
@@ -488,6 +568,28 @@ impl Compiler {
                 }
                 self.emit(Op::ArrayLit(items.len() as u32), expr.span);
             }
+            E::RecordLiteral { fields, .. } => {
+                for field in fields {
+                    self.expr_for_value(field)?;
+                }
+                self.emit(Op::ArrayLit(fields.len() as u32), expr.span);
+            }
+            E::EnumConstructor {
+                variant_index,
+                payload,
+                ..
+            } => {
+                self.emit(Op::PushInt(*variant_index as i32), expr.span);
+                for item in payload {
+                    self.expr_for_value(item)?;
+                }
+                self.emit(Op::ArrayLit(payload.len() as u32 + 1), expr.span);
+            }
+            E::Field { value, field_index } => {
+                self.expr(value)?;
+                self.emit(Op::PushInt(*field_index as i32), expr.span);
+                self.emit(Op::LoadElem, expr.span);
+            }
             E::Index { binding, index } => {
                 self.emit(Op::LoadLocal(binding.0), expr.span);
                 self.expr(index)?;
@@ -587,10 +689,13 @@ impl Compiler {
 
     fn expr_for_value(&mut self, expr: &hir::Expr) -> Result<(), PorsCompileError> {
         self.expr(expr)?;
-        if expr.ty.is_vector()
+        if (expr.ty.is_vector() || matches!(expr.ty, hir::Type::Record(_) | hir::Type::Enum(_)))
             && !matches!(
                 expr.kind,
-                hir::ExprKind::VectorLiteral(_) | hir::ExprKind::Call { .. }
+                hir::ExprKind::VectorLiteral(_)
+                    | hir::ExprKind::RecordLiteral { .. }
+                    | hir::ExprKind::EnumConstructor { .. }
+                    | hir::ExprKind::Call { .. }
             )
         {
             self.emit(Op::CloneArray, expr.span);
@@ -611,11 +716,111 @@ fn classic_type(ty: hir::Type) -> portugol_syntax::ast::Type {
         | hir::Type::VectorReal
         | hir::Type::VectorBoolean
         | hir::Type::VectorString
-        | hir::Type::VectorCharacter => {
+        | hir::Type::VectorCharacter
+        | hir::Type::VectorRecord(_)
+        | hir::Type::VectorEnum(_) => {
             unreachable!("tipo vetor precisa ser reduzido ao tipo do elemento")
         }
+        hir::Type::Record(_) | hir::Type::Enum(_) => portugol_syntax::ast::Type::Vazio,
     }
 }
+
+fn debug_type(ty: hir::Type, program: &hir::Program) -> Option<PorsDebugType> {
+    let (element, is_vector) = match ty {
+        hir::Type::VectorRecord(id) => (hir::Type::Record(id), true),
+        hir::Type::VectorEnum(id) => (hir::Type::Enum(id), true),
+        hir::Type::Record(_) | hir::Type::Enum(_) => (ty, false),
+        _ => return None,
+    };
+    match element {
+        hir::Type::Record(id) => {
+            let definition = program.record_types.iter().find(|item| item.id == id)?;
+            Some(PorsDebugType {
+                name: definition.name.clone(),
+                is_vector,
+                shape: PorsDebugShape::Record {
+                    fields: definition
+                        .fields
+                        .iter()
+                        .map(|field| PorsDebugField {
+                            name: field.name.clone(),
+                            ty: debug_type_label(field.ty, program),
+                            nested: debug_type(field.ty, program).map(Box::new),
+                        })
+                        .collect(),
+                },
+            })
+        }
+        hir::Type::Enum(id) => {
+            let definition = program.enum_types.iter().find(|item| item.id == id)?;
+            Some(PorsDebugType {
+                name: definition.name.clone(),
+                is_vector,
+                shape: PorsDebugShape::Enum {
+                    variants: definition
+                        .variants
+                        .iter()
+                        .map(|variant| PorsDebugVariant {
+                            name: variant.name.clone(),
+                            payload: variant
+                                .payload_types
+                                .iter()
+                                .enumerate()
+                                .map(|(index, ty)| PorsDebugField {
+                                    name: index.to_string(),
+                                    ty: debug_type_label(*ty, program),
+                                    nested: debug_type(*ty, program).map(Box::new),
+                                })
+                                .collect(),
+                        })
+                        .collect(),
+                },
+            })
+        }
+        _ => None,
+    }
+}
+
+fn debug_type_label(ty: hir::Type, program: &hir::Program) -> String {
+    match ty {
+        hir::Type::Unit => "vazio".into(),
+        hir::Type::Integer => "inteiro".into(),
+        hir::Type::Real => "real".into(),
+        hir::Type::Boolean => "logico".into(),
+        hir::Type::String => "cadeia".into(),
+        hir::Type::Character => "caracter".into(),
+        hir::Type::VectorInteger => "vetor<inteiro>".into(),
+        hir::Type::VectorReal => "vetor<real>".into(),
+        hir::Type::VectorBoolean => "vetor<logico>".into(),
+        hir::Type::VectorString => "vetor<cadeia>".into(),
+        hir::Type::VectorCharacter => "vetor<caracter>".into(),
+        hir::Type::Record(id) => program
+            .record_types
+            .iter()
+            .find(|item| item.id == id)
+            .map(|item| item.name.clone())
+            .unwrap_or_else(|| "registro".into()),
+        hir::Type::VectorRecord(id) => program
+            .record_types
+            .iter()
+            .find(|item| item.id == id)
+            .map(|item| format!("vetor<{}>", item.name))
+            .unwrap_or_else(|| "vetor<registro>".into()),
+        hir::Type::Enum(id) => program
+            .enum_types
+            .iter()
+            .find(|item| item.id == id)
+            .map(|item| item.name.clone())
+            .unwrap_or_else(|| "enum".into()),
+        hir::Type::VectorEnum(id) => program
+            .enum_types
+            .iter()
+            .find(|item| item.id == id)
+            .map(|item| format!("vetor<{}>", item.name))
+            .unwrap_or_else(|| "vetor<enum>".into()),
+    }
+}
+
 fn value_type_hir(ty: hir::Type) -> ValueType {
     value_type(classic_type(ty.vector_element().unwrap_or(ty)))
 }

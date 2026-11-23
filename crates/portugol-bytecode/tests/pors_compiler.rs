@@ -4,6 +4,8 @@ use portugol_hir as hir;
 fn compiles_hir_to_a_vm_function_with_binding_names_and_source_spans() {
     let span = hir::Span::new(0, 8);
     let program = hir::Program {
+        record_types: vec![],
+        enum_types: vec![],
         bindings: vec![hir::Binding {
             id: hir::BindingId(0),
             source_name: "idade".into(),
@@ -60,6 +62,8 @@ fn compiles_hir_to_a_vm_function_with_binding_names_and_source_spans() {
 fn compiles_boolean_short_circuit_and_loop_control_to_jumps() {
     let span = hir::Span::new(0, 12);
     let program = hir::Program {
+        record_types: vec![],
+        enum_types: vec![],
         bindings: vec![],
         body: vec![hir::Stmt {
             kind: hir::StmtKind::While {
@@ -96,6 +100,8 @@ fn tracks_shadowed_binding_lifetimes_with_visibility_opcodes() {
     let outer_span = hir::Span::new(0, 10);
     let inner_span = hir::Span::new(20, 30);
     let program = hir::Program {
+        record_types: vec![],
+        enum_types: vec![],
         bindings: vec![
             hir::Binding {
                 id: hir::BindingId(0),
@@ -205,6 +211,8 @@ fn compiles_string_concatenation_and_continue_with_mapped_source_spans() {
         span,
     };
     let program = hir::Program {
+        record_types: vec![],
+        enum_types: vec![],
         bindings: vec![],
         body: vec![
             hir::Stmt {

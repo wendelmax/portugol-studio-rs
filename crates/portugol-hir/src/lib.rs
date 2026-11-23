@@ -28,6 +28,43 @@ pub enum Type {
     VectorBoolean,
     VectorString,
     VectorCharacter,
+    Record(TypeId),
+    VectorRecord(TypeId),
+    Enum(TypeId),
+    VectorEnum(TypeId),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct TypeId(pub u32);
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RecordDef {
+    pub id: TypeId,
+    pub name: String,
+    pub fields: Vec<RecordField>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RecordField {
+    pub name: String,
+    pub ty: Type,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct EnumDef {
+    pub id: TypeId,
+    pub name: String,
+    pub variants: Vec<EnumVariant>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct EnumVariant {
+    pub name: String,
+    pub payload_types: Vec<Type>,
+    pub span: Span,
 }
 
 impl Type {
@@ -38,6 +75,8 @@ impl Type {
             Self::VectorBoolean => Some(Self::Boolean),
             Self::VectorString => Some(Self::String),
             Self::VectorCharacter => Some(Self::Character),
+            Self::VectorRecord(id) => Some(Self::Record(id)),
+            Self::VectorEnum(id) => Some(Self::Enum(id)),
             _ => None,
         }
     }
@@ -49,6 +88,8 @@ impl Type {
             Self::Boolean => Some(Self::VectorBoolean),
             Self::String => Some(Self::VectorString),
             Self::Character => Some(Self::VectorCharacter),
+            Self::Record(id) => Some(Self::VectorRecord(id)),
+            Self::Enum(id) => Some(Self::VectorEnum(id)),
             _ => None,
         }
     }
@@ -121,6 +162,8 @@ pub enum LoopControl {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Program {
+    pub record_types: Vec<RecordDef>,
+    pub enum_types: Vec<EnumDef>,
     pub bindings: Vec<Binding>,
     pub body: Vec<Stmt>,
     /// Funções auxiliares. `body` representa o corpo da única função `inicio`.
@@ -167,6 +210,16 @@ pub enum StmtKind {
         op: AssignOp,
         value: Expr,
     },
+    FieldAssign {
+        binding: BindingId,
+        field_index: usize,
+        op: AssignOp,
+        value: Expr,
+    },
+    Choose {
+        value: Expr,
+        arms: Vec<ChooseArm>,
+    },
     Read {
         binding: BindingId,
         name_span: Span,
@@ -205,6 +258,14 @@ pub enum StmtKind {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct ChooseArm {
+    pub variant_index: usize,
+    pub payload_bindings: Vec<BindingId>,
+    pub body: Vec<Stmt>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct Expr {
     pub kind: ExprKind,
     pub ty: Type,
@@ -217,6 +278,19 @@ pub enum ExprKind {
     Call {
         function: FunctionId,
         arguments: Vec<Expr>,
+    },
+    RecordLiteral {
+        type_id: TypeId,
+        fields: Vec<Expr>,
+    },
+    Field {
+        value: Box<Expr>,
+        field_index: usize,
+    },
+    EnumConstructor {
+        type_id: TypeId,
+        variant_index: usize,
+        payload: Vec<Expr>,
     },
     VectorLiteral(Vec<Expr>),
     Index {

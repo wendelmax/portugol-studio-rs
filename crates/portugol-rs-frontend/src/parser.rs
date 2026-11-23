@@ -14,6 +14,12 @@ pub(super) struct Parser {
     signatures: HashMap<String, FunctionSignature>,
     return_type: Option<hir::Type>,
     in_function: bool,
+    record_types: Vec<hir::RecordDef>,
+    record_ids: HashMap<String, hir::TypeId>,
+    enum_types: Vec<hir::EnumDef>,
+    enum_ids: HashMap<String, hir::TypeId>,
+    declared_types: HashMap<String, hir::TypeId>,
+    next_type_id: u32,
 }
 
 #[derive(Clone)]
@@ -49,6 +55,12 @@ impl Parser {
             signatures: HashMap::new(),
             return_type: None,
             in_function: false,
+            record_types: vec![],
+            record_ids: HashMap::new(),
+            enum_types: vec![],
+            enum_ids: HashMap::new(),
+            declared_types: HashMap::new(),
+            next_type_id: 0,
         }
     }
 
@@ -59,6 +71,14 @@ impl Parser {
         let mut body = None;
         let mut functions = Vec::new();
         while !matches!(self.current().kind, Kind::Eof) {
+            if self.eat_keyword("registro") {
+                self.skip_record_definition()?;
+                continue;
+            }
+            if self.eat_keyword("enum") {
+                self.skip_enum_definition()?;
+                continue;
+            }
             let (name, header_span, _) = self.function_header()?;
             let signature = self.signatures[&name].clone();
             self.begin_function(&signature)?;
@@ -103,6 +123,8 @@ impl Parser {
         let body = body.expect("bindings e body são definidos juntos para inicio");
         let end = self.previous_span().end;
         Ok(hir::Program {
+            record_types: std::mem::take(&mut self.record_types),
+            enum_types: std::mem::take(&mut self.enum_types),
             bindings,
             body,
             functions,
@@ -114,6 +136,14 @@ impl Parser {
         self.cursor = 0;
         let mut next_id = 0;
         while !matches!(self.current().kind, Kind::Eof) {
+            if self.eat_keyword("registro") {
+                self.collect_record_definition()?;
+                continue;
+            }
+            if self.eat_keyword("enum") {
+                self.collect_enum_definition()?;
+                continue;
+            }
             let (name, span, signature) = self.function_header()?;
             if self.signatures.contains_key(&name) {
                 return self.fail(
@@ -218,13 +248,26 @@ impl Parser {
         if name == "vetor" {
             self.expect(Kind::Less, "Esperado `<` após `vetor`")?;
             let (element_name, element_span) = self.identifier()?;
-            let element = scalar_type(&element_name).ok_or_else(|| {
-                vec![Diagnostic::error(
-                    "pors.unknown-type",
-                    format!("Tipo de elemento desconhecido: {element_name}"),
-                    element_span,
-                )]
-            })?;
+            let element = scalar_type(&element_name)
+                .or_else(|| {
+                    self.record_ids
+                        .get(&element_name)
+                        .copied()
+                        .map(hir::Type::Record)
+                })
+                .or_else(|| {
+                    self.enum_ids
+                        .get(&element_name)
+                        .copied()
+                        .map(hir::Type::Enum)
+                })
+                .ok_or_else(|| {
+                    vec![Diagnostic::error(
+                        "pors.unknown-type",
+                        format!("Tipo de elemento desconhecido: {element_name}"),
+                        element_span,
+                    )]
+                })?;
             self.expect(Kind::Greater, "Esperado `>` após o tipo do vetor")?;
             return hir::Type::vector_of(element).ok_or_else(|| {
                 vec![Diagnostic::error(
@@ -234,13 +277,166 @@ impl Parser {
                 )]
             });
         }
-        scalar_type(&name).ok_or_else(|| {
-            vec![Diagnostic::error(
-                "pors.unknown-type",
-                format!("Tipo desconhecido: {name}"),
-                span,
-            )]
-        })
+        scalar_type(&name)
+            .or_else(|| self.record_ids.get(&name).copied().map(hir::Type::Record))
+            .or_else(|| self.enum_ids.get(&name).copied().map(hir::Type::Enum))
+            .ok_or_else(|| {
+                vec![Diagnostic::error(
+                    "pors.unknown-type",
+                    format!("Tipo desconhecido: {name}"),
+                    span,
+                )]
+            })
+    }
+
+    fn collect_record_definition(&mut self) -> Result<(), Vec<Diagnostic>> {
+        let (name, name_span) = self.identifier()?;
+        if self.declared_types.contains_key(&name) {
+            return self.fail(
+                "pors.type-redeclared",
+                format!("O tipo `{name}` já foi declarado"),
+                name_span,
+            );
+        }
+        let id = hir::TypeId(self.next_type_id);
+        self.expect(Kind::LBrace, "Esperado `{` após o nome do registro")?;
+        let mut fields = Vec::new();
+        let mut field_names = HashMap::new();
+        while !matches!(self.current().kind, Kind::RBrace | Kind::Eof) {
+            let (field_name, span) = self.identifier()?;
+            if field_names.insert(field_name.clone(), ()).is_some() {
+                return self.fail(
+                    "pors.field-redeclared",
+                    format!("O campo `{field_name}` já foi declarado"),
+                    span,
+                );
+            }
+            self.expect(Kind::Colon, "Esperado `:` entre campo e tipo")?;
+            let ty = self.type_name()?;
+            fields.push(hir::RecordField {
+                name: field_name,
+                ty,
+                span: to_hir_span(span),
+            });
+            if !self.eat(&Kind::Comma) {
+                break;
+            }
+        }
+        let close = self.expect(Kind::RBrace, "Esperado `}` após campos do registro")?;
+        let span = to_hir_span(name_span.join(close.span));
+        self.next_type_id += 1;
+        self.declared_types.insert(name.clone(), id);
+        self.record_ids.insert(name.clone(), id);
+        self.record_types.push(hir::RecordDef {
+            id,
+            name,
+            fields,
+            span,
+        });
+        Ok(())
+    }
+
+    fn skip_record_definition(&mut self) -> Result<(), Vec<Diagnostic>> {
+        self.identifier()?;
+        self.expect(Kind::LBrace, "Esperado `{` após o nome do registro")?;
+        let mut depth = 1usize;
+        while depth > 0 {
+            match self.advance() {
+                Token {
+                    kind: Kind::LBrace, ..
+                } => depth += 1,
+                Token {
+                    kind: Kind::RBrace, ..
+                } => depth -= 1,
+                Token {
+                    kind: Kind::Eof,
+                    span,
+                } => return self.fail("pors.unclosed-record", "Registro não foi fechado", span),
+                _ => {}
+            }
+        }
+        Ok(())
+    }
+
+    fn collect_enum_definition(&mut self) -> Result<(), Vec<Diagnostic>> {
+        let (name, name_span) = self.identifier()?;
+        if self.declared_types.contains_key(&name) {
+            return self.fail(
+                "pors.type-redeclared",
+                format!("O tipo `{name}` já foi declarado"),
+                name_span,
+            );
+        }
+        let id = hir::TypeId(self.next_type_id);
+        self.expect(Kind::LBrace, "Esperado `{` após o nome do enum")?;
+        let mut variants = Vec::new();
+        let mut variant_names = HashMap::new();
+        while !matches!(self.current().kind, Kind::RBrace | Kind::Eof) {
+            let (variant_name, span) = self.identifier()?;
+            if variant_names.insert(variant_name.clone(), ()).is_some() {
+                return self.fail(
+                    "pors.variant-redeclared",
+                    format!("A variante `{variant_name}` já foi declarada"),
+                    span,
+                );
+            }
+            let mut payload_types = Vec::new();
+            let variant_span = if self.eat(&Kind::LParen) {
+                if !matches!(self.current().kind, Kind::RParen) {
+                    loop {
+                        payload_types.push(self.type_name()?);
+                        if !self.eat(&Kind::Comma) {
+                            break;
+                        }
+                    }
+                }
+                self.expect(Kind::RParen, "Esperado `)` após payload da variante")?
+                    .span
+            } else {
+                span
+            };
+            variants.push(hir::EnumVariant {
+                name: variant_name,
+                payload_types,
+                span: to_hir_span(span.join(variant_span)),
+            });
+            if !self.eat(&Kind::Comma) {
+                break;
+            }
+        }
+        let close = self.expect(Kind::RBrace, "Esperado `}` após variantes do enum")?;
+        self.next_type_id += 1;
+        self.declared_types.insert(name.clone(), id);
+        self.enum_ids.insert(name.clone(), id);
+        self.enum_types.push(hir::EnumDef {
+            id,
+            name,
+            variants,
+            span: to_hir_span(name_span.join(close.span)),
+        });
+        Ok(())
+    }
+
+    fn skip_enum_definition(&mut self) -> Result<(), Vec<Diagnostic>> {
+        self.identifier()?;
+        self.expect(Kind::LBrace, "Esperado `{` após o nome do enum")?;
+        let mut depth = 1usize;
+        while depth > 0 {
+            match self.advance() {
+                Token {
+                    kind: Kind::LBrace, ..
+                } => depth += 1,
+                Token {
+                    kind: Kind::RBrace, ..
+                } => depth -= 1,
+                Token {
+                    kind: Kind::Eof,
+                    span,
+                } => return self.fail("pors.unclosed-enum", "Enum não foi fechado", span),
+                _ => {}
+            }
+        }
+        Ok(())
     }
 
     fn skip_function_body(&mut self) -> Result<(), Vec<Diagnostic>> {
@@ -352,7 +548,10 @@ impl Parser {
             return self.loop_control();
         }
         if let Kind::Ident(keyword) = &self.current().kind {
-            if matches!(keyword.as_str(), "faca" | "escolha") {
+            if keyword == "escolha" {
+                return self.choose();
+            }
+            if keyword == "faca" {
                 return self.fail(
                     "pors.unsupported-construct",
                     format!("`{keyword}` ainda não faz parte do subset Portugol-RS"),
@@ -371,6 +570,13 @@ impl Parser {
                 )
             }) {
                 return self.assignment();
+            }
+            if self
+                .tokens
+                .get(self.cursor + 1)
+                .is_some_and(|token| matches!(token.kind, Kind::Dot))
+            {
+                return self.field_assignment();
             }
             if self
                 .tokens
@@ -479,6 +685,88 @@ impl Parser {
 
     fn assignment(&mut self) -> Result<hir::Stmt, Vec<Diagnostic>> {
         self.assignment_with_terminator(true)
+    }
+
+    fn field_assignment(&mut self) -> Result<hir::Stmt, Vec<Diagnostic>> {
+        let (name, name_span) = self.identifier()?;
+        let symbol = self.lookup(&name).ok_or_else(|| {
+            vec![Diagnostic::error(
+                "pors.unknown-name",
+                format!("Nome não declarado: {name}"),
+                name_span,
+            )]
+        })?;
+        let hir::Type::Record(type_id) = symbol.ty else {
+            return self.fail(
+                "pors.field-non-record",
+                "Atribuição de campo exige um registro",
+                name_span,
+            );
+        };
+        self.expect(Kind::Dot, "Esperado `.` após o registro")?;
+        let (field_name, field_span) = self.identifier()?;
+        let definition = self
+            .record_types
+            .iter()
+            .find(|definition| definition.id == type_id)
+            .expect("registro possui definição");
+        let Some((field_index, field_ty)) = definition
+            .fields
+            .iter()
+            .enumerate()
+            .find(|(_, field)| field.name == field_name)
+            .map(|(index, field)| (index, field.ty))
+        else {
+            return self.fail(
+                "pors.unknown-field",
+                format!(
+                    "Campo `{field_name}` não existe no registro `{}`",
+                    definition.name
+                ),
+                field_span,
+            );
+        };
+        let op_token = self.advance();
+        let op = match op_token.kind {
+            Kind::Assign => hir::AssignOp::Set,
+            Kind::PlusEq => hir::AssignOp::Add,
+            Kind::MinusEq => hir::AssignOp::Subtract,
+            Kind::StarEq => hir::AssignOp::Multiply,
+            Kind::SlashEq => hir::AssignOp::Divide,
+            Kind::PercentEq => hir::AssignOp::Remainder,
+            _ => {
+                return self.fail(
+                    "pors.expected-assignment",
+                    "Esperado operador de atribuição",
+                    op_token.span,
+                );
+            }
+        };
+        let value = self.expression(0)?;
+        if value.ty != field_ty {
+            return self.fail(
+                "pors.type-mismatch",
+                format!("Atribuição incompatível para `{name}.{field_name}`"),
+                syntax_span(value.span),
+            );
+        }
+        if symbol.mutability == hir::Mutability::Immutable {
+            return self.fail(
+                "pors.immutable-assignment",
+                format!("`{name}` é imutável; declare com `seja mutavel` para alterar seus campos"),
+                name_span,
+            );
+        }
+        let end = self.expect(Kind::Semicolon, "Esperado `;` após atribuição")?;
+        Ok(hir::Stmt {
+            kind: hir::StmtKind::FieldAssign {
+                binding: symbol.id,
+                field_index,
+                op,
+                value,
+            },
+            span: to_hir_span(name_span.join(end.span)),
+        })
     }
 
     fn index_assignment(&mut self) -> Result<hir::Stmt, Vec<Diagnostic>> {
@@ -640,6 +928,9 @@ impl Parser {
                         syntax_span(value.span),
                     );
                 }
+                if matches!(value.ty, hir::Type::Record(_) | hir::Type::Enum(_)) {
+                    return self.fail("pors.compound-value", "Registro ou enum precisa ser acessado por campos ou escolha antes de ser escrito", syntax_span(value.span));
+                }
                 values.push(value);
                 if !self.eat(&Kind::Comma) {
                     break;
@@ -733,6 +1024,146 @@ impl Parser {
                 name_span: to_hir_span(name_span),
             },
             span: to_hir_span(start.join(end.span)),
+        })
+    }
+
+    fn choose(&mut self) -> Result<hir::Stmt, Vec<Diagnostic>> {
+        let start = self.current().span;
+        self.keyword("escolha")?;
+        let value = self.expression(0)?;
+        let hir::Type::Enum(type_id) = value.ty else {
+            return self.fail(
+                "pors.choose-type",
+                "`escolha` exige um valor enum",
+                syntax_span(value.span),
+            );
+        };
+        let definition = self
+            .enum_types
+            .iter()
+            .find(|definition| definition.id == type_id)
+            .cloned()
+            .expect("enum tipado possui definição");
+        self.expect(Kind::LBrace, "Esperado `{` após valor de escolha")?;
+        let mut arms = Vec::new();
+        let mut seen = HashMap::new();
+        while self.is_keyword("caso") {
+            let arm_start = self.current().span;
+            self.advance();
+            let (enum_name, enum_span) = self.identifier()?;
+            if enum_name != definition.name {
+                return self.fail(
+                    "pors.choose-enum-mismatch",
+                    format!("Esperada variante de `{}`", definition.name),
+                    enum_span,
+                );
+            }
+            self.expect(Kind::ColonColon, "Esperado `::` antes da variante")?;
+            let (variant_name, variant_span) = self.identifier()?;
+            let Some((variant_index, variant)) = definition
+                .variants
+                .iter()
+                .enumerate()
+                .find(|(_, variant)| variant.name == variant_name)
+                .map(|(index, variant)| (index, variant.clone()))
+            else {
+                return self.fail(
+                    "pors.unknown-variant",
+                    format!(
+                        "Variante `{variant_name}` não existe em `{}`",
+                        definition.name
+                    ),
+                    variant_span,
+                );
+            };
+            if seen.insert(variant_index, ()).is_some() {
+                return self.fail(
+                    "pors.duplicate-case",
+                    format!("A variante `{variant_name}` aparece mais de uma vez"),
+                    variant_span,
+                );
+            }
+            let mut payload_names = Vec::new();
+            if self.eat(&Kind::LParen) {
+                if !matches!(self.current().kind, Kind::RParen) {
+                    loop {
+                        payload_names.push(self.identifier()?);
+                        if !self.eat(&Kind::Comma) {
+                            break;
+                        }
+                    }
+                }
+                self.expect(Kind::RParen, "Esperado `)` após bindings do caso")?;
+            }
+            if payload_names.len() != variant.payload_types.len() {
+                return self.fail(
+                    "pors.case-payload-arity",
+                    format!(
+                        "A variante `{variant_name}` exige {} binding(s) de payload",
+                        variant.payload_types.len()
+                    ),
+                    variant_span,
+                );
+            }
+            self.expect(Kind::FatArrow, "Esperado `=>` após a variante")?;
+            self.scopes.push(HashMap::new());
+            let mut payload_bindings = Vec::new();
+            for ((name, name_span), ty) in payload_names
+                .into_iter()
+                .zip(variant.payload_types.iter().copied())
+            {
+                if self.scopes.last().unwrap().contains_key(&name) || is_reserved(&name) {
+                    self.scopes.pop();
+                    return self.fail(
+                        "pors.redeclared",
+                        format!("Binding de payload inválido: `{name}`"),
+                        name_span,
+                    );
+                }
+                let id = hir::BindingId(self.bindings.len() as u32);
+                self.bindings.push(hir::Binding {
+                    id,
+                    source_name: name.clone(),
+                    ty,
+                    mutability: hir::Mutability::Immutable,
+                    is_const: true,
+                    span: to_hir_span(name_span),
+                });
+                self.scopes.last_mut().unwrap().insert(
+                    name,
+                    Symbol {
+                        id,
+                        ty,
+                        mutability: hir::Mutability::Immutable,
+                    },
+                );
+                payload_bindings.push(id);
+            }
+            let (body, arm_end) = self.block(true)?;
+            self.scopes.pop();
+            arms.push(hir::ChooseArm {
+                variant_index,
+                payload_bindings,
+                body,
+                span: to_hir_span(arm_start.join(arm_end)),
+            });
+        }
+        let close = self.expect(Kind::RBrace, "Esperado `}` após casos de escolha")?;
+        if let Some(missing) =
+            (0..definition.variants.len()).find(|index| !seen.contains_key(index))
+        {
+            return self.fail(
+                "pors.non-exhaustive-choice",
+                format!(
+                    "A variante `{}` não foi contemplada",
+                    definition.variants[missing].name
+                ),
+                close.span,
+            );
+        }
+        Ok(hir::Stmt {
+            kind: hir::StmtKind::Choose { value, arms },
+            span: to_hir_span(start.join(close.span)),
         })
     }
 
@@ -872,7 +1303,50 @@ impl Parser {
 
     fn expression(&mut self, min_precedence: u8) -> Result<hir::Expr, Vec<Diagnostic>> {
         let mut left = self.prefix()?;
-        while let Some((op, precedence)) = binary(&self.current().kind) {
+        loop {
+            if matches!(self.current().kind, Kind::Dot) {
+                self.advance();
+                let (field_name, field_span) = self.identifier()?;
+                let hir::Type::Record(type_id) = left.ty else {
+                    return self.fail(
+                        "pors.field-non-record",
+                        "Acesso de campo exige um registro",
+                        field_span,
+                    );
+                };
+                let definition = self
+                    .record_types
+                    .iter()
+                    .find(|definition| definition.id == type_id)
+                    .expect("registro tipado possui definição");
+                let Some((field_index, field)) = definition
+                    .fields
+                    .iter()
+                    .enumerate()
+                    .find(|(_, field)| field.name == field_name)
+                else {
+                    return self.fail(
+                        "pors.unknown-field",
+                        format!(
+                            "Campo `{field_name}` não existe no registro `{}`",
+                            definition.name
+                        ),
+                        field_span,
+                    );
+                };
+                left = hir::Expr {
+                    kind: hir::ExprKind::Field {
+                        value: Box::new(left.clone()),
+                        field_index,
+                    },
+                    ty: field.ty,
+                    span: to_hir_span(syntax_span(left.span).join(field_span)),
+                };
+                continue;
+            }
+            let Some((op, precedence)) = binary(&self.current().kind) else {
+                break;
+            };
             if precedence < min_precedence {
                 break;
             }
@@ -923,6 +1397,150 @@ impl Parser {
                 (hir::ExprKind::Boolean(false), hir::Type::Boolean)
             }
             Kind::Ident(name) => {
+                if matches!(self.current().kind, Kind::ColonColon) {
+                    self.advance();
+                    let (variant_name, variant_span) = self.identifier()?;
+                    let Some(definition) = self
+                        .enum_types
+                        .iter()
+                        .find(|definition| definition.name == name)
+                        .cloned()
+                    else {
+                        return self.fail(
+                            "pors.unknown-type",
+                            format!("Enum não declarado: {name}"),
+                            span,
+                        );
+                    };
+                    let Some((variant_index, variant)) = definition
+                        .variants
+                        .iter()
+                        .enumerate()
+                        .find(|(_, variant)| variant.name == variant_name)
+                        .map(|(index, variant)| (index, variant.clone()))
+                    else {
+                        return self.fail(
+                            "pors.unknown-variant",
+                            format!("Variante `{variant_name}` não existe em `{name}`"),
+                            variant_span,
+                        );
+                    };
+                    let mut payload = Vec::new();
+                    let end = if self.eat(&Kind::LParen) {
+                        if !matches!(self.current().kind, Kind::RParen) {
+                            loop {
+                                payload.push(self.expression(0)?);
+                                if !self.eat(&Kind::Comma) {
+                                    break;
+                                }
+                            }
+                        }
+                        self.expect(Kind::RParen, "Esperado `)` após payload do enum")?
+                            .span
+                    } else {
+                        variant_span
+                    };
+                    if payload.len() != variant.payload_types.len() {
+                        return self.fail(
+                            "pors.enum-payload-arity",
+                            format!(
+                                "A variante `{variant_name}` exige {} valor(es)",
+                                variant.payload_types.len()
+                            ),
+                            variant_span,
+                        );
+                    }
+                    if let Some((argument, _expected)) = payload
+                        .iter()
+                        .zip(&variant.payload_types)
+                        .find(|(argument, expected)| argument.ty != **expected)
+                    {
+                        return self.fail(
+                            "pors.enum-payload-type",
+                            format!("Valor incompatível com o payload de `{variant_name}`"),
+                            syntax_span(argument.span),
+                        );
+                    }
+                    return Ok(hir::Expr {
+                        kind: hir::ExprKind::EnumConstructor {
+                            type_id: definition.id,
+                            variant_index,
+                            payload,
+                        },
+                        ty: hir::Type::Enum(definition.id),
+                        span: to_hir_span(span.join(end)),
+                    });
+                }
+                if matches!(self.current().kind, Kind::LBrace)
+                    && self
+                        .record_types
+                        .iter()
+                        .any(|definition| definition.name == name)
+                {
+                    let definition = self
+                        .record_types
+                        .iter()
+                        .find(|definition| definition.name == name)
+                        .cloned()
+                        .expect("verificação anterior encontrou o registro");
+                    self.advance();
+                    let mut values: Vec<Option<hir::Expr>> = vec![None; definition.fields.len()];
+                    while !matches!(self.current().kind, Kind::RBrace | Kind::Eof) {
+                        let (field_name, field_span) = self.identifier()?;
+                        let Some((index, field)) = definition
+                            .fields
+                            .iter()
+                            .enumerate()
+                            .find(|(_, field)| field.name == field_name)
+                        else {
+                            return self.fail(
+                                "pors.unknown-field",
+                                format!("Campo `{field_name}` não existe em `{name}`"),
+                                field_span,
+                            );
+                        };
+                        if values[index].is_some() {
+                            return self.fail(
+                                "pors.field-redeclared",
+                                format!("Campo `{field_name}` foi informado mais de uma vez"),
+                                field_span,
+                            );
+                        }
+                        self.expect(Kind::Colon, "Esperado `:` após o nome do campo")?;
+                        let value = self.expression(0)?;
+                        if value.ty != field.ty {
+                            return self.fail(
+                                "pors.field-type-mismatch",
+                                format!("Valor incompatível com o campo `{field_name}`"),
+                                syntax_span(value.span),
+                            );
+                        }
+                        values[index] = Some(value);
+                        if !self.eat(&Kind::Comma) {
+                            break;
+                        }
+                    }
+                    let close =
+                        self.expect(Kind::RBrace, "Esperado `}` após campos do registro")?;
+                    if let Some(missing) = values.iter().position(Option::is_none) {
+                        return self.fail(
+                            "pors.missing-field",
+                            format!(
+                                "Campo `{}` não foi informado",
+                                definition.fields[missing].name
+                            ),
+                            close.span,
+                        );
+                    }
+                    return Ok(hir::Expr {
+                        kind: hir::ExprKind::RecordLiteral {
+                            type_id: definition.id,
+                            fields: values.into_iter().map(Option::unwrap).collect(),
+                        },
+                        ty: hir::Type::Record(definition.id),
+                        span: to_hir_span(span.join(close.span)),
+                    });
+                }
                 if matches!(self.current().kind, Kind::LParen) {
                     if name == "tamanho" {
                         self.advance();
@@ -1256,6 +1874,10 @@ fn type_label(ty: hir::Type) -> &'static str {
         hir::Type::VectorBoolean => "vetor<logico>",
         hir::Type::VectorString => "vetor<cadeia>",
         hir::Type::VectorCharacter => "vetor<caracter>",
+        hir::Type::Record(_) => "registro",
+        hir::Type::VectorRecord(_) => "vetor<registro>",
+        hir::Type::Enum(_) => "enum",
+        hir::Type::VectorEnum(_) => "vetor<enum>",
     }
 }
 fn syntax_span(value: hir::Span) -> Span {
@@ -1292,6 +1914,9 @@ fn is_reserved(name: &str) -> bool {
             | "escolha"
             | "leia"
             | "retorne"
+            | "registro"
+            | "enum"
+            | "caso"
     )
 }
 
@@ -1303,6 +1928,9 @@ fn guarantees_return(statements: &[hir::Stmt]) -> bool {
             else_branch: Some(else_branch),
             ..
         } => guarantees_return(then_branch) && guarantees_return(else_branch),
+        hir::StmtKind::Choose { arms, .. } => {
+            !arms.is_empty() && arms.iter().all(|arm| guarantees_return(&arm.body))
+        }
         _ => false,
     })
 }
@@ -1347,7 +1975,11 @@ fn binary_type(op: hir::BinaryOp, left: hir::Type, right: hir::Type) -> Option<h
         }
         hir::BinaryOp::Remainder if left == Integer && right == Integer => Integer,
         hir::BinaryOp::And | hir::BinaryOp::Or if left == Boolean && right == Boolean => Boolean,
-        hir::BinaryOp::Equal | hir::BinaryOp::NotEqual if left == right => Boolean,
+        hir::BinaryOp::Equal | hir::BinaryOp::NotEqual
+            if left == right && !matches!(left, Record(_) | Enum(_)) =>
+        {
+            Boolean
+        }
         hir::BinaryOp::Greater
         | hir::BinaryOp::Less
         | hir::BinaryOp::GreaterEqual

@@ -396,6 +396,7 @@ impl Compiler {
             ty,
             dims,
             by_ref,
+            pors_debug: None,
         });
         (self.f.locals.len() - 1) as u32
     }

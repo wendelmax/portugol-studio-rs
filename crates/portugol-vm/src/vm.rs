@@ -173,7 +173,12 @@ fn debug_value(
     value: &Value,
     scope: &'static str,
     max_items: usize,
+    pors_debug: Option<&portugol_bytecode::PorsDebugType>,
 ) {
+    if let Some(debug_type) = pors_debug {
+        debug_nominal_value(out, name, value, scope, max_items, debug_type);
+        return;
+    }
     match value {
         Value::Array(cells) => {
             let cells = cells.borrow();
@@ -215,6 +220,124 @@ fn debug_value(
         _ => out.push(DebugVariable {
             name: name.to_string(),
             ty: ty.to_string(),
+            value: debug_scalar(value),
+            scope,
+        }),
+    }
+}
+
+fn debug_nominal_value(
+    out: &mut Vec<DebugVariable>,
+    name: &str,
+    value: &Value,
+    scope: &'static str,
+    max_items: usize,
+    debug_type: &portugol_bytecode::PorsDebugType,
+) {
+    if debug_type.is_vector
+        && let Value::Array(items) = value
+    {
+        let items = items.borrow();
+        out.push(DebugVariable {
+            name: name.into(),
+            ty: format!("vetor<{}>", debug_type.name),
+            value: format!("{} elemento(s)", items.len()),
+            scope,
+        });
+        for (index, item) in items.iter().take(max_items).enumerate() {
+            debug_nominal_one(
+                out,
+                &format!("{name}[{index}]"),
+                item,
+                scope,
+                max_items,
+                debug_type,
+            );
+        }
+        return;
+    }
+    debug_nominal_one(out, name, value, scope, max_items, debug_type);
+}
+
+fn debug_nominal_one(
+    out: &mut Vec<DebugVariable>,
+    name: &str,
+    value: &Value,
+    scope: &'static str,
+    max_items: usize,
+    debug_type: &portugol_bytecode::PorsDebugType,
+) {
+    use portugol_bytecode::PorsDebugShape;
+    match (&debug_type.shape, value) {
+        (PorsDebugShape::Record { fields }, Value::Array(cells)) => {
+            let cells = cells.borrow();
+            out.push(DebugVariable {
+                name: name.into(),
+                ty: debug_type.name.clone(),
+                value: "registro".into(),
+                scope,
+            });
+            for (field, field_value) in fields.iter().zip(cells.iter()) {
+                let field_name = format!("{name}.{}", field.name);
+                if let Some(nested) = &field.nested {
+                    debug_nominal_value(out, &field_name, field_value, scope, max_items, nested);
+                } else {
+                    out.push(DebugVariable {
+                        name: field_name,
+                        ty: field.ty.clone(),
+                        value: debug_scalar(field_value),
+                        scope,
+                    });
+                }
+            }
+        }
+        (PorsDebugShape::Enum { variants }, Value::Array(cells)) => {
+            let cells = cells.borrow();
+            let tag = cells.first().and_then(|value| match value {
+                Value::Int(tag) => usize::try_from(*tag).ok(),
+                _ => None,
+            });
+            if let Some(variant) = tag.and_then(|tag| variants.get(tag)) {
+                out.push(DebugVariable {
+                    name: name.into(),
+                    ty: debug_type.name.clone(),
+                    value: format!("{}::{}", debug_type.name, variant.name),
+                    scope,
+                });
+                for (index, (field, field_value)) in
+                    variant.payload.iter().zip(cells.iter().skip(1)).enumerate()
+                {
+                    let payload_name = format!("{name}.{}[{index}]", variant.name);
+                    if let Some(nested) = &field.nested {
+                        debug_nominal_value(
+                            out,
+                            &payload_name,
+                            field_value,
+                            scope,
+                            max_items,
+                            nested,
+                        );
+                    } else {
+                        out.push(DebugVariable {
+                            name: payload_name,
+                            ty: field.ty.clone(),
+                            value: debug_scalar(field_value),
+                            scope,
+                        });
+                    }
+                }
+            } else {
+                out.push(DebugVariable {
+                    name: name.into(),
+                    ty: debug_type.name.clone(),
+                    value: "[enum inválido]".into(),
+                    scope,
+                });
+            }
+        }
+        _ => out.push(DebugVariable {
+            name: name.into(),
+            ty: debug_type.name.clone(),
             value: debug_scalar(value),
             scope,
         }),
@@ -559,6 +682,7 @@ impl<'a> Vm<'a> {
                 value,
                 "global",
                 MAX_ITEMS,
+                None,
             );
         }
         for (slot, info) in function.locals.iter().enumerate() {
@@ -572,10 +696,21 @@ impl<'a> Vm<'a> {
             debug_value(
                 &mut variables,
                 &info.name,
-                &type_label(info.ty, info.dims, info.by_ref),
+                &info
+                    .pors_debug
+                    .as_ref()
+                    .map(|debug| {
+                        if debug.is_vector {
+                            format!("vetor<{}>", debug.name)
+                        } else {
+                            debug.name.clone()
+                        }
+                    })
+                    .unwrap_or_else(|| type_label(info.ty, info.dims, info.by_ref)),
                 value,
                 "local",
                 MAX_ITEMS,
+                info.pors_debug.as_ref(),
             );
         }
 
@@ -617,6 +752,36 @@ impl<'a> Vm<'a> {
         }
         self.string_memory_used = next;
         Ok(())
+    }
+
+    fn clone_pors_value(&mut self, value: &Value) -> Exec<Value> {
+        match value {
+            Value::Str(text) => {
+                self.charge_string(text.len())?;
+                Ok(Value::Str(Rc::clone(text)))
+            }
+            Value::Array(array) => {
+                let items = array.borrow().clone();
+                let mut cloned = Vec::with_capacity(items.len());
+                for item in &items {
+                    cloned.push(self.clone_pors_value(item)?);
+                }
+                Ok(Value::Array(Rc::new(RefCell::new(cloned))))
+            }
+            Value::Matrix(matrix) => {
+                let matrix = matrix.borrow().clone();
+                let mut data = Vec::with_capacity(matrix.data.len());
+                for item in &matrix.data {
+                    data.push(self.clone_pors_value(item)?);
+                }
+                Ok(Value::Matrix(Rc::new(RefCell::new(Matrix {
+                    rows: matrix.rows,
+                    cols: matrix.cols,
+                    data,
+                }))))
+            }
+            _ => Ok(value.clone()),
+        }
     }
 
     fn pop(&mut self) -> Value {
@@ -752,15 +917,20 @@ impl<'a> Vm<'a> {
                 let Value::Array(array) = array else {
                     return Err(not_a("vetor", &array));
                 };
-                let values = array.borrow();
+                let values = array.borrow().clone();
                 let mut cloned = Vec::with_capacity(values.len());
                 for value in values.iter() {
-                    if let Value::Str(text) = value {
-                        self.charge_string(text.len())?;
-                    }
-                    cloned.push(value.clone());
+                    cloned.push(self.clone_pors_value(value)?);
                 }
                 self.push(Value::Array(Rc::new(RefCell::new(cloned))));
+            }
+            Op::CloneString => {
+                let value = self.pop();
+                let Value::Str(text) = value else {
+                    return Err(not_a("cadeia", &value));
+                };
+                self.charge_string(text.len())?;
+                self.push(Value::Str(Rc::from(text.as_ref())));
             }
             Op::MatrixLit { rows, cols } => {
                 let data = self.pop_n(rows * cols);

@@ -27,6 +27,86 @@ fn compiles_and_runs_supported_portugol_rs_with_real_rustc() {
 }
 
 #[test]
+fn compiles_and_runs_pors_records_with_typed_fields() {
+    let source = "registro Pessoa { idade: inteiro, nome: cadeia } funcao inicio() { seja pessoa: Pessoa = Pessoa { idade: 16, nome: \"Ana\" }; escreva(pessoa.idade); escreva(pessoa.nome); }";
+    let result = run_portugol_rs(source).unwrap();
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { ref stdout, exit_code: Some(0), .. } if stdout == "16Ana"),
+        "{result:?}"
+    );
+}
+
+#[test]
+fn compiles_and_runs_pors_record_field_updates_with_real_rustc() {
+    let source = "registro Estado { contador: inteiro } funcao inicio() { seja mutavel estado: Estado = Estado { contador: 2 }; estado.contador += 3; escreva(estado.contador); }";
+    let result = run_portugol_rs(source).unwrap();
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { ref stdout, exit_code: Some(0), .. } if stdout == "5"),
+        "{result:?}"
+    );
+}
+
+#[test]
+fn compiles_and_runs_vectors_of_pors_records_with_real_rustc() {
+    let source = "registro Pessoa { idade: inteiro } funcao inicio() { seja pessoas: vetor<Pessoa> = [Pessoa { idade: 16 }, Pessoa { idade: 17 }]; escreva(pessoas[0].idade); escreva(pessoas[1].idade); }";
+    let result = run_portugol_rs(source).unwrap();
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { ref stdout, exit_code: Some(0), .. } if stdout == "1617"),
+        "{result:?}"
+    );
+}
+
+#[test]
+fn generated_rust_keeps_copied_records_independent_and_charges_string_copies() {
+    let source = "registro Pessoa { nome: cadeia } funcao inicio() { seja mutavel original: Pessoa = Pessoa { nome: \"Ana\" }; seja mutavel copia: Pessoa = original; copia.nome = \"Bia\"; escreva(original.nome); escreva(copia.nome); }";
+    let result = run_portugol_rs(source).unwrap();
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { ref stdout, exit_code: Some(0), .. } if stdout == "AnaBia"),
+        "{result:?}"
+    );
+}
+
+#[test]
+fn generated_rust_passes_and_returns_records_by_value() {
+    let source = "registro Estado { contador: inteiro } funcao incrementar(mutavel estado: Estado) -> Estado { estado.contador += 1; retorne estado; } funcao inicio() { seja original: Estado = Estado { contador: 4 }; seja proximo: Estado = incrementar(original); escreva(original.contador); escreva(proximo.contador); }";
+    let result = run_portugol_rs(source).unwrap();
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { ref stdout, exit_code: Some(0), .. } if stdout == "45"),
+        "{result:?}"
+    );
+}
+
+#[test]
+fn generated_rust_matches_all_enum_variants_and_binds_payloads() {
+    let source = "enum Evento { Incrementar, Definir(inteiro) } funcao inicio() { seja evento: Evento = Evento::Definir(7); escolha evento { caso Evento::Incrementar => { escreva(0); } caso Evento::Definir(valor) => { escreva(valor); } } }";
+    let result = run_portugol_rs(source).unwrap();
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { ref stdout, exit_code: Some(0), .. } if stdout == "7"),
+        "{result:?}"
+    );
+}
+
+#[test]
+fn generated_rust_copies_constructor_fields_and_enum_payloads_from_bindings() {
+    let source = "registro Pessoa { nome: cadeia } enum Mensagem { Texto(cadeia) } funcao inicio() { seja nome: cadeia = \"Ana\"; seja pessoa: Pessoa = Pessoa { nome: nome }; escreva(nome); escreva(pessoa.nome); seja texto: cadeia = \"oi\"; seja mensagem: Mensagem = Mensagem::Texto(texto); escreva(texto); escolha mensagem { caso Mensagem::Texto(conteudo) => { escreva(conteudo); } } }";
+    let result = run_portugol_rs(source).unwrap();
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { ref stdout, exit_code: Some(0), .. } if stdout == "AnaAnaoioi"),
+        "{result:?}"
+    );
+}
+
+#[test]
+fn generated_rust_copies_record_payloads_without_consuming_the_source() {
+    let source = "registro Estado { valor: inteiro } enum Envelope { Dados(Estado) } funcao inicio() { seja mutavel original: Estado = Estado { valor: 1 }; seja envelope: Envelope = Envelope::Dados(original); original.valor = 2; escolha envelope { caso Envelope::Dados(estado) => { escreva(estado.valor); } } escreva(original.valor); }";
+    let result = run_portugol_rs(source).unwrap();
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { ref stdout, exit_code: Some(0), .. } if stdout == "12"),
+        "{result:?}"
+    );
+}
+
+#[test]
 fn compiles_and_runs_pors_helper_functions_with_real_rustc() {
     let result = run_portugol_rs("funcao dobro(valor: inteiro) -> inteiro { retorne valor * 2; } funcao inicio() { escreva(dobro(21)); }").unwrap();
     assert!(
