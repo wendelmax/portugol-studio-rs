@@ -2,6 +2,8 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import type { PorsUiBudget, PorsUiResult } from "./pors-wasm-host";
+import type { UiEvent } from "./ui-preview-renderer";
 import type { WorkspaceEntry } from "./workspace-explorer";
 
 export interface Position {
@@ -317,6 +319,29 @@ export const exportWorkspaceFiles = (workspaceId: string, relativePaths: string[
 export type CatalogEntry =
   | { kind: "folder"; name: string; entries: CatalogEntry[] }
   | { kind: "file"; name: string; file: string; description: string; preview: string | null };
+
+export async function porsUiStart(source: string, budget?: PorsUiBudget): Promise<PorsUiResult> {
+  const raw = await invoke<string>("pors_ui_start", {
+    source,
+    maxSteps: budget?.maxSteps ?? null,
+    maxNodes: budget?.maxNodes ?? null,
+    maxDepth: budget?.maxDepth ?? null,
+  });
+  return JSON.parse(raw) as PorsUiResult;
+}
+
+export async function porsUiDispatch(sessionId: number, event: UiEvent): Promise<PorsUiResult> {
+  const raw = await invoke<string>("pors_ui_dispatch", {
+    sessionId,
+    kind: event.kind,
+    targetId: event.id,
+    value: event.kind === "entrada_alterada" ? event.value : "",
+  });
+  return JSON.parse(raw) as PorsUiResult;
+}
+
+export const porsUiCancel = (sessionId: number) => invoke<boolean>("pors_ui_cancel", { sessionId });
+export const porsUiClose = (sessionId: number) => invoke<boolean>("pors_ui_close", { sessionId });
 
 export const exampleCatalog = () => invoke<CatalogEntry[]>("example_catalog");
 export const openExample = (file: string) => invoke<{ source: string; workPath: string }>("open_example", { file });

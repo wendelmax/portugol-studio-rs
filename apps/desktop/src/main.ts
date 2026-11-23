@@ -72,6 +72,9 @@ import {
 } from "./ownership-lab";
 import { filterCommands, isDebugCommandAvailable, nextCommandIndex } from "./command-palette";
 import { acceptRustPreview, beginRustPreview, failRustPreview, generatedRustComparison, markRustPreviewStale, type RustPreviewState } from "./rust-preview-state";
+import { PORS_UI_EXAMPLES } from "./pors-ui-examples";
+import { mountPorsUiPreviewPanel } from "./pors-ui-preview-panel";
+import { mountUiPreview } from "./ui-preview-renderer";
 import * as api from "./api";
 
 const TEMPLATE = "programa\n{\n\tfuncao inicio()\n\t{\n\t\t\n\t}\n}\n";
@@ -3083,6 +3086,41 @@ $<HTMLButtonElement>("rust-close").onclick = () => {
   applyLearningMode("beginner");
   view.focus();
 };
+
+mountPorsUiPreviewPanel({
+  elements: {
+    panel: $<HTMLElement>("pors-ui-preview"),
+    toggleButton: $<HTMLButtonElement>("btn-ui-preview"),
+    runButton: $<HTMLButtonElement>("pors-ui-run"),
+    restartButton: $<HTMLButtonElement>("pors-ui-restart"),
+    cancelButton: $<HTMLButtonElement>("pors-ui-cancel"),
+    closeButton: $<HTMLButtonElement>("pors-ui-close"),
+    exampleSelect: $<HTMLSelectElement>("pors-ui-example-select"),
+    loadExampleButton: $<HTMLButtonElement>("pors-ui-load-example"),
+    status: $<HTMLElement>("pors-ui-status"),
+    canvas: $<HTMLElement>("pors-ui-canvas"),
+  },
+  backend: {
+    startUi: (source, budget) => api.porsUiStart(source, budget),
+    dispatchUi: (sessionId, event) => api.porsUiDispatch(sessionId, event),
+    cancelUi: (sessionId) => api.porsUiCancel(sessionId),
+    closeUi: (sessionId) => api.porsUiClose(sessionId),
+  },
+  mount: mountUiPreview,
+  examples: PORS_UI_EXAMPLES,
+  getActiveSource: () => {
+    const tab = activeTab();
+    if (!tab) return null;
+    return {
+      source: view.state.doc.toString(),
+      isPors: tab.language === "portugol-rs",
+    };
+  },
+  onLoadExample: (example) => {
+    newTab(example.source, null, example.fileName, undefined, undefined, "portugol-rs");
+  },
+  onCloseFocus: () => view.focus(),
+});
 $<HTMLButtonElement>("rust-copy").onclick = async () => {
   try {
     await navigator.clipboard.writeText(generatedRustEditor.state.doc.toString());

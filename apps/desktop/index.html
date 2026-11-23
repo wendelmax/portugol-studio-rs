@@ -86,6 +86,7 @@
           <button id="btn-debug" title="Executar passo a passo (Shift+F5)" aria-label="Depurar"><span data-icon="grande/step"></span></button>
           <button id="btn-stop" title="Interromper a execução ou depuração (Shift+F7)" aria-label="Interromper" disabled><span data-icon="grande/stop"></span></button>
           <button id="btn-rust" title="Comparar e exportar este programa para Rust" aria-label="Ver tradução para Rust">Rust</button>
+          <button id="btn-ui-preview" title="Abrir preview visual declarativo PORS (UI.*)" aria-label="Preview Visual PORS" aria-pressed="false">UI</button>
           <hr />
           <button id="btn-save" title="Salvar (Ctrl+S)" aria-label="Salvar"><span data-icon="grande/save"></span></button>
           <button id="btn-save-as" title="Salvar como (Ctrl+Shift+S)" aria-label="Salvar como"><span data-icon="grande/save_as"></span></button>
@@ -131,6 +132,24 @@
             <p id="rust-status" role="status" aria-live="polite">Preparando tradução…</p>
             <div id="rust-output" class="rust-generated-editor"></div>
             <div id="rust-diff-output" class="rust-diff-output" aria-label="Diferenças entre traduções Rust" hidden></div>
+          </aside>
+          <aside id="pors-ui-preview" class="pors-ui-preview" aria-label="Preview Visual PORS" hidden>
+            <header>
+              <h2>Preview Visual PORS</h2>
+              <div>
+                <button id="pors-ui-run" type="button">Executar</button>
+                <button id="pors-ui-restart" type="button" disabled>Reiniciar</button>
+                <button id="pors-ui-cancel" type="button" disabled>Cancelar</button>
+                <button id="pors-ui-close" type="button" aria-label="Fechar preview visual PORS">×</button>
+              </div>
+            </header>
+            <div class="pors-ui-examples-bar">
+              <label for="pors-ui-example-select">Exemplo visual</label>
+              <select id="pors-ui-example-select"></select>
+              <button id="pors-ui-load-example" type="button">Carregar exemplo</button>
+            </div>
+            <p id="pors-ui-status" role="status" aria-live="polite">Abra um programa .pors visual ou carregue um exemplo.</p>
+            <div id="pors-ui-canvas" class="pors-ui-canvas"></div>
           </aside>
           <aside class="error-strip" aria-label="Diagnósticos por linha"><div id="error-strip"></div></aside>
           <details id="editor-options" class="options editor-options">
