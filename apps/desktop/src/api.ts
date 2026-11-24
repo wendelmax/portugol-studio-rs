@@ -264,8 +264,13 @@ export const runRustSource = (id: number, source: string, args: string[] = []) =
 export const run = (source: string, args: string[], path: string | null, breakpoints: number[] = [], pauseOnStart = false) =>
   invoke<number>("run", { source, args, path, breakpoints, pauseOnStart });
 
-export const debugPortugolRs = (source: string, breakpoints: number[] = []) =>
-  invoke<number>("debug_portugol_rs", { source, breakpoints, pauseOnStart: true });
+/** Executa Portugol-RS na VM educacional; não depende de `rustc`. */
+export const startPortugolRsVm = (
+  source: string,
+  breakpoints: number[] = [],
+  pauseOnStart = false,
+  path: string | null = null,
+) => invoke<number>("debug_portugol_rs", { source, breakpoints, pauseOnStart, path });
 
 export const sendInput = (id: number, line: string) => invoke<void>("send_input", { id, line });
 

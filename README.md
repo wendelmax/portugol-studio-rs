@@ -41,10 +41,11 @@ Os instaladores ainda não são assinados. No Windows, o SmartScreen pode exibir
 em **Executar assim mesmo**. No macOS, abra o aplicativo pela primeira vez com
 o botão direito e escolha **Abrir**.
 
-Programas `.por` não precisam de nada além do instalador. Para **executar**
-arquivos `.pors` e `.rs` na IDE é preciso ter o Rust instalado
-([rustup.rs](https://rustup.rs)); sem ele, a depuração de `.pors` continua
-disponível.
+Programas `.pors` e `.por` executam e depuram na máquina virtual da IDE, sem
+nada além do instalador. O Rust ([rustup.rs](https://rustup.rs)) só é
+necessário para executar arquivos `.rs`, projetos Cargo e a opção
+**Executar como Rust** da paleta de comandos, que compila o Rust gerado a
+partir de um `.pors`.
 
 ## O que a IDE oferece
 
@@ -242,10 +243,11 @@ diretamente.
 
 ## Segurança
 
-Programas `.por` e o modo de depuração rodam na máquina virtual da IDE, com
-limites de tempo e de memória. Já os arquivos `.rs`, os projetos Cargo e a
-execução normal de `.pors` são compilados para código nativo e rodam com as
-permissões do seu usuário, sem isolamento. A IDE pede confirmação antes da
+Programas `.pors` e `.por` rodam na máquina virtual da IDE, com limites de
+tempo e de memória; no Portugol-RS, `Arquivos.*` fica restrito à pasta do
+programa e `Internet.*` vem desligado. Já os arquivos `.rs`, os projetos Cargo
+e a opção **Executar como Rust** são compilados para código nativo e rodam com
+as permissões do seu usuário, sem isolamento. A IDE pede confirmação antes da
 primeira execução; rode apenas código em que você confia.
 
 ## Licença
