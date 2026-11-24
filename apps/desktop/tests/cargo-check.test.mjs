@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { ideSource } from "./support/ide-source.mjs";
+import { isPaletteCommandAvailable } from "../src/command-palette.ts";
 
 test("cargo check is explicit, workspace-scoped, and mapped to the active editor", () => {
   const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
@@ -9,7 +10,7 @@ test("cargo check is explicit, workspace-scoped, and mapped to the active editor
   const tauri = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
   const service = readFileSync(new URL("../../../crates/portugol-service/src/cargo_project.rs", import.meta.url), "utf8");
 
-  assert.match(main, /if \(command === "Analisar projeto Cargo"\) return tab\?\.language === "rust" && tab\.cargoProject === true && cargoAvailable === true/);
+  assert.match(main, /isPaletteCommandAvailable\(command, paletteContext\(\)\)/);
   assert.match(main, /command: "Analisar projeto Cargo", matches: \(\) => false, action: checkCargoProject/);
   assert.match(main, /hasCargoExecutionConsent\(sessionStorage\)[\s\S]*rememberCargoExecutionConsent\(sessionStorage, true\)/);
   assert.match(main, /api\.checkCargoProject\(registeredId, tab\.workspaceId, tab\.workspacePath\)/);
@@ -19,4 +20,20 @@ test("cargo check is explicit, workspace-scoped, and mapped to the active editor
   assert.match(api, /invoke<CargoProjectCheckResult>\("check_cargo_project"/);
   assert.match(tauri, /workspace::cargo_project_and_source[\s\S]*check_cargo_project_with_cancel/);
   assert.match(service, /\.arg\("check"\)[\s\S]*\.arg\("--message-format=json"\)[\s\S]*\.arg\("--manifest-path"\)/);
+});
+
+test("Cargo analysis is offered only for Rust files inside a Cargo project while idle", () => {
+  const base = {
+    language: "rust", cargoProject: true, cargoAvailable: true, canRunAsRust: false,
+    runActive: false, paused: false, porsRunPending: false,
+  };
+  for (const command of ["Analisar projeto Cargo", "Testar projeto Cargo"]) {
+    assert.equal(isPaletteCommandAvailable(command, base), true);
+    assert.equal(isPaletteCommandAvailable(command, { ...base, cargoProject: false }), false);
+    assert.equal(isPaletteCommandAvailable(command, { ...base, cargoAvailable: false }), false);
+    assert.equal(isPaletteCommandAvailable(command, { ...base, runActive: true }), false);
+    assert.equal(isPaletteCommandAvailable(command, { ...base, porsRunPending: true }), false);
+    assert.equal(isPaletteCommandAvailable(command, { ...base, language: "portugol-rs" }), false);
+    assert.equal(isPaletteCommandAvailable(command, { ...base, language: null }), false);
+  }
 });
