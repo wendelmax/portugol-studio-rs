@@ -96,6 +96,7 @@ import { createEditorUpdateController } from "./editor/update-controller";
 import { createEditorExtensionFactory } from "./editor/extensions";
 import { createRustLintSourceCheck } from "./editor/rust-linter";
 import { createPortugolLintSourceCheck } from "./editor/portugol-linter";
+import { createSymbolRenamer } from "./editor/symbol-rename";
 import {
   breakpointLines, breakpoints, createBreakpointGutter, debugLine, runtimeError, setDebugLine, setRuntimeError, toCodeMirror,
 } from "./editor/decorations";
@@ -970,51 +971,33 @@ function toggleCenterSource() {
   view.focus();
 }
 
-async function renameAt(offset: number) {
-  const tab = activeTab();
-  if (!tab || tab.language === "rust" || (runTabId === tab.id && runId !== null)) return;
-  const doc = view.state.doc;
-  const dialog = $<HTMLDialogElement>("rename");
-  try {
-    const target = semanticSymbolLanguage(tab.language) === "portugol-rs"
-      ? await api.renameTargetPortugolRs(doc.toString(), offset)
-      : await api.renameTarget(doc.toString(), offset);
-    if (activeTab() !== tab || view.state.doc !== doc || document.querySelector("dialog[open]")) return;
+const symbolRenamer = createSymbolRenamer({
+  activeTab,
+  currentDocument: () => view.state.doc,
+  isRunning: (tab) => runTabId === tab.id && runId !== null,
+  isCurrent: (tab, doc) => activeTab() === tab && view.state.doc === doc,
+  hasOpenDialog: () => document.querySelector("dialog[open]") !== null,
+  semanticSymbolLanguage,
+  renameTargetPortugol: api.renameTarget,
+  renameTargetPortugolRs: api.renameTargetPortugolRs,
+  renameSymbolPortugol: api.renameSymbol,
+  renameSymbolPortugolRs: api.renameSymbolPortugolRs,
+  applyChanges: (changes) => view.dispatch({ changes, annotations: isolateHistory.of("full"), userEvent: "input.rename" }),
+  focusEditor: () => view.focus(),
+  setStatus,
+  ui: {
+    dialog: $<HTMLDialogElement>("rename"),
+    form: $<HTMLFormElement>("rename-form"),
+    input: $<HTMLInputElement>("rename-input"),
+    error: $("rename-error"),
+    submit: $<HTMLButtonElement>("rename-submit"),
+    description: $("rename-description"),
+    cancelButton: $<HTMLButtonElement>("rename-cancel"),
+  },
+});
 
-    const form = $<HTMLFormElement>("rename-form");
-    const input = $<HTMLInputElement>("rename-input");
-    const error = $("rename-error");
-    const submit = $<HTMLButtonElement>("rename-submit");
-    $("rename-description").textContent = `${target.name} · ${target.occurrences} ${target.occurrences === 1 ? "ocorrência" : "ocorrências"}`;
-    input.value = target.name;
-    error.hidden = true;
-    $("rename-cancel").onclick = () => dialog.close();
-    form.onsubmit = async (event) => {
-      event.preventDefault();
-      error.hidden = true;
-      submit.disabled = true;
-      try {
-        const changes = semanticSymbolLanguage(tab.language) === "portugol-rs"
-          ? await api.renameSymbolPortugolRs(doc.toString(), offset, input.value.trim())
-          : await api.renameSymbol(doc.toString(), offset, input.value.trim());
-        if (!dialog.open || activeTab() !== tab || view.state.doc !== doc) return;
-        if (changes.length) view.dispatch({ changes, annotations: isolateHistory.of("full"), userEvent: "input.rename" });
-        dialog.close();
-        view.focus();
-      } catch (message) {
-        error.textContent = typeof message === "string" ? message : "Não foi possível renomear o símbolo.";
-        error.hidden = false;
-      } finally {
-        submit.disabled = false;
-      }
-    };
-    dialog.showModal();
-    input.select();
-  } catch (message) {
-    if (activeTab() === tab && view.state.doc === doc) {
-      setStatus(typeof message === "string" ? message : "Não foi possível localizar o símbolo.", "error");
-    }
-  }
+function renameAt(offset: number) {
+  return symbolRenamer.openAt(offset);
 }
 
 const symbolNavigator = createSymbolNavigator({

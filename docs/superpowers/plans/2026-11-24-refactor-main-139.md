@@ -380,4 +380,16 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - [x] Add tests for learning mode, bottom-panel selection, tab semantics, and panel-specific controls.
 - [x] Extract panel navigation and visibility orchestration with shell callbacks injected.
 - [x] Run the full frontend tests (76/76), typecheck, and build.
-- [ ] Commit the panel navigation group.
+- [x] Commit the panel navigation group (#184).
+
+### Task 30: Symbol rename workflow
+
+**Files:**
+- Create: `apps/desktop/src/editor/symbol-rename.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/symbol-rename.test.mjs`
+
+- [x] Add tests for language routing, stale requests, submission, change application, and error display.
+- [x] Extract rename target and dialog orchestration with editor and UI dependencies injected.
+- [x] Run the full frontend tests (77/77), typecheck, and build.
+- [ ] Commit the symbol rename group.
