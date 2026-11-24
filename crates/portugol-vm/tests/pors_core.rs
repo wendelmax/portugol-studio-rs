@@ -338,3 +338,91 @@ funcao inicio() {
     run(&module, &mut io).expect("execução de vetores dinâmicos e Texto.dividir na VM mínima");
     assert_eq!(io.output, "0|3|30|2|N|N|7|3|dois|2|🦀");
 }
+
+#[test]
+fn executes_pors_util_and_calendario_deterministically_in_minimal_vm() {
+    // 2026-11-23T15:30:45.123Z = 1_795_447_845_123 ms? Let's use 1_700_000_000_500 ms:
+    // 1700000000 s = 19675 days + 79600 s => 2023-11-14T22:13:20.500Z (Tuesday = 3)
+    const EPOCH_MS: u64 = 1_700_000_000_500;
+    let source = r#"
+funcao inicio() {
+    Util.definir_semente(42);
+    escolha Util.sorteia(1, 100) {
+        caso Resultado::Ok(n) => { escreva(n, "|"); }
+        caso Resultado::Erro(_) => { escreva("ERR|"); }
+    }
+    escolha Util.sorteia(10, 5) {
+        caso Resultado::Ok(n) => { escreva(n, "|"); }
+        caso Resultado::Erro(_) => { escreva("ERR|"); }
+    }
+    escreva(Util.tempo_decorrido(), "|");
+    Util.aguarde(1500);
+    escreva(Util.tempo_decorrido(), "|");
+
+    escreva(
+        Calendario.data_iso_atual(), "|",
+        Calendario.ano_atual(), "-",
+        Calendario.mes_atual(), "-",
+        Calendario.dia_mes_atual(), "|",
+        Calendario.dia_semana_atual(), "|",
+        Calendario.hora_atual(falso), ":",
+        Calendario.hora_atual(verdadeiro), ":",
+        Calendario.minuto_atual(), ":",
+        Calendario.segundo_atual(), ".",
+        Calendario.milisegundo_atual(), "|",
+        Calendario.eh_bissexto(2024), "|",
+        Calendario.DIA_TERCA_FEIRA, "|",
+        Calendario.MES_NOVEMBRO, "|"
+    );
+    escolha Calendario.dia_semana_completo(Calendario.dia_semana_atual(), falso, falso) {
+        caso Resultado::Ok(d) => { escreva(d, "|"); }
+        caso Resultado::Erro(_) => { escreva("ERR|"); }
+    }
+    escolha Calendario.nome_mes(Calendario.mes_atual()) {
+        caso Resultado::Ok(m) => { escreva(m, "|"); }
+        caso Resultado::Erro(_) => { escreva("ERR|"); }
+    }
+    escolha Calendario.dias_no_mes(2024, Calendario.MES_FEVEREIRO) {
+        caso Resultado::Ok(d) => { escreva(d, "|"); }
+        caso Resultado::Erro(_) => { escreva("ERR|"); }
+    }
+    escolha Calendario.dias_no_mes(2024, 13) {
+        caso Resultado::Ok(d) => { escreva(d); }
+        caso Resultado::Erro(_) => { escreva("ERR"); }
+    }
+}
+"#;
+    let module = compile_pors_source(source);
+    let mut io = BufferIo::default();
+    Vm::new(&module, &mut io)
+        .with_pors_simulated_time(EPOCH_MS)
+        .run()
+        .expect("execução determinística de Util e Calendario na VM mínima");
+
+    let mut io_repeat = BufferIo::default();
+    Vm::new(&module, &mut io_repeat)
+        .with_pors_simulated_time(EPOCH_MS)
+        .run()
+        .expect("repetição determinística");
+    assert_eq!(io.output, io_repeat.output);
+    assert!(
+        io.output.ends_with(
+            "|ERR|0|1500|2023-11-14|2023-11-14|3|22:10:13:22.0|verdadeiro|3|11|Terça-Feira|Novembro|29|ERR"
+        ),
+        "saída inesperada: {}",
+        io.output
+    );
+}
+
+#[test]
+fn interrupts_pors_util_aguarde_promptly_when_cancelled() {
+    let source = "funcao inicio() { Util.aguarde(5000); }";
+    let module = compile_pors_source(source);
+    let interrupt = Arc::new(AtomicBool::new(true));
+    let mut io = BufferIo::default();
+    let error = Vm::new(&module, &mut io)
+        .with_interrupt(interrupt)
+        .run()
+        .expect_err("Util.aguarde deve ser cancelado imediatamente quando interrupt=true");
+    assert!(error.message.contains("interrompido"));
+}

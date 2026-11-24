@@ -26,6 +26,8 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
     let uses_matematica = pors && program_uses_host_module(program, "Matematica");
     let uses_texto = pors && program_uses_host_module(program, "Texto");
     let uses_tipos = pors && program_uses_host_module(program, "Tipos");
+    let uses_util = pors && program_uses_host_module(program, "Util");
+    let uses_calendario = pors && program_uses_host_module(program, "Calendario");
     let mvu_update_arity = if pors && program.body.is_empty() {
         mvu_entry_update_arity(program)
     } else {
@@ -50,6 +52,15 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
     }
     if uses_tipos {
         output.push_str(PORS_TIPOS_RUNTIME);
+    }
+    if uses_util || uses_calendario {
+        output.push_str(PORS_CLOCK_RUNTIME);
+    }
+    if uses_util {
+        output.push_str(PORS_UTIL_RUNTIME);
+    }
+    if uses_calendario {
+        output.push_str(PORS_CALENDARIO_RUNTIME);
     }
     for definition in &program.record_types {
         output.push_str(&format!(
@@ -510,6 +521,30 @@ fn render_statements(
                 );
                 output.push_str(";\n");
             }
+            StmtKind::HostCall {
+                module,
+                name,
+                arguments,
+            } => {
+                output.push_str(&indent);
+                push_expr(
+                    output,
+                    mappings,
+                    &Expr {
+                        kind: ExprKind::HostCall {
+                            module: module.clone(),
+                            name: name.clone(),
+                            arguments: arguments.clone(),
+                        },
+                        ty: Type::Unit,
+                        span: statement.span,
+                    },
+                    program,
+                    false,
+                    pors,
+                );
+                output.push_str(";\n");
+            }
             StmtKind::Return { value } => {
                 output.push_str(&format!("{indent}return"));
                 if let Some(value) = value {
@@ -903,6 +938,20 @@ fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedExpression {
             arguments,
         } if module == "Tipos" => {
             render_stdlib_host_call("__pors_tipos", name, arguments, program, pors)
+        }
+        ExprKind::HostCall {
+            module,
+            name,
+            arguments,
+        } if module == "Util" => {
+            render_stdlib_host_call("__pors_util", name, arguments, program, pors)
+        }
+        ExprKind::HostCall {
+            module,
+            name,
+            arguments,
+        } if module == "Calendario" => {
+            render_stdlib_host_call("__pors_calendario", name, arguments, program, pors)
         }
         ExprKind::HostCall { .. } => vec![ExpressionPart::Text("0_i32".to_owned())],
         ExprKind::Integer(value) if *value == i32::MIN => {
@@ -1563,6 +1612,14 @@ fn stmts_use_host_module(stmts: &[Stmt], target: &str) -> bool {
         StmtKind::Call { arguments, .. } | StmtKind::Write(arguments) => arguments
             .iter()
             .any(|expr| expr_uses_host_module(expr, target)),
+        StmtKind::HostCall {
+            module, arguments, ..
+        } => {
+            module == target
+                || arguments
+                    .iter()
+                    .any(|expr| expr_uses_host_module(expr, target))
+        }
         StmtKind::If {
             condition,
             then_branch,
@@ -2126,5 +2183,248 @@ mod __pors_tipos {
         matches!(texto.trim(), "verdadeiro" | "falso")
     }
     pub fn cadeia_e_caracter(texto: &str) -> bool { texto.chars().count() == 1 }
+}
+"#;
+
+const PORS_CLOCK_RUNTIME: &str = r#"
+#[allow(dead_code)]
+mod __pors_clock {
+    use std::cell::RefCell;
+    use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+
+    enum ClockState {
+        Real(Instant),
+        Simulated { elapsed_ms: u64, epoch_ms: u64 },
+    }
+
+    thread_local! {
+        static CLOCK: RefCell<ClockState> = RefCell::new(match std::env::var("PORTUGOL_PORS_SIMULATED_EPOCH_MS").ok().and_then(|v| v.parse::<u64>().ok()) {
+            Some(epoch_ms) => ClockState::Simulated { elapsed_ms: 0, epoch_ms },
+            None => ClockState::Real(Instant::now()),
+        });
+    }
+
+    pub fn elapsed_ms() -> u64 {
+        CLOCK.with(|cell| match &*cell.borrow() {
+            ClockState::Real(started) => started.elapsed().as_millis() as u64,
+            ClockState::Simulated { elapsed_ms, .. } => *elapsed_ms,
+        })
+    }
+
+    pub fn now_epoch_ms() -> i64 {
+        CLOCK.with(|cell| match &*cell.borrow() {
+            ClockState::Real(_) => SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|d| d.as_millis() as i64)
+                .unwrap_or(0),
+            ClockState::Simulated { elapsed_ms, epoch_ms } => epoch_ms.saturating_add(*elapsed_ms) as i64,
+        })
+    }
+
+    pub fn sleep_ms(ms: u64) {
+        let simulated = CLOCK.with(|cell| {
+            if let ClockState::Simulated { elapsed_ms, .. } = &mut *cell.borrow_mut() {
+                *elapsed_ms = elapsed_ms.saturating_add(ms);
+                true
+            } else {
+                false
+            }
+        });
+        if !simulated {
+            std::thread::sleep(Duration::from_millis(ms));
+        }
+    }
+}
+"#;
+
+const PORS_UTIL_RUNTIME: &str = r#"
+#[allow(dead_code)]
+mod __pors_util {
+    use std::cell::Cell;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    const MAX_SLEEP_MS: i32 = 60_000;
+
+    thread_local! {
+        static RNG: Cell<u64> = Cell::new(
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|d| d.as_nanos() as u64)
+                .unwrap_or(0x9E37_79B9_7F4A_7C15)
+                | 1,
+        );
+    }
+
+    fn next_u64() -> u64 {
+        RNG.with(|cell| {
+            let mut x = cell.get();
+            x ^= x << 13;
+            x ^= x >> 7;
+            x ^= x << 17;
+            cell.set(x);
+            x.wrapping_mul(0x2545_F491_4F6C_DD1D)
+        })
+    }
+
+    pub fn definir_semente(semente: i32) {
+        RNG.with(|cell| cell.set((semente as u32 as u64) | 1));
+    }
+
+    pub fn sorteia(min: i32, max: i32) -> Result<i32, String> {
+        if min > max {
+            return Err(super::__pors_string(&format!(
+                "O valor mínimo ({min}) não pode ser maior que o máximo ({max})"
+            )));
+        }
+        let span = (max as i64 - min as i64 + 1) as u64;
+        let offset = (next_u64() % span) as i64;
+        Ok((min as i64 + offset) as i32)
+    }
+
+    pub fn tempo_decorrido() -> i32 {
+        super::__pors_clock::elapsed_ms().min(i32::MAX as u64) as i32
+    }
+
+    pub fn aguarde(ms: i32) {
+        if ms < 0 {
+            eprintln!("Erro de execução: o intervalo de espera em `Util.aguarde` não pode ser negativo.");
+            std::process::exit(1);
+        }
+        if ms > MAX_SLEEP_MS {
+            eprintln!("Erro de execução: o intervalo de espera ({ms} ms) excede o limite de {MAX_SLEEP_MS} ms por chamada.");
+            std::process::exit(1);
+        }
+        super::__pors_clock::sleep_ms(ms as u64);
+    }
+}
+"#;
+
+const PORS_CALENDARIO_RUNTIME: &str = r#"
+#[allow(dead_code)]
+mod __pors_calendario {
+    struct UtcDateTime {
+        year: i32,
+        month: u32,
+        day: u32,
+        weekday_1_to_7: i32,
+        hour: u32,
+        minute: u32,
+        second: u32,
+        millis: u32,
+    }
+
+    fn civil_from_days(z: i64) -> (i32, u32, u32) {
+        let z = z + 719_468;
+        let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+        let doe = (z - era * 146_097) as u64;
+        let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
+        let y = (yoe as i64) + era * 400;
+        let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+        let mp = (5 * doy + 2) / 153;
+        let d = doy - (153 * mp + 2) / 5 + 1;
+        let m = if mp < 10 { mp + 3 } else { mp - 9 };
+        let year = (y + i64::from(m <= 2)) as i32;
+        (year, m as u32, d as u32)
+    }
+
+    fn now_utc() -> UtcDateTime {
+        let epoch_ms = super::__pors_clock::now_epoch_ms();
+        let millis = epoch_ms.rem_euclid(1_000) as u32;
+        let total_secs = epoch_ms.div_euclid(1_000);
+        let secs_of_day = total_secs.rem_euclid(86_400) as u32;
+        let days = total_secs.div_euclid(86_400);
+        let (year, month, day) = civil_from_days(days);
+        let weekday_1_to_7 = ((days + 4).rem_euclid(7) + 1) as i32;
+        UtcDateTime {
+            year,
+            month,
+            day,
+            weekday_1_to_7,
+            hour: secs_of_day / 3_600,
+            minute: (secs_of_day % 3_600) / 60,
+            second: secs_of_day % 60,
+            millis,
+        }
+    }
+
+    pub fn ano_atual() -> i32 { now_utc().year }
+    pub fn mes_atual() -> i32 { now_utc().month as i32 }
+    pub fn dia_mes_atual() -> i32 { now_utc().day as i32 }
+    pub fn dia_semana_atual() -> i32 { now_utc().weekday_1_to_7 }
+    pub fn hora_atual(formato_12h: bool) -> i32 {
+        let h = now_utc().hour as i32;
+        if formato_12h { h % 12 } else { h }
+    }
+    pub fn minuto_atual() -> i32 { now_utc().minute as i32 }
+    pub fn segundo_atual() -> i32 { now_utc().second as i32 }
+    pub fn milisegundo_atual() -> i32 { now_utc().millis as i32 }
+    pub fn eh_bissexto(ano: i32) -> bool {
+        (ano % 4 == 0 && ano % 100 != 0) || ano % 400 == 0
+    }
+    pub fn dias_no_mes(ano: i32, mes: i32) -> Result<i32, String> {
+        match mes {
+            1 | 3 | 5 | 7 | 8 | 10 | 12 => Ok(31),
+            4 | 6 | 9 | 11 => Ok(30),
+            2 if eh_bissexto(ano) => Ok(29),
+            2 => Ok(28),
+            _ => Err(super::__pors_string(&format!(
+                "'{mes}' não corresponde a um mês válido (1 a 12)"
+            ))),
+        }
+    }
+    pub fn nome_mes(mes: i32) -> Result<String, String> {
+        const MESES: [&str; 12] = [
+            "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+            "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+        ];
+        if !(1..=12).contains(&mes) {
+            return Err(super::__pors_string(&format!(
+                "'{mes}' não corresponde a um mês válido (1 a 12)"
+            )));
+        }
+        Ok(super::__pors_string(MESES[(mes - 1) as usize]))
+    }
+    fn format_day(names: [&str; 7], dia: i32, alta: bool, baixa: bool) -> Result<String, String> {
+        if !(1..=7).contains(&dia) {
+            return Err(super::__pors_string(&format!(
+                "'{dia}' não corresponde a um dia da semana válido (1 a 7)"
+            )));
+        }
+        let raw = names[(dia - 1) as usize];
+        let out = if alta {
+            raw.to_uppercase()
+        } else if baixa {
+            raw.to_lowercase()
+        } else {
+            raw.to_owned()
+        };
+        super::__pors_account(out.len());
+        Ok(out)
+    }
+    pub fn dia_semana_completo(dia: i32, alta: bool, baixa: bool) -> Result<String, String> {
+        format_day(
+            ["Domingo", "Segunda-Feira", "Terça-Feira", "Quarta-Feira", "Quinta-Feira", "Sexta-Feira", "Sábado"],
+            dia,
+            alta,
+            baixa,
+        )
+    }
+    pub fn dia_semana_curto(dia: i32, alta: bool, baixa: bool) -> Result<String, String> {
+        format_day(
+            ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"],
+            dia,
+            alta,
+            baixa,
+        )
+    }
+    pub fn dia_semana_abreviado(dia: i32, alta: bool, baixa: bool) -> Result<String, String> {
+        format_day(["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"], dia, alta, baixa)
+    }
+    pub fn data_iso_atual() -> String {
+        let now = now_utc();
+        let iso = format!("{:04}-{:02}-{:02}", now.year, now.month, now.day);
+        super::__pors_account(iso.len());
+        iso
+    }
 }
 "#;

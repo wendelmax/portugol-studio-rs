@@ -235,6 +235,11 @@ pub enum StmtKind {
         function: FunctionId,
         arguments: Vec<Expr>,
     },
+    HostCall {
+        module: String,
+        name: String,
+        arguments: Vec<Expr>,
+    },
     Write(Vec<Expr>),
     If {
         condition: Expr,

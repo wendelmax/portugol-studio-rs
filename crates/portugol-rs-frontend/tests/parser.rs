@@ -599,3 +599,51 @@ funcao inicio() {
     let errors = lower(bad_push_type).unwrap_err();
     assert!(errors.iter().any(|d| d.code == "pors.vector-element-type"));
 }
+
+#[test]
+fn parses_and_validates_pors_util_and_calendario_libraries() {
+    let source = r#"
+funcao rolar_dado() -> Resultado<inteiro, cadeia> {
+    Util.definir_semente(42);
+    Util.aguarde(50);
+    seja valor: inteiro = Util.sorteia(1, 6)?;
+    retorne Resultado::Ok(valor);
+}
+
+funcao inicio() {
+    seja t: inteiro = Util.tempo_decorrido();
+    seja ano: inteiro = Calendario.ano_atual();
+    seja bissexto: logico = Calendario.eh_bissexto(2024);
+    seja iso: cadeia = Calendario.data_iso_atual();
+    seja seg: inteiro = Calendario.DIA_SEGUNDA_FEIRA;
+    seja nov: inteiro = Calendario.MES_NOVEMBRO;
+    escreva(t, ano, bissexto, iso, seg, nov);
+    escolha rolar_dado() {
+        caso Resultado::Ok(n) => { escreva(n); }
+        caso Resultado::Erro(e) => { escreva(e); }
+    }
+    escolha Calendario.nome_mes(nov) {
+        caso Resultado::Ok(m) => { escreva(m); }
+        caso Resultado::Erro(e) => { escreva(e); }
+    }
+}
+"#;
+    let program = lower(source).expect("Util e Calendario devem ser aceitos em PORS");
+    assert_eq!(program.functions.len(), 1);
+
+    let bad_util = "funcao inicio() { seja x: inteiro = Util.inexistente(); }";
+    let errors = lower(bad_util).unwrap_err();
+    assert!(
+        errors
+            .iter()
+            .any(|d| d.code == "pors.unknown-stdlib-function")
+    );
+
+    let bad_cal_type = "funcao inicio() { seja h: inteiro = Calendario.hora_atual(12); }";
+    let errors = lower(bad_cal_type).unwrap_err();
+    assert!(
+        errors
+            .iter()
+            .any(|d| d.code == "pors.stdlib-call-type-mismatch")
+    );
+}

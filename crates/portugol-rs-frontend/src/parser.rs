@@ -749,6 +749,9 @@ impl Parser {
                 .get(self.cursor + 1)
                 .is_some_and(|token| matches!(token.kind, Kind::Dot))
             {
+                if keyword == "Util" && self.lookup("Util").is_none() {
+                    return self.stdlib_statement_call();
+                }
                 return self.field_assignment();
             }
             if self
@@ -1715,8 +1718,10 @@ impl Parser {
                 {
                     return self.ui_host_call(span);
                 }
-                if matches!(name.as_str(), "Matematica" | "Texto" | "Tipos")
-                    && matches!(self.current().kind, Kind::Dot)
+                if matches!(
+                    name.as_str(),
+                    "Matematica" | "Texto" | "Tipos" | "Util" | "Calendario"
+                ) && matches!(self.current().kind, Kind::Dot)
                     && self.lookup(&name).is_none()
                 {
                     return self.stdlib_member_or_call(&name, span);
@@ -2292,6 +2297,32 @@ impl Parser {
         })
     }
 
+    fn stdlib_statement_call(&mut self) -> Result<hir::Stmt, Vec<Diagnostic>> {
+        let (module, start) = self.identifier()?;
+        let expr = self.stdlib_member_or_call(&module, start)?;
+        let end = self.expect(Kind::Semicolon, "Esperado `;` após chamada de biblioteca")?;
+        let hir::ExprKind::HostCall {
+            module,
+            name,
+            arguments,
+        } = expr.kind
+        else {
+            return self.fail(
+                "pors.expected-statement",
+                "Esperada chamada de função",
+                syntax_span(expr.span),
+            );
+        };
+        Ok(hir::Stmt {
+            kind: hir::StmtKind::HostCall {
+                module,
+                name,
+                arguments,
+            },
+            span: to_hir_span(start.join(end.span)),
+        })
+    }
+
     fn stdlib_member_or_call(
         &mut self,
         module: &str,
@@ -2316,6 +2347,16 @@ impl Parser {
             return Ok(hir::Expr {
                 kind: hir::ExprKind::Real(value),
                 ty: hir::Type::Real,
+                span: to_hir_span(start.join(member_span)),
+            });
+        }
+        if module == "Calendario"
+            && !matches!(self.current().kind, Kind::LParen)
+            && let Some(value) = calendario_constant(&member)
+        {
+            return Ok(hir::Expr {
+                kind: hir::ExprKind::Integer(value),
+                ty: hir::Type::Integer,
                 span: to_hir_span(start.join(member_span)),
             });
         }
@@ -2392,6 +2433,27 @@ impl Parser {
             ("Tipos", "cadeia_e_real") => Some((&[S], Ret(B))),
             ("Tipos", "cadeia_e_logico") => Some((&[S], Ret(B))),
             ("Tipos", "cadeia_e_caracter") => Some((&[S], Ret(B))),
+
+            ("Util", "sorteia") => Some((&[I, I], RetRes(I))),
+            ("Util", "definir_semente") => Some((&[I], Ret(hir::Type::Unit))),
+            ("Util", "tempo_decorrido") => Some((&[], Ret(I))),
+            ("Util", "aguarde") => Some((&[I], Ret(hir::Type::Unit))),
+
+            ("Calendario", "ano_atual") => Some((&[], Ret(I))),
+            ("Calendario", "mes_atual") => Some((&[], Ret(I))),
+            ("Calendario", "dia_mes_atual") => Some((&[], Ret(I))),
+            ("Calendario", "dia_semana_atual") => Some((&[], Ret(I))),
+            ("Calendario", "hora_atual") => Some((&[B], Ret(I))),
+            ("Calendario", "minuto_atual") => Some((&[], Ret(I))),
+            ("Calendario", "segundo_atual") => Some((&[], Ret(I))),
+            ("Calendario", "milisegundo_atual") => Some((&[], Ret(I))),
+            ("Calendario", "dia_semana_completo") => Some((&[I, B, B], RetRes(S))),
+            ("Calendario", "dia_semana_curto") => Some((&[I, B, B], RetRes(S))),
+            ("Calendario", "dia_semana_abreviado") => Some((&[I, B, B], RetRes(S))),
+            ("Calendario", "nome_mes") => Some((&[I], RetRes(S))),
+            ("Calendario", "eh_bissexto") => Some((&[I], Ret(B))),
+            ("Calendario", "dias_no_mes") => Some((&[I, I], RetRes(I))),
+            ("Calendario", "data_iso_atual") => Some((&[], Ret(S))),
             _ => None,
         };
 
@@ -2779,6 +2841,36 @@ impl Parser {
     ) -> Result<T, Vec<Diagnostic>> {
         Err(vec![Diagnostic::error(code, message, span)])
     }
+}
+
+fn calendario_constant(name: &str) -> Option<i32> {
+    const DIAS: [&str; 7] = [
+        "DIA_DOMINGO",
+        "DIA_SEGUNDA_FEIRA",
+        "DIA_TERCA_FEIRA",
+        "DIA_QUARTA_FEIRA",
+        "DIA_QUINTA_FEIRA",
+        "DIA_SEXTA_FEIRA",
+        "DIA_SABADO",
+    ];
+    const MESES: [&str; 12] = [
+        "MES_JANEIRO",
+        "MES_FEVEREIRO",
+        "MES_MARCO",
+        "MES_ABRIL",
+        "MES_MAIO",
+        "MES_JUNHO",
+        "MES_JULHO",
+        "MES_AGOSTO",
+        "MES_SETEMBRO",
+        "MES_OUTUBRO",
+        "MES_NOVEMBRO",
+        "MES_DEZEMBRO",
+    ];
+    DIAS.iter()
+        .position(|day| *day == name)
+        .or_else(|| MESES.iter().position(|month| *month == name))
+        .map(|index| index as i32 + 1)
 }
 
 fn to_hir_span(value: Span) -> hir::Span {

@@ -411,6 +411,25 @@ impl<'a> Compiler<'a> {
                 );
                 self.emit(Op::Pop, stmt.span);
             }
+            S::HostCall {
+                module,
+                name,
+                arguments,
+            } => {
+                for arg in arguments {
+                    self.expr(arg)?;
+                }
+                let vm_module = pors_vm_module(module);
+                let native = self.intern_native(vm_module, name);
+                self.emit(
+                    Op::CallNative {
+                        native,
+                        argc: arguments.len() as u32,
+                    },
+                    stmt.span,
+                );
+                self.emit(Op::Pop, stmt.span);
+            }
             S::Return { value } => {
                 if let Some(value) = value {
                     if value.ty.is_vector()
@@ -676,12 +695,7 @@ impl<'a> Compiler<'a> {
                 for arg in arguments {
                     self.expr(arg)?;
                 }
-                let vm_module = match module.as_str() {
-                    "Matematica" => "PorsMatematica",
-                    "Texto" => "PorsTexto",
-                    "Tipos" => "PorsTipos",
-                    other => other,
-                };
+                let vm_module = pors_vm_module(module);
                 let native = self.intern_native(vm_module, name);
                 self.emit(
                     Op::CallNative {
@@ -794,6 +808,17 @@ impl<'a> Compiler<'a> {
             self.emit(Op::CloneArray, expr.span);
         }
         Ok(())
+    }
+}
+
+fn pors_vm_module(module: &str) -> &str {
+    match module {
+        "Matematica" => "PorsMatematica",
+        "Texto" => "PorsTexto",
+        "Tipos" => "PorsTipos",
+        "Util" => "PorsUtil",
+        "Calendario" => "PorsCalendario",
+        other => other,
     }
 }
 

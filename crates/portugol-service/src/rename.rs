@@ -324,6 +324,11 @@ fn collect_pors_function_calls(
                     collect_pors_function_calls_in_expr(argument, functions);
                 }
             }
+            StmtKind::HostCall { arguments, .. } => {
+                for argument in arguments {
+                    collect_pors_function_calls_in_expr(argument, functions);
+                }
+            }
             StmtKind::Write(values) => {
                 for value in values {
                     collect_pors_function_calls_in_expr(value, functions);
@@ -603,7 +608,7 @@ fn collect_portugol_rs_statements(
                     collect_portugol_rs_expression(value, owner, occurrences);
                 }
             }
-            StmtKind::Call { arguments, .. } => {
+            StmtKind::Call { arguments, .. } | StmtKind::HostCall { arguments, .. } => {
                 for value in arguments {
                     collect_portugol_rs_expression(value, owner, occurrences);
                 }

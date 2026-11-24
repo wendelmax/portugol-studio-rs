@@ -122,6 +122,7 @@ pub struct Vm<'a> {
     consts: Vec<Option<Value>>,
     #[cfg(feature = "stdlib")]
     ctx: NativeContext,
+    pors_runtime: crate::pors_libs::PorsRuntime,
     native_handler: Option<&'a mut HostNativeHandler<'a>>,
     interrupt: Arc<AtomicBool>,
     args: Vec<String>,
@@ -406,6 +407,7 @@ impl<'a> Vm<'a> {
             consts,
             #[cfg(feature = "stdlib")]
             ctx,
+            pors_runtime: crate::pors_libs::PorsRuntime::new(),
             native_handler: None,
             interrupt,
             args: Vec::new(),
@@ -429,6 +431,13 @@ impl<'a> Vm<'a> {
     #[cfg(feature = "stdlib")]
     pub fn with_seed(mut self, seed: u64) -> Self {
         self.ctx.reseed(seed);
+        self.pors_runtime.set_seed(seed);
+        self
+    }
+
+    /// Fixa a semente determinística de `Util.sorteia` em PORS (inclusive sem `stdlib` e em `wasm32`).
+    pub fn with_pors_seed(mut self, seed: u64) -> Self {
+        self.pors_runtime.set_seed(seed);
         self
     }
 
@@ -467,6 +476,13 @@ impl<'a> Vm<'a> {
     #[cfg(feature = "stdlib")]
     pub fn with_simulated_time(mut self, epoch_ms: u64) -> Self {
         self.ctx.simulate_time(epoch_ms);
+        self.pors_runtime.simulate_time(epoch_ms);
+        self
+    }
+
+    /// Relógio UTC simulado para `Util` e `Calendario` em PORS (compatível com `--no-default-features` e `wasm32`).
+    pub fn with_pors_simulated_time(mut self, epoch_ms: u64) -> Self {
+        self.pors_runtime.simulate_time(epoch_ms);
         self
     }
 
@@ -1160,15 +1176,55 @@ impl<'a> Vm<'a> {
                     self.push(result);
                     return Ok(false);
                 }
-                if let Some(outcome) = crate::pors_libs::call(
-                    &native_ref.library,
-                    &native_ref.name,
-                    &args,
-                    &mut |bytes| self.charge_string(bytes),
-                ) {
-                    let result = outcome?;
-                    self.push(result);
-                    return Ok(false);
+                if native_ref.library.starts_with("Pors") {
+                    let string_limit = self.string_memory_limit;
+                    let string_used = &mut self.string_memory_used;
+                    let interrupt = &self.interrupt;
+                    let runtime_limit = self.runtime_limit;
+                    let runtime_clock = &self.runtime_clock;
+                    let mut hit_string_limit = false;
+                    let mut hit_time_limit = false;
+                    let pors_outcome = crate::pors_libs::call(
+                        &native_ref.library,
+                        &native_ref.name,
+                        &args,
+                        &mut self.pors_runtime,
+                        &mut |bytes| {
+                            let next = string_used.saturating_add(bytes);
+                            if string_limit.is_some_and(|limit| next > limit) {
+                                hit_string_limit = true;
+                                return Err(
+                                    "O limite de memória para cadeias foi excedido.".to_string()
+                                );
+                            }
+                            *string_used = next;
+                            Ok(())
+                        },
+                        &mut || {
+                            if interrupt.load(Ordering::Relaxed) {
+                                return Err("O programa foi interrompido.".to_string());
+                            }
+                            if runtime_limit
+                                .is_some_and(|limit| runtime_clock.active_elapsed() >= limit)
+                            {
+                                hit_time_limit = true;
+                                return Err(
+                                    "O limite de tempo da execução foi excedido.".to_string()
+                                );
+                            }
+                            Ok(())
+                        },
+                    );
+                    if hit_string_limit {
+                        self.pending_limit = Some(RuntimeLimitReason::StringMemory);
+                    } else if hit_time_limit {
+                        self.pending_limit = Some(RuntimeLimitReason::Time);
+                    }
+                    if let Some(outcome) = pors_outcome {
+                        let result = outcome?;
+                        self.push(result);
+                        return Ok(false);
+                    }
                 }
                 #[cfg(feature = "stdlib")]
                 {
