@@ -43,6 +43,7 @@ import { createCargoProjectController } from "./run/cargo-project";
 import { createRunControls } from "./run/controls";
 import { createDebuggerCommands } from "./run/debugger-commands";
 import { createRustExecutionController } from "./run/rust-execution";
+import { createPortugolRsExecutionController } from "./run/portugol-rs-execution";
 import { portugolFolding } from "./folding";
 import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
@@ -791,6 +792,40 @@ const rustExecution = createRustExecutionController({
   showMessages: () => showPanel("messages"),
 });
 
+const portugolRsExecution = createPortugolRsExecutionController({
+  rustcAvailable: () => rustcAvailable,
+  isCurrent: (tab, documentState) => activeTab() === tab && view.state.doc === documentState,
+  runId: () => runId,
+  setRunId: (id) => { runId = id; },
+  setPending: (pending) => { porsRunPending = pending; },
+  setRunTabId: (id) => { runTabId = id; },
+  setPendingEvents: (events) => { pendingEvents = events; },
+  setRunning,
+  clearRuntimeError: () => view.dispatch({ effects: setRuntimeError.of(null) }),
+  clearDebugLine: () => view.dispatch({ effects: setDebugLine.of(null) }),
+  clearPaused: () => { paused = null; },
+  showConsole: () => showPanel("console"),
+  clearConsole,
+  hideInput: () => { inputForm.hidden = true; },
+  runListeners: () => runListeners,
+  startVm: api.startPortugolRsVm,
+  registerRun: api.registerPortugolRsRun,
+  runGeneratedRust: api.runPortugolRs,
+  setStatus,
+  appendProcessOutput,
+  appendConsole,
+  renderMessages,
+  setDiagnostics: (tab, diagnostics) => {
+    tab.runtimeCompileDiagnostics = diagnostics;
+    view.dispatch(setDiagnostics(view.state, diagnostics.map((item) => toCodeMirror(item, view.state.doc.length))));
+  },
+  setVmDiagnostics: (tab, diagnostics) => { tab.diagnostics = diagnostics as api.DiagnosticInfo[]; },
+  showMessages: () => showPanel("messages"),
+  sourceDiagnostic,
+  toCodeMirror,
+  replayEvents: replayRunEvents,
+});
+
 /**
  * Executa o arquivo ativo. Portugol-RS roda na VM educacional por padrão;
  * `asRust` compila o Rust gerado com `rustc`, quando disponível.
@@ -804,117 +839,7 @@ async function runProgram(pauseOnStart = false, asRust = false) {
     return;
   }
   if (tab.language === "portugol-rs") {
-    const documentState = view.state.doc;
-    const source = documentState.toString();
-    view.dispatch({ effects: setRuntimeError.of(null) });
-    view.dispatch({ effects: setDebugLine.of(null) });
-    paused = null;
-    showPanel("console");
-    clearConsole();
-    inputForm.hidden = true;
-    if (!asRust) {
-      const events: PendingRunEvent[] = [];
-      pendingEvents = events;
-      runTabId = tab.id;
-      setRunning(true);
-      try {
-        await runListeners;
-        const id = await api.startPortugolRsVm(
-          source,
-          breakpointLines(view.state),
-          pauseOnStart,
-          tab.path ?? tab.examplePath ?? null,
-        );
-        runId = id;
-        setRunning(true);
-        setStatus(pauseOnStart ? "Depurando Portugol-RS na VM." : "Executando Portugol-RS na VM…");
-        replayRunEvents(events, id);
-      } catch (errors) {
-        runTabId = null;
-        setRunning(false);
-        if (Array.isArray(errors)) {
-          tab.diagnostics = errors;
-          renderMessages();
-          showPanel("messages");
-          setStatus(
-            pauseOnStart
-              ? "O Portugol-RS contém erros e não pode ser depurado."
-              : "O Portugol-RS contém erros e não pode ser executado.",
-            "error",
-          );
-        } else {
-          setStatus(String(errors), "error");
-        }
-      } finally {
-        pendingEvents = null;
-      }
-      return;
-    }
-    if (rustcAvailable !== true) {
-      setStatus("Instale a toolchain Rust para executar o Rust gerado.", "error");
-      return;
-    }
-    porsRunPending = true;
-    runTabId = tab.id;
-    setRunning(true);
-    setStatus("Compilando e executando com rustc…");
-    let porsRunId: number | null = null;
-    try {
-      porsRunId = await api.registerPortugolRsRun();
-      runId = porsRunId;
-      setRunning(true);
-      await runListeners;
-      const result = await api.runPortugolRs(porsRunId, source);
-      if (activeTab() !== tab || view.state.doc !== documentState) return;
-      if (result.status === "cancelled") {
-        appendProcessOutput(result);
-        const phase = result.phase === "compilation" ? "compilação" : "execução";
-        setStatus(`Execução Portugol-RS cancelada durante a ${phase}.`);
-      } else if (result.status === "executed") {
-        appendProcessOutput(result);
-        setStatus(
-          result.exitCode === 0
-            ? "Programa Portugol-RS finalizado com rustc."
-            : `Programa Portugol-RS terminou com código ${result.exitCode ?? "desconhecido"}.`,
-          result.exitCode === 0 ? "ok" : "error",
-        );
-      } else if (result.status === "compile_limit") {
-        if (result.stderr) appendConsole(result.stderr, "error");
-        const reason = result.reason === "time" ? "tempo máximo de compilação de 20 segundos" : "limite de saída de compilação de 1 MiB";
-        setStatus(`Compilação Portugol-RS interrompida: ${reason}.`, "error");
-      } else if (result.status === "runtime_limit") {
-        appendProcessOutput(result);
-        const descriptions = {
-          time: "tempo máximo de 3 segundos",
-          output: "limite de saída de 1 MiB",
-          string_memory: "limite de memória para cadeias de 16 MiB",
-        } as const;
-        setStatus(`Execução Portugol-RS interrompida: ${descriptions[result.reason]}.`, "error");
-      } else {
-        const diagnostics = result.diagnostics.map(sourceDiagnostic).filter((item): item is api.DiagnosticInfo => item !== null);
-        tab.runtimeCompileDiagnostics = diagnostics;
-        if (result.stderr) appendConsole(result.stderr, "error");
-        if (diagnostics.length) {
-          renderMessages();
-          view.dispatch(setDiagnostics(view.state, diagnostics.map((item) => toCodeMirror(item, view.state.doc.length))));
-          showPanel("messages");
-          setStatus("rustc encontrou erros no Rust gerado. Selecione um diagnóstico para voltar à origem.", "error");
-        } else {
-          setStatus("rustc encontrou um erro no código gerado; veja o detalhe no console.", "error");
-        }
-      }
-    } catch (error) {
-      if (activeTab() === tab && view.state.doc === documentState) {
-        appendConsole(String(error) + "\n", "error");
-        setStatus("Não foi possível compilar ou executar o Portugol-RS.", "error");
-      }
-    } finally {
-      inputForm.hidden = true;
-      if (runId === porsRunId) runId = null;
-      porsRunPending = false;
-      runTabId = null;
-      setRunning(runId !== null);
-    }
+    await portugolRsExecution.run(tab, view.state.doc, breakpointLines(view.state), pauseOnStart, asRust);
     return;
   }
   view.dispatch({ effects: setRuntimeError.of(null) });

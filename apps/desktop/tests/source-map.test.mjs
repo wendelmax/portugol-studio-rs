@@ -25,9 +25,11 @@ test("PORS run API distinguishes execution, compiler diagnostics, limits and can
 
 test("PORS execution uses the shared registered cancellation token", () => {
   const tauri = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
+  const porsExecution = readFileSync(new URL("../src/run/portugol-rs-execution.ts", import.meta.url), "utf8");
   assert.match(tauri, /async fn run_portugol_rs\([\s\S]*id: u32,[\s\S]*run_portugol_rs_with_io[\s\S]*remove\(&id\)/);
-  assert.match(main, /api\.registerPortugolRsRun\(\)[\s\S]*runId = porsRunId[\s\S]*api\.runPortugolRs\(porsRunId, source\)/);
-  assert.match(main, /result\.status === "cancelled"[\s\S]*Execução Portugol-RS cancelada durante/);
+  assert.match(main, /registerRun: api\.registerPortugolRsRun/);
+  assert.match(porsExecution, /registeredId = await dependencies\.registerRun\(\)[\s\S]*dependencies\.setRunId\(registeredId\)[\s\S]*dependencies\.runGeneratedRust\(registeredId, source\)/);
+  assert.match(porsExecution, /result\.status === "cancelled"[\s\S]*Execução Portugol-RS cancelada durante/);
 });
 
 test("standalone Rust API covers compile/runtime limits and Tauri registers the command", () => {
@@ -174,13 +176,14 @@ test("generated Rust diff is read-only, accessible, bounded, and hidden when the
 });
 
 test("PORS run response is discarded when its tab or document revision changes", () => {
-  assert.match(main, /activeTab\(\) !== tab \|\| view\.state\.doc !== documentState/);
-  assert.match(main, /result\.status === "executed"/);
-  assert.match(main, /result\.status === "runtime_limit"/);
-  assert.match(main, /tempo máximo de 3 segundos/);
-  assert.match(main, /limite de saída de 1 MiB/);
-  assert.match(main, /limite de memória para cadeias de 16 MiB/);
-  assert.match(main, /result\.diagnostics\.map\(sourceDiagnostic\)/);
+  const porsExecution = readFileSync(new URL("../src/run/portugol-rs-execution.ts", import.meta.url), "utf8");
+  assert.match(porsExecution, /dependencies\.isCurrent\(tab, document\)/);
+  assert.match(porsExecution, /result\.status === "executed"/);
+  assert.match(porsExecution, /result\.status === "runtime_limit"/);
+  assert.match(porsExecution, /tempo máximo de 3 segundos/);
+  assert.match(porsExecution, /limite de saída de 1 MiB/);
+  assert.match(porsExecution, /limite de memória para cadeias de 16 MiB/);
+  assert.match(porsExecution, /result\.diagnostics\.map\(dependencies\.sourceDiagnostic\)/);
   assert.match(generatedEditor, /mappedSourceOffsetAt\(editor\.state\.field\(generatedRustDecorations\), position\)/);
   assert.match(main, /function focusRustMapping\(link: SourceMapLink\)[\s\S]*generatedRustEditor\.dispatch\([\s\S]*scrollIntoView: true/);
 });

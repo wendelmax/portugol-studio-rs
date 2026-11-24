@@ -134,4 +134,18 @@
 - [x] Extract Rust and Cargo process orchestration; retain Tauri calls behind `api.ts`.
 - [x] Update static contract tests to inspect the extracted module boundary.
 - [x] Run frontend tests, typecheck, and build.
-- [ ] Commit the Rust execution group.
+- [x] Commit the Rust execution group.
+
+### Task 10: Portugol-RS execution
+
+**Files:**
+- Create: `apps/desktop/src/run/portugol-rs-execution.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/portugol-rs-execution-controller.test.mjs`
+- Modify: `apps/desktop/tests/pors-input.test.mjs`, `run-event-router.test.mjs`, and `source-map.test.mjs`.
+
+- [x] Add tests for VM startup, VM diagnostics, generated-Rust source mappings, and stale result cleanup.
+- [x] Extract Portugol-RS VM and generated-Rust execution behind callbacks.
+- [x] Keep backend calls through `api.ts` and preserve startup event replay.
+- [x] Run frontend tests, typecheck, and build.
+- [ ] Commit the Portugol-RS execution group.
