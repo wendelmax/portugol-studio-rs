@@ -38,6 +38,7 @@ import { createDebuggerCommands } from "./run/debugger-commands";
 import { createRustExecutionController } from "./run/rust-execution";
 import { createPortugolRsExecutionController } from "./run/portugol-rs-execution";
 import { createClassicExecutionController } from "./run/classic-execution";
+import { createRunDispatcher } from "./run/dispatcher";
 import { portugolFolding } from "./folding";
 import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
@@ -651,36 +652,22 @@ const classicExecution = createClassicExecutionController({
   showMessages: () => showPanel("messages"),
 });
 
-/**
- * Executa o arquivo ativo. Portugol-RS roda na VM educacional por padrão;
- * `asRust` compila o Rust gerado com `rustc`, quando disponível.
- */
-async function runProgram(pauseOnStart = false, asRust = false) {
-  if (runId !== null || pendingEvents !== null || porsRunPending) return;
-  const tab = activeTab();
-  if (!tab) return;
-  if (tab.language === "rust") {
-    await rustExecution.run(pauseOnStart);
-    return;
-  }
-  if (tab.language === "portugol-rs") {
-    await portugolRsExecution.run(tab, view.state.doc, breakpointLines(view.state), pauseOnStart, asRust);
-    return;
-  }
-  await classicExecution.run(tab, view.state.doc, $<HTMLInputElement>("args").value, breakpointLines(view.state), pauseOnStart);
-}
-
-function runOrContinue() {
-  return paused ? debugCommand(api.debugContinue) : runProgram();
-}
-
-function stepOrStart() {
-  return paused ? debugCommand(api.debugStepOver) : runProgram(true);
-}
-
-async function stopProgram() {
-  await debuggerCommands.stopProgram();
-}
+const runDispatcher = createRunDispatcher({
+  isBusy: () => runId !== null || pendingEvents !== null || porsRunPending,
+  activeTab,
+  currentDocument: () => view.state.doc,
+  editorState: () => view.state,
+  argumentsText: () => $<HTMLInputElement>("args").value,
+  breakpointLines: (state) => breakpointLines(state),
+  rustExecution,
+  portugolRsExecution,
+  classicExecution,
+  isPaused: () => paused !== null,
+  debugContinue: () => debugCommand(api.debugContinue),
+  debugStepOver: () => debugCommand(api.debugStepOver),
+  stop: () => debuggerCommands.stopProgram(),
+});
+const { runProgram, runOrContinue, stepOrStart, stopProgram } = runDispatcher;
 
 const cargoProjectController = createCargoProjectController({
   tabs: () => tabs,

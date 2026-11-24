@@ -74,8 +74,10 @@ test("listener and backend errors restore classic run controls", async () => {
 
 test("IDE delegates classic execution through the controller and api boundary", async () => {
   const main = await readFile(new URL("../src/main.ts", import.meta.url), "utf8");
+  const dispatcher = await readFile(new URL("../src/run/dispatcher.ts", import.meta.url), "utf8");
 
   assert.match(main, /createClassicExecutionController\(/);
   assert.match(main, /run: api\.run/);
-  assert.match(main, /await classicExecution\.run\(tab, view\.state\.doc/);
+  assert.match(main, /createRunDispatcher\(/);
+  assert.match(dispatcher, /classicExecution\.run\(tab, document, dependencies\.argumentsText\(\), breakpoints, pauseOnStart\)/);
 });
