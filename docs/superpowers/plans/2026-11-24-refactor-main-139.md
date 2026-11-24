@@ -285,3 +285,15 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - [x] Move the IDE shortcut catalog and shortcut-specific filtering loops into the commands module.
 - [x] Run the full frontend tests (68/68), typecheck, and build.
 - [x] Commit the shortcut catalog group (#176).
+
+### Task 22: Editor update lifecycle
+
+**Files:**
+- Create: `apps/desktop/src/editor/update-controller.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/editor-update-controller.test.mjs`
+
+- [x] Add tests for diagnostic clearing, exercise invalidation, preview staleness, selection updates, and guarded centering.
+- [x] Extract CodeMirror update-event orchestration behind explicit callbacks.
+- [x] Run the full frontend tests (69/69), typecheck, and build.
+- [x] Commit the editor update group (#177).
