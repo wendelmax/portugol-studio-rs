@@ -1,0 +1,27 @@
+funcao inicio() {
+    Util.definir_semente(42);
+    seja ano: inteiro = 2024;
+    seja bissexto: logico = Calendario.eh_bissexto(ano);
+    escolha Calendario.dias_no_mes(ano, Calendario.MES_FEVEREIRO) {
+        caso Resultado::Ok(dias) => {
+            escolha Calendario.nome_mes(Calendario.MES_FEVEREIRO) {
+                caso Resultado::Ok(mes) => {
+                    escolha Util.sorteia(1, 6) {
+                        caso Resultado::Ok(dado) => {
+                            escreva(mes, "/", ano, "=", dias, " bissexto=", bissexto, " dado_valido=", dado >= 1 && dado <= 6);
+                        }
+                        caso Resultado::Erro(e) => {
+                            escreva(e);
+                        }
+                    }
+                }
+                caso Resultado::Erro(e) => {
+                    escreva(e);
+                }
+            }
+        }
+        caso Resultado::Erro(e) => {
+            escreva(e);
+        }
+    }
+}

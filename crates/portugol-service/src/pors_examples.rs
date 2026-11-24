@@ -96,6 +96,46 @@ const EXAMPLES: &[PorsExample] = &[
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-pors/08-ui-contador.pors"),
     },
+    PorsExample {
+        id: "pors-09-opcao-resultado",
+        category: "Tratamento de erros",
+        title: "Opcao, Resultado e operador ?",
+        file_name: "09-opcao-resultado.pors",
+        description: "Demonstra Resultado<inteiro, cadeia>, escolha exaustiva e propagação segura com ?.",
+        is_visual: false,
+        license: "LGPL-3.0-only",
+        source: include_str!("../assets/exemplos-pors/09-opcao-resultado.pors"),
+    },
+    PorsExample {
+        id: "pors-10-vetores-dinamicos",
+        category: "Coleções",
+        title: "Vetores dinâmicos e Texto.dividir",
+        file_name: "10-vetores-dinamicos.pors",
+        description: "Demonstra vetor vazio [], adicionar, remover, obter (Opcao<T>) e Texto.dividir.",
+        is_visual: false,
+        license: "LGPL-3.0-only",
+        source: include_str!("../assets/exemplos-pors/10-vetores-dinamicos.pors"),
+    },
+    PorsExample {
+        id: "pors-11-matematica-texto-tipos",
+        category: "Bibliotecas padrão",
+        title: "Matematica, Texto e Tipos com ?",
+        file_name: "11-matematica-texto-tipos.pors",
+        description: "Combina Matematica.PI, Texto.aparar/preencher_a_esquerda e Tipos.para_inteiro com ?.",
+        is_visual: false,
+        license: "LGPL-3.0-only",
+        source: include_str!("../assets/exemplos-pors/11-matematica-texto-tipos.pors"),
+    },
+    PorsExample {
+        id: "pors-12-util-calendario",
+        category: "Bibliotecas padrão",
+        title: "Util e Calendario determinísticos",
+        file_name: "12-util-calendario.pors",
+        description: "Demonstra Util.definir_semente/sorteia e Calendario.eh_bissexto/dias_no_mes/nome_mes.",
+        is_visual: false,
+        license: "LGPL-3.0-only",
+        source: include_str!("../assets/exemplos-pors/12-util-calendario.pors"),
+    },
 ];
 
 pub fn pors_examples() -> &'static [PorsExample] {
@@ -137,6 +177,22 @@ mod tests {
                 "pors-07-entrada-tipada",
                 "Ada\n36\n",
                 "Olá, Ada! Próxima idade: 37",
+            ),
+            (
+                "pors-09-opcao-resultado",
+                "",
+                "ok=10 | erro=divisão por zero",
+            ),
+            (
+                "pors-10-vetores-dinamicos",
+                "",
+                "removida=TESTAR primeira=LER restantes=2",
+            ),
+            ("pors-11-matematica-texto-tipos", "", "PI=3.14 total=0042"),
+            (
+                "pors-12-util-calendario",
+                "",
+                "Fevereiro/2024=29 bissexto=verdadeiro dado_valido=verdadeiro",
             ),
         ];
 

@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "pors-06-filtrar-positivos",
+  "title": "Filtrar positivos em vetor dinâmico",
+  "statement": "Leia N (quantidade) seguido de N inteiros. Guarde apenas os valores positivos (> 0) em um vetor dinâmico e escreva a quantidade filtrada seguida do primeiro positivo (ou 0 se nenhum).",
+  "starter_code": "funcao inicio() {\n    seja mutavel n: inteiro = 0;\n    leia(n);\n    seja mutavel positivos: vetor<inteiro> = [];\n    escreva(tamanho(positivos), \" 0\");\n}\n",
+  "hints": [
+    "Use adicionar(positivos, valor) dentro de um laço para e obter(positivos, 0) com escolha."
+  ],
+  "cases": [
+    { "name": "mistos", "input": "4\n-3\n7\n0\n12\n", "expected_output": "2 7" },
+    { "name": "nenhum", "input": "2\n-1\n0\n", "expected_output": "0 0" },
+    { "name": "todos", "input": "3\n5\n8\n9\n", "expected_output": "3 5" }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "pors-05-divisao-segura",
+  "title": "Divisão segura com Resultado",
+  "statement": "Implemente uma função dividir(a, b) que retorne Resultado<inteiro, cadeia>. Leia dois inteiros e escreva o quociente ou \"erro\" quando o divisor for zero.",
+  "starter_code": "funcao dividir(a: inteiro, b: inteiro) -> Resultado<inteiro, cadeia> {\n    se (b == 0) {\n        retorne Resultado::Erro(\"erro\");\n    }\n    retorne Resultado::Ok(0);\n}\n\nfuncao inicio() {\n    seja mutavel a: inteiro = 0;\n    seja mutavel b: inteiro = 0;\n    leia(a);\n    leia(b);\n    escolha dividir(a, b) {\n        caso Resultado::Ok(q) => { escreva(q); }\n        caso Resultado::Erro(e) => { escreva(e); }\n    }\n}\n",
+  "hints": [
+    "Retorne Resultado::Ok(a / b) quando b != 0 e Resultado::Erro(\"erro\") quando b == 0."
+  ],
+  "cases": [
+    { "name": "exata", "input": "20\n4\n", "expected_output": "5" },
+    { "name": "divisao_por_zero", "input": "10\n0\n", "expected_output": "erro" },
+    { "name": "negativo", "input": "-15\n3\n", "expected_output": "-5" }
+  ]
+}
