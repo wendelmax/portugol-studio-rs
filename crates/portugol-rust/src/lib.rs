@@ -247,7 +247,13 @@ fn find_host_call_in_stmts(
             } => {
                 if !matches!(
                     module.as_str(),
-                    "UI" | "Matematica" | "Texto" | "Tipos" | "Util" | "Calendario" | "Arquivos"
+                    "UI" | "Matematica"
+                        | "Texto"
+                        | "Tipos"
+                        | "Util"
+                        | "Calendario"
+                        | "Arquivos"
+                        | "Json"
                 ) {
                     Some((module.as_str(), name.as_str(), stmt.span))
                 } else {
@@ -297,7 +303,13 @@ fn find_host_call_in_expr(expr: &portugol_hir::Expr) -> Option<(&str, &str, port
         } => {
             if !matches!(
                 module.as_str(),
-                "UI" | "Matematica" | "Texto" | "Tipos" | "Util" | "Calendario" | "Arquivos"
+                "UI" | "Matematica"
+                    | "Texto"
+                    | "Tipos"
+                    | "Util"
+                    | "Calendario"
+                    | "Arquivos"
+                    | "Json"
             ) {
                 Some((module.as_str(), name.as_str(), expr.span))
             } else {
@@ -1909,6 +1921,74 @@ funcao inicio() {
             "verdadeiro|2|beta|notas.txt|falso|BLOCKED_PARENT|BLOCKED_ABS"
         );
         std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn exports_and_executes_zero_dep_pors_json_in_native_rust() {
+        let source = r#"
+funcao executar() -> Resultado<cadeia, cadeia> {
+    seja mutavel doc: cadeia = "{}";
+    doc = Json.definir_cadeia(doc, "nome", "Ada \"Lovelace\"\n")?;
+    doc = Json.definir_inteiro(doc, "ano", 1843)?;
+    doc = Json.definir_real(doc, "nota", 9.5)?;
+    doc = Json.definir_logico(doc, "ativo", verdadeiro)?;
+    doc = Json.definir_json(doc, "tags", "[\"pors\",\"rust\"]")?;
+    doc = Json.definir_json(doc, "nums", "[10, 20, 30]")?;
+    doc = Json.definir_json(doc, "meta", "{\"emoji\":\"\\uD83D\\uDE00\"}")?;
+
+    seja nome: cadeia = Json.obter_cadeia(doc, "nome")?;
+    seja ano: inteiro = Json.obter_inteiro(doc, "ano")?;
+    seja nota: real = Json.obter_real(doc, "nota")?;
+    seja ativo: logico = Json.obter_logico(doc, "ativo")?;
+    seja tags: vetor<cadeia> = Json.obter_lista_cadeia(doc, "tags")?;
+    seja nums: vetor<inteiro> = Json.obter_lista_inteiro(doc, "nums")?;
+    seja meta: cadeia = Json.obter_json(doc, "meta")?;
+    seja emoji: cadeia = Json.obter_cadeia(meta, "emoji")?;
+    seja chaves: vetor<cadeia> = Json.obter_chaves(doc)?;
+
+    seja sem_ativo: cadeia = Json.remover_chave(doc, "ativo")?;
+    seja tem_ativo: logico = Json.contem_chave(sem_ativo, "ativo")?;
+    seja bonito: cadeia = Json.formatar("{\"a\":1,\"b\":[true,null]}")?;
+    seja compacto: cadeia = Json.minificar(bonito)?;
+
+    retorne Resultado::Ok(
+        Texto.aparar(nome) + "|" +
+        Tipos.inteiro_para_cadeia(ano) + "|" +
+        Tipos.real_para_cadeia(nota) + "|" +
+        Tipos.logico_para_cadeia(ativo) + "|" +
+        tags[1] + "|" +
+        Tipos.inteiro_para_cadeia(nums[0] + nums[2]) + "|" +
+        emoji + "|" +
+        Tipos.inteiro_para_cadeia(tamanho(chaves)) + "|" +
+        Tipos.logico_para_cadeia(tem_ativo) + "|" +
+        compacto + "|" +
+        Json.escapar_cadeia("a\"b")
+    );
+}
+
+funcao inicio() {
+    escolha executar() {
+        caso Resultado::Ok(s) => { escreva(s, "|"); }
+        caso Resultado::Erro(e) => { escreva("ERR:", e, "|"); }
+    }
+    escreva(Json.valido("{\"ok\":1}"), "|", Json.valido("{invalido}"), "|");
+    escolha Json.obter_inteiro("{\"x\":3.5}", "x") {
+        caso Resultado::Ok(_) => { escreva("BAD_INT|"); }
+        caso Resultado::Erro(_) => { escreva("INT_ERR|"); }
+    }
+    seja mutavel fundo: cadeia = "0";
+    para (seja mutavel i: inteiro = 0; i < 70; i += 1) {
+        fundo = "[" + fundo + "]";
+    }
+    escreva(Json.valido(fundo));
+}
+"#;
+        let generated = export_portugol_rs(source).unwrap();
+        assert!(generated.contains("mod __pors_json"));
+        assert_rust_output(
+            generated,
+            "Ada \"Lovelace\"|1843|9.5|verdadeiro|rust|40|\u{1F600}|7|falso|{\"a\":1,\"b\":[true,null]}|\"a\\\"b\"|verdadeiro|falso|INT_ERR|falso",
+        );
     }
 
     fn assert_rust_output(generated: String, expected: &str) {

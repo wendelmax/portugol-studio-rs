@@ -253,7 +253,7 @@ const PORS_TYPES = [
 
 const PORS_BUILTINS = ["escreva", "leia", "tamanho", "adicionar", "remover", "obter"] as const;
 
-export const PORS_MODULES = ["UI", "Matematica", "Texto", "Tipos", "Util", "Calendario", "Arquivos"] as const;
+export const PORS_MODULES = ["UI", "Matematica", "Texto", "Tipos", "Util", "Calendario", "Arquivos", "Json"] as const;
 
 const PORS_MODULE_MEMBERS: Record<(typeof PORS_MODULES)[number], readonly PorsDocEntry[]> = {
   UI: [
@@ -371,6 +371,27 @@ const PORS_MODULE_MEMBERS: Record<(typeof PORS_MODULES)[number], readonly PorsDo
     { label: "remover", kind: "function", signature: "Arquivos.remover(caminho: cadeia) -> Resultado<logico, cadeia>", description: "Remove um arquivo dentro do workspace." },
     { label: "listar", kind: "function", signature: "Arquivos.listar(diretorio: cadeia) -> Resultado<vetor<cadeia>, cadeia>", description: "Lista de forma ordenada até 1024 entradas de um diretório relativo ao workspace." },
   ],
+  Json: [
+    { label: "valido", kind: "function", signature: "Json.valido(texto: cadeia) -> logico", description: "Verifica se `texto` é um documento JSON válido (RFC 8259, profundidade máxima 64)." },
+    { label: "formatar", kind: "function", signature: "Json.formatar(texto: cadeia) -> Resultado<cadeia, cadeia>", description: "Indenta um documento JSON válido com 2 espaços por nível." },
+    { label: "minificar", kind: "function", signature: "Json.minificar(texto: cadeia) -> Resultado<cadeia, cadeia>", description: "Compacta um documento JSON válido removendo espaços desnecessários." },
+    { label: "escapar_cadeia", kind: "function", signature: "Json.escapar_cadeia(texto: cadeia) -> cadeia", description: "Codifica uma cadeia como literal de string JSON escapado (`\"...\"`)." },
+    { label: "contem_chave", kind: "function", signature: "Json.contem_chave(json: cadeia, chave: cadeia) -> Resultado<logico, cadeia>", description: "Verifica se o objeto JSON raiz contém a chave informada." },
+    { label: "obter_chaves", kind: "function", signature: "Json.obter_chaves(json: cadeia) -> Resultado<vetor<cadeia>, cadeia>", description: "Retorna a lista de chaves do objeto JSON raiz em ordem." },
+    { label: "obter_cadeia", kind: "function", signature: "Json.obter_cadeia(json: cadeia, chave: cadeia) -> Resultado<cadeia, cadeia>", description: "Lê uma propriedade de texto (`cadeia`) do objeto JSON." },
+    { label: "obter_inteiro", kind: "function", signature: "Json.obter_inteiro(json: cadeia, chave: cadeia) -> Resultado<inteiro, cadeia>", description: "Lê uma propriedade numérica inteira (`inteiro`) do objeto JSON." },
+    { label: "obter_real", kind: "function", signature: "Json.obter_real(json: cadeia, chave: cadeia) -> Resultado<real, cadeia>", description: "Lê uma propriedade numérica finita (`real`) do objeto JSON." },
+    { label: "obter_logico", kind: "function", signature: "Json.obter_logico(json: cadeia, chave: cadeia) -> Resultado<logico, cadeia>", description: "Lê uma propriedade booleana (`logico`) do objeto JSON." },
+    { label: "obter_json", kind: "function", signature: "Json.obter_json(json: cadeia, chave: cadeia) -> Resultado<cadeia, cadeia>", description: "Extrai o subvalor JSON (objeto, lista ou primitivo) de uma chave como cadeia JSON minificada." },
+    { label: "obter_lista_cadeia", kind: "function", signature: "Json.obter_lista_cadeia(json: cadeia, chave: cadeia) -> Resultado<vetor<cadeia>, cadeia>", description: "Lê uma propriedade de lista JSON de strings em `vetor<cadeia>`." },
+    { label: "obter_lista_inteiro", kind: "function", signature: "Json.obter_lista_inteiro(json: cadeia, chave: cadeia) -> Resultado<vetor<inteiro>, cadeia>", description: "Lê uma propriedade de lista JSON de inteiros em `vetor<inteiro>`." },
+    { label: "definir_cadeia", kind: "function", signature: "Json.definir_cadeia(json: cadeia, chave: cadeia, valor: cadeia) -> Resultado<cadeia, cadeia>", description: "Retorna um novo objeto JSON com a chave definida para a cadeia informada." },
+    { label: "definir_inteiro", kind: "function", signature: "Json.definir_inteiro(json: cadeia, chave: cadeia, valor: inteiro) -> Resultado<cadeia, cadeia>", description: "Retorna um novo objeto JSON com a chave definida para o inteiro informado." },
+    { label: "definir_real", kind: "function", signature: "Json.definir_real(json: cadeia, chave: cadeia, valor: real) -> Resultado<cadeia, cadeia>", description: "Retorna um novo objeto JSON com a chave definida para o número real finito informado." },
+    { label: "definir_logico", kind: "function", signature: "Json.definir_logico(json: cadeia, chave: cadeia, valor: logico) -> Resultado<cadeia, cadeia>", description: "Retorna um novo objeto JSON com a chave definida para o valor lógico informado." },
+    { label: "definir_json", kind: "function", signature: "Json.definir_json(json: cadeia, chave: cadeia, valor_json: cadeia) -> Resultado<cadeia, cadeia>", description: "Retorna um novo objeto JSON com a chave definida para um subvalor JSON já válido (objeto ou lista)." },
+    { label: "remover_chave", kind: "function", signature: "Json.remover_chave(json: cadeia, chave: cadeia) -> Resultado<cadeia, cadeia>", description: "Retorna um novo objeto JSON sem a chave especificada." },
+  ],
 };
 
 const PORS_BUILTIN_VARIANTS: Record<"Opcao" | "Resultado", readonly PorsDocEntry[]> = {
@@ -406,6 +427,7 @@ const PORS_TOP_LEVEL_DOCS: Record<string, PorsDocEntry> = {
   Util: { label: "Util", kind: "namespace", signature: "modulo Util", description: "Utilitários determinísticos e seguros (`Util.sorteia`, `Util.definir_semente`, `Util.tempo_decorrido`, `Util.aguarde`)." },
   Calendario: { label: "Calendario", kind: "namespace", signature: "modulo Calendario", description: "Data e hora UTC determinísticas, constantes de dias/meses e cálculos gregorianos." },
   Arquivos: { label: "Arquivos", kind: "namespace", signature: "modulo Arquivos", description: "Leitura e escrita de arquivos UTF-8 confinada ao workspace, com limite de 2 MiB e tratamento via `Resultado<T, cadeia>`." },
+  Json: { label: "Json", kind: "namespace", signature: "modulo Json", description: "Validação, consulta, formatação e construção imutável de JSON (RFC 8259) zero-dependência com `Resultado<T, cadeia>`." },
 };
 
 export const PORS_SNIPPETS: Completion[] = [

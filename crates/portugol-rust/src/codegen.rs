@@ -29,6 +29,7 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
     let uses_util = pors && program_uses_host_module(program, "Util");
     let uses_calendario = pors && program_uses_host_module(program, "Calendario");
     let uses_arquivos = pors && program_uses_host_module(program, "Arquivos");
+    let uses_json = pors && program_uses_host_module(program, "Json");
     let mvu_update_arity = if pors && program.body.is_empty() {
         mvu_entry_update_arity(program)
     } else {
@@ -65,6 +66,9 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
     }
     if uses_arquivos {
         output.push_str(PORS_ARQUIVOS_RUNTIME);
+    }
+    if uses_json {
+        output.push_str(PORS_JSON_RUNTIME);
     }
     for definition in &program.record_types {
         output.push_str(&format!(
@@ -963,6 +967,13 @@ fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedExpression {
             arguments,
         } if module == "Arquivos" => {
             render_stdlib_host_call("__pors_arquivos", name, arguments, program, pors)
+        }
+        ExprKind::HostCall {
+            module,
+            name,
+            arguments,
+        } if module == "Json" => {
+            render_stdlib_host_call("__pors_json", name, arguments, program, pors)
         }
         ExprKind::HostCall { .. } => vec![ExpressionPart::Text("0_i32".to_owned())],
         ExprKind::Integer(value) if *value == i32::MIN => {
@@ -2592,6 +2603,505 @@ mod __pors_arquivos {
         names.sort();
         super::__pors_account(total_bytes);
         Ok(names)
+    }
+}
+"#;
+
+const PORS_JSON_RUNTIME: &str = r#"
+#[allow(dead_code)]
+mod __pors_json {
+    use std::fmt::Write as _;
+
+    const MAX_JSON_DEPTH: usize = 64;
+    const MAX_JSON_BYTES: usize = 2 * 1024 * 1024;
+
+    enum Value {
+        Null,
+        Bool(bool),
+        Int(i64),
+        Float(f64),
+        Str(String),
+        Array(Vec<Value>),
+        Object(Vec<(String, Value)>),
+    }
+
+    struct Parser<'a> {
+        src: &'a str,
+        bytes: &'a [u8],
+        pos: usize,
+    }
+
+    impl<'a> Parser<'a> {
+        fn parse(src: &'a str) -> Result<Value, String> {
+            if src.len() > MAX_JSON_BYTES {
+                return Err(super::__pors_string(&format!(
+                    "Documento JSON excede o limite de {MAX_JSON_BYTES} bytes."
+                )));
+            }
+            let mut p = Self { src, bytes: src.as_bytes(), pos: 0 };
+            p.skip_ws();
+            let v = p.parse_value(0)?;
+            p.skip_ws();
+            if p.pos != p.bytes.len() {
+                return Err(super::__pors_string("Conteúdo inesperado após o término do JSON."));
+            }
+            Ok(v)
+        }
+
+        fn skip_ws(&mut self) {
+            while let Some(&b) = self.bytes.get(self.pos) {
+                if matches!(b, b' ' | b'\t' | b'\n' | b'\r') {
+                    self.pos += 1;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        fn peek(&self) -> Option<u8> {
+            self.bytes.get(self.pos).copied()
+        }
+
+        fn parse_value(&mut self, depth: usize) -> Result<Value, String> {
+            if depth > MAX_JSON_DEPTH {
+                return Err(super::__pors_string(&format!(
+                    "Profundidade máxima de JSON excedida (limite: {MAX_JSON_DEPTH})."
+                )));
+            }
+            self.skip_ws();
+            match self.peek() {
+                Some(b'{') => self.parse_object(depth + 1),
+                Some(b'[') => self.parse_array(depth + 1),
+                Some(b'"') => self.parse_string().map(Value::Str),
+                Some(b't') => { self.expect(b"true")?; Ok(Value::Bool(true)) }
+                Some(b'f') => { self.expect(b"false")?; Ok(Value::Bool(false)) }
+                Some(b'n') => { self.expect(b"null")?; Ok(Value::Null) }
+                Some(b'-' | b'0'..=b'9') => self.parse_number(),
+                Some(_) => Err(super::__pors_string(&format!(
+                    "Caractere inesperado no JSON na posição {}.",
+                    self.pos
+                ))),
+                None => Err(super::__pors_string("Fim inesperado do JSON.")),
+            }
+        }
+
+        fn expect(&mut self, lit: &[u8]) -> Result<(), String> {
+            if self.bytes.get(self.pos..self.pos + lit.len()) == Some(lit) {
+                self.pos += lit.len();
+                Ok(())
+            } else {
+                Err(super::__pors_string(&format!("Token JSON inválido na posição {}.", self.pos)))
+            }
+        }
+
+        fn parse_object(&mut self, depth: usize) -> Result<Value, String> {
+            if depth > MAX_JSON_DEPTH {
+                return Err(super::__pors_string(&format!(
+                    "Profundidade máxima de JSON excedida (limite: {MAX_JSON_DEPTH})."
+                )));
+            }
+            self.pos += 1;
+            self.skip_ws();
+            let mut entries: Vec<(String, Value)> = Vec::new();
+            if self.peek() == Some(b'}') {
+                self.pos += 1;
+                return Ok(Value::Object(entries));
+            }
+            loop {
+                self.skip_ws();
+                if self.peek() != Some(b'"') {
+                    return Err(super::__pors_string(&format!(
+                        "Esperada chave de texto no objeto JSON na posição {}.",
+                        self.pos
+                    )));
+                }
+                let key = self.parse_string()?;
+                self.skip_ws();
+                if self.peek() != Some(b':') {
+                    return Err(super::__pors_string(&format!(
+                        "Esperado `:` após chave JSON na posição {}.",
+                        self.pos
+                    )));
+                }
+                self.pos += 1;
+                let val = self.parse_value(depth)?;
+                if let Some(existing) = entries.iter_mut().find(|(k, _)| k == &key) {
+                    existing.1 = val;
+                } else {
+                    entries.push((key, val));
+                }
+                self.skip_ws();
+                match self.peek() {
+                    Some(b',') => self.pos += 1,
+                    Some(b'}') => { self.pos += 1; return Ok(Value::Object(entries)); }
+                    _ => return Err(super::__pors_string(&format!(
+                        "Esperado `,` ou `}}` no objeto JSON na posição {}.",
+                        self.pos
+                    ))),
+                }
+            }
+        }
+
+        fn parse_array(&mut self, depth: usize) -> Result<Value, String> {
+            if depth > MAX_JSON_DEPTH {
+                return Err(super::__pors_string(&format!(
+                    "Profundidade máxima de JSON excedida (limite: {MAX_JSON_DEPTH})."
+                )));
+            }
+            self.pos += 1;
+            self.skip_ws();
+            let mut items = Vec::new();
+            if self.peek() == Some(b']') {
+                self.pos += 1;
+                return Ok(Value::Array(items));
+            }
+            loop {
+                items.push(self.parse_value(depth)?);
+                self.skip_ws();
+                match self.peek() {
+                    Some(b',') => self.pos += 1,
+                    Some(b']') => { self.pos += 1; return Ok(Value::Array(items)); }
+                    _ => return Err(super::__pors_string(&format!(
+                        "Esperado `,` ou `]` na lista JSON na posição {}.",
+                        self.pos
+                    ))),
+                }
+            }
+        }
+
+        fn parse_hex4(&mut self) -> Result<u16, String> {
+            let Some(slice) = self.src.get(self.pos..self.pos + 4) else {
+                return Err(super::__pors_string("Escape Unicode `\\u` incompleto no JSON."));
+            };
+            let code = u16::from_str_radix(slice, 16)
+                .map_err(|_| super::__pors_string("Escape Unicode `\\u` inválido no JSON."))?;
+            self.pos += 4;
+            Ok(code)
+        }
+
+        fn parse_string(&mut self) -> Result<String, String> {
+            self.pos += 1;
+            let mut out = String::new();
+            let mut start = self.pos;
+            while let Some(&b) = self.bytes.get(self.pos) {
+                match b {
+                    b'"' => {
+                        out.push_str(&self.src[start..self.pos]);
+                        self.pos += 1;
+                        return Ok(out);
+                    }
+                    b'\\' => {
+                        out.push_str(&self.src[start..self.pos]);
+                        self.pos += 1;
+                        let esc = self.peek().ok_or_else(|| super::__pors_string("Escape incompleto na cadeia JSON."))?;
+                        self.pos += 1;
+                        match esc {
+                            b'"' => out.push('"'),
+                            b'\\' => out.push('\\'),
+                            b'/' => out.push('/'),
+                            b'b' => out.push('\u{0008}'),
+                            b'f' => out.push('\u{000C}'),
+                            b'n' => out.push('\n'),
+                            b'r' => out.push('\r'),
+                            b't' => out.push('\t'),
+                            b'u' => {
+                                let first = self.parse_hex4()?;
+                                if (0xD800..=0xDBFF).contains(&first) {
+                                    if self.bytes.get(self.pos..self.pos + 2) != Some(b"\\u") {
+                                        return Err(super::__pors_string("Par substituto UTF-16 incompleto no JSON."));
+                                    }
+                                    self.pos += 2;
+                                    let second = self.parse_hex4()?;
+                                    if !(0xDC00..=0xDFFF).contains(&second) {
+                                        return Err(super::__pors_string("Par substituto UTF-16 inválido no JSON."));
+                                    }
+                                    let scalar = 0x10000 + (((first as u32 - 0xD800) << 10) | (second as u32 - 0xDC00));
+                                    let ch = char::from_u32(scalar)
+                                        .ok_or_else(|| super::__pors_string("Código Unicode inválido no JSON."))?;
+                                    out.push(ch);
+                                } else if (0xDC00..=0xDFFF).contains(&first) {
+                                    return Err(super::__pors_string("Substituto UTF-16 isolado inválido no JSON."));
+                                } else {
+                                    let ch = char::from_u32(first as u32)
+                                        .ok_or_else(|| super::__pors_string("Código Unicode inválido no JSON."))?;
+                                    out.push(ch);
+                                }
+                            }
+                            _ => return Err(super::__pors_string("Sequência de escape inválida na cadeia JSON.")),
+                        }
+                        start = self.pos;
+                    }
+                    0x00..=0x1F => return Err(super::__pors_string("Caractere de controle não escapado na cadeia JSON.")),
+                    _ => self.pos += 1,
+                }
+            }
+            Err(super::__pors_string("Cadeia JSON não fechada."))
+        }
+
+        fn parse_number(&mut self) -> Result<Value, String> {
+            let start = self.pos;
+            if self.peek() == Some(b'-') { self.pos += 1; }
+            match self.peek() {
+                Some(b'0') => self.pos += 1,
+                Some(b'1'..=b'9') => {
+                    self.pos += 1;
+                    while matches!(self.peek(), Some(b'0'..=b'9')) { self.pos += 1; }
+                }
+                _ => return Err(super::__pors_string(&format!("Número JSON inválido na posição {}.", self.pos))),
+            }
+            let mut is_float = false;
+            if self.peek() == Some(b'.') {
+                is_float = true;
+                self.pos += 1;
+                if !matches!(self.peek(), Some(b'0'..=b'9')) {
+                    return Err(super::__pors_string(&format!("Fração decimal inválida no JSON na posição {}.", self.pos)));
+                }
+                while matches!(self.peek(), Some(b'0'..=b'9')) { self.pos += 1; }
+            }
+            if matches!(self.peek(), Some(b'e' | b'E')) {
+                is_float = true;
+                self.pos += 1;
+                if matches!(self.peek(), Some(b'+' | b'-')) { self.pos += 1; }
+                if !matches!(self.peek(), Some(b'0'..=b'9')) {
+                    return Err(super::__pors_string(&format!("Expoente inválido no JSON na posição {}.", self.pos)));
+                }
+                while matches!(self.peek(), Some(b'0'..=b'9')) { self.pos += 1; }
+            }
+            let token = &self.src[start..self.pos];
+            if !is_float {
+                if let Ok(n) = token.parse::<i64>() {
+                    return Ok(Value::Int(n));
+                }
+            }
+            let f = token.parse::<f64>()
+                .map_err(|_| super::__pors_string(&format!("Número JSON inválido: `{token}`.")))?;
+            if !f.is_finite() {
+                return Err(super::__pors_string(&format!("Número JSON fora do intervalo finito: `{token}`.")));
+            }
+            Ok(Value::Float(f))
+        }
+    }
+
+    fn escape_into(text: &str, out: &mut String) {
+        out.push('"');
+        for ch in text.chars() {
+            match ch {
+                '"' => out.push_str("\\\""),
+                '\\' => out.push_str("\\\\"),
+                '\u{0008}' => out.push_str("\\b"),
+                '\u{000C}' => out.push_str("\\f"),
+                '\n' => out.push_str("\\n"),
+                '\r' => out.push_str("\\r"),
+                '\t' => out.push_str("\\t"),
+                c if (c as u32) < 0x20 => { let _ = write!(out, "\\u{:04x}", c as u32); }
+                c => out.push(c),
+            }
+        }
+        out.push('"');
+    }
+
+    fn write_val(value: &Value, pretty: bool, indent: usize, out: &mut String) -> Result<(), String> {
+        if out.len() > MAX_JSON_BYTES {
+            return Err(super::__pors_string(&format!("Saída JSON excede o limite de {MAX_JSON_BYTES} bytes.")));
+        }
+        match value {
+            Value::Null => out.push_str("null"),
+            Value::Bool(b) => out.push_str(if *b { "true" } else { "false" }),
+            Value::Int(n) => { let _ = write!(out, "{n}"); }
+            Value::Float(f) => {
+                if !f.is_finite() {
+                    return Err(super::__pors_string("Valores NaN ou infinitos não são válidos em JSON."));
+                }
+                let rendered = format!("{f}");
+                out.push_str(&rendered);
+                if !rendered.contains('.') && !rendered.contains('e') && !rendered.contains('E') {
+                    out.push_str(".0");
+                }
+            }
+            Value::Str(s) => escape_into(s, out),
+            Value::Array(items) => {
+                if items.is_empty() { out.push_str("[]"); return Ok(()); }
+                out.push('[');
+                for (i, item) in items.iter().enumerate() {
+                    if i > 0 { out.push(','); }
+                    if pretty {
+                        out.push('\n');
+                        for _ in 0..indent + 2 { out.push(' '); }
+                    }
+                    write_val(item, pretty, indent + 2, out)?;
+                }
+                if pretty {
+                    out.push('\n');
+                    for _ in 0..indent { out.push(' '); }
+                }
+                out.push(']');
+            }
+            Value::Object(entries) => {
+                if entries.is_empty() { out.push_str("{}"); return Ok(()); }
+                out.push('{');
+                for (i, (k, v)) in entries.iter().enumerate() {
+                    if i > 0 { out.push(','); }
+                    if pretty {
+                        out.push('\n');
+                        for _ in 0..indent + 2 { out.push(' '); }
+                    }
+                    escape_into(k, out);
+                    out.push(':');
+                    if pretty { out.push(' '); }
+                    write_val(v, pretty, indent + 2, out)?;
+                }
+                if pretty {
+                    out.push('\n');
+                    for _ in 0..indent { out.push(' '); }
+                }
+                out.push('}');
+            }
+        }
+        if out.len() > MAX_JSON_BYTES {
+            return Err(super::__pors_string(&format!("Saída JSON excede o limite de {MAX_JSON_BYTES} bytes.")));
+        }
+        Ok(())
+    }
+
+    fn serialize(value: &Value, pretty: bool) -> Result<String, String> {
+        let mut out = String::new();
+        write_val(value, pretty, 0, &mut out)?;
+        super::__pors_account(out.len());
+        Ok(out)
+    }
+
+    fn parse_object(src: &str) -> Result<Vec<(String, Value)>, String> {
+        match Parser::parse(src)? {
+            Value::Object(entries) => Ok(entries),
+            _ => Err(super::__pors_string("O documento JSON precisa ser um objeto (`{ ... }`).")),
+        }
+    }
+
+    fn get_entry<'a>(entries: &'a [(String, Value)], key: &str) -> Result<&'a Value, String> {
+        entries.iter().find(|(k, _)| k == key).map(|(_, v)| v)
+            .ok_or_else(|| super::__pors_string(&format!("Chave '{key}' não encontrada no objeto JSON.")))
+    }
+
+    fn set_key(src: &str, key: &str, val: Value) -> Result<String, String> {
+        let mut entries = parse_object(src)?;
+        if let Some(existing) = entries.iter_mut().find(|(k, _)| k == key) {
+            existing.1 = val;
+        } else {
+            entries.push((key.to_owned(), val));
+        }
+        serialize(&Value::Object(entries), false)
+    }
+
+    pub fn valido(texto: &str) -> bool { Parser::parse(texto).is_ok() }
+    pub fn formatar(texto: &str) -> Result<String, String> { serialize(&Parser::parse(texto)?, true) }
+    pub fn minificar(texto: &str) -> Result<String, String> { serialize(&Parser::parse(texto)?, false) }
+    pub fn escapar_cadeia(texto: &str) -> String {
+        let mut out = String::with_capacity(texto.len().saturating_add(2));
+        escape_into(texto, &mut out);
+        super::__pors_account(out.len());
+        out
+    }
+    pub fn contem_chave(json: &str, chave: &str) -> Result<bool, String> {
+        Ok(parse_object(json)?.iter().any(|(k, _)| k == chave))
+    }
+    pub fn obter_chaves(json: &str) -> Result<Vec<String>, String> {
+        let entries = parse_object(json)?;
+        let total: usize = entries.iter().map(|(k, _)| k.len()).sum();
+        super::__pors_account(total);
+        Ok(entries.into_iter().map(|(k, _)| k).collect())
+    }
+    pub fn obter_cadeia(json: &str, chave: &str) -> Result<String, String> {
+        let entries = parse_object(json)?;
+        match get_entry(&entries, chave)? {
+            Value::Str(s) => Ok(super::__pors_string(s)),
+            _ => Err(super::__pors_string(&format!("A chave '{chave}' não contém uma cadeia no JSON."))),
+        }
+    }
+    pub fn obter_inteiro(json: &str, chave: &str) -> Result<i32, String> {
+        let entries = parse_object(json)?;
+        match get_entry(&entries, chave)? {
+            Value::Int(n) => i32::try_from(*n).map_err(|_| {
+                super::__pors_string(&format!("O valor de '{chave}' excede o intervalo de `inteiro` (32 bits)."))
+            }),
+            _ => Err(super::__pors_string(&format!("A chave '{chave}' não contém um número inteiro no JSON."))),
+        }
+    }
+    pub fn obter_real(json: &str, chave: &str) -> Result<f64, String> {
+        let entries = parse_object(json)?;
+        match get_entry(&entries, chave)? {
+            Value::Int(n) => Ok(*n as f64),
+            Value::Float(f) => Ok(*f),
+            _ => Err(super::__pors_string(&format!("A chave '{chave}' não contém um número no JSON."))),
+        }
+    }
+    pub fn obter_logico(json: &str, chave: &str) -> Result<bool, String> {
+        let entries = parse_object(json)?;
+        match get_entry(&entries, chave)? {
+            Value::Bool(b) => Ok(*b),
+            _ => Err(super::__pors_string(&format!("A chave '{chave}' não contém um valor lógico no JSON."))),
+        }
+    }
+    pub fn obter_json(json: &str, chave: &str) -> Result<String, String> {
+        let entries = parse_object(json)?;
+        serialize(get_entry(&entries, chave)?, false)
+    }
+    pub fn obter_lista_cadeia(json: &str, chave: &str) -> Result<Vec<String>, String> {
+        let entries = parse_object(json)?;
+        let Value::Array(items) = get_entry(&entries, chave)? else {
+            return Err(super::__pors_string(&format!("A chave '{chave}' não contém uma lista no JSON.")));
+        };
+        let mut out = Vec::with_capacity(items.len());
+        let mut total = 0usize;
+        for item in items {
+            let Value::Str(s) = item else {
+                return Err(super::__pors_string(&format!("A lista em '{chave}' contém elementos que não são cadeias.")));
+            };
+            total = total.saturating_add(s.len());
+            out.push(s.clone());
+        }
+        super::__pors_account(total);
+        Ok(out)
+    }
+    pub fn obter_lista_inteiro(json: &str, chave: &str) -> Result<Vec<i32>, String> {
+        let entries = parse_object(json)?;
+        let Value::Array(items) = get_entry(&entries, chave)? else {
+            return Err(super::__pors_string(&format!("A chave '{chave}' não contém uma lista no JSON.")));
+        };
+        let mut out = Vec::with_capacity(items.len());
+        for item in items {
+            let Value::Int(n) = item else {
+                return Err(super::__pors_string(&format!("A lista em '{chave}' contém elementos que não são inteiros.")));
+            };
+            let v = i32::try_from(*n).map_err(|_| {
+                super::__pors_string(&format!("A lista em '{chave}' contém inteiro fora do intervalo de 32 bits."))
+            })?;
+            out.push(v);
+        }
+        Ok(out)
+    }
+    pub fn definir_cadeia(json: &str, chave: &str, valor: &str) -> Result<String, String> {
+        set_key(json, chave, Value::Str(valor.to_owned()))
+    }
+    pub fn definir_inteiro(json: &str, chave: &str, valor: i32) -> Result<String, String> {
+        set_key(json, chave, Value::Int(i64::from(valor)))
+    }
+    pub fn definir_real(json: &str, chave: &str, valor: f64) -> Result<String, String> {
+        if !valor.is_finite() {
+            return Err(super::__pors_string("Valores NaN ou infinitos não podem ser gravados em JSON."));
+        }
+        set_key(json, chave, Value::Float(valor))
+    }
+    pub fn definir_logico(json: &str, chave: &str, valor: bool) -> Result<String, String> {
+        set_key(json, chave, Value::Bool(valor))
+    }
+    pub fn definir_json(json: &str, chave: &str, valor_json: &str) -> Result<String, String> {
+        let nested = Parser::parse(valor_json)?;
+        set_key(json, chave, nested)
+    }
+    pub fn remover_chave(json: &str, chave: &str) -> Result<String, String> {
+        let mut entries = parse_object(json)?;
+        entries.retain(|(k, _)| k != chave);
+        serialize(&Value::Object(entries), false)
     }
 }
 "#;

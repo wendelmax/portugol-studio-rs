@@ -1720,7 +1720,7 @@ impl Parser {
                 }
                 if matches!(
                     name.as_str(),
-                    "Matematica" | "Texto" | "Tipos" | "Util" | "Calendario" | "Arquivos"
+                    "Matematica" | "Texto" | "Tipos" | "Util" | "Calendario" | "Arquivos" | "Json"
                 ) && matches!(self.current().kind, Kind::Dot)
                     && self.lookup(&name).is_none()
                 {
@@ -2462,6 +2462,26 @@ impl Parser {
             ("Arquivos", "existe") => Some((&[S], RetRes(B))),
             ("Arquivos", "remover") => Some((&[S], RetRes(B))),
             ("Arquivos", "listar") => Some((&[S], RetRes(hir::Type::VectorString))),
+
+            ("Json", "valido") => Some((&[S], Ret(B))),
+            ("Json", "formatar") => Some((&[S], RetRes(S))),
+            ("Json", "minificar") => Some((&[S], RetRes(S))),
+            ("Json", "escapar_cadeia") => Some((&[S], Ret(S))),
+            ("Json", "contem_chave") => Some((&[S, S], RetRes(B))),
+            ("Json", "obter_chaves") => Some((&[S], RetRes(hir::Type::VectorString))),
+            ("Json", "obter_cadeia") => Some((&[S, S], RetRes(S))),
+            ("Json", "obter_inteiro") => Some((&[S, S], RetRes(I))),
+            ("Json", "obter_real") => Some((&[S, S], RetRes(R))),
+            ("Json", "obter_logico") => Some((&[S, S], RetRes(B))),
+            ("Json", "obter_json") => Some((&[S, S], RetRes(S))),
+            ("Json", "obter_lista_cadeia") => Some((&[S, S], RetRes(hir::Type::VectorString))),
+            ("Json", "obter_lista_inteiro") => Some((&[S, S], RetRes(hir::Type::VectorInteger))),
+            ("Json", "definir_cadeia") => Some((&[S, S, S], RetRes(S))),
+            ("Json", "definir_inteiro") => Some((&[S, S, I], RetRes(S))),
+            ("Json", "definir_real") => Some((&[S, S, R], RetRes(S))),
+            ("Json", "definir_logico") => Some((&[S, S, B], RetRes(S))),
+            ("Json", "definir_json") => Some((&[S, S, S], RetRes(S))),
+            ("Json", "remover_chave") => Some((&[S, S], RetRes(S))),
             _ => None,
         };
 
