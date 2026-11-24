@@ -53,7 +53,7 @@ import { panelContentId, panelNameForKey, type PanelName } from "./panel-tabs";
 import { LIBRARIES, portugol, portugolRs, SNIPPETS } from "./portugol";
 import { detectSourceLanguage, ensureSourceExtension, type SourceLanguage } from "./document-language";
 import { semanticSymbolLanguage } from "./semantic-symbol-actions";
-import { canDebugSource, canFormatSource, canRunAsRust, canRunSource } from "./runtime-capabilities";
+import { canDebugSource, canRunAsRust, canRunSource } from "./runtime-capabilities";
 import { parseClassicArguments, parseProcessArguments } from "./process-arguments";
 import { hasCargoExecutionConsent, hasRustExecutionConsent, rememberCargoExecutionConsent, rememberRustExecutionConsent } from "./rust-execution-consent";
 import { createLatestOnlyRustSourceChecker } from "./rust-source-check";
@@ -70,6 +70,7 @@ import type { Tab } from "./state/tab";
 import { createTabsView } from "./state/tabs-view";
 import { createTabFactory, isTabDirty, PORS_TEMPLATE, tabName } from "./state/tabs";
 import { createTabCloser } from "./state/tab-closer";
+import { deriveLanguageControls, LANGUAGE_BUTTON_IDS } from "./state/language-capabilities";
 import { mountWorkspaceExplorer } from "./workspace/explorer";
 import { mountRustPreview } from "./rust/preview";
 import { mountLearningPanel } from "./learning/panel";
@@ -401,60 +402,42 @@ function activate(id: number) {
 }
 
 function syncLanguageControls(tab: Tab) {
-  const semanticLanguage = semanticSymbolLanguage(tab.language);
-  const pors = semanticLanguage === "portugol-rs";
-  const rustFile = tab.language === "rust";
-  const busy = runId !== null || pendingEvents !== null || porsRunPending;
-  for (const id of ["btn-run", "btn-debug", "btn-debug-pause", "btn-debug-continue", "btn-debug-step-over", "btn-debug-step-into", "btn-debug-step-out"]) {
+  const defaultTitles: Partial<Record<(typeof LANGUAGE_BUTTON_IDS)[number], string>> = {};
+  for (const id of LANGUAGE_BUTTON_IDS) {
     const button = $<HTMLButtonElement>(id);
-    const isRun = id === "btn-run";
-    const cargoDetectionPending = rustFile && Boolean(tab.workspaceId && tab.workspacePath) && tab.cargoProject === undefined;
-    const runtimeUnavailable = isRun
-      ? !canRunSource(tab.language, rustcAvailable) || cargoDetectionPending || (rustFile && tab.cargoProject === true && cargoAvailable === false)
-      : !canDebugSource(tab.language);
-    const stateDisabled = id === "btn-debug-pause"
-      ? runId === null || paused !== null
-      : id === "btn-run" || id === "btn-debug"
-        ? busy && paused === null
-        : paused === null;
-    button.disabled = runtimeUnavailable || stateDisabled;
     button.dataset.defaultTitle ??= button.title;
-    const unavailableReason = cargoDetectionPending
-      ? "Verificando se este arquivo pertence a um projeto Cargo."
-      : rustFile && rustcAvailable !== true
-      ? "Instale a toolchain Rust para executar arquivos .rs."
-      : rustFile && tab.cargoProject === true && cargoAvailable === false
-        ? "Instale Cargo para executar o projeto Rust."
-      : rustFile && !isRun
-        ? "Depuração Rust ainda não está disponível."
-          : "";
-    if (unavailableReason) button.title = unavailableReason;
-    else if (pors && isRun) button.title = "Executar na VM do Portugol-RS (Shift+F6)";
-    else if (rustFile && isRun && tab.cargoProject === true) button.title = "Compilar e executar o projeto Cargo (scripts e dependências executam localmente)";
-    else if (rustFile && isRun) button.title = "Compilar e executar Rust 2021 com rustc (execução sem sandbox)";
-    else button.title = button.dataset.defaultTitle;
-    button.setAttribute("aria-description", unavailableReason);
+    defaultTitles[id] = button.dataset.defaultTitle;
+  }
+  const controls = deriveLanguageControls(tab, {
+    rustcAvailable,
+    cargoAvailable,
+    rustfmtAvailable,
+    runId,
+    paused,
+    busy: runId !== null || pendingEvents !== null || porsRunPending,
+    defaultTitles,
+    libraryNames: [...libraryButtons.keys()],
+  });
+  for (const id of LANGUAGE_BUTTON_IDS) {
+    const button = $<HTMLButtonElement>(id);
+    button.disabled = controls.buttons[id].disabled;
+    button.title = controls.buttons[id].title;
+    button.setAttribute("aria-description", controls.buttons[id].description);
   }
   const args = $<HTMLInputElement>("args");
-  args.disabled = pors;
-  args.title = pors
-    ? "Parâmetros ainda não são suportados em Portugol-RS."
-    : rustFile
-      ? "Espaços separam itens; aspas duplas agrupam. O programa recebe argv, sem shell."
-      : "";
+  args.disabled = controls.arguments.disabled;
+  args.title = controls.arguments.title;
   const format = $<HTMLButtonElement>("editor-format");
-  format.disabled = !canFormatSource(tab.language, rustfmtAvailable);
-  format.title = rustFile && rustfmtAvailable !== true
-    ? "Instale o componente rustfmt com `rustup component add rustfmt`."
-    : "Formatar código-fonte";
+  format.disabled = controls.format.disabled;
+  format.title = controls.format.title;
   for (const [name, button] of libraryButtons) {
-    button.disabled = pors || rustFile || tab.symbols.some((symbol) => symbol.kind === "library" && symbol.name.split(" → ", 1)[0] === name);
-    button.title = rustFile ? "Bibliotecas Portugol não se aplicam a Rust." : pors ? "Bibliotecas clássicas não se aplicam ao Portugol-RS." : `Incluir biblioteca ${name}`;
+    button.disabled = controls.libraries[name].disabled;
+    button.title = controls.libraries[name].title;
   }
   for (const id of ["editor-definition", "editor-rename"]) {
     const button = $<HTMLButtonElement>(id);
-    button.disabled = rustFile;
-    button.setAttribute("aria-description", rustFile ? "Navegação e renomeação de símbolos Rust ainda não estão implementadas." : "");
+    button.disabled = controls.symbolActions.disabled;
+    button.setAttribute("aria-description", controls.symbolActions.description);
   }
 }
 

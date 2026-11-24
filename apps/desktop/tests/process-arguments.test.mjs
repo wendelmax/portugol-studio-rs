@@ -24,13 +24,15 @@ test("encaminha argv como lista tipada do editor ao processo Rust, sem shell", (
   const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
   const main = ideSource();
   const rustExecution = readFileSync(new URL("../src/run/rust-execution.ts", import.meta.url), "utf8");
+  const languageCapabilities = readFileSync(new URL("../src/state/language-capabilities.ts", import.meta.url), "utf8");
   const tauri = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   const runner = readFileSync(new URL("../../../crates/portugol-service/src/pors_run.rs", import.meta.url), "utf8");
 
   assert.match(api, /runRustSource = \(id: number, source: string, args: string\[\]/);
   assert.match(api, /invoke<RustSourceRunResult>\("run_rust_source", \{ id, source, args \}\)/);
-  assert.match(main, /args\.disabled = pors/);
+  assert.match(main, /args\.disabled = controls\.arguments\.disabled/);
+  assert.match(languageCapabilities, /disabled: pors/);
   assert.match(main, /parseArguments: parseProcessArguments/);
   assert.match(rustExecution, /dependencies\.parseArguments\(dependencies\.argumentsText\(\)\)[\s\S]*dependencies\.runRustSource\(id, source, rustArgs\)/);
   assert.match(html, /placeholder='ex\.: 42 "João Silva"'/);

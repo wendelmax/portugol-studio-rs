@@ -1,0 +1,77 @@
+import type { Tab } from "./tab";
+import { canDebugSource, canFormatSource, canRunSource } from "../runtime-capabilities.ts";
+
+export const LANGUAGE_BUTTON_IDS = [
+  "btn-run", "btn-debug", "btn-debug-pause", "btn-debug-continue", "btn-debug-step-over", "btn-debug-step-into", "btn-debug-step-out",
+] as const;
+
+export interface LanguageControlState {
+  rustcAvailable: boolean | null;
+  cargoAvailable: boolean | null;
+  rustfmtAvailable: boolean | null;
+  runId: number | null;
+  paused: unknown | null;
+  busy: boolean;
+  defaultTitles: Partial<Record<(typeof LANGUAGE_BUTTON_IDS)[number], string>>;
+  libraryNames: string[];
+}
+
+export function deriveLanguageControls(
+  tab: Pick<Tab, "language" | "workspaceId" | "workspacePath" | "cargoProject" | "symbols">,
+  state: LanguageControlState,
+) {
+  const pors = tab.language === "portugol-rs";
+  const rustFile = tab.language === "rust";
+  const buttons = Object.fromEntries(LANGUAGE_BUTTON_IDS.map((id) => {
+    const isRun = id === "btn-run";
+    const cargoDetectionPending = rustFile && Boolean(tab.workspaceId && tab.workspacePath) && tab.cargoProject === undefined;
+    const runtimeUnavailable = isRun
+      ? !canRunSource(tab.language, state.rustcAvailable) || cargoDetectionPending || (rustFile && tab.cargoProject === true && state.cargoAvailable === false)
+      : !canDebugSource(tab.language);
+    const stateDisabled = id === "btn-debug-pause"
+      ? state.runId === null || state.paused !== null
+      : id === "btn-run" || id === "btn-debug"
+        ? state.busy && state.paused === null
+        : state.paused === null;
+    const unavailableReason = cargoDetectionPending
+      ? "Verificando se este arquivo pertence a um projeto Cargo."
+      : rustFile && state.rustcAvailable !== true
+        ? "Instale a toolchain Rust para executar arquivos .rs."
+        : rustFile && tab.cargoProject === true && state.cargoAvailable === false
+          ? "Instale Cargo para executar o projeto Rust."
+          : rustFile && !isRun
+            ? "Depuração Rust ainda não está disponível."
+            : "";
+    const title = unavailableReason
+      || (pors && isRun ? "Executar na VM do Portugol-RS (Shift+F6)" : "")
+      || (rustFile && isRun && tab.cargoProject === true ? "Compilar e executar o projeto Cargo (scripts e dependências executam localmente)" : "")
+      || (rustFile && isRun ? "Compilar e executar Rust 2021 com rustc (execução sem sandbox)" : "")
+      || state.defaultTitles[id]
+      || "";
+    return [id, { disabled: runtimeUnavailable || stateDisabled, title, description: unavailableReason }];
+  }));
+  const argumentsControl = {
+    disabled: pors,
+    title: pors
+      ? "Parâmetros ainda não são suportados em Portugol-RS."
+      : rustFile
+        ? "Espaços separam itens; aspas duplas agrupam. O programa recebe argv, sem shell."
+        : "",
+  };
+  const format = {
+    disabled: !canFormatSource(tab.language, state.rustfmtAvailable),
+    title: rustFile && state.rustfmtAvailable !== true
+      ? "Instale o componente rustfmt com `rustup component add rustfmt`."
+      : "Formatar código-fonte",
+  };
+  const libraries = Object.fromEntries(state.libraryNames.map((name) => [name, {
+    disabled: pors || rustFile || tab.symbols.some((symbol) => symbol.kind === "library" && symbol.name.split(" → ", 1)[0] === name),
+    title: rustFile ? "Bibliotecas Portugol não se aplicam a Rust." : pors ? "Bibliotecas clássicas não se aplicam ao Portugol-RS." : `Incluir biblioteca ${name}`,
+  }]));
+  const symbolActions = {
+    disabled: rustFile,
+    description: rustFile ? "Navegação e renomeação de símbolos Rust ainda não estão implementadas." : "",
+  };
+
+  return { buttons, arguments: argumentsControl, format, libraries, symbolActions };
+}
