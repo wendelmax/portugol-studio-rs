@@ -1,0 +1,23 @@
+funcao inicio() {
+    seja mutavel tarefas: vetor<cadeia> = [];
+    seja itens: vetor<cadeia> = Texto.dividir("ler,codificar,testar", ",");
+    para (seja mutavel i: inteiro = 0; i < tamanho(itens); i += 1) {
+        adicionar(tarefas, Texto.caixa_alta(itens[i]));
+    }
+    escolha remover(tarefas) {
+        caso Opcao::Algum(ultima) => {
+            escreva("removida=", ultima, " ");
+        }
+        caso Opcao::Nenhum => {
+            escreva("vazio ");
+        }
+    }
+    escolha obter(tarefas, 0) {
+        caso Opcao::Algum(primeira) => {
+            escreva("primeira=", primeira, " restantes=", tamanho(tarefas));
+        }
+        caso Opcao::Nenhum => {
+            escreva("sem itens");
+        }
+    }
+}

@@ -1,4 +1,10 @@
 import libraries from "./help-assets/bibliotecas.json";
+import {
+  PORS_HELP_DEFAULT_TOPIC,
+  PORS_HELP_LIBRARIES,
+  PORS_HELP_TOPICS,
+  filterPorsHelp,
+} from "./pors-help";
 
 const html = import.meta.glob<string>("./help-assets/topicos/**/*.html", {
   eager: true, query: "?raw", import: "default",
@@ -10,7 +16,6 @@ const images = import.meta.glob<string>("./help-assets/recursos/imagens/**/*.png
   eager: true, query: "?url", import: "default",
 });
 
-const languageIndex = "topicos/linguagem_portugol/index.html";
 const parser = new DOMParser();
 const allowedTags = new Set([
   "a", "b", "div", "h1", "h2", "hr", "img", "li", "p", "span", "table", "tbody", "td", "th", "thead", "tr", "ul",
@@ -44,7 +49,7 @@ export function mountHelp(openExample: (source: string, file: string) => void) {
     const doc = parser.parseFromString(text, "text/html");
     return { id, title: doc.title, body: doc.body };
   });
-  let selected = languageIndex;
+  let selected = PORS_HELP_DEFAULT_TOPIC;
 
   function choose(id: string) {
     selected = id;
@@ -151,6 +156,46 @@ export function mountHelp(openExample: (source: string, file: string) => void) {
 
   function renderArticle() {
     article.replaceChildren();
+    const porsTopic = PORS_HELP_TOPICS.find(({ id }) => id === selected);
+    if (porsTopic) {
+      const header = document.createElement("h1");
+      header.textContent = porsTopic.title;
+      article.append(header, paragraph(porsTopic.summary));
+      for (const text of porsTopic.paragraphs) {
+        article.append(paragraph(text));
+      }
+      if (porsTopic.example) {
+        const { title, fileName, source } = porsTopic.example;
+        const block = document.createElement("section");
+        const heading = document.createElement("h3");
+        heading.textContent = title;
+        const code = document.createElement("pre");
+        code.textContent = source.trimEnd();
+        const button = document.createElement("button");
+        button.textContent = "Abrir no editor (.pors)";
+        button.onclick = () => openExample(source, fileName);
+        block.append(heading, code, button);
+        article.append(block);
+      }
+      refreshTheme();
+      article.scrollTop = 0;
+      return;
+    }
+    const porsLibrary = PORS_HELP_LIBRARIES.find(({ id }) => id === selected);
+    if (porsLibrary) {
+      renderLibrary(
+        porsLibrary.name,
+        porsLibrary.description,
+        porsLibrary.items.map((item) => ({
+          name: item.name,
+          signature: item.signature,
+          description: item.description,
+        })),
+      );
+      refreshTheme();
+      article.scrollTop = 0;
+      return;
+    }
     const topic = topics.find(({ id }) => id === selected);
     if (topic) {
       for (const child of topic.body.childNodes) {
@@ -183,6 +228,14 @@ export function mountHelp(openExample: (source: string, file: string) => void) {
 
   function renderNavigation() {
     const query = normalize(search.value.trim());
+    const porsMatches = filterPorsHelp(search.value);
+    const porsFragment = document.createDocumentFragment();
+    for (const topic of porsMatches.topics) {
+      porsFragment.append(topicButton(topic.id, topic.title));
+    }
+    for (const lib of porsMatches.libraries) {
+      porsFragment.append(topicButton(lib.id, lib.name));
+    }
     const language = document.createDocumentFragment();
     const entries = document.createDocumentFragment();
     for (const { id, title, body } of topics) {
@@ -202,7 +255,11 @@ export function mountHelp(openExample: (source: string, file: string) => void) {
     }
 
     navigation.replaceChildren();
-    for (const [label, entriesList] of [["Linguagem", language], ["Bibliotecas", entries]] as const) {
+    for (const [label, entriesList] of [
+      ["Portugol-RS (PORS)", porsFragment],
+      ["Portugol clássico (legado)", language],
+      ["Bibliotecas clássicas", entries],
+    ] as const) {
       if (!entriesList.childNodes.length) continue;
       const heading = document.createElement("h2");
       heading.textContent = label;

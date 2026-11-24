@@ -1,0 +1,31 @@
+funcao dividir(a: inteiro, b: inteiro) -> Resultado<inteiro, cadeia> {
+    se (b == 0) {
+        retorne Resultado::Erro("divisão por zero");
+    }
+    retorne Resultado::Ok(a / b);
+}
+
+funcao dobro_da_divisao(a: inteiro, b: inteiro) -> Resultado<inteiro, cadeia> {
+    seja quociente: inteiro = dividir(a, b)?;
+    retorne Resultado::Ok(quociente * 2);
+}
+
+funcao inicio() {
+    escolha dobro_da_divisao(20, 4) {
+        caso Resultado::Ok(v) => {
+            escreva("ok=", v);
+        }
+        caso Resultado::Erro(e) => {
+            escreva("erro=", e);
+        }
+    }
+    escreva(" | ");
+    escolha dobro_da_divisao(20, 0) {
+        caso Resultado::Ok(v) => {
+            escreva("ok=", v);
+        }
+        caso Resultado::Erro(e) => {
+            escreva("erro=", e);
+        }
+    }
+}

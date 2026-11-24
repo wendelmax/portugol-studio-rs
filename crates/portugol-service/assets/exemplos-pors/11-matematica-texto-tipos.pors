@@ -1,0 +1,18 @@
+funcao somar_textos(a: cadeia, b: cadeia) -> Resultado<inteiro, cadeia> {
+    seja x: inteiro = Tipos.para_inteiro(Texto.aparar(a))?;
+    seja y: inteiro = Tipos.para_inteiro_base(b, 16)?;
+    retorne Resultado::Ok(x + y);
+}
+
+funcao inicio() {
+    seja pi2: real = Matematica.arredondar(Matematica.PI, 2);
+    escolha somar_textos(" 26 ", "0x10") {
+        caso Resultado::Ok(total) => {
+            seja codigo: cadeia = Texto.preencher_a_esquerda('0', 4, Tipos.inteiro_para_cadeia(total));
+            escreva("PI=", pi2, " total=", codigo);
+        }
+        caso Resultado::Erro(e) => {
+            escreva("erro=", e);
+        }
+    }
+}

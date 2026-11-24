@@ -320,16 +320,19 @@ impl<'a> Compiler<'a> {
                 self.emit(Op::Pop, stmt.span);
             }
             S::Choose { value, arms } => {
+                // Avalia o escrutínio exatamente uma vez (evita reexecutar chamadas
+                // com efeito colateral como `remover(v)` ou `Util.sorteia(...)`).
+                self.expr(value)?;
                 let mut exits = Vec::new();
                 for arm in arms {
-                    self.expr(value)?;
+                    self.emit(Op::Dup, arm.span);
                     self.emit(Op::PushInt(0), arm.span);
                     self.emit(Op::LoadElem, arm.span);
                     self.emit(Op::PushInt(arm.variant_index as i32), arm.span);
                     self.emit(Op::Eq, arm.span);
                     let next_arm = self.emit(Op::JumpIfFalse(0), arm.span);
                     for (payload_index, binding) in arm.payload_bindings.iter().enumerate() {
-                        self.expr(value)?;
+                        self.emit(Op::Dup, arm.span);
                         self.emit(Op::PushInt((payload_index + 1) as i32), arm.span);
                         self.emit(Op::LoadElem, arm.span);
                         if self.locals[binding.0 as usize].ty == Type::Cadeia {
@@ -339,6 +342,7 @@ impl<'a> Compiler<'a> {
                         }
                         self.emit(Op::StoreLocal(binding.0), arm.span);
                     }
+                    self.emit(Op::Pop, arm.span);
                     self.scope_locals
                         .push(arm.payload_bindings.iter().map(|id| id.0).collect());
                     self.scope_shadowed.push(Vec::new());
@@ -357,6 +361,7 @@ impl<'a> Compiler<'a> {
                     let next = self.here();
                     self.patch(next_arm, next);
                 }
+                self.emit(Op::Pop, stmt.span);
                 let end = self.here();
                 for exit in exits {
                     self.patch(exit, end);

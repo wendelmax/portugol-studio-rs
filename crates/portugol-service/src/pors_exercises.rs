@@ -80,6 +80,10 @@ const BUILTIN_RAW: &[&str] = &[
     include_str!("../assets/exercicios-pors/02-maior-de-dois.pors.json"),
     include_str!("../assets/exercicios-pors/03-soma-ate-n.pors.json"),
     include_str!("../assets/exercicios-pors/04-funcao-fatorial.pors.json"),
+    include_str!("../assets/exercicios-pors/05-divisao-segura.pors.json"),
+    include_str!("../assets/exercicios-pors/06-filtrar-positivos.pors.json"),
+    include_str!("../assets/exercicios-pors/07-normalizar-csv.pors.json"),
+    include_str!("../assets/exercicios-pors/08-dias-do-mes.pors.json"),
 ];
 
 static BUILTIN_CATALOG: LazyLock<Vec<PorsExerciseDefinition>> = LazyLock::new(|| {
@@ -332,7 +336,7 @@ mod tests {
     #[test]
     fn evaluates_all_builtin_pors_exercises_with_passing_and_failing_solutions() {
         let catalog = pors_exercises();
-        assert_eq!(catalog.len(), 4);
+        assert_eq!(catalog.len(), 8);
         for summary in &catalog {
             assert_eq!(summary.schema_version, PORS_EXERCISE_SCHEMA_VERSION);
             assert!(portugol_rs_frontend::lower(&summary.starter_code).is_ok());
@@ -354,6 +358,22 @@ mod tests {
             (
                 "pors-04-funcao-fatorial",
                 "funcao fatorial(n: inteiro) -> inteiro { se (n <= 1) { retorne 1; } senao { retorne n * fatorial(n - 1); } } funcao inicio() { seja mutavel n: inteiro = 0; leia(n); escreva(fatorial(n)); }",
+            ),
+            (
+                "pors-05-divisao-segura",
+                "funcao dividir(a: inteiro, b: inteiro) -> Resultado<inteiro, cadeia> { se (b == 0) { retorne Resultado::Erro(\"erro\"); } retorne Resultado::Ok(a / b); } funcao inicio() { seja mutavel a: inteiro = 0; seja mutavel b: inteiro = 0; leia(a); leia(b); escolha dividir(a, b) { caso Resultado::Ok(q) => { escreva(q); } caso Resultado::Erro(e) => { escreva(e); } } }",
+            ),
+            (
+                "pors-06-filtrar-positivos",
+                "funcao inicio() { seja mutavel n: inteiro = 0; leia(n); seja mutavel positivos: vetor<inteiro> = []; para (seja mutavel i: inteiro = 0; i < n; i += 1) { seja mutavel v: inteiro = 0; leia(v); se (v > 0) { adicionar(positivos, v); } } escolha obter(positivos, 0) { caso Opcao::Algum(p) => { escreva(tamanho(positivos), \" \", p); } caso Opcao::Nenhum => { escreva(tamanho(positivos), \" 0\"); } } }",
+            ),
+            (
+                "pors-07-normalizar-csv",
+                "funcao inicio() { seja mutavel linha: cadeia = \"\"; leia(linha); seja partes: vetor<cadeia> = Texto.dividir(linha, \",\"); escreva(tamanho(partes), \"|\", Texto.caixa_alta(Texto.aparar(partes[0]))); }",
+            ),
+            (
+                "pors-08-dias-do-mes",
+                "funcao calcular_dias(ano_txt: cadeia, mes_txt: cadeia) -> Resultado<inteiro, cadeia> { seja ano: inteiro = Tipos.para_inteiro(ano_txt)?; seja mes: inteiro = Tipos.para_inteiro(mes_txt)?; retorne Calendario.dias_no_mes(ano, mes); } funcao inicio() { seja mutavel ano_txt: cadeia = \"\"; seja mutavel mes_txt: cadeia = \"\"; leia(ano_txt); leia(mes_txt); escolha calcular_dias(ano_txt, mes_txt) { caso Resultado::Ok(d) => { escreva(d); } caso Resultado::Erro(_) => { escreva(\"invalido\"); } } }",
             ),
         ];
 
