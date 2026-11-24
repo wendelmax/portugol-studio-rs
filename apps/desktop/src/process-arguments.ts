@@ -39,3 +39,11 @@ export function parseProcessArguments(text: string): string[] {
   if (started) args.push(token);
   return args;
 }
+
+/**
+ * Parâmetros de `inicio(cadeia params[])` no Portugol clássico: separados por
+ * espaço, com aspas agrupando (`"João Silva" 19` → `["João Silva", "19"]`).
+ */
+export function parseClassicArguments(text: string): string[] {
+  return [...text.matchAll(/"([^"]*)"|(\S+)/g)].map((m) => m[1] ?? m[2]);
+}
