@@ -270,6 +270,29 @@ fn parses_break_and_continue_inside_nested_loop_blocks() {
 }
 
 #[test]
+fn parses_chained_senao_se_as_nested_if_else_branches() {
+    let source = "funcao inicio() { seja mutavel valor: inteiro = 2; se (valor == 1) { escreva(1); } senao se (valor == 2) { escreva(2); } senao { escreva(3); } }";
+    let program = lower(source).expect("senao se encadeado deve ser válido");
+    let StmtKind::If {
+        else_branch: Some(first_else),
+        ..
+    } = &program.body[1].kind
+    else {
+        panic!("esperava o if inicial com ramo alternativo");
+    };
+    assert_eq!(first_else.len(), 1);
+    let StmtKind::If {
+        else_branch: Some(final_else),
+        ..
+    } = &first_else[0].kind
+    else {
+        panic!("esperava senao se como If aninhado com ramo final");
+    };
+    assert_eq!(final_else.len(), 1);
+    assert!(matches!(final_else[0].kind, StmtKind::Write(_)));
+}
+
+#[test]
 fn rejects_break_and_continue_outside_loops_at_the_keyword_span() {
     for keyword in ["pare", "continue"] {
         let source = format!("funcao inicio() {{ se (verdadeiro) {{ {keyword}; }} }}");

@@ -563,6 +563,11 @@ export const PORS_SNIPPETS: Completion[] = [
     detail: "condicional se/senao",
     type: "keyword",
   }),
+  snippetCompletion("se (${condicao1}) {\n    ${}\n} senao se (${condicao2}) {\n    ${}\n} senao {\n    ${}\n}", {
+    label: "se senao se",
+    detail: "condicionais se/senao se encadeadas",
+    type: "keyword",
+  }),
   snippetCompletion("enquanto (${condicao}) {\n    ${}\n}", {
     label: "enquanto",
     detail: "laço enquanto",

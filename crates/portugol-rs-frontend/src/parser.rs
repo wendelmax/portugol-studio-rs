@@ -1495,8 +1495,14 @@ impl Parser {
         }
         let (then_branch, then_span) = self.block(false)?;
         let (else_branch, end) = if self.eat_keyword("senao") {
-            let (body, block_span) = self.block(false)?;
-            (Some(body), block_span)
+            if self.is_keyword("se") {
+                let nested = self.conditional()?;
+                let end = Span::new(nested.span.start, nested.span.end);
+                (Some(vec![nested]), end)
+            } else {
+                let (body, block_span) = self.block(false)?;
+                (Some(body), block_span)
+            }
         } else {
             (None, then_span)
         };
