@@ -37,8 +37,8 @@ import {
   exerciseTestPanelState,
   exerciseTestStatus,
   isCurrentExerciseTestRequest,
-  type ExerciseTestRequest,
 } from "./exercise-test-panel";
+import { createTestsPanelController } from "./run/tests-panel";
 import { portugolFolding } from "./folding";
 import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
@@ -320,6 +320,7 @@ let helpOpen = false;
 let nextTabId = 1;
 let definitionNavigationGeneration = 0;
 let learningMode: LearningMode = loadLearningMode();
+let testsPanel: ReturnType<typeof createTestsPanelController> | null = null;
 
 const activeTab = () => tabs.find((t) => t.id === activeId);
 
@@ -1341,111 +1342,11 @@ function renderMessages() {
 }
 
 function renderExerciseTests() {
-  const tab = activeTab();
-  const status = $("tests-status");
-  const run = $<HTMLButtonElement>("tests-run");
-  const failures = $<HTMLUListElement>("tests-results");
-  failures.replaceChildren();
-
-  if (!tab?.exercise && tab?.language === "rust" && tab.cargoProject === true) {
-    const cargoState = cargoTestPanelState(view.state.doc, tab.cargoTestRun);
-    $("tests-title").textContent = `Testes Cargo — ${tabName(tab)}`;
-    const nextStatus = cargoTestStatus(cargoState);
-    if (status.textContent !== nextStatus) status.textContent = nextStatus;
-    run.hidden = false;
-    run.disabled = cargoState.kind === "running" || cargoAvailable !== true || runId !== null || porsRunPending;
-    run.textContent = cargoState.kind === "running" ? "Executando…" : "Executar testes";
-    if (cargoState.kind === "completed") {
-      for (const failure of cargoState.result.failures) {
-        const item = document.createElement("li");
-        item.textContent = failure;
-        failures.append(item);
-      }
-    }
-    failures.hidden = cargoState.kind !== "completed" || failures.childElementCount === 0;
-    return;
-  }
-
-  const state = exerciseTestPanelState(tab?.exercise?.exercise, view.state.doc, tab?.exerciseTestRun);
-  const exerciseLanguage = tab?.exercise?.pors ? "portugol-rs" : "portugol";
-  $("tests-title").textContent = tab?.exercise ? `Testes — ${tabName(tab)}` : "Testes do projeto";
-  const nextStatus = exerciseTestStatus(state, exerciseLanguage);
-  if (status.textContent !== nextStatus) status.textContent = nextStatus;
-  run.hidden = state.kind === "empty" || state.kind === "no-cases";
-  run.disabled = state.kind === "running";
-  run.textContent = state.kind === "running" ? "Executando…" : "Executar casos";
-  if (state.kind === "completed") {
-    for (const failure of state.result.failures) {
-      const item = document.createElement("li");
-      item.textContent = failure;
-      failures.append(item);
-    }
-    for (const hint of state.result.hints ?? []) {
-      const item = document.createElement("li");
-      item.textContent = `Dica: ${hint}`;
-      failures.append(item);
-    }
-  }
-  failures.hidden = state.kind !== "completed" || failures.childElementCount === 0;
+  testsPanel?.render();
 }
 
 async function runExerciseTests() {
-  const tab = activeTab();
-  if (!tab?.exercise && tab?.language === "rust" && tab.cargoProject === true) {
-    await runCargoTests();
-    return;
-  }
-  if (!tab?.exercise || tab.exercise.exercise.cases <= 0) return;
-  const documentState = view.state.doc;
-  const request: ExerciseTestRequest = {
-    tabId: tab.id,
-    document: documentState,
-    generation: (tab.exerciseTestGeneration ?? 0) + 1,
-  };
-  tab.exerciseTestGeneration = request.generation;
-  tab.exerciseTestRun = { source: documentState, status: "running" };
-  renderExerciseTests();
-  const isCurrent = () => {
-    const currentDocument = tab.id === activeId ? view.state.doc : tab.state.doc;
-    return isCurrentExerciseTestRequest(request, {
-      tabId: tab.id,
-      document: currentDocument,
-      generation: tab.exerciseTestGeneration ?? 0,
-    }, tabs.includes(tab));
-  };
-  try {
-    const grade = await exercises.evaluate(tab.exercise, documentState.toString(), isCurrent);
-    if (!isCurrent()) return;
-    if (!grade.current) {
-      tab.exerciseTestRun = {
-        source: documentState,
-        status: "error",
-        message: "Esta avaliação foi substituída por outra. Execute os casos novamente.",
-      };
-      return;
-    }
-    tab.exerciseTestRun = {
-      source: documentState,
-      status: "completed",
-      result: {
-        total: grade.evaluation.total,
-        passed: grade.evaluation.passed,
-        failures: grade.evaluation.failures,
-        hints: grade.evaluation.hints,
-        completed: grade.progress.completed,
-      },
-    };
-  } catch (message) {
-    if (isCurrent()) {
-      tab.exerciseTestRun = {
-        source: documentState,
-        status: "error",
-        message: typeof message === "string" ? message : "Não foi possível executar os casos do exercício.",
-      };
-    }
-  } finally {
-    renderExerciseTests();
-  }
+  await testsPanel?.runExerciseTests();
 }
 
 function routeRunEvent(id: number, handle: () => void) {
@@ -1787,6 +1688,42 @@ ${template}`;
   }
 }
 const exercises = mountExercises(openExercise);
+testsPanel = createTestsPanelController({
+  tabs: () => tabs,
+  activeTab,
+  activeId: () => activeId,
+  currentDocument: () => view.state.doc,
+  documentForTab: (tab) => tab.state.doc,
+  cargoAvailable: () => cargoAvailable,
+  runId: () => runId,
+  runPending: () => porsRunPending,
+  tabName,
+  evaluateExercise: (exercise, source, isCurrent) => exercises.evaluate(exercise, source, isCurrent),
+  cargoTestPanelState,
+  cargoTestStatus,
+  exerciseTestPanelState,
+  exerciseTestStatus,
+  isCurrentExerciseTestRequest,
+  runCargoTests,
+  view: {
+    clearResults: () => $<HTMLUListElement>("tests-results").replaceChildren(),
+    setTitle: (title) => { $("tests-title").textContent = title; },
+    setStatus: (status) => {
+      const element = $("tests-status");
+      if (element.textContent !== status) element.textContent = status;
+    },
+    setRunHidden: (hidden) => { $<HTMLButtonElement>("tests-run").hidden = hidden; },
+    setRunDisabled: (disabled) => { $<HTMLButtonElement>("tests-run").disabled = disabled; },
+    setRunText: (text) => { $<HTMLButtonElement>("tests-run").textContent = text; },
+    appendResult: (text) => {
+      const item = document.createElement("li");
+      item.textContent = text;
+      $<HTMLUListElement>("tests-results").append(item);
+    },
+    setResultsHidden: (hidden) => { $<HTMLUListElement>("tests-results").hidden = hidden; },
+  },
+});
+renderExerciseTests();
 $("home-exercises").onclick = exercises.browse;
 $("tests-run").onclick = () => void runExerciseTests();
 editorMenuAction("editor-exercise", () => {
