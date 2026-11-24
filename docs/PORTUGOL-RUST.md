@@ -16,7 +16,7 @@ Quando o código usa recursos fora desse subconjunto — por exemplo `leia`, la�
 
 Portugol-RS é um dialeto didático implementado separadamente da prévia do Portugol clássico. O subset atual inclui variáveis escalares tipadas, funções auxiliares com parâmetros e retorno tipados, chamadas (incluindo recursão), expressões aritméticas, comparações, lógica `&&`/`||`, condicionais, laços `enquanto` e `para`, `pare`, `continue`, concatenação de cadeias e `leia` tipado. O editor oferece outline, navegação e renomeação semântica para funções e bindings PORS. Recursos fora da gramática atual, como operadores bit a bit, vetores e bibliotecas, recebem diagnósticos em português com posição de origem.
 
-Executar um `.pors` compila o Rust gerado com `rustc`; depurar um `.pors` usa a VM educacional e mostra os valores dessa VM. A depuração não representa execução, ownership ou borrowing do Rust. O laboratório de ownership continua sendo conteúdo editorial baseado em cenários, não uma análise do buffer do aluno.
+Executar e depurar um `.pors` usam a VM educacional, sem exigir Rust instalado; `Arquivos.*` fica restrito à pasta do programa. A opção **Executar como Rust**, na paleta de comandos, compila o Rust gerado com `rustc` quando a toolchain está disponível. A depuração mostra os valores da VM. A depuração não representa execução, ownership ou borrowing do Rust. O laboratório de ownership continua sendo conteúdo editorial baseado em cenários, não uma análise do buffer do aluno.
 
 ## Executar arquivos Rust (`.rs`)
 

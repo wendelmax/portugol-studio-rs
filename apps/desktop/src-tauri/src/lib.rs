@@ -722,6 +722,9 @@ fn run(
     Ok(id)
 }
 
+/// Executa ou depura Portugol-RS na VM educacional, sem depender de `rustc`.
+/// Com `pause_on_start` falso é a execução normal: para apenas nos pontos de
+/// parada, como o `run` do Portugol clássico.
 #[tauri::command]
 fn debug_portugol_rs(
     app: AppHandle,
@@ -729,6 +732,7 @@ fn debug_portugol_rs(
     source: String,
     breakpoints: Vec<u32>,
     pause_on_start: Option<bool>,
+    path: Option<String>,
 ) -> Result<u32, Vec<DiagnosticInfo>> {
     let id = runs.next_id.fetch_add(1, Ordering::Relaxed) + 1;
     let mut current = runs.current.lock().unwrap_or_else(|e| e.into_inner());
@@ -736,9 +740,15 @@ fn debug_portugol_rs(
         previous.stop();
     }
     let observer: Arc<dyn RunObserver> = Arc::new(EventSink { app, id });
+    // `Arquivos.*` fica confinado à pasta do programa, como no Portugol clássico.
+    let working_dir = path
+        .as_deref()
+        .and_then(|p| std::path::Path::new(p).parent())
+        .map(std::path::Path::to_path_buf);
     let options = RunOptions {
         breakpoints,
         pause_on_start: pause_on_start.unwrap_or(true),
+        working_dir,
         ..RunOptions::default()
     };
     let handle = portugol_service::start_portugol_rs(&source, options, observer)?;

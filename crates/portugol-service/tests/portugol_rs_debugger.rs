@@ -819,3 +819,55 @@ fn pors_debugger_executes_in_vm_and_publishes_real_variables() {
     assert_eq!(output, "17");
     handle.join();
 }
+
+#[test]
+fn pors_vm_run_confines_arquivos_to_the_program_folder() {
+    let folder = std::env::temp_dir().join(format!("portugol-pors-vm-run-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&folder);
+    std::fs::create_dir_all(&folder).unwrap();
+
+    let source = r#"
+funcao gravar() -> Resultado<logico, cadeia> {
+    seja _ok: logico = Arquivos.escrever_texto("saida.txt", "ola")?;
+    retorne Resultado::Ok(verdadeiro);
+}
+
+funcao inicio() {
+    escolha gravar() {
+        caso Resultado::Ok(_v) => {
+            escreva("gravado");
+        }
+        caso Resultado::Erro(e) => {
+            escreva("erro=", e);
+        }
+    }
+}
+"#;
+    let (tx, rx) = mpsc::channel();
+    let observer = Arc::new(Recorder(Mutex::new(tx)));
+    let options = RunOptions {
+        working_dir: Some(folder.clone()),
+        ..RunOptions::default()
+    };
+    let _handle = start_portugol_rs(source, options, observer).expect("iniciar VM");
+    let mut output = String::new();
+    let outcome = loop {
+        match rx
+            .recv_timeout(Duration::from_secs(5))
+            .expect("evento da VM")
+        {
+            Event::Output(text) => output.push_str(&text),
+            Event::Finished(outcome) => break outcome,
+            Event::Paused(_) => panic!("não havia ponto de parada"),
+            Event::Input(_) => panic!("não havia leia"),
+        }
+    };
+
+    assert_eq!(outcome, RunOutcome::Finished);
+    assert_eq!(output, "gravado");
+    assert_eq!(
+        std::fs::read_to_string(folder.join("saida.txt")).unwrap(),
+        "ola"
+    );
+    let _ = std::fs::remove_dir_all(&folder);
+}

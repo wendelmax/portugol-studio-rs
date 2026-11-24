@@ -56,7 +56,7 @@ import { detectSourceLanguage, ensureSourceExtension, type SourceLanguage } from
 import { semanticSymbolLanguage } from "./semantic-symbol-actions";
 import { collectWorkspaceFiles, flattenWorkspaceEntries, workspaceFileKind, workspaceRenameFileName, workspaceSourceFileName, type WorkspaceEntry } from "./workspace-explorer";
 import { workspaceExportStatus } from "./workspace-export-state";
-import { canDebugSource, canFormatSource, canRunSource } from "./runtime-capabilities";
+import { canDebugSource, canFormatSource, canRunAsRust, canRunSource } from "./runtime-capabilities";
 import { parseProcessArguments } from "./process-arguments";
 import { hasCargoExecutionConsent, hasRustExecutionConsent, rememberCargoExecutionConsent, rememberRustExecutionConsent } from "./rust-execution-consent";
 import { applyWorkspaceRenameToTabs, deleteWorkspaceFileFlow, prepareWorkspaceRename } from "./workspace-file-actions";
@@ -600,11 +600,9 @@ function syncLanguageControls(tab: Tab) {
         ? "Instale Cargo para executar o projeto Rust."
       : rustFile && !isRun
         ? "Depuração Rust ainda não está disponível."
-      : pors && isRun && rustcAvailable !== true
-        ? "Instale a toolchain Rust para executar arquivos .pors."
           : "";
     if (unavailableReason) button.title = unavailableReason;
-    else if (pors && isRun) button.title = "Compilar e executar o subset suportado com rustc";
+    else if (pors && isRun) button.title = "Executar na VM do Portugol-RS (Shift+F6)";
     else if (rustFile && isRun && tab.cargoProject === true) button.title = "Compilar e executar o projeto Cargo (scripts e dependências executam localmente)";
     else if (rustFile && isRun) button.title = "Compilar e executar Rust 2021 com rustc (execução sem sandbox)";
     else button.title = button.dataset.defaultTitle;
@@ -1761,7 +1759,11 @@ function chooseCargoTarget(targets: api.CargoRunTarget[]): Promise<api.CargoRunT
   });
 }
 
-async function runProgram(pauseOnStart = false) {
+/**
+ * Executa o arquivo ativo. Portugol-RS roda na VM educacional por padrão;
+ * `asRust` compila o Rust gerado com `rustc`, quando disponível.
+ */
+async function runProgram(pauseOnStart = false, asRust = false) {
   if (runId !== null || pendingEvents !== null || porsRunPending) return;
   const tab = activeTab();
   if (!tab) return;
@@ -1960,17 +1962,22 @@ async function runProgram(pauseOnStart = false) {
     showPanel("console");
     output.replaceChildren();
     inputForm.hidden = true;
-    if (pauseOnStart) {
+    if (!asRust) {
       const events: PendingRunEvent[] = [];
       pendingEvents = events;
       runTabId = tab.id;
       setRunning(true);
       try {
         await runListeners;
-        const id = await api.debugPortugolRs(source, breakpointLines(view.state));
+        const id = await api.startPortugolRsVm(
+          source,
+          breakpointLines(view.state),
+          pauseOnStart,
+          tab.path ?? tab.examplePath ?? null,
+        );
         runId = id;
         setRunning(true);
-        setStatus("Depurando Portugol-RS pela VM.");
+        setStatus(pauseOnStart ? "Depurando Portugol-RS na VM." : "Executando Portugol-RS na VM…");
         replayRunEvents(events, id);
       } catch (errors) {
         runTabId = null;
@@ -1979,7 +1986,12 @@ async function runProgram(pauseOnStart = false) {
           tab.diagnostics = errors;
           renderMessages();
           showPanel("messages");
-          setStatus("O Portugol-RS contém erros e não pode ser depurado.", "error");
+          setStatus(
+            pauseOnStart
+              ? "O Portugol-RS contém erros e não pode ser depurado."
+              : "O Portugol-RS contém erros e não pode ser executado.",
+            "error",
+          );
         } else {
           setStatus(String(errors), "error");
         }
@@ -1989,7 +2001,7 @@ async function runProgram(pauseOnStart = false) {
       return;
     }
     if (rustcAvailable !== true) {
-      setStatus("Instale a toolchain Rust para executar arquivos .pors.", "error");
+      setStatus("Instale a toolchain Rust para executar o Rust gerado.", "error");
       return;
     }
     porsRunPending = true;
@@ -3658,6 +3670,7 @@ let selectedCommandIndex = -1;
 const tabCommands = new Set([
   "Executar", "Depurar", "Interromper", "Pausar", "Continuar", "Próxima instrução",
   "Entrar na função", "Sair da função", "Renomear símbolo", "Formatar código-fonte", "Analisar projeto Cargo", "Testar projeto Cargo",
+  "Executar como Rust",
   "Salvar", "Salvar como", "Parâmetros de execução", "Fechar aba", "Fechar todas as abas", "Localizar e substituir",
   "Buscar na estrutura", "Filtrar variável", "Filtrar vetor", "Filtrar matriz", "Filtrar função",
   "Filtrar constante", "Mostrar todos os tipos", "Filtrar tipo inteiro", "Filtrar tipo caracter",
@@ -3680,7 +3693,7 @@ function availablePaletteCommands() {
     if (command === "Paleta de comandos") return false;
     if (command === "Sobre (fora do editor); ir à declaração (no editor)") return false;
     if (tabCommands.has(command) && !tab) return false;
-    if (command === "Executar" && tab?.language === "portugol-rs" && rustcAvailable !== true) return false;
+    if (command === "Executar como Rust") return tab !== undefined && canRunAsRust(tab.language, rustcAvailable) && runId === null && !porsRunPending;
     if (command === "Analisar projeto Cargo") return tab?.language === "rust" && tab.cargoProject === true && cargoAvailable === true && runId === null && !porsRunPending;
     if (command === "Testar projeto Cargo") return tab?.language === "rust" && tab.cargoProject === true && cargoAvailable === true && runId === null && !porsRunPending;
     if (command === "Parâmetros de execução" && tab?.language === "portugol-rs") return false;
@@ -3798,6 +3811,7 @@ const shortcuts: {
     matches: (e) => (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === "KeyR", action: renameSelection },
   { label: "Ctrl+Alt+F", command: "Formatar código-fonte",
     matches: (e) => (e.ctrlKey || e.metaKey) && e.altKey && !e.shiftKey && e.code === "KeyF", action: formatCode },
+  { label: "via paleta de comandos", command: "Executar como Rust", matches: () => false, action: () => runProgram(false, true) },
   { label: "via paleta de comandos", command: "Analisar projeto Cargo", matches: () => false, action: checkCargoProject },
   { label: "via paleta de comandos", command: "Testar projeto Cargo", matches: () => false, action: runCargoTests },
   { label: "F3", command: "Dicas de interface", matches: (e) => e.key === "F3", action: () => tips.open() },
@@ -4100,9 +4114,6 @@ void api.rustToolchainAvailable().then((available) => {
   if (!tab) return;
   syncLanguageControls(tab);
   if (tab.language === "rust") forceLinting(view);
-  if (tab.language === "portugol-rs" && !available) {
-    setStatus("Instale a toolchain Rust para executar arquivos .pors.", "error");
-  }
 }).catch(() => {
   rustcAvailable = false;
   $<HTMLOptionElement>("learning-mode-rust-option").disabled = true;
