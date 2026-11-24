@@ -50,19 +50,9 @@ import { semanticSymbolLanguage } from "./semantic-symbol-actions";
 import { canDebugSource, canFormatSource, canRunAsRust, canRunSource } from "./runtime-capabilities";
 import { parseClassicArguments, parseProcessArguments } from "./process-arguments";
 import { hasCargoExecutionConsent, hasRustExecutionConsent, rememberCargoExecutionConsent, rememberRustExecutionConsent } from "./rust-execution-consent";
-import { conceptsForMode, resolveConceptForMode } from "./learning-content";
-import { learningPinForMode, setLearningPin, toggleLearningPin } from "./learning-pins";
-import { explainMappedConcept, learningContextAtSelection } from "./learning-context";
 import { createLatestOnlyRustSourceChecker } from "./rust-source-check";
 import { replayRunEvents, routeRunEvent as routeRunEventById, type PendingRunEvent } from "./run-event-router";
 import { loadLearningMode, saveLearningMode, type LearningMode } from "./learning-mode";
-import {
-  getOwnershipScenario,
-  getOwnershipSnapshot,
-  ownershipScenarioIds,
-  type OwnershipBindingState,
-  type OwnershipScenarioId,
-} from "./ownership-lab";
 import { filterCommands, isDebugCommandAvailable, nextCommandIndex } from "./command-palette";
 import { markRustPreviewStale } from "./rust-preview-state";
 import { PORS_UI_EXAMPLES } from "./pors-ui-examples";
@@ -72,6 +62,7 @@ import * as api from "./api";
 import type { Tab } from "./state/tab";
 import { mountWorkspaceExplorer } from "./workspace/explorer";
 import { mountRustPreview } from "./rust/preview";
+import { mountLearningPanel } from "./learning/panel";
 import { $ } from "./dom";
 import { createRecentFiles } from "./files/recent";
 import { mountPaneLayout } from "./layout/panes";
@@ -249,8 +240,8 @@ function extensions(language: SourceLanguage): Extension[] {
         }
         if (learningMode === "bridge") rustPreview.schedule();
       }
-      if (update.selectionSet) learningConceptManuallySelected = false;
-      if ((update.selectionSet || update.docChanged) && !$<HTMLElement>("learning-panel").hidden) renderLearningPanel();
+      if (update.selectionSet) learningPanel.selectionChanged();
+      if ((update.selectionSet || update.docChanged) && !$<HTMLElement>("learning-panel").hidden) learningPanel.render();
       if (update.selectionSet || update.docChanged) renderCursor();
       if (update.selectionSet || update.docChanged) rustPreview.renderMappingGutter();
       if (centerActive && update.selectionSet) {
@@ -270,7 +261,7 @@ const rustPreview = mountRustPreview({
   goTo,
   editorExtensions: [editorColors, generatedRustTheme.of(editorTheme())],
   onRendered: () => {
-    if (!$<HTMLElement>("learning-panel").hidden) renderLearningPanel();
+    if (!$<HTMLElement>("learning-panel").hidden) learningPanel.render();
   },
   openDetachedRust: (code) => {
     const tab = newTab(code, null, undefined, undefined, undefined, "rust");
@@ -281,6 +272,14 @@ const rustPreview = mountRustPreview({
   },
 });
 const generatedRustEditor = rustPreview.generatedEditor;
+const learningPanel = mountLearningPanel({
+  sourceView: view,
+  activeTab: () => activeTab(),
+  learningMode: () => learningMode,
+  openExercise: async (exerciseId) => {
+    await exercises.openById(exerciseId);
+  },
+});
 
 /** Reaplica o tema atual aos editores e à ajuda. */
 function refreshEditorThemes() {
@@ -308,11 +307,6 @@ let helpOpen = false;
 let nextTabId = 1;
 let definitionNavigationGeneration = 0;
 let learningMode: LearningMode = loadLearningMode();
-let selectedLearningConceptId = "variables";
-let learningConceptManuallySelected = false;
-let learningPracticeBusy = false;
-let ownershipScenarioId: OwnershipScenarioId = "move";
-let ownershipStepIndex = 0;
 
 const activeTab = () => tabs.find((t) => t.id === activeId);
 
@@ -1342,188 +1336,6 @@ async function runCargoTests() {
   }
 }
 
-const ownershipStateLabels: Record<OwnershipBindingState, string> = {
-  owner: "Dono",
-  "shared-reference": "Empréstimo compartilhado (&T)",
-  "mutable-reference": "Empréstimo mutável exclusivo (&mut T)",
-  moved: "Movido; valor indisponível",
-  expired: "Empréstimo encerrado",
-  dropped: "Liberado ao sair do escopo",
-};
-
-function renderOwnershipLab() {
-  const scenario = getOwnershipScenario(ownershipScenarioId);
-  const snapshot = getOwnershipSnapshot(ownershipScenarioId, ownershipStepIndex);
-  if (!scenario || !snapshot) return;
-
-  const picker = $<HTMLSelectElement>("ownership-scenario");
-  picker.replaceChildren(...ownershipScenarioIds().map((id) => {
-    const option = document.createElement("option");
-    const item = getOwnershipScenario(id);
-    option.value = id;
-    option.textContent = item?.title ?? id;
-    return option;
-  }));
-  picker.value = scenario.id;
-
-  const code = $<HTMLElement>("ownership-source");
-  code.replaceChildren(...scenario.source.split("\n").map((text, index) => {
-    const line = document.createElement("span");
-    line.className = "ownership-code-line";
-    line.dataset.line = String(index + 1);
-    if (index + 1 === snapshot.currentLine) {
-      line.dataset.current = "true";
-      line.setAttribute("aria-current", "location");
-    }
-    line.textContent = text || " ";
-    return line;
-  }));
-
-  const bindings = $<HTMLUListElement>("ownership-bindings");
-  bindings.replaceChildren(...snapshot.bindings.map((binding) => {
-    const item = document.createElement("li");
-    item.className = "ownership-binding";
-    item.dataset.state = binding.state;
-
-    const heading = document.createElement("div");
-    heading.className = "ownership-binding-heading";
-    const name = document.createElement("code");
-    name.textContent = binding.name;
-    const type = document.createElement("span");
-    type.textContent = binding.type;
-    const state = document.createElement("span");
-    state.className = "ownership-state";
-    state.textContent = ownershipStateLabels[binding.state];
-    heading.append(name, type, state);
-
-    const description = document.createElement("p");
-    description.textContent = binding.description;
-    item.append(heading, description);
-    if (binding.target) {
-      const relation = document.createElement("p");
-      relation.className = "ownership-relation";
-      relation.textContent = binding.state === "owner"
-        ? `Controla: ${binding.target}`
-        : `Empresta de: ${binding.target}`;
-      item.append(relation);
-    }
-    if (binding.value !== undefined) {
-      const value = document.createElement("p");
-      value.className = "ownership-value";
-      value.textContent = `Valor: ${binding.value}`;
-      item.append(value);
-    }
-    return item;
-  }));
-
-  const heap = $<HTMLUListElement>("ownership-heap");
-  heap.replaceChildren(...snapshot.heap.map((block) => {
-    const item = document.createElement("li");
-    item.className = "ownership-heap-block";
-    item.dataset.state = block.state;
-    const title = document.createElement("strong");
-    title.textContent = block.id;
-    const value = document.createElement("p");
-    value.textContent = block.state === "allocated" ? `Conteúdo UTF-8: ${block.value}` : `Conteúdo liberado: ${block.value}`;
-    const allocation = document.createElement("p");
-    allocation.textContent = block.state === "allocated"
-      ? `Alocação ativa; owner: ${block.owner ?? "não identificado"}.`
-      : "Alocação liberada quando o owner saiu do escopo.";
-    item.append(title, value, allocation);
-    return item;
-  }));
-
-  $("ownership-step-title").textContent = snapshot.title;
-  $("ownership-explanation").textContent = snapshot.explanation;
-  $("ownership-step-status").textContent = `Passo ${ownershipStepIndex + 1} de ${scenario.snapshots.length}: ${snapshot.title}`;
-  $("ownership-provenance").textContent = snapshot.provenance === "verified-simulation"
-    ? "Simulação didática — não é execução nem trace de memória Rust."
-    : "Proveniência indisponível.";
-  const diagnostic = $<HTMLElement>("ownership-diagnostic");
-  diagnostic.hidden = !snapshot.diagnostic;
-  diagnostic.textContent = snapshot.diagnostic ?? "";
-
-  $<HTMLButtonElement>("ownership-previous").disabled = ownershipStepIndex === 0;
-  $<HTMLButtonElement>("ownership-next").disabled = ownershipStepIndex >= scenario.snapshots.length - 1;
-  $<HTMLButtonElement>("ownership-restart").disabled = ownershipStepIndex === 0;
-}
-
-function renderLearningPanel() {
-  const concepts = conceptsForMode(learningMode);
-  const tab = activeTab();
-  const pinnedConceptId = learningPinForMode(tab?.learningPins, learningMode, concepts.map(({ id }) => id));
-  const source = view.state.doc.toString();
-  const context = !pinnedConceptId && learningMode === "bridge" && !learningConceptManuallySelected && tab?.language !== "rust"
-    ? learningContextAtSelection({
-      source,
-      selectionFrom: view.state.selection.main.from,
-      selectionTo: view.state.selection.main.to,
-      artifact: tab?.rustPreview?.artifact,
-      stale: Boolean(tab?.rustPreview?.stale || tab?.rustPreview?.pending),
-    })
-    : null;
-  const concept = resolveConceptForMode(learningMode, pinnedConceptId ?? context?.conceptId ?? selectedLearningConceptId);
-
-  const picker = $<HTMLSelectElement>("learning-concept");
-  picker.replaceChildren(...concepts.map((item) => {
-    const option = document.createElement("option");
-    option.value = item.id;
-    option.textContent = item.title;
-    return option;
-  }));
-  picker.value = concept.id;
-  const pinButton = $<HTMLButtonElement>("learning-pin");
-  const topicPinned = pinnedConceptId === concept.id;
-  pinButton.disabled = !tab;
-  pinButton.dataset.conceptId = concept.id;
-  pinButton.setAttribute("aria-pressed", String(topicPinned));
-  pinButton.textContent = topicPinned ? "Desafixar tópico" : "Fixar tópico";
-  const practiceButton = $<HTMLButtonElement>("learning-practice-open");
-  practiceButton.hidden = concept.practiceExerciseId === undefined;
-  practiceButton.disabled = !tab || learningPracticeBusy;
-  practiceButton.dataset.exerciseId = concept.practiceExerciseId === undefined ? "" : String(concept.practiceExerciseId);
-  const active = activeTab();
-  $("learning-mode-description").textContent = learningMode === "bridge"
-    ? "Ponte didática: compare os conceitos de Portugol com exemplos Rust editoriais."
-    : learningMode === "rust"
-      ? active?.language === "rust"
-        ? "Nível Rust: o arquivo .rs ativo é editado e executado com a toolchain Rust instalada."
-        : "Nível Rust: abra ou crie um arquivo .rs para programar em Rust. O arquivo atual permanece intacto."
-      : "Fundamentos de lógica e programação em Portugol.";
-  $("learning-title").textContent = concept.title;
-  $("learning-provenance").textContent = topicPinned
-    ? "Tópico fixado — escolha manual nesta aba"
-    : context
-      ? "Relacionado à seleção por mapeamento exato da tradução atual"
-      : "Conceito selecionado manualmente";
-  $("learning-definition").textContent = context
-    ? `${concept.definition} ${explainMappedConcept(context, tab?.language === "portugol-rs" ? "portugol-rs" : "portugol")}`
-    : concept.definition;
-  $("learning-what-changed").textContent = concept.whatChanged;
-  $("learning-why-it-matters").textContent = concept.whyItMatters;
-  $("learning-practice").textContent = concept.practice;
-  const rustMode = learningMode === "rust";
-  $("learning-portugol-example").hidden = rustMode;
-  if (!rustMode) {
-    $("learning-portugol-caption").textContent = context ? "Trecho selecionado na fonte" : concept.portugolExample.caption;
-    $("learning-portugol-code").textContent = context ? context.sourceSnippet : concept.portugolExample.code;
-  }
-
-  const rustSection = $<HTMLElement>("learning-rust-example");
-  const showRustExample = rustMode || (learningMode === "bridge" && (context !== null || concept.rustExample !== undefined));
-  rustSection.hidden = !showRustExample;
-  if (showRustExample) {
-    $("learning-rust-heading").textContent = rustMode ? "Rust — exemplo" : "Rust — comparação didática";
-    $("learning-rust-caption").textContent = context ? "Rust gerado para este trecho" : concept.rustExample!.caption;
-    $("learning-rust-code").textContent = context ? context.rustSnippet : concept.rustExample!.code;
-  }
-
-  const ownershipLab = $<HTMLElement>("ownership-lab");
-  const showOwnershipLab = learningMode !== "beginner" && concept.id === "ownership";
-  ownershipLab.hidden = !showOwnershipLab;
-  if (showOwnershipLab) renderOwnershipLab();
-}
-
 const bottomPanelNames: PanelName[] = ["console", "tests", "messages", "debug"];
 
 function setInspectorView(learning: boolean) {
@@ -1538,7 +1350,7 @@ function showPanel(which: PanelName) {
   setInspectorView(learningActive);
   if (learningActive) {
     showUtilities(true);
-    renderLearningPanel();
+    learningPanel.render();
     return;
   }
   for (const name of bottomPanelNames) {
@@ -2059,7 +1871,7 @@ function applyLearningMode(mode: LearningMode, persist = true) {
   const selector = $<HTMLSelectElement>("learning-mode");
   selector.value = availableMode;
   if (persist) saveLearningMode(availableMode, undefined, activeTab()?.workspacePreferenceKey);
-  if (!$<HTMLElement>("learning-panel").hidden) renderLearningPanel();
+  if (!$<HTMLElement>("learning-panel").hidden) learningPanel.render();
 
   const preview = $<HTMLElement>("rust-preview");
   const bridgeEnabled = availableMode === "bridge" && activeTab()?.language !== "rust";
@@ -2171,64 +1983,6 @@ document.querySelectorAll<HTMLButtonElement>("[data-activity]").forEach((button)
     }
   };
 });
-$<HTMLSelectElement>("learning-concept").onchange = (event) => {
-  selectedLearningConceptId = (event.currentTarget as HTMLSelectElement).value;
-  const tab = activeTab();
-  const availableConceptIds = conceptsForMode(learningMode).map(({ id }) => id);
-  if (tab && learningPinForMode(tab.learningPins, learningMode, availableConceptIds)) {
-    tab.learningPins = setLearningPin(tab.learningPins, learningMode, selectedLearningConceptId);
-  }
-  learningConceptManuallySelected = true;
-  renderLearningPanel();
-};
-$<HTMLButtonElement>("learning-pin").onclick = (event) => {
-  const tab = activeTab();
-  if (!tab) return;
-  const button = event.currentTarget as HTMLButtonElement;
-  tab.learningPins = toggleLearningPin(tab.learningPins, learningMode, button.dataset.conceptId ?? selectedLearningConceptId);
-  learningConceptManuallySelected = false;
-  renderLearningPanel();
-};
-$<HTMLButtonElement>("learning-practice-open").onclick = async (event) => {
-  if (learningPracticeBusy) return;
-  const button = event.currentTarget as HTMLButtonElement;
-  const exerciseId = Number(button.dataset.exerciseId);
-  if (!Number.isSafeInteger(exerciseId) || exerciseId < 1 || !activeTab()) return;
-
-  learningPracticeBusy = true;
-  button.disabled = true;
-  const status = $<HTMLElement>("learning-practice-status");
-  status.textContent = `Abrindo exercício ${exerciseId}…`;
-  try {
-    await exercises.openById(exerciseId);
-    status.textContent = `Exercício ${exerciseId} aberto no editor. A abertura não registra progresso.`;
-  } catch {
-    status.textContent = "Não foi possível abrir o exercício. Tente novamente ou use a lista de exercícios.";
-  } finally {
-    learningPracticeBusy = false;
-    renderLearningPanel();
-  }
-};
-$<HTMLSelectElement>("ownership-scenario").onchange = (event) => {
-  const selected = (event.currentTarget as HTMLSelectElement).value;
-  if (ownershipScenarioIds().includes(selected as OwnershipScenarioId)) ownershipScenarioId = selected as OwnershipScenarioId;
-  ownershipStepIndex = 0;
-  renderOwnershipLab();
-};
-$<HTMLButtonElement>("ownership-previous").onclick = () => {
-  ownershipStepIndex = Math.max(0, ownershipStepIndex - 1);
-  renderOwnershipLab();
-};
-$<HTMLButtonElement>("ownership-next").onclick = () => {
-  const scenario = getOwnershipScenario(ownershipScenarioId);
-  ownershipStepIndex = Math.min(scenario ? scenario.snapshots.length - 1 : 0, ownershipStepIndex + 1);
-  renderOwnershipLab();
-};
-$<HTMLButtonElement>("ownership-restart").onclick = () => {
-  ownershipStepIndex = 0;
-  renderOwnershipLab();
-};
-
 function cycleTab(step: number) {
   const ids = [homeId, ...(helpOpen ? [helpId] : []), ...tabs.map((tab) => tab.id)];
   activate(ids[(ids.indexOf(activeId) + step + ids.length) % ids.length]);

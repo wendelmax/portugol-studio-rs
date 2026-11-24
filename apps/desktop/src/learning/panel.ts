@@ -1,0 +1,153 @@
+// Painel Aprender: conceito explicado conforme o modo de aprendizagem, a
+// seleção no editor (por mapeamento exato da tradução) ou a escolha manual,
+// com tópico fixado por aba e atalho para o exercício de prática.
+
+import type { EditorView } from "@codemirror/view";
+import { $ } from "../dom";
+import { conceptsForMode, resolveConceptForMode } from "../learning-content";
+import { explainMappedConcept, learningContextAtSelection } from "../learning-context";
+import type { LearningMode } from "../learning-mode";
+import { learningPinForMode, setLearningPin, toggleLearningPin } from "../learning-pins";
+import type { Tab } from "../state/tab";
+import { mountOwnershipLab } from "./ownership-view";
+
+export interface LearningPanelHost {
+  sourceView: EditorView;
+  activeTab(): Tab | undefined;
+  learningMode(): LearningMode;
+  /** Abre o exercício de prática pelo número do catálogo. */
+  openExercise(id: number): Promise<void>;
+}
+
+export function mountLearningPanel(host: LearningPanelHost) {
+  const ownership = mountOwnershipLab();
+  let selectedLearningConceptId = "variables";
+  let learningConceptManuallySelected = false;
+  let learningPracticeBusy = false;
+
+  function renderLearningPanel() {
+    const learningMode = host.learningMode();
+    const concepts = conceptsForMode(learningMode);
+    const tab = host.activeTab();
+    const pinnedConceptId = learningPinForMode(tab?.learningPins, learningMode, concepts.map(({ id }) => id));
+    const source = host.sourceView.state.doc.toString();
+    const context = !pinnedConceptId && learningMode === "bridge" && !learningConceptManuallySelected && tab?.language !== "rust"
+      ? learningContextAtSelection({
+        source,
+        selectionFrom: host.sourceView.state.selection.main.from,
+        selectionTo: host.sourceView.state.selection.main.to,
+        artifact: tab?.rustPreview?.artifact,
+        stale: Boolean(tab?.rustPreview?.stale || tab?.rustPreview?.pending),
+      })
+      : null;
+    const concept = resolveConceptForMode(learningMode, pinnedConceptId ?? context?.conceptId ?? selectedLearningConceptId);
+
+    const picker = $<HTMLSelectElement>("learning-concept");
+    picker.replaceChildren(...concepts.map((item) => {
+      const option = document.createElement("option");
+      option.value = item.id;
+      option.textContent = item.title;
+      return option;
+    }));
+    picker.value = concept.id;
+    const pinButton = $<HTMLButtonElement>("learning-pin");
+    const topicPinned = pinnedConceptId === concept.id;
+    pinButton.disabled = !tab;
+    pinButton.dataset.conceptId = concept.id;
+    pinButton.setAttribute("aria-pressed", String(topicPinned));
+    pinButton.textContent = topicPinned ? "Desafixar tópico" : "Fixar tópico";
+    const practiceButton = $<HTMLButtonElement>("learning-practice-open");
+    practiceButton.hidden = concept.practiceExerciseId === undefined;
+    practiceButton.disabled = !tab || learningPracticeBusy;
+    practiceButton.dataset.exerciseId = concept.practiceExerciseId === undefined ? "" : String(concept.practiceExerciseId);
+    const active = host.activeTab();
+    $("learning-mode-description").textContent = learningMode === "bridge"
+      ? "Ponte didática: compare os conceitos de Portugol com exemplos Rust editoriais."
+      : learningMode === "rust"
+        ? active?.language === "rust"
+          ? "Nível Rust: o arquivo .rs ativo é editado e executado com a toolchain Rust instalada."
+          : "Nível Rust: abra ou crie um arquivo .rs para programar em Rust. O arquivo atual permanece intacto."
+        : "Fundamentos de lógica e programação em Portugol.";
+    $("learning-title").textContent = concept.title;
+    $("learning-provenance").textContent = topicPinned
+      ? "Tópico fixado — escolha manual nesta aba"
+      : context
+        ? "Relacionado à seleção por mapeamento exato da tradução atual"
+        : "Conceito selecionado manualmente";
+    $("learning-definition").textContent = context
+      ? `${concept.definition} ${explainMappedConcept(context, tab?.language === "portugol-rs" ? "portugol-rs" : "portugol")}`
+      : concept.definition;
+    $("learning-what-changed").textContent = concept.whatChanged;
+    $("learning-why-it-matters").textContent = concept.whyItMatters;
+    $("learning-practice").textContent = concept.practice;
+    const rustMode = learningMode === "rust";
+    $("learning-portugol-example").hidden = rustMode;
+    if (!rustMode) {
+      $("learning-portugol-caption").textContent = context ? "Trecho selecionado na fonte" : concept.portugolExample.caption;
+      $("learning-portugol-code").textContent = context ? context.sourceSnippet : concept.portugolExample.code;
+    }
+
+    const rustSection = $<HTMLElement>("learning-rust-example");
+    const showRustExample = rustMode || (learningMode === "bridge" && (context !== null || concept.rustExample !== undefined));
+    rustSection.hidden = !showRustExample;
+    if (showRustExample) {
+      $("learning-rust-heading").textContent = rustMode ? "Rust — exemplo" : "Rust — comparação didática";
+      $("learning-rust-caption").textContent = context ? "Rust gerado para este trecho" : concept.rustExample!.caption;
+      $("learning-rust-code").textContent = context ? context.rustSnippet : concept.rustExample!.code;
+    }
+
+    const ownershipLab = $<HTMLElement>("ownership-lab");
+    const showOwnershipLab = learningMode !== "beginner" && concept.id === "ownership";
+    ownershipLab.hidden = !showOwnershipLab;
+    if (showOwnershipLab) ownership.render();
+  }
+
+  $<HTMLSelectElement>("learning-concept").onchange = (event) => {
+    const learningMode = host.learningMode();
+    selectedLearningConceptId = (event.currentTarget as HTMLSelectElement).value;
+    const tab = host.activeTab();
+    const availableConceptIds = conceptsForMode(learningMode).map(({ id }) => id);
+    if (tab && learningPinForMode(tab.learningPins, learningMode, availableConceptIds)) {
+      tab.learningPins = setLearningPin(tab.learningPins, learningMode, selectedLearningConceptId);
+    }
+    learningConceptManuallySelected = true;
+    renderLearningPanel();
+  };
+  $<HTMLButtonElement>("learning-pin").onclick = (event) => {
+    const tab = host.activeTab();
+    if (!tab) return;
+    const learningMode = host.learningMode();
+    const button = event.currentTarget as HTMLButtonElement;
+    tab.learningPins = toggleLearningPin(tab.learningPins, learningMode, button.dataset.conceptId ?? selectedLearningConceptId);
+    learningConceptManuallySelected = false;
+    renderLearningPanel();
+  };
+  $<HTMLButtonElement>("learning-practice-open").onclick = async (event) => {
+    if (learningPracticeBusy) return;
+    const button = event.currentTarget as HTMLButtonElement;
+    const exerciseId = Number(button.dataset.exerciseId);
+    if (!Number.isSafeInteger(exerciseId) || exerciseId < 1 || !host.activeTab()) return;
+
+    learningPracticeBusy = true;
+    button.disabled = true;
+    const status = $<HTMLElement>("learning-practice-status");
+    status.textContent = `Abrindo exercício ${exerciseId}…`;
+    try {
+      await host.openExercise(exerciseId);
+      status.textContent = `Exercício ${exerciseId} aberto no editor. A abertura não registra progresso.`;
+    } catch {
+      status.textContent = "Não foi possível abrir o exercício. Tente novamente ou use a lista de exercícios.";
+    } finally {
+      learningPracticeBusy = false;
+      renderLearningPanel();
+    }
+  };
+
+  return {
+    render: renderLearningPanel,
+    /** A seleção mudou no editor: o contexto detectado volta a valer. */
+    selectionChanged() {
+      learningConceptManuallySelected = false;
+    },
+  };
+}
