@@ -382,7 +382,7 @@ fn apply_utf16_edits(source: &str, edits: Vec<(usize, usize, String)>) -> Result
 
 fn print_usage() {
     println!(
-        "portugol 0.1.0\n\
+        "portugol {}\n\
          \n\
          Uso:\n\
            portugol [opções] <arquivo.pors | arquivo.por | diretório>...   valida os arquivos\n\
@@ -396,7 +396,8 @@ fn print_usage() {
          Opções da validação:\n\
            -q, --quiet   só mostra arquivos com erro\n\
            --syntax-only só valida a sintaxe de arquivos .por (desliga a análise semântica)\n\
-           -h, --help    mostra esta ajuda"
+           -h, --help    mostra esta ajuda",
+        env!("CARGO_PKG_VERSION")
     );
 }
 

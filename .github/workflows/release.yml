@@ -1,8 +1,9 @@
 name: Release
 
-# Gera os instaladores e publica um release em rascunho quando uma tag v* é
-# enviada (ex.: git tag v0.1.0 && git push origin v0.1.0) ou quando o workflow
-# é disparado manualmente. Assinatura é opcional: veja docs/DISTRIBUICAO.md.
+# Gera os instaladores e publica um release em rascunho. O caminho normal é o
+# workflow "Preparar release", que chama este com a tag e as notas da versão.
+# Também roda quando uma tag v* é enviada manualmente ou por disparo manual
+# (pré-lançamento de teste). Assinatura é opcional: veja docs/DISTRIBUICAO.md.
 
 on:
   push:
@@ -13,6 +14,17 @@ on:
         description: "Tag do release (ex.: v0.2.0). Vazia usa v<número>-dev"
         required: false
         type: string
+  workflow_call:
+    inputs:
+      tag_release:
+        description: "Tag já criada pelo workflow Preparar release"
+        required: true
+        type: string
+      notas:
+        description: "Notas da versão em Markdown"
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: write
@@ -58,9 +70,12 @@ jobs:
       APPLE_ID_SECRET: ${{ secrets.APPLE_ID }}
       APPLE_PASSWORD_SECRET: ${{ secrets.APPLE_PASSWORD }}
       APPLE_TEAM_ID_SECRET: ${{ secrets.APPLE_TEAM_ID }}
-      RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag || format('v{0}-dev', github.run_number) }}
+      RELEASE_TAG: ${{ inputs.tag_release || (github.ref_type == 'tag' && github.ref_name) || github.event.inputs.tag || format('v{0}-dev', github.run_number) }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Quando chamado pelo Preparar release, compila o commit da versão.
+          ref: ${{ inputs.tag_release || '' }}
 
       - name: Dependências do sistema (Linux)
         if: runner.os == 'Linux'
@@ -131,12 +146,14 @@ jobs:
           tagName: ${{ env.RELEASE_TAG }}
           releaseName: Portugol Studio RS ${{ env.RELEASE_TAG }}
           releaseBody: |
-            Instaladores para Windows (.exe e .msi), Linux (.deb, .rpm e .AppImage)
-            e macOS (.dmg para Apple Silicon e Intel).
-            Veja o README para a lista de recursos e o que ainda falta em relação
-            ao Portugol Studio original.
+            ${{ inputs.notas }}
+
+            ### Instalação
+
+            Instaladores para Windows (`.exe` e `.msi`), Linux (`.deb`, `.rpm` e `.AppImage`)
+            e macOS (`.dmg` para Apple Silicon e Intel). Veja o README para os requisitos.
           releaseDraft: true
-          prerelease: ${{ github.ref_type != 'tag' }}
+          prerelease: ${{ github.ref_type != 'tag' && !inputs.tag_release }}
           args: ${{ matrix.args }} ${{ env.TAURI_SIGN_CONFIG }}
 
       - name: Verificar assinatura (Windows)
