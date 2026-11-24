@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { collectWorkspaceFiles, flattenWorkspaceEntries, workspaceFileKind, workspaceRenameFileName, workspaceSourceFileName } from "../src/workspace-explorer.ts";
 import { ideSource } from "./support/ide-source.mjs";
+import { ideStyles } from "./support/ide-styles.mjs";
 
 test("collapsed folders hide descendants and expanded folders preserve tree depth", () => {
   const entries = [
@@ -93,7 +94,7 @@ test("home action and explorer tree expose stable accessible controls", () => {
 test("home start page defaults new file to Portugol-RS and groups alternate languages", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   const main = ideSource();
-  const css = readFileSync(new URL("../src/style.css", import.meta.url), "utf8");
+  const css = ideStyles();
 
   assert.match(html, /<button id="home-new"[^>]*Portugol-RS \(\.pors\)[^>]*>[^<]*<span[^>]*>[^<]*<\/span>Novo Arquivo<\/button>/);
   assert.match(html, /<details id="home-new-menu"[^>]*data-testid="home-new-menu"/);
@@ -139,7 +140,7 @@ test("workspace rename has an accessible dialog and a typed Tauri route", () => 
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
   const main = ideSource();
-  const css = readFileSync(new URL("../src/style.css", import.meta.url), "utf8");
+  const css = ideStyles();
   assert.match(main, /workspace-rename-file/);
   assert.match(html, /id="workspace-rename-dialog"[^>]*aria-labelledby="workspace-rename-title"/);
   assert.match(html, /id="workspace-rename-name"[^>]*aria-describedby="workspace-rename-error"/);

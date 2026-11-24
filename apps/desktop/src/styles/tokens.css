@@ -1,0 +1,171 @@
+/* Tokens semânticos de cor, elevação, tipografia, espaçamento, raio e layout.
+   Cores literais devem existir apenas neste arquivo e em theme-presets.ts. */
+
+:root,
+.theme-palette {
+  /* Paleta do tema claro (também lida pelo editor de temas em themes.ts) */
+  --bg: #fafafa;
+  --surface: #fafafa;
+  --border: #c1d9f5;
+  --text: #333333;
+  --muted: #536674;
+  --accent: #005494;
+  --accent-text: #ffffff;
+  --error: #c62828;
+  --warning: #a15c00;
+  --ok: #1b7f3b;
+  --input-echo: #2563eb;
+  --tab-active: #d2e7fc;
+  --console-surface: #e6e6e6;
+  --frame: #316892;
+  --home-border: #c1d9f5;
+  --home-title-text: #ffffff;
+  --examples-surface: #e4f1fe;
+  --editor-text: #000000;
+  --editor-caret: #ff0000;
+  --editor-error: #ffcccc;
+  --syntax-function: #ad8000;
+  --syntax-logical: #0000ff;
+  --editor-bg: #fafafa;
+  --editor-line: #ddf1ff;
+  --editor-selection: #c0ced1;
+  --editor-gutter: #787878;
+  --syntax-keyword: #0000ff;
+  --syntax-type: #008080;
+  --syntax-number: #6400c8;
+  --syntax-string: #dc009c;
+  --syntax-comment: #808080;
+  --syntax-operator: #804040;
+
+  /* Tokens semânticos derivados e de estado */
+  --error-text: #ffffff;
+  --diagnostic-row-hover-text: #ffffff;
+  --diagnostic-row-hover-bg: #005494;
+  --tab-indicator-bottom: #d7a600;
+  --tab-indicator: #ffc200;
+  --backdrop: rgb(0 0 0 / 55%);
+  --shadow-menu: 0 4px 12px rgb(0 0 0 / 25%);
+  --shadow-palette: 0 18px 70px rgb(0 0 0 / 35%);
+  --shadow-popover: 0 5px 15px rgb(0 0 0 / 20%);
+  --shadow-tooltip: 0 4px 12px rgba(0, 0, 0, 0.16);
+  --runtime-error-bg: color-mix(in srgb, var(--error) 18%, transparent);
+  --debug-line-bg: color-mix(in srgb, var(--warning) 22%, transparent);
+  --ownership-lab-bg: color-mix(in srgb, var(--surface) 72%, var(--bg));
+  --ownership-diagnostic-bg: color-mix(in srgb, var(--error) 14%, var(--bg));
+  --ownership-current-line-bg: color-mix(in srgb, var(--accent) 18%, transparent);
+  --home-menu-divider: color-mix(in srgb, var(--home-title-text) 35%, transparent);
+
+  /* Tipografia */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", "Cascadia Code", "Fira Code", Consolas, "DejaVu Sans Mono", monospace;
+  --mono-console: "DejaVu Sans Mono", var(--mono);
+  --font-size-2xs: 10px;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-md: 13px;
+  --font-size-lg: 14px;
+  --font-size-xl: 15px;
+  --font-size-2xl: 18px;
+
+  /* Espaçamento */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+
+  /* Raios de borda */
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-pill: 9px;
+
+  /* Tamanhos estruturais do shell */
+  --size-titlebar: 42px;
+  --size-activity-rail: 56px;
+  --size-tabs: 42px;
+  --size-splitter: 15px;
+  --size-explorer-splitter: 9px;
+  --size-error-strip: 12px;
+  --size-mapping-gutter: 76px;
+
+  color-scheme: light;
+}
+
+/* Tema escuro: escolhido no seletor (data-theme="dark") ou herdado do
+   sistema quando o seletor está em "Sistema". */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121e24;
+    --surface: #263238;
+    --border: #445056;
+    --text: #cdcdcd;
+    --muted: #a8b5bc;
+    --accent: #45bdff;
+    --accent-text: #121e24;
+    --error: #ff756e;
+    --warning: #ffc200;
+    --ok: #00efc0;
+    --input-echo: #45bdff;
+    --tab-active: #3a464c;
+    --console-surface: #3a464c;
+    --frame: #121e24;
+    --home-border: #263238;
+    --home-title-text: #cdcdcd;
+    --examples-surface: #445056;
+    --editor-text: #fbfbfb;
+    --editor-caret: #c1cbc2;
+    --editor-error: #04790e;
+    --syntax-function: #fbfbfb;
+    --syntax-logical: #f1433c;
+    --editor-bg: #263238;
+    --editor-line: #2f393c;
+    --editor-selection: #404e51;
+    --editor-gutter: #516268;
+    --syntax-keyword: #f1433c;
+    --syntax-type: #45beff;
+    --syntax-number: #00f0c0;
+    --syntax-string: #ffc200;
+    --syntax-comment: #66747b;
+    --syntax-operator: #e8e2b7;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"],
+.theme-palette[data-theme="dark"] {
+  --bg: #121e24;
+  --surface: #263238;
+  --border: #445056;
+  --text: #cdcdcd;
+  --muted: #a8b5bc;
+  --accent: #45bdff;
+  --accent-text: #121e24;
+  --error: #ff756e;
+  --warning: #ffc200;
+  --ok: #00efc0;
+  --input-echo: #45bdff;
+  --tab-active: #3a464c;
+  --console-surface: #3a464c;
+  --frame: #121e24;
+  --home-border: #263238;
+  --home-title-text: #cdcdcd;
+  --examples-surface: #445056;
+  --editor-text: #fbfbfb;
+  --editor-caret: #c1cbc2;
+  --editor-error: #04790e;
+  --syntax-function: #fbfbfb;
+  --syntax-logical: #f1433c;
+  --editor-bg: #263238;
+  --editor-line: #2f393c;
+  --editor-selection: #404e51;
+  --editor-gutter: #516268;
+  --syntax-keyword: #f1433c;
+  --syntax-type: #45beff;
+  --syntax-number: #00f0c0;
+  --syntax-string: #ffc200;
+  --syntax-comment: #66747b;
+  --syntax-operator: #e8e2b7;
+  color-scheme: dark;
+}
