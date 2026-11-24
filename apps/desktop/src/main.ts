@@ -84,6 +84,7 @@ import { createHelpLoader } from "./shell/help-loader";
 import { $ } from "./dom";
 import { createRecentFiles } from "./files/recent";
 import { createFileIO } from "./files/io";
+import { createIncomingFileOpener } from "./files/system-files";
 import { mountPaneLayout } from "./layout/panes";
 import { setStatus } from "./shell/status";
 import { mountFontSizeControls } from "./shell/font-size";
@@ -1622,29 +1623,12 @@ const tips = mountTips(themeEditor.open);
 $("home-tips").onclick = tips.open;
 
 
-async function openIncomingFiles(paths: string[], warnUnsupported = false) {
-  let supported = false;
-  for (const path of paths) {
-    try {
-      if (/\.pex$/i.test(path)) {
-        supported = true;
-        openExercise(await readExercise(path));
-      } else if (/\.por$/i.test(path)) {
-        supported = true;
-        await fileIO.openFile(path);
-      } else if (/\.pors$/i.test(path)) {
-        supported = true;
-        await fileIO.openFile(path);
-      } else if (/\.rs$/i.test(path)) {
-        supported = true;
-        await fileIO.openFile(path);
-      }
-    } catch (error) {
-      setStatus(typeof error === "string" ? error : "Não foi possível abrir o arquivo.", "error");
-    }
-  }
-  if (warnUnsupported && !supported && paths.length) setStatus("Escolha um arquivo .por, .pors, .rs ou .pex.", "error");
-}
+const openIncomingFiles = createIncomingFileOpener({
+  readExercise,
+  openExercise,
+  openFile: (path) => fileIO.openFile(path),
+  setStatus,
+});
 
 async function consumeSystemFiles() {
   try {

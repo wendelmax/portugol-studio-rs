@@ -236,4 +236,16 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - [x] Add tests for invalid IDs, home/help navigation, active document preservation, and file activation sequencing.
 - [x] Extract tab activation orchestration while keeping editor, preview, workspace, and DOM integrations in the shell.
 - [x] Run the full frontend tests (64/64), typecheck, and build.
-- [ ] Commit the tab activation group.
+- [x] Commit the tab activation group (#172).
+
+### Task 18: System file intake
+
+**Files:**
+- Create: `apps/desktop/src/files/system-files.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/system-files.test.mjs`
+
+- [x] Add tests for supported `.pex`, `.por`, `.pors`, and `.rs` paths, unsupported-file warnings, per-file errors, and continued processing.
+- [x] Extract incoming path dispatch while leaving Tauri event subscriptions in the shell.
+- [x] Run the full frontend tests (65/65), typecheck, and build.
+- [x] Commit the system file intake group (#173).
