@@ -254,6 +254,7 @@ fn find_host_call_in_stmts(
                         | "Calendario"
                         | "Arquivos"
                         | "Json"
+                        | "Internet"
                 ) {
                     Some((module.as_str(), name.as_str(), stmt.span))
                 } else {
@@ -310,6 +311,7 @@ fn find_host_call_in_expr(expr: &portugol_hir::Expr) -> Option<(&str, &str, port
                     | "Calendario"
                     | "Arquivos"
                     | "Json"
+                    | "Internet"
             ) {
                 Some((module.as_str(), name.as_str(), expr.span))
             } else {
@@ -2028,6 +2030,138 @@ funcao inicio() {
         assert!(generated.contains("wrapping_shr"));
         assert!(generated.contains("_ =>"));
         assert_rust_output(generated, "22|11|-1|R|OUTRA");
+    }
+
+    #[test]
+    fn exports_and_executes_consented_pors_internet_in_native_rust() {
+        use std::io::{Read, Write};
+        use std::net::TcpListener;
+        use std::thread;
+        use std::time::Duration;
+
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        let server = thread::spawn(move || {
+            for _ in 0..3 {
+                let Ok((mut stream, _)) = listener.accept() else {
+                    break;
+                };
+                let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
+                let mut raw = Vec::new();
+                let mut chunk = [0u8; 1024];
+                let header_end = loop {
+                    if let Some(pos) = raw.windows(4).position(|w| w == b"\r\n\r\n") {
+                        break pos;
+                    }
+                    match stream.read(&mut chunk) {
+                        Ok(0) | Err(_) => break raw.len(),
+                        Ok(n) => raw.extend_from_slice(&chunk[..n]),
+                    }
+                };
+                let head = String::from_utf8_lossy(&raw[..header_end]).into_owned();
+                let content_len: usize = head
+                    .lines()
+                    .find_map(|line| {
+                        let (k, v) = line.split_once(':')?;
+                        k.eq_ignore_ascii_case("content-length")
+                            .then(|| v.trim().parse().ok())
+                            .flatten()
+                    })
+                    .unwrap_or(0);
+                let body_start = (header_end + 4).min(raw.len());
+                while raw.len().saturating_sub(body_start) < content_len {
+                    match stream.read(&mut chunk) {
+                        Ok(0) | Err(_) => break,
+                        Ok(n) => raw.extend_from_slice(&chunk[..n]),
+                    }
+                }
+                let first = head.lines().next().unwrap_or("");
+                if first.starts_with("GET /ola ") {
+                    let _ = stream.write_all(
+                        b"HTTP/1.1 200 OK\r\nContent-Length: 9\r\nConnection: close\r\n\r\nOla Rust!",
+                    );
+                } else if first.starts_with("POST /eco ") {
+                    let body = &raw[body_start..raw.len().min(body_start + content_len)];
+                    let resp = format!(
+                        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                        body.len(),
+                        String::from_utf8_lossy(body)
+                    );
+                    let _ = stream.write_all(resp.as_bytes());
+                } else if first.starts_with("HEAD /ola ") {
+                    let _ = stream.write_all(
+                        b"HTTP/1.1 200 OK\r\nContent-Length: 9\r\nConnection: close\r\n\r\n",
+                    );
+                }
+            }
+        });
+
+        let base = format!("http://{addr}");
+        let source = format!(
+            r#"
+funcao executar() -> Resultado<cadeia, cadeia> {{
+    Internet.definir_tempo_limite(2000);
+    seja ok: logico = Internet.endereco_disponivel("{base}/ola")?;
+    seja texto: cadeia = Internet.obter_texto("{base}/ola")?;
+    seja eco: cadeia = Internet.enviar_json("{base}/eco", "{{\"ok\":1}}")?;
+    retorne Resultado::Ok(Tipos.logico_para_cadeia(ok) + "|" + texto + "|" + eco);
+}}
+
+funcao inicio() {{
+    escolha executar() {{
+        caso Resultado::Ok(s) => {{ escreva(s); }}
+        caso Resultado::Erro(e) => {{ escreva("ERR:", e); }}
+    }}
+}}
+"#
+        );
+        let generated = export_portugol_rs(&source).unwrap();
+        assert!(generated.contains("mod __pors_internet"));
+
+        let dir =
+            std::env::temp_dir().join(format!("portugol-rust-internet-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let source_path = dir.join("main.rs");
+        let binary = dir.join(format!("program{}", std::env::consts::EXE_SUFFIX));
+        std::fs::write(&source_path, generated).unwrap();
+        let compilation = Command::new("rustc")
+            .arg("--edition=2024")
+            .arg(&source_path)
+            .arg("-o")
+            .arg(&binary)
+            .output()
+            .unwrap();
+        assert!(
+            compilation.status.success(),
+            "{}",
+            String::from_utf8_lossy(&compilation.stderr)
+        );
+
+        // Sem PORTUGOL_PORS_ALLOW_NETWORK=1 deve recusar acesso.
+        let denied = Command::new(&binary)
+            .env_remove("PORTUGOL_PORS_ALLOW_NETWORK")
+            .output()
+            .unwrap();
+        assert!(denied.status.success());
+        assert!(
+            String::from_utf8(denied.stdout)
+                .unwrap()
+                .starts_with("ERR:Acesso à rede bloqueado")
+        );
+
+        // Com PORTUGOL_PORS_ALLOW_NETWORK=1 executa GET, POST e HEAD localmente.
+        let allowed = Command::new(&binary)
+            .env("PORTUGOL_PORS_ALLOW_NETWORK", "1")
+            .output()
+            .unwrap();
+        assert!(allowed.status.success());
+        assert_eq!(
+            String::from_utf8(allowed.stdout).unwrap(),
+            "verdadeiro|Ola Rust!|{\"ok\":1}"
+        );
+        let _ = server.join();
+        std::fs::remove_dir_all(dir).unwrap();
     }
 
     fn assert_rust_output(generated: String, expected: &str) {

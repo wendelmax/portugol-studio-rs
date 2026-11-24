@@ -7,7 +7,7 @@ import {
   filterPorsHelp,
 } from "../src/pors-help.ts";
 
-test("PORS help starts on a PORS topic and covers all 8 PORS libraries", () => {
+test("PORS help starts on a PORS topic and covers all 9 PORS libraries", () => {
   assert.ok(PORS_HELP_TOPICS.some((topic) => topic.id === PORS_HELP_DEFAULT_TOPIC));
   const libNames = PORS_HELP_LIBRARIES.map((lib) => lib.name);
   for (const expected of [
@@ -18,6 +18,7 @@ test("PORS help starts on a PORS topic and covers all 8 PORS libraries", () => {
     "PORS: Calendario",
     "PORS: Arquivos",
     "PORS: Json",
+    "PORS: Internet",
     "PORS: UI",
   ]) {
     assert.ok(libNames.includes(expected), `esperava biblioteca ${expected} na ajuda PORS`);
@@ -48,6 +49,9 @@ test("filterPorsHelp matches accents, library functions and topics case-insensit
 
   const byArquivos = filterPorsHelp("ler_linhas");
   assert.ok(byArquivos.libraries.some((l) => l.id === "pors-lib:Arquivos"));
+
+  const byInternet = filterPorsHelp("enviar_json");
+  assert.ok(byInternet.libraries.some((l) => l.id === "pors-lib:Internet"));
 
   const empty = filterPorsHelp("nao-existe-xyz-123");
   assert.equal(empty.topics.length, 0);

@@ -766,7 +766,7 @@ impl Parser {
                 .get(self.cursor + 1)
                 .is_some_and(|token| matches!(token.kind, Kind::Dot))
             {
-                if keyword == "Util" && self.lookup("Util").is_none() {
+                if (keyword == "Util" || keyword == "Internet") && self.lookup(keyword).is_none() {
                     return self.stdlib_statement_call();
                 }
                 return self.field_assignment();
@@ -1775,7 +1775,14 @@ impl Parser {
                 }
                 if matches!(
                     name.as_str(),
-                    "Matematica" | "Texto" | "Tipos" | "Util" | "Calendario" | "Arquivos" | "Json"
+                    "Matematica"
+                        | "Texto"
+                        | "Tipos"
+                        | "Util"
+                        | "Calendario"
+                        | "Arquivos"
+                        | "Json"
+                        | "Internet"
                 ) && matches!(self.current().kind, Kind::Dot)
                     && self.lookup(&name).is_none()
                 {
@@ -2539,6 +2546,11 @@ impl Parser {
             ("Json", "definir_logico") => Some((&[S, S, B], RetRes(S))),
             ("Json", "definir_json") => Some((&[S, S, S], RetRes(S))),
             ("Json", "remover_chave") => Some((&[S, S], RetRes(S))),
+
+            ("Internet", "definir_tempo_limite") => Some((&[I], Ret(hir::Type::Unit))),
+            ("Internet", "obter_texto") => Some((&[S], RetRes(S))),
+            ("Internet", "enviar_json") => Some((&[S, S], RetRes(S))),
+            ("Internet", "endereco_disponivel") => Some((&[S], RetRes(B))),
             _ => None,
         };
 

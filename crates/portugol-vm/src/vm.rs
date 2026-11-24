@@ -457,6 +457,13 @@ impl<'a> Vm<'a> {
         self
     }
 
+    /// Autoriza (ou revoga) explicitamente chamadas de `Internet.*` em PORS (negado por padrão).
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn with_pors_network_enabled(mut self, enabled: bool) -> Self {
+        self.pors_runtime.set_network_enabled(enabled);
+        self
+    }
+
     /// Diretório devolvido por `Util.obter_diretorio_usuario` nesta execução.
     /// Permite isolar as gravações dos exemplos na suíte de regressão.
     #[cfg(feature = "stdlib")]
@@ -477,6 +484,8 @@ impl<'a> Vm<'a> {
     #[cfg(feature = "stdlib")]
     pub fn offline(mut self) -> Self {
         self.ctx.offline = true;
+        #[cfg(not(target_arch = "wasm32"))]
+        self.pors_runtime.set_network_enabled(false);
         self
     }
 

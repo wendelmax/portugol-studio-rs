@@ -188,6 +188,17 @@ export const PORS_HELP_LIBRARIES: readonly PorsHelpLibrary[] = [
     ],
   },
   {
+    id: "pors-lib:Internet",
+    name: "PORS: Internet",
+    description: "Requisições HTTP/HTTPS com consentimento explícito (negado por padrão), timeout (100..30000 ms), cancelamento no debugger e limite de 1 MiB.",
+    items: [
+      { name: "definir_tempo_limite", signature: "Internet.definir_tempo_limite(ms: inteiro)", description: "Ajusta o timeout das requisições HTTP." },
+      { name: "obter_texto", signature: "Internet.obter_texto(url: cadeia) -> Resultado<cadeia, cadeia>", description: "Lê texto UTF-8 via HTTP GET com limite de 1 MiB." },
+      { name: "enviar_json", signature: "Internet.enviar_json(url: cadeia, corpo_json: cadeia) -> Resultado<cadeia, cadeia>", description: "Envia JSON via HTTP POST e devolve o corpo da resposta." },
+      { name: "endereco_disponivel", signature: "Internet.endereco_disponivel(url: cadeia) -> Resultado<logico, cadeia>", description: "Testa disponibilidade do endereço via HTTP HEAD." },
+    ],
+  },
+  {
     id: "pors-lib:UI",
     name: "PORS: UI",
     description: "Componentes declarativos MVU para interfaces gráficas interativas na IDE, WASM e Rust.",

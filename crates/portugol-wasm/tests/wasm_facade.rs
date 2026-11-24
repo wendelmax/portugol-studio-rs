@@ -436,3 +436,21 @@ funcao inicio() {
         "{\"ok\":true,\"stdout\":\"PORS-2:Json|verdadeiro\",\"diagnostics\":[]}"
     );
 }
+
+#[test]
+fn returns_typed_error_for_pors_internet_in_wasm_facade() {
+    let source = r#"
+funcao inicio() {
+    Internet.definir_tempo_limite(1000);
+    escolha Internet.obter_texto("https://example.com") {
+        caso Resultado::Ok(_) => { escreva("OK"); }
+        caso Resultado::Erro(_) => { escreva("WASM_ERR"); }
+    }
+}
+"#;
+    let json = run_pors_json(source, "", RunBudget::default());
+    assert_eq!(
+        json,
+        "{\"ok\":true,\"stdout\":\"WASM_ERR\",\"diagnostics\":[]}"
+    );
+}

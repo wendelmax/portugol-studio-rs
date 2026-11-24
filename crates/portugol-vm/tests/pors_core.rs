@@ -597,3 +597,152 @@ funcao inicio() {
     // bits: (16 | 5) = 21; 21 & 21 = 21; 21 | 2 = 23; 23 ^ 1 = 22; 22 >> 1 = 11; ~0 = -1
     assert_eq!(io.output, "22|11|-1|R|OUTRA");
 }
+
+#[test]
+fn executes_consented_pors_internet_and_cancels_stalled_requests_in_minimal_vm() {
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+    use std::thread;
+    use std::time::{Duration, Instant};
+
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let addr = listener.local_addr().unwrap();
+    let server = thread::spawn(move || {
+        for _ in 0..4 {
+            let Ok((mut stream, _)) = listener.accept() else {
+                break;
+            };
+            let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
+            let mut raw = Vec::new();
+            let mut chunk = [0u8; 1024];
+            let header_end = loop {
+                if let Some(pos) = raw.windows(4).position(|w| w == b"\r\n\r\n") {
+                    break pos;
+                }
+                match stream.read(&mut chunk) {
+                    Ok(0) | Err(_) => break raw.len(),
+                    Ok(n) => raw.extend_from_slice(&chunk[..n]),
+                }
+            };
+            let head = String::from_utf8_lossy(&raw[..header_end]).into_owned();
+            let content_len: usize = head
+                .lines()
+                .find_map(|line| {
+                    let (k, v) = line.split_once(':')?;
+                    k.eq_ignore_ascii_case("content-length")
+                        .then(|| v.trim().parse().ok())
+                        .flatten()
+                })
+                .unwrap_or(0);
+            let body_start = (header_end + 4).min(raw.len());
+            while raw.len().saturating_sub(body_start) < content_len {
+                match stream.read(&mut chunk) {
+                    Ok(0) | Err(_) => break,
+                    Ok(n) => raw.extend_from_slice(&chunk[..n]),
+                }
+            }
+            let first = head.lines().next().unwrap_or("");
+            if first.starts_with("GET /ola ") {
+                let _ = stream.write_all(
+                    b"HTTP/1.1 200 OK\r\nContent-Length: 9\r\nConnection: close\r\n\r\nOla PORS!",
+                );
+            } else if first.starts_with("POST /eco ") {
+                let body = &raw[body_start..raw.len().min(body_start + content_len)];
+                let resp = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                    body.len(),
+                    String::from_utf8_lossy(body)
+                );
+                let _ = stream.write_all(resp.as_bytes());
+            } else if first.starts_with("HEAD /ola ") {
+                let _ = stream.write_all(
+                    b"HTTP/1.1 200 OK\r\nContent-Length: 9\r\nConnection: close\r\n\r\n",
+                );
+            } else {
+                let _ = stream.write_all(
+                    b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+                );
+            }
+        }
+    });
+
+    let base = format!("http://{addr}");
+    let source = format!(
+        r#"
+funcao executar() -> Resultado<cadeia, cadeia> {{
+    Internet.definir_tempo_limite(2000);
+    seja disp_ok: logico = Internet.endereco_disponivel("{base}/ola")?;
+    seja disp_404: logico = Internet.endereco_disponivel("{base}/ausente")?;
+    seja texto: cadeia = Internet.obter_texto("{base}/ola")?;
+    seja eco: cadeia = Internet.enviar_json("{base}/eco", "{{\"ok\":true}}")?;
+    retorne Resultado::Ok(
+        Tipos.logico_para_cadeia(disp_ok) + "|" +
+        Tipos.logico_para_cadeia(disp_404) + "|" +
+        texto + "|" +
+        eco
+    );
+}}
+
+funcao inicio() {{
+    escolha executar() {{
+        caso Resultado::Ok(s) => {{ escreva(s, "|"); }}
+        caso Resultado::Erro(e) => {{ escreva("ERR:", e, "|"); }}
+    }}
+    escolha Internet.obter_texto("file:///etc/passwd") {{
+        caso Resultado::Ok(_) => {{ escreva("LEAK|"); }}
+        caso Resultado::Erro(_) => {{ escreva("BLOCKED_SCHEME|"); }}
+    }}
+    escolha Internet.enviar_json("{base}/eco", "{{invalido}}") {{
+        caso Resultado::Ok(_) => {{ escreva("BAD_JSON"); }}
+        caso Resultado::Erro(_) => {{ escreva("INVALID_JSON"); }}
+    }}
+}}
+"#
+    );
+    let module = compile_pors_source(&source);
+
+    // Sem consentimento explícito, deve recusar acesso à rede com Resultado::Erro.
+    let mut denied_io = BufferIo::default();
+    run(&module, &mut denied_io).expect("sem consentimento deve retornar Resultado::Erro");
+    assert!(denied_io.output.starts_with("ERR:Acesso à rede bloqueado"));
+
+    // Com consentimento explícito, executa GET, POST JSON, HEAD e bloqueia esquema/JSON inválido.
+    let mut io = BufferIo::default();
+    Vm::new(&module, &mut io)
+        .with_pors_network_enabled(true)
+        .run()
+        .expect("execução autorizada de Internet na VM mínima");
+    assert_eq!(
+        io.output,
+        "verdadeiro|falso|Ola PORS!|{\"ok\":true}|BLOCKED_SCHEME|INVALID_JSON"
+    );
+    let _ = server.join();
+
+    // Cancelamento cooperativo durante requisição travada (nunca bloqueia debugger).
+    let stall_listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let stall_addr = stall_listener.local_addr().unwrap();
+    let _stall = thread::spawn(move || {
+        if let Ok((_stream, _)) = stall_listener.accept() {
+            thread::sleep(Duration::from_secs(5));
+        }
+    });
+    let stall_src = format!(
+        "funcao inicio() {{ Internet.definir_tempo_limite(10000); escolha Internet.obter_texto(\"http://{stall_addr}/slow\") {{ caso _ => {{}} }} }}"
+    );
+    let stall_module = compile_pors_source(&stall_src);
+    let interrupt = Arc::new(AtomicBool::new(false));
+    let flag = Arc::clone(&interrupt);
+    thread::spawn(move || {
+        thread::sleep(Duration::from_millis(80));
+        flag.store(true, Ordering::Relaxed);
+    });
+    let started = Instant::now();
+    let mut stall_io = BufferIo::default();
+    let err = Vm::new(&stall_module, &mut stall_io)
+        .with_pors_network_enabled(true)
+        .with_interrupt(interrupt)
+        .run()
+        .expect_err("requisição travada deve ser cancelada quando interrupt=true");
+    assert!(err.message.contains("interrompido"));
+    assert!(started.elapsed() < Duration::from_secs(2));
+}
