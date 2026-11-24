@@ -97,3 +97,15 @@
 - [x] Extract `cargo check` and `cargo test` lifecycle orchestration behind callbacks; keep Tauri commands in `api.ts`.
 - [x] Run the full frontend tests, typecheck, and build.
 - [x] Commit the Cargo orchestration group.
+
+### Task 7: Run controls
+
+**Files:**
+- Create: `apps/desktop/src/run/controls.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/run-controls.test.mjs`
+
+- [x] Add failing tests for active, paused, and stopped run controls.
+- [x] Extract button, input, and inspector state synchronization behind callbacks.
+- [x] Run frontend tests, typecheck, and build.
+- [ ] Commit the run-controls group.
