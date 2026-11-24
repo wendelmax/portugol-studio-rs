@@ -90,6 +90,7 @@ import { createSymbolNavigator } from "./editor/symbol-navigation";
 import { createEditorFormatter } from "./editor/format";
 import { createEditorUpdateController } from "./editor/update-controller";
 import { createEditorExtensionFactory } from "./editor/extensions";
+import { createRustLintSourceCheck } from "./editor/rust-linter";
 import {
   breakpointLines, breakpoints, createBreakpointGutter, debugLine, runtimeError, setDebugLine, setRuntimeError, toCodeMirror,
 } from "./editor/decorations";
@@ -147,47 +148,13 @@ const portugolLinter = linter(
 );
 
 const latestRustSourceCheck = createLatestOnlyRustSourceChecker(api.checkRustSource);
-const rustSourceLinter = linter(
-  async (editor) => {
-    const doc = editor.state.doc;
-    const tab = activeTab();
-    if (tab?.language !== "rust" || tab.cargoProject === true || rustcAvailable !== true) {
-      if (tab?.language === "rust") {
-        tab.diagnostics = [];
-        renderMessages();
-      }
-      return [];
-    }
-
-    const checked = await latestRustSourceCheck(doc.toString());
-    if (activeTab() !== tab || editor.state.doc !== doc || checked.source !== doc.toString()) return [];
-    const diagnostics: api.DiagnosticInfo[] = checked.error
-      ? [{
-        severity: "warning",
-        code: "rustc.check",
-        message: `Não foi possível analisar este arquivo Rust: ${checked.error}`,
-        help: null,
-        start: { offset: 0, line: 1, column: 1 },
-        end: { offset: 0, line: 1, column: 1 },
-      }]
-      : checked.diagnostics.flatMap((diagnostic) => {
-        if (diagnostic.severity !== "error" && diagnostic.severity !== "warning") return [];
-        return [{
-          severity: diagnostic.severity,
-          code: diagnostic.code ?? "rustc",
-          message: diagnostic.message,
-          help: diagnostic.rendered,
-          start: diagnostic.start,
-          end: diagnostic.end,
-        }];
-      });
-    tab.diagnostics = diagnostics;
-    renderMessages();
-    return [...diagnostics, ...(tab.runtimeCompileDiagnostics ?? [])]
-      .map((diagnostic) => toCodeMirror(diagnostic, doc.length));
-  },
-  { delay: 500 },
-);
+const rustSourceLinter = linter(createRustLintSourceCheck({
+  activeTab,
+  isRustcAvailable: () => rustcAvailable === true,
+  checkSource: latestRustSourceCheck,
+  renderMessages,
+  toCodeMirror,
+}), { delay: 500 });
 
 const view = new EditorView({ parent: $("editor") });
 const rustPreview = mountRustPreview({

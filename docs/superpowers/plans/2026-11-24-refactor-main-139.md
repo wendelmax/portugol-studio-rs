@@ -308,4 +308,16 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - [x] Add tests for language-specific extensions and the editor's keyboard and mouse navigation hooks.
 - [x] Extract extension assembly while keeping language services and shell actions injected.
 - [x] Run the full frontend tests (70/70), typecheck, and build.
-- [ ] Commit the CodeMirror setup group.
+- [x] Commit the CodeMirror setup group (#178).
+
+### Task 24: Rust source linter
+
+**Files:**
+- Create: `apps/desktop/src/editor/rust-linter.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/rust-linter.test.mjs`
+
+- [x] Add tests for availability guards, stale document/tab results, compiler failures, and diagnostic conversion.
+- [x] Extract Rust source lint orchestration while keeping shell state and rendering injected.
+- [x] Run the full frontend tests (71/71), typecheck, and build.
+- [ ] Commit the Rust linter group.
