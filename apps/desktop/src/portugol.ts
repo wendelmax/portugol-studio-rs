@@ -251,9 +251,9 @@ const PORS_TYPES = [
   "inteiro", "real", "logico", "cadeia", "caracter", "vetor", "Opcao", "Resultado",
 ] as const;
 
-const PORS_BUILTINS = ["escreva", "leia", "tamanho"] as const;
+const PORS_BUILTINS = ["escreva", "leia", "tamanho", "adicionar", "remover", "obter"] as const;
 
-export const PORS_MODULES = ["UI", "Matematica", "Texto", "Tipos"] as const;
+export const PORS_MODULES = ["UI", "Matematica", "Texto", "Tipos", "Util", "Calendario"] as const;
 
 const PORS_MODULE_MEMBERS: Record<(typeof PORS_MODULES)[number], readonly PorsDocEntry[]> = {
   UI: [
@@ -297,6 +297,7 @@ const PORS_MODULE_MEMBERS: Record<(typeof PORS_MODULES)[number], readonly PorsDo
     { label: "obter_caracter", kind: "function", signature: "Texto.obter_caracter(texto: cadeia, indice: inteiro) -> Opcao<caracter>", description: "Retorna `Opcao::Algum(c)` no índice Unicode informado, ou `Opcao::Nenhum` fora dos limites." },
     { label: "posicao_texto", kind: "function", signature: "Texto.posicao_texto(trecho: cadeia, texto: cadeia, inicio: inteiro) -> Opcao<inteiro>", description: "Procura `trecho` em `texto` a partir do índice Unicode `inicio`, retornando `Opcao<inteiro>`." },
     { label: "extrair_subtexto", kind: "function", signature: "Texto.extrair_subtexto(texto: cadeia, inicio: inteiro, fim: inteiro) -> Resultado<cadeia, cadeia>", description: "Extrai a fatia Unicode `[inicio..fim)` retornando `Resultado<cadeia, cadeia>`." },
+    { label: "dividir", kind: "function", signature: "Texto.dividir(texto: cadeia, separador: cadeia) -> vetor<cadeia>", description: "Divide `texto` nas ocorrências de `separador` (ou em caracteres Unicode quando `separador` é vazio)." },
   ],
   Tipos: [
     { label: "para_inteiro", kind: "function", signature: "Tipos.para_inteiro(texto: cadeia) -> Resultado<inteiro, cadeia>", description: "Converte uma cadeia decimal em `inteiro`, retornando `Resultado::Erro` se for inválida." },
@@ -319,6 +320,48 @@ const PORS_MODULE_MEMBERS: Record<(typeof PORS_MODULES)[number], readonly PorsDo
     { label: "cadeia_e_logico", kind: "function", signature: "Tipos.cadeia_e_logico(texto: cadeia) -> logico", description: "Verifica se `texto` é `\"verdadeiro\"` ou `\"falso\"`." },
     { label: "cadeia_e_caracter", kind: "function", signature: "Tipos.cadeia_e_caracter(texto: cadeia) -> logico", description: "Verifica se `texto` contém exatamente 1 caractere Unicode." },
   ],
+  Util: [
+    { label: "sorteia", kind: "function", signature: "Util.sorteia(min: inteiro, max: inteiro) -> Resultado<inteiro, cadeia>", description: "Sorteia um inteiro no intervalo fechado `[min, max]`, retornando `Resultado::Erro` se `min > max`." },
+    { label: "definir_semente", kind: "function", signature: "Util.definir_semente(semente: inteiro)", description: "Fixa a semente determinística do gerador de `Util.sorteia`." },
+    { label: "tempo_decorrido", kind: "function", signature: "Util.tempo_decorrido() -> inteiro", description: "Retorna o tempo decorrido em milissegundos desde o início do programa." },
+    { label: "aguarde", kind: "function", signature: "Util.aguarde(ms: inteiro)", description: "Pausa a execução por `ms` milissegundos (0 a 60000 ms, cancelável na IDE)." },
+  ],
+  Calendario: [
+    { label: "DIA_DOMINGO", kind: "constant", signature: "Calendario.DIA_DOMINGO: inteiro", description: "Constante para domingo (1)." },
+    { label: "DIA_SEGUNDA_FEIRA", kind: "constant", signature: "Calendario.DIA_SEGUNDA_FEIRA: inteiro", description: "Constante para segunda-feira (2)." },
+    { label: "DIA_TERCA_FEIRA", kind: "constant", signature: "Calendario.DIA_TERCA_FEIRA: inteiro", description: "Constante para terça-feira (3)." },
+    { label: "DIA_QUARTA_FEIRA", kind: "constant", signature: "Calendario.DIA_QUARTA_FEIRA: inteiro", description: "Constante para quarta-feira (4)." },
+    { label: "DIA_QUINTA_FEIRA", kind: "constant", signature: "Calendario.DIA_QUINTA_FEIRA: inteiro", description: "Constante para quinta-feira (5)." },
+    { label: "DIA_SEXTA_FEIRA", kind: "constant", signature: "Calendario.DIA_SEXTA_FEIRA: inteiro", description: "Constante para sexta-feira (6)." },
+    { label: "DIA_SABADO", kind: "constant", signature: "Calendario.DIA_SABADO: inteiro", description: "Constante para sábado (7)." },
+    { label: "MES_JANEIRO", kind: "constant", signature: "Calendario.MES_JANEIRO: inteiro", description: "Constante para janeiro (1)." },
+    { label: "MES_FEVEREIRO", kind: "constant", signature: "Calendario.MES_FEVEREIRO: inteiro", description: "Constante para fevereiro (2)." },
+    { label: "MES_MARCO", kind: "constant", signature: "Calendario.MES_MARCO: inteiro", description: "Constante para março (3)." },
+    { label: "MES_ABRIL", kind: "constant", signature: "Calendario.MES_ABRIL: inteiro", description: "Constante para abril (4)." },
+    { label: "MES_MAIO", kind: "constant", signature: "Calendario.MES_MAIO: inteiro", description: "Constante para maio (5)." },
+    { label: "MES_JUNHO", kind: "constant", signature: "Calendario.MES_JUNHO: inteiro", description: "Constante para junho (6)." },
+    { label: "MES_JULHO", kind: "constant", signature: "Calendario.MES_JULHO: inteiro", description: "Constante para julho (7)." },
+    { label: "MES_AGOSTO", kind: "constant", signature: "Calendario.MES_AGOSTO: inteiro", description: "Constante para agosto (8)." },
+    { label: "MES_SETEMBRO", kind: "constant", signature: "Calendario.MES_SETEMBRO: inteiro", description: "Constante para setembro (9)." },
+    { label: "MES_OUTUBRO", kind: "constant", signature: "Calendario.MES_OUTUBRO: inteiro", description: "Constante para outubro (10)." },
+    { label: "MES_NOVEMBRO", kind: "constant", signature: "Calendario.MES_NOVEMBRO: inteiro", description: "Constante para novembro (11)." },
+    { label: "MES_DEZEMBRO", kind: "constant", signature: "Calendario.MES_DEZEMBRO: inteiro", description: "Constante para dezembro (12)." },
+    { label: "ano_atual", kind: "function", signature: "Calendario.ano_atual() -> inteiro", description: "Retorna o ano UTC atual." },
+    { label: "mes_atual", kind: "function", signature: "Calendario.mes_atual() -> inteiro", description: "Retorna o mês UTC atual (1 a 12)." },
+    { label: "dia_mes_atual", kind: "function", signature: "Calendario.dia_mes_atual() -> inteiro", description: "Retorna o dia do mês UTC atual (1 a 31)." },
+    { label: "dia_semana_atual", kind: "function", signature: "Calendario.dia_semana_atual() -> inteiro", description: "Retorna o dia da semana UTC atual (1 = Domingo a 7 = Sábado)." },
+    { label: "hora_atual", kind: "function", signature: "Calendario.hora_atual(formato_12h: logico) -> inteiro", description: "Retorna a hora UTC atual (0..23 ou 0..11 se `formato_12h` for verdadeiro)." },
+    { label: "minuto_atual", kind: "function", signature: "Calendario.minuto_atual() -> inteiro", description: "Retorna o minuto UTC atual (0 a 59)." },
+    { label: "segundo_atual", kind: "function", signature: "Calendario.segundo_atual() -> inteiro", description: "Retorna o segundo UTC atual (0 a 59)." },
+    { label: "milisegundo_atual", kind: "function", signature: "Calendario.milisegundo_atual() -> inteiro", description: "Retorna o milissegundo UTC atual (0 a 999)." },
+    { label: "dia_semana_completo", kind: "function", signature: "Calendario.dia_semana_completo(dia: inteiro, caixa_alta: logico, caixa_baixa: logico) -> Resultado<cadeia, cadeia>", description: "Retorna o nome completo do dia da semana (1 a 7) em `Resultado`." },
+    { label: "dia_semana_curto", kind: "function", signature: "Calendario.dia_semana_curto(dia: inteiro, caixa_alta: logico, caixa_baixa: logico) -> Resultado<cadeia, cadeia>", description: "Retorna o nome curto do dia da semana (1 a 7) em `Resultado`." },
+    { label: "dia_semana_abreviado", kind: "function", signature: "Calendario.dia_semana_abreviado(dia: inteiro, caixa_alta: logico, caixa_baixa: logico) -> Resultado<cadeia, cadeia>", description: "Retorna a abreviação de 3 letras do dia da semana (1 a 7) em `Resultado`." },
+    { label: "nome_mes", kind: "function", signature: "Calendario.nome_mes(mes: inteiro) -> Resultado<cadeia, cadeia>", description: "Retorna o nome em português do mês informado (1 a 12)." },
+    { label: "eh_bissexto", kind: "function", signature: "Calendario.eh_bissexto(ano: inteiro) -> logico", description: "Verifica se o ano gregoriano informado é bissexto." },
+    { label: "dias_no_mes", kind: "function", signature: "Calendario.dias_no_mes(ano: inteiro, mes: inteiro) -> Resultado<inteiro, cadeia>", description: "Retorna a quantidade de dias do mês/ano informados (28 a 31)." },
+    { label: "data_iso_atual", kind: "function", signature: "Calendario.data_iso_atual() -> cadeia", description: "Retorna a data UTC atual formatada como `AAAA-MM-DD`." },
+  ],
 };
 
 const PORS_BUILTIN_VARIANTS: Record<"Opcao" | "Resultado", readonly PorsDocEntry[]> = {
@@ -337,6 +380,9 @@ const PORS_TOP_LEVEL_DOCS: Record<string, PorsDocEntry> = {
   Resultado: { label: "Resultado", kind: "type", signature: "Resultado<T, E> { Ok(T), Erro(E) }", description: "Tipo de resultado falível nativo do Portugol-RS, mapeado diretamente para `Result<T, E>` em Rust. Aceita `escolha` exaustivo e propagação com `?`." },
   vetor: { label: "vetor", kind: "type", signature: "vetor<T>", description: "Coleção homogênea tipada com cópia por valor e verificação de limites em tempo de execução." },
   tamanho: { label: "tamanho", kind: "function", signature: "tamanho(v: vetor<T>) -> inteiro", description: "Retorna a quantidade de elementos de um vetor tipado." },
+  adicionar: { label: "adicionar", kind: "function", signature: "adicionar(v: mutavel vetor<T>, valor: T)", description: "Insere `valor` ao final de um vetor mutável (equivale a `Vec::push` em Rust)." },
+  remover: { label: "remover", kind: "function", signature: "remover(v: mutavel vetor<T>) -> Opcao<T>", description: "Remove e retorna o último elemento de um vetor mutável como `Opcao<T>` (equivale a `Vec::pop`)." },
+  obter: { label: "obter", kind: "function", signature: "obter(v: vetor<T>, indice: inteiro) -> Opcao<T>", description: "Lê um elemento do vetor com segurança retornando `Opcao<T>` sem encerrar o programa fora dos limites." },
   escreva: { label: "escreva", kind: "function", signature: "escreva(valor, ...)", description: "Escreve um ou mais valores escalares na saída padrão sem quebra de linha automática." },
   leia: { label: "leia", kind: "function", signature: "leia(variavel_mutavel)", description: "Lê um valor tipado da entrada padrão para uma variável declarada com `seja mutavel`." },
   seja: { label: "seja", kind: "keyword", signature: "seja [mutavel] nome: Tipo = valor;", description: "Declara um binding imutável por padrão (ou mutável com `seja mutavel`), equivalente a `let` / `let mut` em Rust." },
@@ -348,6 +394,8 @@ const PORS_TOP_LEVEL_DOCS: Record<string, PorsDocEntry> = {
   Matematica: { label: "Matematica", kind: "namespace", signature: "modulo Matematica", description: "Constantes (`PI`, `E`) e funções matemáticas tipadas de Portugol-RS." },
   Texto: { label: "Texto", kind: "namespace", signature: "modulo Texto", description: "Manipulação segura de cadeias Unicode (`char`), busca opcional (`Opcao`), fatiamento (`Resultado`) e orçamento de memória." },
   Tipos: { label: "Tipos", kind: "namespace", signature: "modulo Tipos", description: "Conversões explícitas e validação entre tipos, com `Resultado<T, cadeia>` para conversões falíveis." },
+  Util: { label: "Util", kind: "namespace", signature: "modulo Util", description: "Utilitários determinísticos e seguros (`Util.sorteia`, `Util.definir_semente`, `Util.tempo_decorrido`, `Util.aguarde`)." },
+  Calendario: { label: "Calendario", kind: "namespace", signature: "modulo Calendario", description: "Data e hora UTC determinísticas, constantes de dias/meses e cálculos gregorianos." },
 };
 
 export const PORS_SNIPPETS: Completion[] = [

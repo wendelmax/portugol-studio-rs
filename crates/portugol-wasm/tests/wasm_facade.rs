@@ -389,3 +389,22 @@ funcao inicio() {
     let json = run_pors_json(source, "", RunBudget::default());
     assert_eq!(json, "{\"ok\":true,\"stdout\":\"0042\",\"diagnostics\":[]}");
 }
+
+#[test]
+fn executes_pors_util_and_calendario_in_zero_dep_wasm_facade() {
+    let source = r#"
+funcao inicio() {
+    Util.definir_semente(7);
+    Util.aguarde(250);
+    escolha Calendario.dias_no_mes(2024, Calendario.MES_FEVEREIRO) {
+        caso Resultado::Ok(dias) => { escreva(dias, "|", Calendario.eh_bissexto(2024), "|", Util.tempo_decorrido() >= 0); }
+        caso Resultado::Erro(e) => { escreva(e); }
+    }
+}
+"#;
+    let json = run_pors_json(source, "", RunBudget::default());
+    assert_eq!(
+        json,
+        "{\"ok\":true,\"stdout\":\"29|verdadeiro|verdadeiro\",\"diagnostics\":[]}"
+    );
+}

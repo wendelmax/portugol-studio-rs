@@ -240,6 +240,20 @@ fn find_host_call_in_stmts(
             S::Call { arguments, .. } | S::Write(arguments) => {
                 arguments.iter().find_map(find_host_call_in_expr)
             }
+            S::HostCall {
+                module,
+                name,
+                arguments,
+            } => {
+                if !matches!(
+                    module.as_str(),
+                    "UI" | "Matematica" | "Texto" | "Tipos" | "Util" | "Calendario"
+                ) {
+                    Some((module.as_str(), name.as_str(), stmt.span))
+                } else {
+                    arguments.iter().find_map(find_host_call_in_expr)
+                }
+            }
             S::If {
                 condition,
                 then_branch,
@@ -281,7 +295,10 @@ fn find_host_call_in_expr(expr: &portugol_hir::Expr) -> Option<(&str, &str, port
             name,
             arguments,
         } => {
-            if !matches!(module.as_str(), "UI" | "Matematica" | "Texto" | "Tipos") {
+            if !matches!(
+                module.as_str(),
+                "UI" | "Matematica" | "Texto" | "Tipos" | "Util" | "Calendario"
+            ) {
                 Some((module.as_str(), name.as_str(), expr.span))
             } else {
                 arguments.iter().find_map(find_host_call_in_expr)
@@ -1734,6 +1751,94 @@ funcao inicio() {
         assert!(generated.contains(".get("));
         assert!(generated.contains("__pors_texto::dividir("));
         assert_rust_output(generated, "0|3|30|2|N|N|7|3|dois|2|🦀");
+    }
+
+    #[test]
+    fn exports_and_executes_pors_util_and_calendario_deterministically() {
+        let source = r#"
+funcao inicio() {
+    Util.definir_semente(42);
+    escolha Util.sorteia(1, 100) {
+        caso Resultado::Ok(n) => { escreva(n, "|"); }
+        caso Resultado::Erro(_) => { escreva("ERR|"); }
+    }
+    escolha Util.sorteia(10, 5) {
+        caso Resultado::Ok(n) => { escreva(n, "|"); }
+        caso Resultado::Erro(_) => { escreva("ERR|"); }
+    }
+    escreva(Util.tempo_decorrido(), "|");
+    Util.aguarde(1500);
+    escreva(Util.tempo_decorrido(), "|");
+
+    escreva(
+        Calendario.data_iso_atual(), "|",
+        Calendario.ano_atual(), "-",
+        Calendario.mes_atual(), "-",
+        Calendario.dia_mes_atual(), "|",
+        Calendario.dia_semana_atual(), "|",
+        Calendario.hora_atual(falso), ":",
+        Calendario.hora_atual(verdadeiro), ":",
+        Calendario.minuto_atual(), ":",
+        Calendario.segundo_atual(), ".",
+        Calendario.milisegundo_atual(), "|",
+        Calendario.eh_bissexto(2024), "|",
+        Calendario.DIA_TERCA_FEIRA, "|",
+        Calendario.MES_NOVEMBRO, "|"
+    );
+    escolha Calendario.dia_semana_completo(Calendario.dia_semana_atual(), falso, falso) {
+        caso Resultado::Ok(d) => { escreva(d, "|"); }
+        caso Resultado::Erro(_) => { escreva("ERR|"); }
+    }
+    escolha Calendario.nome_mes(Calendario.mes_atual()) {
+        caso Resultado::Ok(m) => { escreva(m, "|"); }
+        caso Resultado::Erro(_) => { escreva("ERR|"); }
+    }
+    escolha Calendario.dias_no_mes(2024, Calendario.MES_FEVEREIRO) {
+        caso Resultado::Ok(d) => { escreva(d, "|"); }
+        caso Resultado::Erro(_) => { escreva("ERR|"); }
+    }
+    escolha Calendario.dias_no_mes(2024, 13) {
+        caso Resultado::Ok(d) => { escreva(d); }
+        caso Resultado::Erro(_) => { escreva("ERR"); }
+    }
+}
+"#;
+        let generated = export_portugol_rs(source).unwrap();
+        assert!(generated.contains("mod __pors_clock"));
+        assert!(generated.contains("mod __pors_util"));
+        assert!(generated.contains("mod __pors_calendario"));
+
+        let dir =
+            std::env::temp_dir().join(format!("portugol-rust-util-cal-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let source_path = dir.join("main.rs");
+        let binary = dir.join(format!("program{}", std::env::consts::EXE_SUFFIX));
+        std::fs::write(&source_path, generated).unwrap();
+        let compilation = Command::new("rustc")
+            .arg("--edition=2024")
+            .arg(&source_path)
+            .arg("-o")
+            .arg(&binary)
+            .output()
+            .unwrap();
+        assert!(
+            compilation.status.success(),
+            "{}",
+            String::from_utf8_lossy(&compilation.stderr)
+        );
+        let output = Command::new(&binary)
+            .env("PORTUGOL_PORS_SIMULATED_EPOCH_MS", "1700000000500")
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+        let stdout = String::from_utf8(output.stdout).unwrap();
+        assert!(
+            stdout.ends_with(
+                "|ERR|0|1500|2023-11-14|2023-11-14|3|22:10:13:22.0|verdadeiro|3|11|Terça-Feira|Novembro|29|ERR"
+            ),
+            "saída inesperada: {stdout}"
+        );
+        std::fs::remove_dir_all(dir).unwrap();
     }
 
     fn assert_rust_output(generated: String, expected: &str) {
