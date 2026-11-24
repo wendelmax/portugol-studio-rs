@@ -50,7 +50,6 @@ import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
 import { mountOutline, symbolKindLabels } from "./outline";
 import { panelContentId, panelNameForKey, type PanelName } from "./panel-tabs";
-import { calculateSidePaneMinimums, clampPaneSize, DEFAULT_PANE_LAYOUT, loadPaneLayout, normalizePaneLayout, resizePaneForKey, savePaneLayout, type PaneLayout } from "./pane-layout";
 import { LIBRARIES, portugol, portugolRs, SNIPPETS } from "./portugol";
 import { detectSourceLanguage, ensureSourceExtension, type SourceLanguage } from "./document-language";
 import { semanticSymbolLanguage } from "./semantic-symbol-actions";
@@ -79,28 +78,11 @@ import { PORS_UI_EXAMPLES } from "./pors-ui-examples";
 import { mountPorsUiPreviewPanel } from "./pors-ui-preview-panel";
 import { mountUiPreview } from "./ui-preview-renderer";
 import * as api from "./api";
+import { $ } from "./dom";
+import { createRecentFiles } from "./files/recent";
+import { mountPaneLayout } from "./layout/panes";
 
 const TEMPLATE = "programa\n{\n\tfuncao inicio()\n\t{\n\t\t\n\t}\n}\n";
-
-const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
-
-function loadSavedPaneLayout(preferenceKey?: string): PaneLayout {
-  try {
-    return loadPaneLayout(localStorage, preferenceKey);
-  } catch {
-    return { ...DEFAULT_PANE_LAYOUT };
-  }
-}
-
-let paneLayout = loadSavedPaneLayout();
-
-function persistPaneLayout() {
-  try {
-    savePaneLayout(localStorage, paneLayout, activeTab()?.workspacePreferenceKey);
-  } catch {
-    // A configuração permanece ativa enquanto a janela estiver aberta.
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Editor
@@ -543,7 +525,7 @@ function activate(id: number) {
     renderWorkspaceExplorer();
   }
   view.setState(tab.state);
-  paneLayout = loadSavedPaneLayout(tab.workspacePreferenceKey);
+  panes.load(tab.workspacePreferenceKey);
   applyLearningMode(loadLearningMode(undefined, tab.workspacePreferenceKey), false);
   view.dispatch({ effects: [
     theme.reconfigure(editorTheme()),
@@ -551,9 +533,7 @@ function activate(id: number) {
     portugolTools.reconfigure(tab.language === "rust" ? [rustSourceLinter] : [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]),
     setDebugLine.of(tab.id === runTabId ? paused?.position.line ?? null : null),
   ] });
-  applyBottomPaneSize();
-  if (!explorer.hidden) applyExplorerPaneSize();
-  if (!utilities.hidden) applyUtilitiesPaneSize();
+  panes.applyAll();
   if (tab.language === "rust") view.dispatch(setDiagnostics(view.state, []));
   renderTabs();
   renderExerciseTests();
@@ -735,16 +715,6 @@ let workspaceRenameTarget: Extract<WorkspaceEntry, { kind: "file" }> | null = nu
 let workspaceRenamePending = false;
 let workspaceDeleteTarget: Extract<WorkspaceEntry, { kind: "file" }> | null = null;
 let workspaceDeletePending = false;
-
-function setWorkspaceExplorerVisible(visible: boolean) {
-  $("workspace-explorer").hidden = !visible;
-  $("workspace-explorer-splitter").hidden = !visible;
-  $("btn-explorer").setAttribute("aria-expanded", String(visible));
-  if (visible) {
-    applyExplorerPaneSize();
-    if (!utilities.hidden) applyUtilitiesPaneSize();
-  } else if (!utilities.hidden) applyUtilitiesPaneSize();
-}
 
 function renderWorkspaceExplorer() {
   $("workspace-explorer").setAttribute("aria-busy", String(workspaceLoading));
@@ -967,7 +937,7 @@ async function openWorkspaceFile(entry: Extract<WorkspaceEntry, { kind: "file" }
       if (activeTab() === tab) syncLanguageControls(tab);
     });
   }
-  rememberFile(loaded.path);
+  recentFiles.remember(loaded.path);
   setStatus(`Aberto: ${entry.path}`, "ok");
 }
 
@@ -996,26 +966,6 @@ function openWorkspaceRenameDialog(entry: Extract<WorkspaceEntry, { kind: "file"
   const dot = entry.name.lastIndexOf(".");
   input.setSelectionRange(0, dot > 0 ? dot : entry.name.length);
   input.focus();
-}
-
-function replaceRecentFile(oldPath: string, newPath: string) {
-  recent = [newPath, ...recent.filter((path) => path !== oldPath && path !== newPath)].slice(0, 6);
-  try {
-    localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
-  } catch {
-    // A lista em memória permanece disponível.
-  }
-  renderRecent();
-}
-
-function forgetRecentFile(path: string) {
-  recent = recent.filter((entry) => entry !== path);
-  try {
-    localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
-  } catch {
-    // A lista em memória permanece disponível.
-  }
-  renderRecent();
 }
 
 async function submitWorkspaceRenameDialog(event: SubmitEvent) {
@@ -1078,7 +1028,7 @@ async function submitWorkspaceRenameDialog(event: SubmitEvent) {
     const renamed = await api.renameWorkspaceFile(workspace.id, original.path, newName);
     if (workspaceState?.id !== workspace.id) return;
     for (const oldPath of applyWorkspaceRenameToTabs(openTabs, original.path, renamed.file)) {
-      replaceRecentFile(oldPath, renamed.file.path);
+      recentFiles.rename(oldPath, renamed.file.path);
     }
     workspaceState = renamed.listing;
     workspaceError = null;
@@ -1088,7 +1038,7 @@ async function submitWorkspaceRenameDialog(event: SubmitEvent) {
     $<HTMLDialogElement>("workspace-rename-dialog").close();
     $<HTMLFormElement>("workspace-rename-form").reset();
     workspaceRenameTarget = null;
-    rememberFile(renamed.file.path);
+    recentFiles.remember(renamed.file.path);
     setStatus(`Renomeado: ${newName}`, "ok");
     queueMicrotask(() => $("workspace-tree").querySelector<HTMLButtonElement>(`[data-path="${CSS.escape(renamed.file.relativePath)}"]`)?.focus());
   } catch (error) {
@@ -1187,7 +1137,7 @@ async function chooseWorkspaceDeleteAction(choice: "save" | "delete" | "discard"
     workspaceState = deleted.listing;
     workspaceError = null;
     if (selectedWorkspacePath === target.path) selectedWorkspacePath = null;
-    forgetRecentFile(deleted.file.path);
+    recentFiles.forget(deleted.file.path);
     tabs = result.remainingTabs;
     const activeWasDeleted = result.deletedTabs.some((tab) => tab.id === activeId);
     renderWorkspaceExplorer();
@@ -1470,21 +1420,17 @@ $("workspace-tree").addEventListener("keydown", (event) => {
 renderWorkspaceExplorer();
 void restoreWorkspaceOnStartup();
 
-const RECENT_KEY = "portugol.recent";
-
-function loadRecent(): string[] {
+function localStorageOrNull(): Storage | null {
   try {
-    const saved: unknown = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]");
-    if (Array.isArray(saved)) return saved.filter((path): path is string => typeof path === "string").slice(0, 6);
+    return localStorage;
   } catch {
-    // A lista continua funcionando nesta sessão quando o armazenamento está indisponível.
+    return null;
   }
-  return [];
 }
 
-let recent = loadRecent();
+const recentFiles = createRecentFiles(localStorageOrNull(), (list) => renderRecent(list));
 
-function renderRecent() {
+function renderRecent(recent: readonly string[] = recentFiles.list()) {
   $("recent").hidden = recent.length === 0;
   $("recent-files").replaceChildren(...recent.map((path) => {
     const button = document.createElement("button");
@@ -1495,16 +1441,6 @@ function renderRecent() {
     button.onclick = () => void openFile(path).catch((error) => setStatus(String(error), "error"));
     return button;
   }));
-}
-
-function rememberFile(path: string) {
-  recent = [path, ...recent.filter((entry) => entry !== path)].slice(0, 6);
-  try {
-    localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
-  } catch {
-    // A lista em memória permanece disponível.
-  }
-  renderRecent();
 }
 
 async function openFile(path: string) {
@@ -1519,7 +1455,7 @@ async function openFile(path: string) {
     }
     newTab(text, path);
   }
-  rememberFile(path);
+  recentFiles.remember(path);
 }
 
 async function openFiles() {
@@ -1602,7 +1538,7 @@ async function save(as = false): Promise<boolean> {
     updateLibraryButtons([]);
   }
   tab.saved = text;
-  rememberFile(path);
+  recentFiles.remember(path);
   renderTabs();
   setStatus(`Salvo em ${path}`, "ok");
   return true;
@@ -2739,165 +2675,13 @@ inputForm.addEventListener("submit", (e) => {
 // Divisória redimensionável e modo editor expandido
 // ---------------------------------------------------------------------------
 
-const panel = document.querySelector<HTMLElement>(".panel")!;
-const bottomSplitter = $("splitter");
-const explorer = $("workspace-explorer");
-const explorerSplitter = $("workspace-explorer-splitter");
+const panes = mountPaneLayout({
+  preferenceKey: () => activeTab()?.workspacePreferenceKey,
+  hasActiveTab: () => activeTab() !== undefined,
+});
+const { showUtilities, toggleUtilities, toggleExpanded } = panes;
+const setWorkspaceExplorerVisible = panes.setExplorerVisible;
 
-function explorerPaneBounds() {
-  const available = Math.max(1, $("code").clientWidth || window.innerWidth);
-  const sideMinimums = calculateSidePaneMinimums(
-    available,
-    paneChromeWidth(),
-    explorerSplitter.offsetWidth || 9,
-    utilitiesSplitter.offsetWidth || 15,
-    !explorer.hidden,
-    !utilities.hidden,
-  );
-  const minimum = sideMinimums.explorer;
-  const utilitiesWidth = utilities.hidden ? 0 : utilities.getBoundingClientRect().width;
-  const maximum = Math.max(minimum, Math.min(420, available * 0.42, available - paneChromeWidth()
-    - (explorer.hidden ? 0 : explorerSplitter.offsetWidth)
-    - (utilities.hidden ? 0 : utilitiesSplitter.offsetWidth) - utilitiesWidth));
-  return { minimum, maximum, available };
-}
-
-function bottomPaneBounds() {
-  const available = Math.max(280, panel.parentElement?.clientHeight || window.innerHeight - 100);
-  const minimum = 90;
-  const maximum = Math.max(minimum, Math.min(available - 90, available * 0.65));
-  return { minimum, maximum, available };
-}
-
-function utilitiesPaneBounds() {
-  const available = Math.max(1, $("code").clientWidth || window.innerWidth);
-  const sideMinimums = calculateSidePaneMinimums(
-    available,
-    paneChromeWidth(),
-    explorerSplitter.offsetWidth || 9,
-    utilitiesSplitter.offsetWidth || 15,
-    !explorer.hidden,
-    !utilities.hidden,
-  );
-  const minimum = sideMinimums.utilities;
-  const explorerWidth = explorer.hidden ? 0 : explorer.getBoundingClientRect().width;
-  const maximum = Math.max(minimum, Math.min(available * 0.55, 720, available - paneChromeWidth()
-    - (explorer.hidden ? 0 : explorerSplitter.offsetWidth)
-    - (utilities.hidden ? 0 : utilitiesSplitter.offsetWidth) - explorerWidth));
-  return { minimum, maximum, available };
-}
-
-function paneChromeWidth() {
-  const toolbar = $("code").querySelector<HTMLElement>(".code-toolbar")?.getBoundingClientRect().width ?? 56;
-  const editorMinimum = $("rust-preview").hidden ? 100 : 360;
-  return toolbar + editorMinimum;
-}
-
-function setSeparatorValue(separator: HTMLElement, value: number, bounds: { minimum: number; maximum: number }) {
-  separator.setAttribute("aria-valuemin", String(Math.round(bounds.minimum)));
-  separator.setAttribute("aria-valuemax", String(Math.round(bounds.maximum)));
-  separator.setAttribute("aria-valuenow", String(Math.round(value)));
-}
-
-function applyExplorerPaneSize(width = paneLayout.explorer * explorerPaneBounds().available) {
-  const bounds = explorerPaneBounds();
-  const size = clampPaneSize(width, bounds.minimum, bounds.maximum);
-  explorer.style.minWidth = `${bounds.minimum}px`;
-  explorer.style.flexBasis = `${size}px`;
-  setSeparatorValue(explorerSplitter, size, bounds);
-  return { size, ...bounds };
-}
-
-function applyBottomPaneSize(height = paneLayout.bottom * bottomPaneBounds().available) {
-  const bounds = bottomPaneBounds();
-  const size = clampPaneSize(height, bounds.minimum, bounds.maximum);
-  panel.style.flex = `0 0 ${size}px`;
-  setSeparatorValue(bottomSplitter, size, bounds);
-  return { size, ...bounds };
-}
-
-function applyUtilitiesPaneSize(width = paneLayout.utilities * utilitiesPaneBounds().available) {
-  const bounds = utilitiesPaneBounds();
-  const size = clampPaneSize(width, bounds.minimum, bounds.maximum);
-  utilities.style.minWidth = `${bounds.minimum}px`;
-  utilities.style.flex = `0 0 ${size}px`;
-  setSeparatorValue(utilitiesSplitter, size, bounds);
-  return { size, ...bounds };
-}
-
-function rememberPaneSize(key: keyof PaneLayout, size: number, available: number) {
-  paneLayout = normalizePaneLayout({ ...paneLayout, [key]: size / available });
-  persistPaneLayout();
-}
-
-function installPointerResize(
-  separator: HTMLElement,
-  orientation: "horizontal" | "vertical",
-  readSize: () => number,
-  applySize: (size: number) => { size: number; minimum: number; maximum: number; available: number },
-  onCommit: (size: number, available: number) => void,
-  deltaSign: 1 | -1,
-) {
-  separator.addEventListener("pointerdown", (start) => {
-    if (start.button !== 0) return;
-    separator.setPointerCapture(start.pointerId);
-    const origin = orientation === "horizontal" ? start.clientY : start.clientX;
-    const initial = readSize();
-    const move = (event: PointerEvent) => {
-      const coordinate = orientation === "horizontal" ? event.clientY : event.clientX;
-      applySize(initial + (coordinate - origin) * deltaSign);
-    };
-    const finish = () => {
-      const bounds = applySize(readSize());
-      onCommit(bounds.size, bounds.available);
-      separator.removeEventListener("pointermove", move);
-      separator.removeEventListener("pointerup", finish);
-      separator.removeEventListener("pointercancel", finish);
-      separator.removeEventListener("lostpointercapture", finish);
-    };
-    separator.addEventListener("pointermove", move);
-    separator.addEventListener("pointerup", finish, { once: true });
-    separator.addEventListener("pointercancel", finish, { once: true });
-    separator.addEventListener("lostpointercapture", finish, { once: true });
-  });
-}
-
-function installKeyboardResize(
-  separator: HTMLElement,
-  orientation: "horizontal" | "vertical",
-  readSize: () => number,
-  applySize: (size: number) => { size: number; minimum: number; maximum: number; available: number },
-  onCommit: (size: number, available: number) => void,
-  direction: 1 | -1,
-) {
-  separator.addEventListener("keydown", (event) => {
-    const bounds = applySize(readSize());
-    const next = resizePaneForKey(event.key, orientation, direction, bounds.size, bounds);
-    if (next === null) return;
-    event.preventDefault();
-    const updated = applySize(next);
-    onCommit(updated.size, updated.available);
-  });
-}
-
-function installPaneResize(
-  separator: HTMLElement,
-  orientation: "horizontal" | "vertical",
-  readSize: () => number,
-  applySize: (size: number) => { size: number; minimum: number; maximum: number; available: number },
-  key: keyof PaneLayout,
-  direction: 1 | -1,
-) {
-  const commit = (size: number, available: number) => rememberPaneSize(key, size, available);
-  installPointerResize(separator, orientation, readSize, applySize, commit, direction);
-  installKeyboardResize(separator, orientation, readSize, applySize, commit, direction);
-}
-
-installPaneResize(explorerSplitter, "vertical", () => explorer.getBoundingClientRect().width, applyExplorerPaneSize, "explorer", 1);
-installPaneResize(bottomSplitter, "horizontal", () => panel.getBoundingClientRect().height, applyBottomPaneSize, "bottom", -1);
-
-const utilities = $("utilities");
-const utilitiesSplitter = $("utilities-splitter");
 $("learning-inspector-slot").append($("learning-panel"));
 const outline = mountOutline(goTo, renameAt);
 
@@ -2962,36 +2746,7 @@ for (const selected of ["libraries", "models"]) {
   };
 }
 
-function showUtilities(visible: boolean) {
-  if (visible && $("code").classList.contains("expanded")) toggleExpanded();
-  utilities.hidden = utilitiesSplitter.hidden = !visible;
-  $("btn-utilities").setAttribute("aria-expanded", String(visible));
-  if (visible) {
-    if (!explorer.hidden) applyExplorerPaneSize();
-    applyUtilitiesPaneSize();
-  } else if (!explorer.hidden) applyExplorerPaneSize();
-}
 
-function toggleUtilities() {
-  if (activeTab()) showUtilities(utilities.hidden === true);
-}
-
-installPaneResize(utilitiesSplitter, "vertical", () => utilities.getBoundingClientRect().width, applyUtilitiesPaneSize, "utilities", -1);
-applyBottomPaneSize();
-window.addEventListener("resize", () => {
-  applyBottomPaneSize();
-  if (!explorer.hidden) applyExplorerPaneSize();
-  if (!utilities.hidden) applyUtilitiesPaneSize();
-});
-
-function toggleExpanded() {
-  if (!activeTab()) return;
-  const hidden = !panel.hidden;
-  panel.hidden = hidden;
-  $("splitter").hidden = hidden;
-  $("code").classList.toggle("expanded", hidden);
-  $("btn-unexpand").hidden = !hidden;
-}
 
 // ---------------------------------------------------------------------------
 // Botões e atalhos
