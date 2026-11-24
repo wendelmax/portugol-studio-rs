@@ -4,6 +4,7 @@ export interface ExerciseTestResult {
   total: number;
   passed: number;
   failures: string[];
+  hints?: string[];
   completed?: boolean;
 }
 
@@ -50,15 +51,19 @@ export function isCurrentExerciseTestRequest(
     && request.generation === current.generation;
 }
 
-export function exerciseTestStatus(state: ExerciseTestPanelState): string {
+export function exerciseTestStatus(
+  state: ExerciseTestPanelState,
+  language?: "portugol" | "portugol-rs",
+): string {
+  const tag = language === "portugol-rs" ? " (.pors)" : "";
   switch (state.kind) {
     case "empty": return "Nenhum teste configurado para este arquivo.";
     case "no-cases": return "Este exercício não possui casos de execução configurados.";
-    case "ready": return `${state.cases} casos configurados para este exercício.`;
-    case "running": return `Executando ${state.cases} casos desta revisão…`;
+    case "ready": return `${state.cases} casos configurados para este exercício${tag}.`;
+    case "running": return `Executando ${state.cases} casos desta revisão${tag}…`;
     case "completed": return state.result.completed
-      ? `${state.result.passed} de ${state.result.total} casos aprovados. Exercício concluído nesta revisão.`
-      : `${state.result.passed} de ${state.result.total} casos aprovados.`;
+      ? `${state.result.passed} de ${state.result.total} casos aprovados${tag}. Exercício concluído nesta revisão.`
+      : `${state.result.passed} de ${state.result.total} casos aprovados${tag}.`;
     case "error": return state.message;
   }
 }

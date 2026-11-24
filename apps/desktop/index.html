@@ -20,12 +20,13 @@
       <section class="home-welcome" aria-label="Portugol Studio">
         <div class="home-actions">
           <div class="home-new-file-group">
-            <button id="home-new" title="Novo arquivo Portugol (Ctrl+N)"><span data-icon="grande/newfile64"></span>Novo Arquivo</button>
+            <button id="home-new" title="Novo arquivo Portugol-RS (.pors) (Ctrl+N)"><span data-icon="grande/newfile64"></span>Novo Arquivo</button>
             <details id="home-new-menu" class="home-new-menu" data-testid="home-new-menu">
               <summary id="home-new-menu-toggle" aria-label="Criar arquivo em outra linguagem" aria-controls="home-new-menu-items" title="Criar arquivo em outra linguagem"><span aria-hidden="true">▾</span></summary>
               <div id="home-new-menu-items" class="home-new-menu-items" aria-label="Outras linguagens">
                 <button id="home-new-pors" type="button" data-home-new-language="portugol-rs" title="Novo arquivo Portugol-RS (.pors)">Novo Portugol-RS (.pors)</button>
                 <button id="home-new-rust" type="button" data-home-new-language="rust" title="Novo arquivo Rust (.rs)">Novo Rust (.rs)</button>
+                <button id="home-new-por" type="button" data-home-new-language="portugol" title="Novo arquivo Portugol clássico (.por)">Novo Portugol clássico (.por)</button>
               </div>
             </details>
           </div>
@@ -402,9 +403,9 @@
         <input id="workspace-create-name" type="text" required maxlength="120" autocomplete="off" spellcheck="false" aria-describedby="workspace-create-error" />
         <label for="workspace-create-language">Linguagem</label>
         <select id="workspace-create-language">
-          <option value="por">Portugol clássico (.por)</option>
-          <option value="pors">Portugol-RS (.pors)</option>
+          <option value="pors" selected>Portugol-RS (.pors)</option>
           <option value="rs">Rust (.rs)</option>
+          <option value="por">Portugol clássico (.por)</option>
         </select>
         <p id="workspace-create-error" role="status" aria-live="polite" hidden></p>
         <div class="dialog-actions">

@@ -491,8 +491,8 @@ function isDirty(tab: Tab): boolean {
 const NEW_PROGRAM = TEMPLATE.replace("\t\t\n", '\t\tescreva("Olá Mundo")\n');
 const PORS_TEMPLATE = "funcao inicio() {\n    seja mutavel idade: inteiro = 16;\n    idade += 1;\n    escreva(idade);\n}\n";
 
-function newTab(text = NEW_PROGRAM, path: string | null = null, exampleName?: string, examplePath?: string, exercise?: ExerciseDocument, explicitLanguage?: SourceLanguage, workspaceFile?: { id: string; path: string; preferenceKey: string }): Tab {
-  const language = explicitLanguage ?? detectSourceLanguage(path ?? "programa.por");
+function newTab(text = PORS_TEMPLATE, path: string | null = null, exampleName?: string, examplePath?: string, exercise?: ExerciseDocument, explicitLanguage?: SourceLanguage, workspaceFile?: { id: string; path: string; preferenceKey: string }): Tab {
+  const language = explicitLanguage ?? detectSourceLanguage(path ?? exampleName ?? "programa.pors");
   const tab: Tab = {
     id: nextTabId++,
     path,
@@ -720,7 +720,11 @@ function renderCursor() {
 // Arquivos
 // ---------------------------------------------------------------------------
 
-const FILTERS = [{ name: "Programas", extensions: ["por", "pors", "rs"] }];
+const FILTERS = [
+  { name: "Portugol-RS e Rust", extensions: ["pors", "rs"] },
+  { name: "Portugol clássico (legado)", extensions: ["por"] },
+  { name: "Todos os programas", extensions: ["pors", "rs", "por"] },
+];
 
 let workspaceError: string | null = null;
 let workspaceFileCreationPending = false;
@@ -1535,8 +1539,14 @@ async function save(as = false): Promise<boolean> {
   let workspaceFile = Boolean(tab.workspaceId && tab.workspacePath);
   if (!path || as) {
     const extension = tab.language === "portugol-rs" ? "pors" : tab.language === "rust" ? "rs" : "por";
-    const exerciseName = tab.exercise ? tab.exercise.name.replace(/\.pex$/i, "") + ".por" : undefined;
-    const filters = tab.language === "rust" ? [{ name: "Rust", extensions: ["rs"] }] : FILTERS;
+    const exerciseName = tab.exercise
+      ? `${tab.exercise.name.replace(/\.(pex|pors\.json|json)$/i, "")}.${extension}`
+      : undefined;
+    const filters = tab.language === "rust"
+      ? [{ name: "Rust", extensions: ["rs"] }]
+      : tab.language === "portugol-rs"
+        ? [{ name: "Portugol-RS", extensions: ["pors"] }, ...FILTERS]
+        : [{ name: "Portugol clássico", extensions: ["por"] }, ...FILTERS];
     path = await saveDialog({ filters, defaultPath: tab.path ?? exerciseName ?? tab.exampleName ?? `programa.${extension}` });
     if (!path) return false;
     path = ensureSourceExtension(path, tab.language);
@@ -2433,9 +2443,10 @@ function renderMessages() {
 function renderExerciseTests() {
   const tab = activeTab();
   const state = exerciseTestPanelState(tab?.exercise?.exercise, view.state.doc, tab?.exerciseTestRun);
+  const exerciseLanguage = tab?.exercise?.pors ? "portugol-rs" : "portugol";
   $("tests-title").textContent = tab?.exercise ? `Testes — ${tabName(tab)}` : "Testes do projeto";
   const status = $("tests-status");
-  const nextStatus = exerciseTestStatus(state);
+  const nextStatus = exerciseTestStatus(state, exerciseLanguage);
   if (status.textContent !== nextStatus) status.textContent = nextStatus;
   const run = $<HTMLButtonElement>("tests-run");
   run.hidden = state.kind === "empty" || state.kind === "no-cases";
@@ -2449,8 +2460,13 @@ function renderExerciseTests() {
       item.textContent = failure;
       failures.append(item);
     }
+    for (const hint of state.result.hints ?? []) {
+      const item = document.createElement("li");
+      item.textContent = `Dica: ${hint}`;
+      failures.append(item);
+    }
   }
-  failures.hidden = state.kind !== "completed" || state.result.failures.length === 0;
+  failures.hidden = state.kind !== "completed" || failures.childElementCount === 0;
 }
 
 async function runExerciseTests() {
@@ -2491,6 +2507,7 @@ async function runExerciseTests() {
         total: grade.evaluation.total,
         passed: grade.evaluation.passed,
         failures: grade.evaluation.failures,
+        hints: grade.evaluation.hints,
         completed: grade.progress.completed,
       },
     };
@@ -2845,6 +2862,7 @@ $("home-new").onclick = () => newTab();
 mountHomeNewFileMenu($<HTMLDetailsElement>("home-new-menu"), {
   "portugol-rs": () => newTab(PORS_TEMPLATE, null, undefined, undefined, undefined, "portugol-rs"),
   rust: () => newTab("fn main() {\n    \n}\n", null, undefined, undefined, undefined, "rust"),
+  portugol: () => newTab(NEW_PROGRAM, null, undefined, undefined, undefined, "portugol"),
 });
 $("home-open").onclick = () => void openFiles();
 $("btn-open").onclick = () => void openFiles();
@@ -3015,7 +3033,7 @@ ${template}`;
     exerciseDocument.name,
     undefined,
     exerciseDocument,
-    exerciseDocument.pors ? "portugol-rs" : undefined,
+    exerciseDocument.pors ? "portugol-rs" : "portugol",
   );
   if (workspaceExercise) {
     tab.workspaceId = workspaceExercise.id;

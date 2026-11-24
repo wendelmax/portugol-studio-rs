@@ -136,6 +136,26 @@ const EXAMPLES: &[PorsExample] = &[
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-pors/12-util-calendario.pors"),
     },
+    PorsExample {
+        id: "pors-13-json-dados",
+        category: "Bibliotecas padrão",
+        title: "Manipulação imutável de JSON",
+        file_name: "13-json-dados.pors",
+        description: "Demonstra Json.definir_* / Json.obter_* / Json.obter_lista_inteiro e propagação com ?.",
+        is_visual: false,
+        license: "LGPL-3.0-only",
+        source: include_str!("../assets/exemplos-pors/13-json-dados.pors"),
+    },
+    PorsExample {
+        id: "pors-14-arquivos-notas",
+        category: "Bibliotecas padrão",
+        title: "Arquivos confinados ao workspace",
+        file_name: "14-arquivos-notas.pors",
+        description: "Demonstra Arquivos.escrever_texto, acrescentar_texto, ler_linhas e remover com Resultado.",
+        is_visual: false,
+        license: "LGPL-3.0-only",
+        source: include_str!("../assets/exemplos-pors/14-arquivos-notas.pors"),
+    },
 ];
 
 pub fn pors_examples() -> &'static [PorsExample] {
@@ -152,7 +172,7 @@ mod tests {
     use std::sync::atomic::AtomicBool;
 
     use portugol_vm::ui::{UiBudget, UiEvent, UiSession};
-    use portugol_vm::{BufferIo, run};
+    use portugol_vm::{BufferIo, Vm, run};
 
     use super::*;
 
@@ -194,9 +214,16 @@ mod tests {
                 "",
                 "Fevereiro/2024=29 bissexto=verdadeiro dado_valido=verdadeiro",
             ),
+            ("pors-13-json-dados", "", "Portugol-RS soma=60"),
+            ("pors-14-arquivos-notas", "", "linhas=2 segunda=Testar Rust"),
         ];
 
         assert_eq!(pors_examples().len(), expected_console.len() + 1);
+
+        let workspace =
+            std::env::temp_dir().join(format!("portugol-pors-examples-ws-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&workspace);
+        std::fs::create_dir_all(&workspace).unwrap();
 
         for example in pors_examples() {
             let program = portugol_rs_frontend::lower(example.source)
@@ -229,10 +256,21 @@ mod tests {
                     .find(|(id, _, _)| *id == example.id)
                     .unwrap_or_else(|| panic!("expectativa ausente para {}", example.id));
                 let mut io = BufferIo::new(input);
-                run(&module, &mut io)
-                    .unwrap_or_else(|err| panic!("exemplo {} falhou na VM: {err:?}", example.id));
+                if example.id == "pors-14-arquivos-notas" {
+                    Vm::new(&module, &mut io)
+                        .with_pors_workspace_dir(&workspace)
+                        .run()
+                        .unwrap_or_else(|err| {
+                            panic!("exemplo {} falhou na VM: {err:?}", example.id)
+                        });
+                } else {
+                    run(&module, &mut io).unwrap_or_else(|err| {
+                        panic!("exemplo {} falhou na VM: {err:?}", example.id)
+                    });
+                }
                 assert_eq!(io.output, *expected, "saída inesperada em {}", example.id);
             }
         }
+        let _ = std::fs::remove_dir_all(&workspace);
     }
 }

@@ -1,4 +1,4 @@
-export type HomeNewFileLanguage = "portugol-rs" | "rust";
+export type HomeNewFileLanguage = "portugol-rs" | "rust" | "portugol";
 
 export type HomeNewFileActions = Partial<Record<HomeNewFileLanguage, () => void>>;
 
@@ -8,7 +8,7 @@ export function mountHomeNewFileMenu(menu: HTMLDetailsElement, actions: HomeNewF
   for (const button of menu.querySelectorAll<HTMLButtonElement>("[data-home-new-language]")) {
     button.addEventListener("click", () => {
       const language = button.dataset.homeNewLanguage;
-      if (language !== "portugol-rs" && language !== "rust") return;
+      if (language !== "portugol-rs" && language !== "rust" && language !== "portugol") return;
       const action = actions[language];
       if (!action) return;
       menu.open = false;

@@ -84,6 +84,8 @@ const BUILTIN_RAW: &[&str] = &[
     include_str!("../assets/exercicios-pors/06-filtrar-positivos.pors.json"),
     include_str!("../assets/exercicios-pors/07-normalizar-csv.pors.json"),
     include_str!("../assets/exercicios-pors/08-dias-do-mes.pors.json"),
+    include_str!("../assets/exercicios-pors/09-resumo-json.pors.json"),
+    include_str!("../assets/exercicios-pors/10-somar-lista-json.pors.json"),
 ];
 
 static BUILTIN_CATALOG: LazyLock<Vec<PorsExerciseDefinition>> = LazyLock::new(|| {
@@ -336,7 +338,7 @@ mod tests {
     #[test]
     fn evaluates_all_builtin_pors_exercises_with_passing_and_failing_solutions() {
         let catalog = pors_exercises();
-        assert_eq!(catalog.len(), 8);
+        assert_eq!(catalog.len(), 10);
         for summary in &catalog {
             assert_eq!(summary.schema_version, PORS_EXERCISE_SCHEMA_VERSION);
             assert!(portugol_rs_frontend::lower(&summary.starter_code).is_ok());
@@ -374,6 +376,14 @@ mod tests {
             (
                 "pors-08-dias-do-mes",
                 "funcao calcular_dias(ano_txt: cadeia, mes_txt: cadeia) -> Resultado<inteiro, cadeia> { seja ano: inteiro = Tipos.para_inteiro(ano_txt)?; seja mes: inteiro = Tipos.para_inteiro(mes_txt)?; retorne Calendario.dias_no_mes(ano, mes); } funcao inicio() { seja mutavel ano_txt: cadeia = \"\"; seja mutavel mes_txt: cadeia = \"\"; leia(ano_txt); leia(mes_txt); escolha calcular_dias(ano_txt, mes_txt) { caso Resultado::Ok(d) => { escreva(d); } caso Resultado::Erro(_) => { escreva(\"invalido\"); } } }",
+            ),
+            (
+                "pors-09-resumo-json",
+                "funcao processar(texto: cadeia) -> Resultado<cadeia, cadeia> { seja nome: cadeia = Json.obter_cadeia(texto, \"nome\")?; seja idade: inteiro = Json.obter_inteiro(texto, \"idade\")?; retorne Resultado::Ok(nome + \":\" + Tipos.inteiro_para_cadeia(idade + 1)); } funcao inicio() { seja mutavel linha: cadeia = \"\"; leia(linha); escolha processar(linha) { caso Resultado::Ok(s) => { escreva(s); } caso Resultado::Erro(_) => { escreva(\"invalido\"); } } }",
+            ),
+            (
+                "pors-10-somar-lista-json",
+                "funcao somar_json(texto: cadeia) -> Resultado<inteiro, cadeia> { seja lista: vetor<inteiro> = Json.obter_lista_inteiro(texto, \"valores\")?; seja mutavel total: inteiro = 0; para (seja mutavel i: inteiro = 0; i < tamanho(lista); i += 1) { total += lista[i]; } retorne Resultado::Ok(total); } funcao inicio() { seja mutavel linha: cadeia = \"\"; leia(linha); escolha somar_json(linha) { caso Resultado::Ok(s) => { escreva(s); } caso Resultado::Erro(_) => { escreva(\"invalido\"); } } }",
             ),
         ];
 

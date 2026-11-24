@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "id": "pors-10-somar-lista-json",
+  "title": "Somar lista de inteiros em JSON",
+  "statement": "Leia uma linha JSON contendo um objeto com a chave \"valores\" mapeada para uma lista de inteiros. Escreva a soma de todos os elementos da lista, ou \"invalido\" caso o JSON ou a chave sejam inválidos.",
+  "starter_code": "funcao somar_json(texto: cadeia) -> Resultado<inteiro, cadeia> {\n    seja lista: vetor<inteiro> = Json.obter_lista_inteiro(texto, \"valores\")?;\n    seja mutavel total: inteiro = 0;\n    // Some os elementos de lista e retorne Resultado::Ok(total)\n    retorne Resultado::Ok(total);\n}\n\nfuncao inicio() {\n    seja mutavel linha: cadeia = \"\";\n    leia(linha);\n    escolha somar_json(linha) {\n        caso Resultado::Ok(s) => {\n            escreva(s);\n        }\n        caso Resultado::Erro(_) => {\n            escreva(\"invalido\");\n        }\n    }\n}\n",
+  "hints": [
+    "Use Json.obter_lista_inteiro(texto, \"valores\")? para extrair o vetor<inteiro>.",
+    "Percorra o vetor com para (seja mutavel i: inteiro = 0; i < tamanho(lista); i += 1) acumulando em total."
+  ],
+  "cases": [
+    {
+      "name": "lista com três valores",
+      "input": "{\"valores\":[10,20,12]}\n",
+      "expected_output": "42"
+    },
+    {
+      "name": "lista vazia",
+      "input": "{\"valores\":[]}\n",
+      "expected_output": "0"
+    },
+    {
+      "name": "valores negativos e positivos",
+      "input": "{\"valores\":[-5,15,-3]}\n",
+      "expected_output": "7"
+    },
+    {
+      "name": "elemento não inteiro",
+      "input": "{\"valores\":[1,\"dois\"]}\n",
+      "expected_output": "invalido"
+    }
+  ]
+}

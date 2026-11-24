@@ -1,6 +1,9 @@
 // Execute com xvfb-run e com o binário compilado com tauri/custom-protocol.
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
+import { rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
 const program = String.raw`programa {
@@ -40,7 +43,10 @@ const program = String.raw`programa {
     }
 }`;
 
-const app = spawn(process.argv[2] ?? "target/debug/portugol-desktop", [], {
+const smokeFile = join(tmpdir(), `portugol-graphics-smoke-${process.pid}.por`);
+writeFileSync(smokeFile, program, "utf8");
+
+const app = spawn(process.argv[2] ?? "target/debug/portugol-desktop", [smokeFile], {
   env: {
     ...process.env,
     GDK_BACKEND: "x11",
@@ -106,12 +112,7 @@ try {
   const copy = (text) => execFileSync("xclip", [...selection, "-i"], {
     input: text, timeout: 3000, stdio: ["pipe", "ignore", "ignore"],
   });
-  await waitFor("O editor não recebeu o programa", async () => {
-    xdotool("key", "ctrl+n");
-    await delay(150);
-    copy(program);
-    xdotool("key", "ctrl+a", "ctrl+v");
-    await delay(250);
+  await waitFor("O editor não carregou o programa .por", async () => {
     copy("verificacao-do-teste");
     xdotool("key", "ctrl+a", "ctrl+c");
     await delay(150);
@@ -124,7 +125,7 @@ try {
       return false;
     }
   });
-  console.log("Programa colado e conferido no editor.");
+  console.log("Programa .por carregado e conferido no editor.");
   xdotool("key", "shift+F6");
   const graphics = await waitFor(
     "Janela gráfica não encontrada", () => windowByTitle("^Portugol Verificacao Grafica$"),
@@ -146,4 +147,5 @@ try {
   throw error;
 } finally {
   app.kill();
+  rmSync(smokeFile, { force: true });
 }

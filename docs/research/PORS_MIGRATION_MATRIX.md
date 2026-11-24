@@ -53,18 +53,18 @@ Não considerar uma biblioteca portada por implementar apenas o nome do módulo.
 
 | Fluxo | Estado PORS/Rust | Critério para a futura remoção do clássico |
 |---|---|---|
-| Novo/abrir/salvar | 🟡 `.pors` e `.rs` existem; fallback desconhecido ainda seleciona Portugol | `.pors` default, linguagem desconhecida explícita, filtros `.pors`/`.rs` |
+| Novo/abrir/salvar | 🟡 Novo Arquivo e criação no workspace agora usam `.pors` por padrão, filtros priorizam `.pors`/`.rs` e exemplos `.pors` da Ajuda/exercícios salvam com `.pors`; `.por` legado mantido acessível | Linguagem desconhecida explícita e retirada de `.por` apenas no gate final |
 | Workspace/exportação | 🟡 aceita `.por`, `.pors`, `.rs`, `.pex` | Listagem, criação, rename, delete e export só PORS/Rust e exercícios novos |
 | CLI | 🟡 CLI cria (`novo`), valida, formata (`formatar`), exporta Rust (`exportar-rust`) e executa `.pors` na VM, preservando `.por` | Depuração interativa `.pors` no CLI; remover suporte `.por` apenas no gate final |
 | Ajuda/autocomplete/formatador | 🟡 Rust/PORS parcial; conteúdo dominante é Portugol clássico | Referência PORS, snippets, completions, hover e formatador do subset final |
-| Exemplos | 🟡 corpus próprio de 12 exemplos `.pors` (LGPL-3.0-only) cobrindo fundamentos, controle, funções, vetores dinâmicos, registros/enums, `Opcao`/`Resultado`/`?`, `Matematica`/`Texto`/`Tipos`/`Util`/`Calendario` e UI MVU, integrados na IDE e validados em testes | Expandir corpus conforme novas bibliotecas (ex.: `Arquivos`, `Json`) entrarem antes de retirar `.por` |
-| Exercícios | 🟡 formato JSON versionado (`schema_version = 1`), avaliador com limites (`pors_exercises`, 8 exercícios cobrindo fundamentos, funções, `Resultado`/`?`, vetores dinâmicos, `Texto`, `Tipos` e `Calendario`) e integração na IDE; `.pex` clássico mantido | Expandir catálogo de exercícios PORS antes de retirar `.pex` |
+| Exemplos | ✅ corpus próprio de 14 exemplos `.pors` (LGPL-3.0-only) cobrindo fundamentos, controle, funções, vetores dinâmicos, registros/enums, `Opcao`/`Resultado`/`?`, `Matematica`/`Texto`/`Tipos`/`Util`/`Calendario`/`Json`/`Arquivos` e UI MVU, integrados na IDE e validados em testes | Expandir conforme novas bibliotecas (ex.: `Internet`) entrarem antes de retirar `.por` |
+| Exercícios | ✅ formato JSON versionado (`schema_version = 1`), avaliador com limites (`pors_exercises`, 10 exercícios cobrindo fundamentos, funções, `Resultado`/`?`, vetores dinâmicos, `Texto`, `Tipos`, `Calendario` e `Json`) e integração no catálogo e painel de Testes da IDE; `.pex` clássico mantido | Retirar `.pex` apenas no gate final |
 | Modos | 🟡 Beginner/Bridge/Rust coexistem com `.por` | Beginner/Bridge editam PORS; Rust é `.rs`; troca não reescreve fontes |
 | Prévia Rust/source maps | 🟡 PORS e clássico suportados | PORS sempre; retirar frontend classic apenas no gate final |
 | Navegação de símbolos/outline/rename | 🟡 PORS e clássico têm serviços semânticos próprios | Preservar PORS; avaliar navegação/refactor real para `.rs` com spans e teste Rust |
 | Ownership lab | 🟡 simulação editorial | Analisar código/diagnósticos reais ou rotular trace; sem cenário apresentado como execução real |
 | Janela gráfica, temas, abas, atalhos e painéis | ✅ shell existente | Manter no app PORS/Rust; alterar UI somente para fluxos funcionais novos |
-| Testes/resultados/diagnósticos | 🟡 execução e debugger existem; painel de testes avalia apenas `.pex` | Unificar estados reais de Rust/PORS, distinguir erro do aluno de falha de infraestrutura e associar revisão |
+| Testes/resultados/diagnósticos | 🟡 execução, debugger e painel de Testes avaliam exercícios `.pors` e `.pex` com dicas, revisão exata e progresso validado | Unificar estados de projetos Cargo/Rust no mesmo painel e retirar `.pex` no gate final |
 | Persistência de progresso | 🟡 local, baseada em hash do exercício e da fonte | Novo formato versionado; progresso só após todos os casos aprovados; migração/isolamento de histórico documentados |
 | Editor: busca, abas, desfazer, teclas e preferências | ✅ genérico ou parcialmente ligado ao editor | Preservar; revisar apenas comandos exclusivos de sintaxe `.por` |
 | Open/save, diálogo nativo e drag/drop | 🟡 roteiam `.por`/`.pex` além de `.pors`/`.rs` | Manter segurança e arquivos sujos; aceitar `.pors`/`.rs` e exercícios novos; erro claro para formatos legados |
