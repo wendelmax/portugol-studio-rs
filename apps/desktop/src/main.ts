@@ -56,7 +56,8 @@ import { canDebugSource, canFormatSource, canRunAsRust, canRunSource } from "./r
 import { parseClassicArguments, parseProcessArguments } from "./process-arguments";
 import { hasCargoExecutionConsent, hasRustExecutionConsent, rememberCargoExecutionConsent, rememberRustExecutionConsent } from "./rust-execution-consent";
 import { createLatestOnlyRustSourceChecker } from "./rust-source-check";
-import { replayRunEvents, routeRunEvent as routeRunEventById, type PendingRunEvent } from "./run-event-router";
+import { replayRunEvents, type PendingRunEvent } from "./run-event-router";
+import { createRunEventsController } from "./run/run-events";
 import { loadLearningMode, saveLearningMode, type LearningMode } from "./learning-mode";
 import { isPaletteCommandAvailable, type PaletteContext } from "./command-palette";
 import { markRustPreviewStale } from "./rust-preview-state";
@@ -997,68 +998,30 @@ async function runExerciseTests() {
   await testsPanel?.runExerciseTests();
 }
 
-function routeRunEvent(id: number, handle: () => void) {
-  routeRunEventById(id, runId, pendingEvents, handle);
-}
-
-const runListeners = api.listenRun({
-  output(id, text) {
-    routeRunEvent(id, () => appendConsole(text));
-  },
-  clear(id) {
-    routeRunEvent(id, () => clearConsole());
-  },
-  input(id, expected) {
-    routeRunEvent(id, () => {
-      $("console-hint").textContent = `leia (${expected}):`;
-      inputForm.hidden = false;
-      inputField.value = "";
-      if (activeTab()) inputField.focus();
-      consoleBox.scrollTop = consoleBox.scrollHeight;
-    });
-  },
-  paused(id, info) {
-    routeRunEvent(id, () => setPaused(info));
-  },
-  finished(id, outcome) {
-    routeRunEvent(id, () => {
-      const isRunTab = activeId === runTabId;
-      runId = null;
-      runTabId = null;
-      paused = null;
-      if (isRunTab) view.dispatch({ effects: setDebugLine.of(null) });
-      setRunning(false);
-      if (outcome.status === "finished") {
-        appendConsole("\nPrograma finalizado.\n", "info");
-        setStatus("Programa finalizado.", "ok");
-      } else if (outcome.status === "stopped") {
-        appendConsole("\nPrograma interrompido.\n", "info");
-        setStatus("Programa interrompido.");
-      } else if (outcome.status === "runtime_limit") {
-        const descriptions = {
-          time: "tempo ativo de 3 segundos",
-          output: "limite de saída de 1 MiB",
-          string_memory: "limite cumulativo de cadeias de 16 MiB",
-        } as const;
-        const message = `VM Portugol-RS interrompida: ${descriptions[outcome.reason]}.`;
-        appendConsole(`\n${message}\n`, "error");
-        setStatus(message, "error");
-      } else {
-        const { start, message, trace } = outcome;
-        let text = `\nErro na linha ${start.line}, coluna ${start.column}: ${message}\n`;
-        for (const frame of trace.slice(1, -1)) {
-          text += `  chamado em ${frame.function} (linha ${frame.line})\n`;
-        }
-        appendConsole(text, "error");
-        setStatus(`Erro de execução na linha ${start.line}.`, "error");
-        if (isRunTab) {
-          view.dispatch({ effects: setRuntimeError.of({ from: start.offset, to: outcome.end.offset }) });
-          goTo(start.offset);
-        }
-      }
-    });
-  },
+const runEvents = createRunEventsController({
+  runId: () => runId,
+  setRunId: (id) => { runId = id; },
+  runTabId: () => runTabId,
+  setRunTabId: (id) => { runTabId = id; },
+  activeTabId: () => activeId,
+  pendingEvents: () => pendingEvents,
+  setPaused: (info) => { paused = info; },
+  setPausedInfo: setPaused,
+  setRunning,
+  setDebugLine: (line) => view.dispatch({ effects: setDebugLine.of(line) }),
+  setRuntimeError: (range) => view.dispatch({ effects: setRuntimeError.of(range) }),
+  appendConsole,
+  clearConsole,
+  setInputHint: (text) => { $("console-hint").textContent = text; },
+  showInput: () => { inputForm.hidden = false; },
+  clearInput: () => { inputField.value = ""; },
+  focusInput: () => { if (activeTab()) inputField.focus(); },
+  scrollConsole: () => { consoleBox.scrollTop = consoleBox.scrollHeight; },
+  setStatus,
+  goTo,
 });
+
+const runListeners = api.listenRun(runEvents.handlers);
 
 inputForm.addEventListener("submit", (e) => {
   e.preventDefault();

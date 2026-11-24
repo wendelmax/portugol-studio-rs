@@ -5,16 +5,17 @@ import { readFile } from "node:fs/promises";
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
 
 test("Portugol-RS routes leia through the console input IPC", async () => {
-  const [main, api, backend, execution] = await Promise.all([
+  const [main, api, backend, execution, runEvents] = await Promise.all([
     read("../src/main.ts"),
     read("../src/api.ts"),
     read("../../../apps/desktop/src-tauri/src/lib.rs"),
     read("../src/run/portugol-rs-execution.ts"),
+    read("../src/run/run-events.ts"),
   ]);
 
   assert.match(main, /runGeneratedRust: api\.runPortugolRs/);
   assert.match(execution, /await dependencies\.runListeners[\s\S]*dependencies\.runGeneratedRust\(registeredId, source\)/);
-  assert.match(main, /input\(id, expected\)[\s\S]*console-hint[\s\S]*inputForm\.hidden = false/);
+  assert.match(runEvents, /input\(id, expected\)[\s\S]*dependencies\.setInputHint[\s\S]*dependencies\.showInput/);
   assert.match(main, /api\.sendInput\(runId, line\)/);
   assert.match(api, /registerPortugolRsRun[\s\S]*register_portugol_rs_run/);
   assert.match(backend, /run_portugol_rs_with_io[\s\S]*\.emit\([\s\n]*"run:input"/);
