@@ -53,7 +53,7 @@ import { hasCargoExecutionConsent, hasRustExecutionConsent, rememberCargoExecuti
 import { createLatestOnlyRustSourceChecker } from "./rust-source-check";
 import { replayRunEvents, routeRunEvent as routeRunEventById, type PendingRunEvent } from "./run-event-router";
 import { loadLearningMode, saveLearningMode, type LearningMode } from "./learning-mode";
-import { filterCommands, isDebugCommandAvailable, nextCommandIndex } from "./command-palette";
+import { isPaletteCommandAvailable, type PaletteContext } from "./command-palette";
 import { markRustPreviewStale } from "./rust-preview-state";
 import { PORS_UI_EXAMPLES } from "./pors-ui-examples";
 import { mountPorsUiPreviewPanel } from "./pors-ui-preview-panel";
@@ -63,6 +63,8 @@ import type { Tab } from "./state/tab";
 import { mountWorkspaceExplorer } from "./workspace/explorer";
 import { mountRustPreview } from "./rust/preview";
 import { mountLearningPanel } from "./learning/panel";
+import { mountCommandPalette } from "./commands/palette";
+import { ctrlShortcut, renderShortcutList, type Shortcut } from "./commands/shortcuts";
 import { $ } from "./dom";
 import { createRecentFiles } from "./files/recent";
 import { mountPaneLayout } from "./layout/panes";
@@ -1990,138 +1992,29 @@ function cycleTab(step: number) {
 
 const shortcutDialog = $<HTMLDialogElement>("shortcuts");
 
-const commandPalette = $<HTMLDialogElement>("command-palette");
-const commandSearch = $<HTMLInputElement>("command-search");
-const commandResults = $("command-results");
-const commandEmpty = $("command-empty");
-let paletteReturnFocus: HTMLElement | null = null;
-let paletteCommands: typeof shortcuts = [];
-let selectedCommandIndex = -1;
-
-const tabCommands = new Set([
-  "Executar", "Depurar", "Interromper", "Pausar", "Continuar", "Próxima instrução",
-  "Entrar na função", "Sair da função", "Renomear símbolo", "Formatar código-fonte", "Analisar projeto Cargo", "Testar projeto Cargo",
-  "Executar como Rust",
-  "Salvar", "Salvar como", "Parâmetros de execução", "Fechar aba", "Fechar todas as abas", "Localizar e substituir",
-  "Buscar na estrutura", "Filtrar variável", "Filtrar vetor", "Filtrar matriz", "Filtrar função",
-  "Filtrar constante", "Mostrar todos os tipos", "Filtrar tipo inteiro", "Filtrar tipo caracter",
-  "Filtrar tipo real", "Filtrar tipo cadeia", "Filtrar tipo logico", "Filtrar tipo vazio",
-]);
-const rustUnsupportedCommands = new Set([
-  "Executar", "Depurar", "Interromper", "Pausar", "Continuar", "Próxima instrução",
-  "Entrar na função", "Sair da função", "Renomear símbolo", "Formatar código-fonte",
-  "Buscar na estrutura", "Filtrar variável", "Filtrar vetor", "Filtrar matriz", "Filtrar função",
-  "Filtrar constante", "Mostrar todos os tipos", "Filtrar tipo inteiro", "Filtrar tipo caracter",
-  "Filtrar tipo real", "Filtrar tipo cadeia", "Filtrar tipo logico", "Filtrar tipo vazio",
-]);
-const debugCommands = new Set([
-  "Depurar", "Interromper", "Pausar", "Continuar", "Próxima instrução", "Entrar na função", "Sair da função",
-]);
-
-function availablePaletteCommands() {
+function paletteContext(): PaletteContext {
   const tab = activeTab();
-  return shortcuts.filter(({ command }) => {
-    if (command === "Paleta de comandos") return false;
-    if (command === "Sobre (fora do editor); ir à declaração (no editor)") return false;
-    if (tabCommands.has(command) && !tab) return false;
-    if (command === "Executar como Rust") return tab !== undefined && canRunAsRust(tab.language, rustcAvailable) && runId === null && !porsRunPending;
-    if (command === "Analisar projeto Cargo") return tab?.language === "rust" && tab.cargoProject === true && cargoAvailable === true && runId === null && !porsRunPending;
-    if (command === "Testar projeto Cargo") return tab?.language === "rust" && tab.cargoProject === true && cargoAvailable === true && runId === null && !porsRunPending;
-    if (command === "Parâmetros de execução" && tab?.language === "portugol-rs") return false;
-    if (tab?.language === "rust" && rustUnsupportedCommands.has(command)) return false;
-    if (debugCommands.has(command) && !isDebugCommandAvailable(command, tab?.language ?? null, runId !== null, paused !== null)) return false;
-    return true;
-  });
+  return {
+    language: tab?.language ?? null,
+    cargoProject: tab?.cargoProject === true,
+    cargoAvailable: cargoAvailable === true,
+    canRunAsRust: tab !== undefined && canRunAsRust(tab.language, rustcAvailable),
+    runActive: runId !== null,
+    paused: paused !== null,
+    porsRunPending,
+  };
 }
 
-function renderCommandPalette() {
-  paletteCommands = filterCommands(availablePaletteCommands(), commandSearch.value);
-  selectedCommandIndex = paletteCommands.length > 0 ? Math.min(Math.max(selectedCommandIndex, 0), paletteCommands.length - 1) : -1;
-  commandResults.replaceChildren();
-  commandEmpty.hidden = paletteCommands.length > 0;
-  commandSearch.setAttribute("aria-expanded", "true");
-  for (const [index, item] of paletteCommands.entries()) {
-    const option = document.createElement("button");
-    option.type = "button";
-    option.className = "command-option";
-    option.id = `command-option-${index}`;
-    option.setAttribute("role", "option");
-    option.setAttribute("aria-selected", String(index === selectedCommandIndex));
-    const name = document.createElement("span");
-    name.textContent = item.command;
-    const shortcut = document.createElement("kbd");
-    shortcut.textContent = item.label;
-    option.append(name, shortcut);
-    option.addEventListener("mouseenter", () => {
-      selectedCommandIndex = index;
-      updateSelectedPaletteCommand();
-    });
-    option.addEventListener("click", () => executePaletteCommand(index));
-    commandResults.append(option);
-  }
-  updateSelectedPaletteCommand();
-}
-
-function updateSelectedPaletteCommand() {
-  for (const [index, option] of [...commandResults.querySelectorAll<HTMLElement>("[role=option]")].entries()) {
-    option.setAttribute("aria-selected", String(index === selectedCommandIndex));
-  }
-  const id = selectedCommandIndex >= 0 ? `command-option-${selectedCommandIndex}` : "";
-  if (id) commandSearch.setAttribute("aria-activedescendant", id);
-  else commandSearch.removeAttribute("aria-activedescendant");
-}
-
-function executePaletteCommand(index: number) {
-  const item = paletteCommands[index];
-  if (!item) return;
-  if (!availablePaletteCommands().includes(item)) {
-    renderCommandPalette();
-    return;
-  }
-  commandPalette.close();
-  void item.action();
-}
-
-function showCommandPalette() {
-  if (commandPalette.open) return;
-  paletteReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-  commandSearch.value = "";
-  selectedCommandIndex = 0;
-  renderCommandPalette();
-  commandPalette.showModal();
-  commandSearch.focus();
-}
-
-commandSearch.addEventListener("input", () => {
-  selectedCommandIndex = 0;
-  renderCommandPalette();
-});
-commandSearch.addEventListener("keydown", (event) => {
-  if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-    event.preventDefault();
-    selectedCommandIndex = nextCommandIndex(paletteCommands.length, selectedCommandIndex, event.key);
-    updateSelectedPaletteCommand();
-  } else if (event.key === "Enter") {
-    event.preventDefault();
-    executePaletteCommand(selectedCommandIndex);
-  }
-});
-commandPalette.addEventListener("close", () => {
-  const focusTarget = paletteReturnFocus;
-  paletteReturnFocus = null;
-  if (focusTarget?.isConnected && !focusTarget.hasAttribute("disabled")) focusTarget.focus();
-});
+const commandPalette = mountCommandPalette(() =>
+  shortcuts.filter(({ command }) => isPaletteCommandAvailable(command, paletteContext())),
+);
+const showCommandPalette = commandPalette.show;
 
 function showShortcuts() {
   if (!shortcutDialog.open) shortcutDialog.showModal();
 }
 
-const shortcuts: {
-  label: string;
-  command: string;
-  matches: (event: KeyboardEvent) => boolean;
-  action: () => unknown;
-}[] = [
+const shortcuts: Shortcut[] = [
   { label: "Shift+F6 / Ctrl+Enter", command: "Executar", matches: (e) =>
     (e.shiftKey && e.key === "F6") || ((e.ctrlKey || e.metaKey) && e.key === "Enter"), action: runOrContinue },
   { label: "Shift+F5", command: "Depurar", matches: (e) => e.shiftKey && e.key === "F5",
@@ -2162,12 +2055,7 @@ const shortcuts: {
 ];
 
 function fileShortcut(key: string, shift: boolean, command: string, action: () => unknown) {
-  shortcuts.push({
-    label: shift ? `Ctrl+Shift+${key}` : `Ctrl+${key}`,
-    command,
-    matches: (e) => (e.ctrlKey || e.metaKey) && e.shiftKey === shift && e.key.toUpperCase() === key,
-    action,
-  });
+  shortcuts.push(ctrlShortcut(key, shift, command, action));
 }
 
 fileShortcut("N", false, "Novo arquivo", () => newTab());
@@ -2213,15 +2101,7 @@ for (const [key, kind] of Object.entries(symbolShortcuts)) {
   });
 }
 
-for (const { label, command } of shortcuts) {
-  const term = document.createElement("dt");
-  const shortcut = document.createElement("kbd");
-  const description = document.createElement("dd");
-  shortcut.textContent = label;
-  description.textContent = command;
-  term.append(shortcut);
-  $("shortcut-list").append(term, description);
-}
+renderShortcutList(shortcuts);
 $("home-shortcuts").onclick = showShortcuts;
 const aboutDialog = $<HTMLDialogElement>("about");
 const reportDialog = $<HTMLDialogElement>("report");

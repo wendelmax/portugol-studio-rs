@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { filterCommands, isDebugCommandAvailable, nextCommandIndex } from "../src/command-palette.ts";
+import { filterCommands, isDebugCommandAvailable, isPaletteCommandAvailable, nextCommandIndex } from "../src/command-palette.ts";
 import { ideSource } from "./support/ide-source.mjs";
 
 const commands = [
@@ -47,4 +47,28 @@ test("palette dialog exposes an accessible search, listbox, and empty state", ()
 test("command palette shortcut is advertised", () => {
   const main = ideSource();
   assert.match(main, /Ctrl\+Shift\+P[^\n]*Paleta de comandos/i);
+});
+
+test("palette hides tab commands without a tab and Rust-unsupported commands in Rust files", () => {
+  const idle = {
+    language: "portugol", cargoProject: false, cargoAvailable: false, canRunAsRust: false,
+    runActive: false, paused: false, porsRunPending: false,
+  };
+  assert.equal(isPaletteCommandAvailable("Paleta de comandos", idle), false);
+  assert.equal(isPaletteCommandAvailable("Salvar", idle), true);
+  assert.equal(isPaletteCommandAvailable("Salvar", { ...idle, language: null }), false);
+  assert.equal(isPaletteCommandAvailable("Tela inicial", { ...idle, language: null }), true);
+  assert.equal(isPaletteCommandAvailable("Renomear símbolo", { ...idle, language: "rust" }), false);
+  assert.equal(isPaletteCommandAvailable("Salvar", { ...idle, language: "rust" }), true);
+});
+
+test("Executar como Rust needs rustc for the active Portugol-RS file and no run in progress", () => {
+  const ready = {
+    language: "portugol-rs", cargoProject: false, cargoAvailable: false, canRunAsRust: true,
+    runActive: false, paused: false, porsRunPending: false,
+  };
+  assert.equal(isPaletteCommandAvailable("Executar como Rust", ready), true);
+  assert.equal(isPaletteCommandAvailable("Executar como Rust", { ...ready, canRunAsRust: false }), false);
+  assert.equal(isPaletteCommandAvailable("Executar como Rust", { ...ready, runActive: true }), false);
+  assert.equal(isPaletteCommandAvailable("Executar como Rust", { ...ready, language: null }), false);
 });

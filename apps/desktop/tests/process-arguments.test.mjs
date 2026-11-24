@@ -31,7 +31,6 @@ test("encaminha argv como lista tipada do editor ao processo Rust, sem shell", (
   assert.match(api, /invoke<RustSourceRunResult>\("run_rust_source", \{ id, source, args \}\)/);
   assert.match(main, /args\.disabled = pors/);
   assert.match(main, /parseProcessArguments[\s\S]*api\.runRustSource\(id, source, rustArgs\)/);
-  assert.match(main, /Parâmetros de execução" && tab\?\.language === "portugol-rs"/);
   assert.match(html, /placeholder='ex\.: 42 "João Silva"'/);
   assert.match(tauri, /args: Vec<String>[\s\S]*run_rust_source_with_args_and_cancel/);
   assert.match(runner, /\.args\(args\)/);
@@ -43,4 +42,16 @@ test("classic Portugol arguments split on spaces and group quoted text", async (
   assert.deepEqual(parseClassicArguments('"João Silva" 19 ativo'), ["João Silva", "19", "ativo"]);
   assert.deepEqual(parseClassicArguments('  a   ""  b '), ["a", "", "b"]);
   assert.deepEqual(parseClassicArguments(""), []);
+});
+
+test("execution parameters are hidden for Portugol-RS, which takes no argv", async () => {
+  const { isPaletteCommandAvailable } = await import("../src/command-palette.ts");
+  const context = {
+    language: "portugol-rs", cargoProject: false, cargoAvailable: false, canRunAsRust: false,
+    runActive: false, paused: false, porsRunPending: false,
+  };
+  assert.equal(isPaletteCommandAvailable("Parâmetros de execução", context), false);
+  assert.equal(isPaletteCommandAvailable("Parâmetros de execução", { ...context, language: "portugol" }), true);
+  assert.equal(isPaletteCommandAvailable("Parâmetros de execução", { ...context, language: "rust" }), true);
+  assert.equal(isPaletteCommandAvailable("Parâmetros de execução", { ...context, language: null }), false);
 });
