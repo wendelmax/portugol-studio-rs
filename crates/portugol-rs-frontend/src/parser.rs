@@ -8,6 +8,9 @@ use crate::lexer::{Kind, Token};
 pub(super) struct Parser {
     tokens: Vec<Token>,
     cursor: usize,
+    invalid_items: Vec<(usize, usize)>,
+    diagnostics: Vec<Diagnostic>,
+    function_has_syntax_error: bool,
     bindings: Vec<hir::Binding>,
     scopes: Vec<HashMap<String, Symbol>>,
     loop_depth: usize,
@@ -51,6 +54,9 @@ impl Parser {
         Self {
             tokens,
             cursor: 0,
+            invalid_items: Vec::new(),
+            diagnostics: Vec::new(),
+            function_has_syntax_error: false,
             bindings: vec![],
             scopes: vec![HashMap::new()],
             loop_depth: 0,
@@ -68,30 +74,84 @@ impl Parser {
     }
 
     pub(super) fn program(mut self) -> Result<hir::Program, Vec<Diagnostic>> {
-        self.collect_signatures()?;
+        let mut diagnostics = self.collect_signatures();
         let start = self.current().span.start;
         let mut bindings = None;
         let mut body = None;
         let mut functions = Vec::new();
         while !matches!(self.current().kind, Kind::Eof) {
+            if let Some((_, end)) = self
+                .invalid_items
+                .iter()
+                .find(|(item_start, _)| *item_start == self.cursor)
+            {
+                self.cursor = *end;
+                continue;
+            }
+            let item_start = self.cursor;
             if self.eat_keyword("registro") {
-                self.skip_record_definition()?;
+                if let Err(errors) = self.skip_record_definition() {
+                    append_unique(&mut diagnostics, errors);
+                    self.synchronize_top_level(item_start);
+                }
                 continue;
             }
             if self.eat_keyword("enum") {
-                self.skip_enum_definition()?;
+                if let Err(errors) = self.skip_enum_definition() {
+                    append_unique(&mut diagnostics, errors);
+                    self.synchronize_top_level(item_start);
+                }
                 continue;
             }
-            let (name, header_span, _) = self.function_header()?;
-            let signature = self.signatures[&name].clone();
-            self.begin_function(&signature)?;
-            let (function_body, body_span) = self.block(true)?;
-            if signature.return_type.is_some() && !guarantees_return(&function_body) {
-                return self.fail(
-                    "pors.missing-return",
-                    format!("A função `{name}` precisa retornar um valor em todos os caminhos"),
-                    body_span,
+            let (name, header_span, _) = match self.function_header() {
+                Ok(header) => header,
+                Err(errors) => {
+                    append_unique(&mut diagnostics, errors);
+                    self.synchronize_top_level(item_start);
+                    continue;
+                }
+            };
+            let Some(signature) = self.signatures.get(&name).cloned() else {
+                append_unique(
+                    &mut diagnostics,
+                    vec![Diagnostic::error(
+                        "pors.invalid-function",
+                        format!("A função `{name}` não pôde ser analisada"),
+                        header_span,
+                    )],
                 );
+                self.synchronize_top_level(item_start);
+                continue;
+            };
+            if let Err(errors) = self.begin_function(&signature) {
+                append_unique(&mut diagnostics, errors);
+                self.reset_function_state();
+                self.synchronize_top_level(item_start);
+                continue;
+            }
+            let (function_body, body_span) = match self.block(true) {
+                Ok(block) => block,
+                Err(errors) => {
+                    append_unique(&mut diagnostics, errors);
+                    self.reset_function_state();
+                    self.synchronize_top_level(item_start);
+                    continue;
+                }
+            };
+            if !self.function_has_syntax_error
+                && signature.return_type.is_some()
+                && !guarantees_return(&function_body)
+            {
+                append_unique(
+                    &mut diagnostics,
+                    vec![Diagnostic::error(
+                        "pors.missing-return",
+                        format!("A função `{name}` precisa retornar um valor em todos os caminhos"),
+                        body_span,
+                    )],
+                );
+                self.reset_function_state();
+                continue;
             }
             let local_bindings = std::mem::take(&mut self.bindings);
             let function_span = header_span.join(body_span);
@@ -111,10 +171,11 @@ impl Parser {
                     span: to_hir_span(function_span),
                 });
             }
-            self.scopes = vec![HashMap::new()];
-            self.return_type = None;
-            self.in_function = false;
-            self.loop_depth = 0;
+            self.reset_function_state();
+        }
+        append_unique(&mut diagnostics, std::mem::take(&mut self.diagnostics));
+        if !diagnostics.is_empty() {
+            return Err(diagnostics);
         }
         let (bindings, body) = match (bindings, body) {
             (Some(bindings), Some(body)) => (bindings, body),
@@ -138,57 +199,93 @@ impl Parser {
         })
     }
 
-    fn collect_signatures(&mut self) -> Result<(), Vec<Diagnostic>> {
+    fn collect_signatures(&mut self) -> Vec<Diagnostic> {
         self.cursor = 0;
         let mut next_id = 0;
+        let mut diagnostics = Vec::new();
         while !matches!(self.current().kind, Kind::Eof) {
-            if self.eat_keyword("registro") {
-                self.collect_record_definition()?;
-                continue;
-            }
-            if self.eat_keyword("enum") {
-                self.collect_enum_definition()?;
-                continue;
-            }
-            let (name, span, signature) = self.function_header()?;
-            if self.signatures.contains_key(&name) {
-                return self.fail(
-                    "pors.function-redeclared",
-                    format!("A função `{name}` já foi declarada"),
-                    span,
-                );
-            }
-            let id = if name == "inicio" {
-                if !signature.parameters.is_empty() || signature.return_type.is_some() {
+            let item_start = self.cursor;
+            let result = (|| {
+                if self.eat_keyword("registro") {
+                    self.collect_record_definition()?;
+                    return Ok(());
+                }
+                if self.eat_keyword("enum") {
+                    self.collect_enum_definition()?;
+                    return Ok(());
+                }
+                let (name, span, signature) = self.function_header()?;
+                if self.signatures.contains_key(&name) {
                     return self.fail(
-                        "pors.entry-signature",
-                        "A função inicio deve ser declarada sem parâmetros e sem retorno",
+                        "pors.function-redeclared",
+                        format!("A função `{name}` já foi declarada"),
                         span,
                     );
                 }
-                None
-            } else {
-                let id = hir::FunctionId(next_id);
-                next_id += 1;
-                Some(id)
-            };
-            self.signatures
-                .insert(name, FunctionSignature { id, ..signature });
-            self.skip_function_body()?;
+                let id = if name == "inicio" {
+                    if !signature.parameters.is_empty() || signature.return_type.is_some() {
+                        return self.fail(
+                            "pors.entry-signature",
+                            "A função inicio deve ser declarada sem parâmetros e sem retorno",
+                            span,
+                        );
+                    }
+                    None
+                } else {
+                    let id = hir::FunctionId(next_id);
+                    next_id += 1;
+                    Some(id)
+                };
+                self.signatures
+                    .insert(name, FunctionSignature { id, ..signature });
+                self.skip_function_body()
+            })();
+            if let Err(errors) = result {
+                append_unique(&mut diagnostics, errors);
+                let end = self.synchronize_top_level(item_start);
+                self.invalid_items.push((item_start, end));
+            }
         }
-        if !self.signatures.contains_key("inicio") {
+        if !self.signatures.contains_key("inicio") && diagnostics.is_empty() {
             if self.has_mvu_entry_triple() {
-                self.validate_mvu_entry_signatures()?;
+                if let Err(errors) = self.validate_mvu_entry_signatures() {
+                    append_unique(&mut diagnostics, errors);
+                }
             } else {
-                return self.fail(
-                    "pors.entry-function",
-                    "O programa precisa declarar uma função inicio()",
-                    self.current().span,
+                append_unique(
+                    &mut diagnostics,
+                    vec![Diagnostic::error(
+                        "pors.entry-function",
+                        "O programa precisa declarar uma função inicio()",
+                        self.current().span,
+                    )],
                 );
             }
         }
         self.cursor = 0;
-        Ok(())
+        diagnostics
+    }
+
+    fn synchronize_top_level(&mut self, item_start: usize) -> usize {
+        let mut cursor = self.cursor.max(item_start.saturating_add(1));
+        while cursor < self.tokens.len() {
+            if cursor > item_start && is_top_level_start(&self.tokens[cursor].kind) {
+                self.cursor = cursor;
+                return cursor;
+            }
+            cursor += 1;
+        }
+        self.cursor = self.tokens.len().saturating_sub(1);
+        self.cursor
+    }
+
+    fn reset_function_state(&mut self) {
+        self.bindings.clear();
+        self.scopes = vec![HashMap::new()];
+        self.return_type = None;
+        self.in_function = false;
+        self.loop_depth = 0;
+        self.function_has_syntax_error = false;
     }
 
     fn has_mvu_entry_triple(&self) -> bool {
@@ -624,6 +721,13 @@ impl Parser {
         self.expect(Kind::LBrace, "Esperado `{` para iniciar o corpo da função")?;
         let mut depth = 1usize;
         while depth > 0 {
+            if is_top_level_start(&self.current().kind) {
+                return self.fail(
+                    "pors.unexpected-token",
+                    "Bloco não foi fechado com `}` antes da próxima declaração",
+                    self.current().span,
+                );
+            }
             match self.advance() {
                 Token {
                     kind: Kind::LBrace, ..
@@ -651,6 +755,7 @@ impl Parser {
         self.bindings.clear();
         self.scopes = vec![HashMap::new()];
         self.loop_depth = 0;
+        self.function_has_syntax_error = false;
         self.return_type = signature.return_type;
         self.in_function = true;
         for parameter in &signature.parameters {
@@ -693,14 +798,118 @@ impl Parser {
             self.scopes.push(HashMap::new());
         }
         let mut statements = Vec::new();
-        while !matches!(self.current().kind, Kind::RBrace | Kind::Eof) {
-            statements.push(self.statement()?);
+        while !matches!(self.current().kind, Kind::RBrace | Kind::Eof)
+            && !is_top_level_start(&self.current().kind)
+        {
+            let statement_start = self.cursor;
+            let binding_count = self.bindings.len();
+            let scopes = self.scopes.clone();
+            let loop_depth = self.loop_depth;
+            match self.statement() {
+                Ok(statement) => statements.push(statement),
+                Err(errors) => {
+                    let syntax_errors: Vec<_> = errors
+                        .iter()
+                        .filter(|diagnostic| is_recoverable_syntax(diagnostic.code))
+                        .cloned()
+                        .collect();
+                    if !syntax_errors.is_empty() {
+                        append_unique(&mut self.diagnostics, syntax_errors);
+                        self.function_has_syntax_error = true;
+                    } else if !self.function_has_syntax_error {
+                        return Err(errors);
+                    }
+
+                    // A failed statement must not leave partial bindings or scopes
+                    // visible to later statements while the parser synchronizes.
+                    self.bindings.truncate(binding_count);
+                    self.scopes = scopes;
+                    self.loop_depth = loop_depth;
+                    self.synchronize_statement(statement_start);
+                }
+            }
         }
         let close = self.expect(Kind::RBrace, "Bloco não foi fechado com `}`")?;
         if !root {
             self.scopes.pop();
         }
         Ok((statements, open.span.join(close.span)))
+    }
+
+    fn synchronize_statement(&mut self, statement_start: usize) {
+        let mut braces = 0usize;
+        let mut parentheses = 0usize;
+        let mut brackets = 0usize;
+        for token in &self.tokens[statement_start..self.cursor.min(self.tokens.len())] {
+            match token.kind {
+                Kind::LBrace => braces += 1,
+                Kind::RBrace => braces = braces.saturating_sub(1),
+                Kind::LParen => parentheses += 1,
+                Kind::RParen => parentheses = parentheses.saturating_sub(1),
+                Kind::LBracket => brackets += 1,
+                Kind::RBracket => brackets = brackets.saturating_sub(1),
+                _ => {}
+            }
+        }
+        if self.cursor > statement_start
+            && matches!(self.tokens[self.cursor - 1].kind, Kind::Semicolon)
+            && braces == 0
+            && parentheses == 0
+            && brackets == 0
+        {
+            return;
+        }
+
+        loop {
+            match self.current().kind {
+                Kind::Eof => return,
+                Kind::Semicolon if braces == 0 && parentheses == 0 && brackets == 0 => {
+                    self.advance();
+                    return;
+                }
+                Kind::RBrace if braces == 0 => return,
+                Kind::RBrace => {
+                    self.advance();
+                    braces -= 1;
+                    if braces == 0 && parentheses == 0 && brackets == 0 {
+                        if self.is_keyword("senao") {
+                            continue;
+                        }
+                        return;
+                    }
+                }
+                _ if braces == 0
+                    && parentheses == 0
+                    && brackets == 0
+                    && is_top_level_start(&self.current().kind) =>
+                {
+                    return;
+                }
+                Kind::LBrace => {
+                    braces += 1;
+                    self.advance();
+                }
+                Kind::LParen => {
+                    parentheses += 1;
+                    self.advance();
+                }
+                Kind::RParen => {
+                    parentheses = parentheses.saturating_sub(1);
+                    self.advance();
+                }
+                Kind::LBracket => {
+                    brackets += 1;
+                    self.advance();
+                }
+                Kind::RBracket => {
+                    brackets = brackets.saturating_sub(1);
+                    self.advance();
+                }
+                _ => {
+                    self.advance();
+                }
+            }
+        }
     }
 
     fn statement(&mut self) -> Result<hir::Stmt, Vec<Diagnostic>> {
@@ -3073,6 +3282,29 @@ impl Parser {
         span: Span,
     ) -> Result<T, Vec<Diagnostic>> {
         Err(vec![Diagnostic::error(code, message, span)])
+    }
+}
+
+fn is_top_level_start(kind: &Kind) -> bool {
+    matches!(kind, Kind::Ident(keyword) if matches!(keyword.as_str(), "funcao" | "registro" | "enum"))
+}
+
+fn is_recoverable_syntax(code: &str) -> bool {
+    matches!(
+        code,
+        "pors.expected-expression"
+            | "pors.expected-identifier"
+            | "pors.expected-keyword"
+            | "pors.expected-statement"
+            | "pors.unexpected-token"
+    )
+}
+
+fn append_unique(target: &mut Vec<Diagnostic>, incoming: Vec<Diagnostic>) {
+    for diagnostic in incoming {
+        if !target.contains(&diagnostic) {
+            target.push(diagnostic);
+        }
     }
 }
 
