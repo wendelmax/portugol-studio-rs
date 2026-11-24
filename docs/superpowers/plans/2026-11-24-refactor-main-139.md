@@ -332,4 +332,16 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - [x] Add tests for language routing, Rust clearing, diagnostic aggregation, and stale inspection responses.
 - [x] Extract Portugol/PORS lint orchestration with inspection and UI callbacks injected.
 - [x] Run the full frontend tests (72/72), typecheck, and build.
-- [ ] Commit the source linter group.
+- [x] Commit the source linter group (#180).
+
+### Task 26: Execution dispatcher
+
+**Files:**
+- Create: `apps/desktop/src/run/dispatcher.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/run-dispatcher.test.mjs`
+
+- [x] Add tests for busy/no-tab guards, language dispatch, pause/step routing, and stop delegation.
+- [x] Extract run command orchestration while injecting the language execution controllers.
+- [x] Run the full frontend tests (73/73), typecheck, and build.
+- [ ] Commit the execution dispatcher group.
