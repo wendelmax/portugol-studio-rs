@@ -67,6 +67,7 @@ import { mountPorsUiPreviewPanel } from "./pors-ui-preview-panel";
 import { mountUiPreview } from "./ui-preview-renderer";
 import * as api from "./api";
 import type { Tab } from "./state/tab";
+import { createTabsView } from "./state/tabs-view";
 import { mountWorkspaceExplorer } from "./workspace/explorer";
 import { mountRustPreview } from "./rust/preview";
 import { mountLearningPanel } from "./learning/panel";
@@ -494,62 +495,24 @@ async function closeTab(id: number): Promise<boolean> {
   return true;
 }
 
+const tabsView = createTabsView({
+  container: $("tabs"),
+  document,
+  tabs: () => tabs,
+  activeId: () => activeId,
+  homeId,
+  helpId,
+  helpOpen: () => helpOpen,
+  tabName,
+  isDirty,
+  icon,
+  activate,
+  newTab: () => { newTab(); },
+  closeTab,
+});
+
 function renderTabs() {
-  const bar = $("tabs");
-  const home = document.createElement("button");
-  home.className = "tab home-tab" + (activeId === 0 ? " active" : "");
-  home.append(icon("pequeno/light_pix"), "Portugol Studio");
-  home.title = "Tela inicial (Alt+Home)";
-  home.setAttribute("aria-current", String(activeId === 0));
-  home.onclick = () => activate(0);
-  const add = document.createElement("button");
-  add.className = "tab add-tab";
-  add.textContent = "+";
-  add.title = "Novo arquivo (Ctrl+N)";
-  add.setAttribute("aria-label", "Novo arquivo");
-  add.onclick = () => newTab();
-  const helpTab = document.createElement("div");
-  helpTab.className = "file-tab tab" + (activeId === helpId ? " active" : "");
-  const helpButton = document.createElement("button");
-  helpButton.textContent = "Ajuda";
-  helpButton.setAttribute("aria-current", String(activeId === helpId));
-  helpButton.onclick = () => activate(helpId);
-  const closeHelp = document.createElement("button");
-  closeHelp.className = "close";
-  closeHelp.textContent = "×";
-  closeHelp.setAttribute("aria-label", "Fechar ajuda");
-  closeHelp.onclick = () => void closeTab(helpId);
-  helpTab.append(helpButton, closeHelp);
-  bar.replaceChildren(
-    home,
-    ...(helpOpen ? [helpTab] : []),
-    ...tabs.map((tab) => {
-      const el = document.createElement("div");
-      el.className = "file-tab tab" + (tab.id === activeId ? " active" : "");
-      el.title = tab.path ?? "Arquivo ainda não salvo";
-      const name = document.createElement("button");
-      name.setAttribute("aria-current", String(tab.id === activeId));
-      name.textContent = tabName(tab);
-      if (isDirty(tab)) name.className = "dirty";
-      const close = document.createElement("button");
-      close.className = "close";
-      close.textContent = "×";
-      close.title = "Fechar (Ctrl+Q)";
-      close.onclick = (e) => {
-        e.stopPropagation();
-        void closeTab(tab.id);
-      };
-      name.prepend(icon("pequeno/light_pix"));
-      el.append(name, close);
-      name.onclick = () => activate(tab.id);
-      el.onauxclick = (e) => e.button === 1 && void closeTab(tab.id);
-      return el;
-    }),
-    add,
-  );
-  const tab = activeTab();
-  const title = tab ? tabName(tab) : activeId === helpId ? "Ajuda" : "";
-  document.title = title ? `${title} — Portugol Studio` : "Portugol Studio";
+  tabsView.render();
 }
 
 function renderCursor() {

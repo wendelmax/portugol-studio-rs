@@ -175,3 +175,17 @@
 - [x] Extract classic execution orchestration behind callbacks while preserving the `api.ts` backend boundary.
 - [x] Run the full frontend tests (59/59), typecheck, and build.
 - [ ] Commit the classic execution group.
+
+### Task 13: Tab strip view
+
+**Files:**
+- Create: `apps/desktop/src/state/tabs-view.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/tabs-view.test.mjs`
+
+Ruling: extract the tab strip's rendering and event wiring as a view module, leaving tab lifecycle and shared-state ownership for a later isolated step. This yields independently verifiable UI behavior; if this boundary proves too small, it adds one module without moving the larger mutable tab state.
+
+- [x] Add tests for strip structure, dirty indicators, callbacks, active title, and shell integration.
+- [x] Move tab strip DOM creation into a view module with shell callbacks.
+- [x] Run the full frontend tests (60/60), typecheck, and build.
+- [ ] Commit the tab view group.
