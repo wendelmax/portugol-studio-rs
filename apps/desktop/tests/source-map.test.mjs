@@ -136,7 +136,7 @@ test("Rust editor keeps the per-tab artifact marked stale until current translat
   assert.match(main, /const generatedRustEditor = new EditorView\([\s\S]*createGeneratedRustEditorState/);
   assert.match(main, /generatedRustEditor\.state\.doc\.toString\(\)/);
   assert.match(main, /generatedRustTheme\.reconfigure\(editorTheme\(\)\)/);
-  const renderer = main.match(/function renderRustPreview\(tab: Tab\) \{([\s\S]*?)\n\}/)?.[1] ?? "";
+  const renderer = main.match(/\n( *)function renderRustPreview\(tab: Tab\) \{([\s\S]*?)\n\1\}/)?.[2] ?? "";
   assert.match(renderer, /artifact && !stale[\s\S]*mappedPreviewSegments\(artifact\.code, artifact\.sourceMap\)/);
   assert.match(renderer, /generatedRustMappings\.of\(mappings\)/);
   assert.match(renderer, /generatedDocument\.toString\(\) === code/);
@@ -146,13 +146,13 @@ test("Rust editor keeps the per-tab artifact marked stale until current translat
   assert.match(generatedEditor, /class: "cm-rust-mapped-segment"/);
   assert.match(css, /\.cm-rust-mapped-segment\[data-quality="approximate"\]/);
   const updateListener = main.match(/EditorView\.updateListener\.of\(\(update\) => \{([\s\S]*?)\n    \}\),/)?.[1] ?? "";
-  assert.doesNotMatch(updateListener, /renderRustPreview\(tab\)/);
+  assert.doesNotMatch(updateListener, /renderRustPreview\(tab\)|rustPreview\.render\(/);
   assert.match(main, /const languageChanged = tab\.language !== previousLanguage/);
   assert.match(main, /if \(languageChanged && tab\.rustPreview\?\.artifact\)/);
-  assert.match(main, /if \(learningMode === "bridge" && tab\.language !== "rust"\) scheduleRustExport\(\)/);
+  assert.match(main, /if \(learningMode === "bridge" && tab\.language !== "rust"\) rustPreview\.schedule\(\)/);
   const save = main.match(/async function save\(as = false\): Promise<boolean> \{([\s\S]*?)\n\}\n\n\/\/ -{20,}/)?.[1] ?? "";
   assert.match(save, /await api\.writeFile\(path, text\)[\s\S]*const previousLanguage = tab\.language[\s\S]*tab\.language = detectSourceLanguage\(path\)/);
-  const schedule = main.match(/function scheduleRustExport\(\) \{([\s\S]*?)\n\}\n\nfunction renderRustPreview/)?.[1] ?? "";
+  const schedule = main.match(/\n( *)function scheduleRustExport\(\) \{([\s\S]*?)\n\1\}\n\n\1function renderRustPreview/)?.[2] ?? "";
   assert.ok(schedule, "agendamento deve estar separado da renderização do artefato");
   assert.doesNotMatch(schedule, /\$<HTMLElement>\("rust-output"\)\.textContent = ""/);
 });

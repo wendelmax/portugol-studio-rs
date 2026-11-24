@@ -23,14 +23,11 @@ import { forceLinting, linter, lintGutter, setDiagnostics } from "@codemirror/li
 import { openSearchPanel, highlightSelectionMatches } from "@codemirror/search";
 import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from "@codemirror/autocomplete";
 import { rust } from "@codemirror/lang-rust";
-import { createGeneratedRustEditorState, generatedRustMappings, type GeneratedRustMapping } from "./generated-rust-editor";
-import { generatedRustDetachIsCurrent } from "./generated-rust-detach";
-import { diffGeneratedRust, generatedRustDiffSummary } from "./generated-rust-diff";
 import { open as openDialog, save as saveDialog, ask } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import { renderDiagnostics } from "./diagnostics";
-import { mappedPreviewSegments, sourceDiagnostic, sourceMapLinks, type SourceMapLink } from "./source-map-ui";
+import { sourceDiagnostic } from "./source-map-ui";
 import { mountExamples } from "./examples";
 import { mountHomeNewFileMenu } from "./home-new-file-menu";
 import { mountExercises, readExercise, type ExerciseDocument } from "./exercises";
@@ -67,13 +64,14 @@ import {
   type OwnershipScenarioId,
 } from "./ownership-lab";
 import { filterCommands, isDebugCommandAvailable, nextCommandIndex } from "./command-palette";
-import { acceptRustPreview, beginRustPreview, failRustPreview, generatedRustComparison, markRustPreviewStale } from "./rust-preview-state";
+import { markRustPreviewStale } from "./rust-preview-state";
 import { PORS_UI_EXAMPLES } from "./pors-ui-examples";
 import { mountPorsUiPreviewPanel } from "./pors-ui-preview-panel";
 import { mountUiPreview } from "./ui-preview-renderer";
 import * as api from "./api";
 import type { Tab } from "./state/tab";
 import { mountWorkspaceExplorer } from "./workspace/explorer";
+import { mountRustPreview } from "./rust/preview";
 import { $ } from "./dom";
 import { createRecentFiles } from "./files/recent";
 import { mountPaneLayout } from "./layout/panes";
@@ -249,12 +247,12 @@ function extensions(language: SourceLanguage): Extension[] {
         if (tab?.rustPreview) {
           tab.rustPreview = markRustPreviewStale(tab.rustPreview, update.state.doc.toString());
         }
-        if (learningMode === "bridge") scheduleRustExport();
+        if (learningMode === "bridge") rustPreview.schedule();
       }
       if (update.selectionSet) learningConceptManuallySelected = false;
       if ((update.selectionSet || update.docChanged) && !$<HTMLElement>("learning-panel").hidden) renderLearningPanel();
       if (update.selectionSet || update.docChanged) renderCursor();
-      if (update.selectionSet || update.docChanged) renderMappingGutter();
+      if (update.selectionSet || update.docChanged) rustPreview.renderMappingGutter();
       if (centerActive && update.selectionSet) {
         queueMicrotask(() => {
           if (centerActive && view.state === update.state) centerSelection();
@@ -265,10 +263,24 @@ function extensions(language: SourceLanguage): Extension[] {
 }
 
 const view = new EditorView({ parent: $("editor") });
-const generatedRustEditor = new EditorView({
-  parent: $("rust-output"),
-  state: createGeneratedRustEditorState("", goTo, [editorColors, generatedRustTheme.of(editorTheme())]),
+const rustPreview = mountRustPreview({
+  sourceView: view,
+  activeTab: () => activeTab(),
+  learningMode: () => learningMode,
+  goTo,
+  editorExtensions: [editorColors, generatedRustTheme.of(editorTheme())],
+  onRendered: () => {
+    if (!$<HTMLElement>("learning-panel").hidden) renderLearningPanel();
+  },
+  openDetachedRust: (code) => {
+    const tab = newTab(code, null, undefined, undefined, undefined, "rust");
+    setStatus("Rust copiado para uma nova aba .rs independente. A origem e a prévia vinculada permanecem intactas.", "ok");
+    view.focus();
+    renderTabs();
+    syncLanguageControls(tab);
+  },
 });
+const generatedRustEditor = rustPreview.generatedEditor;
 
 /** Reaplica o tema atual aos editores e à ajuda. */
 function refreshEditorThemes() {
@@ -294,10 +306,6 @@ const helpId = -1;
 let activeId = homeId;
 let helpOpen = false;
 let nextTabId = 1;
-let rustExportTimer: number | undefined;
-let rustExportGeneration = 0;
-let rustMappingLinks: SourceMapLink[] = [];
-let rustMappingState: "idle" | "generating" | "ready" | "stale" | "error" = "idle";
 let definitionNavigationGeneration = 0;
 let learningMode: LearningMode = loadLearningMode();
 let selectedLearningConceptId = "variables";
@@ -355,7 +363,7 @@ function activate(id: number) {
   $("code").hidden = !tab;
   $("editor-exercise").hidden = !tab?.exercise;
   if (!tab) {
-    rustExportGeneration++;
+    rustPreview.cancel();
     renderTabs();
     renderExerciseTests();
     $("cursor").textContent = "";
@@ -378,17 +386,15 @@ function activate(id: number) {
   renderTabs();
   renderExerciseTests();
   $<HTMLElement>("rust-preview").hidden = learningMode !== "bridge" || tab.language === "rust";
-  if (tab.language !== "rust") renderRustPreview(tab);
-  renderMappingGutter();
+  if (tab.language !== "rust") rustPreview.render(tab);
+  rustPreview.renderMappingGutter();
   renderMessages();
   outline.show(tab.symbols, current !== tab);
   updateLibraryButtons(tab.symbols);
   renderCursor();
   if (centerActive) centerSelection();
-  if (learningMode === "bridge" && tab.language !== "rust") scheduleRustExport();
-  if (tab.language === "rust") {
-    rustExportGeneration++;
-  }
+  if (learningMode === "bridge" && tab.language !== "rust") rustPreview.schedule();
+  if (tab.language === "rust") rustPreview.cancel();
   syncLanguageControls(tab);
   view.focus();
 }
@@ -678,13 +684,11 @@ async function save(as = false): Promise<boolean> {
     ] });
     syncLanguageControls(tab);
     if (languageChanged) {
-      rustExportGeneration++;
-      if (rustExportTimer !== undefined) window.clearTimeout(rustExportTimer);
-      rustExportTimer = undefined;
+      rustPreview.cancel();
       $<HTMLElement>("rust-preview").hidden = learningMode !== "bridge" || tab.language === "rust";
-      renderRustPreview(tab);
-      if (learningMode === "bridge" && tab.language !== "rust") scheduleRustExport();
-      else renderMappingGutter();
+      rustPreview.render(tab);
+      if (learningMode === "bridge" && tab.language !== "rust") rustPreview.schedule();
+      else rustPreview.renderMappingGutter();
     }
   }
   if (tab.language === "rust") {
@@ -2060,14 +2064,12 @@ function applyLearningMode(mode: LearningMode, persist = true) {
   const preview = $<HTMLElement>("rust-preview");
   const bridgeEnabled = availableMode === "bridge" && activeTab()?.language !== "rust";
   preview.hidden = !bridgeEnabled;
-  renderMappingGutter();
+  rustPreview.renderMappingGutter();
   $<HTMLButtonElement>("btn-rust").setAttribute("aria-pressed", String(bridgeEnabled));
   if (bridgeEnabled) {
-    if (activeTab()) scheduleRustExport();
+    if (activeTab()) rustPreview.schedule();
   } else {
-    rustExportGeneration++;
-    if (rustExportTimer !== undefined) window.clearTimeout(rustExportTimer);
-    rustExportTimer = undefined;
+    rustPreview.cancel();
   }
 }
 
@@ -2118,63 +2120,6 @@ mountPorsUiPreviewPanel({
   },
   onCloseFocus: () => view.focus(),
 });
-$<HTMLButtonElement>("rust-copy").onclick = async () => {
-  try {
-    await navigator.clipboard.writeText(generatedRustEditor.state.doc.toString());
-    setStatus("Código Rust copiado.", "ok");
-  } catch (error) {
-    setStatus(String(error), "error");
-  }
-};
-$<HTMLButtonElement>("rust-save").onclick = async () => {
-  const code = generatedRustEditor.state.doc.toString();
-  try {
-    const path = await saveDialog({ defaultPath: "programa.rs", filters: [{ name: "Rust", extensions: ["rs"] }] });
-    if (!path) return;
-    await api.writeFile(path, code);
-    setStatus("Rust salvo em " + path + ".", "ok");
-  } catch (error) {
-    setStatus(String(error), "error");
-  }
-};
-$<HTMLButtonElement>("rust-diff-toggle").onclick = () => {
-  const tab = activeTab();
-  if (!tab || !tab.rustPreview?.previousArtifact) return;
-  tab.showRustDiff = !tab.showRustDiff;
-  renderRustPreview(tab);
-};
-$<HTMLButtonElement>("rust-detach").onclick = async () => {
-  const sourceTab = activeTab();
-  const previewState = sourceTab?.rustPreview;
-  const artifact = previewState?.artifact;
-  if (!sourceTab || sourceTab.language === "rust" || !artifact || previewState.pending || previewState.stale) return;
-
-  const snapshot = { tab: sourceTab, document: view.state.doc, artifact };
-  const accepted = await ask(
-    "O código Rust será copiado para uma nova aba independente. Alterações futuras no Portugol não atualizarão essa cópia. A origem e a prévia vinculada continuarão preservadas. Deseja continuar?",
-    { title: "Desvincular código Rust gerado", kind: "warning", okLabel: "Desvincular e editar", cancelLabel: "Cancelar" },
-  );
-  if (!accepted) return;
-
-  const currentTab = activeTab();
-  const currentPreview = currentTab?.rustPreview;
-  if (!currentTab || !currentPreview?.artifact || !generatedRustDetachIsCurrent(snapshot, {
-    tab: currentTab,
-    document: view.state.doc,
-    artifact: currentPreview.artifact,
-    pending: Boolean(currentPreview.pending),
-    stale: Boolean(currentPreview.stale),
-  })) {
-    if (currentTab === sourceTab) setStatus("A fonte ou a tradução mudou enquanto a confirmação estava aberta. Gere novamente antes de desvincular.", "error");
-    return;
-  }
-
-  const tab = newTab(artifact.code, null, undefined, undefined, undefined, "rust");
-  setStatus("Rust copiado para uma nova aba .rs independente. A origem e a prévia vinculada permanecem intactas.", "ok");
-  view.focus();
-  renderTabs();
-  syncLanguageControls(tab);
-};
 $("btn-debug").onclick = () => void stepOrStart();
 $("btn-stop").onclick = () => void stopProgram();
 $("btn-debug-pause").onclick = () => {
@@ -2283,206 +2228,6 @@ $<HTMLButtonElement>("ownership-restart").onclick = () => {
   ownershipStepIndex = 0;
   renderOwnershipLab();
 };
-
-function scheduleRustExport() {
-  const tab = activeTab();
-  if (!tab || tab.language === "rust") {
-    rustExportGeneration++;
-    return;
-  }
-  const source = view.state.doc.toString();
-  const tabId = tab.id;
-  const generation = ++rustExportGeneration;
-  if (rustExportTimer !== undefined) window.clearTimeout(rustExportTimer);
-  tab.rustPreview = beginRustPreview(tab.rustPreview, source);
-  renderRustPreview(tab);
-  rustExportTimer = window.setTimeout(async () => {
-    let result: api.RustExport;
-    try {
-      result = tab.language === "portugol-rs"
-        ? await api.exportPortugolRs(source)
-        : await api.exportRust(source);
-    } catch (error) {
-      if (generation !== rustExportGeneration || activeTab()?.id !== tabId || view.state.doc.toString() !== source) return;
-      tab.rustPreview = failRustPreview(tab.rustPreview ?? { pending: false, stale: false }, "Falha ao solicitar a tradução: " + String(error));
-      renderRustPreview(tab);
-      return;
-    }
-    if (generation !== rustExportGeneration || activeTab()?.id !== tabId || view.state.doc.toString() !== source) return;
-    tab.rustPreview = acceptRustPreview(tab.rustPreview ?? { pending: false, stale: false }, source, result);
-    renderRustPreview(tab);
-  }, 220);
-}
-
-function renderRustPreview(tab: Tab) {
-  if (activeTab()?.id !== tab.id) return;
-  const state = tab.rustPreview;
-  const status = $<HTMLElement>("rust-status");
-  const copy = $<HTMLButtonElement>("rust-copy");
-  const save = $<HTMLButtonElement>("rust-save");
-  const diffToggle = $<HTMLButtonElement>("rust-diff-toggle");
-  const generatedOutput = $<HTMLElement>("rust-output");
-  const diffOutput = $<HTMLElement>("rust-diff-output");
-  const detach = $<HTMLButtonElement>("rust-detach");
-  const artifact = state?.artifact;
-
-  const stale = Boolean(state?.stale);
-  const pending = Boolean(state?.pending);
-  const comparison = generatedRustComparison(state);
-  const canShowDiff = Boolean(comparison);
-  if (!canShowDiff) tab.showRustDiff = false;
-  const showDiff = Boolean(tab.showRustDiff && canShowDiff);
-  diffToggle.disabled = !canShowDiff;
-  diffToggle.textContent = showDiff ? "Voltar ao código atual" : "Mostrar diferenças";
-  diffToggle.setAttribute("aria-pressed", String(showDiff));
-  generatedOutput.hidden = showDiff;
-  diffOutput.hidden = !showDiff;
-  if (showDiff && comparison) renderGeneratedRustDiff(diffOutput, comparison.previous.code, comparison.current.code);
-
-  const code = artifact?.code ?? "";
-  const mappings: GeneratedRustMapping[] = artifact && !stale
-    ? mappedPreviewSegments(artifact.code, artifact.sourceMap).map((segment) => ({
-      ...segment,
-      quality: segment.quality === "approximate" ? "approximate" : "exact",
-    }))
-    : [];
-  const generatedDocument = generatedRustEditor.state.doc;
-  const mappingEffect = generatedRustMappings.of(mappings);
-  if (generatedDocument.toString() === code) generatedRustEditor.dispatch({ effects: mappingEffect });
-  else generatedRustEditor.dispatch({
-    changes: { from: 0, to: generatedDocument.length, insert: code },
-    effects: mappingEffect,
-  });
-
-  rustMappingLinks = artifact && !state?.stale ? sourceMapLinks(artifact.sourceMap) : [];
-  rustMappingState = state?.stale ? "stale" : state?.error && !artifact ? "error" : artifact ? "ready" : state?.pending ? "generating" : "idle";
-  if (state?.stale) {
-    status.textContent = state.pending
-      ? "Tradução desatualizada — atualizando…"
-      : `Tradução desatualizada. ${state.error ?? "Aguardando tradução da versão atual."}`;
-  } else if (state?.error) {
-    status.textContent = state.error;
-  } else if (state?.pending && artifact) {
-    status.textContent = "Atualizando tradução; exibindo versão da fonte atual.";
-  } else if (state?.pending) {
-    status.textContent = "Atualizando tradução…";
-  } else if (artifact) {
-    status.textContent = "Tradução disponível para copiar ou salvar. Clique em um trecho mapeado ou pressione F12 para voltar à origem.";
-  } else {
-    status.textContent = "Documento Rust independente; a prévia gerada não altera este arquivo.";
-  }
-  if (state?.error) status.dataset.error = "true";
-  else delete status.dataset.error;
-  if (state?.stale) status.dataset.stale = "true";
-  else delete status.dataset.stale;
-  copy.disabled = save.disabled = detach.disabled = !artifact || Boolean(pending || stale);
-  renderMappingGutter();
-  if (!$<HTMLElement>("learning-panel").hidden) renderLearningPanel();
-}
-
-function renderGeneratedRustDiff(container: HTMLElement, previous: string, current: string) {
-  const diff = diffGeneratedRust(previous, current);
-  const summary = document.createElement("p");
-  summary.className = "rust-diff-summary";
-  summary.setAttribute("role", "status");
-  summary.textContent = generatedRustDiffSummary(diff);
-
-  const table = document.createElement("table");
-  table.className = "rust-diff-table";
-  table.setAttribute("aria-label", "Diferenças entre a tradução Rust anterior e a atual");
-  const head = document.createElement("thead");
-  const headings = document.createElement("tr");
-  for (const label of ["Versão anterior", "Versão atual"]) {
-    const heading = document.createElement("th");
-    heading.scope = "col";
-    heading.textContent = label;
-    headings.append(heading);
-  }
-  head.append(headings);
-  const body = document.createElement("tbody");
-  for (const row of diff.rows) {
-    const line = document.createElement("tr");
-    line.dataset.kind = row.kind;
-    line.setAttribute("aria-label", row.kind === "removed" ? "Linha removida" : row.kind === "added" ? "Linha adicionada" : "Linha sem alteração");
-    const createCell = (lineNumber: number | null, text: string, kind: "removed" | "added" | "context") => {
-      const cell = document.createElement("td");
-      const mark = document.createElement("span");
-      mark.className = "rust-diff-mark";
-      mark.textContent = kind === "removed" ? "−" : kind === "added" ? "+" : " ";
-      mark.setAttribute("aria-hidden", "true");
-      const number = document.createElement("span");
-      number.className = "rust-diff-line-number";
-      number.textContent = lineNumber === null ? "" : String(lineNumber);
-      number.setAttribute("aria-hidden", "true");
-      const code = document.createElement("code");
-      code.textContent = text;
-      cell.append(mark, number, code);
-      return cell;
-    };
-    line.append(
-      createCell(row.oldLine, row.kind === "added" ? "" : row.text, row.kind === "added" ? "context" : row.kind),
-      createCell(row.newLine, row.kind === "removed" ? "" : row.text, row.kind === "removed" ? "context" : row.kind),
-    );
-    body.append(line);
-  }
-  table.append(head, body);
-  container.replaceChildren(summary, table);
-}
-
-function renderMappingGutter() {
-  const gutter = $<HTMLElement>("rust-mapping-gutter");
-  const preview = $<HTMLElement>("rust-preview");
-  const tab = activeTab();
-  const visible = Boolean(tab && tab.language !== "rust" && learningMode === "bridge" && !preview.hidden);
-  gutter.hidden = !visible;
-  if (!visible) return;
-
-  const sourceLine = view.state.doc.lineAt(view.state.selection.main.head).number;
-  const status = $<HTMLElement>("rust-mapping-status");
-  const links = $<HTMLElement>("rust-mapping-links");
-  links.replaceChildren();
-  if (rustMappingState === "stale") {
-    status.textContent = "Mapeamento desatualizado; aguarde a tradução atual.";
-    return;
-  }
-  if (rustMappingState === "generating" || rustMappingState === "idle") {
-    status.textContent = "Atualizando mapa…";
-    return;
-  }
-  if (rustMappingState === "error") {
-    status.textContent = "Mapeamento indisponível.";
-    return;
-  }
-
-  const currentLineLinks = rustMappingLinks.filter((link) => link.sourceLine === sourceLine);
-  if (!currentLineLinks.length) {
-    status.textContent = `Linha ${sourceLine} sem correspondência direta.`;
-    return;
-  }
-  status.textContent = `Linha ${sourceLine}`;
-  for (const link of currentLineLinks) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.dataset.testid = `mapping-link-source-${link.sourceLine}-rust-${link.generatedLine}`;
-    button.dataset.quality = link.quality;
-    button.textContent = `L${link.sourceLine} ↔ L${link.generatedLine}`;
-    button.title = link.quality === "approximate"
-      ? `Localização aproximada: linha ${link.sourceLine} em Portugol para linha ${link.generatedLine} em Rust`
-      : `Ir da linha ${link.sourceLine} em Portugol para a linha ${link.generatedLine} em Rust`;
-    button.setAttribute("aria-label", button.title);
-    button.onclick = () => focusRustMapping(link);
-    links.append(button);
-  }
-}
-
-function focusRustMapping(link: SourceMapLink) {
-  const document = generatedRustEditor.state.doc;
-  if (link.generatedLine < 1 || link.generatedLine > document.lines) return;
-  const line = document.line(link.generatedLine);
-  const position = Math.max(line.from, Math.min(line.to, link.generatedOffset));
-  generatedRustEditor.dispatch({ selection: { anchor: position }, scrollIntoView: true });
-  generatedRustEditor.focus();
-}
 
 function cycleTab(step: number) {
   const ids = [homeId, ...(helpOpen ? [helpId] : []), ...tabs.map((tab) => tab.id)];
