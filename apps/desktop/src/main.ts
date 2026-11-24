@@ -44,6 +44,7 @@ import { createRunControls } from "./run/controls";
 import { createDebuggerCommands } from "./run/debugger-commands";
 import { createRustExecutionController } from "./run/rust-execution";
 import { createPortugolRsExecutionController } from "./run/portugol-rs-execution";
+import { createClassicExecutionController } from "./run/classic-execution";
 import { portugolFolding } from "./folding";
 import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
@@ -827,6 +828,30 @@ const portugolRsExecution = createPortugolRsExecutionController({
   replayEvents: replayRunEvents,
 });
 
+const classicExecution = createClassicExecutionController({
+  parseArguments: parseClassicArguments,
+  runListeners: () => runListeners,
+  run: api.run,
+  setRuntimeError: () => view.dispatch({ effects: setRuntimeError.of(null) }),
+  setDebugLine: () => view.dispatch({ effects: setDebugLine.of(null) }),
+  clearPaused: () => { paused = null; },
+  showConsole: () => showPanel("console"),
+  clearConsole,
+  setPendingEvents: (events) => { pendingEvents = events; },
+  setRunTabId: (id) => { runTabId = id; },
+  setRunId: (id) => { runId = id; },
+  setRunButtonsDisabled: (disabled) => {
+    $<HTMLButtonElement>("btn-run").disabled = disabled;
+    $<HTMLButtonElement>("btn-debug").disabled = disabled;
+  },
+  setRunning,
+  setStatus,
+  replayEvents: replayRunEvents,
+  setDiagnostics: (tab, diagnostics) => { tab.diagnostics = diagnostics; },
+  renderMessages,
+  showMessages: () => showPanel("messages"),
+});
+
 /**
  * Executa o arquivo ativo. Portugol-RS roda na VM educacional por padrão;
  * `asRust` compila o Rust gerado com `rustc`, quando disponível.
@@ -843,40 +868,7 @@ async function runProgram(pauseOnStart = false, asRust = false) {
     await portugolRsExecution.run(tab, view.state.doc, breakpointLines(view.state), pauseOnStart, asRust);
     return;
   }
-  view.dispatch({ effects: setRuntimeError.of(null) });
-  view.dispatch({ effects: setDebugLine.of(null) });
-  paused = null;
-  showPanel("console");
-  clearConsole();
-  const source = view.state.doc.toString();
-  const args = parseClassicArguments($<HTMLInputElement>("args").value);
-  const lines = breakpointLines(view.state);
-  const events: PendingRunEvent[] = [];
-  pendingEvents = events;
-  runTabId = tab.id;
-  $<HTMLButtonElement>("btn-run").disabled = true;
-  $<HTMLButtonElement>("btn-debug").disabled = true;
-  try {
-    await runListeners;
-    const id = await api.run(source, args, tab.path ?? tab.examplePath ?? null, lines, pauseOnStart);
-    runId = id;
-    setRunning(true);
-    setStatus("Executando…");
-    replayRunEvents(events, id);
-  } catch (errors) {
-    runTabId = null;
-    setRunning(false);
-    if (Array.isArray(errors)) {
-      tab.diagnostics = errors;
-      renderMessages();
-      showPanel("messages");
-      setStatus("O programa contém erros e não pode ser executado.", "error");
-    } else {
-      setStatus(String(errors), "error");
-    }
-  } finally {
-    pendingEvents = null;
-  }
+  await classicExecution.run(tab, view.state.doc, $<HTMLInputElement>("args").value, breakpointLines(view.state), pauseOnStart);
 }
 
 function runOrContinue() {

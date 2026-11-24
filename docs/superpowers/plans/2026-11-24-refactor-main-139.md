@@ -148,7 +148,7 @@
 - [x] Extract Portugol-RS VM and generated-Rust execution behind callbacks.
 - [x] Keep backend calls through `api.ts` and preserve startup event replay.
 - [x] Run frontend tests, typecheck, and build.
-- [ ] Commit the Portugol-RS execution group.
+- [x] Commit the Portugol-RS execution group (#165).
 
 ### Task 11: Run event handling
 
@@ -162,4 +162,16 @@
 - [x] Extract run event handlers behind explicit UI and state callbacks.
 - [x] Update contract tests for the new module boundary and allow the explicit TypeScript extension used by Node's test runner.
 - [x] Run frontend tests, typecheck, and build.
-- [ ] Commit the run-event group.
+- [x] Commit the run-event group (#166).
+
+### Task 12: Classic Portugol execution
+
+**Files:**
+- Create: `apps/desktop/src/run/classic-execution.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/classic-execution-controller.test.mjs`
+
+- [x] Add tests for run arguments, breakpoints, startup event replay, diagnostics, and cleanup after listener errors.
+- [x] Extract classic execution orchestration behind callbacks while preserving the `api.ts` backend boundary.
+- [x] Run the full frontend tests (59/59), typecheck, and build.
+- [ ] Commit the classic execution group.
