@@ -39,6 +39,7 @@ import {
   isCurrentExerciseTestRequest,
 } from "./exercise-test-panel";
 import { createTestsPanelController } from "./run/tests-panel";
+import { createCargoProjectController } from "./run/cargo-project";
 import { portugolFolding } from "./folding";
 import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
@@ -1095,201 +1096,54 @@ async function stopProgram() {
   }
 }
 
-async function checkCargoProject() {
-  if (runId !== null || pendingEvents !== null || porsRunPending) return;
-  const tab = activeTab();
-  if (!tab || tab.language !== "rust") return;
-  if (tab.workspaceId && tab.workspacePath && tab.cargoProject === undefined) {
-    setStatus("Verificando se este arquivo pertence a um projeto Cargo.");
-    return;
-  }
-  if (tab.cargoProject !== true || !tab.workspaceId || !tab.workspacePath) {
-    setStatus("Abra um arquivo Rust pelo explorador dentro de um projeto Cargo.", "error");
-    return;
-  }
-  if (cargoAvailable !== true) {
-    setStatus("Instale Cargo para analisar o projeto Rust.", "error");
-    return;
-  }
-  const dirtyFiles = tabs.filter((candidate) =>
-    candidate.workspaceId === tab.workspaceId && candidate.language === "rust" && candidate !== tab && isDirty(candidate),
-  );
-  if (dirtyFiles.length > 0) {
-    setStatus("Salve os outros arquivos Rust alterados deste workspace antes da análise Cargo.", "error");
-    return;
-  }
-  if (isDirty(tab) && !(await fileIO.save())) {
-    setStatus("Salve o arquivo Rust antes de analisar o projeto Cargo.", "error");
-    return;
-  }
-  if (activeTab() !== tab) return;
-  const documentState = view.state.doc;
-  let registeredId: number | null = null;
-  porsRunPending = true;
-  runTabId = tab.id;
-  syncLanguageControls(tab);
-  try {
-    if (!hasCargoExecutionConsent(sessionStorage)) {
-      const accepted = await ask(
-        "cargo check pode acessar a rede e executar scripts de build, macros procedurais e dependências no seu usuário local. Esta análise não possui sandbox. Execute apenas projetos em que você confia. Deseja continuar?",
-        { title: "Analisar projeto Cargo sem sandbox", kind: "warning", okLabel: "Analisar Cargo", cancelLabel: "Cancelar" },
-      );
-      if (!accepted) {
-        if (activeTab() === tab) setStatus("Análise Cargo cancelada.");
-        return;
-      }
-      rememberCargoExecutionConsent(sessionStorage, true);
-    }
-    if (activeTab() !== tab || view.state.doc !== documentState) return;
-    registeredId = await api.registerRustSourceRun();
-    runId = registeredId;
-    setRunning(true);
-    view.dispatch({ effects: setRuntimeError.of(null) });
-    clearConsole();
-    showPanel("messages");
-    setStatus("Analisando projeto com cargo check…");
-    const result = await api.checkCargoProject(registeredId, tab.workspaceId, tab.workspacePath);
-    if (activeTab() !== tab || view.state.doc !== documentState) return;
-    const diagnostics: api.DiagnosticInfo[] = result.diagnostics.map((item) => ({
-      severity: item.severity === "warning" ? "warning" : "error",
-      code: item.code ?? "cargo",
-      message: item.message,
-      help: item.rendered,
-      start: item.start,
-      end: item.end,
-    }));
+const cargoProjectController = createCargoProjectController({
+  tabs: () => tabs,
+  activeTab,
+  isBusy: () => runId !== null || pendingEvents !== null || porsRunPending,
+  cargoAvailable: () => cargoAvailable,
+  isDirty,
+  save: () => fileIO.save(),
+  currentDocument: () => view.state.doc,
+  isCurrent: (tab, documentState) => activeTab() === tab && view.state.doc === documentState,
+  setPending: (pending) => { porsRunPending = pending; },
+  setRunTabId: (id) => { runTabId = id; },
+  runId: () => runId,
+  setRunId: (id) => { runId = id; },
+  syncLanguageControls,
+  setRunning,
+  hasCargoConsent: () => hasCargoExecutionConsent(sessionStorage),
+  askCargoConsent: (operation) => operation === "check"
+    ? ask(
+      "cargo check pode acessar a rede e executar scripts de build, macros procedurais e dependências no seu usuário local. Esta análise não possui sandbox. Execute apenas projetos em que você confia. Deseja continuar?",
+      { title: "Analisar projeto Cargo sem sandbox", kind: "warning", okLabel: "Analisar Cargo", cancelLabel: "Cancelar" },
+    )
+    : ask(
+      "cargo test pode acessar a rede e executar scripts de build, macros procedurais e código de teste no seu usuário local. Esta execução não possui sandbox. Execute apenas projetos em que você confia. Deseja continuar?",
+      { title: "Executar cargo test sem sandbox", kind: "warning", okLabel: "Executar testes", cancelLabel: "Cancelar" },
+    ),
+  rememberCargoConsent: () => rememberCargoExecutionConsent(sessionStorage, true),
+  registerRun: api.registerRustSourceRun,
+  checkCargoProject: api.checkCargoProject,
+  testCargoProject: api.testCargoProject,
+  clearRuntimeError: () => view.dispatch({ effects: setRuntimeError.of(null) }),
+  clearConsole,
+  showPanel,
+  setStatus,
+  setDiagnostics: (tab, diagnostics) => {
     tab.diagnostics = diagnostics;
     renderMessages();
     view.dispatch(setDiagnostics(view.state, diagnostics.map((item) => toCodeMirror(item, view.state.doc.length))));
-    if (result.stderr) appendConsole(result.stderr, result.status === "check_error" ? "error" : "");
-    if (result.status === "cancelled") {
-      setStatus("Análise Cargo cancelada.");
-    } else if (result.status === "check_limit") {
-      const reason = result.reason === "time" ? "20 segundos" : "limite de saída de 1 MiB";
-      setStatus(`Análise Cargo interrompida: ${reason}.`, "error");
-    } else if (result.status === "check_error") {
-      showPanel(diagnostics.length ? "messages" : "console");
-      setStatus(diagnostics.length
-        ? "Cargo encontrou diagnósticos no arquivo aberto; confira o Console para detalhes do projeto."
-        : "Cargo check terminou com erros em outros arquivos ou no manifesto.", "error");
-    } else {
-      showPanel(diagnostics.length ? "messages" : result.stderr ? "console" : "messages");
-      const warnings = diagnostics.filter((item) => item.severity === "warning").length;
-      setStatus(diagnostics.length ? `Análise concluída: ${warnings} aviso(s) no arquivo aberto.` : "Análise Cargo concluída sem diagnósticos no arquivo aberto.", "ok");
-    }
-  } catch (error) {
-    if (activeTab() === tab && view.state.doc === documentState) {
-      appendConsole(`${String(error)}\n`, "error");
-      showPanel("console");
-      setStatus("Não foi possível analisar o projeto Cargo.", "error");
-    }
-  } finally {
-    if (registeredId !== null && runId === registeredId) runId = null;
-    porsRunPending = false;
-    runTabId = null;
-    setRunning(false);
-    const current = activeTab();
-    if (current) syncLanguageControls(current);
-  }
+  },
+  appendConsole,
+  renderExerciseTests,
+});
+
+async function checkCargoProject() {
+  await cargoProjectController.check();
 }
 
 async function runCargoTests() {
-  if (runId !== null || pendingEvents !== null || porsRunPending) return;
-  const tab = activeTab();
-  if (!tab || tab.language !== "rust") return;
-  if (tab.workspaceId && tab.workspacePath && tab.cargoProject === undefined) {
-    setStatus("Verificando se este arquivo pertence a um projeto Cargo.");
-    return;
-  }
-  if (tab.cargoProject !== true || !tab.workspaceId || !tab.workspacePath) {
-    setStatus("Abra um arquivo Rust pelo explorador dentro de um projeto Cargo.", "error");
-    return;
-  }
-  if (cargoAvailable !== true) {
-    setStatus("Instale Cargo para executar os testes do projeto Rust.", "error");
-    return;
-  }
-  const dirtyFiles = tabs.filter((candidate) =>
-    candidate.workspaceId === tab.workspaceId && candidate.language === "rust" && candidate !== tab && isDirty(candidate),
-  );
-  if (dirtyFiles.length > 0) {
-    setStatus("Salve os outros arquivos Rust alterados deste workspace antes de executar `cargo test`.", "error");
-    return;
-  }
-  if (isDirty(tab) && !(await fileIO.save())) {
-    setStatus("Salve o arquivo Rust antes de executar `cargo test`.", "error");
-    return;
-  }
-  if (activeTab() !== tab) return;
-  const documentState = view.state.doc;
-  let registeredId: number | null = null;
-  porsRunPending = true;
-  runTabId = tab.id;
-  syncLanguageControls(tab);
-  try {
-    if (!hasCargoExecutionConsent(sessionStorage)) {
-      const accepted = await ask(
-        "cargo test pode acessar a rede e executar scripts de build, macros procedurais e código de teste no seu usuário local. Esta execução não possui sandbox. Execute apenas projetos em que você confia. Deseja continuar?",
-        { title: "Executar cargo test sem sandbox", kind: "warning", okLabel: "Executar testes", cancelLabel: "Cancelar" },
-      );
-      if (!accepted) {
-        if (activeTab() === tab) setStatus("Execução de `cargo test` cancelada.");
-        return;
-      }
-      rememberCargoExecutionConsent(sessionStorage, true);
-    }
-    if (activeTab() !== tab || view.state.doc !== documentState) return;
-    registeredId = await api.registerRustSourceRun();
-    runId = registeredId;
-    setRunning(true);
-    tab.cargoTestRun = { source: documentState, status: "running" };
-    showPanel("tests");
-    renderExerciseTests();
-    clearConsole();
-    setStatus("Executando testes do projeto com cargo test…");
-    const result = await api.testCargoProject(registeredId, tab.workspaceId, tab.workspacePath);
-    if (activeTab() !== tab || view.state.doc !== documentState) return;
-    if (result.stdout) appendConsole(result.stdout);
-    if (result.stderr) appendConsole(result.stderr, result.status === "build_error" ? "error" : "");
-    tab.cargoTestRun = {
-      source: documentState,
-      status: "completed",
-      result: {
-        status: result.status,
-        passed: result.passed,
-        failed: result.failed,
-        ignored: result.ignored,
-        failures: result.failures,
-        reason: result.reason,
-      },
-    };
-    renderExerciseTests();
-    if (result.status === "passed") {
-      setStatus(`Cargo test aprovado (${result.passed} teste(s)).`, "ok");
-    } else if (result.status === "cancelled") {
-      setStatus("Execução de `cargo test` cancelada.");
-    } else {
-      setStatus(result.status === "build_error"
-        ? "Falha de compilação ao executar `cargo test`."
-        : `Cargo test falhou (${result.failed} falha(s)).`, "error");
-    }
-  } catch (error) {
-    if (activeTab() === tab && view.state.doc === documentState) {
-      const message = typeof error === "string" ? error : "Não foi possível executar `cargo test`.";
-      tab.cargoTestRun = { source: documentState, status: "error", message };
-      renderExerciseTests();
-      appendConsole(`${message}\n`, "error");
-      setStatus("Não foi possível executar `cargo test`.", "error");
-    }
-  } finally {
-    if (registeredId !== null && runId === registeredId) runId = null;
-    porsRunPending = false;
-    runTabId = null;
-    setRunning(false);
-    const current = activeTab();
-    if (current) syncLanguageControls(current);
-    renderExerciseTests();
-  }
+  await cargoProjectController.runTests();
 }
 
 const bottomPanelNames: PanelName[] = ["console", "tests", "messages", "debug"];
