@@ -48,7 +48,7 @@ import { createClassicExecutionController } from "./run/classic-execution";
 import { portugolFolding } from "./folding";
 import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
-import { mountOutline, symbolKindLabels } from "./outline";
+import { mountOutline } from "./outline";
 import { panelContentId, panelNameForKey, type PanelName } from "./panel-tabs";
 import { LIBRARIES, portugol, portugolRs, SNIPPETS } from "./portugol";
 import { detectSourceLanguage, ensureSourceExtension, type SourceLanguage } from "./document-language";
@@ -77,7 +77,8 @@ import { mountRustPreview } from "./rust/preview";
 import { mountLearningPanel } from "./learning/panel";
 import { createLearningModeController } from "./learning/mode-controller";
 import { mountCommandPalette } from "./commands/palette";
-import { ctrlShortcut, renderShortcutList, type Shortcut } from "./commands/shortcuts";
+import { renderShortcutList } from "./commands/shortcuts";
+import { createIdeShortcuts } from "./commands/ide-shortcuts";
 import { mountProjectDialogs } from "./shell/project-dialogs";
 import { mountWindowControls } from "./shell/window";
 import { createHelpLoader } from "./shell/help-loader";
@@ -1407,92 +1408,75 @@ function showShortcuts() {
   if (!shortcutDialog.open) shortcutDialog.showModal();
 }
 
-const shortcuts: Shortcut[] = [
-  { label: "Shift+F6 / Ctrl+Enter", command: "Executar", matches: (e) =>
-    (e.shiftKey && e.key === "F6") || ((e.ctrlKey || e.metaKey) && e.key === "Enter"), action: runOrContinue },
-  { label: "Shift+F5", command: "Depurar", matches: (e) => e.shiftKey && e.key === "F5",
-    action: stepOrStart },
-  { label: "Shift+F7", command: "Interromper", matches: (e) => e.shiftKey && e.key === "F7", action: stopProgram },
-  { label: "F9", command: "Pausar", matches: (e) => !e.shiftKey && e.key === "F9",
-    action: () => { if (runId !== null) void api.debugPause(runId); } },
-  { label: "F5", command: "Continuar", matches: (e) => !e.shiftKey && e.key === "F5",
-    action: () => debugCommand(api.debugContinue) },
-  { label: "Shift+F9 / F10", command: "Próxima instrução",
-    matches: (e) => (e.shiftKey && e.key === "F9") || e.key === "F10", action: () => debugCommand(api.debugStepOver) },
-  { label: "Alt+F11", command: "Entrar na função", matches: (e) => e.altKey && !e.shiftKey && e.key === "F11",
-    action: () => debugCommand(api.debugStepInto) },
-  { label: "Shift+F11", command: "Sair da função", matches: (e) => e.shiftKey && e.key === "F11",
-    action: () => debugCommand(api.debugStepOut) },
-  { label: "F1", command: "Ajuda", matches: (e) => e.key === "F1", action: () => activate(helpId) },
-  { label: "Ctrl+R", command: "Renomear símbolo",
-    matches: (e) => (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === "KeyR", action: renameSelection },
-  { label: "Ctrl+Alt+F", command: "Formatar código-fonte",
-    matches: (e) => (e.ctrlKey || e.metaKey) && e.altKey && !e.shiftKey && e.code === "KeyF", action: formatCode },
-  { label: "via paleta de comandos", command: "Executar como Rust", matches: () => false, action: () => runProgram(false, true) },
-  { label: "via paleta de comandos", command: "Analisar projeto Cargo", matches: () => false, action: checkCargoProject },
-  { label: "via paleta de comandos", command: "Testar projeto Cargo", matches: () => false, action: runCargoTests },
-  { label: "F3", command: "Dicas de interface", matches: (e) => e.key === "F3", action: () => tips.open() },
-  { label: "F12", command: "Sobre (fora do editor); ir à declaração (no editor)", matches: (e) => e.key === "F12", action: () =>
-    $<HTMLDialogElement>("about").showModal() },
-  { label: "F11", command: "Atalhos de teclado", matches: (e) => !e.altKey && !e.shiftKey && e.key === "F11",
-    action: showShortcuts },
-  { label: "Alt+Home", command: "Tela inicial", matches: (e) => e.altKey && e.key === "Home", action: () => activate(0) },
-  { label: "Alt+←", command: "Aba anterior", matches: (e) => e.altKey && e.key === "ArrowLeft", action: () => cycleTab(-1) },
-  { label: "Alt+→", command: "Próxima aba", matches: (e) => e.altKey && e.key === "ArrowRight", action: () => cycleTab(1) },
-  { label: "Shift+Pause", command: "Ativar/desativar centralização",
-    matches: (e) => e.shiftKey && e.key === "Pause", action: toggleCenterSource },
-  { label: "Shift+Esc", command: "Expandir/restaurar editor",
-    matches: (e) => e.shiftKey && e.key === "Escape", action: toggleExpanded },
-  { label: "Ctrl+Shift+P", command: "Paleta de comandos", matches: (e) =>
-    (e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.code === "KeyP", action: showCommandPalette },
-];
-
-function fileShortcut(key: string, shift: boolean, command: string, action: () => unknown) {
-  shortcuts.push(ctrlShortcut(key, shift, command, action));
-}
-
-fileShortcut("N", false, "Novo arquivo", () => newTab());
-fileShortcut("O", false, "Abrir arquivo", () => fileIO.openFiles());
-fileShortcut("E", true, "Mostrar ou ocultar o explorador", () => {
-  workspaceExplorer.toggleExplorer();
-});
-fileShortcut("S", false, "Salvar", () => fileIO.save());
-fileShortcut("S", true, "Salvar como", () => fileIO.save(true));
-fileShortcut("E", false, "Parâmetros de execução", () => {
-  if (!activeTab()) return;
-  editorOptions.open = true;
-  $("args").focus();
-});
-fileShortcut("B", false, "Painel Utilitários", toggleUtilities);
-fileShortcut("L", false, "Buscar na estrutura", () => {
+const filterOutlineType = (type: string) => () => {
   if (!activeTab()) return;
   showUtilities(true);
-  outline.focus();
-});
-fileShortcut("Q", false, "Fechar aba", () => closeTab(activeId));
-fileShortcut("Q", true, "Fechar todas as abas", async () => {
-  for (const tab of [...tabs]) if (!(await closeTab(tab.id))) return;
-  if (helpOpen) await closeTab(helpId);
-});
-shortcuts.push({ label: "Ctrl+F", command: "Localizar e substituir", matches: (e) =>
-  (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === "KeyF", action: () => openSearchPanel(view) });
-
-for (const [key, ty] of Object.entries({ I: "inteiro", C: "caracter", R: "real", A: "cadeia", L: "logico", V: "vazio", T: "" })) {
-  shortcuts.push({
-    label: `Alt+Shift+${key}`, command: ty ? `Filtrar tipo ${ty}` : "Mostrar todos os tipos",
-    matches: (e) => e.altKey && e.shiftKey && e.code === `Key${key}`,
-    action: () => { if (activeTab()) { showUtilities(true); outline.filterType(ty); } },
-  });
-}
-
-const symbolShortcuts = { A: "variable", E: "array", M: "matrix", F: "function", T: "constant" } as const;
-for (const [key, kind] of Object.entries(symbolShortcuts)) {
-  fileShortcut(key, true, `Filtrar ${symbolKindLabels[kind].toLowerCase()}`, () => {
+  outline.filterType(type);
+};
+const filterOutlineKind = (kind: "variable" | "array" | "matrix" | "function" | "constant") => () => {
+  if (!activeTab()) return;
+  showUtilities(true);
+  outline.filterKind(kind);
+};
+const shortcuts = createIdeShortcuts({
+  runOrContinue,
+  stepOrStart,
+  stopProgram,
+  pauseDebug: () => { if (runId !== null) void api.debugPause(runId); },
+  continueDebug: () => debugCommand(api.debugContinue),
+  stepOver: () => debugCommand(api.debugStepOver),
+  stepInto: () => debugCommand(api.debugStepInto),
+  stepOut: () => debugCommand(api.debugStepOut),
+  help: () => activate(helpId),
+  renameSymbol: renameSelection,
+  formatCode,
+  runAsRust: () => runProgram(false, true),
+  checkCargoProject,
+  runCargoTests,
+  openTips: () => tips.open(),
+  about: () => $<HTMLDialogElement>("about").showModal(),
+  showShortcuts,
+  home: () => activate(homeId),
+  previousTab: () => cycleTab(-1),
+  nextTab: () => cycleTab(1),
+  toggleCenter: toggleCenterSource,
+  toggleExpanded,
+  commandPalette: showCommandPalette,
+  newFile: () => newTab(),
+  openFile: () => fileIO.openFiles(),
+  toggleExplorer: () => workspaceExplorer.toggleExplorer(),
+  save: () => fileIO.save(),
+  saveAs: () => fileIO.save(true),
+  executionParameters: () => {
+    if (!activeTab()) return;
+    editorOptions.open = true;
+    $("args").focus();
+  },
+  utilities: toggleUtilities,
+  searchOutline: () => {
     if (!activeTab()) return;
     showUtilities(true);
-    outline.filterKind(kind);
-  });
-}
+    outline.focus();
+  },
+  closeTab: () => closeTab(activeId),
+  closeAllTabs: async () => {
+    for (const tab of [...tabs]) if (!(await closeTab(tab.id))) return;
+    if (helpOpen) await closeTab(helpId);
+  },
+  findReplace: () => openSearchPanel(view),
+  filterTypeInteger: filterOutlineType("inteiro"),
+  filterTypeCharacter: filterOutlineType("caracter"),
+  filterTypeReal: filterOutlineType("real"),
+  filterTypeString: filterOutlineType("cadeia"),
+  filterTypeLogical: filterOutlineType("logico"),
+  filterTypeVoid: filterOutlineType("vazio"),
+  showAllTypes: filterOutlineType(""),
+  filterVariable: filterOutlineKind("variable"),
+  filterArray: filterOutlineKind("array"),
+  filterMatrix: filterOutlineKind("matrix"),
+  filterFunction: filterOutlineKind("function"),
+  filterConstant: filterOutlineKind("constant"),
+});
 
 renderShortcutList(shortcuts);
 $("home-shortcuts").onclick = showShortcuts;

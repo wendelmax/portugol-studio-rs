@@ -273,3 +273,15 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - [x] Extract format orchestration while preserving edit annotations, status messages, and focus behavior.
 - [x] Run the full frontend tests (67/67), typecheck, and build.
 - [x] Commit the editor formatting group (#175).
+
+### Task 21: IDE shortcut catalog
+
+**Files:**
+- Create: `apps/desktop/src/commands/ide-shortcuts.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/ide-shortcuts.test.mjs`
+
+- [x] Add tests for editor, file, navigation, debugging, and palette shortcut matching and dispatch.
+- [x] Move the IDE shortcut catalog and shortcut-specific filtering loops into the commands module.
+- [x] Run the full frontend tests (68/68), typecheck, and build.
+- [x] Commit the shortcut catalog group (#176).
