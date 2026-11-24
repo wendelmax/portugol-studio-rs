@@ -64,6 +64,10 @@ test("PORS completes members of UI, Matematica, Texto and Tipos after dot", asyn
   const cal = await completeAt("Calendario.");
   assert.ok(cal.options.some((o) => o.label === "MES_JANEIRO" && o.type === "constant" && !o.apply));
   assert.ok(cal.options.some((o) => o.label === "data_iso_atual" && o.apply === "data_iso_atual("));
+
+  const files = await completeAt("Arquivos.");
+  assert.ok(files.options.some((o) => o.label === "ler_texto" && o.detail.includes("Resultado<cadeia, cadeia>")));
+  assert.ok(files.options.some((o) => o.label === "listar" && o.detail.includes("Resultado<vetor<cadeia>, cadeia>")));
 });
 
 test("PORS completes Opcao, Resultado and user-declared enum variants after ::", async () => {
@@ -85,10 +89,10 @@ test("PORS top-level completions include snippets and locals without leaking cla
   const result = await completeAt(doc);
   const labels = result.options.map((o) => o.label);
 
-  for (const expected of ["seja", "seja mutavel", "registro", "enum", "escolha", "Opcao", "Resultado", "UI", "Matematica", "Texto", "Tipos", "Util", "Calendario", "adicionar", "remover", "obter", "Aluno", "dobrar", "nota"]) {
+  for (const expected of ["seja", "seja mutavel", "registro", "enum", "escolha", "Opcao", "Resultado", "UI", "Matematica", "Texto", "Tipos", "Util", "Calendario", "Arquivos", "adicionar", "remover", "obter", "Aluno", "dobrar", "nota"]) {
     assert.ok(labels.includes(expected), `esperava sugestão PORS '${expected}'`);
   }
-  for (const forbidden of ["programa", "inclua", "biblioteca", "faca", "contrario", "limpa", "sorteia", "Graficos", "Arquivos"]) {
+  for (const forbidden of ["programa", "inclua", "biblioteca", "faca", "contrario", "limpa", "sorteia", "Graficos"]) {
     assert.ok(!labels.includes(forbidden), `não deve vazar símbolo clássico '${forbidden}' em .pors`);
   }
 });

@@ -426,3 +426,66 @@ fn interrupts_pors_util_aguarde_promptly_when_cancelled() {
         .expect_err("Util.aguarde deve ser cancelado imediatamente quando interrupt=true");
     assert!(error.message.contains("interrompido"));
 }
+
+#[test]
+fn executes_workspace_confined_pors_arquivos_and_blocks_escapes_in_minimal_vm() {
+    let workspace =
+        std::env::temp_dir().join(format!("portugol-pors-arquivos-vm-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&workspace);
+    std::fs::create_dir_all(&workspace).unwrap();
+
+    let source = r#"
+funcao ciclo() -> Resultado<cadeia, cadeia> {
+    seja _w: logico = Arquivos.escrever_texto("sub/notas.txt", "alpha\n")?;
+    seja _a: logico = Arquivos.acrescentar_texto("sub/notas.txt", "beta\n")?;
+    seja tem: logico = Arquivos.existe("sub/notas.txt")?;
+    seja linhas: vetor<cadeia> = Arquivos.ler_linhas("sub/notas.txt")?;
+    seja itens: vetor<cadeia> = Arquivos.listar("sub")?;
+    seja texto: cadeia = Arquivos.ler_texto("sub/notas.txt")?;
+    seja _r: logico = Arquivos.remover("sub/notas.txt")?;
+    seja depois: logico = Arquivos.existe("sub/notas.txt")?;
+    retorne Resultado::Ok(
+        Tipos.logico_para_cadeia(tem) + "|" +
+        Tipos.inteiro_para_cadeia(tamanho(linhas)) + "|" +
+        linhas[1] + "|" +
+        itens[0] + "|" +
+        Tipos.logico_para_cadeia(depois) + "|" +
+        Texto.aparar(texto)
+    );
+}
+
+funcao inicio() {
+    escolha ciclo() {
+        caso Resultado::Ok(s) => { escreva(s, "|"); }
+        caso Resultado::Erro(e) => { escreva("ERR:", e, "|"); }
+    }
+    escolha Arquivos.ler_texto("../fora.txt") {
+        caso Resultado::Ok(_) => { escreva("LEAK|"); }
+        caso Resultado::Erro(_) => { escreva("BLOCKED_PARENT|"); }
+    }
+    escolha Arquivos.ler_texto("/etc/passwd") {
+        caso Resultado::Ok(_) => { escreva("LEAK"); }
+        caso Resultado::Erro(_) => { escreva("BLOCKED_ABS"); }
+    }
+}
+"#;
+    let module = compile_pors_source(source);
+
+    // Sem workspace configurado, deve recusar acesso com erro tipado (consentimento explícito).
+    let mut no_ws_io = BufferIo::default();
+    run(&module, &mut no_ws_io).expect("sem workspace deve retornar Resultado::Erro");
+    assert!(no_ws_io.output.starts_with("ERR:Acesso a arquivos requer"));
+
+    // Com workspace configurado, executa ciclo completo e bloqueia escapes.
+    let mut io = BufferIo::default();
+    Vm::new(&module, &mut io)
+        .with_pors_workspace_dir(&workspace)
+        .run()
+        .expect("execução confinada de Arquivos na VM mínima");
+    assert_eq!(
+        io.output,
+        "verdadeiro|2|beta|notas.txt|falso|alpha\nbeta|BLOCKED_PARENT|BLOCKED_ABS"
+    );
+
+    let _ = std::fs::remove_dir_all(&workspace);
+}

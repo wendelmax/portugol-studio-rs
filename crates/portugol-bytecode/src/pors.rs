@@ -818,6 +818,7 @@ fn pors_vm_module(module: &str) -> &str {
         "Tipos" => "PorsTipos",
         "Util" => "PorsUtil",
         "Calendario" => "PorsCalendario",
+        "Arquivos" => "PorsArquivos",
         other => other,
     }
 }
