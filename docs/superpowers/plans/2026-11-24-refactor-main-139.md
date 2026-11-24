@@ -297,3 +297,15 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - [x] Extract CodeMirror update-event orchestration behind explicit callbacks.
 - [x] Run the full frontend tests (69/69), typecheck, and build.
 - [x] Commit the editor update group (#177).
+
+### Task 23: CodeMirror extension setup
+
+**Files:**
+- Create: `apps/desktop/src/editor/extensions.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/editor-extensions.test.mjs`
+
+- [x] Add tests for language-specific extensions and the editor's keyboard and mouse navigation hooks.
+- [x] Extract extension assembly while keeping language services and shell actions injected.
+- [x] Run the full frontend tests (70/70), typecheck, and build.
+- [ ] Commit the CodeMirror setup group.

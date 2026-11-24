@@ -10,18 +10,11 @@ import "./style.css";
 import license from "../../../LICENSE?raw";
 import { version } from "../package.json";
 
-import { EditorState, Compartment, type Extension } from "@codemirror/state";
-import {
-  EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter,
-  drawSelection, highlightSpecialChars,
-} from "@codemirror/view";
-import { defaultKeymap, history, historyKeymap, indentWithTab, isolateHistory } from "@codemirror/commands";
-import {
-  bracketMatching, indentOnInput, foldGutter, foldKeymap,
-} from "@codemirror/language";
-import { forceLinting, linter, lintGutter, setDiagnostics } from "@codemirror/lint";
-import { openSearchPanel, highlightSelectionMatches } from "@codemirror/search";
-import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from "@codemirror/autocomplete";
+import { EditorState, Compartment } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
+import { isolateHistory } from "@codemirror/commands";
+import { forceLinting, linter, setDiagnostics } from "@codemirror/lint";
+import { openSearchPanel } from "@codemirror/search";
 import { rust } from "@codemirror/lang-rust";
 import { open as openDialog, save as saveDialog, ask } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -96,6 +89,7 @@ import { applyPageTheme, editorColors, editorTheme, onSystemThemeChange, themeCh
 import { createSymbolNavigator } from "./editor/symbol-navigation";
 import { createEditorFormatter } from "./editor/format";
 import { createEditorUpdateController } from "./editor/update-controller";
+import { createEditorExtensionFactory } from "./editor/extensions";
 import {
   breakpointLines, breakpoints, createBreakpointGutter, debugLine, runtimeError, setDebugLine, setRuntimeError, toCodeMirror,
 } from "./editor/decorations";
@@ -195,59 +189,6 @@ const rustSourceLinter = linter(
   { delay: 500 },
 );
 
-function extensions(language: SourceLanguage): Extension[] {
-  const isRust = language === "rust";
-  const isPortugol = !isRust;
-  const tools: Extension[] = isPortugol
-    ? [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]
-    : [rustSourceLinter];
-  return [
-    lineNumbers(),
-    highlightActiveLineGutter(),
-    highlightSpecialChars(),
-    history(),
-    drawSelection(),
-    indentOnInput(),
-    bracketMatching(),
-    closeBrackets(),
-    autocompletion(),
-    highlightActiveLine(),
-    highlightSelectionMatches(),
-    findDialog,
-    EditorView.contentAttributes.of({ "aria-label": "Editor de código" }),
-    EditorState.tabSize.of(4),
-    sourceLanguage.of(isRust ? rust() : language === "portugol-rs" ? portugolRs() : portugol()),
-    portugolTools.of(tools),
-    foldGutter({ markerDOM: (open) => {
-      const marker = document.createElement("span");
-      marker.textContent = open ? "−" : "+";
-      marker.title = open ? "Recolher bloco" : "Expandir bloco";
-      marker.setAttribute("aria-label", marker.title);
-      return marker;
-    }}),
-    editorColors,
-    theme.of(editorTheme()),
-    lintGutter(),
-    EditorView.domEventHandlers({
-      click(event, editor) {
-        const mouse = event as MouseEvent;
-        if (activeTab()?.language === "rust") return false;
-        if (mouse.button !== 0 || (!mouse.ctrlKey && !mouse.metaKey)) return false;
-        const offset = editor.posAtCoords({ x: mouse.clientX, y: mouse.clientY });
-        if (offset === null) return false;
-        void goToDeclarationAt(offset, true);
-        return false;
-      },
-    }),
-    keymap.of([
-      { key: "F12", run: () => { void goToDeclarationAt(view.state.selection.main.head); return true; } },
-      ...closeBracketsKeymap, ...defaultKeymap, ...editorSearchKeys,
-      ...historyKeymap, ...completionKeymap, ...foldKeymap, indentWithTab,
-    ]),
-    EditorView.updateListener.of(editorUpdateHandler),
-  ];
-}
-
 const view = new EditorView({ parent: $("editor") });
 const rustPreview = mountRustPreview({
   sourceView: view,
@@ -297,6 +238,35 @@ const editorUpdateHandler = createEditorUpdateController({
   renderMappingGutter: () => rustPreview.renderMappingGutter(),
   centerActive: () => centerActive,
   centerSelection,
+});
+
+const extensions = createEditorExtensionFactory({
+  sourceLanguage,
+  portugolTools,
+  theme,
+  portugolExtensions: () => [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine],
+  rustExtensions: () => [rustSourceLinter],
+  portugolLanguage: () => portugol(),
+  portugolRsLanguage: () => portugolRs(),
+  rustLanguage: () => rust(),
+  editorColors,
+  editorTheme,
+  findDialog,
+  editorSearchKeys,
+  onEditorClick: (event, editor) => {
+    const mouse = event as MouseEvent;
+    if (activeTab()?.language === "rust") return false;
+    if (mouse.button !== 0 || (!mouse.ctrlKey && !mouse.metaKey)) return false;
+    const offset = editor.posAtCoords({ x: mouse.clientX, y: mouse.clientY });
+    if (offset === null) return false;
+    void goToDeclarationAt(offset, true);
+    return false;
+  },
+  onGoToDeclaration: () => {
+    void goToDeclarationAt(view.state.selection.main.head);
+    return true;
+  },
+  onUpdate: editorUpdateHandler,
 });
 
 /** Reaplica o tema atual aos editores e à ajuda. */
