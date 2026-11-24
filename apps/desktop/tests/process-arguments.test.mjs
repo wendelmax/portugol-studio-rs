@@ -36,3 +36,10 @@ test("encaminha argv como lista tipada do editor ao processo Rust, sem shell", (
   assert.match(runner, /\.args\(args\)/);
   assert.doesNotMatch(runner, /Command::new\(args|sh -c.*args/);
 });
+
+test("classic Portugol arguments split on spaces and group quoted text", async () => {
+  const { parseClassicArguments } = await import("../src/process-arguments.ts");
+  assert.deepEqual(parseClassicArguments('"João Silva" 19 ativo'), ["João Silva", "19", "ativo"]);
+  assert.deepEqual(parseClassicArguments('  a   ""  b '), ["a", "", "b"]);
+  assert.deepEqual(parseClassicArguments(""), []);
+});

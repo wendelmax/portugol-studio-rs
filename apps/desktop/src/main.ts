@@ -55,7 +55,7 @@ import { semanticSymbolLanguage } from "./semantic-symbol-actions";
 import { collectWorkspaceFiles, flattenWorkspaceEntries, workspaceFileKind, workspaceRenameFileName, workspaceSourceFileName, type WorkspaceEntry } from "./workspace-explorer";
 import { workspaceExportStatus } from "./workspace-export-state";
 import { canDebugSource, canFormatSource, canRunAsRust, canRunSource } from "./runtime-capabilities";
-import { parseProcessArguments } from "./process-arguments";
+import { parseClassicArguments, parseProcessArguments } from "./process-arguments";
 import { hasCargoExecutionConsent, hasRustExecutionConsent, rememberCargoExecutionConsent, rememberRustExecutionConsent } from "./rust-execution-consent";
 import { applyWorkspaceRenameToTabs, deleteWorkspaceFileFlow, prepareWorkspaceRename } from "./workspace-file-actions";
 import { conceptsForMode, resolveConceptForMode } from "./learning-content";
@@ -80,6 +80,11 @@ import * as api from "./api";
 import { $ } from "./dom";
 import { createRecentFiles } from "./files/recent";
 import { mountPaneLayout } from "./layout/panes";
+import { setStatus } from "./shell/status";
+import { mountFontSizeControls } from "./shell/font-size";
+import { appendConsole, appendProcessOutput, clearConsole, consoleText } from "./run/console";
+import { renderDebugInfo } from "./run/debug-view";
+import { chooseCargoTarget } from "./run/cargo-target-dialog";
 import { applyPageTheme, editorColors, editorTheme, onSystemThemeChange, themeChoice } from "./editor/theme";
 import {
   breakpointLines, breakpoints, createBreakpointGutter, debugLine, runtimeError, setDebugLine, setRuntimeError, toCodeMirror,
@@ -1429,29 +1434,9 @@ let cargoAvailable: boolean | null = null;
 let rustfmtAvailable: boolean | null = null;
 let porsRunPending = false;
 let paused: api.DebugInfo | null = null;
-const output = $("console-output");
 const consoleBox = $("console");
 const inputForm = $<HTMLFormElement>("console-form");
 const inputField = $<HTMLInputElement>("console-input");
-
-function setStatus(text: string, kind: "" | "ok" | "error" = "") {
-  const status = $("status");
-  status.textContent = text;
-  status.className = kind;
-}
-
-function appendConsole(text: string, className?: string) {
-  const atBottom = consoleBox.scrollTop + consoleBox.clientHeight >= consoleBox.scrollHeight - 4;
-  if (className) {
-    const span = document.createElement("span");
-    span.className = className;
-    span.textContent = text;
-    output.append(span);
-  } else {
-    output.append(text);
-  }
-  if (atBottom) consoleBox.scrollTop = consoleBox.scrollHeight;
-}
 
 function setRunning(running: boolean) {
   const language = activeTab()?.language;
@@ -1475,7 +1460,6 @@ function setRunning(running: boolean) {
     : "Pause a execução para inspecionar as variáveis.";
 }
 
-/** Linhas (base 1) dos pontos de parada no estado do editor. */
 /** Pontos de parada podem mudar enquanto o programa está em execução. */
 function syncBreakpoints(state: EditorState) {
   if (runId === null || activeId !== runTabId) return;
@@ -1487,7 +1471,11 @@ function setPaused(info: api.DebugInfo | null) {
   if (activeId === runTabId) view.dispatch({ effects: setDebugLine.of(info?.position.line ?? null) });
   setRunning(runId !== null);
   if (info) {
-    renderDebug(info);
+    renderDebugInfo(info, (frame) => {
+      if (runTabId === null || !tabs.some(({ id }) => id === runTabId)) return;
+      if (activeId !== runTabId) activate(runTabId);
+      goTo(frame.position.offset);
+    });
     showUtilities(true);
     showPanel("debug");
     if (activeId === runTabId) goTo(info.position.offset);
@@ -1510,56 +1498,6 @@ async function debugCommand(command: (id: number) => Promise<void>) {
   } catch {
     // A execução pode ter terminado enquanto o comando era enviado.
   }
-}
-
-function renderDebug(info: api.DebugInfo) {
-  $("debug-stack").replaceChildren(...info.stack.map((frame, index) => {
-    const li = document.createElement("li");
-    li.textContent = `${frame.function} — linha ${frame.position.line}:${frame.position.column}`;
-    if (index === 0) li.className = "current";
-    li.onclick = () => {
-      if (runTabId === null || !tabs.some(({ id }) => id === runTabId)) return;
-      if (activeId !== runTabId) activate(runTabId);
-      goTo(frame.position.offset);
-    };
-    return li;
-  }));
-  const body = document.querySelector<HTMLTableSectionElement>("#debug-vars tbody")!;
-  body.replaceChildren(...info.variables.map((variable) => {
-    const row = document.createElement("tr");
-    for (const text of [variable.name, variable.ty, variable.value, variable.scope]) {
-      const cell = document.createElement("td");
-      cell.textContent = text;
-      row.append(cell);
-    }
-    return row;
-  }));
-}
-
-function parseArgs(text: string): string[] {
-  // Aspas agrupam: `"João Silva" 19` -> ["João Silva", "19"].
-  return [...text.matchAll(/"([^"]*)"|(\S+)/g)].map((m) => m[1] ?? m[2]);
-}
-
-function chooseCargoTarget(targets: api.CargoRunTarget[]): Promise<api.CargoRunTarget | null> {
-  const dialog = $<HTMLDialogElement>("cargo-target-dialog");
-  const select = $<HTMLSelectElement>("cargo-target-select");
-  select.replaceChildren(...targets.map((target, index) => {
-    const option = document.createElement("option");
-    option.value = String(index);
-    option.textContent = `${target.packageName} — ${target.targetName}`;
-    return option;
-  }));
-  $<HTMLButtonElement>("cargo-target-cancel").onclick = () => dialog.close("cancel");
-  dialog.returnValue = "";
-  return new Promise((resolve) => {
-    dialog.addEventListener("close", () => {
-      const index = Number(select.value);
-      resolve(dialog.returnValue === "run" && Number.isInteger(index) ? targets[index] ?? null : null);
-    }, { once: true });
-    dialog.showModal();
-    select.focus();
-  });
 }
 
 /**
@@ -1670,14 +1608,13 @@ async function runProgram(pauseOnStart = false, asRust = false) {
       view.dispatch({ effects: setDebugLine.of(null) });
       paused = null;
       showPanel("console");
-      output.replaceChildren();
+      clearConsole();
       setRunning(true);
       if (tab.cargoProject === true && tab.workspaceId && tab.workspacePath) {
         setStatus("Compilando o projeto Cargo…");
         const result = await api.runCargoProject(id, tab.workspaceId, tab.workspacePath, cargoTarget, rustArgs);
         if (activeTab() !== tab || view.state.doc !== documentState) return;
-        if (result.stdout) appendConsole(result.stdout);
-        if (result.stderr) appendConsole(result.stderr, "error");
+        appendProcessOutput(result);
         if (result.status === "executed") {
           setStatus(result.exitCode === 0 ? "Projeto Cargo finalizado." : `Programa Rust terminou com código ${result.exitCode ?? "desconhecido"}.`, result.exitCode === 0 ? "ok" : "error");
         } else if (result.status === "cancelled") {
@@ -1694,13 +1631,11 @@ async function runProgram(pauseOnStart = false, asRust = false) {
       const result = await api.runRustSource(id, source, rustArgs);
       if (activeTab() !== tab || view.state.doc !== documentState) return;
       if (result.status === "cancelled") {
-        if (result.stdout) appendConsole(result.stdout);
-        if (result.stderr) appendConsole(result.stderr, "error");
+        appendProcessOutput(result);
         const phase = result.phase === "compilation" ? "compilação" : "execução";
         setStatus(`Execução Rust cancelada durante a ${phase}.`);
       } else if (result.status === "executed") {
-        if (result.stdout) appendConsole(result.stdout);
-        if (result.stderr) appendConsole(result.stderr, "error");
+        appendProcessOutput(result);
         setStatus(
           result.exitCode === 0
             ? "Programa Rust finalizado com rustc."
@@ -1708,8 +1643,7 @@ async function runProgram(pauseOnStart = false, asRust = false) {
           result.exitCode === 0 ? "ok" : "error",
         );
       } else if (result.status === "runtime_limit") {
-        if (result.stdout) appendConsole(result.stdout);
-        if (result.stderr) appendConsole(result.stderr, "error");
+        appendProcessOutput(result);
         const reason = result.reason === "time" ? "tempo máximo de 3 segundos" : "limite de saída de 1 MiB";
         setStatus(`Execução Rust interrompida: ${reason}.`, "error");
       } else if (result.status === "compile_limit") {
@@ -1763,7 +1697,7 @@ async function runProgram(pauseOnStart = false, asRust = false) {
     view.dispatch({ effects: setDebugLine.of(null) });
     paused = null;
     showPanel("console");
-    output.replaceChildren();
+    clearConsole();
     inputForm.hidden = true;
     if (!asRust) {
       const events: PendingRunEvent[] = [];
@@ -1820,13 +1754,11 @@ async function runProgram(pauseOnStart = false, asRust = false) {
       const result = await api.runPortugolRs(porsRunId, source);
       if (activeTab() !== tab || view.state.doc !== documentState) return;
       if (result.status === "cancelled") {
-        if (result.stdout) appendConsole(result.stdout);
-        if (result.stderr) appendConsole(result.stderr, "error");
+        appendProcessOutput(result);
         const phase = result.phase === "compilation" ? "compilação" : "execução";
         setStatus(`Execução Portugol-RS cancelada durante a ${phase}.`);
       } else if (result.status === "executed") {
-        if (result.stdout) appendConsole(result.stdout);
-        if (result.stderr) appendConsole(result.stderr, "error");
+        appendProcessOutput(result);
         setStatus(
           result.exitCode === 0
             ? "Programa Portugol-RS finalizado com rustc."
@@ -1838,8 +1770,7 @@ async function runProgram(pauseOnStart = false, asRust = false) {
         const reason = result.reason === "time" ? "tempo máximo de compilação de 20 segundos" : "limite de saída de compilação de 1 MiB";
         setStatus(`Compilação Portugol-RS interrompida: ${reason}.`, "error");
       } else if (result.status === "runtime_limit") {
-        if (result.stdout) appendConsole(result.stdout);
-        if (result.stderr) appendConsole(result.stderr, "error");
+        appendProcessOutput(result);
         const descriptions = {
           time: "tempo máximo de 3 segundos",
           output: "limite de saída de 1 MiB",
@@ -1877,9 +1808,9 @@ async function runProgram(pauseOnStart = false, asRust = false) {
   view.dispatch({ effects: setDebugLine.of(null) });
   paused = null;
   showPanel("console");
-  output.replaceChildren();
+  clearConsole();
   const source = view.state.doc.toString();
-  const args = parseArgs($<HTMLInputElement>("args").value);
+  const args = parseClassicArguments($<HTMLInputElement>("args").value);
   const lines = breakpointLines(view.state);
   const events: PendingRunEvent[] = [];
   pendingEvents = events;
@@ -1980,7 +1911,7 @@ async function checkCargoProject() {
     runId = registeredId;
     setRunning(true);
     view.dispatch({ effects: setRuntimeError.of(null) });
-    output.replaceChildren();
+    clearConsole();
     showPanel("messages");
     setStatus("Analisando projeto com cargo check…");
     const result = await api.checkCargoProject(registeredId, tab.workspaceId, tab.workspacePath);
@@ -2080,7 +2011,7 @@ async function runCargoTests() {
     tab.cargoTestRun = { source: documentState, status: "running" };
     showPanel("tests");
     renderExerciseTests();
-    output.replaceChildren();
+    clearConsole();
     setStatus("Executando testes do projeto com cargo test…");
     const result = await api.testCargoProject(registeredId, tab.workspaceId, tab.workspacePath);
     if (activeTab() !== tab || view.state.doc !== documentState) return;
@@ -2475,7 +2406,7 @@ const runListeners = api.listenRun({
     routeRunEvent(id, () => appendConsole(text));
   },
   clear(id) {
-    routeRunEvent(id, () => output.replaceChildren());
+    routeRunEvent(id, () => clearConsole());
   },
   input(id, expected) {
     routeRunEvent(id, () => {
@@ -2975,10 +2906,10 @@ $("btn-debug-continue").onclick = () => void debugCommand(api.debugContinue);
 $("btn-debug-step-over").onclick = () => void debugCommand(api.debugStepOver);
 $("btn-debug-step-into").onclick = () => void debugCommand(api.debugStepInto);
 $("btn-debug-step-out").onclick = () => void debugCommand(api.debugStepOut);
-$("btn-clear").onclick = () => output.replaceChildren();
+$("btn-clear").onclick = () => clearConsole();
 $("btn-copy").onclick = async () => {
   try {
-    await navigator.clipboard.writeText(output.textContent ?? "");
+    await navigator.clipboard.writeText(consoleText());
     setStatus("Saída copiada.", "ok");
   } catch (error) {
     setStatus(String(error), "error");
@@ -3663,30 +3594,7 @@ themeSelect.value = themeChoice();
 themeSelect.onchange = () => applyTheme(themeSelect.value);
 editorMenuAction("editor-themes", themeEditor.open);
 
-for (const id of ["editor-font", "console-font"]) {
-  const input = $<HTMLInputElement>(id);
-  const key = `portugol.${id}`;
-  const applyFontSize = () => {
-    const size = Math.round(Math.max(10, Math.min(50, input.valueAsNumber || 12)));
-    input.value = String(size);
-    document.documentElement.style.setProperty(`--${id}`, `${size}px`);
-    return input.value;
-  };
-  try {
-    input.value = localStorage.getItem(key) ?? input.value;
-  } catch {
-    // O ajuste manual permanece disponível.
-  }
-  applyFontSize();
-  input.onchange = () => {
-    const value = applyFontSize();
-    try {
-      localStorage.setItem(key, value);
-    } catch {
-      // A preferência vale nesta sessão.
-    }
-  };
-}
+mountFontSizeControls(["editor-font", "console-font"]);
 
 let help: ReturnType<typeof import("./help").mountHelp> | undefined;
 let helpLoading: Promise<void> | undefined;
