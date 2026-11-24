@@ -83,6 +83,7 @@ import { createRecentFiles } from "./files/recent";
 import { createFileIO } from "./files/io";
 import { createIncomingFileOpener } from "./files/system-files";
 import { mountPaneLayout } from "./layout/panes";
+import { createPanelNavigation } from "./layout/panel-navigation";
 import { setStatus } from "./shell/status";
 import { mountFontSizeControls } from "./shell/font-size";
 import { appendConsole, appendProcessOutput, clearConsole, consoleText } from "./run/console";
@@ -723,28 +724,24 @@ async function runCargoTests() {
 
 const bottomPanelNames: PanelName[] = ["console", "tests", "messages", "debug"];
 
-function setInspectorView(learning: boolean) {
-  $("learning-panel").hidden = !learning;
-  for (const id of ["utilities-insert", "outline", "variable-inspector"]) {
-    $<HTMLElement>(id).hidden = learning;
-  }
-}
+const panelNavigation = createPanelNavigation({
+  bottomPanels: bottomPanelNames,
+  inspectorElements: ["utilities-insert", "outline", "variable-inspector"],
+  setInspectorElementHidden: (id, hidden) => { $<HTMLElement>(id).hidden = hidden; },
+  showUtilities: (visible) => panes.showUtilities(visible),
+  renderLearningPanel: () => learningPanel.render(),
+  setTabState: (name, active, selected) => {
+    $(`tab-${name}`).classList.toggle("active", active);
+    $(`tab-${name}`).setAttribute("aria-selected", String(selected));
+  },
+  setPanelContentHidden: (name, hidden) => { $(panelContentId(name)).hidden = hidden; },
+  setConsoleToolsHidden: (hidden) => { $("console-tools").hidden = hidden; },
+  renderExerciseTests,
+});
+const { setInspectorView } = panelNavigation;
 
 function showPanel(which: PanelName) {
-  const learningActive = which === "learning";
-  setInspectorView(learningActive);
-  if (learningActive) {
-    showUtilities(true);
-    learningPanel.render();
-    return;
-  }
-  for (const name of bottomPanelNames) {
-    $(`tab-${name}`).classList.toggle("active", which === name);
-    $(`tab-${name}`).setAttribute("aria-selected", String(which === name));
-    $(panelContentId(name)).hidden = which !== name;
-  }
-  $("console-tools").hidden = which !== "console";
-  if (which === "tests") renderExerciseTests();
+  panelNavigation.showPanel(which);
 }
 
 document.querySelector<HTMLElement>(".panel-tabs")?.addEventListener("keydown", (event) => {

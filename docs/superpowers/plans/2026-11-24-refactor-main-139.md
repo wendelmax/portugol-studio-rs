@@ -368,4 +368,16 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - [x] Add tests for paused-state updates, current run selection, stack-frame navigation, panel visibility, and language-specific status.
 - [x] Extract pause presentation orchestration with editor/shell callbacks injected.
 - [x] Run the full frontend tests (75/75), typecheck, and build.
-- [ ] Commit the pause presentation group.
+- [x] Commit the pause presentation group (#183).
+
+### Task 29: Panel navigation
+
+**Files:**
+- Create: `apps/desktop/src/layout/panel-navigation.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/panel-navigation.test.mjs`
+
+- [x] Add tests for learning mode, bottom-panel selection, tab semantics, and panel-specific controls.
+- [x] Extract panel navigation and visibility orchestration with shell callbacks injected.
+- [x] Run the full frontend tests (76/76), typecheck, and build.
+- [ ] Commit the panel navigation group.
