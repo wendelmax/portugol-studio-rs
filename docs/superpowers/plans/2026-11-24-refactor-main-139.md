@@ -73,3 +73,15 @@
 - [x] Extract mode selection effects behind callbacks and keep the shell as the composition layer.
 - [x] Run the full frontend tests, typecheck, and build.
 - [x] Commit the learning-mode group.
+
+### Task 5: Exercise and Cargo test panel
+
+**Files:**
+- Create: `apps/desktop/src/run/tests-panel.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/run-tests-panel-controller.test.mjs`
+
+- [x] Write and run failing tests for rendering, completed results, stale documents, and Cargo run state.
+- [x] Extract panel rendering and exercise-test orchestration behind view and service callbacks.
+- [x] Run the full frontend tests, typecheck, and build.
+- [x] Commit the test-panel group.
