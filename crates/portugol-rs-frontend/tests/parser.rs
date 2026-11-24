@@ -683,3 +683,59 @@ funcao inicio() {
             .any(|d| d.code == "pors.unknown-stdlib-function")
     );
 }
+
+#[test]
+fn parses_and_validates_pors_json_library() {
+    let source = r#"
+funcao montar() -> Resultado<cadeia, cadeia> {
+    seja mutavel doc: cadeia = "{}";
+    doc = Json.definir_cadeia(doc, "nome", "Ada")?;
+    doc = Json.definir_inteiro(doc, "ano", 1843)?;
+    doc = Json.definir_real(doc, "nota", 9.5)?;
+    doc = Json.definir_logico(doc, "ativo", verdadeiro)?;
+    doc = Json.definir_json(doc, "tags", "[\"pors\",\"rust\"]")?;
+    doc = Json.definir_json(doc, "nums", "[1,2,3]")?;
+    seja chaves: vetor<cadeia> = Json.obter_chaves(doc)?;
+    seja nome: cadeia = Json.obter_cadeia(doc, "nome")?;
+    seja ano: inteiro = Json.obter_inteiro(doc, "ano")?;
+    seja nota: real = Json.obter_real(doc, "nota")?;
+    seja ativo: logico = Json.obter_logico(doc, "ativo")?;
+    seja sub: cadeia = Json.obter_json(doc, "tags")?;
+    seja tags: vetor<cadeia> = Json.obter_lista_cadeia(doc, "tags")?;
+    seja nums: vetor<inteiro> = Json.obter_lista_inteiro(doc, "nums")?;
+    seja tem: logico = Json.contem_chave(doc, "nome")?;
+    seja sem: cadeia = Json.remover_chave(doc, "ativo")?;
+    seja bonito: cadeia = Json.formatar(sem)?;
+    seja compacto: cadeia = Json.minificar(bonito)?;
+    se (Json.valido(compacto) && tem && ativo && ano == 1843 && nota > 9.0 && tamanho(chaves) == 6 && tamanho(tags) == 2 && tamanho(nums) == 3) {
+        retorne Resultado::Ok(nome + "|" + Json.escapar_cadeia(sub));
+    }
+    retorne Resultado::Erro("inesperado");
+}
+
+funcao inicio() {
+    escolha montar() {
+        caso Resultado::Ok(s) => { escreva(s); }
+        caso Resultado::Erro(e) => { escreva(e); }
+    }
+}
+"#;
+    let program = lower(source).expect("Json.* deve ser aceito em PORS");
+    assert_eq!(program.functions.len(), 1);
+
+    let bad_fn = "funcao inicio() { seja r: logico = Json.inexistente(\"{}\"); }";
+    let errors = lower(bad_fn).unwrap_err();
+    assert!(
+        errors
+            .iter()
+            .any(|d| d.code == "pors.unknown-stdlib-function")
+    );
+
+    let bad_type = "funcao inicio() { seja r: Resultado<cadeia, cadeia> = Json.definir_inteiro(\"{}\", \"x\", \"nao\"); }";
+    let errors = lower(bad_type).unwrap_err();
+    assert!(
+        errors
+            .iter()
+            .any(|d| d.code == "pors.stdlib-call-type-mismatch")
+    );
+}

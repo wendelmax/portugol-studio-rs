@@ -408,3 +408,31 @@ funcao inicio() {
         "{\"ok\":true,\"stdout\":\"29|verdadeiro|verdadeiro\",\"diagnostics\":[]}"
     );
 }
+
+#[test]
+fn executes_pors_json_in_zero_dep_wasm_facade() {
+    let source = r#"
+funcao resumo() -> Resultado<cadeia, cadeia> {
+    seja mutavel doc: cadeia = "{}";
+    doc = Json.definir_cadeia(doc, "curso", "PORS")?;
+    doc = Json.definir_inteiro(doc, "versao", 2)?;
+    doc = Json.definir_json(doc, "modulos", "[\"Texto\",\"Json\"]")?;
+    seja curso: cadeia = Json.obter_cadeia(doc, "curso")?;
+    seja versao: inteiro = Json.obter_inteiro(doc, "versao")?;
+    seja mods: vetor<cadeia> = Json.obter_lista_cadeia(doc, "modulos")?;
+    retorne Resultado::Ok(curso + "-" + Tipos.inteiro_para_cadeia(versao) + ":" + mods[1]);
+}
+
+funcao inicio() {
+    escolha resumo() {
+        caso Resultado::Ok(s) => { escreva(s, "|", Json.valido("[]")); }
+        caso Resultado::Erro(e) => { escreva("ERR:", e); }
+    }
+}
+"#;
+    let json = run_pors_json(source, "", RunBudget::default());
+    assert_eq!(
+        json,
+        "{\"ok\":true,\"stdout\":\"PORS-2:Json|verdadeiro\",\"diagnostics\":[]}"
+    );
+}
