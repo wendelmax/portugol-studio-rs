@@ -85,3 +85,15 @@
 - [x] Extract panel rendering and exercise-test orchestration behind view and service callbacks.
 - [x] Run the full frontend tests, typecheck, and build.
 - [x] Commit the test-panel group.
+
+### Task 6: Cargo project orchestration
+
+**Files:**
+- Create: `apps/desktop/src/run/cargo-project.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/cargo-project-controller.test.mjs`
+
+- [x] Write and run failing tests for dirty workspace guards, Cargo diagnostics, test results, and stale documents.
+- [x] Extract `cargo check` and `cargo test` lifecycle orchestration behind callbacks; keep Tauri commands in `api.ts`.
+- [x] Run the full frontend tests, typecheck, and build.
+- [x] Commit the Cargo orchestration group.
