@@ -247,7 +247,7 @@ fn find_host_call_in_stmts(
             } => {
                 if !matches!(
                     module.as_str(),
-                    "UI" | "Matematica" | "Texto" | "Tipos" | "Util" | "Calendario"
+                    "UI" | "Matematica" | "Texto" | "Tipos" | "Util" | "Calendario" | "Arquivos"
                 ) {
                     Some((module.as_str(), name.as_str(), stmt.span))
                 } else {
@@ -297,7 +297,7 @@ fn find_host_call_in_expr(expr: &portugol_hir::Expr) -> Option<(&str, &str, port
         } => {
             if !matches!(
                 module.as_str(),
-                "UI" | "Matematica" | "Texto" | "Tipos" | "Util" | "Calendario"
+                "UI" | "Matematica" | "Texto" | "Tipos" | "Util" | "Calendario" | "Arquivos"
             ) {
                 Some((module.as_str(), name.as_str(), expr.span))
             } else {
@@ -1837,6 +1837,76 @@ funcao inicio() {
                 "|ERR|0|1500|2023-11-14|2023-11-14|3|22:10:13:22.0|verdadeiro|3|11|Terça-Feira|Novembro|29|ERR"
             ),
             "saída inesperada: {stdout}"
+        );
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn exports_and_executes_workspace_confined_pors_arquivos_in_native_rust() {
+        let source = r#"
+funcao ciclo() -> Resultado<cadeia, cadeia> {
+    seja _w: logico = Arquivos.escrever_texto("sub/notas.txt", "alpha\n")?;
+    seja _a: logico = Arquivos.acrescentar_texto("sub/notas.txt", "beta\n")?;
+    seja tem: logico = Arquivos.existe("sub/notas.txt")?;
+    seja linhas: vetor<cadeia> = Arquivos.ler_linhas("sub/notas.txt")?;
+    seja itens: vetor<cadeia> = Arquivos.listar("sub")?;
+    seja _r: logico = Arquivos.remover("sub/notas.txt")?;
+    seja depois: logico = Arquivos.existe("sub/notas.txt")?;
+    retorne Resultado::Ok(
+        Tipos.logico_para_cadeia(tem) + "|" +
+        Tipos.inteiro_para_cadeia(tamanho(linhas)) + "|" +
+        linhas[1] + "|" +
+        itens[0] + "|" +
+        Tipos.logico_para_cadeia(depois)
+    );
+}
+
+funcao inicio() {
+    escolha ciclo() {
+        caso Resultado::Ok(s) => { escreva(s, "|"); }
+        caso Resultado::Erro(e) => { escreva("ERR:", e, "|"); }
+    }
+    escolha Arquivos.ler_texto("../fora.txt") {
+        caso Resultado::Ok(_) => { escreva("LEAK|"); }
+        caso Resultado::Erro(_) => { escreva("BLOCKED_PARENT|"); }
+    }
+    escolha Arquivos.ler_texto("/etc/passwd") {
+        caso Resultado::Ok(_) => { escreva("LEAK"); }
+        caso Resultado::Erro(_) => { escreva("BLOCKED_ABS"); }
+    }
+}
+"#;
+        let generated = export_portugol_rs(source).unwrap();
+        assert!(generated.contains("mod __pors_arquivos"));
+
+        let dir =
+            std::env::temp_dir().join(format!("portugol-rust-arquivos-{}", std::process::id()));
+        let ws = dir.join("workspace");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&ws).unwrap();
+        let source_path = dir.join("main.rs");
+        let binary = dir.join(format!("program{}", std::env::consts::EXE_SUFFIX));
+        std::fs::write(&source_path, generated).unwrap();
+        let compilation = Command::new("rustc")
+            .arg("--edition=2024")
+            .arg(&source_path)
+            .arg("-o")
+            .arg(&binary)
+            .output()
+            .unwrap();
+        assert!(
+            compilation.status.success(),
+            "{}",
+            String::from_utf8_lossy(&compilation.stderr)
+        );
+        let output = Command::new(&binary)
+            .env("PORTUGOL_PORS_WORKSPACE_DIR", &ws)
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+        assert_eq!(
+            String::from_utf8(output.stdout).unwrap(),
+            "verdadeiro|2|beta|notas.txt|falso|BLOCKED_PARENT|BLOCKED_ABS"
         );
         std::fs::remove_dir_all(dir).unwrap();
     }
