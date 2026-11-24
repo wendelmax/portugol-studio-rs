@@ -42,7 +42,7 @@ Não considerar uma biblioteca portada por implementar apenas o nome do módulo.
 | Tipos | ✅ `Tipos` em PORS/Rust (19 funções explícitas de conversão e validação com `Resultado<T, cadeia>` para parses falíveis e bases 2/10/16, em VM mínima, WASM e Rust gerado) | Manter alinhamento com futuros tipos numéricos se `i64`/`u32` forem expostos |
 | Util | ✅ `Util` em PORS/Rust (`sorteia` -> `Resultado<inteiro, cadeia>`, `definir_semente`, `tempo_decorrido`, `aguarde` cancelável e limitado a 60 s, em VM mínima, WASM e Rust gerado) | Manter fora funções dependentes do host/OS (como `obter_diretorio_usuario`) até `Arquivos` com consentimento |
 | Calendario | ✅ `Calendario` em PORS/Rust (contrato UTC determinístico zero-dependência com 19 constantes e 15 funções incluindo `dia_semana_*`, `nome_mes`, `eh_bissexto`, `dias_no_mes` e `data_iso_atual`, em VM mínima, WASM e Rust gerado) | Avaliar formatação localizada/fusos opcionais apenas se o currículo exigir |
-| Arquivos | ⬜ | API confinada ao workspace/consentimento; limites e tratamento de erro |
+| Arquivos | ✅ `Arquivos` em PORS/Rust confinado ao workspace (`ler_texto`, `ler_linhas`, `escrever_texto`, `acrescentar_texto`, `existe`, `remover`, `listar`), bloqueando caminhos absolutos/`..`/escape por symlink, limite de 2 MiB + orçamento de cadeias e erros em `Resultado<T, cadeia>` (VM mínima, WASM com erro tipado e Rust gerado) | Integrar seletor de arquivo da IDE via diálogo explícito apenas quando o currículo demandar |
 | Objetos (JSON/XML) | ⬜ | Preferir tipos/serialização Rust seguros e `Result` |
 | Internet/ServicosWeb | ⬜ | Requer consentimento e limites explícitos; nunca bloquear debugger sem cancelar |
 | Graficos | ⬜ | API de janela/Canvas mantida com testes nativos multiplataforma |

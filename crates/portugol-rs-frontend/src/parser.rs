@@ -1720,7 +1720,7 @@ impl Parser {
                 }
                 if matches!(
                     name.as_str(),
-                    "Matematica" | "Texto" | "Tipos" | "Util" | "Calendario"
+                    "Matematica" | "Texto" | "Tipos" | "Util" | "Calendario" | "Arquivos"
                 ) && matches!(self.current().kind, Kind::Dot)
                     && self.lookup(&name).is_none()
                 {
@@ -2454,6 +2454,14 @@ impl Parser {
             ("Calendario", "eh_bissexto") => Some((&[I], Ret(B))),
             ("Calendario", "dias_no_mes") => Some((&[I, I], RetRes(I))),
             ("Calendario", "data_iso_atual") => Some((&[], Ret(S))),
+
+            ("Arquivos", "ler_texto") => Some((&[S], RetRes(S))),
+            ("Arquivos", "ler_linhas") => Some((&[S], RetRes(hir::Type::VectorString))),
+            ("Arquivos", "escrever_texto") => Some((&[S, S], RetRes(B))),
+            ("Arquivos", "acrescentar_texto") => Some((&[S, S], RetRes(B))),
+            ("Arquivos", "existe") => Some((&[S], RetRes(B))),
+            ("Arquivos", "remover") => Some((&[S], RetRes(B))),
+            ("Arquivos", "listar") => Some((&[S], RetRes(hir::Type::VectorString))),
             _ => None,
         };
 

@@ -253,7 +253,7 @@ const PORS_TYPES = [
 
 const PORS_BUILTINS = ["escreva", "leia", "tamanho", "adicionar", "remover", "obter"] as const;
 
-export const PORS_MODULES = ["UI", "Matematica", "Texto", "Tipos", "Util", "Calendario"] as const;
+export const PORS_MODULES = ["UI", "Matematica", "Texto", "Tipos", "Util", "Calendario", "Arquivos"] as const;
 
 const PORS_MODULE_MEMBERS: Record<(typeof PORS_MODULES)[number], readonly PorsDocEntry[]> = {
   UI: [
@@ -362,6 +362,15 @@ const PORS_MODULE_MEMBERS: Record<(typeof PORS_MODULES)[number], readonly PorsDo
     { label: "dias_no_mes", kind: "function", signature: "Calendario.dias_no_mes(ano: inteiro, mes: inteiro) -> Resultado<inteiro, cadeia>", description: "Retorna a quantidade de dias do mês/ano informados (28 a 31)." },
     { label: "data_iso_atual", kind: "function", signature: "Calendario.data_iso_atual() -> cadeia", description: "Retorna a data UTC atual formatada como `AAAA-MM-DD`." },
   ],
+  Arquivos: [
+    { label: "ler_texto", kind: "function", signature: "Arquivos.ler_texto(caminho: cadeia) -> Resultado<cadeia, cadeia>", description: "Lê um arquivo de texto UTF-8 confinado ao workspace (limite de 2 MiB)." },
+    { label: "ler_linhas", kind: "function", signature: "Arquivos.ler_linhas(caminho: cadeia) -> Resultado<vetor<cadeia>, cadeia>", description: "Lê as linhas de um arquivo UTF-8 do workspace em `vetor<cadeia>`." },
+    { label: "escrever_texto", kind: "function", signature: "Arquivos.escrever_texto(caminho: cadeia, conteudo: cadeia) -> Resultado<logico, cadeia>", description: "Grava texto UTF-8 em um caminho relativo ao workspace (criando subpastas se necessário)." },
+    { label: "acrescentar_texto", kind: "function", signature: "Arquivos.acrescentar_texto(caminho: cadeia, conteudo: cadeia) -> Resultado<logico, cadeia>", description: "Acrescenta texto ao final de um arquivo relativo ao workspace." },
+    { label: "existe", kind: "function", signature: "Arquivos.existe(caminho: cadeia) -> Resultado<logico, cadeia>", description: "Verifica se o caminho relativo existe dentro do workspace." },
+    { label: "remover", kind: "function", signature: "Arquivos.remover(caminho: cadeia) -> Resultado<logico, cadeia>", description: "Remove um arquivo dentro do workspace." },
+    { label: "listar", kind: "function", signature: "Arquivos.listar(diretorio: cadeia) -> Resultado<vetor<cadeia>, cadeia>", description: "Lista de forma ordenada até 1024 entradas de um diretório relativo ao workspace." },
+  ],
 };
 
 const PORS_BUILTIN_VARIANTS: Record<"Opcao" | "Resultado", readonly PorsDocEntry[]> = {
@@ -396,6 +405,7 @@ const PORS_TOP_LEVEL_DOCS: Record<string, PorsDocEntry> = {
   Tipos: { label: "Tipos", kind: "namespace", signature: "modulo Tipos", description: "Conversões explícitas e validação entre tipos, com `Resultado<T, cadeia>` para conversões falíveis." },
   Util: { label: "Util", kind: "namespace", signature: "modulo Util", description: "Utilitários determinísticos e seguros (`Util.sorteia`, `Util.definir_semente`, `Util.tempo_decorrido`, `Util.aguarde`)." },
   Calendario: { label: "Calendario", kind: "namespace", signature: "modulo Calendario", description: "Data e hora UTC determinísticas, constantes de dias/meses e cálculos gregorianos." },
+  Arquivos: { label: "Arquivos", kind: "namespace", signature: "modulo Arquivos", description: "Leitura e escrita de arquivos UTF-8 confinada ao workspace, com limite de 2 MiB e tratamento via `Resultado<T, cadeia>`." },
 };
 
 export const PORS_SNIPPETS: Completion[] = [
