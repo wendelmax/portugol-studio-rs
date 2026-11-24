@@ -41,7 +41,7 @@
 - [x] Run the new test and confirm the missing module failure.
 - [x] Extract file dialog, read, write, extension, and recent-file orchestration behind injected dependencies.
 - [x] Run the new test, all frontend tests, typecheck, and build.
-- [ ] Commit the file-I/O group.
+- [x] Commit the file-I/O group.
 
 ### Task 2: Execution and debugger orchestration
 
@@ -60,3 +60,16 @@
 - [ ] Add tests for extracted state and capability behavior.
 - [ ] Verify `main.ts` is below 300 lines and no new module exceeds approximately 500 lines.
 - [ ] Run all required frontend validations and review the final diff.
+
+### Task 4: Learning-mode controller
+
+**Files:**
+- Create: `apps/desktop/src/learning/mode-controller.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/learning-mode-controller.test.mjs`
+- Modify: `apps/desktop/tests/learning-mode.test.mjs`
+
+- [x] Write and run failing tests for unavailable Rust, workspace persistence, and preview scheduling/cancellation.
+- [x] Extract mode selection effects behind callbacks and keep the shell as the composition layer.
+- [x] Run the full frontend tests, typecheck, and build.
+- [x] Commit the learning-mode group.
