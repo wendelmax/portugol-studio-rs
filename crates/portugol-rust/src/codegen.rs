@@ -646,6 +646,16 @@ fn render_statements(
                 render_statements(body, program, depth + 1, output, mappings, pors, None);
                 output.push_str(&format!("{indent}}}\n"));
             }
+            StmtKind::DoWhile { body, condition } => {
+                let flag = format!("__pors_do_{}", statement.span.start);
+                output.push_str(&format!("{indent}let mut {flag} = true;\n"));
+                output.push_str(&format!("{indent}while {flag} || ("));
+                push_expr(output, mappings, condition, program, false, pors);
+                output.push_str(") {\n");
+                output.push_str(&format!("{indent}    {flag} = false;\n"));
+                render_statements(body, program, depth + 1, output, mappings, pors, None);
+                output.push_str(&format!("{indent}}}\n"));
+            }
             StmtKind::For {
                 initializer,
                 condition,
@@ -1365,7 +1375,9 @@ fn statements_have_read(statements: &[Stmt]) -> bool {
             statements_have_read(then_branch)
                 || else_branch.as_deref().is_some_and(statements_have_read)
         }
-        StmtKind::While { body, .. } | StmtKind::For { body, .. } => statements_have_read(body),
+        StmtKind::While { body, .. }
+        | StmtKind::DoWhile { body, .. }
+        | StmtKind::For { body, .. } => statements_have_read(body),
         StmtKind::Choose { arms, .. } => arms.iter().any(|arm| statements_have_read(&arm.body)),
         _ => false,
     })
@@ -1668,7 +1680,7 @@ fn stmts_use_host_module(stmts: &[Stmt], target: &str) -> bool {
                     .as_deref()
                     .is_some_and(|branch| stmts_use_host_module(branch, target))
         }
-        StmtKind::While { condition, body } => {
+        StmtKind::While { condition, body } | StmtKind::DoWhile { body, condition } => {
             expr_uses_host_module(condition, target) || stmts_use_host_module(body, target)
         }
         StmtKind::For {

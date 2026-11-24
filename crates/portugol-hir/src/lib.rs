@@ -250,6 +250,10 @@ pub enum StmtKind {
         condition: Expr,
         body: Vec<Stmt>,
     },
+    DoWhile {
+        body: Vec<Stmt>,
+        condition: Expr,
+    },
     For {
         initializer: Box<Stmt>,
         condition: Expr,

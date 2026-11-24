@@ -188,3 +188,35 @@ funcao visualizar(estado: Estado) -> inteiro {
         .unwrap();
     assert!(!duplicate.status.success());
 }
+
+#[test]
+fn debugs_pors_program_interactively_with_breakpoints_steps_and_variables() {
+    let dir = TempDir::new();
+    let program = dir.0.join("passo.pors");
+    fs::write(
+        &program,
+        "funcao inicio() {\n    seja mutavel x: inteiro = 10;\n    x += 5;\n    escreva(\"x=\", x);\n}\n",
+    )
+    .unwrap();
+
+    let mut child = cli()
+        .args(["depurar", "--ponto", "4"])
+        .arg(&program)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    {
+        let mut stdin = child.stdin.take().unwrap();
+        stdin.write_all(b"c\nv\nc\n").unwrap();
+    }
+    let output = child.wait_with_output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(output.status.success(), "stdout={stdout}\nstderr={stderr}");
+    assert!(stdout.contains("[pausa]"), "{stdout}");
+    assert!(stdout.contains("x : inteiro = 15"), "{stdout}");
+    assert!(stdout.contains("x=15"), "{stdout}");
+    assert!(stdout.contains("execução finalizada"), "{stdout}");
+}

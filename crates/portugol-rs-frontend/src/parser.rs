@@ -739,11 +739,7 @@ impl Parser {
                 return self.choose();
             }
             if keyword == "faca" {
-                return self.fail(
-                    "pors.unsupported-construct",
-                    format!("`{keyword}` ainda não faz parte do subset Portugol-RS"),
-                    self.current().span,
-                );
+                return self.do_while_loop();
             }
             if self.tokens.get(self.cursor + 1).is_some_and(|token| {
                 matches!(
@@ -1520,7 +1516,7 @@ impl Parser {
         if self.loop_depth == 0 {
             return self.fail(
                 "pors.loop-control-outside-loop",
-                format!("`{keyword}` só pode ser usado dentro de enquanto ou para"),
+                format!("`{keyword}` só pode ser usado dentro de enquanto, faca-enquanto ou para"),
                 token.span,
             );
         }
@@ -1528,6 +1524,30 @@ impl Parser {
         Ok(hir::Stmt {
             kind: hir::StmtKind::LoopControl { control },
             span: to_hir_span(token.span.join(end.span)),
+        })
+    }
+
+    fn do_while_loop(&mut self) -> Result<hir::Stmt, Vec<Diagnostic>> {
+        let start = self.advance().span;
+        self.loop_depth += 1;
+        let body_result = self.block(false);
+        self.loop_depth -= 1;
+        let (body, _) = body_result?;
+        self.keyword("enquanto")?;
+        self.expect(Kind::LParen, "Esperado `(` após enquanto")?;
+        let condition = self.expression(0)?;
+        self.expect(Kind::RParen, "Esperado `)` após condição")?;
+        if condition.ty != hir::Type::Boolean {
+            return self.fail(
+                "pors.condition-type",
+                "A condição de enquanto deve ser logica",
+                syntax_span(condition.span),
+            );
+        }
+        let end = self.expect(Kind::Semicolon, "Esperado `;` após faca-enquanto")?;
+        Ok(hir::Stmt {
+            kind: hir::StmtKind::DoWhile { body, condition },
+            span: to_hir_span(start.join(end.span)),
         })
     }
 

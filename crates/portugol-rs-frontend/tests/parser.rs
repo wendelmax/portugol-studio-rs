@@ -830,3 +830,30 @@ funcao inicio() {
             .any(|d| d.code == "pors.unknown-stdlib-function")
     );
 }
+
+#[test]
+fn parses_do_while_loop_with_break_and_continue() {
+    let source = r#"
+funcao inicio() {
+    seja mutavel i: inteiro = 0;
+    seja mutavel soma: inteiro = 0;
+    faca {
+        i += 1;
+        se (i == 2) {
+            continue;
+        }
+        soma += i;
+        se (i == 4) {
+            pare;
+        }
+    } enquanto (i < 10);
+    escreva(soma);
+}
+"#;
+    assert!(lower(source).is_ok());
+    assert!(portugol_rs_frontend::format(source).is_some());
+
+    let bad_cond = "funcao inicio() { faca { escreva(1); } enquanto (1); }";
+    let errs = lower(bad_cond).unwrap_err();
+    assert!(errs.iter().any(|d| d.code == "pors.condition-type"));
+}
