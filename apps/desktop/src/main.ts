@@ -66,6 +66,7 @@ import { createTabFactory, isTabDirty, PORS_TEMPLATE, tabName } from "./state/ta
 import { createTabCloser } from "./state/tab-closer";
 import { deriveLanguageControls, LANGUAGE_BUTTON_IDS } from "./state/language-capabilities";
 import { createTabActivator } from "./state/tab-activation";
+import { createExerciseTabOpener, type WorkspaceExerciseRef } from "./state/exercise-tab";
 import { mountWorkspaceExplorer } from "./workspace/explorer";
 import { mountRustPreview } from "./rust/preview";
 import { mountLearningPanel } from "./learning/panel";
@@ -1059,39 +1060,18 @@ function editorMenuAction(id: string, action: () => unknown) {
     action();
   };
 }
-function openExercise(exerciseDocument: ExerciseDocument, workspaceExercise?: { id: string; path: string; preferenceKey: string; exercise: true }) {
-  if (workspaceExercise) {
-    const existing = tabs.find((tab) =>
-      tab.workspaceId === workspaceExercise.id && tab.workspaceExercisePath === workspaceExercise.path,
-    );
-    if (existing) {
-      activate(existing.id);
-      return;
-    }
-  }
-  const template = exerciseDocument.pors ? exerciseDocument.pors.starter_code : TEMPLATE;
-  const source = `/*
-${exerciseDocument.exercise.statement.replaceAll("*/", "* /")}
-*/
-
-${template}`;
-  const current = activeTab();
-  if (current && !current.path && !current.exampleName && !isDirty(current) && tabs.length === 1) tabs = [];
-  const tab = newTab(
-    source,
-    null,
-    exerciseDocument.name,
-    undefined,
-    exerciseDocument,
-    exerciseDocument.pors ? "portugol-rs" : "portugol",
-  );
-  if (workspaceExercise) {
-    tab.workspaceId = workspaceExercise.id;
-    tab.workspaceExercisePath = workspaceExercise.path;
-    tab.workspacePreferenceKey = workspaceExercise.preferenceKey;
-    workspaceExplorer.select(workspaceExercise.id, workspaceExercise.path);
-    activate(tab.id);
-  }
+const exerciseTabOpener = createExerciseTabOpener({
+  tabs: () => tabs,
+  replaceTabs: (next) => { tabs = next; },
+  activeTab,
+  isDirty,
+  template: TEMPLATE,
+  newTab,
+  activate,
+  selectWorkspace: (id, path) => workspaceExplorer.select(id, path),
+});
+function openExercise(exerciseDocument: ExerciseDocument, workspaceExercise?: WorkspaceExerciseRef) {
+  exerciseTabOpener.open(exerciseDocument, workspaceExercise);
 }
 const exercises = mountExercises(openExercise);
 testsPanel = createTestsPanelController({
