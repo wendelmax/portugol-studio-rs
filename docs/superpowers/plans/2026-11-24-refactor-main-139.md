@@ -224,4 +224,16 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - [x] Add tests for Portugol/PORS/Rust capabilities, Cargo detection, execution state, formatting, libraries, and symbol actions.
 - [x] Extract derived control state and leave DOM updates in the shell.
 - [x] Run the full frontend tests (63/63), typecheck, and build.
-- [ ] Commit the language capability group.
+- [x] Commit the language capability group (#171).
+
+### Task 17: Tab activation lifecycle
+
+**Files:**
+- Create: `apps/desktop/src/state/tab-activation.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/tab-activation.test.mjs`
+
+- [x] Add tests for invalid IDs, home/help navigation, active document preservation, and file activation sequencing.
+- [x] Extract tab activation orchestration while keeping editor, preview, workspace, and DOM integrations in the shell.
+- [x] Run the full frontend tests (64/64), typecheck, and build.
+- [ ] Commit the tab activation group.
