@@ -852,6 +852,10 @@ fn pors_vm_module(module: &str) -> &str {
         "Arquivos" => "PorsArquivos",
         "Json" => "PorsJson",
         "Internet" => "PorsInternet",
+        "Graficos" => "PorsGraficos",
+        "Teclado" => "PorsTeclado",
+        "Mouse" => "PorsMouse",
+        "Sons" => "PorsSons",
         other => other,
     }
 }

@@ -778,3 +778,197 @@ funcao inicio() {
     // vezes=1 (executa ao menos uma vez com cond falsa); i=4; soma=1+3+4=8
     assert_eq!(io.output, "1|4|8");
 }
+
+#[cfg(feature = "stdlib")]
+#[test]
+fn executes_pors_multimedia_bridge_with_mock_host_and_workspace_confinement() {
+    use std::path::Path;
+    use std::sync::{Arc, Mutex};
+    use std::time::Duration;
+
+    use portugol_vm::graphics::{InputState, WindowCommand};
+    use portugol_vm::{Host, Sound};
+
+    #[derive(Default)]
+    struct MockLog {
+        opened: Vec<(i32, i32)>,
+        commands: Vec<WindowCommand>,
+        frames: Vec<Vec<u8>>,
+        closed: usize,
+        sounds_loaded: Vec<String>,
+        sounds_played: usize,
+    }
+
+    struct MockSound {
+        log: Arc<Mutex<MockLog>>,
+        pos_ms: u64,
+    }
+
+    impl Sound for MockSound {
+        fn play(&mut self, _looping: bool) -> Result<(), String> {
+            self.log.lock().unwrap().sounds_played += 1;
+            Ok(())
+        }
+        fn pause(&mut self) {}
+        fn stop(&mut self) {}
+        fn duration(&self) -> Duration {
+            Duration::from_millis(1200)
+        }
+        fn position(&self) -> Duration {
+            Duration::from_millis(self.pos_ms)
+        }
+        fn seek(&mut self, position: Duration) -> Result<(), String> {
+            self.pos_ms = position.as_millis() as u64;
+            Ok(())
+        }
+        fn set_gain(&mut self, _gain: f32) {}
+    }
+
+    struct MockHost {
+        log: Arc<Mutex<MockLog>>,
+        input: Arc<InputState>,
+    }
+
+    impl Host for MockHost {
+        fn load_sound(&mut self, path: &Path) -> Result<Box<dyn Sound>, String> {
+            self.log
+                .lock()
+                .unwrap()
+                .sounds_loaded
+                .push(path.to_string_lossy().into_owned());
+            Ok(Box::new(MockSound {
+                log: Arc::clone(&self.log),
+                pos_ms: 0,
+            }))
+        }
+        fn graphics_open(&mut self, width: i32, height: i32) -> Result<(), String> {
+            self.log.lock().unwrap().opened.push((width, height));
+            Ok(())
+        }
+        fn graphics_close(&mut self) {
+            self.log.lock().unwrap().closed += 1;
+        }
+        fn graphics_present(&mut self, frame: Vec<u8>) -> Result<(), String> {
+            self.log.lock().unwrap().frames.push(frame);
+            Ok(())
+        }
+        fn graphics_window(&mut self, command: WindowCommand) -> Result<(), String> {
+            self.log.lock().unwrap().commands.push(command);
+            Ok(())
+        }
+        fn screen_size(&mut self) -> Result<(i32, i32), String> {
+            Ok((1920, 1080))
+        }
+        fn input(&mut self) -> Option<Arc<InputState>> {
+            Some(Arc::clone(&self.input))
+        }
+    }
+
+    let tmp_dir = std::env::temp_dir().join(format!(
+        "pors_multimedia_bridge_test_{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&tmp_dir);
+    std::fs::create_dir_all(&tmp_dir).unwrap();
+    std::fs::write(tmp_dir.join("beep.wav"), b"RIFFdemo").unwrap();
+
+    let log = Arc::new(Mutex::new(MockLog::default()));
+    let input = Arc::new(InputState::default());
+    input.key_pressed(65); // TECLA_A
+    input.mouse_moved(123, 45);
+    input.button_pressed(0); // BOTAO_ESQUERDO
+
+    let source = r#"
+funcao inicio() {
+    Graficos.iniciar_modo_grafico(verdadeiro);
+    Graficos.definir_dimensoes_janela(400, 300);
+    Graficos.definir_titulo_janela("PORS Host");
+    seja cor_res: Resultado<inteiro, cadeia> = Graficos.criar_cor(12, 34, 56);
+    escolha cor_res {
+        caso Resultado::Ok(c) => {
+            Graficos.definir_cor(c);
+            escreva("rgb:", Graficos.obter_rgb(c, Graficos.CANAL_R), ",", Graficos.obter_rgb(c, Graficos.CANAL_G), ",", Graficos.obter_rgb(c, Graficos.CANAL_B), "|");
+        }
+        caso Resultado::Erro(e) => { escreva("err:", e, "|"); }
+    }
+    seja xs: vetor<inteiro> = [0, 20, 10];
+    seja ys: vetor<inteiro> = [0, 0, 20];
+    escolha Graficos.desenhar_poligono(xs, ys, verdadeiro) {
+        caso Resultado::Ok(_) => { escreva("poly:ok|"); }
+        caso Resultado::Erro(e) => { escreva("poly:", e, "|"); }
+    }
+    Graficos.desenhar_retangulo(10, 20, 30, 40, falso, verdadeiro);
+    Graficos.renderizar();
+    escreva("win:", Graficos.largura_janela(), "x", Graficos.altura_janela(), "|");
+    escreva("key:", Teclado.tecla_pressionada(Teclado.TECLA_A), ",", Teclado.caracter_tecla(Teclado.TECLA_A), "|");
+    escreva("mouse:", Mouse.botao_pressionado(Mouse.BOTAO_ESQUERDO), ",", Mouse.posicao_x(), ",", Mouse.posicao_y(), "|");
+
+    escolha Sons.carregar_som("beep.wav") {
+        caso Resultado::Ok(id) => {
+            escolha Sons.reproduzir_som(id, falso) {
+                caso Resultado::Ok(_) => { escreva("som:ok|"); }
+                caso Resultado::Erro(e) => { escreva("som:", e, "|"); }
+            }
+            Sons.definir_volume(75);
+            escreva("vol:", Sons.obter_volume(), "|");
+            Sons.liberar_som(id);
+        }
+        caso Resultado::Erro(e) => { escreva("som:", e, "|"); }
+    }
+
+    escolha Sons.carregar_som("../fora.wav") {
+        caso Resultado::Ok(_) => { escreva("esc:ok"); }
+        caso Resultado::Erro(_) => { escreva("esc:bloqueado"); }
+    }
+    Graficos.encerrar_modo_grafico();
+}
+"#;
+
+    let module = compile_pors_source(source);
+    let mut io = BufferIo::default();
+    Vm::new(&module, &mut io)
+        .with_working_dir(&tmp_dir)
+        .with_host(Box::new(MockHost {
+            log: Arc::clone(&log),
+            input: Arc::clone(&input),
+        }))
+        .run()
+        .expect("ponte multimídia PORS deve executar com sucesso no host");
+
+    assert_eq!(
+        io.output,
+        "rgb:12,34,56|poly:ok|win:400x300|key:verdadeiro,A|mouse:verdadeiro,123,45|som:ok|vol:75|esc:bloqueado"
+    );
+    let recorded = log.lock().unwrap();
+    assert_eq!(recorded.opened, vec![(640, 480)]);
+    assert_eq!(recorded.frames.len(), 1);
+    assert_eq!(recorded.closed, 1);
+    assert_eq!(recorded.sounds_loaded.len(), 1);
+    assert_eq!(recorded.sounds_played, 1);
+
+    let _ = std::fs::remove_dir_all(&tmp_dir);
+}
+
+#[cfg(not(feature = "stdlib"))]
+#[test]
+fn reports_clean_typed_errors_for_pors_multimedia_without_stdlib() {
+    let source = r#"
+funcao inicio() {
+    escolha Graficos.criar_cor(10, 20, 30) {
+        caso Resultado::Ok(_) => { escreva("ok"); }
+        caso Resultado::Erro(e) => { escreva("res:", e); }
+    }
+}
+"#;
+    let module = compile_pors_source(source);
+    let mut io = BufferIo::default();
+    run(&module, &mut io).expect("função multimídia com Resultado deve retornar Erro sem stdlib");
+    assert!(io.output.contains("stdlib"));
+
+    let void_src = "funcao inicio() { Graficos.iniciar_modo_grafico(verdadeiro); }";
+    let void_module = compile_pors_source(void_src);
+    let mut void_io = BufferIo::default();
+    let err = run(&void_module, &mut void_io)
+        .expect_err("função multimídia direta sem stdlib deve falhar com mensagem clara");
+    assert!(err.message.contains("stdlib"));
+}

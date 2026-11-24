@@ -211,6 +211,53 @@ export const PORS_HELP_LIBRARIES: readonly PorsHelpLibrary[] = [
       { name: "entrada", signature: "UI.entrada(id: cadeia, valor: cadeia, dica: cadeia) -> inteiro", description: "Campo controlado que emite `entrada_alterada`." },
     ],
   },
+  {
+    id: "pors-lib:Graficos",
+    name: "PORS: Graficos",
+    description: "Janela gráfica nativa, cores, formas, polígonos com vetores tipados, texto, imagens e GIFs via ponte da VM (feature `stdlib`).",
+    items: [
+      { name: "iniciar_modo_grafico", signature: "Graficos.iniciar_modo_grafico(manter_visivel: logico)", description: "Abre a janela gráfica nativa da IDE/VM." },
+      { name: "definir_dimensoes_janela", signature: "Graficos.definir_dimensoes_janela(largura: inteiro, altura: inteiro)", description: "Ajusta as dimensões da janela gráfica." },
+      { name: "criar_cor", signature: "Graficos.criar_cor(r: inteiro, g: inteiro, b: inteiro) -> Resultado<inteiro, cadeia>", description: "Cria uma cor RGB validada em `Resultado`." },
+      { name: "desenhar_retangulo", signature: "Graficos.desenhar_retangulo(x, y, largura, altura, arredondar, preencher)", description: "Desenha retângulos preenchidos ou vazados." },
+      { name: "desenhar_poligono", signature: "Graficos.desenhar_poligono(xs: vetor<inteiro>, ys: vetor<inteiro>, preencher: logico) -> Resultado<logico, cadeia>", description: "Desenha polígonos a partir de vetores tipados." },
+      { name: "carregar_imagem", signature: "Graficos.carregar_imagem(caminho: cadeia) -> Resultado<inteiro, cadeia>", description: "Carrega imagem do workspace com segurança." },
+      { name: "renderizar", signature: "Graficos.renderizar()", description: "Envia o quadro desenhado para a janela gráfica." },
+    ],
+  },
+  {
+    id: "pors-lib:Teclado",
+    name: "PORS: Teclado",
+    description: "Consulta de estado e espera cancelável de teclas na janela gráfica com constantes `TECLA_*`.",
+    items: [
+      { name: "tecla_pressionada", signature: "Teclado.tecla_pressionada(tecla: inteiro) -> logico", description: "Verifica se uma tecla específica está pressionada." },
+      { name: "alguma_tecla_pressionada", signature: "Teclado.alguma_tecla_pressionada() -> logico", description: "Verifica se qualquer tecla está pressionada." },
+      { name: "ler_tecla", signature: "Teclado.ler_tecla() -> Resultado<inteiro, cadeia>", description: "Aguarda uma tecla com erro tipado se a janela não estiver disponível." },
+      { name: "caracter_tecla", signature: "Teclado.caracter_tecla(tecla: inteiro) -> caracter", description: "Converte código de tecla em `caracter`." },
+    ],
+  },
+  {
+    id: "pors-lib:Mouse",
+    name: "PORS: Mouse",
+    description: "Consulta de botões, posição e cursor do mouse na janela gráfica com constantes `BOTAO_*`.",
+    items: [
+      { name: "botao_pressionado", signature: "Mouse.botao_pressionado(botao: inteiro) -> logico", description: "Verifica se o botão informado está pressionado." },
+      { name: "ler_botao", signature: "Mouse.ler_botao() -> Resultado<inteiro, cadeia>", description: "Aguarda clique na janela gráfica retornando `Resultado`." },
+      { name: "posicao_x", signature: "Mouse.posicao_x() -> inteiro", description: "Retorna a coordenada X atual do mouse." },
+      { name: "posicao_y", signature: "Mouse.posicao_y() -> inteiro", description: "Retorna a coordenada Y atual do mouse." },
+    ],
+  },
+  {
+    id: "pors-lib:Sons",
+    name: "PORS: Sons",
+    description: "Carregamento de áudio confinado ao workspace, reprodução em loop, busca e controle de volume via host da VM.",
+    items: [
+      { name: "carregar_som", signature: "Sons.carregar_som(caminho: cadeia) -> Resultado<inteiro, cadeia>", description: "Carrega um arquivo de áudio do workspace." },
+      { name: "reproduzir_som", signature: "Sons.reproduzir_som(som: inteiro, repetir: logico) -> Resultado<inteiro, cadeia>", description: "Reproduz o áudio carregado (uma vez ou em loop)." },
+      { name: "definir_volume", signature: "Sons.definir_volume(volume: inteiro)", description: "Ajusta o volume mestre (0 a 100)." },
+      { name: "interromper_som", signature: "Sons.interromper_som(som: inteiro)", description: "Interrompe a reprodução de um som." },
+    ],
+  },
 ];
 
 function normalizeHelpQuery(value: string): string {
