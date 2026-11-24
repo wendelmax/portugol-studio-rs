@@ -71,6 +71,7 @@ import { createTabsView } from "./state/tabs-view";
 import { createTabFactory, isTabDirty, PORS_TEMPLATE, tabName } from "./state/tabs";
 import { createTabCloser } from "./state/tab-closer";
 import { deriveLanguageControls, LANGUAGE_BUTTON_IDS } from "./state/language-capabilities";
+import { createTabActivator } from "./state/tab-activation";
 import { mountWorkspaceExplorer } from "./workspace/explorer";
 import { mountRustPreview } from "./rust/preview";
 import { mountLearningPanel } from "./learning/panel";
@@ -354,51 +355,7 @@ function newTab(text = PORS_TEMPLATE, path: string | null = null, exampleName?: 
 }
 
 function activate(id: number) {
-  const current = activeTab();
-  if (current) current.state = view.state;
-  const tab = tabs.find((t) => t.id === id);
-  if (!tab && id !== homeId && id !== helpId) return;
-  activeId = id;
-  if (id === helpId) helpOpen = true;
-  $("home").hidden = id !== homeId;
-  $("help").hidden = id !== helpId;
-  $("code").hidden = !tab;
-  $("editor-exercise").hidden = !tab?.exercise;
-  if (!tab) {
-    rustPreview.cancel();
-    renderTabs();
-    renderExerciseTests();
-    $("cursor").textContent = "";
-    if (id === helpId) void openHelp();
-    else $("home").focus();
-    return;
-  }
-  workspaceExplorer.select(tab.workspaceId, tab.workspacePath ?? tab.workspaceExercisePath);
-  view.setState(tab.state);
-  panes.load(tab.workspacePreferenceKey);
-  applyLearningMode(loadLearningMode(undefined, tab.workspacePreferenceKey), false);
-  view.dispatch({ effects: [
-    theme.reconfigure(editorTheme()),
-    sourceLanguage.reconfigure(tab.language === "rust" ? rust() : tab.language === "portugol-rs" ? portugolRs() : portugol()),
-    portugolTools.reconfigure(tab.language === "rust" ? [rustSourceLinter] : [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]),
-    setDebugLine.of(tab.id === runTabId ? paused?.position.line ?? null : null),
-  ] });
-  panes.applyAll();
-  if (tab.language === "rust") view.dispatch(setDiagnostics(view.state, []));
-  renderTabs();
-  renderExerciseTests();
-  $<HTMLElement>("rust-preview").hidden = learningMode !== "bridge" || tab.language === "rust";
-  if (tab.language !== "rust") rustPreview.render(tab);
-  rustPreview.renderMappingGutter();
-  renderMessages();
-  outline.show(tab.symbols, current !== tab);
-  updateLibraryButtons(tab.symbols);
-  renderCursor();
-  if (centerActive) centerSelection();
-  if (learningMode === "bridge" && tab.language !== "rust") rustPreview.schedule();
-  if (tab.language === "rust") rustPreview.cancel();
-  syncLanguageControls(tab);
-  view.focus();
+  return tabActivator.activate(id);
 }
 
 function syncLanguageControls(tab: Tab) {
@@ -1000,6 +957,53 @@ function updateLibraryButtons(symbols: api.SymbolInfo[]) {
   const unsupported = activeTab()?.language !== "portugol";
   for (const [name, button] of libraryButtons) button.disabled = unsupported || included.has(name);
 }
+
+const tabActivator = createTabActivator({
+  tabs: () => tabs,
+  currentTab: activeTab,
+  setActiveId: (id) => { activeId = id; },
+  editorState: () => view.state,
+  homeId,
+  helpId,
+  setHelpOpen: (open) => { helpOpen = open; },
+  setPageVisibility: (id, tab) => {
+    $("home").hidden = id !== homeId;
+    $("help").hidden = id !== helpId;
+    $("code").hidden = !tab;
+    $("editor-exercise").hidden = !tab?.exercise;
+  },
+  cancelPreview: () => rustPreview.cancel(),
+  renderTabs,
+  renderExerciseTests,
+  clearCursor: () => { $("cursor").textContent = ""; },
+  openHelp: () => { void openHelp(); },
+  focusHome: () => $("home").focus(),
+  selectWorkspace: (tab) => workspaceExplorer.select(tab.workspaceId, tab.workspacePath ?? tab.workspaceExercisePath),
+  setEditorState: (tab) => view.setState(tab.state),
+  loadPanes: (tab) => panes.load(tab.workspacePreferenceKey),
+  applyLearningMode: (tab) => applyLearningMode(loadLearningMode(undefined, tab.workspacePreferenceKey), false),
+  configureEditor: (tab) => view.dispatch({ effects: [
+    theme.reconfigure(editorTheme()),
+    sourceLanguage.reconfigure(tab.language === "rust" ? rust() : tab.language === "portugol-rs" ? portugolRs() : portugol()),
+    portugolTools.reconfigure(tab.language === "rust" ? [rustSourceLinter] : [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]),
+    setDebugLine.of(tab.id === runTabId ? paused?.position.line ?? null : null),
+  ] }),
+  applyPanes: () => panes.applyAll(),
+  clearRustDiagnostics: () => view.dispatch(setDiagnostics(view.state, [])),
+  setRustPreviewHidden: (hidden) => { $<HTMLElement>("rust-preview").hidden = hidden; },
+  renderRustPreview: (tab) => rustPreview.render(tab),
+  renderMappingGutter: () => rustPreview.renderMappingGutter(),
+  renderMessages,
+  showOutline: (tab, changed) => outline.show(tab.symbols, changed),
+  updateLibraryButtons: (tab) => updateLibraryButtons(tab.symbols),
+  renderCursor,
+  centerSelectionEnabled: () => centerActive,
+  centerSelection,
+  bridgeMode: () => learningMode === "bridge",
+  schedulePreview: () => rustPreview.schedule(),
+  syncLanguageControls,
+  focusEditor: () => view.focus(),
+});
 
 for (const snippet of SNIPPETS) {
   const button = document.createElement("button");
