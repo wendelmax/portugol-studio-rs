@@ -174,7 +174,7 @@
 - [x] Add tests for run arguments, breakpoints, startup event replay, diagnostics, and cleanup after listener errors.
 - [x] Extract classic execution orchestration behind callbacks while preserving the `api.ts` backend boundary.
 - [x] Run the full frontend tests (59/59), typecheck, and build.
-- [ ] Commit the classic execution group.
+- [x] Commit the classic execution group (#167).
 
 ### Task 13: Tab strip view
 
@@ -188,4 +188,16 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - [x] Add tests for strip structure, dirty indicators, callbacks, active title, and shell integration.
 - [x] Move tab strip DOM creation into a view module with shell callbacks.
 - [x] Run the full frontend tests (60/60), typecheck, and build.
-- [ ] Commit the tab view group.
+- [x] Commit the tab view group (#168).
+
+### Task 14: Tab factory and metadata
+
+**Files:**
+- Create: `apps/desktop/src/state/tabs.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/tabs-state.test.mjs`
+
+- [x] Add tests for unique tab IDs, language detection, metadata preservation, naming, and active-buffer dirty state.
+- [x] Extract tab construction and metadata helpers into the state module; keep lifecycle wiring in the shell.
+- [x] Run the full frontend tests (61/61), typecheck, and build.
+- [ ] Commit the tab state group.
