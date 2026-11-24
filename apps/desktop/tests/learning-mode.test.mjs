@@ -75,8 +75,10 @@ test("seletor associa a disponibilidade de Rust à toolchain e mantém instruç�
 test("modo Rust usa editor e executor Rust existentes sem reescrever a fonte", () => {
   const main = ideSource();
   const modeController = readFileSync(new URL("../src/learning/mode-controller.ts", import.meta.url), "utf8");
+  const rustExecution = readFileSync(new URL("../src/run/rust-execution.ts", import.meta.url), "utf8");
   assert.match(main, /rustToolchainAvailable\(\)/);
-  assert.match(main, /api\.runRustSource\(id, source, rustArgs\)/);
+  assert.match(main, /runRustSource: api\.runRustSource/);
+  assert.match(rustExecution, /dependencies\.runRustSource\(id, source, rustArgs\)/);
   assert.match(main, /rustOption\.disabled = !available/);
   assert.match(main, /Nível Rust:[\s\S]{0,180}arquivo atual permanece intacto/);
   const applyMode = modeController.match(/return \(mode: LearningMode,[\s\S]*?\n  \};/)?.[0];

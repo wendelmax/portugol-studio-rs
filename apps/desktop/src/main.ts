@@ -42,6 +42,7 @@ import { createTestsPanelController } from "./run/tests-panel";
 import { createCargoProjectController } from "./run/cargo-project";
 import { createRunControls } from "./run/controls";
 import { createDebuggerCommands } from "./run/debugger-commands";
+import { createRustExecutionController } from "./run/rust-execution";
 import { portugolFolding } from "./folding";
 import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
@@ -734,6 +735,62 @@ async function debugCommand(command: (id: number) => Promise<void>) {
   await debuggerCommands.debugCommand(command);
 }
 
+const rustExecution = createRustExecutionController({
+  activeTab,
+  tabs: () => tabs,
+  isBusy: () => runId !== null || pendingEvents !== null || porsRunPending,
+  rustcAvailable: () => rustcAvailable,
+  cargoAvailable: () => cargoAvailable,
+  isDirty,
+  save: () => fileIO.save(),
+  argumentsText: () => $<HTMLInputElement>("args").value,
+  parseArguments: parseProcessArguments,
+  currentDocument: () => view.state.doc,
+  isCurrent: (tab, documentState) => activeTab() === tab && view.state.doc === documentState,
+  runId: () => runId,
+  setRunId: (id) => { runId = id; },
+  setPending: (pending) => { porsRunPending = pending; },
+  setRunTabId: (id) => { runTabId = id; },
+  syncLanguageControls,
+  setRunning,
+  hasConsent: (consent) => consent === "cargo"
+    ? hasCargoExecutionConsent(sessionStorage)
+    : hasRustExecutionConsent(sessionStorage),
+  askConsent: (consent) => ask(
+    consent === "cargo"
+      ? "Cargo pode acessar a rede e executar scripts de build, macros procedurais e dependências no seu usuário local. Esta execução não possui sandbox. Execute apenas projetos em que você confia. Deseja continuar?"
+      : "Arquivos Rust compilados e executados podem acessar arquivos, processos e recursos permitidos à sua conta. Esta execução não possui sandbox. Execute apenas código em que você confia. Deseja continuar?",
+    {
+      title: consent === "cargo" ? "Executar projeto Cargo sem sandbox" : "Executar código Rust sem sandbox",
+      kind: "warning",
+      okLabel: "Executar Rust",
+      cancelLabel: "Cancelar",
+    },
+  ),
+  rememberConsent: (consent) => consent === "cargo"
+    ? rememberCargoExecutionConsent(sessionStorage, true)
+    : rememberRustExecutionConsent(sessionStorage, true),
+  chooseCargoTarget,
+  registerRun: api.registerRustSourceRun,
+  cargoRunTargets: api.cargoProjectRunTargets,
+  runCargoProject: api.runCargoProject,
+  runRustSource: api.runRustSource,
+  clearRuntimeError: () => view.dispatch({ effects: setRuntimeError.of(null) }),
+  clearDebugLine: () => view.dispatch({ effects: setDebugLine.of(null) }),
+  clearPaused: () => { paused = null; },
+  showConsole: () => showPanel("console"),
+  clearConsole,
+  appendProcessOutput,
+  appendConsole,
+  setStatus,
+  renderMessages,
+  setDiagnostics: (tab, diagnostics) => {
+    tab.runtimeCompileDiagnostics = diagnostics;
+    view.dispatch(setDiagnostics(view.state, diagnostics.map((item) => toCodeMirror(item, view.state.doc.length))));
+  },
+  showMessages: () => showPanel("messages"),
+});
+
 /**
  * Executa o arquivo ativo. Portugol-RS roda na VM educacional por padrão;
  * `asRust` compila o Rust gerado com `rustc`, quando disponível.
@@ -743,185 +800,7 @@ async function runProgram(pauseOnStart = false, asRust = false) {
   const tab = activeTab();
   if (!tab) return;
   if (tab.language === "rust") {
-    if (tab.workspaceId && tab.workspacePath && tab.cargoProject === undefined) {
-      setStatus("Verificando se este arquivo pertence a um projeto Cargo.");
-      return;
-    }
-    if (pauseOnStart) {
-      setStatus("Depuração de arquivos Rust ainda não está disponível.");
-      return;
-    }
-    if (tab.cargoProject === true && cargoAvailable !== true) {
-      setStatus("Instale Cargo para executar o projeto Rust.", "error");
-      return;
-    }
-    if (rustcAvailable !== true) {
-      setStatus("Instale a toolchain Rust para executar arquivos .rs.", "error");
-      return;
-    }
-    let rustArgs: string[];
-    try {
-      rustArgs = parseProcessArguments($<HTMLInputElement>("args").value);
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Argumentos inválidos.", "error");
-      return;
-    }
-    if (tab.cargoProject === true && tab.workspaceId && tab.workspacePath) {
-      const dirtyFiles = tabs.filter((candidate) =>
-        candidate.workspaceId === tab.workspaceId && candidate.language === "rust" && candidate !== tab && isDirty(candidate),
-      );
-      if (dirtyFiles.length > 0) {
-        setStatus("Salve os outros arquivos alterados deste projeto antes de executar Cargo.", "error");
-        return;
-      }
-      if (isDirty(tab) && !(await fileIO.save())) {
-        setStatus("Salve o arquivo Rust antes de executar o projeto Cargo.", "error");
-        return;
-      }
-    }
-    if (activeTab() !== tab) return;
-    const documentState = view.state.doc;
-    const source = documentState.toString();
-    porsRunPending = true;
-    runTabId = tab.id;
-    syncLanguageControls(tab);
-    let cargoTarget: api.CargoRunTarget | null = null;
-    try {
-      if (tab.cargoProject === true && tab.workspaceId && tab.workspacePath) {
-        setStatus("Identificando os binários do projeto Cargo…");
-        const discoveryId = await api.registerRustSourceRun();
-        runId = discoveryId;
-        setRunning(true);
-        let targetInfo: api.CargoRunTargets;
-        try {
-          targetInfo = await api.cargoProjectRunTargets(discoveryId, tab.workspaceId, tab.workspacePath);
-        } finally {
-          if (runId === discoveryId) runId = null;
-          setRunning(false);
-        }
-        if (activeTab() !== tab || view.state.doc !== documentState) return;
-        if (targetInfo.targets.length === 0) {
-          setStatus("Este projeto Cargo não contém um binário para executar.", "error");
-          return;
-        }
-        cargoTarget = targetInfo.targets.find((target) =>
-          target.packageName === tab.cargoTarget?.packageName && target.targetName === tab.cargoTarget?.targetName,
-        ) ?? targetInfo.defaultTarget ?? (targetInfo.targets.length === 1 ? targetInfo.targets[0] : null);
-        if (!cargoTarget) {
-          cargoTarget = await chooseCargoTarget(targetInfo.targets);
-          if (!cargoTarget) {
-            if (activeTab() === tab) setStatus("Execução Cargo cancelada.");
-            return;
-          }
-        }
-        tab.cargoTarget = cargoTarget;
-      }
-      const cargoConsent = tab.cargoProject === true;
-      const hasConsent = cargoConsent
-        ? hasCargoExecutionConsent(sessionStorage)
-        : hasRustExecutionConsent(sessionStorage);
-      if (!hasConsent) {
-        const consentText = tab.cargoProject === true
-          ? "Cargo pode acessar a rede e executar scripts de build, macros procedurais e dependências no seu usuário local. Esta execução não possui sandbox. Execute apenas projetos em que você confia. Deseja continuar?"
-          : "Arquivos Rust compilados e executados podem acessar arquivos, processos e recursos permitidos à sua conta. Esta execução não possui sandbox. Execute apenas código em que você confia. Deseja continuar?";
-        const accepted = await ask(
-          consentText,
-          { title: tab.cargoProject === true ? "Executar projeto Cargo sem sandbox" : "Executar código Rust sem sandbox", kind: "warning", okLabel: "Executar Rust", cancelLabel: "Cancelar" },
-        );
-        if (!accepted) {
-          if (activeTab() === tab) setStatus("Execução Rust cancelada.");
-          return;
-        }
-        if (cargoConsent) rememberCargoExecutionConsent(sessionStorage, true);
-        else rememberRustExecutionConsent(sessionStorage, true);
-      }
-      if (activeTab() !== tab || view.state.doc !== documentState) return;
-      const id = await api.registerRustSourceRun();
-      runId = id;
-      view.dispatch({ effects: setRuntimeError.of(null) });
-      view.dispatch({ effects: setDebugLine.of(null) });
-      paused = null;
-      showPanel("console");
-      clearConsole();
-      setRunning(true);
-      if (tab.cargoProject === true && tab.workspaceId && tab.workspacePath) {
-        setStatus("Compilando o projeto Cargo…");
-        const result = await api.runCargoProject(id, tab.workspaceId, tab.workspacePath, cargoTarget, rustArgs);
-        if (activeTab() !== tab || view.state.doc !== documentState) return;
-        appendProcessOutput(result);
-        if (result.status === "executed") {
-          setStatus(result.exitCode === 0 ? "Projeto Cargo finalizado." : `Programa Rust terminou com código ${result.exitCode ?? "desconhecido"}.`, result.exitCode === 0 ? "ok" : "error");
-        } else if (result.status === "cancelled") {
-          setStatus(`Execução Cargo cancelada durante a ${result.phase === "compilation" ? "compilação" : "execução"}.`);
-        } else if (result.status === "build_limit" || result.status === "runtime_limit") {
-          const reason = result.reason === "time" ? (result.phase === "compilation" ? "20 segundos de compilação" : "3 segundos de execução") : "limite de saída de 1 MiB";
-          setStatus(`Projeto Cargo interrompido: ${reason}.`, "error");
-        } else {
-          setStatus(result.phase === "compilation" ? "Cargo não conseguiu compilar o projeto." : "O programa Cargo terminou com erro.", "error");
-        }
-        return;
-      }
-      setStatus("Compilando e executando Rust 2021 com rustc…");
-      const result = await api.runRustSource(id, source, rustArgs);
-      if (activeTab() !== tab || view.state.doc !== documentState) return;
-      if (result.status === "cancelled") {
-        appendProcessOutput(result);
-        const phase = result.phase === "compilation" ? "compilação" : "execução";
-        setStatus(`Execução Rust cancelada durante a ${phase}.`);
-      } else if (result.status === "executed") {
-        appendProcessOutput(result);
-        setStatus(
-          result.exitCode === 0
-            ? "Programa Rust finalizado com rustc."
-            : `Programa Rust terminou com código ${result.exitCode ?? "desconhecido"}.`,
-          result.exitCode === 0 ? "ok" : "error",
-        );
-      } else if (result.status === "runtime_limit") {
-        appendProcessOutput(result);
-        const reason = result.reason === "time" ? "tempo máximo de 3 segundos" : "limite de saída de 1 MiB";
-        setStatus(`Execução Rust interrompida: ${reason}.`, "error");
-      } else if (result.status === "compile_limit") {
-        if (result.stderr) appendConsole(result.stderr, "error");
-        const reason = result.reason === "time" ? "tempo máximo de compilação de 20 segundos" : "limite de saída de compilação de 1 MiB";
-        setStatus(`Compilação Rust interrompida: ${reason}.`, "error");
-      } else {
-        const diagnostics: api.DiagnosticInfo[] = result.diagnostics.map((item) => ({
-          severity: item.severity === "warning" ? "warning" : "error",
-          code: item.code ?? "rustc",
-          message: item.message,
-          help: item.rendered,
-          start: item.start,
-          end: item.end,
-        }));
-        tab.runtimeCompileDiagnostics = diagnostics;
-        if (result.stderr) appendConsole(result.stderr, "error");
-        if (diagnostics.length) {
-          renderMessages();
-          view.dispatch(setDiagnostics(view.state, diagnostics.map((item) => toCodeMirror(item, view.state.doc.length))));
-          showPanel("messages");
-          setStatus("rustc encontrou erros no arquivo Rust.", "error");
-        } else {
-          setStatus("rustc encontrou erros; veja o detalhe no console.", "error");
-        }
-      }
-    } catch (error) {
-      if (activeTab() === tab && view.state.doc === documentState) {
-        const message = String(error);
-        if (message.includes("Descoberta de alvos Cargo cancelada")) {
-          setStatus("Execução Cargo cancelada.");
-        } else {
-          appendConsole(message + "\n", "error");
-          setStatus("Não foi possível compilar ou executar o arquivo Rust.", "error");
-        }
-      }
-    } finally {
-      runId = null;
-      porsRunPending = false;
-      runTabId = null;
-      setRunning(runId !== null);
-      const current = activeTab();
-      if (current) syncLanguageControls(current);
-    }
+    await rustExecution.run(pauseOnStart);
     return;
   }
   if (tab.language === "portugol-rs") {
