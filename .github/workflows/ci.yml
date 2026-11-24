@@ -13,8 +13,44 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # Decide o que precisa rodar. Mudanças só em documentação, imagens ou
+  # arquivos de apoio não disparam build nem testes.
+  mudancas:
+    name: Detectar mudanças
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      nucleo: ${{ steps.filtro.outputs.nucleo }}
+      ide: ${{ steps.filtro.outputs.ide }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filtro
+        with:
+          filters: |
+            nucleo:
+              - 'crates/**'
+              - 'tests/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - 'rust-toolchain*'
+              - '.cargo/**'
+              - '.github/workflows/ci.yml'
+            ide:
+              - 'apps/desktop/**'
+              - 'crates/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - 'rust-toolchain*'
+              - '.cargo/**'
+              - '.github/workflows/ci.yml'
+
   nucleo:
     name: Núcleo (${{ matrix.os }})
+    needs: mudancas
+    if: needs.mudancas.outputs.nucleo == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -44,6 +80,8 @@ jobs:
 
   ide:
     name: IDE (frontend + Tauri)
+    needs: mudancas
+    if: needs.mudancas.outputs.ide == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -83,9 +121,10 @@ jobs:
         timeout-minutes: 2
         run: xvfb-run -a -s "-screen 0 1280x900x24" dbus-run-session -- node apps/desktop/tests/graphics-smoke.mjs
 
-
   ide_multiplataforma:
     name: IDE (Tauri em ${{ matrix.os }})
+    needs: mudancas
+    if: needs.mudancas.outputs.ide == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -114,3 +153,24 @@ jobs:
         env:
           CARGO_PROFILE_DEV_DEBUG: "0"
         run: cargo test -p portugol-desktop --lib --features tauri/custom-protocol
+
+  # Resultado único do CI: passa quando os jobs necessários passaram ou foram
+  # pulados por não haver mudança relevante. Use este job como verificação
+  # obrigatória na proteção da branch.
+  concluido:
+    name: CI concluído
+    if: always()
+    needs: [mudancas, nucleo, ide, ide_multiplataforma]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Conferir resultados
+        env:
+          RESULTADOS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Resultados: $RESULTADOS"
+          for r in $RESULTADOS; do
+            case "$r" in
+              success|skipped) ;;
+              *) echo "Algum job falhou ou foi cancelado."; exit 1 ;;
+            esac
+          done

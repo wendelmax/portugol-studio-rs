@@ -12,23 +12,47 @@ Os instaladores são gerados pelo workflow
 
 ## Como publicar uma versão
 
-1. Atualize a versão em `Cargo.toml` (`[workspace.package]`),
-   `apps/desktop/package.json` e `apps/desktop/src-tauri/tauri.conf.json`.
-2. Crie e envie a tag:
+O número da versão e o histórico vêm dos commits, que seguem o padrão
+[Conventional Commits](https://www.conventionalcommits.org/pt-br/) (`feat:`,
+`fix:`, `docs:` etc.). Não é preciso editar versões à mão.
 
-   ```bash
-   git tag v0.2.0
-   git push origin v0.2.0
-   ```
+1. Garanta que a `main` está com o CI verde.
+2. Em *Actions → Preparar release → Run workflow*, escolha a versão:
+   - `automatica` (padrão): `feat` sobe o número do meio (0.1.0 → 0.2.0);
+     só `fix` e outros tipos sobem o último (0.1.0 → 0.1.1); mudança
+     incompatível (`feat!:` ou `BREAKING CHANGE`) sobe o primeiro a partir da
+     1.0;
+   - `patch`, `minor` ou `major` para forçar o tipo;
+   - um número exato, como `1.0.0`.
+3. O workflow atualiza `Cargo.toml`, `Cargo.lock`, `package.json`,
+   `package-lock.json` e `tauri.conf.json`, acrescenta a versão ao
+   [`CHANGELOG.md`](../CHANGELOG.md), faz o commit `chore(release): vX.Y.Z`
+   na `main`, cria a tag e gera os instaladores.
+4. Em *Releases* aparece um **rascunho** com as notas agrupadas
+   (Novidades, Correções, Documentação, Manutenção) e os instaladores.
+   Revise o texto, teste um instalador e clique em **Publish release**.
 
-3. O workflow cria um **release em rascunho** com os instaladores. Revise e
-   publique em *Releases* no GitHub.
+A IDE consulta o último release publicado para avisar sobre atualizações; o
+rascunho não aparece para os usuários até ser publicado.
 
-Também dá para rodar o workflow manualmente (*Actions → Release → Run
-workflow*). Sem preencher nada, o release sai como pré-lançamento
-`v<número>-dev`; o campo **Tag** permite escolher o nome (por exemplo
-`v0.2.0-rc1`). O workflow gera quatro jobs: Windows x64, Linux x64 e macOS
-Apple Silicon e Intel.
+Para ver a versão e as notas sem alterar nada:
+
+```bash
+scripts/release.sh --dry-run
+scripts/release.sh minor --dry-run
+```
+
+Se a geração dos instaladores falhar depois que a tag foi criada (por exemplo,
+uma instabilidade no runner), abra a execução do *Preparar release* e use
+**Re-run failed jobs**: ela reaproveita a mesma tag e o mesmo commit. Não rode
+o *Preparar release* de novo, porque ele calcularia a versão seguinte.
+
+### Outros caminhos
+
+- Enviar uma tag manualmente (`git tag v0.2.0 && git push origin v0.2.0`)
+  também gera os instaladores, mas não atualiza versões nem o changelog.
+- *Actions → Release → Run workflow* sem tag gera um pré-lançamento de teste
+  `v<número>-dev`.
 
 Nenhum secret é obrigatório. Sem certificados, os instaladores são gerados e
 publicados sem assinatura; configure os secrets abaixo para assinar.
