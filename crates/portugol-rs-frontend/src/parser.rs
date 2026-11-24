@@ -395,26 +395,40 @@ impl Parser {
         definition.builtin.map(|builtin| (id, builtin))
     }
 
+    fn expect_type_close(&mut self, message: &str) -> Result<Span, Vec<Diagnostic>> {
+        if matches!(self.current().kind, Kind::Shr) {
+            let span = self.current().span;
+            let first = Span::new(span.start, span.start + 1);
+            let second = Span::new(span.start + 1, span.end);
+            self.tokens[self.cursor] = Token {
+                kind: Kind::Greater,
+                span: second,
+            };
+            return Ok(first);
+        }
+        Ok(self.expect(Kind::Greater, message)?.span)
+    }
+
     fn type_name(&mut self) -> Result<hir::Type, Vec<Diagnostic>> {
         let (name, span) = self.identifier()?;
         if name == "vetor" {
             self.expect(Kind::Less, "Esperado `<` após `vetor`")?;
             let element = self.type_name()?;
-            let close = self.expect(Kind::Greater, "Esperado `>` após o tipo do vetor")?;
+            let close_span = self.expect_type_close("Esperado `>` após o tipo do vetor")?;
             return hir::Type::vector_of(element).ok_or_else(|| {
                 vec![Diagnostic::error(
                     "pors.vector-element-type",
                     "O tipo de elemento não pode ser um vetor",
-                    span.join(close.span),
+                    span.join(close_span),
                 )]
             });
         }
         if name == "Opcao" {
             self.expect(Kind::Less, "Esperado `<` após `Opcao`")?;
             let inner = self.type_name()?;
-            let close = self.expect(Kind::Greater, "Esperado `>` após o tipo de `Opcao`")?;
+            let close_span = self.expect_type_close("Esperado `>` após o tipo de `Opcao`")?;
             return Ok(
-                self.intern_builtin_enum(hir::BuiltinEnum::Option(inner), span.join(close.span))
+                self.intern_builtin_enum(hir::BuiltinEnum::Option(inner), span.join(close_span))
             );
         }
         if name == "Resultado" {
@@ -425,9 +439,9 @@ impl Parser {
                 "Esperado `,` entre os tipos de sucesso e erro de `Resultado`",
             )?;
             let err = self.type_name()?;
-            let close = self.expect(Kind::Greater, "Esperado `>` após os tipos de `Resultado`")?;
+            let close_span = self.expect_type_close("Esperado `>` após os tipos de `Resultado`")?;
             return Ok(self
-                .intern_builtin_enum(hir::BuiltinEnum::Result { ok, err }, span.join(close.span)));
+                .intern_builtin_enum(hir::BuiltinEnum::Result { ok, err }, span.join(close_span)));
         }
         scalar_type(&name)
             .or_else(|| self.record_ids.get(&name).copied().map(hir::Type::Record))
@@ -740,6 +754,9 @@ impl Parser {
                         | Kind::StarEq
                         | Kind::SlashEq
                         | Kind::PercentEq
+                        | Kind::AmpEq
+                        | Kind::PipeEq
+                        | Kind::CaretEq
                 )
             }) {
                 return self.assignment();
@@ -910,6 +927,9 @@ impl Parser {
             Kind::StarEq => hir::AssignOp::Multiply,
             Kind::SlashEq => hir::AssignOp::Divide,
             Kind::PercentEq => hir::AssignOp::Remainder,
+            Kind::AmpEq => hir::AssignOp::BitAnd,
+            Kind::PipeEq => hir::AssignOp::BitOr,
+            Kind::CaretEq => hir::AssignOp::Xor,
             _ => {
                 return self.fail(
                     "pors.expected-assignment",
@@ -1024,6 +1044,9 @@ impl Parser {
             Kind::StarEq => hir::AssignOp::Multiply,
             Kind::SlashEq => hir::AssignOp::Divide,
             Kind::PercentEq => hir::AssignOp::Remainder,
+            Kind::AmpEq => hir::AssignOp::BitAnd,
+            Kind::PipeEq => hir::AssignOp::BitOr,
+            Kind::CaretEq => hir::AssignOp::Xor,
             _ => {
                 return self.fail(
                     "pors.expected-assignment",
@@ -1065,8 +1088,10 @@ impl Parser {
             hir::AssignOp::Subtract | hir::AssignOp::Multiply | hir::AssignOp::Divide => {
                 matches!(symbol.ty, hir::Type::Integer | hir::Type::Real)
             }
-            hir::AssignOp::Remainder => symbol.ty == hir::Type::Integer,
-            _ => false,
+            hir::AssignOp::Remainder
+            | hir::AssignOp::BitAnd
+            | hir::AssignOp::BitOr
+            | hir::AssignOp::Xor => symbol.ty == hir::Type::Integer,
         };
         if !valid {
             return self.fail(
@@ -1306,10 +1331,39 @@ impl Parser {
         self.expect(Kind::LBrace, "Esperado `{` após valor de escolha")?;
         let mut arms = Vec::new();
         let mut seen = HashMap::new();
+        let mut has_wildcard = false;
         while self.is_keyword("caso") {
             let arm_start = self.current().span;
             self.advance();
+            if has_wildcard {
+                return self.fail(
+                    "pors.unreachable-case",
+                    "Este caso é inalcançável após o ramo coringa `_`",
+                    arm_start,
+                );
+            }
             let (enum_name, enum_span) = self.identifier()?;
+            if enum_name == "_" && !matches!(self.current().kind, Kind::ColonColon) {
+                if seen.len() == definition.variants.len() {
+                    return self.fail(
+                        "pors.unreachable-case",
+                        "O ramo coringa `_` é inalcançável porque todas as variantes já foram tratadas",
+                        enum_span,
+                    );
+                }
+                self.expect(Kind::FatArrow, "Esperado `=>` após `_`")?;
+                self.scopes.push(HashMap::new());
+                let (body, arm_end) = self.block(true)?;
+                self.scopes.pop();
+                has_wildcard = true;
+                arms.push(hir::ChooseArm {
+                    variant_index: None,
+                    payload_bindings: Vec::new(),
+                    body,
+                    span: to_hir_span(arm_start.join(arm_end)),
+                });
+                continue;
+            }
             if enum_name != definition.name {
                 return self.fail(
                     "pors.choose-enum-mismatch",
@@ -1401,15 +1455,16 @@ impl Parser {
             let (body, arm_end) = self.block(true)?;
             self.scopes.pop();
             arms.push(hir::ChooseArm {
-                variant_index,
+                variant_index: Some(variant_index),
                 payload_bindings,
                 body,
                 span: to_hir_span(arm_start.join(arm_end)),
             });
         }
         let close = self.expect(Kind::RBrace, "Esperado `}` após casos de escolha")?;
-        if let Some(missing) =
-            (0..definition.variants.len()).find(|index| !seen.contains_key(index))
+        if !has_wildcard
+            && let Some(missing) =
+                (0..definition.variants.len()).find(|index| !seen.contains_key(index))
         {
             return self.fail(
                 "pors.non-exhaustive-choice",
@@ -2111,19 +2166,21 @@ impl Parser {
                     span: hir::Span::new(span.start, end),
                 });
             }
-            Kind::Minus | Kind::Plus | Kind::Bang => {
+            Kind::Minus | Kind::Plus | Kind::Bang | Kind::Tilde => {
                 let op = match token.kind {
                     Kind::Minus => hir::UnaryOp::Negate,
                     Kind::Plus => hir::UnaryOp::Positive,
+                    Kind::Tilde => hir::UnaryOp::BitNot,
                     _ => hir::UnaryOp::Not,
                 };
-                let operand = self.expression(7)?;
+                let operand = self.expression(11)?;
                 let ty = match (op, operand.ty) {
                     (
                         hir::UnaryOp::Negate | hir::UnaryOp::Positive,
                         hir::Type::Integer | hir::Type::Real,
                     ) => operand.ty,
                     (hir::UnaryOp::Not, hir::Type::Boolean) => hir::Type::Boolean,
+                    (hir::UnaryOp::BitNot, hir::Type::Integer) => hir::Type::Integer,
                     _ => {
                         return self.fail(
                             "pors.invalid-unary-operator",
@@ -2997,17 +3054,22 @@ fn binary(kind: &Kind) -> Option<(hir::BinaryOp, u8)> {
     Some(match kind {
         Kind::Or => (hir::BinaryOp::Or, 1),
         Kind::And => (hir::BinaryOp::And, 2),
-        Kind::Equal => (hir::BinaryOp::Equal, 3),
-        Kind::NotEqual => (hir::BinaryOp::NotEqual, 3),
-        Kind::Greater => (hir::BinaryOp::Greater, 4),
-        Kind::Less => (hir::BinaryOp::Less, 4),
-        Kind::GreaterEqual => (hir::BinaryOp::GreaterEqual, 4),
-        Kind::LessEqual => (hir::BinaryOp::LessEqual, 4),
-        Kind::Plus => (hir::BinaryOp::Add, 5),
-        Kind::Minus => (hir::BinaryOp::Subtract, 5),
-        Kind::Star => (hir::BinaryOp::Multiply, 6),
-        Kind::Slash => (hir::BinaryOp::Divide, 6),
-        Kind::Percent => (hir::BinaryOp::Remainder, 6),
+        Kind::Pipe => (hir::BinaryOp::BitOr, 3),
+        Kind::Caret => (hir::BinaryOp::Xor, 4),
+        Kind::Amp => (hir::BinaryOp::BitAnd, 5),
+        Kind::Equal => (hir::BinaryOp::Equal, 6),
+        Kind::NotEqual => (hir::BinaryOp::NotEqual, 6),
+        Kind::Greater => (hir::BinaryOp::Greater, 7),
+        Kind::Less => (hir::BinaryOp::Less, 7),
+        Kind::GreaterEqual => (hir::BinaryOp::GreaterEqual, 7),
+        Kind::LessEqual => (hir::BinaryOp::LessEqual, 7),
+        Kind::Shl => (hir::BinaryOp::ShiftLeft, 8),
+        Kind::Shr => (hir::BinaryOp::ShiftRight, 8),
+        Kind::Plus => (hir::BinaryOp::Add, 9),
+        Kind::Minus => (hir::BinaryOp::Subtract, 9),
+        Kind::Star => (hir::BinaryOp::Multiply, 10),
+        Kind::Slash => (hir::BinaryOp::Divide, 10),
+        Kind::Percent => (hir::BinaryOp::Remainder, 10),
         _ => return None,
     })
 }
@@ -3031,7 +3093,16 @@ fn binary_type(op: hir::BinaryOp, left: hir::Type, right: hir::Type) -> Option<h
         {
             left
         }
-        hir::BinaryOp::Remainder if left == Integer && right == Integer => Integer,
+        hir::BinaryOp::Remainder
+        | hir::BinaryOp::BitAnd
+        | hir::BinaryOp::BitOr
+        | hir::BinaryOp::Xor
+        | hir::BinaryOp::ShiftLeft
+        | hir::BinaryOp::ShiftRight
+            if left == Integer && right == Integer =>
+        {
+            Integer
+        }
         hir::BinaryOp::And | hir::BinaryOp::Or if left == Boolean && right == Boolean => Boolean,
         hir::BinaryOp::Equal | hir::BinaryOp::NotEqual
             if left == right && !matches!(left, Record(_) | Enum(_)) =>

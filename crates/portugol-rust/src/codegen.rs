@@ -581,16 +581,20 @@ fn render_statements(
                 push_expr(output, mappings, value, program, true, pors);
                 output.push_str(" {\n");
                 for arm in arms {
-                    let variant_path = rust_enum_variant_path(definition, arm.variant_index);
-                    output.push_str(&format!("{indent}    {variant_path}"));
-                    if !arm.payload_bindings.is_empty() {
-                        let names = arm
-                            .payload_bindings
-                            .iter()
-                            .map(|id| rust_ident(&binding_info(program, *id).source_name))
-                            .collect::<Vec<_>>()
-                            .join(", ");
-                        output.push_str(&format!("({names})"));
+                    if let Some(variant_index) = arm.variant_index {
+                        let variant_path = rust_enum_variant_path(definition, variant_index);
+                        output.push_str(&format!("{indent}    {variant_path}"));
+                        if !arm.payload_bindings.is_empty() {
+                            let names = arm
+                                .payload_bindings
+                                .iter()
+                                .map(|id| rust_ident(&binding_info(program, *id).source_name))
+                                .collect::<Vec<_>>()
+                                .join(", ");
+                            output.push_str(&format!("({names})"));
+                        }
+                    } else {
+                        output.push_str(&format!("{indent}    _"));
                     }
                     output.push_str(" => {\n");
                     render_statements(&arm.body, program, depth + 2, output, mappings, pors, None);

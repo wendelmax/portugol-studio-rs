@@ -590,17 +590,53 @@ fn pors_vm_and_generated_rust_match_across_binary_operator_families() {
 }
 
 #[test]
-fn pors_debugger_locates_bitwise_operators_outside_the_supported_subset() {
-    let source = "funcao inicio() { escreva(6 & 3); }";
+fn pors_debugger_locates_invalid_characters_outside_the_supported_subset() {
+    let source = "funcao inicio() { escreva(6 @ 3); }";
     let (tx, _rx) = mpsc::channel();
     let observer = Arc::new(Recorder(Mutex::new(tx)));
     let Err(diagnostics) = start_portugol_rs(source, RunOptions::default(), observer) else {
-        panic!("operador bit a bit ainda não faz parte da gramática .pors")
+        panic!("caractere inválido não faz parte da gramática .pors")
     };
-    let ampersand = source.find('&').unwrap() as u32;
+    let at_pos = source.find('@').unwrap() as u32;
     assert_eq!(diagnostics[0].code, "pors.invalid-character");
-    assert_eq!(diagnostics[0].start.offset, ampersand);
-    assert_eq!(diagnostics[0].end.offset, ampersand + 1);
+    assert_eq!(diagnostics[0].start.offset, at_pos);
+    assert_eq!(diagnostics[0].end.offset, at_pos + 1);
+}
+
+#[test]
+fn pors_vm_and_generated_rust_match_on_bitwise_shifts_and_choose_wildcard() {
+    if !portugol_service::rust_toolchain_available() {
+        eprintln!("rustc indisponível; teste diferencial ignorado neste ambiente");
+        return;
+    }
+    let source = r#"
+enum Modo { A, B, C }
+funcao inicio() {
+    seja mutavel v: inteiro = (6 & 3) | (1 << 3);
+    v ^= 3;
+    v &= 15;
+    v |= 4;
+    seja r: inteiro = (~0) + (v >> 1);
+    seja m: Modo = Modo::C;
+    escolha m {
+        caso Modo::A => { escreva("A:", r); }
+        caso _ => { escreva("OUTRO:", v, ":", r); }
+    }
+}
+"#;
+    let generated = portugol_service::run_portugol_rs(source).expect("compilar Rust gerado");
+    let portugol_service::PortugolRsRunResult::Executed {
+        stdout,
+        exit_code: Some(0),
+        ..
+    } = generated
+    else {
+        panic!("Rust gerado não concluiu: {generated:?}");
+    };
+    let (vm_output, outcome) = run_vm_to_output(source);
+    assert_eq!(outcome, RunOutcome::Finished);
+    assert_eq!(stdout, "OUTRO:13:5");
+    assert_eq!(vm_output, stdout);
 }
 
 #[test]

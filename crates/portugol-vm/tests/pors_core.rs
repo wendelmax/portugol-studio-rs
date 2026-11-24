@@ -558,3 +558,42 @@ funcao inicio() {
         "Ada \"Lovelace\"|1843|9.5|verdadeiro|rust|40|\u{1F600}|7|falso|{\"a\":1,\"b\":[true,null]}|\"a\\\"b\"|verdadeiro|falso|INT_ERR|falso"
     );
 }
+
+#[test]
+fn executes_bitwise_shifts_and_choose_wildcard_in_minimal_vm() {
+    let source = r#"
+enum Cor {
+    Vermelho,
+    Verde,
+    Azul
+}
+
+funcao rotulo(c: Cor) -> cadeia {
+    escolha c {
+        caso Cor::Vermelho => { retorne "R"; }
+        caso _ => { retorne "OUTRA"; }
+    }
+}
+
+funcao inicio() {
+    seja mutavel bits: inteiro = (1 << 4) | 5;
+    bits &= 21;
+    bits |= 2;
+    bits ^= 1;
+    seja shifted: inteiro = bits >> 1;
+    seja not_zero: inteiro = ~0;
+    escreva(
+        bits, "|",
+        shifted, "|",
+        not_zero, "|",
+        rotulo(Cor::Vermelho), "|",
+        rotulo(Cor::Azul)
+    );
+}
+"#;
+    let module = compile_pors_source(source);
+    let mut io = BufferIo::default();
+    run(&module, &mut io).expect("execução bitwise e wildcard na VM mínima");
+    // bits: (16 | 5) = 21; 21 & 21 = 21; 21 | 2 = 23; 23 ^ 1 = 22; 22 >> 1 = 11; ~0 = -1
+    assert_eq!(io.output, "22|11|-1|R|OUTRA");
+}

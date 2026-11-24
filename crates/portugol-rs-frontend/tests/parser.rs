@@ -739,3 +739,61 @@ funcao inicio() {
             .any(|d| d.code == "pors.stdlib-call-type-mismatch")
     );
 }
+
+#[test]
+fn parses_bitwise_shift_operators_nested_generics_and_choose_wildcard() {
+    let source = r#"
+enum Cor {
+    Vermelho,
+    Verde,
+    Azul
+}
+
+funcao inicio() {
+    seja mutavel bits: inteiro = (1 << 4) | 3;
+    bits &= 21;
+    bits |= 2;
+    bits ^= 1;
+    seja inv: inteiro = ~0;
+    seja deslocado: inteiro = bits >> 1;
+    seja aninhado: Opcao<vetor<inteiro>> = Opcao::Algum([bits, inv, deslocado]);
+    seja cor: Cor = Cor::Verde;
+    escolha cor {
+        caso Cor::Vermelho => { escreva("R"); }
+        caso _ => { escreva("OUTRA"); }
+    }
+    escolha aninhado {
+        caso Opcao::Algum(v) => { escreva(tamanho(v)); }
+        caso _ => { escreva(0); }
+    }
+}
+"#;
+    assert!(lower(source).is_ok());
+
+    let unreachable_after = r#"
+enum Cor { A, B }
+funcao inicio() {
+    seja c: Cor = Cor::A;
+    escolha c {
+        caso _ => { escreva("x"); }
+        caso Cor::A => { escreva("a"); }
+    }
+}
+"#;
+    let errs = lower(unreachable_after).unwrap_err();
+    assert!(errs.iter().any(|d| d.code == "pors.unreachable-case"));
+
+    let unreachable_all = r#"
+enum Cor { A, B }
+funcao inicio() {
+    seja c: Cor = Cor::A;
+    escolha c {
+        caso Cor::A => { escreva("a"); }
+        caso Cor::B => { escreva("b"); }
+        caso _ => { escreva("x"); }
+    }
+}
+"#;
+    let errs = lower(unreachable_all).unwrap_err();
+    assert!(errs.iter().any(|d| d.code == "pors.unreachable-case"));
+}
