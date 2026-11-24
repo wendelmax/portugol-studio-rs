@@ -912,6 +912,50 @@ impl<'a> Vm<'a> {
                 };
                 self.push(Value::Int(array.borrow().len() as i32));
             }
+            Op::ArrayPush => {
+                let value = self.pop();
+                let array = self.pop();
+                let Value::Array(array) = array else {
+                    return Err(not_a("vetor", &array));
+                };
+                let mut array = array.borrow_mut();
+                if array.len() >= MAX_ELEMENTS {
+                    return Err(out_of_memory());
+                }
+                array.push(value);
+            }
+            Op::ArrayPop => {
+                let array = self.pop();
+                let Value::Array(array) = array else {
+                    return Err(not_a("vetor", &array));
+                };
+                let popped = array.borrow_mut().pop();
+                let option = match popped {
+                    Some(value) => vec![Value::Int(0), value],
+                    None => vec![Value::Int(1)],
+                };
+                self.push(Value::Array(Rc::new(RefCell::new(option))));
+            }
+            Op::ArrayGet => {
+                let index = self.pop();
+                let array = self.pop();
+                let Value::Array(array) = array else {
+                    return Err(not_a("vetor", &array));
+                };
+                let Value::Int(index) = index else {
+                    return Err(not_a("inteiro", &index));
+                };
+                let found = if index >= 0 {
+                    array.borrow().get(index as usize).cloned()
+                } else {
+                    None
+                };
+                let option = match found {
+                    Some(value) => vec![Value::Int(0), self.clone_pors_value(&value)?],
+                    None => vec![Value::Int(1)],
+                };
+                self.push(Value::Array(Rc::new(RefCell::new(option))));
+            }
             Op::CloneArray => {
                 let array = self.pop();
                 let Value::Array(array) = array else {

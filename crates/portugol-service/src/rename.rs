@@ -306,7 +306,10 @@ fn collect_pors_function_calls(
                 collect_pors_function_calls_in_expr(index, functions);
                 collect_pors_function_calls_in_expr(value, functions);
             }
-            StmtKind::Read { .. } | StmtKind::LoopControl { .. } => {}
+            StmtKind::VectorPush { value, .. } => {
+                collect_pors_function_calls_in_expr(value, functions);
+            }
+            StmtKind::VectorPop { .. } | StmtKind::Read { .. } | StmtKind::LoopControl { .. } => {}
             StmtKind::Call {
                 function,
                 arguments,
@@ -409,8 +412,10 @@ fn collect_pors_function_calls_in_expr(
             }
         }
         ExprKind::Field { value, .. } => collect_pors_function_calls_in_expr(value, functions),
-        ExprKind::Index { index, .. } => collect_pors_function_calls_in_expr(index, functions),
-        ExprKind::Length { .. } => {}
+        ExprKind::Index { index, .. } | ExprKind::VectorGet { index, .. } => {
+            collect_pors_function_calls_in_expr(index, functions)
+        }
+        ExprKind::Length { .. } | ExprKind::VectorPop { .. } => {}
         ExprKind::Parenthesized(inner)
         | ExprKind::Try { operand: inner }
         | ExprKind::Unary { operand: inner, .. } => {
@@ -657,7 +662,10 @@ fn collect_portugol_rs_statements(
                     collect_portugol_rs_statements(&arm.body, declarations, owner, occurrences);
                 }
             }
-            StmtKind::LoopControl { .. } => {}
+            StmtKind::VectorPush { value, .. } => {
+                collect_portugol_rs_expression(value, owner, occurrences);
+            }
+            StmtKind::VectorPop { .. } | StmtKind::LoopControl { .. } => {}
         }
     }
 }
@@ -726,6 +734,10 @@ fn collect_portugol_rs_expression(
             },
             span: expression.span,
         }),
+        ExprKind::VectorPop { .. } => {}
+        ExprKind::VectorGet { index, .. } => {
+            collect_portugol_rs_expression(index, owner, occurrences);
+        }
         ExprKind::Integer(_)
         | ExprKind::Real(_)
         | ExprKind::Boolean(_)

@@ -286,3 +286,55 @@ funcao inicio() {
         .expect_err("substituir acima do limite deve falhar");
     assert_eq!(error.limit, Some(RuntimeLimitReason::StringMemory));
 }
+
+#[test]
+fn executes_dynamic_vectors_safe_get_pop_and_texto_dividir_in_minimal_vm() {
+    let source = r#"
+registro Ponto { x: inteiro }
+
+funcao somar_topo_e_primeiro(mutavel itens: vetor<inteiro>) -> Opcao<inteiro> {
+    seja topo: inteiro = remover(itens)?;
+    seja primeiro: inteiro = obter(itens, 0)?;
+    retorne Opcao::Algum(topo + primeiro);
+}
+
+funcao inicio() {
+    seja mutavel nums: vetor<inteiro> = [];
+    escreva(tamanho(nums), "|");
+    adicionar(nums, 5);
+    adicionar(nums, 15);
+    adicionar(nums, 25);
+    escreva(tamanho(nums), "|");
+    escolha somar_topo_e_primeiro(nums) {
+        caso Opcao::Algum(s) => { escreva(s, "|"); }
+        caso Opcao::Nenhum => { escreva("N|"); }
+    }
+    remover(nums);
+    escreva(tamanho(nums), "|");
+    escolha obter(nums, -1) {
+        caso Opcao::Algum(v) => { escreva(v, "|"); }
+        caso Opcao::Nenhum => { escreva("N|"); }
+    }
+    escolha obter(nums, 99) {
+        caso Opcao::Algum(v) => { escreva(v, "|"); }
+        caso Opcao::Nenhum => { escreva("N|"); }
+    }
+
+    seja mutavel pontos: vetor<Ponto> = [];
+    adicionar(pontos, Ponto { x: 7 });
+    escolha obter(pontos, 0) {
+        caso Opcao::Algum(p) => { escreva(p.x, "|"); }
+        caso Opcao::Nenhum => { escreva("N|"); }
+    }
+
+    seja partes: vetor<cadeia> = Texto.dividir("um,dois,três", ",");
+    escreva(tamanho(partes), "|", partes[1], "|");
+    seja letras: vetor<cadeia> = Texto.dividir("a🦀", "");
+    escreva(tamanho(letras), "|", letras[1]);
+}
+"#;
+    let module = compile_pors_source(source);
+    let mut io = BufferIo::default();
+    run(&module, &mut io).expect("execução de vetores dinâmicos e Texto.dividir na VM mínima");
+    assert_eq!(io.output, "0|3|30|2|N|N|7|3|dois|2|🦀");
+}

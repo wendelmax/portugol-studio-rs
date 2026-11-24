@@ -714,6 +714,12 @@ impl Parser {
         if self.is_keyword("pare") || self.is_keyword("continue") {
             return self.loop_control();
         }
+        if self.is_keyword("adicionar") {
+            return self.vector_push_statement();
+        }
+        if self.is_keyword("remover") {
+            return self.vector_pop_statement();
+        }
         if let Kind::Ident(keyword) = &self.current().kind {
             if keyword == "escolha" {
                 return self.choose();
@@ -1192,6 +1198,87 @@ impl Parser {
                 binding: symbol.id,
                 name_span: to_hir_span(name_span),
             },
+            span: to_hir_span(start.join(end.span)),
+        })
+    }
+
+    fn vector_push_statement(&mut self) -> Result<hir::Stmt, Vec<Diagnostic>> {
+        let start = self.advance().span;
+        self.expect(Kind::LParen, "Esperado `(` após adicionar")?;
+        let (name, name_span) = self.identifier()?;
+        let symbol = self.lookup(&name).ok_or_else(|| {
+            vec![Diagnostic::error(
+                "pors.unknown-name",
+                format!("Nome não declarado: {name}"),
+                name_span,
+            )]
+        })?;
+        let Some(element_type) = symbol.ty.vector_element() else {
+            return self.fail(
+                "pors.vector-operation-type",
+                format!("`adicionar` espera um vetor, mas `{name}` não é um vetor"),
+                name_span,
+            );
+        };
+        if symbol.mutability != hir::Mutability::Mutable {
+            return self.fail(
+                "pors.immutable-assignment",
+                format!("`{name}` é imutável; declare com `seja mutavel` para adicionar elementos"),
+                name_span,
+            );
+        }
+        self.expect(
+            Kind::Comma,
+            "Esperado `,` entre o vetor e o valor em `adicionar`",
+        )?;
+        let value = self.expression_with_expected(0, Some(element_type))?;
+        if value.ty != element_type {
+            return self.fail(
+                "pors.vector-element-type",
+                "O valor adicionado não corresponde ao tipo dos elementos do vetor",
+                syntax_span(value.span),
+            );
+        }
+        self.expect(Kind::RParen, "Esperado `)` após argumentos de `adicionar`")?;
+        let end = self.expect(Kind::Semicolon, "Esperado `;` após `adicionar`")?;
+        Ok(hir::Stmt {
+            kind: hir::StmtKind::VectorPush {
+                binding: symbol.id,
+                value,
+            },
+            span: to_hir_span(start.join(end.span)),
+        })
+    }
+
+    fn vector_pop_statement(&mut self) -> Result<hir::Stmt, Vec<Diagnostic>> {
+        let start = self.advance().span;
+        self.expect(Kind::LParen, "Esperado `(` após remover")?;
+        let (name, name_span) = self.identifier()?;
+        let symbol = self.lookup(&name).ok_or_else(|| {
+            vec![Diagnostic::error(
+                "pors.unknown-name",
+                format!("Nome não declarado: {name}"),
+                name_span,
+            )]
+        })?;
+        if !symbol.ty.is_vector() {
+            return self.fail(
+                "pors.vector-operation-type",
+                format!("`remover` espera um vetor, mas `{name}` não é um vetor"),
+                name_span,
+            );
+        }
+        if symbol.mutability != hir::Mutability::Mutable {
+            return self.fail(
+                "pors.immutable-assignment",
+                format!("`{name}` é imutável; declare com `seja mutavel` para remover elementos"),
+                name_span,
+            );
+        }
+        self.expect(Kind::RParen, "Esperado `)` após o vetor de `remover`")?;
+        let end = self.expect(Kind::Semicolon, "Esperado `;` após `remover`")?;
+        Ok(hir::Stmt {
+            kind: hir::StmtKind::VectorPop { binding: symbol.id },
             span: to_hir_span(start.join(end.span)),
         })
     }
@@ -1823,6 +1910,90 @@ impl Parser {
                             span: to_hir_span(span.join(close.span)),
                         });
                     }
+                    if name == "remover" {
+                        self.advance();
+                        let (target_name, target_span) = self.identifier()?;
+                        let close =
+                            self.expect(Kind::RParen, "Esperado `)` após argumento de remover")?;
+                        let symbol = self.lookup(&target_name).ok_or_else(|| {
+                            vec![Diagnostic::error(
+                                "pors.unknown-name",
+                                format!("Nome não declarado: {target_name}"),
+                                target_span,
+                            )]
+                        })?;
+                        let Some(element_type) = symbol.ty.vector_element() else {
+                            return self.fail(
+                                "pors.vector-operation-type",
+                                format!(
+                                    "`remover` espera um vetor, mas `{target_name}` não é um vetor"
+                                ),
+                                target_span,
+                            );
+                        };
+                        if symbol.mutability != hir::Mutability::Mutable {
+                            return self.fail(
+                                "pors.immutable-assignment",
+                                format!(
+                                    "`{target_name}` é imutável; declare com `seja mutavel` para remover elementos"
+                                ),
+                                target_span,
+                            );
+                        }
+                        let whole = span.join(close.span);
+                        let ty =
+                            self.intern_builtin_enum(hir::BuiltinEnum::Option(element_type), whole);
+                        return Ok(hir::Expr {
+                            kind: hir::ExprKind::VectorPop { binding: symbol.id },
+                            ty,
+                            span: to_hir_span(whole),
+                        });
+                    }
+                    if name == "obter" {
+                        self.advance();
+                        let (target_name, target_span) = self.identifier()?;
+                        let symbol = self.lookup(&target_name).ok_or_else(|| {
+                            vec![Diagnostic::error(
+                                "pors.unknown-name",
+                                format!("Nome não declarado: {target_name}"),
+                                target_span,
+                            )]
+                        })?;
+                        let Some(element_type) = symbol.ty.vector_element() else {
+                            return self.fail(
+                                "pors.vector-operation-type",
+                                format!(
+                                    "`obter` espera um vetor, mas `{target_name}` não é um vetor"
+                                ),
+                                target_span,
+                            );
+                        };
+                        self.expect(
+                            Kind::Comma,
+                            "Esperado `,` entre o vetor e o índice em `obter`",
+                        )?;
+                        let index = self.expression(0)?;
+                        if index.ty != hir::Type::Integer {
+                            return self.fail(
+                                "pors.index-type",
+                                "O índice do vetor deve ter tipo inteiro",
+                                syntax_span(index.span),
+                            );
+                        }
+                        let close =
+                            self.expect(Kind::RParen, "Esperado `)` após argumentos de obter")?;
+                        let whole = span.join(close.span);
+                        let ty =
+                            self.intern_builtin_enum(hir::BuiltinEnum::Option(element_type), whole);
+                        return Ok(hir::Expr {
+                            kind: hir::ExprKind::VectorGet {
+                                binding: symbol.id,
+                                index: Box::new(index),
+                            },
+                            ty,
+                            span: to_hir_span(whole),
+                        });
+                    }
                     let signature = self.signatures.get(&name).cloned().ok_or_else(|| {
                         vec![Diagnostic::error(
                             "pors.unknown-function",
@@ -2200,6 +2371,7 @@ impl Parser {
             ("Texto", "obter_caracter") => Some((&[S, I], RetOpt(C))),
             ("Texto", "posicao_texto") => Some((&[S, S, I], RetOpt(I))),
             ("Texto", "extrair_subtexto") => Some((&[S, I, I], RetRes(S))),
+            ("Texto", "dividir") => Some((&[S, S], Ret(hir::Type::VectorString))),
 
             ("Tipos", "para_inteiro") => Some((&[S], RetRes(I))),
             ("Tipos", "para_inteiro_base") => Some((&[S, I], RetRes(I))),
@@ -2488,11 +2660,20 @@ impl Parser {
         expected: Option<hir::Type>,
     ) -> Result<hir::Expr, Vec<Diagnostic>> {
         if matches!(self.current().kind, Kind::RBracket) {
-            return self.fail(
-                "pors.empty-vector-unsupported",
-                "O vetor precisa ter pelo menos um elemento; vetores vazios ainda não são suportados",
-                start.join(self.current().span),
-            );
+            let close = self.advance();
+            let whole = start.join(close.span);
+            let Some(ty) = expected.filter(|ty| ty.is_vector()) else {
+                return self.fail(
+                    "pors.empty-vector-type-inference",
+                    "Não foi possível inferir o tipo do vetor vazio `[]`; informe o tipo `vetor<T>`",
+                    whole,
+                );
+            };
+            return Ok(hir::Expr {
+                kind: hir::ExprKind::VectorLiteral(Vec::new()),
+                ty,
+                span: to_hir_span(whole),
+            });
         }
         let expected_element = expected.and_then(hir::Type::vector_element);
         let mut elements = Vec::new();
@@ -2653,6 +2834,9 @@ fn is_reserved(name: &str) -> bool {
             | "caracter"
             | "vetor"
             | "tamanho"
+            | "adicionar"
+            | "remover"
+            | "obter"
             | "verdadeiro"
             | "falso"
             | "escreva"
