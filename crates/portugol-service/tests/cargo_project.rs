@@ -435,3 +435,50 @@ fn rejects_a_binary_target_that_is_not_in_the_project_metadata() {
 
     assert!(error.contains("alvo binário"));
 }
+
+#[test]
+fn runs_cargo_tests_and_reports_passing_failing_and_build_error_states() {
+    if !portugol_service::cargo_available() {
+        return;
+    }
+    let project = TempDir::new();
+    fs::write(
+        project.0.join("Cargo.toml"),
+        "[package]\nname = \"suite_demo\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
+    )
+    .unwrap();
+    fs::write(
+        project.0.join("src/lib.rs"),
+        "#[test] fn soma_ok() { assert_eq!(2 + 2, 4); }\n#[test] #[ignore] fn pulado() {}\n",
+    )
+    .unwrap();
+    let passed =
+        portugol_service::test_cargo_project_with_cancel(&project.0, &AtomicBool::new(false))
+            .unwrap();
+    assert_eq!(passed.status, "passed", "stderr={}", passed.stderr);
+    assert_eq!(passed.passed, 1);
+    assert_eq!(passed.failed, 0);
+    assert_eq!(passed.ignored, 1);
+    assert!(passed.failures.is_empty());
+
+    fs::write(
+        project.0.join("src/lib.rs"),
+        "#[test] fn ok() { assert_eq!(1, 1); }\n#[test] fn falha_esperada() { assert_eq!(1, 2); }\n",
+    )
+    .unwrap();
+    let failed =
+        portugol_service::test_cargo_project_with_cancel(&project.0, &AtomicBool::new(false))
+            .unwrap();
+    assert_eq!(failed.status, "failed", "stdout={}", failed.stdout);
+    assert_eq!(failed.passed, 1);
+    assert_eq!(failed.failed, 1);
+    assert!(failed.failures.iter().any(|f| f.contains("falha_esperada")));
+
+    fs::write(project.0.join("src/lib.rs"), "fn quebrado( { }").unwrap();
+    let build_err =
+        portugol_service::test_cargo_project_with_cancel(&project.0, &AtomicBool::new(false))
+            .unwrap();
+    assert_eq!(build_err.status, "build_error");
+    assert_eq!(build_err.passed, 0);
+    assert_eq!(build_err.failed, 0);
+}

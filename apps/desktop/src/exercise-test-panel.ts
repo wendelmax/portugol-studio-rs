@@ -67,3 +67,55 @@ export function exerciseTestStatus(
     case "error": return state.message;
   }
 }
+
+export interface CargoTestSummary {
+  status: "passed" | "failed" | "build_error" | "test_limit" | "cancelled";
+  passed: number;
+  failed: number;
+  ignored: number;
+  failures: string[];
+  reason?: "time" | "output" | "memory" | "cancelled" | null;
+}
+
+export type CargoTestRun =
+  | { source: object; status: "running" }
+  | { source: object; status: "completed"; result: CargoTestSummary }
+  | { source: object; status: "error"; message: string };
+
+export type CargoTestPanelState =
+  | { kind: "ready" }
+  | { kind: "running" }
+  | { kind: "completed"; result: CargoTestSummary }
+  | { kind: "error"; message: string };
+
+export function cargoTestPanelState(
+  currentDocument: object,
+  run: CargoTestRun | undefined,
+): CargoTestPanelState {
+  if (!run || run.source !== currentDocument) return { kind: "ready" };
+  if (run.status === "running") return { kind: "running" };
+  if (run.status === "completed") return { kind: "completed", result: run.result };
+  return { kind: "error", message: run.message };
+}
+
+export function cargoTestStatus(state: CargoTestPanelState): string {
+  switch (state.kind) {
+    case "ready": return "Projeto Cargo pronto para executar testes (`cargo test`).";
+    case "running": return "Executando `cargo test` para esta revisão…";
+    case "error": return state.message;
+    case "completed": {
+      const { status, passed, failed, ignored, reason } = state.result;
+      if (status === "cancelled") return "Execução de `cargo test` cancelada.";
+      if (status === "test_limit") {
+        return `Execução de \`cargo test\` interrompida (${reason === "time" ? "tempo limite" : "limite de saída"}).`;
+      }
+      if (status === "build_error") {
+        return "Falha de compilação ao executar `cargo test`; confira o Console.";
+      }
+      const extra = ignored > 0 ? `, ${ignored} ignorado(s)` : "";
+      return status === "passed"
+        ? `Cargo test aprovado: ${passed} teste(s) aprovado(s)${extra}.`
+        : `Cargo test falhou: ${passed} aprovado(s), ${failed} falhou(aram)${extra}.`;
+    }
+  }
+}

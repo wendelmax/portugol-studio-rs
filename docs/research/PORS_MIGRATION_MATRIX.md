@@ -64,7 +64,7 @@ Não considerar uma biblioteca portada por implementar apenas o nome do módulo.
 | Navegação de símbolos/outline/rename | 🟡 PORS e clássico têm serviços semânticos próprios | Preservar PORS; avaliar navegação/refactor real para `.rs` com spans e teste Rust |
 | Ownership lab | 🟡 simulação editorial | Analisar código/diagnósticos reais ou rotular trace; sem cenário apresentado como execução real |
 | Janela gráfica, temas, abas, atalhos e painéis | ✅ shell existente | Manter no app PORS/Rust; alterar UI somente para fluxos funcionais novos |
-| Testes/resultados/diagnósticos | 🟡 execução, debugger e painel de Testes avaliam exercícios `.pors` e `.pex` com dicas, revisão exata e progresso validado | Unificar estados de projetos Cargo/Rust no mesmo painel e retirar `.pex` no gate final |
+| Testes/resultados/diagnósticos | ✅ execução, debugger e painel de Testes unificado avaliam exercícios `.pors`, projetos Cargo/Rust (`cargo test` supervisionado com consentimento explícito) e `.pex` legado, distinguindo erro de compilação, falha de teste/infraestrutura e revisão exata | Retirar `.pex` apenas no gate final |
 | Persistência de progresso | 🟡 local, baseada em hash do exercício e da fonte | Novo formato versionado; progresso só após todos os casos aprovados; migração/isolamento de histórico documentados |
 | Editor: busca, abas, desfazer, teclas e preferências | ✅ genérico ou parcialmente ligado ao editor | Preservar; revisar apenas comandos exclusivos de sintaxe `.por` |
 | Open/save, diálogo nativo e drag/drop | 🟡 roteiam `.por`/`.pex` além de `.pors`/`.rs` | Manter segurança e arquivos sujos; aceitar `.pors`/`.rs` e exercícios novos; erro claro para formatos legados |
