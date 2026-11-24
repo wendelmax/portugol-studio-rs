@@ -6,6 +6,7 @@ import { ideSource } from "./support/ide-source.mjs";
 const main = ideSource();
 const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
 const tauri = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
+const languageCapabilities = readFileSync(new URL("../src/state/language-capabilities.ts", import.meta.url), "utf8");
 
 test(".rs formatting uses rustfmt and applies only to the captured editor document", () => {
   const formatter = main.match(/async function formatCode\(\) \{[\s\S]*?\n\}/)?.[0];
@@ -13,7 +14,8 @@ test(".rs formatting uses rustfmt and applies only to the captured editor docume
   assert.match(formatter, /api\.formatRustSource\(source\)/);
   assert.match(formatter, /activeTab\(\) !== tab \|\| view\.state\.doc !== doc/);
   assert.match(formatter, /annotations: isolateHistory\.of\("full"\)/);
-  assert.match(main, /canFormatSource\(tab\.language, rustfmtAvailable\)/);
+  assert.match(main, /deriveLanguageControls\(tab/);
+  assert.match(languageCapabilities, /canFormatSource\(tab\.language, state\.rustfmtAvailable\)/);
   assert.match(main, /api\.rustfmtAvailable\(\)/);
   assert.match(api, /invoke<string>\("format_rust_source", \{ source \}\)/);
   assert.match(tauri, /async fn format_rust_source\(source: String\)/);

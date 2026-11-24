@@ -7,13 +7,15 @@ test("encaminha projetos Cargo por comandos Tauri tipados e consentimento explí
   const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
   const main = ideSource();
   const rustExecution = readFileSync(new URL("../src/run/rust-execution.ts", import.meta.url), "utf8");
+  const languageCapabilities = readFileSync(new URL("../src/state/language-capabilities.ts", import.meta.url), "utf8");
   const tauri = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
   const workspace = readFileSync(new URL("../src-tauri/src/workspace.rs", import.meta.url), "utf8");
   const runner = readFileSync(new URL("../../../crates/portugol-service/src/cargo_project.rs", import.meta.url), "utf8");
 
   assert.match(api, /runCargoProject =[\s\S]*target: CargoRunTarget \| null[\s\S]*args: string\[\][\s\S]*target, args/);
   assert.match(api, /cargoProjectRunTargets = \(id: number, workspaceId: string, relativeSource: string\)/);
-  assert.match(main, /args\.disabled = pors/);
+  assert.match(main, /args\.disabled = controls\.arguments\.disabled/);
+  assert.match(languageCapabilities, /disabled: pors/);
   assert.match(main, /parseArguments: parseProcessArguments/);
   assert.match(main, /runCargoProject: api\.runCargoProject/);
   assert.match(main, /cargoRunTargets: api\.cargoProjectRunTargets/);

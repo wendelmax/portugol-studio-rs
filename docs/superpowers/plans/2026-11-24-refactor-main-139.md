@@ -212,4 +212,16 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - [x] Add tests for help/tab closing, dirty-buffer confirmation, cancellation, and active-tab selection.
 - [x] Extract confirmation and collection mutation behind state callbacks.
 - [x] Run the full frontend tests (62/62), typecheck, and build.
-- [ ] Commit the tab closer group.
+- [x] Commit the tab closer group (#170).
+
+### Task 16: Language capability controls
+
+**Files:**
+- Create: `apps/desktop/src/state/language-capabilities.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/language-capabilities.test.mjs`
+
+- [x] Add tests for Portugol/PORS/Rust capabilities, Cargo detection, execution state, formatting, libraries, and symbol actions.
+- [x] Extract derived control state and leave DOM updates in the shell.
+- [x] Run the full frontend tests (63/63), typecheck, and build.
+- [ ] Commit the language capability group.
