@@ -739,8 +739,12 @@ fn debug_portugol_rs(
     if let Some((_, previous)) = current.take() {
         previous.stop();
     }
-    let observer: Arc<dyn RunObserver> = Arc::new(EventSink { app, id });
-    // `Arquivos.*` fica confinado à pasta do programa, como no Portugol clássico.
+    let observer: Arc<dyn RunObserver> = Arc::new(EventSink {
+        app: app.clone(),
+        id,
+    });
+    let host_observer = Arc::clone(&observer);
+    // `Arquivos.*` e ativos multimídia ficam confinados à pasta do programa.
     let working_dir = path
         .as_deref()
         .and_then(|p| std::path::Path::new(p).parent())
@@ -751,7 +755,19 @@ fn debug_portugol_rs(
         working_dir,
         ..RunOptions::default()
     };
-    let handle = portugol_service::start_portugol_rs(&source, options, observer)?;
+    let handle = portugol_service::start_portugol_rs_with_host(
+        &source,
+        options,
+        observer,
+        move |interrupt| {
+            Box::new(graphics::DesktopHost::new(
+                app,
+                id,
+                host_observer,
+                interrupt,
+            ))
+        },
+    )?;
     *current = Some((id, handle));
     Ok(id)
 }

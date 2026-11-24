@@ -132,7 +132,7 @@ pub enum RunLimitReason {
 
 #[derive(Clone, Copy)]
 struct VmLimits {
-    runtime: Duration,
+    runtime: Option<Duration>,
     output_bytes: usize,
     string_bytes: usize,
 }
@@ -251,6 +251,12 @@ pub fn start_portugol_rs_with_host(
         let diagnostic = Diagnostic::error("pors.debug-compile", error.message, span);
         vec![describe(&index, &diagnostic)]
     })?;
+    let uses_multimedia = module.natives.iter().any(|native| {
+        matches!(
+            native.library.as_str(),
+            "PorsGraficos" | "PorsTeclado" | "PorsMouse" | "PorsSons"
+        )
+    });
     start_module(
         source,
         options,
@@ -258,7 +264,7 @@ pub fn start_portugol_rs_with_host(
         make_host,
         module,
         Some(VmLimits {
-            runtime: PORS_DEBUG_RUNTIME_LIMIT,
+            runtime: (!uses_multimedia).then_some(PORS_DEBUG_RUNTIME_LIMIT),
             output_bytes: PORS_DEBUG_OUTPUT_LIMIT,
             string_bytes: PORS_DEBUG_STRING_LIMIT,
         }),
@@ -369,9 +375,10 @@ fn start_module(
                 .with_debug(debug)
                 .with_host(make_host(Arc::clone(&flag)));
             if let Some(limits) = limits {
-                vm = vm
-                    .with_runtime_limit(limits.runtime)
-                    .with_string_memory_limit(limits.string_bytes);
+                if let Some(runtime) = limits.runtime {
+                    vm = vm.with_runtime_limit(runtime);
+                }
+                vm = vm.with_string_memory_limit(limits.string_bytes);
             }
             if let Some(dir) = options.working_dir {
                 vm = vm.with_working_dir(dir);

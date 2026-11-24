@@ -857,3 +857,54 @@ funcao inicio() {
     let errs = lower(bad_cond).unwrap_err();
     assert!(errs.iter().any(|d| d.code == "pors.condition-type"));
 }
+
+#[test]
+fn parses_typed_pors_multimedia_bridge_libraries_and_constants() {
+    let source = r#"
+funcao inicio() {
+    Graficos.iniciar_modo_grafico(verdadeiro);
+    Graficos.definir_dimensoes_janela(320, 240);
+    Graficos.definir_titulo_janela("Demo PORS");
+    seja cor: Resultado<inteiro, cadeia> = Graficos.criar_cor(10, 20, 30);
+    escolha cor {
+        caso Resultado::Ok(c) => {
+            Graficos.definir_cor(c);
+            escreva(Graficos.obter_rgb(c, Graficos.CANAL_R));
+        }
+        caso Resultado::Erro(e) => {
+            escreva(e);
+        }
+    }
+    seja xs: vetor<inteiro> = [0, 10, 5];
+    seja ys: vetor<inteiro> = [0, 0, 10];
+    seja _poly: Resultado<logico, cadeia> = Graficos.desenhar_poligono(xs, ys, verdadeiro);
+    Graficos.desenhar_retangulo(1, 2, 30, 40, falso, verdadeiro);
+    Graficos.renderizar();
+    seja esc: logico = Teclado.tecla_pressionada(Teclado.TECLA_ESC);
+    seja letra: caracter = Teclado.caracter_tecla(Teclado.TECLA_A);
+    seja clicou: logico = Mouse.botao_pressionado(Mouse.BOTAO_ESQUERDO);
+    seja mx: inteiro = Mouse.posicao_x();
+    seja som: Resultado<inteiro, cadeia> = Sons.carregar_som("efeito.wav");
+    Sons.definir_volume(80);
+    escreva(esc, letra, clicou, mx, Sons.obter_volume());
+    escolha som {
+        caso Resultado::Ok(id) => {
+            seja _rep: Resultado<inteiro, cadeia> = Sons.reproduzir_som(id, falso);
+            Sons.liberar_som(id);
+        }
+        caso Resultado::Erro(msg) => {
+            escreva(msg);
+        }
+    }
+    Graficos.encerrar_modo_grafico();
+}
+"#;
+    assert!(lower(source).is_ok());
+
+    let bad_arg = "funcao inicio() { Graficos.definir_cor(\"verde\"); }";
+    let errs = lower(bad_arg).unwrap_err();
+    assert!(
+        errs.iter()
+            .any(|d| d.code == "pors.stdlib-call-type-mismatch")
+    );
+}

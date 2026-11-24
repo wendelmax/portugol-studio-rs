@@ -7,7 +7,7 @@ import {
   filterPorsHelp,
 } from "../src/pors-help.ts";
 
-test("PORS help starts on a PORS topic and covers all 9 PORS libraries", () => {
+test("PORS help starts on a PORS topic and covers all 13 PORS libraries", () => {
   assert.ok(PORS_HELP_TOPICS.some((topic) => topic.id === PORS_HELP_DEFAULT_TOPIC));
   const libNames = PORS_HELP_LIBRARIES.map((lib) => lib.name);
   for (const expected of [
@@ -20,6 +20,10 @@ test("PORS help starts on a PORS topic and covers all 9 PORS libraries", () => {
     "PORS: Json",
     "PORS: Internet",
     "PORS: UI",
+    "PORS: Graficos",
+    "PORS: Teclado",
+    "PORS: Mouse",
+    "PORS: Sons",
   ]) {
     assert.ok(libNames.includes(expected), `esperava biblioteca ${expected} na ajuda PORS`);
   }
@@ -52,6 +56,18 @@ test("filterPorsHelp matches accents, library functions and topics case-insensit
 
   const byInternet = filterPorsHelp("enviar_json");
   assert.ok(byInternet.libraries.some((l) => l.id === "pors-lib:Internet"));
+
+  const byGraficos = filterPorsHelp("desenhar_poligono");
+  assert.ok(byGraficos.libraries.some((l) => l.id === "pors-lib:Graficos"));
+
+  const byTeclado = filterPorsHelp("ler_tecla");
+  assert.ok(byTeclado.libraries.some((l) => l.id === "pors-lib:Teclado"));
+
+  const byMouse = filterPorsHelp("posicao_x");
+  assert.ok(byMouse.libraries.some((l) => l.id === "pors-lib:Mouse"));
+
+  const bySons = filterPorsHelp("reproduzir_som");
+  assert.ok(bySons.libraries.some((l) => l.id === "pors-lib:Sons"));
 
   const empty = filterPorsHelp("nao-existe-xyz-123");
   assert.equal(empty.topics.length, 0);

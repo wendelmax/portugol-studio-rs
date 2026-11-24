@@ -1243,6 +1243,62 @@ impl<'a> Vm<'a> {
                         self.push(result);
                         return Ok(false);
                     }
+                    #[cfg(feature = "stdlib")]
+                    let multimedia_outcome = {
+                        let string_limit = self.string_memory_limit;
+                        let string_used = &mut self.string_memory_used;
+                        let mut hit_string_limit = false;
+                        let outcome = crate::pors_libs::call_multimedia(
+                            &native_ref.library,
+                            &native_ref.name,
+                            &args,
+                            &mut self.ctx,
+                            &self.pors_runtime,
+                            &mut |bytes| {
+                                let next = string_used.saturating_add(bytes);
+                                if string_limit.is_some_and(|limit| next > limit) {
+                                    hit_string_limit = true;
+                                    return Err("O limite de memória para cadeias foi excedido."
+                                        .to_string());
+                                }
+                                *string_used = next;
+                                Ok(())
+                            },
+                        );
+                        if hit_string_limit {
+                            self.pending_limit = Some(RuntimeLimitReason::StringMemory);
+                        }
+                        outcome
+                    };
+                    #[cfg(not(feature = "stdlib"))]
+                    let multimedia_outcome = {
+                        let string_limit = self.string_memory_limit;
+                        let string_used = &mut self.string_memory_used;
+                        let mut hit_string_limit = false;
+                        let outcome = crate::pors_libs::call_multimedia_unavailable(
+                            &native_ref.library,
+                            &native_ref.name,
+                            &mut |bytes| {
+                                let next = string_used.saturating_add(bytes);
+                                if string_limit.is_some_and(|limit| next > limit) {
+                                    hit_string_limit = true;
+                                    return Err("O limite de memória para cadeias foi excedido."
+                                        .to_string());
+                                }
+                                *string_used = next;
+                                Ok(())
+                            },
+                        );
+                        if hit_string_limit {
+                            self.pending_limit = Some(RuntimeLimitReason::StringMemory);
+                        }
+                        outcome
+                    };
+                    if let Some(outcome) = multimedia_outcome {
+                        let result = outcome?;
+                        self.push(result);
+                        return Ok(false);
+                    }
                 }
                 #[cfg(feature = "stdlib")]
                 {

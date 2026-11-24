@@ -762,7 +762,11 @@ impl Parser {
                 .get(self.cursor + 1)
                 .is_some_and(|token| matches!(token.kind, Kind::Dot))
             {
-                if (keyword == "Util" || keyword == "Internet") && self.lookup(keyword).is_none() {
+                if matches!(
+                    keyword.as_str(),
+                    "Util" | "Internet" | "Graficos" | "Teclado" | "Mouse" | "Sons"
+                ) && self.lookup(keyword).is_none()
+                {
                     return self.stdlib_statement_call();
                 }
                 return self.field_assignment();
@@ -1803,6 +1807,10 @@ impl Parser {
                         | "Arquivos"
                         | "Json"
                         | "Internet"
+                        | "Graficos"
+                        | "Teclado"
+                        | "Mouse"
+                        | "Sons"
                 ) && matches!(self.current().kind, Kind::Dot)
                     && self.lookup(&name).is_none()
                 {
@@ -2444,6 +2452,20 @@ impl Parser {
                 span: to_hir_span(start.join(member_span)),
             });
         }
+        if !matches!(self.current().kind, Kind::LParen)
+            && let Some(value) = match module {
+                "Graficos" => graficos_constant(&member),
+                "Teclado" => teclado_constant(&member),
+                "Mouse" => mouse_constant(&member),
+                _ => None,
+            }
+        {
+            return Ok(hir::Expr {
+                kind: hir::ExprKind::Integer(value),
+                ty: hir::Type::Integer,
+                span: to_hir_span(start.join(member_span)),
+            });
+        }
         self.expect(
             Kind::LParen,
             &format!("Esperado `(` após `{module}.{member}`"),
@@ -2571,6 +2593,94 @@ impl Parser {
             ("Internet", "obter_texto") => Some((&[S], RetRes(S))),
             ("Internet", "enviar_json") => Some((&[S, S], RetRes(S))),
             ("Internet", "endereco_disponivel") => Some((&[S], RetRes(B))),
+
+            ("Graficos", "iniciar_modo_grafico") => Some((&[B], Ret(hir::Type::Unit))),
+            ("Graficos", "encerrar_modo_grafico") => Some((&[], Ret(hir::Type::Unit))),
+            ("Graficos", "fechar_janela") => Some((&[], Ret(hir::Type::Unit))),
+            ("Graficos", "minimizar_janela") => Some((&[], Ret(hir::Type::Unit))),
+            ("Graficos", "restaurar_janela") => Some((&[], Ret(hir::Type::Unit))),
+            ("Graficos", "ocultar_borda_janela") => Some((&[], Ret(hir::Type::Unit))),
+            ("Graficos", "exibir_borda_janela") => Some((&[], Ret(hir::Type::Unit))),
+            ("Graficos", "definir_dimensoes_janela") => Some((&[I, I], Ret(hir::Type::Unit))),
+            ("Graficos", "definir_titulo_janela") => Some((&[S], Ret(hir::Type::Unit))),
+            ("Graficos", "entrar_modo_tela_cheia") => Some((&[], Ret(hir::Type::Unit))),
+            ("Graficos", "sair_modo_tela_cheia") => Some((&[], Ret(hir::Type::Unit))),
+            ("Graficos", "definir_icone_janela") => Some((&[I], Ret(hir::Type::Unit))),
+            ("Graficos", "largura_janela") => Some((&[], Ret(I))),
+            ("Graficos", "altura_janela") => Some((&[], Ret(I))),
+            ("Graficos", "largura_tela") => Some((&[], Ret(I))),
+            ("Graficos", "altura_tela") => Some((&[], Ret(I))),
+            ("Graficos", "limpar") => Some((&[], Ret(hir::Type::Unit))),
+            ("Graficos", "renderizar") => Some((&[], Ret(hir::Type::Unit))),
+            ("Graficos", "renderizar_imagem") => Some((&[I, I], RetRes(I))),
+            ("Graficos", "definir_cor") => Some((&[I], Ret(hir::Type::Unit))),
+            ("Graficos", "definir_gradiente") => Some((&[I, I, I], Ret(hir::Type::Unit))),
+            ("Graficos", "definir_opacidade") => Some((&[I], Ret(hir::Type::Unit))),
+            ("Graficos", "definir_rotacao") => Some((&[I], Ret(hir::Type::Unit))),
+            ("Graficos", "criar_cor") => Some((&[I, I, I], RetRes(I))),
+            ("Graficos", "obter_rgb") => Some((&[I, I], Ret(I))),
+            ("Graficos", "desenhar_retangulo") => Some((&[I, I, I, I, B, B], Ret(hir::Type::Unit))),
+            ("Graficos", "desenhar_elipse") => Some((&[I, I, I, I, B], Ret(hir::Type::Unit))),
+            ("Graficos", "desenhar_linha") => Some((&[I, I, I, I], Ret(hir::Type::Unit))),
+            ("Graficos", "desenhar_ponto") => Some((&[I, I], Ret(hir::Type::Unit))),
+            ("Graficos", "desenhar_poligono") => Some((
+                &[hir::Type::VectorInteger, hir::Type::VectorInteger, B],
+                RetRes(B),
+            )),
+            ("Graficos", "desenhar_texto") => Some((&[I, I, S], Ret(hir::Type::Unit))),
+            ("Graficos", "definir_fonte_texto") => Some((&[S], Ret(hir::Type::Unit))),
+            ("Graficos", "definir_tamanho_texto") => Some((&[R], Ret(hir::Type::Unit))),
+            ("Graficos", "definir_estilo_texto") => Some((&[B, B, B], Ret(hir::Type::Unit))),
+            ("Graficos", "carregar_fonte") => Some((&[S], RetRes(B))),
+            ("Graficos", "largura_texto") => Some((&[S], Ret(I))),
+            ("Graficos", "altura_texto") => Some((&[S], Ret(I))),
+            ("Graficos", "carregar_imagem") => Some((&[S], RetRes(I))),
+            ("Graficos", "liberar_imagem") => Some((&[I], Ret(hir::Type::Unit))),
+            ("Graficos", "largura_imagem") => Some((&[I], RetRes(I))),
+            ("Graficos", "altura_imagem") => Some((&[I], RetRes(I))),
+            ("Graficos", "desenhar_imagem") => Some((&[I, I, I], Ret(hir::Type::Unit))),
+            ("Graficos", "desenhar_porcao_imagem") => {
+                Some((&[I, I, I, I, I, I, I], Ret(hir::Type::Unit)))
+            }
+            ("Graficos", "transformar_imagem") => Some((&[I, B, B, I, I], RetRes(I))),
+            ("Graficos", "transformar_porcao_imagem") => {
+                Some((&[I, I, I, I, I, B, B, I, I], RetRes(I)))
+            }
+            ("Graficos", "redimensionar_imagem") => Some((&[I, I, I, B], RetRes(I))),
+            ("Graficos", "obter_cor_pixel") => Some((&[I, I, I], RetRes(I))),
+            ("Graficos", "salvar_imagem") => Some((&[I, S], RetRes(B))),
+            ("Graficos", "proximo_frame_gif") => Some((&[I], Ret(hir::Type::Unit))),
+            ("Graficos", "obter_intervalo_gif") => Some((&[I], RetRes(I))),
+            ("Graficos", "obter_numero_quadros_gif") => Some((&[I], RetRes(I))),
+            ("Graficos", "obter_numero_quadro_atual_gif") => Some((&[I], RetRes(I))),
+            ("Graficos", "obter_quadro_gif") => Some((&[I, I], RetRes(I))),
+            ("Graficos", "definir_quadro_gif") => Some((&[I, I], RetRes(B))),
+
+            ("Teclado", "tecla_pressionada") => Some((&[I], Ret(B))),
+            ("Teclado", "alguma_tecla_pressionada") => Some((&[], Ret(B))),
+            ("Teclado", "ler_tecla") => Some((&[], RetRes(I))),
+            ("Teclado", "caracter_tecla") => Some((&[I], Ret(C))),
+
+            ("Mouse", "botao_pressionado") => Some((&[I], Ret(B))),
+            ("Mouse", "algum_botao_pressionado") => Some((&[], Ret(B))),
+            ("Mouse", "ler_botao") => Some((&[], RetRes(I))),
+            ("Mouse", "posicao_x") => Some((&[], Ret(I))),
+            ("Mouse", "posicao_y") => Some((&[], Ret(I))),
+            ("Mouse", "ocultar_cursor") => Some((&[], Ret(hir::Type::Unit))),
+            ("Mouse", "exibir_cursor") => Some((&[], Ret(hir::Type::Unit))),
+
+            ("Sons", "carregar_som") => Some((&[S], RetRes(I))),
+            ("Sons", "liberar_som") => Some((&[I], Ret(hir::Type::Unit))),
+            ("Sons", "reproduzir_som") => Some((&[I, B], RetRes(I))),
+            ("Sons", "pausar_som") => Some((&[I], Ret(hir::Type::Unit))),
+            ("Sons", "interromper_som") => Some((&[I], Ret(hir::Type::Unit))),
+            ("Sons", "obter_tamanho_musica") => Some((&[I], Ret(I))),
+            ("Sons", "obter_posicao_atual_musica") => Some((&[I], Ret(I))),
+            ("Sons", "definir_posicao_atual_musica") => Some((&[I, I], RetRes(B))),
+            ("Sons", "definir_volume") => Some((&[I], Ret(hir::Type::Unit))),
+            ("Sons", "definir_volume_reproducao") => Some((&[I, I], Ret(hir::Type::Unit))),
+            ("Sons", "obter_volume") => Some((&[], Ret(I))),
+            ("Sons", "obter_volume_reproducao") => Some((&[I], Ret(I))),
             _ => None,
         };
 
@@ -2988,6 +3098,140 @@ fn calendario_constant(name: &str) -> Option<i32> {
         .position(|day| *day == name)
         .or_else(|| MESES.iter().position(|month| *month == name))
         .map(|index| index as i32 + 1)
+}
+
+fn graficos_constant(name: &str) -> Option<i32> {
+    Some(match name {
+        "COR_PRETO" => 0xFF00_0000_u32 as i32,
+        "COR_BRANCO" => 0xFFFF_FFFF_u32 as i32,
+        "COR_AZUL" => 0xFF00_00FF_u32 as i32,
+        "COR_VERMELHO" => 0xFFFF_0000_u32 as i32,
+        "COR_VERDE" => 0xFF00_FF00_u32 as i32,
+        "COR_AMARELO" => 0xFFFF_FF00_u32 as i32,
+        "GRADIENTE_DIREITA" => 0,
+        "GRADIENTE_ESQUERDA" => 1,
+        "GRADIENTE_ACIMA" => 2,
+        "GRADIENTE_ABAIXO" => 3,
+        "GRADIENTE_INFERIOR_DIREITO" => 4,
+        "GRADIENTE_INFERIOR_ESQUERDO" => 5,
+        "GRADIENTE_SUPERIOR_DIREITO" => 6,
+        "GRADIENTE_SUPERIOR_ESQUERDO" => 7,
+        "CANAL_R" => 0,
+        "CANAL_G" => 1,
+        "CANAL_B" => 2,
+        _ => return None,
+    })
+}
+
+fn teclado_constant(name: &str) -> Option<i32> {
+    if let Some(letter) = name
+        .strip_prefix("TECLA_")
+        .filter(|rest| rest.len() == 1 && rest.as_bytes()[0].is_ascii_uppercase())
+    {
+        return Some(letter.as_bytes()[0] as i32);
+    }
+    let code = match name {
+        "TECLA_ENTER" => 10,
+        "TECLA_BACKSPACE" => 8,
+        "TECLA_TAB" => 9,
+        "TECLA_CANCELAR" => 3,
+        "TECLA_LIMPAR" => 12,
+        "TECLA_SHIFT" => 16,
+        "TECLA_CONTROL" => 17,
+        "TECLA_ALT" => 18,
+        "TECLA_PAUSE" => 19,
+        "TECLA_ESC" => 27,
+        "TECLA_ESPACO" => 32,
+        "TECLA_PAGE_UP" => 33,
+        "TECLA_PAGE_DOWN" => 34,
+        "TECLA_END" => 35,
+        "TECLA_HOME" => 36,
+        "TECLA_SETA_ESQUERDA" => 37,
+        "TECLA_SETA_ACIMA" => 38,
+        "TECLA_SETA_DIREITA" => 39,
+        "TECLA_SETA_ABAIXO" => 40,
+        "TECLA_VIRGULA" => 44,
+        "TECLA_MENOS" => 45,
+        "TECLA_PONTO_FINAL" => 46,
+        "TECLA_BARRA" => 47,
+        "TECLA_PONTO_VIRGULA" => 59,
+        "TECLA_IGUAL" => 61,
+        "TECLA_ABRE_COLCHETES" => 91,
+        "TECLA_BARRA_INVERTIDA" => 92,
+        "TECLA_FECHA_COLCHETES" => 93,
+        "TECLA_MULTIPLICACAO" => 106,
+        "TECLA_ADICAO" => 107,
+        "TECLA_NUM_SEPARADOR_DECIMAL" => 108,
+        "TECLA_SUBTRACAO" => 109,
+        "TECLA_DECIMAL" => 110,
+        "TECLA_DIVISAO" => 111,
+        "TECLA_DELETAR" => 127,
+        "TECLA_NUM_LOCK" => 144,
+        "TECLA_SCROLL_LOCK" => 145,
+        "TECLA_PRINTSCREEN" => 154,
+        "TECLA_INSERT" => 155,
+        "TECLA_AJUDA" => 156,
+        "TECLA_BACK_QUOTE" => 192,
+        "TECLA_QUOTE" => 222,
+        "TECLA_WINDOWS" => 524,
+        "TECLA_MENU_CONTEXTO" => 525,
+        "TECLA_CAPS_LOCK" => 20,
+        "TECLA_META" => 157,
+        "TECLA_AMPERSAND" => 150,
+        "TECLA_ASTERISK" => 151,
+        "TECLA_QUOTEDBL" => 152,
+        "TECLA_LESS" => 153,
+        "TECLA_GREATER" => 160,
+        "TECLA_BRACELEFT" => 161,
+        "TECLA_BRACERIGHT" => 162,
+        "TECLA_AT" => 512,
+        "TECLA_COLON" => 513,
+        "TECLA_CIRCUMFLEX" => 514,
+        "TECLA_DOLLAR" => 515,
+        "TECLA_EURO_SIGN" => 516,
+        "TECLA_EXCLAMATION_MARK" => 517,
+        "TECLA_INVERTED_EXCLAMATION_MARK" => 518,
+        "TECLA_LEFT_PARENTHESIS" => 519,
+        "TECLA_NUMBER_SIGN" => 520,
+        "TECLA_PLUS" => 521,
+        "TECLA_RIGHT_PARENTHESIS" => 522,
+        "TECLA_UNDERSCORE" => 523,
+        _ => {
+            let rest = name.strip_prefix("TECLA_")?;
+            if let Some(digit) = rest
+                .strip_suffix("_NUM")
+                .or_else(|| rest.strip_prefix("NUM_"))
+            {
+                return digit
+                    .parse::<i32>()
+                    .ok()
+                    .filter(|d| (0..=9).contains(d))
+                    .map(|d| 96 + d);
+            }
+            if let Some(f) = rest.strip_prefix('F') {
+                return f.parse::<i32>().ok().and_then(|n| match n {
+                    1..=12 => Some(111 + n),
+                    13..=24 => Some(61_427 + n),
+                    _ => None,
+                });
+            }
+            return rest
+                .parse::<i32>()
+                .ok()
+                .filter(|d| (0..=9).contains(d))
+                .map(|d| 48 + d);
+        }
+    };
+    Some(code)
+}
+
+fn mouse_constant(name: &str) -> Option<i32> {
+    match name {
+        "BOTAO_ESQUERDO" => Some(0),
+        "BOTAO_DIREITO" => Some(1),
+        "BOTAO_MEIO" => Some(2),
+        _ => None,
+    }
 }
 
 fn to_hir_span(value: Span) -> hir::Span {
