@@ -444,7 +444,16 @@ impl<'a> Vm<'a> {
     /// Pasta usada como base para caminhos relativos (a do programa, na IDE).
     #[cfg(feature = "stdlib")]
     pub fn with_working_dir(mut self, dir: impl Into<std::path::PathBuf>) -> Self {
-        self.ctx.work_dir = dir.into();
+        let dir = dir.into();
+        self.pors_runtime.set_workspace_dir(dir.clone());
+        self.ctx.work_dir = dir;
+        self
+    }
+
+    /// Diretório raiz confinado para `Arquivos.*` em PORS (compatível com `--no-default-features`).
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn with_pors_workspace_dir(mut self, dir: impl Into<std::path::PathBuf>) -> Self {
+        self.pors_runtime.set_workspace_dir(dir.into());
         self
     }
 

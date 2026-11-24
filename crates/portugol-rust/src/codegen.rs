@@ -28,6 +28,7 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
     let uses_tipos = pors && program_uses_host_module(program, "Tipos");
     let uses_util = pors && program_uses_host_module(program, "Util");
     let uses_calendario = pors && program_uses_host_module(program, "Calendario");
+    let uses_arquivos = pors && program_uses_host_module(program, "Arquivos");
     let mvu_update_arity = if pors && program.body.is_empty() {
         mvu_entry_update_arity(program)
     } else {
@@ -61,6 +62,9 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
     }
     if uses_calendario {
         output.push_str(PORS_CALENDARIO_RUNTIME);
+    }
+    if uses_arquivos {
+        output.push_str(PORS_ARQUIVOS_RUNTIME);
     }
     for definition in &program.record_types {
         output.push_str(&format!(
@@ -952,6 +956,13 @@ fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedExpression {
             arguments,
         } if module == "Calendario" => {
             render_stdlib_host_call("__pors_calendario", name, arguments, program, pors)
+        }
+        ExprKind::HostCall {
+            module,
+            name,
+            arguments,
+        } if module == "Arquivos" => {
+            render_stdlib_host_call("__pors_arquivos", name, arguments, program, pors)
         }
         ExprKind::HostCall { .. } => vec![ExpressionPart::Text("0_i32".to_owned())],
         ExprKind::Integer(value) if *value == i32::MIN => {
@@ -2425,6 +2436,162 @@ mod __pors_calendario {
         let iso = format!("{:04}-{:02}-{:02}", now.year, now.month, now.day);
         super::__pors_account(iso.len());
         iso
+    }
+}
+"#;
+
+const PORS_ARQUIVOS_RUNTIME: &str = r#"
+#[allow(dead_code)]
+mod __pors_arquivos {
+    use std::io::Write as _;
+    use std::path::{Component, Path, PathBuf};
+
+    const MAX_FILE_BYTES: usize = 2 * 1024 * 1024;
+    const MAX_LIST_ENTRIES: usize = 1_024;
+
+    fn resolve(raw: &str, allow_root: bool) -> Result<PathBuf, String> {
+        let root = std::env::var_os("PORTUGOL_PORS_WORKSPACE_DIR")
+            .map(PathBuf::from)
+            .or_else(|| std::env::current_dir().ok())
+            .ok_or_else(|| super::__pors_string("Diretório de workspace indisponível."))?;
+        if raw.contains('\0') {
+            return Err(super::__pors_string("Caminho inválido: contém caractere nulo."));
+        }
+        let trimmed = raw.trim();
+        if trimmed.is_empty() && !allow_root {
+            return Err(super::__pors_string("O caminho do arquivo não pode ser vazio."));
+        }
+        let rel = Path::new(trimmed);
+        if rel.is_absolute() {
+            return Err(super::__pors_string("Apenas caminhos relativos ao workspace são permitidos."));
+        }
+        let mut clean = PathBuf::new();
+        for component in rel.components() {
+            match component {
+                Component::Normal(part) => clean.push(part),
+                Component::CurDir => {}
+                Component::ParentDir | Component::RootDir | Component::Prefix(_) => {
+                    return Err(super::__pors_string(
+                        "Caminho fora do workspace não é permitido (`..` ou raiz absoluta).",
+                    ));
+                }
+            }
+        }
+        if clean.as_os_str().is_empty() && !allow_root {
+            return Err(super::__pors_string("O caminho deve apontar para um arquivo dentro do workspace."));
+        }
+        let canonical_root = std::fs::canonicalize(&root)
+            .map_err(|err| super::__pors_string(&format!("Workspace inacessível: {err}")))?;
+        let target = canonical_root.join(&clean);
+        let mut probe = target.as_path();
+        while !probe.exists() {
+            let Some(parent) = probe.parent() else { break };
+            probe = parent;
+        }
+        if probe.exists() {
+            let canonical_probe = std::fs::canonicalize(probe)
+                .map_err(|err| super::__pors_string(&format!("Não foi possível validar o caminho: {err}")))?;
+            if !canonical_probe.starts_with(&canonical_root) {
+                return Err(super::__pors_string("Caminho escapa do workspace (link simbólico bloqueado)."));
+            }
+        }
+        Ok(target)
+    }
+
+    pub fn ler_texto(caminho: &str) -> Result<String, String> {
+        let target = resolve(caminho, false)?;
+        let meta = std::fs::metadata(&target)
+            .map_err(|err| super::__pors_string(&format!("Não foi possível abrir '{caminho}': {err}")))?;
+        if !meta.is_file() {
+            return Err(super::__pors_string(&format!("'{caminho}' não é um arquivo regular.")));
+        }
+        if meta.len() as usize > MAX_FILE_BYTES {
+            return Err(super::__pors_string(&format!(
+                "O arquivo '{caminho}' excede o limite de {MAX_FILE_BYTES} bytes."
+            )));
+        }
+        super::__pors_account(meta.len() as usize);
+        std::fs::read_to_string(&target)
+            .map_err(|err| super::__pors_string(&format!("Erro ao ler '{caminho}': {err}")))
+    }
+
+    pub fn ler_linhas(caminho: &str) -> Result<Vec<String>, String> {
+        let content = ler_texto(caminho)?;
+        Ok(content.lines().map(str::to_owned).collect())
+    }
+
+    pub fn escrever_texto(caminho: &str, conteudo: &str) -> Result<bool, String> {
+        if conteudo.len() > MAX_FILE_BYTES {
+            return Err(super::__pors_string(&format!(
+                "O conteúdo excede o limite de {MAX_FILE_BYTES} bytes por arquivo."
+            )));
+        }
+        let target = resolve(caminho, false)?;
+        if let Some(parent) = target.parent() {
+            std::fs::create_dir_all(parent).map_err(|err| {
+                super::__pors_string(&format!("Não foi possível criar diretório para '{caminho}': {err}"))
+            })?;
+        }
+        std::fs::write(&target, conteudo)
+            .map(|()| true)
+            .map_err(|err| super::__pors_string(&format!("Erro ao gravar '{caminho}': {err}")))
+    }
+
+    pub fn acrescentar_texto(caminho: &str, conteudo: &str) -> Result<bool, String> {
+        let target = resolve(caminho, false)?;
+        let existing_len = std::fs::metadata(&target).map(|m| m.len() as usize).unwrap_or(0);
+        if existing_len.saturating_add(conteudo.len()) > MAX_FILE_BYTES {
+            return Err(super::__pors_string(&format!(
+                "O arquivo '{caminho}' excederia o limite de {MAX_FILE_BYTES} bytes."
+            )));
+        }
+        if let Some(parent) = target.parent() {
+            std::fs::create_dir_all(parent).map_err(|err| {
+                super::__pors_string(&format!("Não foi possível criar diretório para '{caminho}': {err}"))
+            })?;
+        }
+        let mut handle = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&target)
+            .map_err(|err| super::__pors_string(&format!("Erro ao acrescentar em '{caminho}': {err}")))?;
+        handle
+            .write_all(conteudo.as_bytes())
+            .map(|()| true)
+            .map_err(|err| super::__pors_string(&format!("Erro ao acrescentar em '{caminho}': {err}")))
+    }
+
+    pub fn existe(caminho: &str) -> Result<bool, String> {
+        Ok(resolve(caminho, true)?.exists())
+    }
+
+    pub fn remover(caminho: &str) -> Result<bool, String> {
+        let target = resolve(caminho, false)?;
+        std::fs::remove_file(&target)
+            .map(|()| true)
+            .map_err(|err| super::__pors_string(&format!("Erro ao remover '{caminho}': {err}")))
+    }
+
+    pub fn listar(diretorio: &str) -> Result<Vec<String>, String> {
+        let target = resolve(diretorio, true)?;
+        let entries = std::fs::read_dir(&target)
+            .map_err(|err| super::__pors_string(&format!("Erro ao listar '{diretorio}': {err}")))?;
+        let mut names = Vec::new();
+        let mut total_bytes = 0usize;
+        for entry in entries {
+            let entry = entry.map_err(|err| super::__pors_string(&format!("Erro ao listar '{diretorio}': {err}")))?;
+            if names.len() >= MAX_LIST_ENTRIES {
+                return Err(super::__pors_string(&format!(
+                    "Diretório excede o limite de {MAX_LIST_ENTRIES} entradas."
+                )));
+            }
+            let item = entry.file_name().to_string_lossy().into_owned();
+            total_bytes = total_bytes.saturating_add(item.len());
+            names.push(item);
+        }
+        names.sort();
+        super::__pors_account(total_bytes);
+        Ok(names)
     }
 }
 "#;

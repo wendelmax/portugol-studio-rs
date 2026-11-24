@@ -647,3 +647,39 @@ funcao inicio() {
             .any(|d| d.code == "pors.stdlib-call-type-mismatch")
     );
 }
+
+#[test]
+fn parses_and_validates_pors_arquivos_library() {
+    let source = r#"
+funcao gravar_e_ler() -> Resultado<cadeia, cadeia> {
+    seja _ok1: logico = Arquivos.escrever_texto("dados/nota.txt", "linha1\n")?;
+    seja _ok2: logico = Arquivos.acrescentar_texto("dados/nota.txt", "linha2\n")?;
+    seja linhas: vetor<cadeia> = Arquivos.ler_linhas("dados/nota.txt")?;
+    seja nomes: vetor<cadeia> = Arquivos.listar("dados")?;
+    seja tem: logico = Arquivos.existe("dados/nota.txt")?;
+    seja conteudo: cadeia = Arquivos.ler_texto("dados/nota.txt")?;
+    seja _rem: logico = Arquivos.remover("dados/nota.txt")?;
+    se (tem && tamanho(linhas) == 2 && tamanho(nomes) == 1) {
+        retorne Resultado::Ok(conteudo);
+    }
+    retorne Resultado::Erro("inesperado");
+}
+
+funcao inicio() {
+    escolha gravar_e_ler() {
+        caso Resultado::Ok(s) => { escreva(s); }
+        caso Resultado::Erro(e) => { escreva(e); }
+    }
+}
+"#;
+    let program = lower(source).expect("Arquivos.* deve ser aceito em PORS");
+    assert_eq!(program.functions.len(), 1);
+
+    let bad_fn = "funcao inicio() { seja r: Resultado<cadeia, cadeia> = Arquivos.abrir(\"a\"); }";
+    let errors = lower(bad_fn).unwrap_err();
+    assert!(
+        errors
+            .iter()
+            .any(|d| d.code == "pors.unknown-stdlib-function")
+    );
+}
