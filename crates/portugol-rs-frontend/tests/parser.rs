@@ -149,6 +149,86 @@ fn malformed_syntax_returns_a_localized_diagnostic() {
 }
 
 #[test]
+fn recovers_syntax_diagnostics_across_independent_function_bodies() {
+    let source = "funcao primeira() { seja a: inteiro = ; }\nfuncao segunda() { seja b: inteiro = ; }\nfuncao terceira() { seja c: inteiro = ; }\nfuncao inicio() {}";
+    let diagnostics = lower(source).expect_err("as três funções têm erros de sintaxe");
+
+    assert_eq!(diagnostics.len(), 3, "{diagnostics:#?}");
+    let semicolons: Vec<_> = source
+        .match_indices(';')
+        .map(|(offset, _)| offset as u32)
+        .collect();
+    let starts: Vec<_> = diagnostics
+        .iter()
+        .map(|diagnostic| diagnostic.span.start)
+        .collect();
+    assert_eq!(starts, semicolons);
+    assert!(
+        diagnostics
+            .iter()
+            .all(|diagnostic| diagnostic.code == "pors.expected-expression")
+    );
+}
+
+#[test]
+fn does_not_repeat_diagnostics_for_an_invalid_top_level_item() {
+    let source = "funcao quebrada( { }\nfuncao inicio() { seja idade: inteiro = ; }";
+    let diagnostics = lower(source).expect_err("o cabeçalho e o corpo contêm erros");
+
+    assert_eq!(diagnostics.len(), 2, "{diagnostics:#?}");
+    assert_eq!(diagnostics[0].code, "pors.expected-identifier");
+    assert_eq!(diagnostics[1].code, "pors.expected-expression");
+    assert!(diagnostics[0].span.start < diagnostics[1].span.start);
+}
+
+#[test]
+fn resumes_after_an_unclosed_function_before_later_top_level_declarations() {
+    let source = "funcao quebrada() {\n    se (verdadeiro) {\nfuncao segunda() { seja b: inteiro = ; }\nfuncao inicio() {}";
+    let diagnostics =
+        lower(source).expect_err("a primeira função está aberta e a segunda é inválida");
+
+    assert_eq!(diagnostics.len(), 2, "{diagnostics:#?}");
+    assert_eq!(diagnostics[0].code, "pors.unexpected-token");
+    assert_eq!(diagnostics[1].code, "pors.expected-expression");
+    assert!(diagnostics[0].span.start < diagnostics[1].span.start);
+}
+
+#[test]
+fn recovers_at_statement_terminators_inside_a_function() {
+    let source = "funcao inicio() {\n    seja a: inteiro = ;\n    escreva(;\n}";
+    let diagnostics = lower(source).expect_err("as duas instruções têm erros de sintaxe");
+
+    assert_eq!(diagnostics.len(), 2, "{diagnostics:#?}");
+    assert!(
+        diagnostics
+            .iter()
+            .all(|diagnostic| diagnostic.code == "pors.expected-expression")
+    );
+    let semicolons: Vec<_> = source
+        .match_indices(';')
+        .map(|(offset, _)| offset as u32)
+        .collect();
+    let starts: Vec<_> = diagnostics
+        .iter()
+        .map(|diagnostic| diagnostic.span.start)
+        .collect();
+    assert_eq!(starts, semicolons);
+}
+
+#[test]
+fn suppresses_semantic_cascades_after_a_syntax_error_in_the_same_function() {
+    let source = "funcao inicio() { seja idade: inteiro = ; escreva(idade); }";
+    let diagnostics = lower(source).expect_err("a declaração tem sintaxe inválida");
+
+    assert_eq!(diagnostics.len(), 1, "{diagnostics:#?}");
+    assert_eq!(diagnostics[0].code, "pors.expected-expression");
+    assert_eq!(
+        &source[diagnostics[0].span.start as usize..diagnostics[0].span.end as usize],
+        ";"
+    );
+}
+
+#[test]
 fn keeps_utf8_byte_spans_for_unknown_names() {
     let source = "funcao inicio() { escreva(\"ação\"); escreva(inexistente); }";
     let diagnostics = lower(source).unwrap_err();

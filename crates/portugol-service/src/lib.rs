@@ -514,6 +514,19 @@ mod portugol_rs_service {
     }
 
     #[test]
+    fn inspection_reports_multiple_syntax_errors_and_export_rejects_source() {
+        let source = "funcao primeira() { seja a: inteiro = ; }\nfuncao segunda() { seja b: inteiro = ; }\nfuncao terceira() { seja c: inteiro = ; }\nfuncao inicio() {}";
+        let inspection = inspect_portugol_rs(source);
+        assert_eq!(inspection.diagnostics.len(), 3);
+        assert!(inspection.symbols.is_empty());
+
+        let export = export_portugol_rs(source);
+        assert!(export.code.is_none());
+        assert!(export.diagnostic.is_some());
+        assert!(export.source_map.is_empty());
+    }
+
+    #[test]
     fn export_uses_the_shared_rust_backend() {
         let result =
             export_portugol_rs("funcao inicio() { seja idade: inteiro = 16; escreva(idade); }");

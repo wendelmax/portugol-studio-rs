@@ -80,6 +80,26 @@ fn pors_debugger_returns_located_diagnostics_before_starting_the_vm() {
 }
 
 #[test]
+fn pors_debugger_rejects_multiple_syntax_errors_before_starting_the_vm() {
+    let source = "funcao primeira() { seja a: inteiro = ; }\nfuncao segunda() { seja b: inteiro = ; }\nfuncao terceira() { seja c: inteiro = ; }\nfuncao inicio() {}";
+    let (tx, rx) = mpsc::channel();
+    let observer = Arc::new(Recorder(Mutex::new(tx)));
+    let Err(diagnostics) = start_portugol_rs(source, RunOptions::default(), observer) else {
+        panic!("fonte com erros de sintaxe não deveria iniciar a VM")
+    };
+
+    assert_eq!(diagnostics.len(), 3, "{diagnostics:#?}");
+    assert_eq!(
+        diagnostics
+            .iter()
+            .map(|diagnostic| diagnostic.start.line)
+            .collect::<Vec<_>>(),
+        [1, 2, 3]
+    );
+    assert!(rx.try_recv().is_err(), "a VM não deve emitir eventos");
+}
+
+#[test]
 fn pors_debugger_executes_typed_helper_functions_and_forward_calls() {
     let source = "funcao dobro(valor: inteiro) -> inteiro { retorne somar(valor, valor); } funcao somar(a: inteiro, b: inteiro) -> inteiro { retorne a + b; } funcao inicio() { escreva(dobro(21)); }";
     let (output, outcome) = run_vm_to_output(source);
