@@ -68,6 +68,7 @@ import { mountUiPreview } from "./ui-preview-renderer";
 import * as api from "./api";
 import type { Tab } from "./state/tab";
 import { createTabsView } from "./state/tabs-view";
+import { createTabFactory, isTabDirty, PORS_TEMPLATE, tabName } from "./state/tabs";
 import { mountWorkspaceExplorer } from "./workspace/explorer";
 import { mountRustPreview } from "./rust/preview";
 import { mountLearningPanel } from "./learning/panel";
@@ -325,46 +326,29 @@ const homeId = 0;
 const helpId = -1;
 let activeId = homeId;
 let helpOpen = false;
-let nextTabId = 1;
 let definitionNavigationGeneration = 0;
 let learningMode: LearningMode = loadLearningMode();
 let testsPanel: ReturnType<typeof createTestsPanelController> | null = null;
 
 const activeTab = () => tabs.find((t) => t.id === activeId);
 
-function tabName(tab: Tab): string {
-  if (!tab.path) return tab.exampleName ?? "Sem título";
-  return tab.path.split(/[\\/]/).pop() ?? tab.path;
-}
-
 function isDirty(tab: Tab): boolean {
-  const text = tab.id === activeId ? view.state.doc.toString() : tab.state.doc.toString();
-  return text !== tab.saved;
+  return isTabDirty(tab, activeId, view.state.doc.toString());
 }
 
 const NEW_PROGRAM = TEMPLATE.replace("\t\t\n", '\t\tescreva("Olá Mundo")\n');
-const PORS_TEMPLATE = "funcao inicio() {\n    seja mutavel idade: inteiro = 16;\n    idade += 1;\n    escreva(idade);\n}\n";
+const tabFactory = createTabFactory({ extensions, addTab: (tab) => tabs.push(tab), activate });
 
 function newTab(text = PORS_TEMPLATE, path: string | null = null, exampleName?: string, examplePath?: string, exercise?: ExerciseDocument, explicitLanguage?: SourceLanguage, workspaceFile?: { id: string; path: string; preferenceKey: string }): Tab {
-  const language = explicitLanguage ?? detectSourceLanguage(path ?? exampleName ?? "programa.pors");
-  const tab: Tab = {
-    id: nextTabId++,
+  return tabFactory.create({
+    text,
     path,
-    language,
     exampleName,
     examplePath,
     exercise,
-    workspaceId: workspaceFile?.id,
-    workspacePath: workspaceFile?.path,
-    workspacePreferenceKey: workspaceFile?.preferenceKey,
-    state: EditorState.create({ doc: text, extensions: extensions(language) }),
-    saved: text,
-    diagnostics: [],
-    symbols: [],
-  };
-  tabs.push(tab);
-  activate(tab.id);
-  return tab;
+    explicitLanguage,
+    workspaceFile,
+  });
 }
 
 function activate(id: number) {
