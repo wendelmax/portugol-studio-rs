@@ -1,5 +1,5 @@
 import { mountTips } from "./tips";
-import { applyThemeColors, mountThemeEditor, themeProfile } from "./themes";
+import { mountThemeEditor } from "./themes";
 // IDE: abas de arquivos, editor CodeMirror, console e execução.
 //
 // Atalhos seguem o Portugol Studio original (TelaAtalhos.java):
@@ -10,23 +10,22 @@ import "./style.css";
 import license from "../../../LICENSE?raw";
 import { version } from "../package.json";
 
-import { EditorState, Compartment, RangeSet, StateEffect, StateField, type Extension } from "@codemirror/state";
+import { EditorState, Compartment, type Extension } from "@codemirror/state";
 import {
-  EditorView, GutterMarker, gutter, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter,
-  drawSelection, highlightSpecialChars, Decoration, type DecorationSet,
+  EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter,
+  drawSelection, highlightSpecialChars,
 } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, indentWithTab, isolateHistory } from "@codemirror/commands";
 import {
-  syntaxHighlighting, HighlightStyle, bracketMatching, indentOnInput, foldGutter, foldKeymap,
+  bracketMatching, indentOnInput, foldGutter, foldKeymap,
 } from "@codemirror/language";
-import { forceLinting, linter, lintGutter, setDiagnostics, type Diagnostic } from "@codemirror/lint";
+import { forceLinting, linter, lintGutter, setDiagnostics } from "@codemirror/lint";
 import { openSearchPanel, highlightSelectionMatches } from "@codemirror/search";
 import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from "@codemirror/autocomplete";
 import { rust } from "@codemirror/lang-rust";
 import { createGeneratedRustEditorState, generatedRustMappings, type GeneratedRustMapping } from "./generated-rust-editor";
 import { generatedRustDetachIsCurrent } from "./generated-rust-detach";
 import { diffGeneratedRust, generatedRustDiffSummary } from "./generated-rust-diff";
-import { tags } from "@lezer/highlight";
 import { open as openDialog, save as saveDialog, ask } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
@@ -81,6 +80,10 @@ import * as api from "./api";
 import { $ } from "./dom";
 import { createRecentFiles } from "./files/recent";
 import { mountPaneLayout } from "./layout/panes";
+import { applyPageTheme, editorColors, editorTheme, onSystemThemeChange, themeChoice } from "./editor/theme";
+import {
+  breakpointLines, breakpoints, createBreakpointGutter, debugLine, runtimeError, setDebugLine, setRuntimeError, toCodeMirror,
+} from "./editor/decorations";
 
 const TEMPLATE = "programa\n{\n\tfuncao inicio()\n\t{\n\t\t\n\t}\n}\n";
 
@@ -115,40 +118,12 @@ interface Tab {
   symbols: api.SymbolInfo[];
 }
 
-// Tema: "system" segue o sistema operacional; a escolha fica salva.
-const THEME_KEY = "portugol.theme";
+// Compartimentos reconfigurados ao trocar de aba, linguagem ou tema.
 const theme = new Compartment();
 const sourceLanguage = new Compartment();
 const portugolTools = new Compartment();
 const generatedRustTheme = new Compartment();
-const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
-function themeChoice(): string {
-  try {
-    const saved = localStorage.getItem(THEME_KEY);
-    if (saved === "light" || saved === "dark" || saved === "system" || (saved && themeProfile(saved))) return saved;
-  } catch {
-    // Sem armazenamento local: fica no padrão.
-  }
-  return "preset:portugol-studio-next";
-}
-
-let appliedTheme = themeChoice();
-const isDark = () => {
-  const choice = themeProfile(appliedTheme)?.base ?? appliedTheme;
-  return choice === "dark" || (choice === "system" && darkQuery.matches);
-};
-const editorColors = syntaxHighlighting(HighlightStyle.define([
-  { tag: tags.keyword, color: "var(--syntax-keyword)" },
-  { tag: [tags.typeName, tags.namespace], color: "var(--syntax-type)" },
-  { tag: tags.number, color: "var(--syntax-number)" },
-  { tag: tags.bool, color: "var(--syntax-logical)" },
-  { tag: tags.function(tags.variableName), color: "var(--syntax-function)" },
-  { tag: tags.standard(tags.function(tags.variableName)), color: "var(--syntax-function)" },
-  { tag: tags.string, color: "var(--syntax-string)" },
-  { tag: tags.comment, color: "var(--syntax-comment)" },
-  { tag: tags.operator, color: "var(--syntax-operator)" },
-]));
 const centerKey = "portugol.centerSource";
 let centerActive = false;
 try {
@@ -157,102 +132,7 @@ try {
   // A opção também funciona sem armazenamento.
 }
 
-const darkEditor = EditorView.theme({}, { dark: true });
-const editorTheme = (): Extension => isDark() ? darkEditor : [];
-
-/** Destaque da linha onde ocorreu o erro de execução. */
-const setRuntimeError = StateEffect.define<{ from: number; to: number } | null>();
-const runtimeError = StateField.define<DecorationSet>({
-  create: () => Decoration.none,
-  update(value, tr) {
-    for (const effect of tr.effects) {
-      if (effect.is(setRuntimeError)) {
-        if (!effect.value) return Decoration.none;
-        const line = tr.state.doc.lineAt(Math.min(effect.value.from, tr.state.doc.length));
-        return Decoration.set([Decoration.line({ class: "cm-runtime-error" }).range(line.from)]);
-      }
-    }
-    return tr.docChanged ? Decoration.none : value.map(tr.changes);
-  },
-  provide: (field) => EditorView.decorations.from(field),
-});
-
-/** Offsets dos pontos de parada; acompanham as edições do documento. */
-const toggleBreakpoint = StateEffect.define<number>();
-const breakpoints = StateField.define<Set<number>>({
-  create: () => new Set<number>(),
-  update(value, tr) {
-    let next = value;
-    for (const effect of tr.effects) {
-      if (effect.is(toggleBreakpoint)) {
-        next = new Set(next);
-        if (next.has(effect.value)) next.delete(effect.value);
-        else next.add(effect.value);
-      }
-    }
-    if (!tr.docChanged) return next;
-    const mapped = new Set<number>();
-    for (const pos of next) mapped.add(tr.changes.mapPos(pos, -1));
-    return mapped;
-  },
-});
-
-const breakpointMarker = new (class extends GutterMarker {
-  toDOM() {
-    const dot = icon("pequeno/bug");
-    dot.classList.add("cm-breakpoint");
-    dot.title = "Ponto de parada — clique para remover";
-    return dot;
-  }
-})();
-
-const breakpointGutter = gutter({
-  class: "cm-breakpoint-gutter",
-  markers: (view) => {
-    const positions = [...view.state.field(breakpoints)]
-      .map((pos) => view.state.doc.lineAt(Math.min(pos, view.state.doc.length)).from)
-      .sort((a, b) => a - b);
-    return RangeSet.of(positions.map((pos) => breakpointMarker.range(pos)));
-  },
-  initialSpacer: () => breakpointMarker,
-  domEventHandlers: {
-    mousedown(view, line, event) {
-      if ((event as MouseEvent).button !== 0) return false;
-      view.dispatch({ effects: toggleBreakpoint.of(line.from) });
-      syncBreakpoints(view.state);
-      return true;
-    },
-  },
-});
-
-/** Destaque da linha onde a VM está parada no depurador. */
-const setDebugLine = StateEffect.define<number | null>();
-const debugLine = StateField.define<DecorationSet>({
-  create: () => Decoration.none,
-  update(value, tr) {
-    for (const effect of tr.effects) {
-      if (effect.is(setDebugLine)) {
-        if (effect.value === null) return Decoration.none;
-        const line = tr.state.doc.line(Math.max(1, Math.min(effect.value, tr.state.doc.lines)));
-        return Decoration.set([Decoration.line({ class: "cm-debug-line" }).range(line.from)]);
-      }
-    }
-    return tr.docChanged ? Decoration.none : value.map(tr.changes);
-  },
-  provide: (field) => EditorView.decorations.from(field),
-});
-
-function toCodeMirror(info: api.DiagnosticInfo, length: number): Diagnostic {
-  const from = Math.min(info.start.offset, length);
-  const to = Math.min(Math.max(info.end.offset, from + 1), length);
-  return {
-    from,
-    to: Math.max(to, from),
-    severity: info.severity,
-    source: info.code,
-    message: info.help ? `${info.message}\nAjuda: ${info.help}` : info.message,
-  };
-}
+const breakpointGutter = createBreakpointGutter((state) => syncBreakpoints(state), () => icon("pequeno/bug"));
 
 const portugolLinter = linter(
   async (view) => {
@@ -414,26 +294,19 @@ const generatedRustEditor = new EditorView({
   state: createGeneratedRustEditorState("", goTo, [editorColors, generatedRustTheme.of(editorTheme())]),
 });
 
-function applyTheme(choice: string) {
-  appliedTheme = choice;
-  try {
-    localStorage.setItem(THEME_KEY, choice);
-  } catch {
-    // Ignora: a escolha vale só para esta sessão.
-  }
-  if (choice === "system") delete document.documentElement.dataset.theme;
-  else document.documentElement.dataset.theme = themeProfile(choice)?.base ?? choice;
-  applyThemeColors(document.documentElement, themeProfile(choice)?.colors);
+/** Reaplica o tema atual aos editores e à ajuda. */
+function refreshEditorThemes() {
   view.dispatch({ effects: theme.reconfigure(editorTheme()) });
   generatedRustEditor.dispatch({ effects: generatedRustTheme.reconfigure(editorTheme()) });
   help?.refreshTheme();
 }
 
-darkQuery.addEventListener("change", () => {
-  view.dispatch({ effects: theme.reconfigure(editorTheme()) });
-  generatedRustEditor.dispatch({ effects: generatedRustTheme.reconfigure(editorTheme()) });
-  help?.refreshTheme();
-});
+function applyTheme(choice: string) {
+  applyPageTheme(choice);
+  refreshEditorThemes();
+}
+
+onSystemThemeChange(refreshEditorThemes);
 
 // ---------------------------------------------------------------------------
 // Abas
@@ -1603,12 +1476,6 @@ function setRunning(running: boolean) {
 }
 
 /** Linhas (base 1) dos pontos de parada no estado do editor. */
-function breakpointLines(state: EditorState): number[] {
-  return [...state.field(breakpoints)]
-    .map((pos) => state.doc.lineAt(Math.min(pos, state.doc.length)).number)
-    .sort((a, b) => a - b);
-}
-
 /** Pontos de parada podem mudar enquanto o programa está em execução. */
 function syncBreakpoints(state: EditorState) {
   if (runId === null || activeId !== runTabId) return;
