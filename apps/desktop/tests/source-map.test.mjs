@@ -7,6 +7,7 @@ import { ideStyles } from "./support/ide-styles.mjs";
 
 const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
 const main = ideSource();
+const fileIO = readFileSync(new URL("../src/files/io.ts", import.meta.url), "utf8");
 const ui = readFileSync(new URL("../src/source-map-ui.ts", import.meta.url), "utf8");
 const css = ideStyles();
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
@@ -148,11 +149,11 @@ test("Rust editor keeps the per-tab artifact marked stale until current translat
   assert.match(css, /\.cm-rust-mapped-segment\[data-quality="approximate"\]/);
   const updateListener = main.match(/EditorView\.updateListener\.of\(\(update\) => \{([\s\S]*?)\n    \}\),/)?.[1] ?? "";
   assert.doesNotMatch(updateListener, /renderRustPreview\(tab\)|rustPreview\.render\(/);
-  assert.match(main, /const languageChanged = tab\.language !== previousLanguage/);
+  assert.match(fileIO, /const languageChanged = tab\.language !== previousLanguage/);
   assert.match(main, /if \(languageChanged && tab\.rustPreview\?\.artifact\)/);
   assert.match(main, /if \(learningMode === "bridge" && tab\.language !== "rust"\) rustPreview\.schedule\(\)/);
-  const save = main.match(/async function save\(as = false\): Promise<boolean> \{([\s\S]*?)\n\}\n\n\/\/ -{20,}/)?.[1] ?? "";
-  assert.match(save, /await api\.writeFile\(path, text\)[\s\S]*const previousLanguage = tab\.language[\s\S]*tab\.language = detectSourceLanguage\(path\)/);
+  const save = fileIO.match(/async function save\(as = false\): Promise<boolean> \{([\s\S]*?)\n  \}/)?.[1] ?? "";
+  assert.match(save, /await dependencies\.writeFile\(path, text\)[\s\S]*const previousLanguage = tab\.language[\s\S]*tab\.language = dependencies\.detectSourceLanguage\(path\)/);
   const schedule = main.match(/\n( *)function scheduleRustExport\(\) \{([\s\S]*?)\n\1\}\n\n\1function renderRustPreview/)?.[2] ?? "";
   assert.ok(schedule, "agendamento deve estar separado da renderização do artefato");
   assert.doesNotMatch(schedule, /\$<HTMLElement>\("rust-output"\)\.textContent = ""/);

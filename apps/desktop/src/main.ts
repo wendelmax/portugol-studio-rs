@@ -70,6 +70,7 @@ import { mountWindowControls } from "./shell/window";
 import { createHelpLoader } from "./shell/help-loader";
 import { $ } from "./dom";
 import { createRecentFiles } from "./files/recent";
+import { createFileIO } from "./files/io";
 import { mountPaneLayout } from "./layout/panes";
 import { setStatus } from "./shell/status";
 import { mountFontSizeControls } from "./shell/font-size";
@@ -553,12 +554,6 @@ function renderCursor() {
 // Arquivos
 // ---------------------------------------------------------------------------
 
-const FILTERS = [
-  { name: "Portugol-RS e Rust", extensions: ["pors", "rs"] },
-  { name: "Portugol clássico (legado)", extensions: ["por"] },
-  { name: "Todos os programas", extensions: ["pors", "rs", "por"] },
-];
-
 const workspaceExplorer = mountWorkspaceExplorer({
   tabs: () => tabs,
   replaceTabs: (next) => { tabs = next; },
@@ -571,7 +566,7 @@ const workspaceExplorer = mountWorkspaceExplorer({
     newTab(source, path, undefined, undefined, undefined, undefined, workspaceFile),
   openExercise,
   isDirty,
-  save: () => save(),
+  save: () => fileIO.save(),
   renderTabs,
   setExplorerVisible: (visible) => setWorkspaceExplorerVisible(visible),
   cargoProjectDetected: (tab, checked) => {
@@ -607,109 +602,57 @@ function renderRecent(recent: readonly string[] = recentFiles.list()) {
     name.textContent = path.split(/[\\/]/).pop() ?? path;
     button.append(icon("grande/file"), name);
     button.title = path;
-    button.onclick = () => void openFile(path).catch((error) => setStatus(String(error), "error"));
+    button.onclick = () => void fileIO.openFile(path).catch((error) => setStatus(String(error), "error"));
     return button;
   }));
 }
 
-async function openFile(path: string) {
-  const existing = tabs.find((tab) => tab.path === path);
-  if (existing) {
-    activate(existing.id);
-  } else {
-    const text = await api.readFile(path);
-    const current = activeTab();
-    if (current && !current.path && !current.exampleName && !isDirty(current) && tabs.length === 1) {
-      tabs = [];
+const fileIO = createFileIO({
+  tabs: () => tabs,
+  replaceTabs: (next) => { tabs = next; },
+  activeTab,
+  activate,
+  newTab: (text, path) => { newTab(text, path); },
+  isDirty,
+  readFile: api.readFile,
+  openDialog,
+  saveDialog,
+  writeFile: api.writeFile,
+  writeWorkspaceFile: api.writeWorkspaceFile,
+  currentText: () => view.state.doc.toString(),
+  detectSourceLanguage,
+  ensureSourceExtension,
+  rememberRecent: (path) => recentFiles.remember(path),
+  renderTabs,
+  setStatus,
+  afterSave: (tab, _previousLanguage, languageChanged) => {
+    if (languageChanged && tab.rustPreview?.artifact) {
+      tab.rustPreview = { ...tab.rustPreview, pending: false, stale: true, error: undefined };
     }
-    newTab(text, path);
-  }
-  recentFiles.remember(path);
-}
-
-async function openFiles() {
-  try {
-    const selected = await openDialog({ multiple: true, filters: FILTERS });
-    if (!selected) return;
-    for (const path of Array.isArray(selected) ? selected : [selected]) {
-      await openFile(path);
+    if (tab.id === activeId) {
+      view.dispatch({ effects: [
+        sourceLanguage.reconfigure(tab.language === "rust" ? rust() : tab.language === "portugol-rs" ? portugolRs() : portugol()),
+        portugolTools.reconfigure(tab.language === "rust" ? [rustSourceLinter] : [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]),
+      ] });
+      syncLanguageControls(tab);
+      if (languageChanged) {
+        rustPreview.cancel();
+        $<HTMLElement>("rust-preview").hidden = learningMode !== "bridge" || tab.language === "rust";
+        rustPreview.render(tab);
+        if (learningMode === "bridge" && tab.language !== "rust") rustPreview.schedule();
+        else rustPreview.renderMappingGutter();
+      }
     }
-  } catch (error) {
-    setStatus(String(error), "error");
-  }
-}
-
-async function save(as = false): Promise<boolean> {
-  const tab = activeTab();
-  if (!tab) return false;
-  let path = tab.path;
-  let workspaceFile = Boolean(tab.workspaceId && tab.workspacePath);
-  if (!path || as) {
-    const extension = tab.language === "portugol-rs" ? "pors" : tab.language === "rust" ? "rs" : "por";
-    const exerciseName = tab.exercise
-      ? `${tab.exercise.name.replace(/\.(pex|pors\.json|json)$/i, "")}.${extension}`
-      : undefined;
-    const filters = tab.language === "rust"
-      ? [{ name: "Rust", extensions: ["rs"] }]
-      : tab.language === "portugol-rs"
-        ? [{ name: "Portugol-RS", extensions: ["pors"] }, ...FILTERS]
-        : [{ name: "Portugol clássico", extensions: ["por"] }, ...FILTERS];
-    path = await saveDialog({ filters, defaultPath: tab.path ?? exerciseName ?? tab.exampleName ?? `programa.${extension}` });
-    if (!path) return false;
-    path = ensureSourceExtension(path, tab.language);
-    workspaceFile = false;
-  }
-  const text = view.state.doc.toString();
-  try {
-    if (workspaceFile && tab.workspaceId && tab.workspacePath) {
-      await api.writeWorkspaceFile(tab.workspaceId, tab.workspacePath, text);
-    } else {
-      await api.writeFile(path, text);
+    if (tab.language === "rust") {
+      if (tab.id === activeId) view.dispatch(setDiagnostics(view.state, []));
+      tab.diagnostics = [];
+      tab.symbols = [];
+      renderMessages();
+      outline.show([]);
+      updateLibraryButtons([]);
     }
-  } catch (error) {
-    setStatus(String(error), "error");
-    return false;
-  }
-  tab.path = path;
-  if (!workspaceFile) {
-    tab.workspaceId = undefined;
-    tab.workspacePath = undefined;
-    tab.workspaceExercisePath = undefined;
-  }
-  const previousLanguage = tab.language;
-  tab.language = detectSourceLanguage(path);
-  const languageChanged = tab.language !== previousLanguage;
-  if (languageChanged && tab.rustPreview?.artifact) {
-    tab.rustPreview = { ...tab.rustPreview, pending: false, stale: true, error: undefined };
-  }
-  if (tab.id === activeId) {
-    view.dispatch({ effects: [
-      sourceLanguage.reconfigure(tab.language === "rust" ? rust() : tab.language === "portugol-rs" ? portugolRs() : portugol()),
-      portugolTools.reconfigure(tab.language === "rust" ? [rustSourceLinter] : [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]),
-    ] });
-    syncLanguageControls(tab);
-    if (languageChanged) {
-      rustPreview.cancel();
-      $<HTMLElement>("rust-preview").hidden = learningMode !== "bridge" || tab.language === "rust";
-      rustPreview.render(tab);
-      if (learningMode === "bridge" && tab.language !== "rust") rustPreview.schedule();
-      else rustPreview.renderMappingGutter();
-    }
-  }
-  if (tab.language === "rust") {
-    if (tab.id === activeId) view.dispatch(setDiagnostics(view.state, []));
-    tab.diagnostics = [];
-    tab.symbols = [];
-    renderMessages();
-    outline.show([]);
-    updateLibraryButtons([]);
-  }
-  tab.saved = text;
-  recentFiles.remember(path);
-  renderTabs();
-  setStatus(`Salvo em ${path}`, "ok");
-  return true;
-}
+  },
+});
 
 // ---------------------------------------------------------------------------
 // Execução e console
@@ -829,7 +772,7 @@ async function runProgram(pauseOnStart = false, asRust = false) {
         setStatus("Salve os outros arquivos alterados deste projeto antes de executar Cargo.", "error");
         return;
       }
-      if (isDirty(tab) && !(await save())) {
+      if (isDirty(tab) && !(await fileIO.save())) {
         setStatus("Salve o arquivo Rust antes de executar o projeto Cargo.", "error");
         return;
       }
@@ -1173,7 +1116,7 @@ async function checkCargoProject() {
     setStatus("Salve os outros arquivos Rust alterados deste workspace antes da análise Cargo.", "error");
     return;
   }
-  if (isDirty(tab) && !(await save())) {
+  if (isDirty(tab) && !(await fileIO.save())) {
     setStatus("Salve o arquivo Rust antes de analisar o projeto Cargo.", "error");
     return;
   }
@@ -1271,7 +1214,7 @@ async function runCargoTests() {
     setStatus("Salve os outros arquivos Rust alterados deste workspace antes de executar `cargo test`.", "error");
     return;
   }
-  if (isDirty(tab) && !(await save())) {
+  if (isDirty(tab) && !(await fileIO.save())) {
     setStatus("Salve o arquivo Rust antes de executar `cargo test`.", "error");
     return;
   }
@@ -1663,8 +1606,8 @@ mountHomeNewFileMenu($<HTMLDetailsElement>("home-new-menu"), {
   rust: () => newTab("fn main() {\n    \n}\n", null, undefined, undefined, undefined, "rust"),
   portugol: () => newTab(NEW_PROGRAM, null, undefined, undefined, undefined, "portugol"),
 });
-$("home-open").onclick = () => void openFiles();
-$("btn-open").onclick = () => void openFiles();
+$("home-open").onclick = () => void fileIO.openFiles();
+$("btn-open").onclick = () => void fileIO.openFiles();
 const editorOptions = $<HTMLDetailsElement>("editor-options");
 const consoleOptions = $<HTMLDetailsElement>("console-tools");
 
@@ -1873,8 +1816,8 @@ $("utilities-close").onclick = () => {
   showUtilities(false);
   view.focus();
 };
-$("btn-save").onclick = () => void save();
-$("btn-save-as").onclick = () => void save(true);
+$("btn-save").onclick = () => void fileIO.save();
+$("btn-save-as").onclick = () => void fileIO.save(true);
 $("btn-run").onclick = () => void runOrContinue();
 function applyLearningMode(mode: LearningMode, persist = true) {
   const availableMode = mode === "rust" && rustcAvailable !== true ? "beginner" : mode;
@@ -2068,12 +2011,12 @@ function fileShortcut(key: string, shift: boolean, command: string, action: () =
 }
 
 fileShortcut("N", false, "Novo arquivo", () => newTab());
-fileShortcut("O", false, "Abrir arquivo", openFiles);
+fileShortcut("O", false, "Abrir arquivo", () => fileIO.openFiles());
 fileShortcut("E", true, "Mostrar ou ocultar o explorador", () => {
   workspaceExplorer.toggleExplorer();
 });
-fileShortcut("S", false, "Salvar", () => save());
-fileShortcut("S", true, "Salvar como", () => save(true));
+fileShortcut("S", false, "Salvar", () => fileIO.save());
+fileShortcut("S", true, "Salvar como", () => fileIO.save(true));
 fileShortcut("E", false, "Parâmetros de execução", () => {
   if (!activeTab()) return;
   editorOptions.open = true;
@@ -2219,13 +2162,13 @@ async function openIncomingFiles(paths: string[], warnUnsupported = false) {
         openExercise(await readExercise(path));
       } else if (/\.por$/i.test(path)) {
         supported = true;
-        await openFile(path);
+        await fileIO.openFile(path);
       } else if (/\.pors$/i.test(path)) {
         supported = true;
-        await openFile(path);
+        await fileIO.openFile(path);
       } else if (/\.rs$/i.test(path)) {
         supported = true;
-        await openFile(path);
+        await fileIO.openFile(path);
       }
     } catch (error) {
       setStatus(typeof error === "string" ? error : "Não foi possível abrir o arquivo.", "error");
