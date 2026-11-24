@@ -249,3 +249,15 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - [x] Extract incoming path dispatch while leaving Tauri event subscriptions in the shell.
 - [x] Run the full frontend tests (65/65), typecheck, and build.
 - [x] Commit the system file intake group (#173).
+
+### Task 19: Symbol navigation
+
+**Files:**
+- Create: `apps/desktop/src/editor/symbol-navigation.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/symbol-navigation.test.mjs`
+
+- [x] Add tests for Portugol/PORS resolution, selection and focus, Rust diagnostics, stale responses, and quiet failures.
+- [x] Extract asynchronous declaration navigation while preserving the editor callback contract.
+- [x] Run the full frontend tests (66/66), typecheck, and build.
+- [x] Commit the symbol navigation group (#174).

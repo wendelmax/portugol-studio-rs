@@ -92,6 +92,7 @@ import { appendConsole, appendProcessOutput, clearConsole, consoleText } from ".
 import { renderDebugInfo } from "./run/debug-view";
 import { chooseCargoTarget } from "./run/cargo-target-dialog";
 import { applyPageTheme, editorColors, editorTheme, onSystemThemeChange, themeChoice } from "./editor/theme";
+import { createSymbolNavigator } from "./editor/symbol-navigation";
 import {
   breakpointLines, breakpoints, createBreakpointGutter, debugLine, runtimeError, setDebugLine, setRuntimeError, toCodeMirror,
 } from "./editor/decorations";
@@ -330,7 +331,6 @@ const homeId = 0;
 const helpId = -1;
 let activeId = homeId;
 let helpOpen = false;
-let definitionNavigationGeneration = 0;
 let learningMode: LearningMode = loadLearningMode();
 let testsPanel: ReturnType<typeof createTestsPanelController> | null = null;
 
@@ -1119,30 +1119,16 @@ async function renameAt(offset: number) {
   }
 }
 
+const symbolNavigator = createSymbolNavigator({
+  activeTab,
+  view,
+  resolvePortugol: api.resolveSymbol,
+  resolvePortugolRs: api.resolveSymbolPortugolRs,
+  setStatus,
+});
+
 async function goToDeclarationAt(offset: number, quiet = false) {
-  const tab = activeTab();
-  if (!tab) return;
-  if (tab.language === "rust") {
-    if (!quiet) setStatus("Navegação de símbolos Rust ainda não está configurada.");
-    return;
-  }
-  const doc = view.state.doc;
-  const request = ++definitionNavigationGeneration;
-  try {
-    const location = semanticSymbolLanguage(tab.language) === "portugol-rs"
-      ? await api.resolveSymbolPortugolRs(doc.toString(), offset)
-      : await api.resolveSymbol(doc.toString(), offset);
-    if (request !== definitionNavigationGeneration || activeTab() !== tab || view.state.doc !== doc) return;
-    view.dispatch({
-      selection: { anchor: location.start.offset, head: location.end.offset },
-      effects: EditorView.scrollIntoView(location.start.offset, { y: "center" }),
-    });
-    view.focus();
-  } catch (error) {
-    if (!quiet && request === definitionNavigationGeneration && activeTab() === tab && view.state.doc === doc) {
-      setStatus(typeof error === "string" ? error : "Não foi possível ir à declaração.", "error");
-    }
-  }
+  return symbolNavigator.goToDeclarationAt(offset, quiet);
 }
 
 function renameSelection() {
