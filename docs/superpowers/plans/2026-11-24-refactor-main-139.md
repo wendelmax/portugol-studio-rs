@@ -200,4 +200,16 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - [x] Add tests for unique tab IDs, language detection, metadata preservation, naming, and active-buffer dirty state.
 - [x] Extract tab construction and metadata helpers into the state module; keep lifecycle wiring in the shell.
 - [x] Run the full frontend tests (61/61), typecheck, and build.
-- [ ] Commit the tab state group.
+- [x] Commit the tab state group (#169).
+
+### Task 15: Tab closing lifecycle
+
+**Files:**
+- Create: `apps/desktop/src/state/tab-closer.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/tab-closer.test.mjs`
+
+- [x] Add tests for help/tab closing, dirty-buffer confirmation, cancellation, and active-tab selection.
+- [x] Extract confirmation and collection mutation behind state callbacks.
+- [x] Run the full frontend tests (62/62), typecheck, and build.
+- [ ] Commit the tab closer group.

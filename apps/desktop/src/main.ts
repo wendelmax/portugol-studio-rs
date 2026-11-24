@@ -69,6 +69,7 @@ import * as api from "./api";
 import type { Tab } from "./state/tab";
 import { createTabsView } from "./state/tabs-view";
 import { createTabFactory, isTabDirty, PORS_TEMPLATE, tabName } from "./state/tabs";
+import { createTabCloser } from "./state/tab-closer";
 import { mountWorkspaceExplorer } from "./workspace/explorer";
 import { mountRustPreview } from "./rust/preview";
 import { mountLearningPanel } from "./learning/panel";
@@ -457,26 +458,24 @@ function syncLanguageControls(tab: Tab) {
   }
 }
 
-async function closeTab(id: number): Promise<boolean> {
-  if (id === helpId) {
-    helpOpen = false;
-    if (activeId === helpId) activate(tabs[tabs.length - 1]?.id ?? homeId);
-    else renderTabs();
-    return true;
-  }
-  const tab = tabs.find((t) => t.id === id);
-  if (!tab) return true;
-  if (isDirty(tab)) {
-    const discard = await ask(`"${tabName(tab)}" tem alterações não salvas. Fechar mesmo assim?`, {
-      title: "Fechar aba", kind: "warning", okLabel: "Fechar sem salvar", cancelLabel: "Cancelar",
-    });
-    if (!discard) return false;
-  }
-  const index = tabs.indexOf(tab);
-  tabs.splice(index, 1);
-  if (id === activeId) activate(tabs[Math.max(0, index - 1)]?.id ?? 0);
-  else renderTabs();
-  return true;
+const tabCloser = createTabCloser({
+  tabs: () => tabs,
+  activeId: () => activeId,
+  homeId,
+  helpId,
+  setHelpOpen: (open) => { helpOpen = open; },
+  isDirty,
+  tabName,
+  confirmDiscard: (tab) => ask(`"${tabName(tab)}" tem alterações não salvas. Fechar mesmo assim?`, {
+    title: "Fechar aba", kind: "warning", okLabel: "Fechar sem salvar", cancelLabel: "Cancelar",
+  }),
+  removeTab: (index) => { tabs.splice(index, 1); },
+  activate,
+  renderTabs,
+});
+
+function closeTab(id: number): Promise<boolean> {
+  return tabCloser.close(id);
 }
 
 const tabsView = createTabsView({
