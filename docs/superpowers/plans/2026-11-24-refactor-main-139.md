@@ -149,3 +149,17 @@
 - [x] Keep backend calls through `api.ts` and preserve startup event replay.
 - [x] Run frontend tests, typecheck, and build.
 - [ ] Commit the Portugol-RS execution group.
+
+### Task 11: Run event handling
+
+**Files:**
+- Create: `apps/desktop/src/run/run-events.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/run-events-controller.test.mjs`
+- Modify: `apps/desktop/tests/run-event-router.test.mjs`, `pors-input.test.mjs`, and `tsconfig.json`.
+
+- [x] Add focused tests for active/stale/startup events, input prompts, completion, and background runtime errors.
+- [x] Extract run event handlers behind explicit UI and state callbacks.
+- [x] Update contract tests for the new module boundary and allow the explicit TypeScript extension used by Node's test runner.
+- [x] Run frontend tests, typecheck, and build.
+- [ ] Commit the run-event group.
