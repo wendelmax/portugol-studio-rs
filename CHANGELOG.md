@@ -1,5 +1,18 @@
 # Histórico de versões
 
+## 0.3.0 (2026-11-24)
+
+### Novidades
+
+- **pors:** add consented cancellable Internet library across VM, WASM, Rust and IDE (#127)
+- **ide:** default new files to .pors, refine Tests panel and add Json/Arquivos examples and exercises (#125)
+
+### Manutenção
+
+- remove LICENSE.md duplicado (#128)
+
+Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v0.2.0...v0.3.0
+
 ## 0.2.0 (2026-11-24)
 
 ### Novidades
