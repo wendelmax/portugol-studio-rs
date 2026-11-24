@@ -1,0 +1,20 @@
+// Exemplo PORS 14: leitura e gravação confinadas ao workspace com Arquivos.*
+
+funcao registrar_notas() -> Resultado<cadeia, cadeia> {
+    seja _w: logico = Arquivos.escrever_texto("notas/lista.txt", "Estudar PORS\n")?;
+    seja _a: logico = Arquivos.acrescentar_texto("notas/lista.txt", "Testar Rust\n")?;
+    seja linhas: vetor<cadeia> = Arquivos.ler_linhas("notas/lista.txt")?;
+    seja _r: logico = Arquivos.remover("notas/lista.txt")?;
+    retorne Resultado::Ok("linhas=" + Tipos.inteiro_para_cadeia(tamanho(linhas)) + " segunda=" + linhas[1]);
+}
+
+funcao inicio() {
+    escolha registrar_notas() {
+        caso Resultado::Ok(msg) => {
+            escreva(msg);
+        }
+        caso Resultado::Erro(erro) => {
+            escreva("Erro: ", erro);
+        }
+    }
+}

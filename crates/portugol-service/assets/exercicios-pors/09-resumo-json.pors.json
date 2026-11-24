@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "id": "pors-09-resumo-json",
+  "title": "Extrair e atualizar JSON",
+  "statement": "Leia uma linha JSON representando um objeto com os campos \"nome\" (cadeia) e \"idade\" (inteiro). Escreva \"<nome>:<idade + 1>\" (ex.: Ada:37). Se o JSON for inválido ou faltar algum campo do tipo esperado, escreva \"invalido\".",
+  "starter_code": "funcao processar(texto: cadeia) -> Resultado<cadeia, cadeia> {\n    seja nome: cadeia = Json.obter_cadeia(texto, \"nome\")?;\n    seja idade: inteiro = Json.obter_inteiro(texto, \"idade\")?;\n    retorne Resultado::Ok(nome + \":\" + Tipos.inteiro_para_cadeia(idade + 1));\n}\n\nfuncao inicio() {\n    seja mutavel linha: cadeia = \"\";\n    leia(linha);\n    // Trate o Resultado com escolha\n}\n",
+  "hints": [
+    "Use Json.obter_cadeia(linha, \"nome\")? e Json.obter_inteiro(linha, \"idade\")? em uma função que retorna Resultado<cadeia, cadeia>.",
+    "Em inicio(), trate Resultado::Ok(saida) e Resultado::Erro(_) escrevendo \"invalido\" no caso de erro."
+  ],
+  "cases": [
+    {
+      "name": "objeto válido",
+      "input": "{\"nome\":\"Ada\",\"idade\":36}\n",
+      "expected_output": "Ada:37"
+    },
+    {
+      "name": "idade zero",
+      "input": "{\"nome\":\"Grace\",\"idade\":0}\n",
+      "expected_output": "Grace:1"
+    },
+    {
+      "name": "JSON inválido",
+      "input": "{invalido}\n",
+      "expected_output": "invalido"
+    },
+    {
+      "name": "tipo incompatível",
+      "input": "{\"nome\":\"Alan\",\"idade\":\"quarenta\"}\n",
+      "expected_output": "invalido"
+    }
+  ]
+}
