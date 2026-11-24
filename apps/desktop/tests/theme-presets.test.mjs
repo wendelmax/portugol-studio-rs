@@ -15,6 +15,7 @@ test("presets populares têm IDs estáveis e cores para todos os tokens da IDE",
     "preset:catppuccin-mocha": ["Catppuccin Mocha", "dark"],
     "preset:night-owl": ["Night Owl", "dark"],
     "preset:portugol-studio-next": ["Portugol Studio Next", "dark"],
+    "preset:high-contrast": ["Alto contraste", "dark"],
   };
 
   assert.deepEqual(Object.keys(BUILTIN_THEMES), Object.keys(expected));
@@ -25,10 +26,44 @@ test("presets populares têm IDs estáveis e cores para todos os tokens da IDE",
     for (const field of THEME_COLOR_FIELDS) {
       assert.match(theme.colors[field] ?? "", /^#[\da-f]{6}$/i, `${id} precisa definir ${field}`);
     }
-    assert.ok(contrast(theme.colors["--text"], theme.colors["--bg"]) >= 4.5, `${id} precisa manter contraste do texto`);
-    assert.ok(contrast(theme.colors["--text"], theme.colors["--surface"]) >= 4.5, `${id} precisa manter contraste dos painéis`);
-    assert.ok(contrast(theme.colors["--muted"], theme.colors["--bg"]) >= 4.5, `${id} precisa manter contraste do texto secundário no fundo`);
-    assert.ok(contrast(theme.colors["--muted"], theme.colors["--surface"]) >= 4.5, `${id} precisa manter contraste do texto secundário nos painéis`);
+    assert.match(theme.colors["--error-text"] ?? "", /^#[\da-f]{6}$/i, `${id} precisa definir a cor do texto sobre erros`);
+    for (const foreground of [
+      "--text", "--muted", "--editor-text", "--editor-gutter", "--syntax-keyword", "--syntax-type",
+      "--syntax-function", "--syntax-logical", "--syntax-number", "--syntax-string", "--syntax-comment",
+      "--syntax-operator",
+    ]) {
+      const background = foreground.startsWith("--editor-") || foreground.startsWith("--syntax-")
+        ? "--editor-bg"
+        : null;
+      const backgrounds = foreground === "--editor-gutter"
+        ? ["--editor-bg", "--editor-line"]
+        : background
+        ? ["--editor-bg", "--editor-line", "--editor-selection"]
+        : foreground === "--text"
+          ? ["--bg", "--surface", "--tab-active", "--console-surface", "--examples-surface"]
+          : foreground === "--muted"
+            ? ["--bg", "--surface", "--console-surface"]
+            : ["--bg", "--surface"];
+      for (const backdrop of backgrounds) {
+        assert.ok(
+          contrast(theme.colors[foreground], theme.colors[backdrop]) >= 4.5,
+          `${id}: ${foreground} precisa manter contraste AA com ${backdrop}`,
+        );
+      }
+    }
+    assert.ok(contrast(theme.colors["--home-title-text"], theme.colors["--frame"]) >= 4.5, `${id}: texto da tela inicial precisa de contraste AA`);
+    assert.ok(contrast(theme.colors["--input-echo"], theme.colors["--console-surface"]) >= 4.5, `${id}: entrada do console precisa de contraste AA`);
+    assert.ok(contrast(theme.colors["--editor-text"], theme.colors["--editor-selection"]) >= 4.5, `${id}: texto selecionado no editor precisa de contraste AA`);
+    for (const foreground of ["--accent", "--error", "--warning", "--ok"]) {
+      for (const background of ["--bg", "--surface"]) {
+        assert.ok(
+          contrast(theme.colors[foreground], theme.colors[background]) >= 4.5,
+          `${id}: ${foreground} precisa manter contraste AA com ${background}`,
+        );
+      }
+    }
+    assert.ok(contrast(theme.colors["--accent-text"], theme.colors["--accent"]) >= 4.5, `${id}: texto do destaque precisa de contraste AA`);
+    assert.ok(contrast(theme.colors["--error-text"], theme.colors["--error"]) >= 4.5, `${id}: texto do erro precisa de contraste AA`);
   }
   const next = BUILTIN_THEMES["preset:portugol-studio-next"];
   assert.equal(next.colors["--bg"], "#0c1118");
@@ -42,8 +77,47 @@ test("seletor mantém os temas originais e oferece cada preset pelo ID estável"
   for (const value of ["system", "light", "dark", ...[
     "preset:github-light", "preset:github-dark", "preset:one-dark-pro", "preset:dracula",
     "preset:catppuccin-mocha", "preset:night-owl",
-    "preset:portugol-studio-next",
+    "preset:portugol-studio-next", "preset:high-contrast",
   ]]) assert.ok(html.includes(`value="${value}"`), `seletor deve conter ${value}`);
+});
+
+test("paletas originais clara e escura atendem ao contraste de texto e indicadores", () => {
+  const css = readFileSync(new URL("../src/styles/tokens.css", import.meta.url), "utf8");
+  const lightBlock = css.match(/:root,\s*\.theme-palette\s*\{([^}]+)\}/s)?.[1];
+  const darkBlock = css.match(/:root\[data-theme="dark"\],\s*\.theme-palette\[data-theme="dark"\]\s*\{([^}]+)\}/s)?.[1];
+  assert.ok(lightBlock, "tokens.css deve definir a paleta original clara");
+  assert.ok(darkBlock, "tokens.css deve definir a paleta original escura");
+  const palette = (block) => Object.fromEntries(
+    [...block.matchAll(/(--[a-z-]+):\s*(#[\da-f]{6})\s*;/gi)].map(([, field, color]) => [field, color]),
+  );
+
+  for (const [id, colors] of [["claro", palette(lightBlock)], ["escuro", palette(darkBlock)]]) {
+    assert.match(colors["--error-text"] ?? "", /^#[\da-f]{6}$/i, `${id}: tokens.css precisa definir --error-text`);
+    for (const foreground of ["--text", "--muted"]) {
+      const backgrounds = foreground === "--text"
+        ? ["--bg", "--surface", "--tab-active", "--console-surface", "--examples-surface"]
+        : ["--bg", "--surface", "--console-surface"];
+      for (const background of backgrounds) {
+        assert.ok(contrast(colors[foreground], colors[background]) >= 4.5, `${id}: ${foreground}/${background} precisa de 4,5:1`);
+      }
+    }
+    assert.ok(contrast(colors["--home-title-text"], colors["--frame"]) >= 4.5, `${id}: --home-title-text/--frame precisa de 4,5:1`);
+    assert.ok(contrast(colors["--input-echo"], colors["--console-surface"]) >= 4.5, `${id}: --input-echo/--console-surface precisa de 4,5:1`);
+    assert.ok(contrast(colors["--editor-text"], colors["--editor-selection"]) >= 4.5, `${id}: --editor-text/--editor-selection precisa de 4,5:1`);
+    for (const foreground of [
+      "--editor-text", "--editor-gutter", "--syntax-keyword", "--syntax-type", "--syntax-function",
+      "--syntax-logical", "--syntax-number", "--syntax-string", "--syntax-comment", "--syntax-operator",
+    ]) {
+      assert.ok(contrast(colors[foreground], colors["--editor-bg"]) >= 4.5, `${id}: ${foreground}/--editor-bg precisa de 4,5:1`);
+    }
+    for (const foreground of ["--accent", "--error", "--warning", "--ok"]) {
+      for (const background of ["--bg", "--surface"]) {
+        assert.ok(contrast(colors[foreground], colors[background]) >= 4.5, `${id}: ${foreground}/${background} precisa de 4,5:1`);
+      }
+    }
+    assert.ok(contrast(colors["--accent-text"], colors["--accent"]) >= 4.5, `${id}: --accent-text/--accent precisa de 4,5:1`);
+    assert.ok(contrast(colors["--error-text"], colors["--error"]) >= 4.5, `${id}: --error-text/--error precisa de 4,5:1`);
+  }
 });
 
 function contrast(foreground, background) {

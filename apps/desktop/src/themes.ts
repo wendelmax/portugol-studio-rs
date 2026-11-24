@@ -10,6 +10,7 @@ const fields = {
   "--accent": "Destaque",
   "--accent-text": "Texto do destaque",
   "--error": "Erros",
+  "--error-text": "Texto sobre erros",
   "--warning": "Avisos",
   "--ok": "Sucesso",
   "--input-echo": "Entrada digitada",
