@@ -1,7 +1,7 @@
 // Atalhos de teclado. Também alimentam a paleta de comandos e a lista exibida
 // em "Atalhos de teclado" (F11).
 
-import { $ } from "../dom";
+import { $ } from "../dom.ts";
 
 export interface Shortcut {
   /** Texto do atalho exibido ao usuário, como "Ctrl+S". */

@@ -46,7 +46,9 @@ test("palette dialog exposes an accessible search, listbox, and empty state", ()
 
 test("command palette shortcut is advertised", () => {
   const main = ideSource();
-  assert.match(main, /Ctrl\+Shift\+P[^\n]*Paleta de comandos/i);
+const shortcuts = readFileSync(new URL("../src/commands/ide-shortcuts.ts", import.meta.url), "utf8");
+  assert.match(main, /createIdeShortcuts\(/);
+  assert.match(shortcuts, /label: "Ctrl\+Shift\+P", command: "Paleta de comandos"/i);
 });
 
 test("palette hides tab commands without a tab and Rust-unsupported commands in Rust files", () => {

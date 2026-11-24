@@ -1,0 +1,83 @@
+import { ctrlShortcut, type Shortcut } from "./shortcuts.ts";
+
+export type IdeShortcutActions = Record<string, () => unknown>;
+
+/** Monta o catálogo único usado pela paleta, diálogo e captura global de teclas. */
+export function createIdeShortcuts(actions: IdeShortcutActions): Shortcut[] {
+  const shortcuts: Shortcut[] = [
+    { label: "Shift+F6 / Ctrl+Enter", command: "Executar", matches: (e) =>
+      (e.shiftKey && e.key === "F6") || ((e.ctrlKey || e.metaKey) && e.key === "Enter"), action: actions.runOrContinue },
+    { label: "Shift+F5", command: "Depurar", matches: (e) => e.shiftKey && e.key === "F5", action: actions.stepOrStart },
+    { label: "Shift+F7", command: "Interromper", matches: (e) => e.shiftKey && e.key === "F7", action: actions.stopProgram },
+    { label: "F9", command: "Pausar", matches: (e) => !e.shiftKey && e.key === "F9", action: actions.pauseDebug },
+    { label: "F5", command: "Continuar", matches: (e) => !e.shiftKey && e.key === "F5", action: actions.continueDebug },
+    { label: "Shift+F9 / F10", command: "Próxima instrução",
+      matches: (e) => (e.shiftKey && e.key === "F9") || e.key === "F10", action: actions.stepOver },
+    { label: "Alt+F11", command: "Entrar na função", matches: (e) => e.altKey && !e.shiftKey && e.key === "F11", action: actions.stepInto },
+    { label: "Shift+F11", command: "Sair da função", matches: (e) => e.shiftKey && e.key === "F11", action: actions.stepOut },
+    { label: "F1", command: "Ajuda", matches: (e) => e.key === "F1", action: actions.help },
+    { label: "Ctrl+R", command: "Renomear símbolo",
+      matches: (e) => (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === "KeyR", action: actions.renameSymbol },
+    { label: "Ctrl+Alt+F", command: "Formatar código-fonte",
+      matches: (e) => (e.ctrlKey || e.metaKey) && e.altKey && !e.shiftKey && e.code === "KeyF", action: actions.formatCode },
+    { label: "via paleta de comandos", command: "Executar como Rust", matches: () => false, action: actions.runAsRust },
+    { label: "via paleta de comandos", command: "Analisar projeto Cargo", matches: () => false, action: actions.checkCargoProject },
+    { label: "via paleta de comandos", command: "Testar projeto Cargo", matches: () => false, action: actions.runCargoTests },
+    { label: "F3", command: "Dicas de interface", matches: (e) => e.key === "F3", action: actions.openTips },
+    { label: "F12", command: "Sobre (fora do editor); ir à declaração (no editor)", matches: (e) => e.key === "F12", action: actions.about },
+    { label: "F11", command: "Atalhos de teclado", matches: (e) => !e.altKey && !e.shiftKey && e.key === "F11", action: actions.showShortcuts },
+    { label: "Alt+Home", command: "Tela inicial", matches: (e) => e.altKey && e.key === "Home", action: actions.home },
+    { label: "Alt+←", command: "Aba anterior", matches: (e) => e.altKey && e.key === "ArrowLeft", action: actions.previousTab },
+    { label: "Alt+→", command: "Próxima aba", matches: (e) => e.altKey && e.key === "ArrowRight", action: actions.nextTab },
+    { label: "Shift+Pause", command: "Ativar/desativar centralização", matches: (e) => e.shiftKey && e.key === "Pause", action: actions.toggleCenter },
+    { label: "Shift+Esc", command: "Expandir/restaurar editor", matches: (e) => e.shiftKey && e.key === "Escape", action: actions.toggleExpanded },
+    { label: "Ctrl+Shift+P", command: "Paleta de comandos", matches: (e) =>
+      (e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.code === "KeyP", action: actions.commandPalette },
+  ];
+  const addFileShortcut = (key: string, shift: boolean, command: string, action: () => unknown) => {
+    shortcuts.push(ctrlShortcut(key, shift, command, action));
+  };
+
+  addFileShortcut("N", false, "Novo arquivo", actions.newFile);
+  addFileShortcut("O", false, "Abrir arquivo", actions.openFile);
+  addFileShortcut("E", true, "Mostrar ou ocultar o explorador", actions.toggleExplorer);
+  addFileShortcut("S", false, "Salvar", actions.save);
+  addFileShortcut("S", true, "Salvar como", actions.saveAs);
+  addFileShortcut("E", false, "Parâmetros de execução", actions.executionParameters);
+  addFileShortcut("B", false, "Painel Utilitários", actions.utilities);
+  addFileShortcut("L", false, "Buscar na estrutura", actions.searchOutline);
+  addFileShortcut("Q", false, "Fechar aba", actions.closeTab);
+  addFileShortcut("Q", true, "Fechar todas as abas", actions.closeAllTabs);
+  shortcuts.push({ label: "Ctrl+F", command: "Localizar e substituir", matches: (e) =>
+    (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === "KeyF", action: actions.findReplace });
+
+  const typeFilters = [
+    ["I", "Filtrar tipo inteiro", actions.filterTypeInteger],
+    ["C", "Filtrar tipo caracter", actions.filterTypeCharacter],
+    ["R", "Filtrar tipo real", actions.filterTypeReal],
+    ["A", "Filtrar tipo cadeia", actions.filterTypeString],
+    ["L", "Filtrar tipo logico", actions.filterTypeLogical],
+    ["V", "Filtrar tipo vazio", actions.filterTypeVoid],
+    ["T", "Mostrar todos os tipos", actions.showAllTypes],
+  ] as const;
+  for (const [key, command, action] of typeFilters) {
+    shortcuts.push({
+      label: `Alt+Shift+${key}`,
+      command,
+      matches: (e) => e.altKey && e.shiftKey && e.code === `Key${key}`,
+      action,
+    });
+  }
+
+  const symbolFilters = [
+    ["A", "variável", actions.filterVariable],
+    ["E", "vetor", actions.filterArray],
+    ["M", "matriz", actions.filterMatrix],
+    ["F", "função", actions.filterFunction],
+    ["T", "constante", actions.filterConstant],
+  ] as const;
+  for (const [key, label, action] of symbolFilters) {
+    addFileShortcut(key, true, `Filtrar ${label}`, action);
+  }
+  return shortcuts;
+}
