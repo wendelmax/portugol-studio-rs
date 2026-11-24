@@ -45,10 +45,11 @@ test("replays matching startup events in arrival order", () => {
 
 test("IDE routes events and replays startup events through the tested run-id guard", () => {
   const runEvents = readFileSync(new URL("../src/run/run-events.ts", import.meta.url), "utf8");
+  const classicExecution = readFileSync(new URL("../src/run/classic-execution.ts", import.meta.url), "utf8");
   assert.match(main, /createRunEventsController\([\s\S]*pendingEvents: \(\) => pendingEvents/);
   assert.match(runEvents, /routeRunEvent\(id, dependencies\.runId\(\), dependencies\.pendingEvents\(\), handle\)/);
-  assert.equal((main.match(/replayRunEvents\(events, id\)/g) ?? []).length, 1);
+  assert.equal((main.match(/replayEvents: replayRunEvents/g) ?? []).length, 2);
+  assert.match(classicExecution, /dependencies\.replayEvents\(events, id\)/);
   const porsExecution = readFileSync(new URL("../src/run/portugol-rs-execution.ts", import.meta.url), "utf8");
-  assert.match(main, /replayEvents: replayRunEvents/);
   assert.match(porsExecution, /dependencies\.replayEvents\(events, id\)/);
 });
