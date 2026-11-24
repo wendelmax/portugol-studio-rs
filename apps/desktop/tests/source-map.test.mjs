@@ -2,9 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { mappedPreviewSegments, sourceDiagnostic, sourceMapLinks } from "../src/source-map-ui.ts";
+import { ideSource } from "./support/ide-source.mjs";
 
 const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
-const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+const main = ideSource();
 const ui = readFileSync(new URL("../src/source-map-ui.ts", import.meta.url), "utf8");
 const css = readFileSync(new URL("../src/style.css", import.meta.url), "utf8");
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");

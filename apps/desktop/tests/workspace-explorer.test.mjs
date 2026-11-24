@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { collectWorkspaceFiles, flattenWorkspaceEntries, workspaceFileKind, workspaceRenameFileName, workspaceSourceFileName } from "../src/workspace-explorer.ts";
+import { ideSource } from "./support/ide-source.mjs";
 
 test("collapsed folders hide descendants and expanded folders preserve tree depth", () => {
   const entries = [
@@ -91,7 +92,7 @@ test("home action and explorer tree expose stable accessible controls", () => {
 
 test("home start page defaults new file to Portugol-RS and groups alternate languages", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
-  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+  const main = ideSource();
   const css = readFileSync(new URL("../src/style.css", import.meta.url), "utf8");
 
   assert.match(html, /<button id="home-new"[^>]*Portugol-RS \(\.pors\)[^>]*>[^<]*<span[^>]*>[^<]*<\/span>Novo Arquivo<\/button>/);
@@ -128,7 +129,7 @@ test("workspace create dialog exposes the .pors (default), .rs, and .por choices
 
 test("startup has a typed Tauri route to restore the last workspace", () => {
   const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
-  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+  const main = ideSource();
   assert.match(api, /restoreWorkspace\s*=\s*\(\)\s*=>\s*invoke<WorkspaceListing\s*\|\s*null>\("workspace_restore"\)/);
   assert.match(main, /restoreWorkspaceOnStartup\(\)/);
   assert.match(main, /api\.restoreWorkspace\(\)/);
@@ -137,7 +138,7 @@ test("startup has a typed Tauri route to restore the last workspace", () => {
 test("workspace rename has an accessible dialog and a typed Tauri route", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
-  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+  const main = ideSource();
   const css = readFileSync(new URL("../src/style.css", import.meta.url), "utf8");
   assert.match(main, /workspace-rename-file/);
   assert.match(html, /id="workspace-rename-dialog"[^>]*aria-labelledby="workspace-rename-title"/);
@@ -154,7 +155,7 @@ test("workspace rename has an accessible dialog and a typed Tauri route", () => 
 test("workspace delete has an accessible destructive confirmation and typed Tauri route", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
-  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+  const main = ideSource();
 
   assert.match(main, /workspace-delete-file/);
   assert.match(html, /id="workspace-delete-dialog"[^>]*aria-labelledby="workspace-delete-title"[^>]*aria-describedby="workspace-delete-description"/);

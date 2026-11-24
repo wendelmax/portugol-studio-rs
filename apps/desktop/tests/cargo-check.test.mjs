@@ -1,10 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { ideSource } from "./support/ide-source.mjs";
 
 test("cargo check is explicit, workspace-scoped, and mapped to the active editor", () => {
   const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
-  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+  const main = ideSource();
   const tauri = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
   const service = readFileSync(new URL("../../../crates/portugol-service/src/cargo_project.rs", import.meta.url), "utf8");
 

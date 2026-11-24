@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { replayRunEvents, routeRunEvent } from "../src/run-event-router.ts";
+import { ideSource } from "./support/ide-source.mjs";
 
-const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+const main = ideSource();
 
 test("delivers events only to the matching run and drops queued events from an older run", () => {
   let activeRunId = null;

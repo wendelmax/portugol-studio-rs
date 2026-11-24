@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
+import { ideSource } from "./support/ide-source.mjs";
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const css = readFileSync(new URL("../src/style.css", import.meta.url), "utf8");
-const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+const main = ideSource();
 
 test("shell tem marca, navegação de atividade e tabs dentro do workspace de edição", () => {
   assert.match(html, /class="app-brand"/);

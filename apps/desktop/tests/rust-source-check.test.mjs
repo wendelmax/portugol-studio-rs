@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
+import { ideSource } from "./support/ide-source.mjs";
 
 const { createLatestOnlyRustSourceChecker } = await import("../src/rust-source-check.ts");
-const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+const main = ideSource();
 const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
 const tauri = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
 

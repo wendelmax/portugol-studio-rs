@@ -2,10 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { workspaceExportStatus } from "../src/workspace-export-state.ts";
+import { ideSource } from "./support/ide-source.mjs";
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
-const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+const main = ideSource();
 const workspaceRust = readFileSync(new URL("../src-tauri/src/workspace.rs", import.meta.url), "utf8");
 const libRust = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
 
