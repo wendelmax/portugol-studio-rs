@@ -40,9 +40,7 @@ import {
   exerciseTestPanelState,
   exerciseTestStatus,
   isCurrentExerciseTestRequest,
-  type CargoTestRun,
   type ExerciseTestRequest,
-  type ExerciseTestRun,
 } from "./exercise-test-panel";
 import { portugolFolding } from "./folding";
 import { editorSearchKeys, findDialog } from "./find";
@@ -52,14 +50,11 @@ import { panelContentId, panelNameForKey, type PanelName } from "./panel-tabs";
 import { LIBRARIES, portugol, portugolRs, SNIPPETS } from "./portugol";
 import { detectSourceLanguage, ensureSourceExtension, type SourceLanguage } from "./document-language";
 import { semanticSymbolLanguage } from "./semantic-symbol-actions";
-import { collectWorkspaceFiles, flattenWorkspaceEntries, workspaceFileKind, workspaceRenameFileName, workspaceSourceFileName, type WorkspaceEntry } from "./workspace-explorer";
-import { workspaceExportStatus } from "./workspace-export-state";
 import { canDebugSource, canFormatSource, canRunAsRust, canRunSource } from "./runtime-capabilities";
 import { parseClassicArguments, parseProcessArguments } from "./process-arguments";
 import { hasCargoExecutionConsent, hasRustExecutionConsent, rememberCargoExecutionConsent, rememberRustExecutionConsent } from "./rust-execution-consent";
-import { applyWorkspaceRenameToTabs, deleteWorkspaceFileFlow, prepareWorkspaceRename } from "./workspace-file-actions";
 import { conceptsForMode, resolveConceptForMode } from "./learning-content";
-import { learningPinForMode, setLearningPin, toggleLearningPin, type LearningPins } from "./learning-pins";
+import { learningPinForMode, setLearningPin, toggleLearningPin } from "./learning-pins";
 import { explainMappedConcept, learningContextAtSelection } from "./learning-context";
 import { createLatestOnlyRustSourceChecker } from "./rust-source-check";
 import { replayRunEvents, routeRunEvent as routeRunEventById, type PendingRunEvent } from "./run-event-router";
@@ -72,11 +67,13 @@ import {
   type OwnershipScenarioId,
 } from "./ownership-lab";
 import { filterCommands, isDebugCommandAvailable, nextCommandIndex } from "./command-palette";
-import { acceptRustPreview, beginRustPreview, failRustPreview, generatedRustComparison, markRustPreviewStale, type RustPreviewState } from "./rust-preview-state";
+import { acceptRustPreview, beginRustPreview, failRustPreview, generatedRustComparison, markRustPreviewStale } from "./rust-preview-state";
 import { PORS_UI_EXAMPLES } from "./pors-ui-examples";
 import { mountPorsUiPreviewPanel } from "./pors-ui-preview-panel";
 import { mountUiPreview } from "./ui-preview-renderer";
 import * as api from "./api";
+import type { Tab } from "./state/tab";
+import { mountWorkspaceExplorer } from "./workspace/explorer";
 import { $ } from "./dom";
 import { createRecentFiles } from "./files/recent";
 import { mountPaneLayout } from "./layout/panes";
@@ -96,32 +93,6 @@ const TEMPLATE = "programa\n{\n\tfuncao inicio()\n\t{\n\t\t\n\t}\n}\n";
 // Editor
 // ---------------------------------------------------------------------------
 
-interface Tab {
-  id: number;
-  path: string | null;
-  language: SourceLanguage;
-  exampleName?: string;
-  examplePath?: string;
-  exercise?: ExerciseDocument;
-  exerciseTestRun?: ExerciseTestRun;
-  exerciseTestGeneration?: number;
-  cargoTestRun?: CargoTestRun;
-  workspaceId?: string;
-  workspacePath?: string;
-  workspacePreferenceKey?: string;
-  cargoProject?: boolean;
-  cargoTarget?: api.CargoRunTarget;
-  workspaceExercisePath?: string;
-  state: EditorState;
-  rustPreview?: RustPreviewState;
-  learningPins?: LearningPins;
-  showRustDiff?: boolean;
-  /** Texto da última gravação, para saber se há alterações. */
-  saved: string;
-  diagnostics: api.DiagnosticInfo[];
-  runtimeCompileDiagnostics?: api.DiagnosticInfo[];
-  symbols: api.SymbolInfo[];
-}
 
 // Compartimentos reconfigurados ao trocar de aba, linguagem ou tema.
 const theme = new Compartment();
@@ -318,11 +289,6 @@ onSystemThemeChange(refreshEditorThemes);
 // ---------------------------------------------------------------------------
 
 let tabs: Tab[] = [];
-let workspaceState: api.WorkspaceListing | null = null;
-let workspaceLoading = false;
-let workspaceRequest = 0;
-let selectedWorkspacePath: string | null = null;
-const expandedWorkspaceFolders = new Set<string>();
 const homeId = 0;
 const helpId = -1;
 let activeId = homeId;
@@ -397,11 +363,7 @@ function activate(id: number) {
     else $("home").focus();
     return;
   }
-  const workspacePath = tab.workspacePath ?? tab.workspaceExercisePath;
-  if (tab.workspaceId === workspaceState?.id && workspacePath) {
-    selectedWorkspacePath = workspacePath;
-    renderWorkspaceExplorer();
-  }
+  workspaceExplorer.select(tab.workspaceId, tab.workspacePath ?? tab.workspaceExercisePath);
   view.setState(tab.state);
   panes.load(tab.workspacePreferenceKey);
   applyLearningMode(loadLearningMode(undefined, tab.workspacePreferenceKey), false);
@@ -586,717 +548,35 @@ const FILTERS = [
   { name: "Todos os programas", extensions: ["pors", "rs", "por"] },
 ];
 
-let workspaceError: string | null = null;
-let workspaceFileCreationPending = false;
-let workspaceExportPending = false;
-let workspaceRenameTarget: Extract<WorkspaceEntry, { kind: "file" }> | null = null;
-let workspaceRenamePending = false;
-let workspaceDeleteTarget: Extract<WorkspaceEntry, { kind: "file" }> | null = null;
-let workspaceDeletePending = false;
-
-function renderWorkspaceExplorer() {
-  $("workspace-explorer").setAttribute("aria-busy", String(workspaceLoading));
-  const tree = $<HTMLUListElement>("workspace-tree");
-  const message = $("workspace-tree-state");
-  const name = $("workspace-name");
-  const openButtons = [$<HTMLButtonElement>("home-open-folder"), $<HTMLButtonElement>("workspace-open-folder")];
-  openButtons.forEach((button) => { button.disabled = workspaceLoading; });
-  $<HTMLButtonElement>("workspace-export").disabled = !workspaceState || workspaceLoading || workspaceExportPending;
-  $<HTMLButtonElement>("workspace-new-file").disabled = !workspaceState || workspaceLoading;
-  name.hidden = !workspaceState;
-  name.textContent = workspaceState?.name ?? "";
-
-  const rows = flattenWorkspaceEntries(workspaceState?.entries ?? [], expandedWorkspaceFolders);
-  tree.setAttribute("aria-label", workspaceState ? `Arquivos em ${workspaceState.name}` : "Arquivos do projeto");
-  const items = rows.map(({ entry, depth, position, setSize }) => {
-    const item = document.createElement("li");
-    item.setAttribute("role", "none");
-    const button = document.createElement("button");
-    const isFolder = entry.kind === "folder";
-    const isExpanded = isFolder && expandedWorkspaceFolders.has(entry.path);
-    const marker = document.createElement("span");
-    marker.className = "workspace-tree-marker";
-    marker.setAttribute("aria-hidden", "true");
-    marker.textContent = isFolder ? (isExpanded ? "▾" : "▸") : workspaceFileKind(entry.path) === "rust" ? "R" : workspaceFileKind(entry.path) === "portugol-rs" ? "RS" : workspaceFileKind(entry.path) === "exercise" ? "EX" : "POR";
-    const label = document.createElement("span");
-    label.className = "workspace-tree-label";
-    label.textContent = entry.name;
-    button.type = "button";
-    button.className = `workspace-tree-item${isFolder ? " is-folder" : " is-file"}`;
-    button.dataset.path = entry.path;
-    button.dataset.depth = String(depth);
-    button.setAttribute("role", "treeitem");
-    button.setAttribute("aria-level", String(depth + 1));
-    button.setAttribute("aria-posinset", String(position));
-    button.setAttribute("aria-setsize", String(setSize));
-    button.setAttribute("aria-selected", String(!isFolder && selectedWorkspacePath === entry.path));
-    button.style.paddingInlineStart = "8px";
-    if (isFolder) {
-      button.setAttribute("aria-expanded", String(isExpanded));
-      button.setAttribute("aria-label", `${entry.name}, pasta${isExpanded ? ", expandida" : ", recolhida"}`);
-      button.onclick = () => {
-        if (expandedWorkspaceFolders.has(entry.path)) expandedWorkspaceFolders.delete(entry.path);
-        else expandedWorkspaceFolders.add(entry.path);
-        renderWorkspaceExplorer();
-        tree.querySelector<HTMLButtonElement>(`[data-path="${CSS.escape(entry.path)}"]`)?.focus();
-      };
-    } else {
-      button.setAttribute("aria-label", `${entry.name}, arquivo`);
-      button.onclick = () => {
-        selectedWorkspacePath = entry.path;
-        renderWorkspaceExplorer();
-        void openWorkspaceFile(entry).catch((error) => {
-          workspaceError = String(error);
-          renderWorkspaceExplorer();
-          setStatus(String(error), "error");
-        });
-      };
-    }
-    button.append(marker, label);
-    const row = document.createElement("div");
-    row.className = "workspace-tree-row";
-    row.style.paddingInlineStart = `${depth * 16}px`;
-    row.append(button);
-    if (!isFolder) {
-      const actions = document.createElement("div");
-      actions.className = "workspace-file-actions";
-      const renameButton = document.createElement("button");
-      renameButton.type = "button";
-      renameButton.textContent = "✎";
-      renameButton.title = `Renomear ${entry.name}`;
-      renameButton.setAttribute("aria-label", `Renomear ${entry.name}`);
-      renameButton.dataset.action = "workspace-rename-file";
-      renameButton.onclick = (event) => {
-        event.stopPropagation();
-        openWorkspaceRenameDialog(entry);
-      };
-      actions.append(renameButton);
-      const deleteButton = document.createElement("button");
-      deleteButton.type = "button";
-      deleteButton.textContent = "🗑";
-      deleteButton.title = `Excluir ${entry.name}`;
-      deleteButton.setAttribute("aria-label", `Excluir ${entry.name}`);
-      deleteButton.dataset.action = "workspace-delete-file";
-      deleteButton.onclick = (event) => {
-        event.stopPropagation();
-        openWorkspaceDeleteDialog(entry);
-      };
-      actions.append(deleteButton);
-      actions.dataset.testid = "file-actions";
-      row.append(actions);
-    }
-    item.append(row);
-    return item;
-  });
-  tree.replaceChildren(...items);
-  tree.hidden = rows.length === 0;
-
-  if (workspaceLoading) {
-    message.textContent = "Abrindo pasta…";
-    message.hidden = false;
-  } else if (workspaceError) {
-    message.textContent = workspaceError;
-    message.hidden = false;
-  } else if (!workspaceState) {
-    message.textContent = "Abra uma pasta para navegar pelos arquivos do projeto.";
-    message.hidden = false;
-  } else if (rows.length === 0) {
-    message.textContent = "Esta pasta não contém arquivos .por, .pors, .rs ou .pex.";
-    message.hidden = false;
-  } else {
-    message.textContent = "";
-    message.hidden = true;
-  }
-}
-
-async function openWorkspaceFolder() {
-  if (workspaceLoading) return;
-  const request = ++workspaceRequest;
-  workspaceLoading = true;
-  workspaceError = null;
-  renderWorkspaceExplorer();
-  try {
-    const selected = await api.openWorkspace();
-    if (request !== workspaceRequest || !selected) return;
-    workspaceState = selected;
-    selectedWorkspacePath = null;
-    expandedWorkspaceFolders.clear();
-    workspaceError = null;
-    setWorkspaceExplorerVisible(true);
-    if (!activeTab()) {
-      const previousTab = tabs[tabs.length - 1];
-      if (previousTab) activate(previousTab.id);
-      else newTab();
-    }
-    renderWorkspaceExplorer();
-    setStatus(`Pasta aberta: ${selected.name}`, "ok");
-  } catch (error) {
-    if (request === workspaceRequest) {
-      workspaceError = String(error);
-      renderWorkspaceExplorer();
-      setStatus(String(error), "error");
-    }
-  } finally {
-    if (request === workspaceRequest) {
-      workspaceLoading = false;
-      renderWorkspaceExplorer();
-    }
-  }
-}
-
-async function restoreWorkspaceOnStartup() {
-  const request = ++workspaceRequest;
-  try {
-    const restored = await api.restoreWorkspace();
-    if (request !== workspaceRequest || !restored) return;
-    workspaceState = restored;
-    selectedWorkspacePath = null;
-    expandedWorkspaceFolders.clear();
-    setWorkspaceExplorerVisible(true);
-    renderWorkspaceExplorer();
-    setStatus(`Última pasta reaberta: ${restored.name}`, "ok");
-  } catch (error) {
-    if (request === workspaceRequest) setStatus(String(error), "error");
-  }
-}
-
-async function openWorkspaceFile(entry: Extract<WorkspaceEntry, { kind: "file" }>) {
-  const selected = workspaceState;
-  if (!selected) return;
-  const kind = workspaceFileKind(entry.path);
-  if (!kind) return;
-  if (kind === "exercise") {
-    const existingExercise = tabs.find((tab) =>
-      tab.workspaceId === selected.id && tab.workspaceExercisePath === entry.path,
-    );
-    if (existingExercise) {
-      activate(existingExercise.id);
-      return;
-    }
-    const loaded = await api.readWorkspaceFile(selected.id, entry.path);
-    if (workspaceState?.id !== selected.id) return;
-    const exercise = await api.inspectExercise(loaded.source);
-    if (workspaceState?.id !== selected.id) return;
-    openExercise({ exercise, name: loaded.path.split("/").pop() ?? entry.name, contents: loaded.source }, {
-      id: selected.id,
-      path: loaded.relativePath,
-      preferenceKey: selected.preferenceKey,
-      exercise: true,
-    });
-    setStatus(`Exercício aberto: ${entry.path}`, "ok");
-    return;
-  }
-
-  const existing = tabs.find((tab) => tab.workspaceId === selected.id && tab.workspacePath === entry.path);
-  if (existing) {
-    activate(existing.id);
-    return;
-  }
-  const loaded = await api.readWorkspaceFile(selected.id, entry.path);
-  if (workspaceState?.id !== selected.id) return;
-  const current = activeTab();
-  if (current && !current.path && !current.exampleName && !isDirty(current) && tabs.length === 1) tabs = [];
-  const tab = newTab(loaded.source, loaded.path, undefined, undefined, undefined, undefined, {
-    id: selected.id,
-    path: loaded.relativePath,
-    preferenceKey: selected.preferenceKey,
-  });
-  tab.workspacePath = loaded.relativePath;
-  if (tab.language === "rust") {
-    void api.workspaceCargoProjectAvailable(selected.id, loaded.relativePath).then((available) => {
-      tab.cargoProject = available;
-      if (activeTab() === tab) {
-        syncLanguageControls(tab);
-        forceLinting(view);
-      }
-    }).catch((error: unknown) => {
-      tab.cargoProject = false;
-      console.error("Não foi possível verificar Cargo.toml:", error);
-      if (activeTab() === tab) syncLanguageControls(tab);
-    });
-  }
-  recentFiles.remember(loaded.path);
-  setStatus(`Aberto: ${entry.path}`, "ok");
-}
-
-function showWorkspaceCreateError(message: string | null) {
-  const error = $("workspace-create-error");
-  error.textContent = message ?? "";
-  error.hidden = !message;
-  $("workspace-create-name").setAttribute("aria-invalid", String(Boolean(message)));
-}
-
-function showWorkspaceRenameError(message: string | null) {
-  const error = $("workspace-rename-error");
-  error.textContent = message ?? "";
-  error.hidden = !message;
-  $("workspace-rename-name").setAttribute("aria-invalid", String(Boolean(message)));
-}
-
-function openWorkspaceRenameDialog(entry: Extract<WorkspaceEntry, { kind: "file" }>) {
-  if (!workspaceState || workspaceRenamePending) return;
-  workspaceRenameTarget = entry;
-  const input = $<HTMLInputElement>("workspace-rename-name");
-  showWorkspaceRenameError(null);
-  $<HTMLFormElement>("workspace-rename-form").reset();
-  input.value = entry.name;
-  $<HTMLDialogElement>("workspace-rename-dialog").showModal();
-  const dot = entry.name.lastIndexOf(".");
-  input.setSelectionRange(0, dot > 0 ? dot : entry.name.length);
-  input.focus();
-}
-
-async function submitWorkspaceRenameDialog(event: SubmitEvent) {
-  event.preventDefault();
-  const workspace = workspaceState;
-  const original = workspaceRenameTarget;
-  if (!workspace || !original) return;
-
-  const input = $<HTMLInputElement>("workspace-rename-name");
-  let newName: string;
-  try {
-    newName = workspaceRenameFileName(input.value, original.path);
-  } catch (error) {
-    showWorkspaceRenameError(String(error).replace(/^Error: /, ""));
-    input.focus();
-    return;
-  }
-  if (newName === original.name) {
-    $<HTMLDialogElement>("workspace-rename-dialog").close();
-    workspaceRenameTarget = null;
-    return;
-  }
-
-  const submit = $<HTMLButtonElement>("workspace-rename-submit");
-  const cancel = $<HTMLButtonElement>("workspace-rename-cancel");
-  workspaceRenamePending = true;
-  submit.disabled = true;
-  cancel.disabled = true;
-  showWorkspaceRenameError(null);
-  try {
-    const openTabs = tabs.filter((tab) => tab.workspaceId === workspace.id &&
-      (tab.workspacePath === original.path || tab.workspaceExercisePath === original.path));
-    const previousActive = activeId;
-    const preparation = await prepareWorkspaceRename({
-      tabs: openTabs,
-      sourcePath: original.path,
-      isDirty,
-      confirmSave: () => ask(`"${original.name}" tem alterações não salvas. Salvar antes de renomear?`, {
-        title: "Renomear arquivo",
-        kind: "warning",
-        okLabel: "Salvar e renomear",
-        cancelLabel: "Cancelar",
-      }),
-      saveTab: async (tab) => {
-        activate(tab.id);
-        try {
-          return await save();
-        } catch {
-          return false;
-        }
-      },
-    });
-    activate(previousActive);
-    if (preparation === "cancelled") return;
-    if (preparation === "save-failed") {
-      showWorkspaceRenameError("Não foi possível salvar. O arquivo não foi renomeado.");
-      return;
-    }
-
-    const renamed = await api.renameWorkspaceFile(workspace.id, original.path, newName);
-    if (workspaceState?.id !== workspace.id) return;
-    for (const oldPath of applyWorkspaceRenameToTabs(openTabs, original.path, renamed.file)) {
-      recentFiles.rename(oldPath, renamed.file.path);
-    }
-    workspaceState = renamed.listing;
-    workspaceError = null;
-    selectedWorkspacePath = renamed.file.relativePath;
-    renderWorkspaceExplorer();
-    renderTabs();
-    $<HTMLDialogElement>("workspace-rename-dialog").close();
-    $<HTMLFormElement>("workspace-rename-form").reset();
-    workspaceRenameTarget = null;
-    recentFiles.remember(renamed.file.path);
-    setStatus(`Renomeado: ${newName}`, "ok");
-    queueMicrotask(() => $("workspace-tree").querySelector<HTMLButtonElement>(`[data-path="${CSS.escape(renamed.file.relativePath)}"]`)?.focus());
-  } catch (error) {
-    const message = String(error).replace(/^Error: /, "");
-    showWorkspaceRenameError(message);
-    input.focus();
-  } finally {
-    workspaceRenamePending = false;
-    submit.disabled = false;
-    cancel.disabled = false;
-  }
-}
-
-function showWorkspaceDeleteError(message: string | null) {
-  const error = $("workspace-delete-error");
-  error.textContent = message ?? "";
-  error.hidden = !message;
-}
-
-function updateWorkspaceDeleteDialog(entry: Extract<WorkspaceEntry, { kind: "file" }>, workspaceId: string) {
-  const dirty = tabs.some((tab) => tab.workspaceId === workspaceId &&
-    (tab.workspacePath === entry.path || tab.workspaceExercisePath === entry.path) && isDirty(tab));
-  $("workspace-delete-title").textContent = `Excluir ${entry.name}?`;
-  const warning = $("workspace-delete-warning");
-  warning.textContent = dirty
-    ? "Há alterações não salvas em abas abertas. Salvar mantém o arquivo; excluir com descarte fecha essas abas."
-    : "";
-  warning.hidden = !dirty;
-  $<HTMLButtonElement>("workspace-delete-save").hidden = !dirty;
-  $<HTMLButtonElement>("workspace-delete-submit").textContent = dirty
-    ? "Excluir e descartar alterações"
-    : "Excluir arquivo";
-}
-
-function openWorkspaceDeleteDialog(entry: Extract<WorkspaceEntry, { kind: "file" }>) {
-  if (!workspaceState || workspaceDeletePending) return;
-  workspaceDeleteTarget = entry;
-  showWorkspaceDeleteError(null);
-  updateWorkspaceDeleteDialog(entry, workspaceState.id);
-  $<HTMLDialogElement>("workspace-delete-dialog").showModal();
-  $("workspace-delete-cancel").focus();
-}
-
-async function chooseWorkspaceDeleteAction(choice: "save" | "delete" | "discard") {
-  const workspace = workspaceState;
-  const target = workspaceDeleteTarget;
-  if (!workspace || !target || workspaceDeletePending) return;
-
-  const buttons = [
-    $<HTMLButtonElement>("workspace-delete-save"),
-    $<HTMLButtonElement>("workspace-delete-submit"),
-    $<HTMLButtonElement>("workspace-delete-cancel"),
-  ];
-  workspaceDeletePending = true;
-  buttons.forEach((button) => { button.disabled = true; });
-  showWorkspaceDeleteError(null);
-  try {
-    const previousActive = activeId;
-    const result = await deleteWorkspaceFileFlow({
-      tabs,
-      workspaceId: workspace.id,
-      filePath: target.path,
-      choice,
-      isDirty,
-      saveTab: async (tab) => {
-        activate(tab.id);
-        try {
-          return await save();
-        } catch {
-          return false;
-        }
-      },
-      deleteFile: () => api.deleteWorkspaceFile(workspace.id, target.path),
-    });
-    if (choice === "save") activate(previousActive);
-    if (result.status === "cancelled") return;
-    if (result.status === "save-failed") {
-      showWorkspaceDeleteError("Não foi possível salvar todas as alterações. O arquivo foi mantido.");
-      updateWorkspaceDeleteDialog(target, workspace.id);
-      return;
-    }
-    if (result.status === "needs-decision") {
-      showWorkspaceDeleteError("Há alterações não salvas. Escolha salvar ou descartar antes de excluir.");
-      updateWorkspaceDeleteDialog(target, workspace.id);
-      return;
-    }
-    if (result.status === "saved") {
-      $<HTMLDialogElement>("workspace-delete-dialog").close();
-      workspaceDeleteTarget = null;
-      setStatus(`Alterações salvas; arquivo mantido: ${target.name}`, "ok");
-      return;
-    }
-
-    if (workspaceState?.id !== workspace.id) return;
-    const deleted = result.deletion;
-    workspaceState = deleted.listing;
-    workspaceError = null;
-    if (selectedWorkspacePath === target.path) selectedWorkspacePath = null;
-    recentFiles.forget(deleted.file.path);
-    tabs = result.remainingTabs;
-    const activeWasDeleted = result.deletedTabs.some((tab) => tab.id === activeId);
-    renderWorkspaceExplorer();
-    if (activeWasDeleted) activate(tabs[tabs.length - 1]?.id ?? homeId);
-    else renderTabs();
-    $<HTMLDialogElement>("workspace-delete-dialog").close();
-    workspaceDeleteTarget = null;
-    setStatus(`Arquivo excluído: ${target.name}`, "ok");
-    queueMicrotask(() => {
-      const first = $("workspace-tree").querySelector<HTMLButtonElement>("[role=treeitem]");
-      if (first) first.focus();
-      else $("workspace-new-file").focus();
-    });
-  } catch (error) {
-    const message = String(error).replace(/^Error: /, "");
-    showWorkspaceDeleteError(message);
-    setStatus(message, "error");
-  } finally {
-    workspaceDeletePending = false;
-    buttons.forEach((button) => { button.disabled = false; });
-  }
-}
-
-function openWorkspaceCreateDialog() {
-  if (!workspaceState) return;
-  const dialog = $<HTMLDialogElement>("workspace-create-dialog");
-  showWorkspaceCreateError(null);
-  $<HTMLFormElement>("workspace-create-form").reset();
-  dialog.showModal();
-  $("workspace-create-name").focus();
-}
-
-function updateWorkspaceExportSelection() {
-  const selectedCount = document.querySelectorAll<HTMLInputElement>("#workspace-export-files input:checked").length;
-  document.querySelectorAll<HTMLInputElement>("#workspace-export-files input").forEach((input) => {
-    input.disabled = workspaceExportPending;
-  });
-  const submit = $<HTMLButtonElement>("workspace-export-submit");
-  submit.disabled = workspaceExportPending || selectedCount === 0;
-  $<HTMLButtonElement>("workspace-export-select-all").disabled = workspaceExportPending;
-  $<HTMLButtonElement>("workspace-export-select-none").disabled = workspaceExportPending;
-  $<HTMLButtonElement>("workspace-export-cancel").disabled = workspaceExportPending;
-  if (!workspaceExportPending) $("workspace-export-status").textContent = workspaceExportStatus(selectedCount);
-}
-
-function renderWorkspaceExportSelection() {
-  const files = collectWorkspaceFiles(workspaceState?.entries ?? []);
-  const list = $("workspace-export-files");
-  list.replaceChildren();
-  for (const [index, entry] of files.entries()) {
-    const label = document.createElement("label");
-    label.className = "workspace-export-file";
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.value = entry.path;
-    checkbox.checked = true;
-    checkbox.id = `workspace-export-file-${index}`;
-    checkbox.addEventListener("change", updateWorkspaceExportSelection);
-    const name = document.createElement("span");
-    name.textContent = entry.path;
-    label.htmlFor = checkbox.id;
-    label.append(checkbox, name);
-    list.append(label);
-  }
-  $("workspace-export-empty").hidden = files.length > 0;
-  $<HTMLButtonElement>("workspace-export-select-all").hidden = files.length === 0;
-  $<HTMLButtonElement>("workspace-export-select-none").hidden = files.length === 0;
-  updateWorkspaceExportSelection();
-}
-
-function openWorkspaceExportDialog() {
-  if (!workspaceState || workspaceExportPending) return;
-  $("workspace-export-error").hidden = true;
-  $("workspace-export-error").textContent = "";
-  renderWorkspaceExportSelection();
-  const dialog = $<HTMLDialogElement>("workspace-export-dialog");
-  dialog.showModal();
-  document.querySelector<HTMLInputElement>("#workspace-export-files input")?.focus();
-}
-
-async function submitWorkspaceExport() {
-  const workspace = workspaceState;
-  if (!workspace || workspaceExportPending) return;
-  const relativePaths = [...document.querySelectorAll<HTMLInputElement>("#workspace-export-files input:checked")]
-    .map((input) => input.value);
-  const error = $("workspace-export-error");
-  error.hidden = true;
-  error.textContent = "";
-  if (relativePaths.length === 0) {
-    error.textContent = "Selecione ao menos um arquivo para exportar.";
-    error.hidden = false;
-    return;
-  }
-
-  workspaceExportPending = true;
-  $("workspace-export-dialog").setAttribute("aria-busy", "true");
-  $("workspace-export-status").textContent = "Escolha uma pasta de destino no seletor do sistema…";
-  updateWorkspaceExportSelection();
-  renderWorkspaceExplorer();
-  let cancelled = false;
-  try {
-    const result = await api.exportWorkspaceFiles(workspace.id, relativePaths);
-    if (!result) {
-      cancelled = true;
-      return;
-    }
-    $<HTMLDialogElement>("workspace-export-dialog").close();
-    setStatus(`${result.fileCount} ${result.fileCount === 1 ? "arquivo exportado" : "arquivos exportados"} para a pasta “${result.projectName}”.`, "ok");
-  } catch (message) {
-    error.textContent = typeof message === "string" ? message : String(message);
-    error.hidden = false;
-  } finally {
-    workspaceExportPending = false;
-    $("workspace-export-dialog").removeAttribute("aria-busy");
-    updateWorkspaceExportSelection();
-    if (cancelled) {
-      const selectedCount = document.querySelectorAll<HTMLInputElement>("#workspace-export-files input:checked").length;
-      $("workspace-export-status").textContent = workspaceExportStatus(selectedCount, "cancelled");
-    }
-    renderWorkspaceExplorer();
-  }
-}
-
-async function submitWorkspaceCreateDialog(event: SubmitEvent) {
-  event.preventDefault();
-  const selected = workspaceState;
-  if (!selected) return;
-
-  const name = $<HTMLInputElement>("workspace-create-name");
-  const language = $<HTMLSelectElement>("workspace-create-language").value as "por" | "pors" | "rs";
-  let fileName: string;
-  try {
-    fileName = workspaceSourceFileName(name.value, language);
-  } catch (error) {
-    showWorkspaceCreateError(String(error).replace(/^Error: /, ""));
-    name.focus();
-    return;
-  }
-
-  const submit = $<HTMLButtonElement>("workspace-create-submit");
-  const cancel = $<HTMLButtonElement>("workspace-create-cancel");
-  workspaceFileCreationPending = true;
-  submit.disabled = true;
-  cancel.disabled = true;
-  showWorkspaceCreateError(null);
-  try {
-    const refreshed = await api.createWorkspaceFile(selected.id, fileName);
-    if (workspaceState?.id !== selected.id) return;
-    workspaceState = refreshed;
-    workspaceError = null;
-    selectedWorkspacePath = fileName;
-    setWorkspaceExplorerVisible(true);
-    renderWorkspaceExplorer();
-    $<HTMLDialogElement>("workspace-create-dialog").close();
-    $<HTMLFormElement>("workspace-create-form").reset();
-    const created = refreshed.entries.find((entry): entry is Extract<WorkspaceEntry, { kind: "file" }> =>
-      entry.kind === "file" && entry.path === fileName,
-    );
-    if (created) await openWorkspaceFile(created);
-    else setStatus(`Arquivo criado: ${fileName}`, "ok");
-  } catch (error) {
-    const message = String(error).replace(/^Error: /, "");
-    if ($<HTMLDialogElement>("workspace-create-dialog").open) {
-      showWorkspaceCreateError(message);
-      name.focus();
-    } else {
-      workspaceError = message;
-      renderWorkspaceExplorer();
-      setStatus(message, "error");
-    }
-  } finally {
-    workspaceFileCreationPending = false;
-    submit.disabled = false;
-    cancel.disabled = false;
-  }
-}
-
-$("home-open-folder").onclick = () => void openWorkspaceFolder();
-$("workspace-open-folder").onclick = () => void openWorkspaceFolder();
-$("workspace-export").onclick = openWorkspaceExportDialog;
-$("workspace-export-select-all").onclick = () => {
-  document.querySelectorAll<HTMLInputElement>("#workspace-export-files input").forEach((input) => { input.checked = true; });
-  updateWorkspaceExportSelection();
-};
-$("workspace-export-select-none").onclick = () => {
-  document.querySelectorAll<HTMLInputElement>("#workspace-export-files input").forEach((input) => { input.checked = false; });
-  updateWorkspaceExportSelection();
-};
-$("workspace-export-submit").onclick = () => void submitWorkspaceExport();
-$<HTMLButtonElement>("workspace-export-cancel").onclick = () => $<HTMLDialogElement>("workspace-export-dialog").close();
-$<HTMLDialogElement>("workspace-export-dialog").addEventListener("cancel", (event) => {
-  if (workspaceExportPending) event.preventDefault();
-});
-$("workspace-new-file").onclick = openWorkspaceCreateDialog;
-$("workspace-create-form").addEventListener("submit", (event) => void submitWorkspaceCreateDialog(event as SubmitEvent));
-$("workspace-create-dialog").addEventListener("cancel", (event) => {
-  if (workspaceFileCreationPending) event.preventDefault();
-});
-$("workspace-create-cancel").onclick = () => {
-  $<HTMLDialogElement>("workspace-create-dialog").close();
-  $<HTMLFormElement>("workspace-create-form").reset();
-  showWorkspaceCreateError(null);
-};
-$("workspace-rename-form").addEventListener("submit", (event) => void submitWorkspaceRenameDialog(event as SubmitEvent));
-$("workspace-rename-dialog").addEventListener("cancel", (event) => {
-  if (workspaceRenamePending) event.preventDefault();
-});
-$("workspace-rename-cancel").onclick = () => {
-  $<HTMLDialogElement>("workspace-rename-dialog").close();
-  $<HTMLFormElement>("workspace-rename-form").reset();
-  workspaceRenameTarget = null;
-  showWorkspaceRenameError(null);
-};
-$<HTMLButtonElement>("workspace-delete-save").onclick = () => void chooseWorkspaceDeleteAction("save");
-$<HTMLButtonElement>("workspace-delete-submit").onclick = () => {
-  const choice = tabs.some((tab) => tab.workspaceId === workspaceState?.id &&
-    (tab.workspacePath === workspaceDeleteTarget?.path || tab.workspaceExercisePath === workspaceDeleteTarget?.path) && isDirty(tab))
-    ? "discard"
-    : "delete";
-  void chooseWorkspaceDeleteAction(choice);
-};
-$("workspace-delete-dialog").addEventListener("cancel", (event) => {
-  if (workspaceDeletePending) event.preventDefault();
-  else workspaceDeleteTarget = null;
-});
-$<HTMLButtonElement>("workspace-delete-cancel").onclick = () => {
-  if (workspaceDeletePending) return;
-  $<HTMLDialogElement>("workspace-delete-dialog").close();
-  workspaceDeleteTarget = null;
-  showWorkspaceDeleteError(null);
-};
-$("btn-explorer").onclick = () => {
-  if (!workspaceState) {
-    void openWorkspaceFolder();
-    return;
-  }
-  setWorkspaceExplorerVisible(Boolean($("workspace-explorer").hidden));
-};
-
-$("workspace-tree").addEventListener("keydown", (event) => {
-  if (!(event instanceof KeyboardEvent)) return;
-  const current = event.target instanceof HTMLButtonElement ? event.target : null;
-  if (!current?.matches("[role=treeitem]")) return;
-  const items = [...$("workspace-tree").querySelectorAll<HTMLButtonElement>("[role=treeitem]")];
-  const index = items.indexOf(current);
-  const focus = (item?: HTMLButtonElement) => {
-    if (item) {
-      event.preventDefault();
-      item.focus();
-    }
-  };
-  if (event.key === "ArrowDown") focus(items[index + 1]);
-  else if (event.key === "ArrowUp") focus(items[index - 1]);
-  else if (event.key === "Home") focus(items[0]);
-  else if (event.key === "End") focus(items[items.length - 1]);
-  else if (event.key === "ArrowRight" && current.classList.contains("is-folder")) {
-    const path = current.dataset.path!;
-    if (!expandedWorkspaceFolders.has(path)) {
-      event.preventDefault();
-      expandedWorkspaceFolders.add(path);
-      renderWorkspaceExplorer();
-      $("workspace-tree").querySelector<HTMLButtonElement>(`[data-path="${CSS.escape(path)}"]`)?.focus();
-    } else if (items[index + 1]?.dataset.depth === String(Number(current.dataset.depth) + 1)) {
-      focus(items[index + 1]);
-    }
-  } else if (event.key === "ArrowLeft") {
-    const path = current.dataset.path!;
-    if (current.classList.contains("is-folder") && expandedWorkspaceFolders.has(path)) {
-      event.preventDefault();
-      expandedWorkspaceFolders.delete(path);
-      renderWorkspaceExplorer();
-      $("workspace-tree").querySelector<HTMLButtonElement>(`[data-path="${CSS.escape(path)}"]`)?.focus();
-    } else {
-      const depth = Number(current.dataset.depth);
-      focus(items.slice(0, index).reverse().find((item) => Number(item.dataset.depth) === depth - 1));
-    }
-  }
+const workspaceExplorer = mountWorkspaceExplorer({
+  tabs: () => tabs,
+  replaceTabs: (next) => { tabs = next; },
+  activeTab,
+  activeId: () => activeId,
+  homeId,
+  activate,
+  newTab: () => { newTab(); },
+  openWorkspaceSource: (source, path, workspaceFile) =>
+    newTab(source, path, undefined, undefined, undefined, undefined, workspaceFile),
+  openExercise,
+  isDirty,
+  save: () => save(),
+  renderTabs,
+  setExplorerVisible: (visible) => setWorkspaceExplorerVisible(visible),
+  cargoProjectDetected: (tab, checked) => {
+    if (activeTab() !== tab) return;
+    syncLanguageControls(tab);
+    if (checked) forceLinting(view);
+  },
+  recentFiles: {
+    remember: (path) => recentFiles.remember(path),
+    rename: (oldPath, newPath) => recentFiles.rename(oldPath, newPath),
+    forget: (path) => recentFiles.forget(path),
+  },
 });
 
-renderWorkspaceExplorer();
-void restoreWorkspaceOnStartup();
+workspaceExplorer.render();
+void workspaceExplorer.restore();
 
 function localStorageOrNull(): Storage | null {
   try {
@@ -2731,8 +2011,7 @@ ${template}`;
     tab.workspaceId = workspaceExercise.id;
     tab.workspaceExercisePath = workspaceExercise.path;
     tab.workspacePreferenceKey = workspaceExercise.preferenceKey;
-    selectedWorkspacePath = workspaceExercise.path;
-    renderWorkspaceExplorer();
+    workspaceExplorer.select(workspaceExercise.id, workspaceExercise.path);
     activate(tab.id);
   }
 }
@@ -3395,8 +2674,7 @@ function fileShortcut(key: string, shift: boolean, command: string, action: () =
 fileShortcut("N", false, "Novo arquivo", () => newTab());
 fileShortcut("O", false, "Abrir arquivo", openFiles);
 fileShortcut("E", true, "Mostrar ou ocultar o explorador", () => {
-  if (!workspaceState) void openWorkspaceFolder();
-  else setWorkspaceExplorerVisible(Boolean($("workspace-explorer").hidden));
+  workspaceExplorer.toggleExplorer();
 });
 fileShortcut("S", false, "Salvar", () => save());
 fileShortcut("S", true, "Salvar como", () => save(true));

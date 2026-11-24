@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { filterCommands, isDebugCommandAvailable, nextCommandIndex } from "../src/command-palette.ts";
+import { ideSource } from "./support/ide-source.mjs";
 
 const commands = [
   { command: "Abrir arquivo", label: "Ctrl+O" },
@@ -44,6 +45,6 @@ test("palette dialog exposes an accessible search, listbox, and empty state", ()
 });
 
 test("command palette shortcut is advertised", () => {
-  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+  const main = ideSource();
   assert.match(main, /Ctrl\+Shift\+P[^\n]*Paleta de comandos/i);
 });

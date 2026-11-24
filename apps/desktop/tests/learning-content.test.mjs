@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
+import { ideSource } from "./support/ide-source.mjs";
 
 const moduleUrl = new URL("../src/learning-content.ts", import.meta.url);
 
@@ -63,7 +64,7 @@ test("cada conceito em Beginner, Bridge e Rust tem explicação completa, sem al
 
 test("cartão Aprender apresenta seções nomeadas e renderiza o conteúdo do catálogo como texto", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
-  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+  const main = ideSource();
   for (const id of ["learning-what-changed", "learning-why-it-matters", "learning-practice"]) {
     assert.match(html, new RegExp(`id="${id}"`));
     assert.match(main, new RegExp(`\\$\\("${id}"\\)\\.textContent = concept\\.`));
@@ -101,7 +102,7 @@ test("mudança de modo mantém o conceito compatível ou volta ao primeiro dispo
 
 test("inspector Aprender identifica seleção manual, deixa exemplos Rust inicialmente ocultos e sem progresso", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
-  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+  const main = ideSource();
   assert.match(html, /id="learning-inspector-slot"/);
   assert.match(html, /id="learning-panel"[^>]*role="region"/);
   assert.match(main, /\$\("learning-inspector-slot"\)\.append\(\$\("learning-panel"\)\)/);
@@ -112,7 +113,7 @@ test("inspector Aprender identifica seleção manual, deixa exemplos Rust inicia
 
 test("inspetor oferece pin acessível por aba sem confundir escolha manual com contexto detectado", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
-  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+  const main = ideSource();
   assert.match(html, /id="learning-pin"[^>]*aria-pressed="false"[^>]*disabled>Fixar tópico/);
   assert.match(main, /learningPins\?: LearningPins/);
   assert.match(main, /learningPinForMode\(tab\?\.learningPins, learningMode/);

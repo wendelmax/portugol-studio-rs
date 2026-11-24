@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { ideSource } from "./support/ide-source.mjs";
 
 const moduleUrl = new URL("../src/process-arguments.ts", import.meta.url);
 
@@ -21,7 +22,7 @@ test("rejeita aspas não fechadas com mensagem legível", async () => {
 
 test("encaminha argv como lista tipada do editor ao processo Rust, sem shell", () => {
   const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
-  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+  const main = ideSource();
   const tauri = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   const runner = readFileSync(new URL("../../../crates/portugol-service/src/pors_run.rs", import.meta.url), "utf8");

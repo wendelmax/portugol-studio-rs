@@ -2,9 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { panelContentId, panelNameForKey } from "../src/panel-tabs.ts";
+import { ideSource } from "./support/ide-source.mjs";
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
-const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+const main = ideSource();
 const exercises = readFileSync(new URL("../src/exercises.ts", import.meta.url), "utf8");
 
 test("Tests tab keeps an honest empty state and exposes real cases only for exercises", () => {

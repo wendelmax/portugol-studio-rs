@@ -1,10 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { ideSource } from "./support/ide-source.mjs";
 
 test("encaminha projetos Cargo por comandos Tauri tipados e consentimento explícito", () => {
   const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
-  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+  const main = ideSource();
   const tauri = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
   const workspace = readFileSync(new URL("../src-tauri/src/workspace.rs", import.meta.url), "utf8");
   const runner = readFileSync(new URL("../../../crates/portugol-service/src/cargo_project.rs", import.meta.url), "utf8");

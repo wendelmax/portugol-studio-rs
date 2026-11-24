@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
+import { ideSource } from "./support/ide-source.mjs";
 
 const moduleUrl = new URL("../src/learning-mode.ts", import.meta.url);
 
@@ -45,7 +46,7 @@ test("workspace modes persist independently and fall back to the global legacy p
 
 test("workspace tabs carry their stable preference key and restore mode on activation", () => {
   const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
-  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+  const main = ideSource();
   const workspace = readFileSync(new URL("../src-tauri/src/workspace.rs", import.meta.url), "utf8");
 
   assert.match(api, /interface WorkspaceListing \{[\s\S]*preferenceKey: string/);
@@ -59,7 +60,7 @@ test("workspace tabs carry their stable preference key and restore mode on activ
 
 test("seletor associa a disponibilidade de Rust à toolchain e mantém instrução correta", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
-  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+  const main = ideSource();
   assert.match(html, /id="learning-mode"/);
   assert.match(html, /for="learning-mode"/);
   assert.match(html, /value="beginner"/);
@@ -70,7 +71,7 @@ test("seletor associa a disponibilidade de Rust à toolchain e mantém instruç�
 });
 
 test("modo Rust usa editor e executor Rust existentes sem reescrever a fonte", () => {
-  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+  const main = ideSource();
   assert.match(main, /rustToolchainAvailable\(\)/);
   assert.match(main, /api\.runRustSource\(id, source, rustArgs\)/);
   assert.match(main, /rustOption\.disabled = !available/);
