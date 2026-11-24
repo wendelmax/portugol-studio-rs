@@ -28,7 +28,7 @@ para uma linguagem usada profissionalmente.
 ## Instalação
 
 Baixe o instalador da sua plataforma na página de
-[Releases](https://github.com/wendelmax/Portugol-Studio/releases):
+[Releases](https://github.com/wendelmax/portugol-studio-rs/releases):
 
 | Sistema | Arquivo |
 |---|---|
