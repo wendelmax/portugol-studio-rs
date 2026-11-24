@@ -39,6 +39,7 @@ import { createRustExecutionController } from "./run/rust-execution";
 import { createPortugolRsExecutionController } from "./run/portugol-rs-execution";
 import { createClassicExecutionController } from "./run/classic-execution";
 import { createRunDispatcher } from "./run/dispatcher";
+import { createPausePresentation } from "./run/pause-presentation";
 import { portugolFolding } from "./folding";
 import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
@@ -515,24 +516,24 @@ function syncBreakpoints(state: EditorState) {
   debuggerCommands.syncBreakpoints(state);
 }
 
+const pausePresentation = createPausePresentation({
+  setPausedState: (info) => { paused = info; },
+  activeTabId: () => activeId,
+  runTabId: () => runTabId,
+  runId: () => runId,
+  runTab: () => tabs.find(({ id }) => id === runTabId),
+  setDebugLine: (line) => view.dispatch({ effects: setDebugLine.of(line) }),
+  setRunning,
+  renderDebugInfo,
+  activate,
+  goTo,
+  showUtilities: (visible) => showUtilities(visible),
+  showDebugPanel: () => showPanel("debug"),
+  setStatus,
+});
+
 function setPaused(info: api.DebugInfo | null) {
-  paused = info;
-  if (activeId === runTabId) view.dispatch({ effects: setDebugLine.of(info?.position.line ?? null) });
-  setRunning(runId !== null);
-  if (info) {
-    renderDebugInfo(info, (frame) => {
-      if (runTabId === null || !tabs.some(({ id }) => id === runTabId)) return;
-      if (activeId !== runTabId) activate(runTabId);
-      goTo(frame.position.offset);
-    });
-    showUtilities(true);
-    showPanel("debug");
-    if (activeId === runTabId) goTo(info.position.offset);
-    const activeRunTab = tabs.find(({ id }) => id === runTabId);
-    setStatus(activeRunTab?.language === "portugol-rs"
-      ? `VM Portugol-RS pausada na linha ${info.position.line}.`
-      : `Pausado na linha ${info.position.line}.`);
-  }
+  pausePresentation.setPaused(info);
 }
 
 async function debugCommand(command: (id: number) => Promise<void>) {

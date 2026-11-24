@@ -344,7 +344,7 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - [x] Add tests for busy/no-tab guards, language dispatch, pause/step routing, and stop delegation.
 - [x] Extract run command orchestration while injecting the language execution controllers.
 - [x] Run the full frontend tests (73/73), typecheck, and build.
-- [ ] Commit the execution dispatcher group.
+- [x] Commit the execution dispatcher group (#181).
 
 ### Task 27: Exercise tab creation
 
@@ -356,4 +356,16 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - [x] Add tests for starter source, PORS language, clean-tab replacement, and workspace reactivation.
 - [x] Extract exercise-to-tab orchestration with tab and workspace operations injected.
 - [x] Run the full frontend tests (74/74), typecheck, and build.
-- [ ] Commit the exercise tab group.
+- [x] Commit the exercise tab group (#182).
+
+### Task 28: Paused debugger presentation
+
+**Files:**
+- Create: `apps/desktop/src/run/pause-presentation.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/pause-presentation.test.mjs`
+
+- [x] Add tests for paused-state updates, current run selection, stack-frame navigation, panel visibility, and language-specific status.
+- [x] Extract pause presentation orchestration with editor/shell callbacks injected.
+- [x] Run the full frontend tests (75/75), typecheck, and build.
+- [ ] Commit the pause presentation group.
