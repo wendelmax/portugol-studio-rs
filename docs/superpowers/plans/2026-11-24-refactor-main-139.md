@@ -321,3 +321,15 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - [x] Extract Rust source lint orchestration while keeping shell state and rendering injected.
 - [x] Run the full frontend tests (71/71), typecheck, and build.
 - [ ] Commit the Rust linter group.
+
+### Task 25: Portugol and PORS source linter
+
+**Files:**
+- Create: `apps/desktop/src/editor/portugol-linter.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/portugol-linter.test.mjs`
+
+- [x] Add tests for language routing, Rust clearing, diagnostic aggregation, and stale inspection responses.
+- [x] Extract Portugol/PORS lint orchestration with inspection and UI callbacks injected.
+- [x] Run the full frontend tests (72/72), typecheck, and build.
+- [ ] Commit the source linter group.

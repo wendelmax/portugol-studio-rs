@@ -91,6 +91,7 @@ import { createEditorFormatter } from "./editor/format";
 import { createEditorUpdateController } from "./editor/update-controller";
 import { createEditorExtensionFactory } from "./editor/extensions";
 import { createRustLintSourceCheck } from "./editor/rust-linter";
+import { createPortugolLintSourceCheck } from "./editor/portugol-linter";
 import {
   breakpointLines, breakpoints, createBreakpointGutter, debugLine, runtimeError, setDebugLine, setRuntimeError, toCodeMirror,
 } from "./editor/decorations";
@@ -118,34 +119,15 @@ try {
 
 const breakpointGutter = createBreakpointGutter((state) => syncBreakpoints(state), () => icon("pequeno/bug"));
 
-const portugolLinter = linter(
-  async (view) => {
-    const doc = view.state.doc;
-    const tab = activeTab();
-    if (tab?.language === "rust") {
-      tab.diagnostics = [];
-      tab.symbols = [];
-      renderMessages();
-      outline.show([]);
-      updateLibraryButtons([]);
-      return [];
-    }
-    const language = tab?.language ?? "portugol";
-    const inspection = language === "portugol-rs"
-      ? await api.inspectPortugolRs(doc.toString())
-      : await api.inspect(doc.toString());
-    const { diagnostics, symbols } = inspection;
-    if (tab && tab === activeTab() && view.state.doc === doc) {
-      tab.diagnostics = diagnostics;
-      tab.symbols = symbols;
-      renderMessages();
-      outline.show(symbols);
-      updateLibraryButtons(symbols);
-    }
-    return [...diagnostics, ...(tab?.runtimeCompileDiagnostics ?? [])].map((d) => toCodeMirror(d, doc.length));
-  },
-  { delay: 350 },
-);
+const portugolLinter = linter(createPortugolLintSourceCheck({
+  activeTab,
+  inspectPortugol: api.inspect,
+  inspectPortugolRs: api.inspectPortugolRs,
+  renderMessages,
+  showOutline: (symbols) => outline.show(symbols),
+  updateLibraryButtons,
+  toCodeMirror,
+}), { delay: 350 });
 
 const latestRustSourceCheck = createLatestOnlyRustSourceChecker(api.checkRustSource);
 const rustSourceLinter = linter(createRustLintSourceCheck({
