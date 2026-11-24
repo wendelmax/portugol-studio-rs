@@ -120,4 +120,18 @@
 - [x] Add failing tests for active-run breakpoint updates, stale debug commands, and stop status.
 - [x] Extract breakpoint synchronization, debugger commands, and stop orchestration behind callbacks.
 - [x] Run frontend tests, typecheck, and build.
-- [ ] Commit the debugger-commands group.
+- [x] Commit the debugger-commands group.
+
+### Task 9: Rust project execution
+
+**Files:**
+- Create: `apps/desktop/src/run/rust-execution.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/rust-execution-controller.test.mjs`
+- Modify: Cargo, learning-mode, process-arguments, and source-map contract tests.
+
+- [x] Add controller tests for toolchain guards, standalone execution, stale documents, dirty Cargo files, and selected Cargo targets.
+- [x] Extract Rust and Cargo process orchestration; retain Tauri calls behind `api.ts`.
+- [x] Update static contract tests to inspect the extracted module boundary.
+- [x] Run frontend tests, typecheck, and build.
+- [ ] Commit the Rust execution group.
