@@ -253,7 +253,7 @@ const PORS_TYPES = [
 
 const PORS_BUILTINS = ["escreva", "leia", "tamanho", "adicionar", "remover", "obter"] as const;
 
-export const PORS_MODULES = ["UI", "Matematica", "Texto", "Tipos", "Util", "Calendario", "Arquivos", "Json"] as const;
+export const PORS_MODULES = ["UI", "Matematica", "Texto", "Tipos", "Util", "Calendario", "Arquivos", "Json", "Internet"] as const;
 
 const PORS_MODULE_MEMBERS: Record<(typeof PORS_MODULES)[number], readonly PorsDocEntry[]> = {
   UI: [
@@ -392,6 +392,12 @@ const PORS_MODULE_MEMBERS: Record<(typeof PORS_MODULES)[number], readonly PorsDo
     { label: "definir_json", kind: "function", signature: "Json.definir_json(json: cadeia, chave: cadeia, valor_json: cadeia) -> Resultado<cadeia, cadeia>", description: "Retorna um novo objeto JSON com a chave definida para um subvalor JSON já válido (objeto ou lista)." },
     { label: "remover_chave", kind: "function", signature: "Json.remover_chave(json: cadeia, chave: cadeia) -> Resultado<cadeia, cadeia>", description: "Retorna um novo objeto JSON sem a chave especificada." },
   ],
+  Internet: [
+    { label: "definir_tempo_limite", kind: "function", signature: "Internet.definir_tempo_limite(ms: inteiro)", description: "Define o tempo limite das requisições HTTP entre 100 e 30000 ms (padrão: 5000 ms)." },
+    { label: "obter_texto", kind: "function", signature: "Internet.obter_texto(url: cadeia) -> Resultado<cadeia, cadeia>", description: "Executa HTTP GET com consentimento explícito, cancelamento cooperativo e limite de 1 MiB." },
+    { label: "enviar_json", kind: "function", signature: "Internet.enviar_json(url: cadeia, corpo_json: cadeia) -> Resultado<cadeia, cadeia>", description: "Valida o JSON e envia via HTTP POST (`application/json`), retornando a resposta em `Resultado`." },
+    { label: "endereco_disponivel", kind: "function", signature: "Internet.endereco_disponivel(url: cadeia) -> Resultado<logico, cadeia>", description: "Verifica se um endereço HTTP/HTTPS responde via HEAD com status 2xx/3xx." },
+  ],
 };
 
 const PORS_BUILTIN_VARIANTS: Record<"Opcao" | "Resultado", readonly PorsDocEntry[]> = {
@@ -428,6 +434,7 @@ const PORS_TOP_LEVEL_DOCS: Record<string, PorsDocEntry> = {
   Calendario: { label: "Calendario", kind: "namespace", signature: "modulo Calendario", description: "Data e hora UTC determinísticas, constantes de dias/meses e cálculos gregorianos." },
   Arquivos: { label: "Arquivos", kind: "namespace", signature: "modulo Arquivos", description: "Leitura e escrita de arquivos UTF-8 confinada ao workspace, com limite de 2 MiB e tratamento via `Resultado<T, cadeia>`." },
   Json: { label: "Json", kind: "namespace", signature: "modulo Json", description: "Validação, consulta, formatação e construção imutável de JSON (RFC 8259) zero-dependência com `Resultado<T, cadeia>`." },
+  Internet: { label: "Internet", kind: "namespace", signature: "modulo Internet", description: "Requisições HTTP/HTTPS seguras com consentimento explícito, timeout/cancelamento e limite de 1 MiB." },
 };
 
 export const PORS_SNIPPETS: Completion[] = [

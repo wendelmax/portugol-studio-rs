@@ -797,3 +797,36 @@ funcao inicio() {
     let errs = lower(unreachable_all).unwrap_err();
     assert!(errs.iter().any(|d| d.code == "pors.unreachable-case"));
 }
+
+#[test]
+fn parses_and_validates_pors_internet_library() {
+    let source = r#"
+funcao consultar(url: cadeia) -> Resultado<cadeia, cadeia> {
+    Internet.definir_tempo_limite(3000);
+    seja ok: logico = Internet.endereco_disponivel(url)?;
+    se (!ok) {
+        retorne Resultado::Erro("indisponivel");
+    }
+    seja corpo: cadeia = Internet.obter_texto(url)?;
+    seja eco: cadeia = Internet.enviar_json(url, "{\"ok\":true}")?;
+    retorne Resultado::Ok(corpo + "|" + eco);
+}
+
+funcao inicio() {
+    escolha consultar("http://127.0.0.1:8080/api") {
+        caso Resultado::Ok(s) => { escreva(s); }
+        caso Resultado::Erro(e) => { escreva(e); }
+    }
+}
+"#;
+    let program = lower(source).expect("Internet.* deve ser aceito em PORS");
+    assert_eq!(program.functions.len(), 1);
+
+    let bad_fn =
+        "funcao inicio() { seja r: Resultado<cadeia, cadeia> = Internet.baixar(\"http://x\"); }";
+    let errs = lower(bad_fn).unwrap_err();
+    assert!(
+        errs.iter()
+            .any(|d| d.code == "pors.unknown-stdlib-function")
+    );
+}

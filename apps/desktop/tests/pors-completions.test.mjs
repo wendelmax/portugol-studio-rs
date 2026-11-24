@@ -73,6 +73,11 @@ test("PORS completes members of UI, Matematica, Texto and Tipos after dot", asyn
   assert.ok(json.options.some((o) => o.label === "valido" && o.detail.includes("-> logico")));
   assert.ok(json.options.some((o) => o.label === "obter_cadeia" && o.detail.includes("Resultado<cadeia, cadeia>")));
   assert.ok(json.options.some((o) => o.label === "definir_json" && o.apply === "definir_json("));
+
+  const net = await completeAt("Internet.");
+  assert.ok(net.options.some((o) => o.label === "obter_texto" && o.detail.includes("Resultado<cadeia, cadeia>")));
+  assert.ok(net.options.some((o) => o.label === "enviar_json" && o.apply === "enviar_json("));
+  assert.ok(net.options.some((o) => o.label === "definir_tempo_limite" && o.apply === "definir_tempo_limite("));
 });
 
 test("PORS completes Opcao, Resultado and user-declared enum variants after ::", async () => {
@@ -94,7 +99,7 @@ test("PORS top-level completions include snippets and locals without leaking cla
   const result = await completeAt(doc);
   const labels = result.options.map((o) => o.label);
 
-  for (const expected of ["seja", "seja mutavel", "registro", "enum", "escolha", "Opcao", "Resultado", "UI", "Matematica", "Texto", "Tipos", "Util", "Calendario", "Arquivos", "Json", "adicionar", "remover", "obter", "Aluno", "dobrar", "nota"]) {
+  for (const expected of ["seja", "seja mutavel", "registro", "enum", "escolha", "Opcao", "Resultado", "UI", "Matematica", "Texto", "Tipos", "Util", "Calendario", "Arquivos", "Json", "Internet", "adicionar", "remover", "obter", "Aluno", "dobrar", "nota"]) {
     assert.ok(labels.includes(expected), `esperava sugestão PORS '${expected}'`);
   }
   for (const forbidden of ["programa", "inclua", "biblioteca", "faca", "contrario", "limpa", "sorteia", "Graficos"]) {

@@ -30,6 +30,7 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
     let uses_calendario = pors && program_uses_host_module(program, "Calendario");
     let uses_arquivos = pors && program_uses_host_module(program, "Arquivos");
     let uses_json = pors && program_uses_host_module(program, "Json");
+    let uses_internet = pors && program_uses_host_module(program, "Internet");
     let mvu_update_arity = if pors && program.body.is_empty() {
         mvu_entry_update_arity(program)
     } else {
@@ -69,6 +70,9 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
     }
     if uses_json {
         output.push_str(PORS_JSON_RUNTIME);
+    }
+    if uses_internet {
+        output.push_str(PORS_INTERNET_RUNTIME);
     }
     for definition in &program.record_types {
         output.push_str(&format!(
@@ -978,6 +982,13 @@ fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedExpression {
             arguments,
         } if module == "Json" => {
             render_stdlib_host_call("__pors_json", name, arguments, program, pors)
+        }
+        ExprKind::HostCall {
+            module,
+            name,
+            arguments,
+        } if module == "Internet" => {
+            render_stdlib_host_call("__pors_internet", name, arguments, program, pors)
         }
         ExprKind::HostCall { .. } => vec![ExpressionPart::Text("0_i32".to_owned())],
         ExprKind::Integer(value) if *value == i32::MIN => {
@@ -3106,6 +3117,186 @@ mod __pors_json {
         let mut entries = parse_object(json)?;
         entries.retain(|(k, _)| k != chave);
         serialize(&Value::Object(entries), false)
+    }
+}
+"#;
+
+const PORS_INTERNET_RUNTIME: &str = r#"
+#[allow(dead_code)]
+mod __pors_internet {
+    use std::io::{Read as _, Write as _};
+    use std::net::{TcpStream, ToSocketAddrs as _};
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::time::Duration;
+
+    const MAX_HTTP_BYTES: usize = 1024 * 1024;
+    static TIMEOUT_MS: AtomicU64 = AtomicU64::new(5_000);
+
+    fn allowed() -> Result<(), String> {
+        match std::env::var("PORTUGOL_PORS_ALLOW_NETWORK") {
+            Ok(v) if matches!(v.trim().to_ascii_lowercase().as_str(), "1" | "true" | "sim") => Ok(()),
+            _ => Err(super::__pors_string(
+                "Acesso à rede bloqueado: defina PORTUGOL_PORS_ALLOW_NETWORK=1 para autorizar.",
+            )),
+        }
+    }
+
+    fn parse_url(url: &str) -> Result<(String, u16, String), String> {
+        let trimmed = url.trim();
+        if trimmed.is_empty() || trimmed.bytes().any(|b| matches!(b, b'\r' | b'\n' | b'\0' | b' ')) {
+            return Err(super::__pors_string("URL inválida: vazia ou com caracteres de controle."));
+        }
+        if trimmed.starts_with("https://") {
+            return Err(super::__pors_string(
+                "HTTPS no binário Rust standalone requer um cliente TLS no projeto Cargo; use http:// ou execute na VM.",
+            ));
+        }
+        let rest = trimmed
+            .strip_prefix("http://")
+            .ok_or_else(|| super::__pors_string("Apenas endereços http:// ou https:// são permitidos."))?;
+        let (authority, path) = match rest.find('/') {
+            Some(idx) => (&rest[..idx], &rest[idx..]),
+            None => (rest, "/"),
+        };
+        if authority.is_empty() {
+            return Err(super::__pors_string("Endereço HTTP sem host válido."));
+        }
+        let (host, port) = if let Some((h, p)) = authority.rsplit_once(':') {
+            let port = p
+                .parse::<u16>()
+                .map_err(|_| super::__pors_string(&format!("Porta inválida na URL: '{p}'.")))?;
+            (h, port)
+        } else {
+            (authority, 80)
+        };
+        Ok((host.to_owned(), port, path.to_owned()))
+    }
+
+    fn decode_chunked(raw: &[u8]) -> Result<Vec<u8>, String> {
+        let mut out = Vec::new();
+        let mut pos = 0usize;
+        while pos < raw.len() {
+            let Some(rel) = raw[pos..].windows(2).position(|w| w == b"\r\n") else {
+                return Err(super::__pors_string("Resposta HTTP chunked malformada."));
+            };
+            let size_str = std::str::from_utf8(&raw[pos..pos + rel])
+                .map_err(|_| super::__pors_string("Tamanho de bloco chunked inválido."))?
+                .split(';')
+                .next()
+                .unwrap_or("")
+                .trim();
+            let size = usize::from_str_radix(size_str, 16)
+                .map_err(|_| super::__pors_string("Tamanho hexadecimal chunked inválido."))?;
+            pos += rel + 2;
+            if size == 0 { break; }
+            if out.len().saturating_add(size) > MAX_HTTP_BYTES {
+                return Err(super::__pors_string(&format!("A resposta HTTP excede o limite de {MAX_HTTP_BYTES} bytes.")));
+            }
+            if pos + size + 2 > raw.len() {
+                return Err(super::__pors_string("Bloco HTTP chunked truncado."));
+            }
+            out.extend_from_slice(&raw[pos..pos + size]);
+            pos += size + 2;
+        }
+        Ok(out)
+    }
+
+    fn exchange(method: &str, url: &str, body: Option<&str>) -> Result<(u16, Vec<u8>), String> {
+        let (host, port, path) = parse_url(url)?;
+        let timeout = Duration::from_millis(TIMEOUT_MS.load(Ordering::Relaxed));
+        let addr = (host.as_str(), port)
+            .to_socket_addrs()
+            .map_err(|err| super::__pors_string(&format!("Não foi possível resolver '{host}': {err}")))?
+            .next()
+            .ok_or_else(|| super::__pors_string(&format!("Host '{host}' não resolvido.")))?;
+        let mut stream = TcpStream::connect_timeout(&addr, timeout)
+            .map_err(|err| super::__pors_string(&format!("Falha ao conectar em '{url}': {err}")))?;
+        let _ = stream.set_read_timeout(Some(timeout));
+        let _ = stream.set_write_timeout(Some(timeout));
+        let mut req = format!(
+            "{method} {path} HTTP/1.1\r\nHost: {host}:{port}\r\nUser-Agent: portugol-studio-pors/1.0\r\nConnection: close\r\n"
+        );
+        if let Some(payload) = body {
+            req.push_str(&format!(
+                "Content-Type: application/json; charset=utf-8\r\nContent-Length: {}\r\n\r\n{payload}",
+                payload.len()
+            ));
+        } else {
+            req.push_str("\r\n");
+        }
+        stream
+            .write_all(req.as_bytes())
+            .map_err(|err| super::__pors_string(&format!("Erro ao enviar requisição para '{url}': {err}")))?;
+        let mut raw = Vec::new();
+        stream
+            .take((MAX_HTTP_BYTES + 16 * 1024 + 1) as u64)
+            .read_to_end(&mut raw)
+            .map_err(|err| super::__pors_string(&format!("Erro ao ler resposta de '{url}': {err}")))?;
+        let Some(header_end) = raw.windows(4).position(|w| w == b"\r\n\r\n") else {
+            return Err(super::__pors_string(&format!("Resposta HTTP inválida de '{url}'.")));
+        };
+        let head = std::str::from_utf8(&raw[..header_end])
+            .map_err(|_| super::__pors_string(&format!("Cabeçalhos HTTP inválidos de '{url}'.")))?;
+        let status = head
+            .lines()
+            .next()
+            .and_then(|line| line.split_whitespace().nth(1))
+            .and_then(|code| code.parse::<u16>().ok())
+            .ok_or_else(|| super::__pors_string(&format!("Linha de status HTTP inválida de '{url}'.")))?;
+        let is_chunked = head.lines().any(|line| {
+            let lower = line.to_ascii_lowercase();
+            lower.starts_with("transfer-encoding:") && lower.contains("chunked")
+        });
+        let raw_body = &raw[header_end + 4..];
+        let body_bytes = if is_chunked {
+            decode_chunked(raw_body)?
+        } else {
+            if raw_body.len() > MAX_HTTP_BYTES {
+                return Err(super::__pors_string(&format!("A resposta de '{url}' excede o limite de {MAX_HTTP_BYTES} bytes.")));
+            }
+            raw_body.to_vec()
+        };
+        Ok((status, body_bytes))
+    }
+
+    pub fn definir_tempo_limite(ms: i32) {
+        TIMEOUT_MS.store((ms.max(0) as u64).clamp(100, 30_000), Ordering::Relaxed);
+    }
+
+    pub fn obter_texto(url: &str) -> Result<String, String> {
+        allowed()?;
+        let (status, bytes) = exchange("GET", url, None)?;
+        if !(200..300).contains(&status) {
+            return Err(super::__pors_string(&format!("Requisição GET para '{url}' retornou HTTP {status}.")));
+        }
+        let text = String::from_utf8(bytes)
+            .map_err(|_| super::__pors_string(&format!("A resposta de '{url}' não é texto UTF-8 válido.")))?;
+        super::__pors_account(text.len());
+        Ok(text)
+    }
+
+    pub fn enviar_json(url: &str, corpo_json: &str) -> Result<String, String> {
+        allowed()?;
+        if corpo_json.len() > MAX_HTTP_BYTES {
+            return Err(super::__pors_string(&format!("O corpo JSON excede o limite de {MAX_HTTP_BYTES} bytes.")));
+        }
+        let (status, bytes) = exchange("POST", url, Some(corpo_json))?;
+        if !(200..300).contains(&status) {
+            return Err(super::__pors_string(&format!("Requisição POST para '{url}' retornou HTTP {status}.")));
+        }
+        let text = String::from_utf8(bytes)
+            .map_err(|_| super::__pors_string(&format!("A resposta de '{url}' não é texto UTF-8 válido.")))?;
+        super::__pors_account(text.len());
+        Ok(text)
+    }
+
+    pub fn endereco_disponivel(url: &str) -> Result<bool, String> {
+        allowed()?;
+        let _ = parse_url(url)?;
+        Ok(match exchange("HEAD", url, None) {
+            Ok((status, _)) => (200..400).contains(&status),
+            Err(_) => false,
+        })
     }
 }
 "#;
