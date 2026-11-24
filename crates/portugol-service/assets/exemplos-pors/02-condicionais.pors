@@ -1,9 +1,13 @@
 funcao inicio() {
     seja nota: real = 8.5;
     seja frequencia: inteiro = 80;
-    se (nota >= 7.0 && frequencia >= 75) {
+    se (nota >= 9.0 && frequencia >= 75) {
+        escreva("Aprovado com excelência");
+    } senao se (nota >= 7.0 && frequencia >= 75) {
         escreva("Aprovado");
-    } senao {
+    } senao se (frequencia >= 75) {
         escreva("Em recuperação");
+    } senao {
+        escreva("Reprovado");
     }
 }

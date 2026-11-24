@@ -62,3 +62,25 @@ test("PORS highlights leia and completes it as a supported function", async () =
   assert.deepEqual(builtins, ["leia"]);
   assert.ok(result.options.some(({ label, apply }) => label === "leia" && apply === "leia("));
 });
+
+test("PORS autocomplete offers a chained senao se conditional", async () => {
+  const state = EditorState.create({ doc: "", extensions: [portugolRs()] });
+  const [completion] = state.languageDataAt("autocomplete", 0);
+  const result = await completion(new CompletionContext(state, 0, true));
+
+  assert.ok(result.options.some(({ label }) => label === "se senao se"));
+});
+
+test("PORS highlighting recognizes each keyword in a chained senao se conditional", () => {
+  const source = "se (verdadeiro) {} senao se (falso) {} senao {}";
+  const state = EditorState.create({ doc: source, extensions: [portugolRs()] });
+  const keywords = [];
+
+  syntaxTree(state).iterate({
+    enter(node) {
+      if (node.name === "keyword") keywords.push(state.doc.sliceString(node.from, node.to));
+    },
+  });
+
+  assert.deepEqual(keywords, ["se", "senao", "se", "senao"]);
+});

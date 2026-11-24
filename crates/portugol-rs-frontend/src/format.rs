@@ -319,6 +319,16 @@ mod tests {
     }
 
     #[test]
+    fn formats_chained_senao_se_without_adding_an_extra_block() {
+        let source =
+            "funcao inicio(){se(1==1){escreva(1);}senao se(1==2){escreva(2);}senao{escreva(3);}}";
+        let expected = "funcao inicio() {\n    se (1 == 1) {\n        escreva(1);\n    } senao se (1 == 2) {\n        escreva(2);\n    } senao {\n        escreva(3);\n    }\n}\n";
+        let formatted = apply(source, format(source).expect("fonte válida"));
+        assert_eq!(formatted, expected);
+        assert_eq!(format(&formatted), Some(Vec::new()));
+    }
+
+    #[test]
     fn preserves_empty_blocks_trailing_comments_and_void_return() {
         let compact = "funcao vazio(){retorne;}funcao inicio(){seja mutavel x:inteiro=1; // ok\nenquanto(falso){}vazio();}";
         let expected = "funcao vazio() {\n    retorne;\n}\n\nfuncao inicio() {\n    seja mutavel x: inteiro = 1; // ok\n    enquanto (falso) {}\n    vazio();\n}\n";

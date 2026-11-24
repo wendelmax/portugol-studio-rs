@@ -43,6 +43,20 @@ export const PORS_HELP_TOPICS: readonly PorsHelpTopic[] = [
     },
   },
   {
+    id: "pors:condicionais",
+    title: "Condicionais encadeadas",
+    summary: "Use `senao se` para testar alternativas em sequência, sem criar blocos extras.",
+    paragraphs: [
+      "Cada `senao se` verifica uma nova condição somente quando as anteriores forem falsas. O bloco `senao` final é opcional e cobre os demais casos.",
+      "O encadeamento é representado como condicionais aninhadas e funciona na VM e no Rust gerado.",
+    ],
+    example: {
+      title: "Classificação por nota",
+      fileName: "condicionais-encadeadas.pors",
+      source: `funcao classificar(nota: inteiro) -> inteiro {\n    se (nota >= 9) {\n        retorne 1;\n    } senao se (nota >= 7) {\n        retorne 2;\n    } senao {\n        retorne 3;\n    }\n}\n\nfuncao inicio() {\n    escreva(classificar(8));\n}\n`,
+    },
+  },
+  {
     id: "pors:opcao-resultado",
     title: "Opcao<T>, Resultado<T, E> e operador ?",
     summary: "Tratamento explícito de ausência e falhas sem null ou exceções, mapeado para Option e Result em Rust.",

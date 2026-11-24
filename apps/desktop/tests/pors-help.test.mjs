@@ -38,6 +38,13 @@ test("PORS help examples use .pors syntax without classic Portugol keywords", ()
   }
 });
 
+test("PORS help explains chained senao se conditionals with an example", () => {
+  const topic = PORS_HELP_TOPICS.find((item) => item.id === "pors:condicionais");
+  assert.ok(topic);
+  assert.ok(topic.paragraphs.some((paragraph) => paragraph.includes("senao se")));
+  assert.ok(topic.example?.source.includes("senao se"));
+});
+
 test("filterPorsHelp matches accents, library functions and topics case-insensitively", () => {
   const byOpcao = filterPorsHelp("opcao");
   assert.ok(byOpcao.topics.some((t) => t.id === "pors:opcao-resultado"));

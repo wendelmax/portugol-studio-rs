@@ -590,6 +590,28 @@ fn pors_vm_and_generated_rust_match_across_binary_operator_families() {
 }
 
 #[test]
+fn pors_vm_and_generated_rust_match_chained_senao_se_with_three_branches() {
+    if !portugol_service::rust_toolchain_available() {
+        eprintln!("rustc indisponível; teste diferencial ignorado neste ambiente");
+        return;
+    }
+    let source = "funcao classificar(valor: inteiro) -> inteiro { se (valor < 0) { retorne 1; } senao se (valor == 0) { retorne 2; } senao { retorne 3; } } funcao inicio() { escreva(classificar(-1)); escreva(classificar(0)); escreva(classificar(1)); }";
+    let generated = portugol_service::run_portugol_rs(source).expect("compilar Rust gerado");
+    let portugol_service::PortugolRsRunResult::Executed {
+        stdout,
+        exit_code: Some(0),
+        ..
+    } = generated
+    else {
+        panic!("Rust gerado não concluiu: {generated:?}");
+    };
+    let (vm_output, outcome) = run_vm_to_output(source);
+    assert_eq!(outcome, RunOutcome::Finished);
+    assert_eq!(stdout, "123");
+    assert_eq!(vm_output, stdout);
+}
+
+#[test]
 fn pors_debugger_locates_invalid_characters_outside_the_supported_subset() {
     let source = "funcao inicio() { escreva(6 @ 3); }";
     let (tx, _rx) = mpsc::channel();
