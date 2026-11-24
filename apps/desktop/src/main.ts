@@ -63,6 +63,7 @@ import type { Tab } from "./state/tab";
 import { mountWorkspaceExplorer } from "./workspace/explorer";
 import { mountRustPreview } from "./rust/preview";
 import { mountLearningPanel } from "./learning/panel";
+import { createLearningModeController } from "./learning/mode-controller";
 import { mountCommandPalette } from "./commands/palette";
 import { ctrlShortcut, renderShortcutList, type Shortcut } from "./commands/shortcuts";
 import { mountProjectDialogs } from "./shell/project-dialogs";
@@ -1819,25 +1820,20 @@ $("utilities-close").onclick = () => {
 $("btn-save").onclick = () => void fileIO.save();
 $("btn-save-as").onclick = () => void fileIO.save(true);
 $("btn-run").onclick = () => void runOrContinue();
-function applyLearningMode(mode: LearningMode, persist = true) {
-  const availableMode = mode === "rust" && rustcAvailable !== true ? "beginner" : mode;
-  learningMode = availableMode;
-  const selector = $<HTMLSelectElement>("learning-mode");
-  selector.value = availableMode;
-  if (persist) saveLearningMode(availableMode, undefined, activeTab()?.workspacePreferenceKey);
-  if (!$<HTMLElement>("learning-panel").hidden) learningPanel.render();
-
-  const preview = $<HTMLElement>("rust-preview");
-  const bridgeEnabled = availableMode === "bridge" && activeTab()?.language !== "rust";
-  preview.hidden = !bridgeEnabled;
-  rustPreview.renderMappingGutter();
-  $<HTMLButtonElement>("btn-rust").setAttribute("aria-pressed", String(bridgeEnabled));
-  if (bridgeEnabled) {
-    if (activeTab()) rustPreview.schedule();
-  } else {
-    rustPreview.cancel();
-  }
-}
+const applyLearningMode = createLearningModeController({
+  rustcAvailable: () => rustcAvailable,
+  activeTab,
+  setMode: (mode) => { learningMode = mode; },
+  setSelectorValue: (mode) => { $<HTMLSelectElement>("learning-mode").value = mode; },
+  persist: (mode, preferenceKey) => { saveLearningMode(mode, undefined, preferenceKey); },
+  panelVisible: () => !$<HTMLElement>("learning-panel").hidden,
+  renderPanel: () => learningPanel.render(),
+  setPreviewHidden: (hidden) => { $<HTMLElement>("rust-preview").hidden = hidden; },
+  renderMappingGutter: () => rustPreview.renderMappingGutter(),
+  setBridgePressed: (pressed) => $<HTMLButtonElement>("btn-rust").setAttribute("aria-pressed", String(pressed)),
+  schedulePreview: () => rustPreview.schedule(),
+  cancelPreview: () => rustPreview.cancel(),
+});
 
 $<HTMLSelectElement>("learning-mode").onchange = (event) => {
   const selected = (event.currentTarget as HTMLSelectElement).value;

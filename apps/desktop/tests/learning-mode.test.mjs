@@ -47,6 +47,7 @@ test("workspace modes persist independently and fall back to the global legacy p
 test("workspace tabs carry their stable preference key and restore mode on activation", () => {
   const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
   const main = ideSource();
+  const modeController = readFileSync(new URL("../src/learning/mode-controller.ts", import.meta.url), "utf8");
   const workspace = readFileSync(new URL("../src-tauri/src/workspace.rs", import.meta.url), "utf8");
 
   assert.match(api, /interface WorkspaceListing \{[\s\S]*preferenceKey: string/);
@@ -54,7 +55,8 @@ test("workspace tabs carry their stable preference key and restore mode on activ
   assert.match(workspace, /Sha256::digest\(canonical\.to_string_lossy\(\)\.as_bytes\(\)\)/);
   assert.match(main, /workspacePreferenceKey\?: string/);
   assert.match(main, /applyLearningMode\(loadLearningMode\(undefined, tab\.workspacePreferenceKey\), false\)/);
-  assert.match(main, /saveLearningMode\(availableMode, undefined, activeTab\(\)\?\.workspacePreferenceKey\)/);
+  assert.match(main, /persist: \(mode, preferenceKey\) => \{ saveLearningMode\(mode, undefined, preferenceKey\); \}/);
+  assert.match(modeController, /dependencies\.persist\(availableMode, dependencies\.activeTab\(\)\?\.workspacePreferenceKey\)/);
   assert.equal((main.match(/applyLearningMode\(loadLearningMode\(undefined, activeTab\(\)\?\.workspacePreferenceKey\), false\)/g) ?? []).length, 2);
 });
 
@@ -72,11 +74,12 @@ test("seletor associa a disponibilidade de Rust à toolchain e mantém instruç�
 
 test("modo Rust usa editor e executor Rust existentes sem reescrever a fonte", () => {
   const main = ideSource();
+  const modeController = readFileSync(new URL("../src/learning/mode-controller.ts", import.meta.url), "utf8");
   assert.match(main, /rustToolchainAvailable\(\)/);
   assert.match(main, /api\.runRustSource\(id, source, rustArgs\)/);
   assert.match(main, /rustOption\.disabled = !available/);
   assert.match(main, /Nível Rust:[\s\S]{0,180}arquivo atual permanece intacto/);
-  const applyMode = main.match(/function applyLearningMode\([\s\S]*?\n\}/)?.[0];
+  const applyMode = modeController.match(/return \(mode: LearningMode,[\s\S]*?\n  \};/)?.[0];
   assert.ok(applyMode, "a troca de modo precisa ter implementação identificável");
   assert.doesNotMatch(applyMode, /view\.dispatch|newTab\(/, "trocar modo não edita nem troca de documento");
 });
