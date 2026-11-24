@@ -219,6 +219,19 @@ export interface CargoProjectCheckResult {
 }
 export const checkCargoProject = (id: number, workspaceId: string, relativeSource: string) =>
   invoke<CargoProjectCheckResult>("check_cargo_project", { id, workspaceId, relativeSource });
+export interface CargoProjectTestResult {
+  status: "passed" | "failed" | "build_error" | "test_limit" | "cancelled";
+  passed: number;
+  failed: number;
+  ignored: number;
+  failures: string[];
+  stdout: string;
+  stderr: string;
+  exitCode: number | null;
+  reason: "time" | "output" | "memory" | "cancelled" | null;
+}
+export const testCargoProject = (id: number, workspaceId: string, relativeSource: string) =>
+  invoke<CargoProjectTestResult>("test_cargo_project", { id, workspaceId, relativeSource });
 export const rustfmtAvailable = () => invoke<boolean>("rustfmt_available");
 export const formatRustSource = (source: string) => invoke<string>("format_rust_source", { source });
 export const checkRustSource = (source: string) =>

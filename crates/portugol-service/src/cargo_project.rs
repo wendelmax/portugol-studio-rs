@@ -57,6 +57,20 @@ pub struct CargoProjectCheckResult {
     pub reason: Option<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CargoProjectTestResult {
+    pub status: String,
+    pub passed: usize,
+    pub failed: usize,
+    pub ignored: usize,
+    pub failures: Vec<String>,
+    pub stdout: String,
+    pub stderr: String,
+    pub exit_code: Option<i32>,
+    pub reason: Option<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CargoRunTarget {
@@ -272,6 +286,103 @@ pub fn check_cargo_project_with_cancel(
         stderr,
         reason: None,
     })
+}
+
+/// Executa `cargo test` para um projeto Cargo supervisionado por tempo, saída e cancelamento.
+/// Cargo pode executar scripts de build, macros procedurais e código de teste; exige consentimento explícito.
+pub fn test_cargo_project_with_cancel(
+    project_root: &Path,
+    cancel: &AtomicBool,
+) -> Result<CargoProjectTestResult, String> {
+    let project_root = std::fs::canonicalize(project_root)
+        .map_err(|error| format!("Não foi possível acessar o projeto Rust: {error}"))?;
+    if !project_root.is_dir() {
+        return Err("A pasta do projeto Cargo não está disponível.".into());
+    }
+    let manifest = validated_manifest(&project_root)?;
+
+    let mut command = Command::new("cargo");
+    configure_process_tree(&mut command);
+    let child = command
+        .arg("test")
+        .arg("--color=never")
+        .arg("--manifest-path")
+        .arg(&manifest)
+        .current_dir(&project_root)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| format!("Não foi possível iniciar Cargo; instale Rust/Cargo: {error}"))?;
+    let output = supervise(child, COMPILATION_LIMIT + RUNTIME_LIMIT, Some(cancel))?;
+    let stdout = bounded_output(&output.stdout);
+    let stderr = bounded_output(&output.stderr);
+    if let Some(reason) = output.limit {
+        return Ok(CargoProjectTestResult {
+            status: if reason == ProcessLimitReason::Cancelled {
+                "cancelled"
+            } else {
+                "test_limit"
+            }
+            .into(),
+            passed: 0,
+            failed: 0,
+            ignored: 0,
+            failures: Vec::new(),
+            stdout,
+            stderr,
+            exit_code: output.status,
+            reason: Some(
+                match reason {
+                    ProcessLimitReason::Time => "time",
+                    ProcessLimitReason::Output => "output",
+                    ProcessLimitReason::StringMemory => "memory",
+                    ProcessLimitReason::Cancelled => "cancelled",
+                }
+                .into(),
+            ),
+        });
+    }
+    let (passed, failed, ignored, failures) = parse_cargo_test_output(&stdout);
+    let status = if output.status == Some(0) {
+        "passed"
+    } else if failed > 0 || !failures.is_empty() {
+        "failed"
+    } else {
+        "build_error"
+    };
+    Ok(CargoProjectTestResult {
+        status: status.into(),
+        passed,
+        failed,
+        ignored,
+        failures,
+        stdout,
+        stderr,
+        exit_code: output.status,
+        reason: None,
+    })
+}
+
+fn parse_cargo_test_output(stdout: &str) -> (usize, usize, usize, Vec<String>) {
+    let mut passed = 0usize;
+    let mut failed = 0usize;
+    let mut ignored = 0usize;
+    let mut failures = Vec::new();
+    for line in stdout.lines() {
+        let trimmed = line.trim();
+        if let Some(rest) = trimmed.strip_prefix("test ") {
+            if rest.ends_with(" ... ok") {
+                passed += 1;
+            } else if let Some(name) = rest.strip_suffix(" ... FAILED") {
+                failed += 1;
+                failures.push(format!("Teste falhou: {}", name.trim()));
+            } else if rest.ends_with(" ... ignored") || rest.contains(" ... ignored, ") {
+                ignored += 1;
+            }
+        }
+    }
+    (passed, failed, ignored, failures)
 }
 
 /// Compila e executa o binário padrão de um projeto Cargo sem shell.

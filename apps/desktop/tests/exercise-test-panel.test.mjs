@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  cargoTestPanelState,
+  cargoTestStatus,
   exerciseTestPanelState,
   exerciseTestStatus,
   isCurrentExerciseTestRequest,
@@ -67,5 +69,39 @@ test("running and failed case evaluation have explicit status messages", () => {
       result: { total: 4, passed: 4, failures: [], completed: true },
     }, "portugol-rs"),
     "4 de 4 casos aprovados (.pors). Exercício concluído nesta revisão.",
+  );
+});
+
+test("cargo test panel tracks revision-scoped cargo test states honestly", () => {
+  const doc = {};
+  const stale = {};
+  assert.deepEqual(cargoTestPanelState(doc, undefined), { kind: "ready" });
+  assert.equal(cargoTestStatus({ kind: "ready" }), "Projeto Cargo pronto para executar testes (`cargo test`).");
+  assert.equal(cargoTestStatus({ kind: "running" }), "Executando `cargo test` para esta revisão…");
+
+  const run = {
+    source: doc,
+    status: "completed",
+    result: { status: "failed", passed: 2, failed: 1, ignored: 1, failures: ["Teste falhou: soma"] },
+  };
+  assert.deepEqual(cargoTestPanelState(doc, run), { kind: "completed", result: run.result });
+  assert.deepEqual(cargoTestPanelState(stale, run), { kind: "ready" });
+  assert.equal(
+    cargoTestStatus({ kind: "completed", result: run.result }),
+    "Cargo test falhou: 2 aprovado(s), 1 falhou(aram), 1 ignorado(s).",
+  );
+  assert.equal(
+    cargoTestStatus({
+      kind: "completed",
+      result: { status: "passed", passed: 3, failed: 0, ignored: 0, failures: [] },
+    }),
+    "Cargo test aprovado: 3 teste(s) aprovado(s).",
+  );
+  assert.equal(
+    cargoTestStatus({
+      kind: "completed",
+      result: { status: "build_error", passed: 0, failed: 0, ignored: 0, failures: [] },
+    }),
+    "Falha de compilação ao executar `cargo test`; confira o Console.",
   );
 });

@@ -36,9 +36,12 @@ import { mountExamples } from "./examples";
 import { mountHomeNewFileMenu } from "./home-new-file-menu";
 import { mountExercises, readExercise, type ExerciseDocument } from "./exercises";
 import {
+  cargoTestPanelState,
+  cargoTestStatus,
   exerciseTestPanelState,
   exerciseTestStatus,
   isCurrentExerciseTestRequest,
+  type CargoTestRun,
   type ExerciseTestRequest,
   type ExerciseTestRun,
 } from "./exercise-test-panel";
@@ -112,6 +115,7 @@ interface Tab {
   exercise?: ExerciseDocument;
   exerciseTestRun?: ExerciseTestRun;
   exerciseTestGeneration?: number;
+  cargoTestRun?: CargoTestRun;
   workspaceId?: string;
   workspacePath?: string;
   workspacePreferenceKey?: string;
@@ -2209,6 +2213,105 @@ async function checkCargoProject() {
   }
 }
 
+async function runCargoTests() {
+  if (runId !== null || pendingEvents !== null || porsRunPending) return;
+  const tab = activeTab();
+  if (!tab || tab.language !== "rust") return;
+  if (tab.workspaceId && tab.workspacePath && tab.cargoProject === undefined) {
+    setStatus("Verificando se este arquivo pertence a um projeto Cargo.");
+    return;
+  }
+  if (tab.cargoProject !== true || !tab.workspaceId || !tab.workspacePath) {
+    setStatus("Abra um arquivo Rust pelo explorador dentro de um projeto Cargo.", "error");
+    return;
+  }
+  if (cargoAvailable !== true) {
+    setStatus("Instale Cargo para executar os testes do projeto Rust.", "error");
+    return;
+  }
+  const dirtyFiles = tabs.filter((candidate) =>
+    candidate.workspaceId === tab.workspaceId && candidate.language === "rust" && candidate !== tab && isDirty(candidate),
+  );
+  if (dirtyFiles.length > 0) {
+    setStatus("Salve os outros arquivos Rust alterados deste workspace antes de executar `cargo test`.", "error");
+    return;
+  }
+  if (isDirty(tab) && !(await save())) {
+    setStatus("Salve o arquivo Rust antes de executar `cargo test`.", "error");
+    return;
+  }
+  if (activeTab() !== tab) return;
+  const documentState = view.state.doc;
+  let registeredId: number | null = null;
+  porsRunPending = true;
+  runTabId = tab.id;
+  syncLanguageControls(tab);
+  try {
+    if (!hasCargoExecutionConsent(sessionStorage)) {
+      const accepted = await ask(
+        "cargo test pode acessar a rede e executar scripts de build, macros procedurais e código de teste no seu usuário local. Esta execução não possui sandbox. Execute apenas projetos em que você confia. Deseja continuar?",
+        { title: "Executar cargo test sem sandbox", kind: "warning", okLabel: "Executar testes", cancelLabel: "Cancelar" },
+      );
+      if (!accepted) {
+        if (activeTab() === tab) setStatus("Execução de `cargo test` cancelada.");
+        return;
+      }
+      rememberCargoExecutionConsent(sessionStorage, true);
+    }
+    if (activeTab() !== tab || view.state.doc !== documentState) return;
+    registeredId = await api.registerRustSourceRun();
+    runId = registeredId;
+    setRunning(true);
+    tab.cargoTestRun = { source: documentState, status: "running" };
+    showPanel("tests");
+    renderExerciseTests();
+    output.replaceChildren();
+    setStatus("Executando testes do projeto com cargo test…");
+    const result = await api.testCargoProject(registeredId, tab.workspaceId, tab.workspacePath);
+    if (activeTab() !== tab || view.state.doc !== documentState) return;
+    if (result.stdout) appendConsole(result.stdout);
+    if (result.stderr) appendConsole(result.stderr, result.status === "build_error" ? "error" : "");
+    tab.cargoTestRun = {
+      source: documentState,
+      status: "completed",
+      result: {
+        status: result.status,
+        passed: result.passed,
+        failed: result.failed,
+        ignored: result.ignored,
+        failures: result.failures,
+        reason: result.reason,
+      },
+    };
+    renderExerciseTests();
+    if (result.status === "passed") {
+      setStatus(`Cargo test aprovado (${result.passed} teste(s)).`, "ok");
+    } else if (result.status === "cancelled") {
+      setStatus("Execução de `cargo test` cancelada.");
+    } else {
+      setStatus(result.status === "build_error"
+        ? "Falha de compilação ao executar `cargo test`."
+        : `Cargo test falhou (${result.failed} falha(s)).`, "error");
+    }
+  } catch (error) {
+    if (activeTab() === tab && view.state.doc === documentState) {
+      const message = typeof error === "string" ? error : "Não foi possível executar `cargo test`.";
+      tab.cargoTestRun = { source: documentState, status: "error", message };
+      renderExerciseTests();
+      appendConsole(`${message}\n`, "error");
+      setStatus("Não foi possível executar `cargo test`.", "error");
+    }
+  } finally {
+    if (registeredId !== null && runId === registeredId) runId = null;
+    porsRunPending = false;
+    runTabId = null;
+    setRunning(false);
+    const current = activeTab();
+    if (current) syncLanguageControls(current);
+    renderExerciseTests();
+  }
+}
+
 const ownershipStateLabels: Record<OwnershipBindingState, string> = {
   owner: "Dono",
   "shared-reference": "Empréstimo compartilhado (&T)",
@@ -2442,18 +2545,38 @@ function renderMessages() {
 
 function renderExerciseTests() {
   const tab = activeTab();
+  const status = $("tests-status");
+  const run = $<HTMLButtonElement>("tests-run");
+  const failures = $<HTMLUListElement>("tests-results");
+  failures.replaceChildren();
+
+  if (!tab?.exercise && tab?.language === "rust" && tab.cargoProject === true) {
+    const cargoState = cargoTestPanelState(view.state.doc, tab.cargoTestRun);
+    $("tests-title").textContent = `Testes Cargo — ${tabName(tab)}`;
+    const nextStatus = cargoTestStatus(cargoState);
+    if (status.textContent !== nextStatus) status.textContent = nextStatus;
+    run.hidden = false;
+    run.disabled = cargoState.kind === "running" || cargoAvailable !== true || runId !== null || porsRunPending;
+    run.textContent = cargoState.kind === "running" ? "Executando…" : "Executar testes";
+    if (cargoState.kind === "completed") {
+      for (const failure of cargoState.result.failures) {
+        const item = document.createElement("li");
+        item.textContent = failure;
+        failures.append(item);
+      }
+    }
+    failures.hidden = cargoState.kind !== "completed" || failures.childElementCount === 0;
+    return;
+  }
+
   const state = exerciseTestPanelState(tab?.exercise?.exercise, view.state.doc, tab?.exerciseTestRun);
   const exerciseLanguage = tab?.exercise?.pors ? "portugol-rs" : "portugol";
   $("tests-title").textContent = tab?.exercise ? `Testes — ${tabName(tab)}` : "Testes do projeto";
-  const status = $("tests-status");
   const nextStatus = exerciseTestStatus(state, exerciseLanguage);
   if (status.textContent !== nextStatus) status.textContent = nextStatus;
-  const run = $<HTMLButtonElement>("tests-run");
   run.hidden = state.kind === "empty" || state.kind === "no-cases";
   run.disabled = state.kind === "running";
   run.textContent = state.kind === "running" ? "Executando…" : "Executar casos";
-  const failures = $<HTMLUListElement>("tests-results");
-  failures.replaceChildren();
   if (state.kind === "completed") {
     for (const failure of state.result.failures) {
       const item = document.createElement("li");
@@ -2471,6 +2594,10 @@ function renderExerciseTests() {
 
 async function runExerciseTests() {
   const tab = activeTab();
+  if (!tab?.exercise && tab?.language === "rust" && tab.cargoProject === true) {
+    await runCargoTests();
+    return;
+  }
   if (!tab?.exercise || tab.exercise.exercise.cases <= 0) return;
   const documentState = view.state.doc;
   const request: ExerciseTestRequest = {
@@ -3530,7 +3657,7 @@ let selectedCommandIndex = -1;
 
 const tabCommands = new Set([
   "Executar", "Depurar", "Interromper", "Pausar", "Continuar", "Próxima instrução",
-  "Entrar na função", "Sair da função", "Renomear símbolo", "Formatar código-fonte", "Analisar projeto Cargo",
+  "Entrar na função", "Sair da função", "Renomear símbolo", "Formatar código-fonte", "Analisar projeto Cargo", "Testar projeto Cargo",
   "Salvar", "Salvar como", "Parâmetros de execução", "Fechar aba", "Fechar todas as abas", "Localizar e substituir",
   "Buscar na estrutura", "Filtrar variável", "Filtrar vetor", "Filtrar matriz", "Filtrar função",
   "Filtrar constante", "Mostrar todos os tipos", "Filtrar tipo inteiro", "Filtrar tipo caracter",
@@ -3555,6 +3682,7 @@ function availablePaletteCommands() {
     if (tabCommands.has(command) && !tab) return false;
     if (command === "Executar" && tab?.language === "portugol-rs" && rustcAvailable !== true) return false;
     if (command === "Analisar projeto Cargo") return tab?.language === "rust" && tab.cargoProject === true && cargoAvailable === true && runId === null && !porsRunPending;
+    if (command === "Testar projeto Cargo") return tab?.language === "rust" && tab.cargoProject === true && cargoAvailable === true && runId === null && !porsRunPending;
     if (command === "Parâmetros de execução" && tab?.language === "portugol-rs") return false;
     if (tab?.language === "rust" && rustUnsupportedCommands.has(command)) return false;
     if (debugCommands.has(command) && !isDebugCommandAvailable(command, tab?.language ?? null, runId !== null, paused !== null)) return false;
@@ -3671,6 +3799,7 @@ const shortcuts: {
   { label: "Ctrl+Alt+F", command: "Formatar código-fonte",
     matches: (e) => (e.ctrlKey || e.metaKey) && e.altKey && !e.shiftKey && e.code === "KeyF", action: formatCode },
   { label: "via paleta de comandos", command: "Analisar projeto Cargo", matches: () => false, action: checkCargoProject },
+  { label: "via paleta de comandos", command: "Testar projeto Cargo", matches: () => false, action: runCargoTests },
   { label: "F3", command: "Dicas de interface", matches: (e) => e.key === "F3", action: () => tips.open() },
   { label: "F12", command: "Sobre (fora do editor); ir à declaração (no editor)", matches: (e) => e.key === "F12", action: () =>
     $<HTMLDialogElement>("about").showModal() },
