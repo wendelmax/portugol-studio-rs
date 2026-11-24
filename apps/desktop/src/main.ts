@@ -40,6 +40,7 @@ import {
 } from "./exercise-test-panel";
 import { createTestsPanelController } from "./run/tests-panel";
 import { createCargoProjectController } from "./run/cargo-project";
+import { createRunControls } from "./run/controls";
 import { portugolFolding } from "./folding";
 import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
@@ -673,27 +674,20 @@ const consoleBox = $("console");
 const inputForm = $<HTMLFormElement>("console-form");
 const inputField = $<HTMLInputElement>("console-input");
 
-function setRunning(running: boolean) {
-  const language = activeTab()?.language;
-  const canRun = language !== undefined && canRunSource(language, rustcAvailable);
-  const canDebug = language !== undefined && canDebugSource(language);
-  const isBusy = running && paused === null;
-  $<HTMLButtonElement>("btn-run").disabled = !canRun || isBusy;
-  $<HTMLButtonElement>("btn-debug").disabled = !canDebug || isBusy;
-  $<HTMLButtonElement>("btn-stop").disabled = !running || runId === null;
-  $<HTMLButtonElement>("btn-debug-pause").disabled = !canDebug || !running || paused !== null;
-  for (const id of [
-    "btn-debug-continue", "btn-debug-step-over", "btn-debug-step-into", "btn-debug-step-out",
-  ]) {
-    $<HTMLButtonElement>(id).disabled = !canDebug || paused === null;
-  }
-  if (!running) inputForm.hidden = true;
-  $("debug-vars").hidden = paused === null || paused.variables.length === 0;
-  $("inspector-empty").hidden = !$("debug-vars").hidden;
-  $("inspector-empty").textContent = paused
-    ? "Nenhuma variável neste ponto."
-    : "Pause a execução para inspecionar as variáveis.";
-}
+const runControls = createRunControls({
+  activeLanguage: () => activeTab()?.language,
+  canRun: canRunSource,
+  canDebug: canDebugSource,
+  rustcAvailable: () => rustcAvailable,
+  runId: () => runId,
+  paused: () => paused,
+  setButtonDisabled: (id, disabled) => { $<HTMLButtonElement>(id).disabled = disabled; },
+  setInputHidden: (hidden) => { inputForm.hidden = hidden; },
+  setDebugVarsHidden: (hidden) => { $("debug-vars").hidden = hidden; },
+  setInspectorEmptyHidden: (hidden) => { $("inspector-empty").hidden = hidden; },
+  setInspectorText: (text) => { $("inspector-empty").textContent = text; },
+});
+const setRunning = runControls.setRunning;
 
 /** Pontos de parada podem mudar enquanto o programa está em execução. */
 function syncBreakpoints(state: EditorState) {
