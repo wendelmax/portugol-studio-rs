@@ -30,14 +30,23 @@ pub(super) enum Kind {
     StarEq,
     SlashEq,
     PercentEq,
+    AmpEq,
+    PipeEq,
+    CaretEq,
     Assign,
     Equal,
     NotEqual,
     Bang,
+    Tilde,
     Greater,
     Less,
     GreaterEqual,
     LessEqual,
+    Shl,
+    Shr,
+    Amp,
+    Pipe,
+    Caret,
     And,
     Or,
     Question,
@@ -129,18 +138,32 @@ impl Lexer<'_> {
                 }
                 '=' => self.pair(start, '=', Kind::Equal, Kind::Assign),
                 '!' => self.pair(start, '=', Kind::NotEqual, Kind::Bang),
+                '~' => self.single(start, Kind::Tilde),
+                '>' if self.starts_with(">>") => {
+                    self.bump();
+                    self.bump();
+                    self.push(start, Kind::Shr);
+                }
                 '>' => self.pair(start, '=', Kind::GreaterEqual, Kind::Greater),
+                '<' if self.starts_with("<<") => {
+                    self.bump();
+                    self.bump();
+                    self.push(start, Kind::Shl);
+                }
                 '<' => self.pair(start, '=', Kind::LessEqual, Kind::Less),
                 '&' if self.starts_with("&&") => {
                     self.bump();
                     self.bump();
                     self.push(start, Kind::And);
                 }
+                '&' => self.pair(start, '=', Kind::AmpEq, Kind::Amp),
                 '|' if self.starts_with("||") => {
                     self.bump();
                     self.bump();
                     self.push(start, Kind::Or);
                 }
+                '|' => self.pair(start, '=', Kind::PipeEq, Kind::Pipe),
+                '^' => self.pair(start, '=', Kind::CaretEq, Kind::Caret),
                 _ => {
                     self.bump();
                     self.error(

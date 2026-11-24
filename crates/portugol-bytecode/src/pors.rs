@@ -325,41 +325,51 @@ impl<'a> Compiler<'a> {
                 self.expr(value)?;
                 let mut exits = Vec::new();
                 for arm in arms {
-                    self.emit(Op::Dup, arm.span);
-                    self.emit(Op::PushInt(0), arm.span);
-                    self.emit(Op::LoadElem, arm.span);
-                    self.emit(Op::PushInt(arm.variant_index as i32), arm.span);
-                    self.emit(Op::Eq, arm.span);
-                    let next_arm = self.emit(Op::JumpIfFalse(0), arm.span);
-                    for (payload_index, binding) in arm.payload_bindings.iter().enumerate() {
+                    if let Some(variant_index) = arm.variant_index {
                         self.emit(Op::Dup, arm.span);
-                        self.emit(Op::PushInt((payload_index + 1) as i32), arm.span);
+                        self.emit(Op::PushInt(0), arm.span);
                         self.emit(Op::LoadElem, arm.span);
-                        if self.locals[binding.0 as usize].ty == Type::Cadeia {
-                            self.emit(Op::CloneString, arm.span);
-                        } else if self.locals[binding.0 as usize].dims > 0 {
-                            self.emit(Op::CloneArray, arm.span);
+                        self.emit(Op::PushInt(variant_index as i32), arm.span);
+                        self.emit(Op::Eq, arm.span);
+                        let next_arm = self.emit(Op::JumpIfFalse(0), arm.span);
+                        for (payload_index, binding) in arm.payload_bindings.iter().enumerate() {
+                            self.emit(Op::Dup, arm.span);
+                            self.emit(Op::PushInt((payload_index + 1) as i32), arm.span);
+                            self.emit(Op::LoadElem, arm.span);
+                            if self.locals[binding.0 as usize].ty == Type::Cadeia {
+                                self.emit(Op::CloneString, arm.span);
+                            } else if self.locals[binding.0 as usize].dims > 0 {
+                                self.emit(Op::CloneArray, arm.span);
+                            }
+                            self.emit(Op::StoreLocal(binding.0), arm.span);
                         }
-                        self.emit(Op::StoreLocal(binding.0), arm.span);
+                        self.emit(Op::Pop, arm.span);
+                        self.scope_locals
+                            .push(arm.payload_bindings.iter().map(|id| id.0).collect());
+                        self.scope_shadowed.push(Vec::new());
+                        for binding in &arm.payload_bindings {
+                            self.emit(
+                                Op::SetLocalActive {
+                                    local: binding.0,
+                                    active: true,
+                                },
+                                arm.span,
+                            );
+                        }
+                        self.block(&arm.body, arm.span)?;
+                        self.finish_scope(arm.span);
+                        exits.push(self.emit(Op::Jump(0), arm.span));
+                        let next = self.here();
+                        self.patch(next_arm, next);
+                    } else {
+                        // Ramo coringa (`caso _ =>`): descarta o escrutínio e executa o corpo.
+                        self.emit(Op::Pop, arm.span);
+                        self.scope_locals.push(Vec::new());
+                        self.scope_shadowed.push(Vec::new());
+                        self.block(&arm.body, arm.span)?;
+                        self.finish_scope(arm.span);
+                        exits.push(self.emit(Op::Jump(0), arm.span));
                     }
-                    self.emit(Op::Pop, arm.span);
-                    self.scope_locals
-                        .push(arm.payload_bindings.iter().map(|id| id.0).collect());
-                    self.scope_shadowed.push(Vec::new());
-                    for binding in &arm.payload_bindings {
-                        self.emit(
-                            Op::SetLocalActive {
-                                local: binding.0,
-                                active: true,
-                            },
-                            arm.span,
-                        );
-                    }
-                    self.block(&arm.body, arm.span)?;
-                    self.finish_scope(arm.span);
-                    exits.push(self.emit(Op::Jump(0), arm.span));
-                    let next = self.here();
-                    self.patch(next_arm, next);
                 }
                 self.emit(Op::Pop, stmt.span);
                 let end = self.here();

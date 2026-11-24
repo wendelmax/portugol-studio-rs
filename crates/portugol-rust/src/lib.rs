@@ -1991,6 +1991,45 @@ funcao inicio() {
         );
     }
 
+    #[test]
+    fn exports_and_executes_bitwise_shifts_and_choose_wildcard_in_native_rust() {
+        let source = r#"
+enum Cor {
+    Vermelho,
+    Verde,
+    Azul
+}
+
+funcao rotulo(c: Cor) -> cadeia {
+    escolha c {
+        caso Cor::Vermelho => { retorne "R"; }
+        caso _ => { retorne "OUTRA"; }
+    }
+}
+
+funcao inicio() {
+    seja mutavel bits: inteiro = (1 << 4) | 5;
+    bits &= 21;
+    bits |= 2;
+    bits ^= 1;
+    seja shifted: inteiro = bits >> 1;
+    seja not_zero: inteiro = ~0;
+    escreva(
+        bits, "|",
+        shifted, "|",
+        not_zero, "|",
+        rotulo(Cor::Vermelho), "|",
+        rotulo(Cor::Azul)
+    );
+}
+"#;
+        let generated = export_portugol_rs(source).unwrap();
+        assert!(generated.contains("wrapping_shl"));
+        assert!(generated.contains("wrapping_shr"));
+        assert!(generated.contains("_ =>"));
+        assert_rust_output(generated, "22|11|-1|R|OUTRA");
+    }
+
     fn assert_rust_output(generated: String, expected: &str) {
         use std::sync::atomic::{AtomicU64, Ordering};
         static NEXT_TEST_DIR: AtomicU64 = AtomicU64::new(0);

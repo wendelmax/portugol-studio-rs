@@ -278,7 +278,8 @@ pub enum StmtKind {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChooseArm {
-    pub variant_index: usize,
+    /// Índice da variante do enum, ou `None` para o ramo coringa (`caso _ =>`).
+    pub variant_index: Option<usize>,
     pub payload_bindings: Vec<BindingId>,
     pub body: Vec<Stmt>,
     pub span: Span,

@@ -76,7 +76,7 @@ fn classify(kind: &Kind, prev_syntax: Option<SyntaxKind>) -> SyntaxKind {
         Kind::Comma => SyntaxKind::Comma,
         Kind::Arrow => SyntaxKind::Arrow,
         Kind::FatArrow => SyntaxKind::FatArrow,
-        Kind::Bang => SyntaxKind::Bang,
+        Kind::Bang | Kind::Tilde => SyntaxKind::Bang,
         Kind::Question => SyntaxKind::Question,
         Kind::Plus | Kind::Minus => {
             let unary = matches!(
@@ -107,6 +107,9 @@ fn classify(kind: &Kind, prev_syntax: Option<SyntaxKind>) -> SyntaxKind {
         | Kind::StarEq
         | Kind::SlashEq
         | Kind::PercentEq
+        | Kind::AmpEq
+        | Kind::PipeEq
+        | Kind::CaretEq
         | Kind::Assign
         | Kind::Equal
         | Kind::NotEqual
@@ -114,6 +117,11 @@ fn classify(kind: &Kind, prev_syntax: Option<SyntaxKind>) -> SyntaxKind {
         | Kind::Less
         | Kind::GreaterEqual
         | Kind::LessEqual
+        | Kind::Shl
+        | Kind::Shr
+        | Kind::Amp
+        | Kind::Pipe
+        | Kind::Caret
         | Kind::And
         | Kind::Or => SyntaxKind::Operator,
         Kind::Eof => SyntaxKind::Eof,

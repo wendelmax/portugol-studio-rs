@@ -15,8 +15,8 @@ não apenas suporte ao Portugol clássico.
 | Arquivo e entrada | ✅ `.pors`, `funcao inicio()` sem argumentos | Criar novo arquivo `.pors` por padrão; CLI PORS ainda ausente |
 | Tipos | 🟡 inteiro, real, lógico, cadeia, caracter; imutabilidade padrão | 🔎 Semântica explícita de tamanhos, overflow, inferência, Unicode, unit/void |
 | Variáveis | ✅ `seja`, `seja mutavel`, atribuição e shadowing testados | Validar contrato comum em VM e Rust gerado em todos os caminhos |
-| Expressões | 🟡 aritmética, comparação, igualdade, lógica e curto-circuito | Bitwise, shifts, operações/unários restantes; validar precedência e overflow |
-| Condições | 🟡 `se`/`senao` e `escolha` exaustivo para enums próprios, com payloads posicionais; sem guards, wildcard ou matching como expressão | `Option`/`Result`, referências e padrões aninhados |
+| Expressões | ✅ aritmética, bitwise/shifts (`&`, `|`, `^`, `~`, `<<`, `>>`, `&=`, `|=`, `^=`), comparação, igualdade, lógica e curto-circuito com paridade VM/Rust | Manter alinhamento se novos tipos numéricos forem expostos |
+| Condições | 🟡 `se`/`senao` e `escolha` exaustivo para enums, `Opcao`/`Resultado` e ramo coringa (`caso _ =>`) com detecção de casos inalcançáveis; sem guards ou matching como expressão | Referências, padrões aninhados e guards |
 | Repetição | ✅ `enquanto`, `para`, `pare`, `continue` | 🔎 `faca-enquanto` e alternativas pedagógicas; revisar loop labels |
 | Funções | 🟡 `inicio` e funções auxiliares com parâmetros tipados, chamadas, retorno, recursão, chamadas para frente e mutabilidade explícita; Rust gerado, debugger VM, outline, navegação, rename e formatador PORS | Faltam cobertura aprofundada de frames/limites de recursão e referências/borrowing explícitos |
 | Coleções | 🟡 Vetores tipados homogêneos com construção vazia tipada (`[]`), redimensionamento dinâmico (`adicionar`, `remover` -> `Opcao<T>`), leitura segura (`obter` -> `Opcao<T>`), leitura/escrita indexada, `tamanho`, cópia por valor e bounds; sem matrizes, slices/visões ou vetores aninhados | Matrizes e outras coleções (mapas/conjuntos); slices/visões e iteração permanecem decisões futuras |
