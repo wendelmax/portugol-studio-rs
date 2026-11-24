@@ -52,7 +52,7 @@ test("controles centrais da IDE têm data-testid estáveis", () => {
 });
 
 test("o campo editável do CodeMirror tem um nome acessível", () => {
-  const source = read("../src/main.ts");
+  const source = read("../src/editor/extensions.ts");
   assert.match(source, /EditorView\.contentAttributes\.of\(\{\s*"aria-label": "Editor de código"/);
 });
 

@@ -54,7 +54,7 @@ test("Rust editor lint routes through the bounded Tauri source-check command", (
   assert.match(main, /const rustSourceLinter = linter\(/);
   assert.match(main, /createLatestOnlyRustSourceChecker\(api\.checkRustSource\)/);
   assert.match(main, /editor\.state\.doc !== doc/);
-  assert.match(main, /: \[rustSourceLinter\]/);
+  assert.match(main, /rustExtensions: \(\) => \[rustSourceLinter\]/);
   assert.equal((main.match(/portugolTools\.reconfigure\(tab\.language === "rust" \? \[rustSourceLinter\]/g) ?? []).length, 2);
   assert.match(api, /invoke<RustSourceCompileDiagnostic\[]>\("check_rust_source", \{ source \}\)/);
   assert.match(tauri, /async fn check_rust_source\(/);
