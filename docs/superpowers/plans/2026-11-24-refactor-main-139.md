@@ -108,4 +108,16 @@
 - [x] Add failing tests for active, paused, and stopped run controls.
 - [x] Extract button, input, and inspector state synchronization behind callbacks.
 - [x] Run frontend tests, typecheck, and build.
-- [ ] Commit the run-controls group.
+- [x] Commit the run-controls group.
+
+### Task 8: Debugger commands
+
+**Files:**
+- Create: `apps/desktop/src/run/debugger-commands.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/debugger-commands.test.mjs`
+
+- [x] Add failing tests for active-run breakpoint updates, stale debug commands, and stop status.
+- [x] Extract breakpoint synchronization, debugger commands, and stop orchestration behind callbacks.
+- [x] Run frontend tests, typecheck, and build.
+- [ ] Commit the debugger-commands group.
