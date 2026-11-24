@@ -41,6 +41,7 @@ import {
 import { createTestsPanelController } from "./run/tests-panel";
 import { createCargoProjectController } from "./run/cargo-project";
 import { createRunControls } from "./run/controls";
+import { createDebuggerCommands } from "./run/debugger-commands";
 import { portugolFolding } from "./folding";
 import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
@@ -689,10 +690,24 @@ const runControls = createRunControls({
 });
 const setRunning = runControls.setRunning;
 
+const debuggerCommands = createDebuggerCommands({
+  runId: () => runId,
+  runTabId: () => runTabId,
+  activeTabId: () => activeId,
+  breakpointLines,
+  setBreakpoints: api.debugSetBreakpoints,
+  setDebugLine: (line) => view.dispatch({ effects: setDebugLine.of(line) }),
+  paused: () => paused,
+  setPaused: (info) => { paused = info; },
+  setRunning,
+  runLanguage: () => activeTab()?.language,
+  setStatus,
+  stop: api.stop,
+});
+
 /** Pontos de parada podem mudar enquanto o programa está em execução. */
 function syncBreakpoints(state: EditorState) {
-  if (runId === null || activeId !== runTabId) return;
-  void api.debugSetBreakpoints(runId, state.doc.toString(), breakpointLines(state)).catch(() => {});
+  debuggerCommands.syncBreakpoints(state);
 }
 
 function setPaused(info: api.DebugInfo | null) {
@@ -716,17 +731,7 @@ function setPaused(info: api.DebugInfo | null) {
 }
 
 async function debugCommand(command: (id: number) => Promise<void>) {
-  if (runId === null || paused === null) return;
-  const id = runId;
-  view.dispatch({ effects: setDebugLine.of(null) });
-  paused = null;
-  setRunning(true);
-  setStatus(activeTab()?.language === "portugol-rs" ? "VM Portugol-RS executando…" : "Executando…");
-  try {
-    await command(id);
-  } catch {
-    // A execução pode ter terminado enquanto o comando era enviado.
-  }
+  await debuggerCommands.debugCommand(command);
 }
 
 /**
@@ -1078,16 +1083,7 @@ function stepOrStart() {
 }
 
 async function stopProgram() {
-  if (runId === null) return;
-  const id = runId;
-  try {
-    const accepted = await api.stop(id);
-    if (accepted && runId === id && activeId === runTabId) {
-      setStatus("Interrupção solicitada…");
-    }
-  } catch (error) {
-    if (runId === id && activeId === runTabId) setStatus(`Não foi possível interromper: ${String(error)}`, "error");
-  }
+  await debuggerCommands.stopProgram();
 }
 
 const cargoProjectController = createCargoProjectController({
