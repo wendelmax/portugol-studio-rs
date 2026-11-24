@@ -95,6 +95,7 @@ import { chooseCargoTarget } from "./run/cargo-target-dialog";
 import { applyPageTheme, editorColors, editorTheme, onSystemThemeChange, themeChoice } from "./editor/theme";
 import { createSymbolNavigator } from "./editor/symbol-navigation";
 import { createEditorFormatter } from "./editor/format";
+import { createEditorUpdateController } from "./editor/update-controller";
 import {
   breakpointLines, breakpoints, createBreakpointGutter, debugLine, runtimeError, setDebugLine, setRuntimeError, toCodeMirror,
 } from "./editor/decorations";
@@ -243,37 +244,7 @@ function extensions(language: SourceLanguage): Extension[] {
       ...closeBracketsKeymap, ...defaultKeymap, ...editorSearchKeys,
       ...historyKeymap, ...completionKeymap, ...foldKeymap, indentWithTab,
     ]),
-    EditorView.updateListener.of((update) => {
-      if (update.docChanged && activeTab()?.runtimeCompileDiagnostics?.length) {
-        activeTab()!.runtimeCompileDiagnostics = [];
-        renderMessages();
-      }
-      if (update.docChanged) {
-        const tab = activeTab();
-        if (tab?.exercise) {
-          tab.exerciseTestGeneration = (tab.exerciseTestGeneration ?? 0) + 1;
-          tab.exerciseTestRun = undefined;
-          renderExerciseTests();
-        }
-        renderTabs();
-      }
-      if (update.docChanged && activeTab()?.language !== "rust") {
-        const tab = activeTab();
-        if (tab?.rustPreview) {
-          tab.rustPreview = markRustPreviewStale(tab.rustPreview, update.state.doc.toString());
-        }
-        if (learningMode === "bridge") rustPreview.schedule();
-      }
-      if (update.selectionSet) learningPanel.selectionChanged();
-      if ((update.selectionSet || update.docChanged) && !$<HTMLElement>("learning-panel").hidden) learningPanel.render();
-      if (update.selectionSet || update.docChanged) renderCursor();
-      if (update.selectionSet || update.docChanged) rustPreview.renderMappingGutter();
-      if (centerActive && update.selectionSet) {
-        queueMicrotask(() => {
-          if (centerActive && view.state === update.state) centerSelection();
-        });
-      }
-    }),
+    EditorView.updateListener.of(editorUpdateHandler),
   ];
 }
 
@@ -310,6 +281,24 @@ const learningPanel = mountLearningPanel({
   },
 });
 
+const editorUpdateHandler = createEditorUpdateController({
+  activeTab,
+  currentEditorState: () => view.state,
+  renderMessages,
+  renderExerciseTests,
+  renderTabs,
+  markPreviewStale: markRustPreviewStale,
+  learningMode: () => learningMode,
+  schedulePreview: () => rustPreview.schedule(),
+  selectionChanged: () => learningPanel.selectionChanged(),
+  learningPanelVisible: () => !$<HTMLElement>("learning-panel").hidden,
+  renderLearningPanel: () => learningPanel.render(),
+  renderCursor,
+  renderMappingGutter: () => rustPreview.renderMappingGutter(),
+  centerActive: () => centerActive,
+  centerSelection,
+});
+
 /** Reaplica o tema atual aos editores e à ajuda. */
 function refreshEditorThemes() {
   view.dispatch({ effects: theme.reconfigure(editorTheme()) });
@@ -336,7 +325,9 @@ let helpOpen = false;
 let learningMode: LearningMode = loadLearningMode();
 let testsPanel: ReturnType<typeof createTestsPanelController> | null = null;
 
-const activeTab = () => tabs.find((t) => t.id === activeId);
+function activeTab(): Tab | undefined {
+  return tabs.find((tab) => tab.id === activeId);
+}
 
 function isDirty(tab: Tab): boolean {
   return isTabDirty(tab, activeId, view.state.doc.toString());
