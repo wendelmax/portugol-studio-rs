@@ -4,16 +4,17 @@ import { test } from "node:test";
 import { ideSource } from "./support/ide-source.mjs";
 
 const main = ideSource();
+const formatter = readFileSync(new URL("../src/editor/format.ts", import.meta.url), "utf8");
 const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
 const tauri = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
 const languageCapabilities = readFileSync(new URL("../src/state/language-capabilities.ts", import.meta.url), "utf8");
 
 test(".rs formatting uses rustfmt and applies only to the captured editor document", () => {
-  const formatter = main.match(/async function formatCode\(\) \{[\s\S]*?\n\}/)?.[0];
-  assert.ok(formatter, "the editor format action must remain discoverable");
-  assert.match(formatter, /api\.formatRustSource\(source\)/);
-  assert.match(formatter, /activeTab\(\) !== tab \|\| view\.state\.doc !== doc/);
+  assert.match(main, /function formatCode\(\)[\s\S]*editorFormatter\.formatCode\(\)/);
+  assert.match(formatter, /dependencies\.formatRust\(source\)/);
+  assert.match(formatter, /dependencies\.activeTab\(\) !== tab \|\| dependencies\.view\.state\.doc !== doc/);
   assert.match(formatter, /annotations: isolateHistory\.of\("full"\)/);
+  assert.match(main, /formatRust: api\.formatRustSource/);
   assert.match(main, /deriveLanguageControls\(tab/);
   assert.match(languageCapabilities, /canFormatSource\(tab\.language, state\.rustfmtAvailable\)/);
   assert.match(main, /api\.rustfmtAvailable\(\)/);

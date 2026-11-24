@@ -261,3 +261,15 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - [x] Extract asynchronous declaration navigation while preserving the editor callback contract.
 - [x] Run the full frontend tests (66/66), typecheck, and build.
 - [x] Commit the symbol navigation group (#174).
+
+### Task 20: Editor formatting
+
+**Files:**
+- Create: `apps/desktop/src/editor/format.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/editor-format.test.mjs`
+
+- [x] Add tests for language-specific formatting, no-op output, runtime/rustfmt guards, and stale asynchronous results.
+- [x] Extract format orchestration while preserving edit annotations, status messages, and focus behavior.
+- [x] Run the full frontend tests (67/67), typecheck, and build.
+- [x] Commit the editor formatting group (#175).
