@@ -1,176 +1,256 @@
 # Portugol Studio RS
 
-Port do [Portugol Studio](https://github.com/UNIVALI-LITE/Portugol-Studio) (Java/Swing)
-para **Rust**, com a IDE desktop em **Tauri v2** e o núcleo da linguagem em crates
-Rust independentes.
+Ambiente para aprender programação em português, reescrito em Rust a partir do
+[Portugol Studio](https://github.com/UNIVALI-LITE/Portugol-Studio) da UNIVALI.
 
-> Status: **fases 1–5 concluídas** — lexer, parser, AST, análise semântica,
-> compilador para bytecode, máquina virtual, IDE desktop (Tauri v2 + CodeMirror 6)
-> e depurador com pontos de parada, passo a passo e inspeção de variáveis.
-> Todas as bibliotecas de linguagem estão portadas. Graficos, Teclado e Mouse
-> usam a janela gráfica da IDE, e Sons usa o dispositivo de áudio do sistema. O corpus
-> completo do original é validado por regressão com um host gráfico headless;
-> os erros restantes estão em trechos da ajuda e em 2 exemplos com defeito no
-> próprio arquivo original.
+O programa reúne editor, console, depurador, ajuda, exemplos e exercícios
+corrigidos automaticamente. Além do Portugol clássico (`.por`), traz o
+**Portugol-RS** (`.pors`), um dialeto didático com tipos explícitos, registros,
+enumerações e tratamento de erros inspirados em Rust. O código `.pors` pode ser
+exportado como Rust, o que permite ao aluno passar do pseudocódigo em português
+para uma linguagem usada profissionalmente.
 
-O ambiente de desenvolvimento é fixado com [mise](https://mise.jdx.dev)
-(`mise install` instala Rust, Node e o JDK 8 usado nos testes diferenciais;
-`mise exec -- <comando>` roda qualquer comando com essas versões).
+## Para quem é
 
-## Por que Tauri (e não iced)?
+- **Estudantes** que estão começando em lógica de programação e querem escrever
+  código em português, ver os erros enquanto digitam e acompanhar a execução
+  passo a passo.
+- **Professores** que já usam o Portugol Studio em aula: os programas `.por`, os
+  exemplos e as bibliotecas do original continuam funcionando, e a IDE inclui
+  exercícios com testes automáticos.
+- **Quem quer chegar ao Rust**: o Portugol-RS usa conceitos do Rust (variáveis
+  imutáveis por padrão, `Opcao`, `Resultado`, `escolha` exaustivo) e mostra o
+  Rust equivalente ao programa escrito.
+- **Desenvolvedores** interessados em compiladores, máquinas virtuais ou IDEs
+  educacionais: o núcleo da linguagem está em crates Rust independentes da
+  interface.
 
-O núcleo do produto é uma **IDE**: editor de código, abas, árvore de arquivos,
-diagnósticos, console e depurador. Nesse cenário, o custo de construir um editor
-de texto completo (seleção, multi-cursor, undo/redo, IME, busca, dobramento,
-autocomplete) do zero em iced é muito maior do que o custo de usar a webview.
+## Instalação
 
-| Critério | Tauri v2 | iced |
-|---|---|---|
-| Editor de código | CodeMirror/Monaco prontos | implementar do zero |
-| UI complexa (abas, painéis, menus) | HTML/CSS | widgets limitados |
-| Núcleo em Rust | sim | sim |
-| Consistência visual | depende da WebView | igual em todos os SOs |
-| Tamanho/pegada | WebView do sistema | binário nativo |
+Baixe o instalador da sua plataforma na página de
+[Releases](https://github.com/wendelmax/portugol-studio-rs/releases):
 
-Sniffnet **não é um framework**: é um app escrito em Rust com iced. Ele serve de
-referência de arquitetura (separação núcleo/GUI), não como dependência.
+| Sistema | Arquivo |
+|---|---|
+| Windows x64 | `.exe` (instala sem pedir administrador) ou `.msi` |
+| Linux x64 | `.deb`, `.rpm` ou `.AppImage` |
+| macOS (Apple Silicon e Intel) | `.dmg` |
 
-## Estrutura
+Os instaladores ainda não são assinados. No Windows, o SmartScreen pode exibir
+"O Windows protegeu o seu computador": clique em **Mais informações** e depois
+em **Executar assim mesmo**. No macOS, abra o aplicativo pela primeira vez com
+o botão direito e escolha **Abrir**.
+
+Programas `.por` não precisam de nada além do instalador. Para **executar**
+arquivos `.pors` e `.rs` na IDE é preciso ter o Rust instalado
+([rustup.rs](https://rustup.rs)); sem ele, a depuração de `.pors` continua
+disponível.
+
+## O que a IDE oferece
+
+- Editor com realce de sintaxe, autocompletar de palavras, funções e
+  bibliotecas, dicas ao passar o mouse, dobramento de código, busca e
+  formatação automática.
+- Erros e avisos em português enquanto você digita, com indicação da linha.
+- Console com entrada de dados (`leia`) e parâmetros de execução.
+- Depurador com pontos de parada, execução passo a passo, pilha de chamadas e
+  inspeção de variáveis, vetores e matrizes.
+- Janela gráfica para programas que usam `Graficos`, `Teclado` e `Mouse`, e
+  reprodução de áudio com `Sons`.
+- Ajuda integrada sobre a linguagem e as bibliotecas, exemplos prontos (jogos,
+  algoritmos, bibliotecas) e exercícios com casos de teste.
+- Prévia do código Rust equivalente ao programa, com opção de copiar ou salvar
+  o `.rs`.
+- Execução de arquivos Rust avulsos e de projetos Cargo, para quem já está
+  praticando Rust.
+- Temas claro e escuro.
+
+### Atalhos do depurador
+
+Clique na margem esquerda do editor para criar ou remover um ponto de parada.
+
+| Ação | Atalho |
+|---|---|
+| Depurar começando pausado | `Shift+F5` |
+| Executar (para nos pontos de parada) | `Shift+F6` ou `Ctrl+Enter` |
+| Pausar | `F9` |
+| Continuar até o próximo ponto de parada | `F5` |
+| Passo por cima (não entra em funções) | `Shift+F9` ou `F10` |
+| Entrar na função chamada | `Alt+F11` |
+| Voltar para quem chamou | `Shift+F11` |
+| Parar | `Shift+F7` |
+| Ir à declaração (no editor) | `F12` |
+| Ajuda | `F1` |
+| Lista de atalhos | `F11` |
+
+## As duas linguagens
+
+### Portugol clássico (`.por`)
+
+É a linguagem do Portugol Studio original, com a mesma sintaxe, as mesmas
+mensagens de erro e as mesmas bibliotecas: Matematica, Texto, Tipos, Util,
+Calendario, Arquivos, Objetos, Internet, ServicosWeb, Graficos, Teclado, Mouse e
+Sons. Os 196 exemplos do original fazem parte dos testes automatizados, que
+conferem a saída de cada um contra o resultado esperado.
 
 ```
-portugol-studio-rs/
-├── crates/
-│   ├── portugol-syntax/    # lexer (logos), parser, AST, diagnósticos ✅
-│   ├── portugol-semantics/ # símbolos, escopos, tipos, checagens ✅
-│   ├── portugol-bytecode/  # instruções e compilador AST -> bytecode ✅
-│   ├── portugol-vm/        # VM, E/S, bibliotecas, protocolo gráfico e depurador ✅
-│   ├── portugol-service/   # fachada usada pela IDE (check/run/debug) ✅
-│   └── portugol-cli/       # `portugol`: valida e executa .por ✅
-├── apps/
-│   └── desktop/           # Tauri v2 + frontend CodeMirror 6 ✅
-└── docs/
-    └── ARQUITETURA.md     # plano de port e decisões técnicas
+programa
+{
+    funcao inicio()
+    {
+        cadeia nome
+        escreva("Qual é o seu nome? ")
+        leia(nome)
+        escreva("Olá, ", nome, "!")
+    }
+}
 ```
 
-## Como validar
+Arquivos antigos em ISO-8859-1 (padrão dos exemplos do Portugol Studio) são
+abertos corretamente, assim como arquivos em UTF-8.
 
-Use `mise install` para instalar as versões de Rust e Node do projeto. Os
-comandos abaixo podem ser usados diretamente ou com `mise exec --`. Para
-compilar a IDE no Linux, instale também as dependências de desenvolvimento
-do WebKitGTK 4.1 e do ALSA (`libasound2-dev` no Ubuntu).
+### Portugol-RS (`.pors`)
+
+Dialeto criado neste projeto para servir de ponte entre o Portugol e o Rust.
+Mantém as palavras-chave em português e adota a estrutura do Rust:
+
+- variáveis com `seja`, imutáveis por padrão (`seja mutavel` para alterar);
+- tipos explícitos: `inteiro`, `real`, `logico`, `cadeia`, `caracter`,
+  `vetor<T>`;
+- funções com parâmetros e retorno tipados, incluindo recursão;
+- `registro` e `enum` com `escolha` exaustivo;
+- `Opcao<T>` e `Resultado<T, E>` com o operador `?`;
+- vetores dinâmicos (`adicionar`, `remover`, `obter`, `tamanho`);
+- bibliotecas Matematica, Texto, Tipos, Util, Calendario, Arquivos e Json;
+- interfaces visuais declarativas com `UI.*` no modelo
+  iniciar/atualizar/visualizar.
+
+```
+funcao dividir(a: inteiro, b: inteiro) -> Resultado<inteiro, cadeia> {
+    se (b == 0) {
+        retorne Resultado::Erro("divisão por zero");
+    }
+    retorne Resultado::Ok(a / b);
+}
+
+funcao inicio() {
+    escolha dividir(20, 4) {
+        caso Resultado::Ok(v) => {
+            escreva("resultado = ", v);
+        }
+        caso Resultado::Erro(e) => {
+            escreva("erro: ", e);
+        }
+    }
+}
+```
+
+Programas `.pors` podem ser exportados como um arquivo Rust ou como um projeto
+Cargo completo. Os exemplos comentados ficam em
+[`crates/portugol-service/assets/exemplos-pors`](crates/portugol-service/assets/exemplos-pors)
+e aparecem no menu de exemplos da IDE. Detalhes sobre a exportação e a execução
+de Rust estão em [`docs/PORTUGOL-RUST.md`](docs/PORTUGOL-RUST.md).
+
+## Linha de comando
+
+O executável `portugol` valida, formata, executa e exporta programas sem abrir
+a IDE. Com o repositório clonado:
 
 ```bash
-cargo test --workspace
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test -p portugol-vm --test regressao   # corpus completo (host gráfico headless)
-cd apps/desktop && npm run build             # frontend da IDE
-cargo run -p portugol-cli -- caminho/para/arquivo.por
-cargo run -p portugol-cli -- --quiet caminho/para/diretorio
-cargo run -p portugol-cli -- --syntax-only arquivo.por   # só sintaxe
-
-# executar um programa
-cargo run -p portugol-cli -- executar arquivo.por
-cargo run -p portugol-cli -- executar arquivo.por -- param1 param2  # inicio(cadeia params[])
-cargo run -p portugol-cli -- executar --bytecode arquivo.por        # lista o bytecode
+cargo run -p portugol-cli -- programa.por               # valida (também aceita pastas)
+cargo run -p portugol-cli -- executar programa.pors     # executa na máquina virtual
+cargo run -p portugol-cli -- executar programa.por -- a b   # parâmetros para inicio(cadeia params[])
+cargo run -p portugol-cli -- novo exercicio.pors        # cria um arquivo inicial
+cargo run -p portugol-cli -- formatar programa.pors     # formata (--check só confere)
+cargo run -p portugol-cli -- exportar-rust programa.pors        # imprime o Rust gerado
+cargo run -p portugol-cli -- exportar-cargo programa.pors pasta # gera um projeto Cargo
 ```
 
-A análise semântica só roda quando o arquivo não tem erro de sintaxe, para
-evitar diagnósticos em cascata.
+`executar --bytecode` mostra as instruções geradas para a máquina virtual,
+útil para quem estuda compiladores. `--quiet` lista apenas os arquivos com erro.
 
-O CLI aceita UTF-8 e cai automaticamente para ISO-8859-1 (os exemplos históricos
-do Portugol Studio usam Latin-1).
+## Para desenvolvedores
 
-Para inspecionar tokens:
+### Organização
+
+| Caminho | Conteúdo |
+|---|---|
+| `crates/portugol-syntax` | lexer, parser, AST e diagnósticos do Portugol clássico |
+| `crates/portugol-semantics` | símbolos, escopos, tipos e verificações semânticas |
+| `crates/portugol-rs-frontend` | parser, formatador e verificação de tipos do Portugol-RS |
+| `crates/portugol-hir` | representação intermediária compartilhada |
+| `crates/portugol-bytecode` | compilação para bytecode |
+| `crates/portugol-vm` | máquina virtual, bibliotecas, protocolo gráfico e depurador |
+| `crates/portugol-rust` | geração de código Rust |
+| `crates/portugol-wasm` | núcleo do Portugol-RS compilado para WebAssembly |
+| `crates/portugol-service` | camada usada pela IDE: verificar, executar, depurar, exemplos e exercícios |
+| `crates/portugol-cli` | executável `portugol` |
+| `apps/desktop` | IDE em Tauri v2 com frontend TypeScript e CodeMirror 6 |
+| `tests/corpus` | exemplos do Portugol Studio original com as saídas esperadas |
+| `docs` | arquitetura, decisões técnicas (`docs/adr`) e distribuição |
+
+A IDE usa Tauri porque o produto depende de um editor de código completo
+(seleção, desfazer, busca, autocompletar, entrada de acentos). Com a webview, o
+CodeMirror resolve essa parte, e toda a lógica da linguagem fica em Rust.
+
+### Ambiente
+
+As versões de Rust, Node e do JDK 8 (usado em testes comparativos com o
+original) estão fixadas em [`mise.toml`](mise.toml):
 
 ```bash
-cargo run -p portugol-syntax --example tokens -- arquivo.por
+mise install
+mise exec -- cargo test
 ```
 
-## Cobertura atual
+Para compilar a IDE no Linux, instale também o WebKitGTK 4.1 e o ALSA. No
+Ubuntu:
 
-Fonte: `ide/src/main/assets` do repositório original (196 arquivos `.por`).
-
+```bash
+sudo apt install libwebkit2gtk-4.1-dev libasound2-dev libayatana-appindicator3-dev librsvg2-dev
 ```
-196 arquivo(s), 7 com erro(s), 31 erro(s), 117 aviso(s)
+
+### Compilar e testar
+
+```bash
+cargo test                                   # núcleo, CLI e WebAssembly
+cargo clippy --all-targets -- -D warnings
+cargo test -p portugol-vm --test regressao   # corpus do original com host gráfico sem tela
+
+cd apps/desktop
+npm ci
+npm test                                     # testes do frontend
+npm run tauri dev                            # abre a IDE em modo de desenvolvimento
+npm run tauri build                          # gera os instaladores locais
 ```
 
-Sintaxe — dois defeitos reais no código de exemplo original:
+A IDE fica fora dos membros padrão do workspace porque depende das bibliotecas
+gráficas do sistema; use `cargo build -p portugol-desktop` para compilá-la
+diretamente.
 
-- `bibliotecas/tipos/logico.por`: `caso` sem expressão antes de `}`.
-- `jogos/arkanoid.por`: parâmetro `real` sem nome.
+### Documentação
 
-Semântica — 29 erros, todos em `ajuda/recursos/exemplos/` (fragmentos de
-documentação, não programas completos):
+- [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md): estrutura do compilador, da VM
+  e da IDE, e as diferenças de semântica herdadas do Java.
+- [`docs/PARIDADE.md`](docs/PARIDADE.md): comparação recurso a recurso com o
+  Portugol Studio original.
+- [`docs/PORTUGOL-RUST.md`](docs/PORTUGOL-RUST.md): exportação para Rust,
+  execução de `.rs` e projetos Cargo, limites de execução.
+- [`docs/DISTRIBUICAO.md`](docs/DISTRIBUICAO.md): como gerar e assinar os
+  instaladores.
+- [`docs/adr`](docs/adr): registro das decisões de arquitetura.
 
-- 27 × `sem.symbol-not-declared`: trechos que usam variáveis declaradas fora do
-  fragmento;
-- 1 × `sem.redeclared`: `declaracoes/variavel/exemplo1.por` redeclara `var4`;
-- 1 × `sem.incompatible-types`: `operacoes_logicas/nao/exemplo1.por` usa
-  `nao 5 < 4`. No original `nao` liga mais forte que os operadores binários
-  (`expressao(31)` no parser ANTLR), então a expressão é `(nao 5) < 4` e também
-  é inválida lá.
+## Segurança
 
-Os avisos (contados, mas não listados pelo CLI) seguem o Java: conversão
-implícita `inteiro ↔ real`, símbolo global ocultado e vetor/matriz que poderia
-ter menos dimensões.
-
-A suíte `crates/portugol-semantics/tests/analisador.rs` espelha os 34 casos de
-`AnalisadorSemanticoTest.java` e acrescenta casos para constantes, retorno
-obrigatório, aridade, conversões, referência, bibliotecas e vetores/matrizes.
-
-### Execução
-
-`cargo run --release -p portugol-vm --example corpus -- <dir>` executa todos os
-exemplos sem entrada e com limite de instruções (programas que esperam entrada
-ou tecla param antes do fim). A validação completa é
-`cargo test -p portugol-vm --test regressao`: ela roda o corpus com entradas
-gravadas, diretório de trabalho por exemplo, tempo simulado e um host gráfico
-headless que conta e resume os quadros. As saídas esperadas ficam em arquivos
-`.saida` ao lado de cada `.por`.
-
-Nenhum exemplo termina em erro de execução inesperado. A semântica de execução
-segue o Java gerado pelo original (inteiro de 32 bits, `Double.toString`,
-`"x" + verdadeiro == "xtrue"` etc.); a lista completa está em
-[`docs/ARQUITETURA.md`](docs/ARQUITETURA.md#como-está-implementado-fase-3).
-A suíte `crates/portugol-vm/tests/execucao.rs` cobre aritmética, conversões,
-fluxo, referências, vetores/matrizes, `leia`, bibliotecas e interrupção.
-
-### Depuração
-
-Na IDE, clique na margem esquerda do editor para criar/remover pontos de parada
-e executar com `Shift+F6`. A VM para antes da instrução da linha marcada e abre
-o painel **Depuração**, com a pilha de chamadas e as variáveis (globais, locais e
-elementos de vetores/matrizes). Controles:
-
-| Ação | Botão | Atalho |
-|---|---|---|
-| Pausar na próxima instrução | Pausar | `F9` |
-| Continuar até o próximo ponto de parada | Continuar | `F5` |
-| Passo por cima (não entra em funções) | Passo | `Shift+F9` ou `F10` |
-| Entrar na função chamada | Entrar | `Alt+F11` |
-| Voltar ao chamador | Sair | `Shift+F11` |
-
-Para começar pausado antes da primeira instrução, use **Depurar** ou `Shift+F5`.
-A lista de atalhos abre com `F11`.
-
-Pontos de parada podem ser alterados durante a execução. O núcleo expõe o
-controle em `portugol_vm::debug::DebugControl`, usado diretamente nos testes
-(`crates/portugol-vm/tests/debug.rs`) e pela fachada `portugol-service`
-(`crates/portugol-service/tests/servico.rs`).
-
-## Roadmap
-
-1. **Sintaxe** ✅ — lexer, parser, AST, diagnósticos com spans, recuperação de erro.
-2. **Semântica** ✅ — tabela de símbolos, escopos, tipos, constantes, checagens.
-3. **Runtime** ✅ — compilação para bytecode + VM e bibliotecas, com janela e áudio fornecidos pelo host.
-4. **IDE** ✅ — Tauri v2, CodeMirror 6, abas, árvore de arquivos, console, execução.
-5. **Depurador** ✅ — pontos de parada, passo a passo, pilha e inspeção de variáveis.
-6. **Paridade** — janela gráfica e ajuda integradas à IDE, editor de temas e demais lacunas no [inventário](docs/PARIDADE.md).
-
-Detalhes, estimativas e riscos em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md).
+Programas `.por` e o modo de depuração rodam na máquina virtual da IDE, com
+limites de tempo e de memória. Já os arquivos `.rs`, os projetos Cargo e a
+execução normal de `.pors` são compilados para código nativo e rodam com as
+permissões do seu usuário, sem isolamento. A IDE pede confirmação antes da
+primeira execução; rode apenas código em que você confia.
 
 ## Licença
 
-O Portugol Studio original é distribuído sob a **LGPL-3.0**. Este port é uma
-obra derivada e usa a mesma licença (`LGPL-3.0-only`); o texto está em
-[`LICENSE`](LICENSE). Os exemplos em `tests/corpus` vêm do projeto original.
+O Portugol Studio original é distribuído sob a LGPL-3.0. Este projeto é uma obra
+derivada e usa a mesma licença (`LGPL-3.0-only`); o texto completo está em
+[`LICENSE`](LICENSE). Os exemplos em `tests/corpus`, a ajuda e parte das
+imagens da interface vêm do projeto original.
