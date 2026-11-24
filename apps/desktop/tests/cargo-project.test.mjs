@@ -10,16 +10,16 @@ test("encaminha projetos Cargo por comandos Tauri tipados e consentimento explí
   const runner = readFileSync(new URL("../../../crates/portugol-service/src/cargo_project.rs", import.meta.url), "utf8");
 
   assert.match(api, /runCargoProject =[\s\S]*target: CargoRunTarget \| null[\s\S]*args: string\[\][\s\S]*target, args/);
-  assert.match(api, /cargoProjectRunTargets = \(id: number, workspaceId: string, relativeSource: string, args: string\[\]\)/);
+  assert.match(api, /cargoProjectRunTargets = \(id: number, workspaceId: string, relativeSource: string\)/);
   assert.match(main, /args\.disabled = pors/);
   assert.match(main, /parseProcessArguments[\s\S]*api\.runCargoProject\(id, tab\.workspaceId, tab\.workspacePath, cargoTarget, rustArgs\)/);
-  assert.match(main, /parseProcessArguments[\s\S]*api\.cargoProjectRunTargets\(discoveryId, tab\.workspaceId, tab\.workspacePath, rustArgs\)/);
+  assert.match(main, /parseProcessArguments[\s\S]*api\.cargoProjectRunTargets\(discoveryId, tab\.workspaceId, tab\.workspacePath\)/);
   assert.match(main, /if \(tab\.workspaceId && tab\.workspacePath && tab\.cargoProject === undefined\)/);
   assert.match(main, /Cargo pode acessar a rede e executar scripts de build/);
   assert.match(main, /candidate\.workspaceId === tab\.workspaceId[\s\S]*isDirty\(candidate\)/);
   assert.match(tauri, /async fn run_cargo_project[\s\S]*args: Vec<String>/);
   assert.match(tauri, /run_cargo_project_target_with_args_and_cancel/);
-  assert.match(tauri, /async fn cargo_project_run_targets[\s\S]*args: Vec<String>[\s\S]*cargo_run_targets_with_args_and_cancel/);
+  assert.match(tauri, /async fn cargo_project_run_targets[\s\S]*cargo_run_targets_with_cancel/);
   assert.match(workspace, /cargo_project_for_source[\s\S]*checked_file/);
   assert.match(runner, /Command::new\("cargo"\)[\s\S]*\.arg\("build"\)[\s\S]*\.arg\("--manifest-path"\)/);
   assert.match(runner, /configure_process_tree\(&mut run\)/);

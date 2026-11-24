@@ -36,7 +36,7 @@
 - Test: `crates/portugol-service/tests/cargo_project.rs`
 
 - [x] Add a failing integration test that invokes a Cargo binary with empty, Unicode, whitespace, and quote-containing arguments and compares its `std::env::args()` output. RED: missing service API; GREEN: real Cargo binary receives the selected target argv intact.
-- [x] Add failing tests for NUL, argument count, and byte limit rejection before Cargo starts.
+- [x] Add failing tests for NUL, argument count, and byte limit rejection before `cargo run` starts.
 - [x] Expose the existing Rust argument validator within the service crate and add `run_cargo_project_target_with_args_and_cancel(root, target, args, cancel)`; preserve existing service functions as empty-args wrappers.
 - [x] Append `--` and the validated arguments only to the `cargo run` command, never `cargo build`; focused integration tests and full service suite pass.
 - [x] Run `cargo fmt --all -- --check` and Clippy for `portugol-service`.
@@ -53,7 +53,7 @@
 
 - [x] Add a failing contract test for the Tauri payload and ensure Cargo calls parse the same field used by standalone Rust.
 - [x] Pass `Vec<String>` from the command to the service and include it in `api.runCargoProject`.
-- [x] Enable the field for Cargo `.rs`, describe quoting/argv behavior, parse before target discovery, validate limits in the discovery service before `cargo metadata`, and pass the result to discovery and execution; keep `.pors` disabled.
+- [x] Enable the field for Cargo `.rs`, describe quoting/argv behavior, parse the field and pass arguments only to execution; keep target discovery independent and `.pors` disabled.
 - [x] Run focused frontend tests, the complete frontend suite (36/36), and `npm run build` (pass; existing >500 kB chunk warning).
 - [x] Run `git diff --check`; inspect that no user string is used as a shell or Cargo flag.
 
