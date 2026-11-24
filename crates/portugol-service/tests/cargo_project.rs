@@ -316,37 +316,6 @@ fn cargo_run_rejects_invalid_program_arguments_before_starting_cargo() {
 }
 
 #[test]
-fn cargo_target_discovery_rejects_invalid_arguments_before_reading_metadata() {
-    let project = TempDir::new();
-    fs::write(
-        project.0.join("Cargo.toml"),
-        "this is not valid Cargo metadata",
-    )
-    .unwrap();
-
-    for (args, expected) in [
-        (vec!["inválido\0".to_string()], "NUL"),
-        (vec!["arg".to_string(); 257], "256"),
-        (
-            vec!["x".repeat(if cfg!(windows) {
-                8 * 1024 + 1
-            } else {
-                64 * 1024 + 1
-            })],
-            "limite total",
-        ),
-    ] {
-        let error = portugol_service::cargo_run_targets_with_args_and_cancel(
-            &project.0,
-            &args,
-            &AtomicBool::new(false),
-        )
-        .unwrap_err();
-        assert!(error.contains(expected), "{error}");
-    }
-}
-
-#[test]
 fn discovers_all_binary_targets_and_the_default_run_across_workspace_packages() {
     if !portugol_service::cargo_available() {
         return;

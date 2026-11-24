@@ -85,16 +85,6 @@ pub fn cargo_run_targets_with_cancel(
     project_root: &Path,
     cancel: &AtomicBool,
 ) -> Result<CargoRunTargets, String> {
-    cargo_run_targets_with_args_and_cancel(project_root, &[], cancel)
-}
-
-/// Validates process arguments before reading Cargo metadata and discovering executable targets.
-pub fn cargo_run_targets_with_args_and_cancel(
-    project_root: &Path,
-    args: &[String],
-    cancel: &AtomicBool,
-) -> Result<CargoRunTargets, String> {
-    validate_rust_arguments(args)?;
     let project_root = std::fs::canonicalize(project_root)
         .map_err(|error| format!("Não foi possível acessar o projeto Rust: {error}"))?;
     if !project_root.is_dir() {
