@@ -1,0 +1,374 @@
+/* Diálogos modais, paleta de comandos, editor de temas, busca e confirmações */
+
+dialog {
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: var(--space-5);
+  max-height: calc(100% - 24px);
+}
+
+dialog::backdrop {
+  background: var(--backdrop);
+}
+
+dialog h2 {
+  margin-top: 0;
+}
+
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  margin-top: var(--space-3);
+}
+
+.danger-action {
+  border-color: var(--error);
+  background: var(--error);
+  color: var(--accent-text);
+}
+
+/* Atalhos e paleta de comandos */
+#shortcut-list {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px var(--space-4);
+}
+
+#shortcut-list dd {
+  margin: 0;
+}
+
+#command-palette {
+  width: min(680px, calc(100% - 24px));
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-palette);
+}
+
+#command-palette > label {
+  display: block;
+  margin-bottom: 6px;
+}
+
+#command-search {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px var(--space-3);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  font: inherit;
+}
+
+#command-results {
+  max-height: min(55vh, 420px);
+  overflow: auto;
+  margin: var(--space-2) -6px;
+}
+
+.command-option {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-2) 10px;
+  color: var(--text);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.command-option[aria-selected="true"],
+.command-option:hover,
+.command-option:focus-visible {
+  background: var(--tab-active);
+  outline: none;
+}
+
+.command-option kbd {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+#command-empty {
+  padding: var(--space-2) var(--space-1);
+  color: var(--muted);
+}
+
+/* Diálogos de workspace e Cargo */
+#workspace-create-dialog,
+#workspace-rename-dialog {
+  width: min(360px, calc(100% - 24px));
+}
+
+#workspace-create-form,
+#workspace-rename-form {
+  display: grid;
+  gap: var(--space-2);
+}
+
+#workspace-create-error,
+#workspace-rename-error {
+  margin: 0;
+  color: var(--error);
+}
+
+#workspace-export-dialog {
+  width: min(600px, calc(100% - 24px));
+}
+
+#workspace-export-description,
+#workspace-export-status,
+#workspace-export-error,
+#workspace-export-empty {
+  font-size: var(--font-size-sm);
+}
+
+.workspace-export-selection-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin: 10px 0 6px;
+}
+
+#workspace-export-files {
+  display: grid;
+  max-height: min(45vh, 360px);
+  overflow: auto;
+  padding: var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.workspace-export-file {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: 5px 6px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+}
+
+.workspace-export-file:hover,
+.workspace-export-file:focus-within {
+  background: var(--tab-active);
+}
+
+.workspace-export-file span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: var(--font-size-xs);
+}
+
+#workspace-export-error,
+#workspace-delete-error {
+  color: var(--error);
+}
+
+#workspace-delete-dialog {
+  width: min(420px, calc(100% - 24px));
+}
+
+#workspace-delete-dialog .dialog-actions {
+  flex-wrap: wrap;
+}
+
+#workspace-delete-warning {
+  color: var(--warning);
+}
+
+#cargo-target-dialog {
+  width: min(420px, calc(100% - 24px));
+}
+
+#cargo-target-form {
+  display: grid;
+  gap: 10px;
+}
+
+#cargo-target-select {
+  width: 100%;
+  padding: var(--space-2);
+}
+
+/* Sobre, dicas, relatos, alertas e atualizações */
+#about {
+  max-width: min(580px, 90vw);
+}
+
+#about pre {
+  overflow: auto;
+  max-height: 45vh;
+  white-space: pre-wrap;
+}
+
+#about form {
+  margin-top: var(--space-4);
+}
+
+#tips {
+  width: min(680px, calc(100% - 24px));
+}
+
+#tips-image {
+  display: block;
+  width: 100%;
+  height: min(48vh, 360px);
+  object-fit: contain;
+  background: var(--bg);
+}
+
+#tips-description {
+  white-space: pre-line;
+}
+
+.tips-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.tips-actions label {
+  margin-inline-end: auto;
+}
+
+#report {
+  max-width: min(440px, calc(100% - 24px));
+}
+
+#exercises,
+#exercise-results {
+  width: min(620px, calc(100% - 24px));
+}
+
+#exercise-statement {
+  white-space: pre-wrap;
+}
+
+#exercise-failures:empty {
+  display: none;
+}
+
+#alerts,
+#updates {
+  width: min(550px, calc(100% - 24px));
+}
+
+#update-notes {
+  max-height: 40vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  font: inherit;
+}
+
+#alerts-list p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Editor de temas */
+#theme-editor {
+  width: min(660px, calc(100% - 24px));
+}
+
+.theme-profile,
+#theme-colors {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: 6px var(--space-3);
+}
+
+.theme-profile label,
+#theme-colors label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.theme-profile :is(input, select) {
+  min-width: 0;
+  width: 100%;
+}
+
+.theme-palette {
+  margin: var(--space-3) 0;
+  padding: var(--space-2);
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.theme-palette pre {
+  margin: 0;
+  padding: var(--space-2);
+  background: var(--editor-bg);
+  border-inline-start: 3px solid var(--accent);
+  font-family: var(--mono);
+  overflow: auto;
+}
+
+.theme-preview-console {
+  background: var(--console-surface);
+  padding: var(--space-2);
+}
+
+.theme-comment {
+  color: var(--syntax-comment);
+}
+
+.theme-keyword {
+  color: var(--syntax-keyword);
+}
+
+.theme-type {
+  color: var(--syntax-type);
+}
+
+.theme-operator {
+  color: var(--syntax-operator);
+}
+
+.theme-number {
+  color: var(--syntax-number);
+}
+
+.theme-string {
+  color: var(--syntax-string);
+}
+
+/* Diálogo de busca e substituição */
+.find-dialog {
+  width: min(550px, calc(100% - 24px));
+}
+
+.find-field {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  margin-block: var(--space-1);
+}
+
+.find-settings {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-1);
+  margin-block: 10px;
+}
+
+.find-dialog [role="status"] {
+  margin: var(--space-2) 0 0;
+}
+
+.find-dialog [role="status"]:empty {
+  display: none;
+}

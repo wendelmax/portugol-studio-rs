@@ -1,0 +1,618 @@
+/* Abas, editor CodeMirror, faixa de erros, prévia/diff Rust e prévia UI PORS */
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  padding: var(--space-1) var(--space-2) 0;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+}
+
+.tab {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  align-items: center;
+  height: 30px;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.tab.active {
+  background: var(--tab-active);
+  border-color: var(--border);
+  color: var(--text);
+  margin-bottom: 0;
+  box-shadow: inset 0 2px var(--tab-indicator);
+}
+
+.tab .close {
+  border: none;
+  background: none;
+  padding: 0 2px;
+  color: var(--muted);
+  line-height: 1;
+}
+
+.tab .dirty::after {
+  content: " •";
+  color: var(--accent);
+}
+
+.file-tab > button:first-child {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.workspace > .tabs {
+  flex: 0 0 var(--size-tabs);
+  align-items: stretch;
+  gap: 2px;
+  padding: 5px var(--space-2) 0;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.workspace > .tabs .tab {
+  height: 36px;
+  border-radius: 5px 5px 0 0;
+  background: transparent;
+}
+
+.workspace > .tabs .tab.active {
+  margin-bottom: -1px;
+  border-color: var(--border);
+  border-bottom-color: var(--bg);
+  background: var(--bg);
+  box-shadow: inset 0 2px var(--accent);
+}
+
+.workspace > .tabs .home-tab {
+  color: var(--muted);
+}
+
+.workspace > .tabs .add-tab {
+  min-width: 34px;
+}
+
+.titlebar .home-tab,
+.titlebar .add-tab {
+  color: var(--text);
+  background: var(--home-border);
+}
+
+.titlebar .home-tab {
+  box-shadow: none;
+}
+
+.titlebar .home-tab.active,
+.titlebar .add-tab:hover {
+  background: var(--tab-active);
+}
+
+.titlebar .file-tab:not(.active) {
+  background: var(--home-border);
+}
+
+/* Área principal do editor e extensões CodeMirror */
+.editor-area {
+  flex: 1;
+  min-height: 80px;
+  min-width: 0;
+  position: relative;
+  display: flex;
+}
+
+.editor {
+  flex: 1;
+  min-height: 80px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.editor .cm-editor {
+  height: 100%;
+  color: var(--editor-text);
+  background: var(--editor-bg);
+}
+
+.editor .cm-cursor {
+  border-left-color: var(--editor-caret);
+}
+
+.editor .cm-lintRange-error {
+  background-color: var(--editor-error);
+}
+
+.editor .cm-gutters {
+  background: var(--editor-bg);
+  color: var(--editor-gutter);
+}
+
+.editor .cm-activeLine,
+.editor .cm-activeLineGutter {
+  background: var(--editor-line);
+}
+
+.editor .cm-editor .cm-selectionBackground,
+.editor .cm-editor.cm-focused .cm-selectionBackground {
+  background: var(--editor-selection);
+}
+
+.editor .cm-scroller {
+  font-family: var(--mono);
+  font-size: var(--editor-font, var(--font-size-sm));
+}
+
+.editor-options {
+  position: absolute;
+  top: 3px;
+  right: 18px;
+}
+
+/* Faixa de marcadores de erro/aviso */
+.error-strip {
+  flex: 0 0 var(--size-error-strip);
+  position: relative;
+  background: var(--editor-bg);
+  border-left: 1px solid var(--border);
+}
+
+#error-strip {
+  position: absolute;
+  inset: var(--space-2) 0;
+}
+
+.strip-marker {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  height: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  transform: translateY(-50%);
+  background: var(--warning);
+}
+
+.strip-marker.error {
+  background: var(--error);
+}
+
+/* Linha do erro de execução e depuração no editor */
+.cm-runtime-error {
+  background: var(--runtime-error-bg);
+}
+
+.cm-breakpoint-gutter {
+  width: 18px;
+}
+
+.cm-breakpoint {
+  display: block;
+  margin: 2px auto 0;
+}
+
+.cm-breakpoint.ui-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.cm-debug-line {
+  background: var(--debug-line-bg);
+}
+
+.cm-editor:not(.find-mark-all) .cm-searchMatch:not(.cm-searchMatch-selected) {
+  background: transparent;
+  outline: 0;
+}
+
+.cm-pors-hover {
+  max-width: 420px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+  box-shadow: var(--shadow-tooltip);
+}
+
+.cm-pors-hover-signature {
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: var(--space-1);
+  word-break: break-word;
+}
+
+.cm-pors-hover-description {
+  color: var(--text);
+}
+
+/* Gutter de mapeamento e prévia de Rust gerado */
+.rust-mapping-gutter {
+  flex: 0 0 var(--size-mapping-gutter);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+  padding: var(--space-2) 5px;
+  overflow: auto;
+  border-inline: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  text-align: center;
+}
+
+.rust-mapping-gutter[hidden] {
+  display: none;
+}
+
+.rust-mapping-gutter #rust-mapping-status {
+  margin: 0;
+  font-size: var(--font-size-2xs);
+  line-height: 1.25;
+}
+
+.rust-mapping-gutter #rust-mapping-links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rust-mapping-gutter button {
+  min-height: 40px;
+  padding: 5px 2px;
+  font: var(--font-size-2xs)/1.2 var(--mono);
+  white-space: normal;
+}
+
+.rust-mapping-gutter button[data-quality="approximate"] {
+  border-style: dashed;
+}
+
+.rust-mapping-gutter button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.rust-preview {
+  flex: 0 0 min(44%, 720px);
+  min-width: 250px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+}
+
+@media (max-width: 1439px) {
+  .rust-preview {
+    flex-basis: 42%;
+    min-width: 220px;
+  }
+}
+
+.rust-preview[hidden] {
+  display: none;
+}
+
+.rust-preview header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.rust-preview header h2 {
+  flex: 1 1 100px;
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+}
+
+.rust-preview header div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.rust-preview header button {
+  padding: var(--space-1) var(--space-2);
+}
+
+.rust-preview #rust-status {
+  margin: 0;
+  padding: 6px 10px;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+
+.rust-preview #rust-status[data-error="true"] {
+  color: var(--error);
+}
+
+.rust-preview #rust-status[data-stale="true"] {
+  color: var(--warning);
+}
+
+.rust-preview .rust-generated-editor {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--editor-bg);
+}
+
+.rust-preview .cm-editor {
+  height: 100%;
+  color: var(--editor-text);
+  background: var(--editor-bg);
+}
+
+.rust-preview .cm-gutters {
+  background: var(--editor-bg);
+  color: var(--editor-gutter);
+}
+
+.rust-preview .cm-scroller {
+  font-family: var(--mono);
+  font-size: var(--font-size-md);
+}
+
+.rust-preview .cm-rust-mapped-segment {
+  text-decoration: underline dotted var(--accent);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.rust-preview .cm-rust-mapped-segment[data-quality="approximate"] {
+  text-decoration-style: dashed;
+}
+
+.rust-diff-output {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--editor-bg);
+  color: var(--editor-text);
+  font: var(--font-size-sm)/1.5 var(--mono);
+}
+
+.rust-diff-output[hidden] {
+  display: none;
+}
+
+.rust-diff-summary {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font: var(--font-size-sm)/1.4 var(--font-sans);
+}
+
+.rust-diff-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.rust-diff-table th {
+  position: sticky;
+  top: 32px;
+  z-index: 1;
+  padding: 5px var(--space-2);
+  background: var(--surface);
+  color: var(--muted);
+  text-align: left;
+  font: 600 var(--font-size-xs)/1.4 var(--font-sans);
+}
+
+.rust-diff-table td {
+  width: 50%;
+  padding: 0 5px;
+  vertical-align: top;
+}
+
+.rust-diff-table td + td {
+  border-left: 1px solid var(--border);
+}
+
+.rust-diff-table tr[data-kind="removed"] td:first-child {
+  border-inline-start: 2px solid var(--error);
+}
+
+.rust-diff-table tr[data-kind="added"] td:last-child {
+  border-inline-start: 2px solid var(--ok);
+}
+
+.rust-diff-mark {
+  display: inline-block;
+  width: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.rust-diff-table tr[data-kind="removed"] .rust-diff-mark {
+  color: var(--error);
+}
+
+.rust-diff-table tr[data-kind="added"] .rust-diff-mark {
+  color: var(--ok);
+}
+
+.rust-diff-line-number {
+  display: inline-block;
+  width: 30px;
+  color: var(--muted);
+  text-align: right;
+  margin-right: 6px;
+  user-select: none;
+}
+
+.rust-diff-table code {
+  white-space: pre;
+}
+
+.rust-diff-table tr:focus-within td {
+  outline: 1px solid var(--accent);
+}
+
+.rust-diff-table td code::selection {
+  background: var(--editor-selection);
+}
+
+/* Prévia declarativa de UI PORS */
+.pors-ui-preview {
+  flex: 0 0 min(40%, 560px);
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.pors-ui-preview[hidden] {
+  display: none;
+}
+
+.pors-ui-preview header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pors-ui-preview header h2 {
+  flex: 1 1 100px;
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+}
+
+.pors-ui-preview header div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.pors-ui-preview header button {
+  padding: var(--space-1) var(--space-2);
+}
+
+.pors-ui-examples-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--font-size-sm);
+}
+
+.pors-ui-examples-bar select {
+  flex: 1;
+  min-width: 0;
+}
+
+.pors-ui-examples-bar button {
+  padding: var(--space-1) var(--space-2);
+}
+
+.pors-ui-preview #pors-ui-status {
+  margin: 0;
+  padding: 6px 10px;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  border-bottom: 1px solid var(--border);
+}
+
+.pors-ui-preview #pors-ui-status[data-error="true"] {
+  color: var(--error);
+}
+
+.pors-ui-canvas {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-3);
+  background: var(--editor-bg);
+  color: var(--editor-text);
+}
+
+.pors-ui-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pors-ui-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pors-ui-text {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.pors-ui-button {
+  padding: 6px var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: inherit;
+  cursor: pointer;
+}
+
+.pors-ui-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pors-ui-input {
+  padding: 6px var(--space-2);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: inherit;
+  min-width: 140px;
+}
+
+.pors-ui-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pors-ui-list-item {
+  list-style: disc;
+}
