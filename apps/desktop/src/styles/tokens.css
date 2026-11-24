@@ -14,7 +14,7 @@
   --error: #c62828;
   --warning: #a15c00;
   --ok: #1b7f3b;
-  --input-echo: #2563eb;
+  --input-echo: #1d4ed8;
   --tab-active: #d2e7fc;
   --console-surface: #e6e6e6;
   --frame: #316892;
@@ -24,17 +24,17 @@
   --editor-text: #000000;
   --editor-caret: #ff0000;
   --editor-error: #ffcccc;
-  --syntax-function: #ad8000;
+  --syntax-function: #806000;
   --syntax-logical: #0000ff;
   --editor-bg: #fafafa;
   --editor-line: #ddf1ff;
   --editor-selection: #c0ced1;
-  --editor-gutter: #787878;
+  --editor-gutter: #6b6b6b;
   --syntax-keyword: #0000ff;
   --syntax-type: #008080;
   --syntax-number: #6400c8;
-  --syntax-string: #dc009c;
-  --syntax-comment: #808080;
+  --syntax-string: #a00070;
+  --syntax-comment: #6b6b6b;
   --syntax-operator: #804040;
 
   /* Tokens semânticos derivados e de estado */
@@ -54,6 +54,9 @@
   --ownership-diagnostic-bg: color-mix(in srgb, var(--error) 14%, var(--bg));
   --ownership-current-line-bg: color-mix(in srgb, var(--accent) 18%, transparent);
   --home-menu-divider: color-mix(in srgb, var(--home-title-text) 35%, transparent);
+  --graphics-bg: #000000;
+  --graphics-text: #ffffff;
+  --graphics-error-bg: #371512;
 
   /* Tipografia */
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -105,6 +108,7 @@
     --accent: #45bdff;
     --accent-text: #121e24;
     --error: #ff756e;
+    --error-text: #121e24;
     --warning: #ffc200;
     --ok: #00efc0;
     --input-echo: #45bdff;
@@ -116,18 +120,18 @@
     --examples-surface: #445056;
     --editor-text: #fbfbfb;
     --editor-caret: #c1cbc2;
-    --editor-error: #04790e;
+    --editor-error: #5c0000;
     --syntax-function: #fbfbfb;
-    --syntax-logical: #f1433c;
+    --syntax-logical: #ff8a82;
     --editor-bg: #263238;
     --editor-line: #2f393c;
     --editor-selection: #404e51;
-    --editor-gutter: #516268;
-    --syntax-keyword: #f1433c;
+    --editor-gutter: #a8b5bc;
+    --syntax-keyword: #ff8a82;
     --syntax-type: #45beff;
     --syntax-number: #00f0c0;
     --syntax-string: #ffc200;
-    --syntax-comment: #66747b;
+    --syntax-comment: #a8b5bc;
     --syntax-operator: #e8e2b7;
     color-scheme: dark;
   }
@@ -143,6 +147,7 @@
   --accent: #45bdff;
   --accent-text: #121e24;
   --error: #ff756e;
+  --error-text: #121e24;
   --warning: #ffc200;
   --ok: #00efc0;
   --input-echo: #45bdff;
@@ -154,18 +159,77 @@
   --examples-surface: #445056;
   --editor-text: #fbfbfb;
   --editor-caret: #c1cbc2;
-  --editor-error: #04790e;
+  --editor-error: #5c0000;
   --syntax-function: #fbfbfb;
-  --syntax-logical: #f1433c;
+  --syntax-logical: #ff8a82;
   --editor-bg: #263238;
   --editor-line: #2f393c;
   --editor-selection: #404e51;
-  --editor-gutter: #516268;
-  --syntax-keyword: #f1433c;
+  --editor-gutter: #a8b5bc;
+  --syntax-keyword: #ff8a82;
   --syntax-type: #45beff;
   --syntax-number: #00f0c0;
   --syntax-string: #ffc200;
-  --syntax-comment: #66747b;
+  --syntax-comment: #a8b5bc;
   --syntax-operator: #e8e2b7;
   color-scheme: dark;
+}
+
+@media (forced-colors: active) {
+  :root,
+  :root[data-theme],
+  .theme-palette,
+  .theme-palette[data-theme] {
+    --bg: Canvas !important;
+    --surface: Canvas !important;
+    --border: ButtonBorder !important;
+    --text: CanvasText !important;
+    --muted: CanvasText !important;
+    --accent: Highlight !important;
+    --accent-text: HighlightText !important;
+    --error: Mark !important;
+    --warning: Mark !important;
+    --ok: CanvasText !important;
+    --input-echo: LinkText !important;
+    --tab-active: Highlight !important;
+    --console-surface: Canvas !important;
+    --frame: Canvas !important;
+    --home-border: ButtonBorder !important;
+    --home-title-text: CanvasText !important;
+    --examples-surface: Canvas !important;
+    --editor-text: CanvasText !important;
+    --editor-caret: CanvasText !important;
+    --editor-error: Mark !important;
+    --editor-line: Canvas !important;
+    --editor-selection: Highlight !important;
+    --editor-gutter: CanvasText !important;
+    --syntax-keyword: LinkText !important;
+    --syntax-type: LinkText !important;
+    --syntax-function: CanvasText !important;
+    --syntax-logical: LinkText !important;
+    --syntax-number: CanvasText !important;
+    --syntax-string: CanvasText !important;
+    --syntax-comment: CanvasText !important;
+    --syntax-operator: CanvasText !important;
+    --error-text: MarkText !important;
+    --diagnostic-row-hover-text: HighlightText !important;
+    --diagnostic-row-hover-bg: Highlight !important;
+    --tab-indicator-bottom: Highlight !important;
+    --tab-indicator: Highlight !important;
+    --backdrop: Canvas !important;
+    --shadow-menu: none !important;
+    --shadow-palette: none !important;
+    --shadow-popover: none !important;
+    --shadow-tooltip: none !important;
+    --runtime-error-bg: Mark !important;
+    --debug-line-bg: Highlight !important;
+    --ownership-lab-bg: Canvas !important;
+    --ownership-diagnostic-bg: Mark !important;
+    --ownership-current-line-bg: Highlight !important;
+    --home-menu-divider: ButtonBorder !important;
+    --graphics-bg: Canvas !important;
+    --graphics-text: CanvasText !important;
+    --graphics-error-bg: Mark !important;
+    color-scheme: light dark;
+  }
 }

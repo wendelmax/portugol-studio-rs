@@ -1,11 +1,13 @@
+@import "./styles/tokens.css";
+
 html,
 body {
   margin: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #000;
-  color: #fff;
+  background: var(--graphics-bg);
+  color: var(--graphics-text);
 }
 
 #screen {
@@ -20,6 +22,6 @@ body {
   inset: auto 0 0;
   margin: 0;
   padding: 12px;
-  background: #371512;
+  background: var(--graphics-error-bg);
   font: 14px system-ui, sans-serif;
 }

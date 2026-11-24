@@ -12,6 +12,7 @@ const EXPECTED_MODULES = [
   "styles/dialogs.css",
   "styles/home.css",
 ];
+const OTHER_STYLES = ["graphics-window.css"];
 
 const RUNTIME_CSS_VARS = new Set([
   "--icon-light",
@@ -39,7 +40,7 @@ test("cores literais ficam restritas a styles/tokens.css", () => {
   const namedColorPropPattern =
     /(?:^|[;{]\s*)(?:color|background(?:-color)?|border(?:-[a-z]+)?-color|outline-color|fill|stroke)\s*:\s*(?:white|black|red|green|blue|yellow|orange|gray|grey|silver|purple|pink|cyan|magenta)\b/gi;
 
-  for (const mod of EXPECTED_MODULES.slice(1)) {
+  for (const mod of [...EXPECTED_MODULES.slice(1), ...OTHER_STYLES]) {
     const css = stripComments(readSrc(mod));
     const matches = css.match(literalColorPattern) ?? [];
     assert.deepEqual(matches, [], `${mod} não deve conter cores literais: ${matches.join(", ")}`);
@@ -50,6 +51,10 @@ test("cores literais ficam restritas a styles/tokens.css", () => {
       `${mod} não deve usar cores nomeadas literais: ${namedMatches.join(", ")}`,
     );
   }
+});
+
+test("janela gráfica importa os tokens globais de cor", () => {
+  assert.match(readSrc("graphics-window.css"), /@import\s+["']\.\/styles\/tokens\.css["'];/);
 });
 
 test("todos os tokens CSS usados pelos módulos existem em styles/tokens.css", () => {
@@ -65,7 +70,7 @@ test("todos os tokens CSS usados pelos módulos existem em styles/tokens.css", (
     );
   }
 
-  for (const mod of EXPECTED_MODULES.slice(1)) {
+  for (const mod of [...EXPECTED_MODULES.slice(1), ...OTHER_STYLES]) {
     const css = stripComments(readSrc(mod));
     for (const [, name] of css.matchAll(/var\(\s*(--[a-z0-9-]+)/gi)) {
       if (RUNTIME_CSS_VARS.has(name)) continue;

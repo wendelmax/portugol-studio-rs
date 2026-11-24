@@ -195,6 +195,7 @@ function extensions(language: SourceLanguage): Extension[] {
     highlightActiveLine(),
     highlightSelectionMatches(),
     findDialog,
+    EditorView.contentAttributes.of({ "aria-label": "Editor de código" }),
     EditorState.tabSize.of(4),
     sourceLanguage.of(isRust ? rust() : language === "portugol-rs" ? portugolRs() : portugol()),
     portugolTools.of(tools),

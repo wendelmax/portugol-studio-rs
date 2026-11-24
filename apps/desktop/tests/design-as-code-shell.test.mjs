@@ -15,7 +15,7 @@ test("shell tem marca, navegação de atividade e tabs dentro do workspace de ed
   for (const activity of ["project", "learn", "examples", "debug", "settings"]) {
     assert.match(html, new RegExp(`data-activity="${activity}"`));
   }
-  assert.match(html, /<nav id="tabs" class="tabs" aria-label="Abas"><\/nav>/);
+  assert.match(html, /<nav id="tabs" data-testid="editor-tabs" class="tabs" aria-label="Abas"><\/nav>/);
   assert.match(html, /<div class="workspace">\s*<nav id="tabs"/);
 });
 

@@ -83,21 +83,21 @@
         </nav>
         <aside class="code-toolbar" aria-label="Comandos do editor">
           <button id="btn-explorer" title="Mostrar ou ocultar o explorador (Ctrl+Shift+E)" aria-label="Explorador" aria-expanded="false"><span data-icon="pequeno/folder_closed"></span></button>
-          <button id="btn-run" title="Executar até o próximo ponto de parada (Shift+F6)" aria-label="Executar"><span data-icon="grande/resultset_next"></span></button>
-          <button id="btn-debug" title="Executar passo a passo (Shift+F5)" aria-label="Depurar"><span data-icon="grande/step"></span></button>
-          <button id="btn-stop" title="Interromper a execução ou depuração (Shift+F7)" aria-label="Interromper" disabled><span data-icon="grande/stop"></span></button>
+          <button id="btn-run" data-testid="run" title="Executar até o próximo ponto de parada (Shift+F6)" aria-label="Executar"><span data-icon="grande/resultset_next"></span></button>
+          <button id="btn-debug" data-testid="debug" title="Executar passo a passo (Shift+F5)" aria-label="Depurar"><span data-icon="grande/step"></span></button>
+          <button id="btn-stop" data-testid="stop" title="Interromper a execução ou depuração (Shift+F7)" aria-label="Interromper" disabled><span data-icon="grande/stop"></span></button>
           <button id="btn-rust" title="Comparar e exportar este programa para Rust" aria-label="Ver tradução para Rust">Rust</button>
           <button id="btn-ui-preview" title="Abrir preview visual declarativo PORS (UI.*)" aria-label="Preview Visual PORS" aria-pressed="false">UI</button>
           <hr />
-          <button id="btn-save" title="Salvar (Ctrl+S)" aria-label="Salvar"><span data-icon="grande/save"></span></button>
+          <button id="btn-save" data-testid="save" title="Salvar (Ctrl+S)" aria-label="Salvar"><span data-icon="grande/save"></span></button>
           <button id="btn-save-as" title="Salvar como (Ctrl+Shift+S)" aria-label="Salvar como"><span data-icon="grande/save_as"></span></button>
-          <button id="btn-open" title="Abrir (Ctrl+O)" aria-label="Abrir"><span data-icon="grande/open"></span></button>
+          <button id="btn-open" data-testid="open" title="Abrir (Ctrl+O)" aria-label="Abrir"><span data-icon="grande/open"></span></button>
           <hr />
           <button id="btn-help" title="Ajuda da linguagem e das bibliotecas (F1)" aria-label="Ajuda"><span data-icon="grande/helplow"></span></button>
           <button id="btn-unexpand" title="Sair do modo expandido (Shift+Esc)" aria-label="Sair do modo expandido" hidden><span data-icon="pequeno/expandir_componente"></span></button>
         </aside>
       </aside>
-      <aside id="workspace-explorer" class="workspace-explorer" aria-labelledby="workspace-title" hidden>
+      <aside id="workspace-explorer" data-testid="workspace-explorer" class="workspace-explorer" aria-labelledby="workspace-title" hidden>
         <header class="workspace-explorer-header">
           <h2 id="workspace-title">Explorador</h2>
           <div class="workspace-explorer-actions">
@@ -112,9 +112,9 @@
       </aside>
       <div id="workspace-explorer-splitter" class="splitter" role="separator" aria-label="Redimensionar Explorador" aria-controls="workspace-explorer" aria-orientation="vertical" aria-valuemin="180" aria-valuemax="420" aria-valuenow="240" aria-keyshortcuts="ArrowLeft ArrowRight Home End" title="Arraste ou use as setas; Home e End definem os limites" tabindex="0" hidden></div>
       <div class="workspace">
-        <nav id="tabs" class="tabs" aria-label="Abas"></nav>
+        <nav id="tabs" data-testid="editor-tabs" class="tabs" aria-label="Abas"></nav>
         <div class="editor-area">
-          <section id="editor" class="editor"></section>
+          <section id="editor" data-testid="code-editor" class="editor"></section>
           <nav id="rust-mapping-gutter" class="rust-mapping-gutter" aria-label="Mapeamento Portugol para Rust" hidden>
             <p id="rust-mapping-status" role="status" aria-live="polite">Aguardando source maps…</p>
             <div id="rust-mapping-links"></div>
@@ -183,6 +183,9 @@
                     <option value="preset:night-owl">Night Owl</option>
                     <option value="preset:portugol-studio-next">Portugol Studio Next</option>
                   </optgroup>
+                  <optgroup label="Acessibilidade">
+                    <option value="preset:high-contrast">Alto contraste</option>
+                  </optgroup>
                 </select>
               </label>
               <button id="editor-themes">Editar temas</button>
@@ -201,12 +204,12 @@
           </details>
         </div>
         <div id="splitter" class="splitter" role="separator" aria-label="Redimensionar painel inferior" aria-controls="bottom-panel" aria-orientation="horizontal" aria-valuemin="90" aria-valuemax="600" aria-valuenow="220" aria-keyshortcuts="ArrowUp ArrowDown Home End" title="Arraste ou use as setas; Home e End definem os limites" tabindex="0"></div>
-        <section id="bottom-panel" class="panel">
-          <div class="panel-tabs" role="tablist">
-            <button id="tab-console" class="active" role="tab" aria-selected="true" aria-controls="console">Console</button>
-            <button id="tab-tests" role="tab" aria-selected="false" aria-controls="tests">Testes</button>
-            <button id="tab-messages" role="tab" aria-selected="false" aria-controls="messages">Mensagens <span id="message-count"></span></button>
-            <button id="tab-debug" role="tab" aria-selected="false" aria-controls="debug">Depuração</button>
+        <section id="bottom-panel" data-testid="output-panel" class="panel">
+          <div class="panel-tabs" data-testid="output-tabs" role="tablist" aria-label="Painéis de saída">
+            <button id="tab-console" data-testid="tab-console" class="active" role="tab" aria-selected="true" aria-controls="console">Console</button>
+            <button id="tab-tests" data-testid="tab-tests" role="tab" aria-selected="false" aria-controls="tests">Testes</button>
+            <button id="tab-messages" data-testid="tab-messages" role="tab" aria-selected="false" aria-controls="messages">Mensagens <span id="message-count"></span></button>
+            <button id="tab-debug" data-testid="tab-debug" role="tab" aria-selected="false" aria-controls="debug">Depuração</button>
             <details id="console-tools" class="options right">
               <summary title="Opções do console" aria-label="Opções do console"><span data-icon="pequeno/gear_in"></span></summary>
               <div class="options-menu">
@@ -218,27 +221,27 @@
               </div>
             </details>
           </div>
-          <div id="console" class="console" role="tabpanel" aria-labelledby="tab-console" tabindex="0">
+          <div id="console" data-testid="console-panel" class="console" role="tabpanel" aria-labelledby="tab-console" tabindex="0">
             <pre id="console-output"></pre>
             <form id="console-form" class="console-input" hidden>
               <span id="console-hint"></span>
               <input id="console-input" type="text" spellcheck="false" autocomplete="off" />
             </form>
           </div>
-          <section id="tests" class="tests-panel" role="tabpanel" aria-labelledby="tab-tests" tabindex="0" hidden>
+          <section id="tests" data-testid="tests-panel" class="tests-panel" role="tabpanel" aria-labelledby="tab-tests" tabindex="0" hidden>
             <h2 id="tests-title">Testes do projeto</h2>
             <p id="tests-status" role="status">Nenhum teste configurado.</p>
             <button id="tests-run" type="button" hidden>Executar casos</button>
             <ul id="tests-results" aria-label="Falhas dos casos de teste" hidden></ul>
           </section>
-          <section id="messages" class="messages" role="tabpanel" aria-labelledby="tab-messages" aria-label="Mensagens do compilador" hidden>
+          <section id="messages" data-testid="messages-panel" class="messages" role="tabpanel" aria-labelledby="tab-messages" aria-label="Mensagens do compilador" hidden>
             <p id="no-diagnostics">Nenhum problema encontrado.</p>
             <table id="diagnostic-table" hidden>
               <thead><tr><th scope="col" aria-label="Tipo"></th><th scope="col">Linha</th><th scope="col">Mensagem</th></tr></thead>
               <tbody></tbody>
             </table>
           </section>
-          <div id="debug" class="debug" role="tabpanel" aria-labelledby="tab-debug" hidden>
+          <div id="debug" data-testid="debug-panel" class="debug" role="tabpanel" aria-labelledby="tab-debug" hidden>
           <div class="group" id="debug-controls" title="Durante a execução, clique na margem esquerda para criar pontos de parada">
             <button id="btn-debug-pause" title="Pausar (F9)" disabled>⏸ Pausar</button>
             <button id="btn-debug-continue" title="Continuar (F5)" disabled>▶ Continuar</button>
