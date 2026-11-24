@@ -268,7 +268,7 @@ fn find_host_call_in_stmts(
             } => find_host_call_in_expr(condition)
                 .or_else(|| find_host_call_in_stmts(then_branch))
                 .or_else(|| else_branch.as_deref().and_then(find_host_call_in_stmts)),
-            S::While { condition, body } => {
+            S::While { condition, body } | S::DoWhile { body, condition } => {
                 find_host_call_in_expr(condition).or_else(|| find_host_call_in_stmts(body))
             }
             S::For {
@@ -2162,6 +2162,35 @@ funcao inicio() {{
         );
         let _ = server.join();
         std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn exports_and_executes_do_while_with_break_and_continue_in_native_rust() {
+        let source = r#"
+funcao inicio() {
+    seja mutavel vezes: inteiro = 0;
+    faca {
+        vezes += 1;
+    } enquanto (falso);
+
+    seja mutavel i: inteiro = 0;
+    seja mutavel soma: inteiro = 0;
+    faca {
+        i += 1;
+        se (i == 2) {
+            continue;
+        }
+        soma += i;
+        se (i == 4) {
+            pare;
+        }
+    } enquanto (i < 10);
+
+    escreva(vezes, "|", i, "|", soma);
+}
+"#;
+        let generated = export_portugol_rs(source).unwrap();
+        assert_rust_output(generated, "1|4|8");
     }
 
     fn assert_rust_output(generated: String, expected: &str) {

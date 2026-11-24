@@ -746,3 +746,35 @@ funcao inicio() {{
     assert!(err.message.contains("interrompido"));
     assert!(started.elapsed() < Duration::from_secs(2));
 }
+
+#[test]
+fn executes_do_while_with_break_and_continue_in_minimal_vm() {
+    let source = r#"
+funcao inicio() {
+    seja mutavel vezes: inteiro = 0;
+    faca {
+        vezes += 1;
+    } enquanto (falso);
+
+    seja mutavel i: inteiro = 0;
+    seja mutavel soma: inteiro = 0;
+    faca {
+        i += 1;
+        se (i == 2) {
+            continue;
+        }
+        soma += i;
+        se (i == 4) {
+            pare;
+        }
+    } enquanto (i < 10);
+
+    escreva(vezes, "|", i, "|", soma);
+}
+"#;
+    let module = compile_pors_source(source);
+    let mut io = BufferIo::default();
+    run(&module, &mut io).expect("faca-enquanto deve executar na VM mínima");
+    // vezes=1 (executa ao menos uma vez com cond falsa); i=4; soma=1+3+4=8
+    assert_eq!(io.output, "1|4|8");
+}

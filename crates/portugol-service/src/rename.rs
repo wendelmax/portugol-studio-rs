@@ -350,7 +350,7 @@ fn collect_pors_function_calls(
                     collect_pors_function_calls(else_branch, functions);
                 }
             }
-            StmtKind::While { condition, body } => {
+            StmtKind::While { condition, body } | StmtKind::DoWhile { body, condition } => {
                 collect_pors_function_calls_in_expr(condition, functions);
                 collect_pors_function_calls(body, functions);
             }
@@ -636,7 +636,7 @@ fn collect_portugol_rs_statements(
                     collect_portugol_rs_statements(else_branch, declarations, owner, occurrences);
                 }
             }
-            StmtKind::While { condition, body } => {
+            StmtKind::While { condition, body } | StmtKind::DoWhile { body, condition } => {
                 collect_portugol_rs_expression(condition, owner, occurrences);
                 collect_portugol_rs_statements(body, declarations, owner, occurrences);
             }

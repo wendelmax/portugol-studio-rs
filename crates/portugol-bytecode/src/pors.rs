@@ -496,6 +496,22 @@ impl<'a> Compiler<'a> {
                 self.patch(end, target);
                 self.finish_loop(target, start);
             }
+            S::DoWhile { body, condition } => {
+                let start = self.here();
+                let loop_depth = self.scope_locals.len();
+                self.loops.push(LoopFrame {
+                    breaks: Vec::new(),
+                    continues: Vec::new(),
+                    break_scope_depth: loop_depth,
+                    continue_scope_depth: loop_depth,
+                });
+                self.block(body, stmt.span)?;
+                let cond_start = self.here();
+                self.expr(condition)?;
+                self.emit(Op::JumpIfTrue(start), stmt.span);
+                let end = self.here();
+                self.finish_loop(end, cond_start);
+            }
             S::For {
                 initializer,
                 condition,

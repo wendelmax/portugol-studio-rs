@@ -17,6 +17,7 @@ enum SyntaxKind {
     Funcao,
     Se,
     Senao,
+    Faca,
     Enquanto,
     Para,
     Retorne,
@@ -55,6 +56,7 @@ fn classify(kind: &Kind, prev_syntax: Option<SyntaxKind>) -> SyntaxKind {
             "funcao" => SyntaxKind::Funcao,
             "se" => SyntaxKind::Se,
             "senao" => SyntaxKind::Senao,
+            "faca" => SyntaxKind::Faca,
             "enquanto" => SyntaxKind::Enquanto,
             "para" => SyntaxKind::Para,
             "retorne" => SyntaxKind::Retorne,
@@ -214,7 +216,10 @@ pub fn format(source: &str) -> Option<Vec<WhitespaceEdit>> {
                 let empty_block = left == Piece::Syntax(SyntaxKind::LBrace)
                     && piece == Piece::Syntax(SyntaxKind::RBrace);
                 let else_after_brace = left == Piece::Syntax(SyntaxKind::RBrace)
-                    && piece == Piece::Syntax(SyntaxKind::Senao);
+                    && matches!(
+                        piece,
+                        Piece::Syntax(SyntaxKind::Senao | SyntaxKind::Enquanto)
+                    );
                 let top_level_function_gap = depth == 0
                     && left == Piece::Syntax(SyntaxKind::RBrace)
                     && piece == Piece::Syntax(SyntaxKind::Funcao);

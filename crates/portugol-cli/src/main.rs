@@ -1,3 +1,4 @@
+mod debug;
 mod run;
 
 use std::env;
@@ -32,6 +33,7 @@ fn main() -> ExitCode {
 
     match args.first().map(String::as_str) {
         Some("executar") => return run::main(&args[1..]),
+        Some("depurar") => return debug::main(&args[1..]),
         Some("formatar") => return format_command(&args[1..]),
         Some("novo") => return new_command(&args[1..]),
         Some("exportar-rust") => return export_rust_command(&args[1..]),
@@ -392,6 +394,7 @@ fn print_usage() {
            portugol exportar-cargo <arquivo.pors> <pasta>                  gera um projeto Cargo pronto\n\
            portugol executar [--bytecode] <arquivo.pors | arquivo.por> [-- parâmetros...]\n\
                                                                            executa um programa na VM\n\
+           portugol depurar [--ponto <linha>]... <arquivo.pors>            depura um programa .pors interativamente\n\
          \n\
          Opções da validação:\n\
            -q, --quiet   só mostra arquivos com erro\n\
