@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "id": "pors-08-dias-do-mes",
+  "title": "Validar ano/mês com Tipos e Calendario",
+  "statement": "Leia duas cadeias representando ano e mês. Converta-as com Tipos.para_inteiro e use Calendario.dias_no_mes para escrever a quantidade de dias ou \"invalido\" em caso de erro.",
+  "starter_code": "funcao calcular_dias(ano_txt: cadeia, mes_txt: cadeia) -> Resultado<inteiro, cadeia> {\n    seja ano: inteiro = Tipos.para_inteiro(ano_txt)?;\n    seja mes: inteiro = Tipos.para_inteiro(mes_txt)?;\n    retorne Calendario.dias_no_mes(ano, mes);\n}\n\nfuncao inicio() {\n    seja mutavel ano_txt: cadeia = \"\";\n    seja mutavel mes_txt: cadeia = \"\";\n    leia(ano_txt);\n    leia(mes_txt);\n    escreva(\"invalido\");\n}\n",
+  "hints": [
+    "Use escolha calcular_dias(ano_txt, mes_txt) para escrever o número no caso Ok ou \"invalido\" no caso Erro."
+  ],
+  "cases": [
+    { "name": "bissexto", "input": "2024\n2\n", "expected_output": "29" },
+    { "name": "comum", "input": "2023\n2\n", "expected_output": "28" },
+    { "name": "mes_invalido", "input": "2024\n13\n", "expected_output": "invalido" },
+    { "name": "texto_invalido", "input": "abc\n5\n", "expected_output": "invalido" }
+  ]
+}
