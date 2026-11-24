@@ -93,6 +93,7 @@ import { renderDebugInfo } from "./run/debug-view";
 import { chooseCargoTarget } from "./run/cargo-target-dialog";
 import { applyPageTheme, editorColors, editorTheme, onSystemThemeChange, themeChoice } from "./editor/theme";
 import { createSymbolNavigator } from "./editor/symbol-navigation";
+import { createEditorFormatter } from "./editor/format";
 import {
   breakpointLines, breakpoints, createBreakpointGutter, debugLine, runtimeError, setDebugLine, setRuntimeError, toCodeMirror,
 } from "./editor/decorations";
@@ -1139,35 +1140,19 @@ function goToDeclarationSelection() {
   return goToDeclarationAt(view.state.selection.main.head);
 }
 
-async function formatCode() {
-  const tab = activeTab();
-  if (!tab || (runTabId === tab.id && runId !== null)) return;
-  if (tab.language === "rust" && rustfmtAvailable !== true) {
-    setStatus("Instale o componente rustfmt com `rustup component add rustfmt`.", "error");
-    return;
-  }
-  const doc = view.state.doc;
-  try {
-    const source = doc.toString();
-    const changes = tab.language === "rust"
-      ? await api.formatRustSource(source).then((formatted) =>
-        formatted === source ? [] : [{ from: 0, to: doc.length, insert: formatted }])
-      : tab.language === "portugol-rs"
-        ? await api.formatPortugolRs(source)
-        : await api.formatSource(source);
-    if (activeTab() !== tab || view.state.doc !== doc) return;
-    if (!changes) {
-      setStatus("Não foi possível formatar. Confira a sintaxe do programa.", "error");
-      return;
-    }
-    if (changes.length) view.dispatch({ changes, annotations: isolateHistory.of("full"), userEvent: "input.format" });
-    setStatus(changes.length ? "Código formatado." : "O código já está formatado.", "ok");
-    view.focus();
-  } catch (error) {
-    if (activeTab() === tab && view.state.doc === doc) {
-      setStatus(error instanceof Error ? error.message : String(error), "error");
-    }
-  }
+const editorFormatter = createEditorFormatter({
+  activeTab,
+  isRunningTab: (tab) => runTabId === tab.id && runId !== null,
+  rustfmtAvailable: () => rustfmtAvailable === true,
+  view,
+  formatRust: api.formatRustSource,
+  formatPortugolRs: api.formatPortugolRs,
+  formatPortugol: api.formatSource,
+  setStatus,
+});
+
+function formatCode() {
+  return editorFormatter.formatCode();
 }
 
 function editorMenuAction(id: string, action: () => unknown) {
