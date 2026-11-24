@@ -231,6 +231,8 @@ diretamente.
 
 ### Documentação
 
+- [`CONTRIBUTING.md`](CONTRIBUTING.md): como escolher e reservar uma issue,
+  trabalhar em paralelo sem conflito e entregar o PR.
 - [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md): estrutura do compilador, da VM
   e da IDE, e as diferenças de semântica herdadas do Java.
 - [`docs/PARIDADE.md`](docs/PARIDADE.md): comparação recurso a recurso com o
