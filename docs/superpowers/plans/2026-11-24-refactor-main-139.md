@@ -345,3 +345,15 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - [x] Extract run command orchestration while injecting the language execution controllers.
 - [x] Run the full frontend tests (73/73), typecheck, and build.
 - [ ] Commit the execution dispatcher group.
+
+### Task 27: Exercise tab creation
+
+**Files:**
+- Create: `apps/desktop/src/state/exercise-tab.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/exercise-tab.test.mjs`
+
+- [x] Add tests for starter source, PORS language, clean-tab replacement, and workspace reactivation.
+- [x] Extract exercise-to-tab orchestration with tab and workspace operations injected.
+- [x] Run the full frontend tests (74/74), typecheck, and build.
+- [ ] Commit the exercise tab group.
