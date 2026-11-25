@@ -34,10 +34,75 @@
   letter-spacing: -0.04em;
 }
 
+.titlebar-context {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-inline-start: var(--space-2);
+}
+
+body:has(#code[hidden]) .titlebar-context {
+  display: none;
+}
+
+.titlebar-workspace-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 220px;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.titlebar-workspace-btn #titlebar-workspace-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.titlebar-workspace-btn .ui-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+}
+
+.titlebar-mode-select {
+  min-height: 30px;
+  padding: 0 8px;
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text);
+  font-size: var(--font-size-sm);
+}
+
 .titlebar-drag {
   flex: 1;
   align-self: stretch;
-  min-width: 24px;
+  min-width: 16px;
+}
+
+@media (max-width: 1280px) {
+  .titlebar-workspace-btn {
+    max-width: 150px;
+    padding-inline: 8px;
+  }
+
+  .titlebar-actions {
+    gap: 4px;
+    margin-inline-end: var(--space-1);
+  }
+
+  .titlebar-actions button {
+    padding: 0 8px;
+  }
 }
 
 .titlebar-actions {

@@ -9,10 +9,14 @@ const css = ideStyles();
 const main = ideSource();
 const activityBar = readFileSync(new URL("../src/shell/activity-bar.ts", import.meta.url), "utf8");
 
-test("shell tem marca, navegação de atividade e tabs dentro do workspace de edição", () => {
+test("shell tem marca, contexto de projeto/modo, configurações dedicadas e tabs dentro do workspace", () => {
   assert.match(html, /class="app-brand"/);
   assert.match(html, /<title>Portugol Studio RS<\/title>/);
   assert.match(html, /class="app-brand-mark"[^>]*>RS<\/span>Portugol Studio RS/);
+  assert.match(html, /id="titlebar-workspace"[^>]*data-testid="workspace-selector"/);
+  assert.match(html, /id="titlebar-learning-mode"[^>]*data-testid="learning-mode-switcher"/);
+  assert.match(html, /<dialog id="settings-dialog" data-testid="settings-view"/);
+  assert.match(html, /id="settings-reset-layout"[^>]*data-testid="reset-layout"/);
   assert.match(html, /<aside[^>]*class="activity-rail"[^>]*aria-label="Atividades"/);
   for (const activity of ["learn", "examples", "debug", "settings"]) {
     assert.match(html, new RegExp(`data-activity="${activity}"`));

@@ -8,6 +8,14 @@
   <body>
     <header class="titlebar">
       <div class="app-brand"><span class="app-brand-mark" aria-hidden="true">RS</span>Portugol Studio RS</div>
+      <div class="titlebar-context" aria-label="Projeto e modo de aprendizagem">
+        <button id="titlebar-workspace" class="titlebar-workspace-btn" type="button" data-testid="workspace-selector" title="Abrir pasta de projeto ou alternar o Explorador (Ctrl+Shift+E)"><span data-icon="folder"></span><span id="titlebar-workspace-name">Sem projeto</span></button>
+        <select id="titlebar-learning-mode" class="titlebar-mode-select" data-testid="learning-mode-switcher" aria-label="Modo de aprendizagem" title="Modo de aprendizagem">
+          <option value="beginner">Iniciante</option>
+          <option value="bridge">Ponte para Rust</option>
+          <option id="titlebar-learning-mode-rust-option" value="rust" disabled>Rust</option>
+        </select>
+      </div>
       <div class="titlebar-drag" data-tauri-drag-region></div>
       <nav class="titlebar-actions" aria-label="Execução e visualizações">
         <button id="btn-run" class="titlebar-run-btn" data-testid="run" title="Executar até o próximo ponto de parada (Shift+F6)" aria-label="Executar"><span data-icon="play"></span><span>Executar</span></button>
@@ -94,7 +102,7 @@
           <button type="button" data-activity="learn" aria-label="Aprender" aria-controls="utilities" title="Aprender"><span data-icon="graduation-cap"></span><span class="rail-label">Aprender</span></button>
           <button type="button" data-activity="examples" aria-label="Exemplos" title="Início e exemplos"><span data-icon="sparkles"></span><span class="rail-label">Exemplos</span></button>
           <button type="button" data-activity="debug" aria-label="Painel de depuração" aria-controls="bottom-panel" title="Painel de depuração"><span data-icon="bug"></span><span class="rail-label">Depurar</span></button>
-          <button type="button" data-activity="settings" aria-label="Configurações do editor" aria-controls="editor-options" title="Configurações"><span data-icon="settings"></span><span class="rail-label">Ajustes</span></button>
+          <button type="button" data-activity="settings" aria-label="Configurações da IDE" aria-controls="settings-dialog" title="Configurações (Ctrl+,)"><span data-icon="settings"></span><span class="rail-label">Ajustes</span></button>
         </nav>
         <nav class="code-toolbar" aria-label="Comandos do editor">
           <button id="btn-explorer" title="Mostrar ou ocultar o explorador (Ctrl+Shift+E)" aria-label="Explorador" aria-expanded="false"><span data-icon="folder"></span></button>
@@ -169,48 +177,8 @@
           </aside>
           <aside class="error-strip" aria-label="Diagnósticos por linha"><div id="error-strip"></div></aside>
           <details id="editor-options" class="options editor-options">
-            <summary title="Opções do editor" aria-label="Opções do editor"><span data-icon="settings"></span></summary>
+            <summary title="Ações do editor" aria-label="Ações do editor"><span data-icon="settings"></span></summary>
             <div class="options-menu">
-              <label class="learning-mode" for="learning-mode">Modo de aprendizagem
-                <select id="learning-mode" data-testid="learning-mode" aria-describedby="learning-mode-rust-help">
-                  <option value="beginner">Portugol — iniciante</option>
-                  <option value="bridge">Portugol + ponte para Rust</option>
-                  <option id="learning-mode-rust-option" value="rust" disabled>Rust</option>
-                </select>
-                <span id="learning-mode-rust-help" class="learning-mode-help">Verificando a toolchain Rust…</span>
-              </label>
-              <label class="font-size" for="editor-font">Tamanho da fonte
-                <input id="editor-font" type="number" min="10" max="50" value="12" />
-              </label>
-              <label class="theme">Tema
-                <select id="theme">
-                  <optgroup label="Padrão (VS Code Modern)">
-                    <option value="system">Sistema</option>
-                    <option value="light">Claro padrão</option>
-                    <option value="dark">Escuro padrão</option>
-                  </optgroup>
-                  <optgroup label="IntelliJ / RustRover">
-                    <option value="preset:intellij-rust-dark">IntelliJ Rust Dark</option>
-                    <option value="preset:intellij-rust-light">IntelliJ Rust Light</option>
-                  </optgroup>
-                  <optgroup label="VS Code — Escuros">
-                    <option value="preset:vscode-dark-modern">VS Code Dark Modern</option>
-                    <option value="preset:github-dark">GitHub Dark</option>
-                    <option value="preset:one-dark-pro">One Dark Pro</option>
-                    <option value="preset:dracula">Dracula</option>
-                    <option value="preset:catppuccin-mocha">Catppuccin Mocha</option>
-                    <option value="preset:night-owl">Night Owl</option>
-                  </optgroup>
-                  <optgroup label="VS Code — Claros">
-                    <option value="preset:vscode-light-modern">VS Code Light Modern</option>
-                    <option value="preset:github-light">GitHub Light</option>
-                  </optgroup>
-                  <optgroup label="Acessibilidade">
-                    <option value="preset:high-contrast">Alto contraste</option>
-                  </optgroup>
-                </select>
-              </label>
-              <button id="editor-themes">Editar temas</button>
               <button id="editor-search">Pesquisar e substituir</button>
               <button id="editor-exercise" hidden>Corrigir solução</button>
               <button id="editor-definition" title="F12">Ir à declaração</button>
@@ -219,9 +187,7 @@
               <button id="editor-center" aria-pressed="false" title="Shift+Pause">Centralizar código-fonte</button>
               <button id="editor-expand">Expandir ou restaurar</button>
               <button id="btn-utilities" title="Ctrl+B" aria-controls="utilities" aria-expanded="false">Painel Utilitários</button>
-              <label class="args" for="args">Parâmetros de execução
-                <input id="args" type="text" spellcheck="false" placeholder='ex.: 42 "João Silva"' />
-              </label>
+              <button id="editor-open-settings" title="Ctrl+,">Configurações…</button>
             </div>
           </details>
         </div>
@@ -569,6 +535,78 @@
         <ul></ul>
       </section>
       <form method="dialog"><button>Fechar</button></form>
+    </dialog>
+
+    <dialog id="settings-dialog" data-testid="settings-view" aria-labelledby="settings-title">
+      <header class="settings-header">
+        <div>
+          <h2 id="settings-title">Configurações</h2>
+          <p class="settings-subtitle">Aparência, aprendizagem, execução e layout dos painéis da IDE.</p>
+        </div>
+      </header>
+      <div class="settings-grid">
+        <section class="settings-section" aria-labelledby="settings-appearance-heading">
+          <h3 id="settings-appearance-heading">Aparência e editor</h3>
+          <label class="theme" for="theme">Tema
+            <select id="theme">
+              <optgroup label="Padrão (VS Code Modern)">
+                <option value="system">Sistema</option>
+                <option value="light">Claro padrão</option>
+                <option value="dark">Escuro padrão</option>
+              </optgroup>
+              <optgroup label="IntelliJ / RustRover">
+                <option value="preset:intellij-rust-dark">IntelliJ Rust Dark</option>
+                <option value="preset:intellij-rust-light">IntelliJ Rust Light</option>
+              </optgroup>
+              <optgroup label="VS Code — Escuros">
+                <option value="preset:vscode-dark-modern">VS Code Dark Modern</option>
+                <option value="preset:github-dark">GitHub Dark</option>
+                <option value="preset:one-dark-pro">One Dark Pro</option>
+                <option value="preset:dracula">Dracula</option>
+                <option value="preset:catppuccin-mocha">Catppuccin Mocha</option>
+                <option value="preset:night-owl">Night Owl</option>
+              </optgroup>
+              <optgroup label="VS Code — Claros">
+                <option value="preset:vscode-light-modern">VS Code Light Modern</option>
+                <option value="preset:github-light">GitHub Light</option>
+              </optgroup>
+              <optgroup label="Acessibilidade">
+                <option value="preset:high-contrast">Alto contraste</option>
+              </optgroup>
+            </select>
+          </label>
+          <label class="font-size" for="editor-font">Tamanho da fonte do editor
+            <input id="editor-font" type="number" min="10" max="50" value="12" />
+          </label>
+          <button id="editor-themes" type="button">Editar temas personalizados…</button>
+        </section>
+
+        <section class="settings-section" aria-labelledby="settings-learning-heading">
+          <h3 id="settings-learning-heading">Aprendizagem</h3>
+          <label class="learning-mode" for="learning-mode">Modo de aprendizagem
+            <select id="learning-mode" data-testid="learning-mode" aria-describedby="learning-mode-rust-help">
+              <option value="beginner">Portugol — iniciante</option>
+              <option value="bridge">Portugol + ponte para Rust</option>
+              <option id="learning-mode-rust-option" value="rust" disabled>Rust</option>
+            </select>
+            <span id="learning-mode-rust-help" class="learning-mode-help">Verificando a toolchain Rust…</span>
+          </label>
+        </section>
+
+        <section class="settings-section" aria-labelledby="settings-run-heading">
+          <h3 id="settings-run-heading">Execução</h3>
+          <label class="args" for="args">Parâmetros de execução
+            <input id="args" type="text" spellcheck="false" placeholder='ex.: 42 "João Silva"' />
+          </label>
+        </section>
+
+        <section class="settings-section" aria-labelledby="settings-layout-heading">
+          <h3 id="settings-layout-heading">Layout dos painéis</h3>
+          <p class="settings-hint">Os tamanhos do explorador, painel inferior, inspetor e comparação Rust são salvos automaticamente.</p>
+          <button id="settings-reset-layout" type="button" data-testid="reset-layout">Restaurar layout padrão</button>
+        </section>
+      </div>
+      <form class="dialog-actions" method="dialog"><button class="primary">Concluir</button></form>
     </dialog>
 
     <dialog id="theme-editor" aria-labelledby="theme-title">

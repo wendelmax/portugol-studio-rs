@@ -9,6 +9,7 @@ import {
   DEFAULT_PANE_LAYOUT,
   loadPaneLayout,
   normalizePaneLayout,
+  resetPaneLayout,
   resizePaneForKey,
   savePaneLayout,
   type PaneLayout,
@@ -239,6 +240,15 @@ export function mountPaneLayout(options: PaneLayoutOptions) {
     /** Carrega os tamanhos salvos para o workspace; `applyAll` os aplica. */
     load(preferenceKey: string | undefined) {
       layout = loadSavedPaneLayout(preferenceKey);
+    },
+    /** Restaura os tamanhos padrão dos painéis e limpa a preferência salva. */
+    reset() {
+      try {
+        layout = resetPaneLayout(localStorage, options.preferenceKey());
+      } catch {
+        layout = { ...DEFAULT_PANE_LAYOUT };
+      }
+      applyAll();
     },
     applyAll,
     applyUtilities,

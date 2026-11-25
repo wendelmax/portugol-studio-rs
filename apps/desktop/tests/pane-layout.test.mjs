@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { calculateSidePaneMinimums, DEFAULT_PANE_LAYOUT, loadPaneLayout, resizePaneForKey, savePaneLayout } from "../src/pane-layout.ts";
+import { calculateSidePaneMinimums, DEFAULT_PANE_LAYOUT, loadPaneLayout, resetPaneLayout, resizePaneForKey, savePaneLayout } from "../src/pane-layout.ts";
 
 function storage(initial = null) {
   let value = initial;
@@ -93,6 +93,25 @@ test("fits both side panes into the width left after toolbar, editor, and separa
   assert.ok(Math.abs(430 - 155 - 9 - 15 - minimums.explorer - minimums.utilities) < 0.001);
   assert.deepEqual(calculateSidePaneMinimums(1_000, 155, 9, 15, true, true), { explorer: 180, utilities: 210 });
   assert.deepEqual(calculateSidePaneMinimums(430, 155, 9, 15, true, false), { explorer: 180, utilities: 0 });
+});
+
+test("resets workspace or global pane layout back to defaults", () => {
+  const values = new Map([
+    ["portugol.pane-layout.v1", JSON.stringify({ explorer: 0.3, bottom: 0.4, utilities: 0.35 })],
+    ["portugol.pane-layout.v1.workspace.proj", JSON.stringify({ explorer: 0.22, bottom: 0.33, utilities: 0.27 })],
+  ]);
+  const target = {
+    getItem(key) { return values.get(key) ?? null; },
+    removeItem(key) { values.delete(key); },
+  };
+
+  assert.deepEqual(resetPaneLayout(target, "proj"), DEFAULT_PANE_LAYOUT);
+  assert.equal(values.has("portugol.pane-layout.v1.workspace.proj"), false);
+  assert.equal(values.has("portugol.pane-layout.v1"), true);
+
+  assert.deepEqual(resetPaneLayout(target), DEFAULT_PANE_LAYOUT);
+  assert.equal(values.has("portugol.pane-layout.v1"), false);
+  assert.deepEqual(loadPaneLayout(target), DEFAULT_PANE_LAYOUT);
 });
 
 test("pane separators expose accessible keyboard-resizable controls", () => {

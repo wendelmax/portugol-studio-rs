@@ -33,6 +33,9 @@ export function createIdeShortcuts(actions: IdeShortcutActions): Shortcut[] {
     { label: "Shift+Esc", command: "Expandir/restaurar editor", matches: (e) => e.shiftKey && e.key === "Escape", action: actions.toggleExpanded },
     { label: "Ctrl+Shift+P", command: "Paleta de comandos", matches: (e) =>
       (e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.code === "KeyP", action: actions.commandPalette },
+    { label: "Ctrl+,", command: "Configurações", matches: (e) =>
+      (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === "Comma", action: actions.openSettings },
+    { label: "via paleta de comandos", command: "Restaurar layout padrão", matches: () => false, action: actions.resetLayout },
   ];
   const addFileShortcut = (key: string, shift: boolean, command: string, action: () => unknown) => {
     shortcuts.push(ctrlShortcut(key, shift, command, action));

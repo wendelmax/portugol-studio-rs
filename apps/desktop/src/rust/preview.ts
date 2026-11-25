@@ -406,5 +406,10 @@ export function mountRustPreview(host: RustPreviewHost) {
     cancel: cancelRustExport,
     render: renderRustPreview,
     renderMappingGutter,
+    /** Restaura a largura padrão da comparação lado a lado com Rust. */
+    resetComparisonBasis() {
+      try { localStorage.removeItem("portugol.rust-comparison-basis"); } catch { /* Ignore storage errors. */ }
+      setComparisonBasis(44);
+    },
   };
 }

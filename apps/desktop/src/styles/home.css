@@ -121,7 +121,6 @@
   padding: 0 14px;
   border-radius: var(--radius-md);
   font-weight: 550;
-  transition: background-color 120ms ease, border-color 120ms ease;
 }
 
 .home-new-file-group {

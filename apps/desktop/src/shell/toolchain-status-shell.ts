@@ -19,7 +19,11 @@ export function mountToolchainStatusShell(dependencies: ToolchainStatusShellDepe
     setRustcAvailable: dependencies.state.setRustcAvailable,
     setCargoAvailable: dependencies.state.setCargoAvailable,
     setRustfmtAvailable: dependencies.state.setRustfmtAvailable,
-    setRustOptionDisabled: (disabled) => { $<HTMLOptionElement>("learning-mode-rust-option").disabled = disabled; },
+    setRustOptionDisabled: (disabled) => {
+      $<HTMLOptionElement>("learning-mode-rust-option").disabled = disabled;
+      const titlebarOption = document.querySelector<HTMLOptionElement>("#titlebar-learning-mode-rust-option");
+      if (titlebarOption) titlebarOption.disabled = disabled;
+    },
     setRustHelpText: (text) => { $("learning-mode-rust-help").textContent = text; },
     restoreLearningMode: dependencies.restoreLearningMode,
     activeTab: dependencies.activeTab,

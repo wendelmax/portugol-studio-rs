@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
+    "test:e2e": "node tests/e2e-visual.mjs",
     "tauri": "tauri"
   },
   "dependencies": {
