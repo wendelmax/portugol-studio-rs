@@ -56,7 +56,7 @@ import { mountProjectDialogs } from "./shell/project-dialogs";
 import { mountWindowControls } from "./shell/window";
 import { mountActivityBar } from "./shell/activity-bar";
 import { createHelpLoader } from "./shell/help-loader";
-import { createToolchainStatusController } from "./shell/toolchain-status";
+import { mountToolchainStatusShell } from "./shell/toolchain-status-shell";
 import { createToolchainState } from "./shell/toolchain-state";
 import { $ } from "./dom";
 import { createRecentFiles } from "./files/recent";
@@ -853,21 +853,13 @@ applyTheme(themeChoice());
 showPanel("console");
 setWorkspaceExplorerVisible(window.innerWidth >= 1440);
 showUtilities(window.innerWidth >= 1440);
-const toolchainStatus = createToolchainStatusController({
-  checkRust: api.rustToolchainAvailable,
-  checkCargo: api.cargoToolchainAvailable,
-  checkRustfmt: api.rustfmtAvailable,
-  setRustcAvailable: toolchainState.setRustcAvailable,
-  setCargoAvailable: toolchainState.setCargoAvailable,
-  setRustfmtAvailable: toolchainState.setRustfmtAvailable,
-  setRustOptionDisabled: (disabled) => { $<HTMLOptionElement>("learning-mode-rust-option").disabled = disabled; },
-  setRustHelpText: (text) => { $("learning-mode-rust-help").textContent = text; },
+mountToolchainStatusShell({
+  state: toolchainState,
   restoreLearningMode: () => applyLearningMode(loadLearningMode(undefined, activeTab()?.workspacePreferenceKey), false),
   activeTab,
   syncLanguageControls,
   forceRustLint: () => forceLinting(view),
 });
-void toolchainStatus.initialize();
 const tips = mountTips(themeEditor.open);
 $("home-tips").onclick = tips.open;
 

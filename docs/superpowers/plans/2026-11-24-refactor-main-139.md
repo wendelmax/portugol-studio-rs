@@ -210,6 +210,17 @@
 - [x] Compose exercise/source opening, pending OS files, and drag-and-drop in one files shell.
 - [x] Run focused tests, full frontend tests, typecheck, build, and diff check.
 
+### Task 60: Toolchain status shell
+
+**Files:**
+- Create: `apps/desktop/src/shell/toolchain-status-shell.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Update: `apps/desktop/tests/toolchain-status.test.mjs`
+
+- [x] Add a failing boundary assertion for toolchain controller and UI/API composition.
+- [x] Move toolchain checks, capability labels, and initialization behind a shell.
+- [x] Run focused tests, full frontend tests, typecheck, build, and diff check.
+
 ### Task 46: Debugger shell composition
 
 **Files:**

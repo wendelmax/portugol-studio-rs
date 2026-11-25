@@ -1,6 +1,18 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { createToolchainStatusController } from "../src/shell/toolchain-status.ts";
+
+test("main delegates toolchain status composition to its shell", () => {
+  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+  const shell = readFileSync(new URL("../src/shell/toolchain-status-shell.ts", import.meta.url), "utf8");
+
+  assert.match(main, /mountToolchainStatusShell\(/);
+  assert.doesNotMatch(main, /createToolchainStatusController\(/);
+  assert.match(shell, /createToolchainStatusController\(/);
+  assert.match(shell, /api\.rustToolchainAvailable/);
+  assert.match(shell, /learning-mode-rust-option/);
+});
 
 function fixture({ rustResult = true, cargoResult = true, rustfmtResult = true, rustError, cargoError, rustfmtError } = {}) {
   const calls = [];
