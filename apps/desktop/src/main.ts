@@ -93,14 +93,13 @@ import { appendConsole, appendProcessOutput, clearConsole, consoleText } from ".
 import { renderDebugInfo } from "./run/debug-view";
 import { chooseCargoTarget } from "./run/cargo-target-dialog";
 import { applyPageTheme, editorColors, editorTheme, onSystemThemeChange, themeChoice } from "./editor/theme";
-import { createSymbolNavigator } from "./editor/symbol-navigation";
 import { createEditorFormatter } from "./editor/format";
 import { createEditorUpdateController } from "./editor/update-controller";
 import { createEditorExtensionFactory } from "./editor/extensions";
 import { createEditorSetup } from "./editor/setup";
 import { createEditorNavigationBindings } from "./editor/navigation-bindings";
 import { createEditorThemeController } from "./editor/theme-controller";
-import { createSymbolRenamer } from "./editor/symbol-rename";
+import { createSymbolEditorActions } from "./editor/symbol-editor-actions";
 import { createUtilityInsertions } from "./editor/utility-insertions";
 import {
   breakpointLines, breakpoints, debugLine, runtimeError, setDebugLine, setRuntimeError, toCodeMirror,
@@ -816,17 +815,19 @@ function toggleCenterSource() {
   centerSource.toggle();
 }
 
-const symbolRenamer = createSymbolRenamer({
+const symbolEditorActions = createSymbolEditorActions({
   activeTab,
-  currentDocument: () => view.state.doc,
-  isRunning: (tab) => runTabId === tab.id && runId !== null,
-  isCurrent: (tab, doc) => activeTab() === tab && view.state.doc === doc,
+  view,
+  runId: () => runId,
+  runTabId: () => runTabId,
   hasOpenDialog: () => document.querySelector("dialog[open]") !== null,
   semanticSymbolLanguage,
   renameTargetPortugol: api.renameTarget,
   renameTargetPortugolRs: api.renameTargetPortugolRs,
   renameSymbolPortugol: api.renameSymbol,
   renameSymbolPortugolRs: api.renameSymbolPortugolRs,
+  resolvePortugol: api.resolveSymbol,
+  resolvePortugolRs: api.resolveSymbolPortugolRs,
   applyChanges: (changes) => view.dispatch({ changes, annotations: isolateHistory.of("full"), userEvent: "input.rename" }),
   focusEditor: () => view.focus(),
   setStatus,
@@ -842,19 +843,11 @@ const symbolRenamer = createSymbolRenamer({
 });
 
 function renameAt(offset: number) {
-  return symbolRenamer.openAt(offset);
+  return symbolEditorActions.renameAt(offset);
 }
 
-const symbolNavigator = createSymbolNavigator({
-  activeTab,
-  view,
-  resolvePortugol: api.resolveSymbol,
-  resolvePortugolRs: api.resolveSymbolPortugolRs,
-  setStatus,
-});
-
-async function goToDeclarationAt(offset: number, quiet = false) {
-  return symbolNavigator.goToDeclarationAt(offset, quiet);
+function goToDeclarationAt(offset: number, quiet = false) {
+  return symbolEditorActions.goToDeclarationAt(offset, quiet);
 }
 
 function renameSelection() {
