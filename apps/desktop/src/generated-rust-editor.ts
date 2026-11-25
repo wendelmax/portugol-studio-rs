@@ -6,9 +6,11 @@ export interface GeneratedRustMapping {
   from: number;
   to: number;
   sourceOffset: number;
+  sourceEnd?: number;
   sourceLine: number;
   generatedLine: number;
   quality: "exact" | "approximate";
+  active?: boolean;
 }
 
 export const generatedRustMappings = StateEffect.define<readonly GeneratedRustMapping[]>();
@@ -39,9 +41,10 @@ export const generatedRustDecorations = StateField.define<readonly GeneratedRust
   },
   provide: (field) => EditorView.decorations.from(field, (mappings) => Decoration.set(
     mappings.map((mapping) => Decoration.mark({
-      class: "cm-rust-mapped-segment",
+      class: mapping.active ? "cm-rust-mapped-segment cm-rust-mapped-segment-active" : "cm-rust-mapped-segment",
       attributes: {
         "data-source-offset": String(mapping.sourceOffset),
+        "data-source-line": String(mapping.sourceLine),
         "data-quality": mapping.quality,
       },
     }).range(mapping.from, mapping.to)),

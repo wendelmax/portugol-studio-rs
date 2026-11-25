@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { mappedPreviewSegments, sourceDiagnostic, sourceMapLinks } from "../src/source-map-ui.ts";
+import { activeGeneratedMappings, mappedPreviewSegments, sourceDiagnostic, sourceMapLinks } from "../src/source-map-ui.ts";
 import { ideSource } from "./support/ide-source.mjs";
 import { ideStyles } from "./support/ide-styles.mjs";
 
@@ -12,6 +12,7 @@ const ui = readFileSync(new URL("../src/source-map-ui.ts", import.meta.url), "ut
 const css = ideStyles();
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const generatedEditor = readFileSync(new URL("../src/generated-rust-editor.ts", import.meta.url), "utf8");
+const preview = readFileSync(new URL("../src/rust/preview.ts", import.meta.url), "utf8");
 const editorThemeController = readFileSync(new URL("../src/editor/theme-controller.ts", import.meta.url), "utf8");
 const editorShell = readFileSync(new URL("../src/editor/editor-shell.ts", import.meta.url), "utf8");
 
@@ -83,7 +84,19 @@ test("Rust preview mappings use UTF-16 generated offsets and retain explicit sou
     generatedStart: { offset: 3, line: 1, column: 4 }, generatedEnd: { offset: 7, line: 1, column: 8 },
     sourceStart: { offset: 4, line: 2, column: 1 }, sourceEnd: { offset: 8, line: 2, column: 5 }, quality: "exact",
   }]);
-  assert.deepEqual(segments, [{ from: 3, to: 7, sourceOffset: 4, sourceLine: 2, generatedLine: 1, quality: "exact" }]);
+  assert.deepEqual(segments, [{ from: 3, to: 7, sourceOffset: 4, sourceEnd: 8, sourceLine: 2, generatedLine: 1, quality: "exact" }]);
+});
+
+test("moving the source cursor marks only the mapped generated segment", () => {
+  const mappings = [
+    { from: 0, to: 5, sourceOffset: 10, sourceEnd: 15, sourceLine: 2, generatedLine: 1, quality: "exact" },
+    { from: 8, to: 12, sourceOffset: 30, sourceEnd: 34, sourceLine: 4, generatedLine: 3, quality: "approximate" },
+  ];
+
+  assert.deepEqual(activeGeneratedMappings(mappings, 12), [
+    { ...mappings[0], active: true },
+    { ...mappings[1], active: false },
+  ]);
 });
 
 test("overlapping preview mappings prefer the narrowest source segment", () => {
@@ -92,7 +105,7 @@ test("overlapping preview mappings prefer the narrowest source segment", () => {
     { generatedStart: position(1), generatedEnd: position(9), sourceStart: position(10), sourceEnd: position(20), quality: "approximate" },
     { generatedStart: position(3), generatedEnd: position(6), sourceStart: position(30), sourceEnd: position(33), quality: "exact" },
   ]);
-  assert.deepEqual(segments, [{ from: 3, to: 6, sourceOffset: 30, sourceLine: 1, generatedLine: 1, quality: "exact" }]);
+  assert.deepEqual(segments, [{ from: 3, to: 6, sourceOffset: 30, sourceEnd: 33, sourceLine: 1, generatedLine: 1, quality: "exact" }]);
 });
 
 test("generated-only source maps never create preview navigation even if they contain source spans", () => {
@@ -129,6 +142,18 @@ test("bridge mapping gutter exposes accessible two-way navigation between source
   assert.match(main, /Localização aproximada/);
 });
 
+test("comparison panes provide an accessible resizable split and narrow-screen tabs", () => {
+  assert.match(html, /id="rust-comparison-splitter"[^>]*role="separator"[^>]*aria-controls="rust-preview"/);
+  assert.match(html, /id="rust-comparison-tabs"[^>]*role="tablist"/);
+  assert.match(css, /@media \(max-width: 1280px\)[\s\S]*rust-comparison-tabs:not\(\[hidden\]\)[\s\S]*data-comparison-pane="generated"/);
+  assert.match(preview, /rust-comparison-basis/);
+  assert.match(preview, /ArrowLeft[\s\S]*ArrowRight[\s\S]*Home[\s\S]*End/);
+  assert.match(preview, /role="tab"|setAttribute\("aria-selected"/);
+  assert.match(preview, /rust-comparison-source-tab"\)\.tabIndex = pane === "source" \? 0 : -1/);
+  assert.match(generatedEditor, /data-source-line/);
+  assert.match(css, /cm-rust-mapped-segment-active/);
+});
+
 test("Rust editor keeps the per-tab artifact marked stale until current translation succeeds", () => {
   assert.match(main, /rustPreview\?: RustPreviewState/);
   assert.match(main, /function renderRustPreview\(tab: Tab\)/);
@@ -147,12 +172,12 @@ test("Rust editor keeps the per-tab artifact marked stale until current translat
   assert.match(editorShell, /generatedTheme: editorSetup\.generatedRustTheme/);
   const renderer = main.match(/\n( *)function renderRustPreview\(tab: Tab\) \{([\s\S]*?)\n\1\}/)?.[2] ?? "";
   assert.match(renderer, /artifact && !stale[\s\S]*mappedPreviewSegments\(artifact\.code, artifact\.sourceMap\)/);
-  assert.match(renderer, /generatedRustMappings\.of\(mappings\)/);
+  assert.match(renderer, /generatedRustMappings\.of\(rustGeneratedMappings\)/);
   assert.match(renderer, /generatedDocument\.toString\(\) === code/);
   assert.doesNotMatch(renderer, /replaceChildren|createTextNode|innerHTML/);
   assert.match(generatedEditor, /EditorState\.readOnly\.of\(true\)/);
   assert.match(generatedEditor, /EditorView\.editable\.of\(false\)/);
-  assert.match(generatedEditor, /class: "cm-rust-mapped-segment"/);
+  assert.match(generatedEditor, /class: mapping\.active \? "cm-rust-mapped-segment cm-rust-mapped-segment-active"/);
   assert.match(css, /\.cm-rust-mapped-segment\[data-quality="approximate"\]/);
   const updateListener = main.match(/EditorView\.updateListener\.of\(\(update\) => \{([\s\S]*?)\n    \}\),/)?.[1] ?? "";
   assert.doesNotMatch(updateListener, /renderRustPreview\(tab\)|rustPreview\.render\(/);

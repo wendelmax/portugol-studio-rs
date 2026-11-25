@@ -68,6 +68,7 @@ export function mappedPreviewSegments(code: string, mappings: SourceMapInfo[]) {
       from: Math.min(code.length, mapping.generatedStart.offset),
       to: Math.min(code.length, mapping.generatedEnd.offset),
       sourceOffset: mapping.sourceStart!.offset,
+      sourceEnd: mapping.sourceEnd!.offset,
       sourceLine: mapping.sourceStart!.line,
       generatedLine: mapping.generatedStart.line,
       quality: mapping.quality,
@@ -84,4 +85,15 @@ export function mappedPreviewSegments(code: string, mappings: SourceMapInfo[]) {
     selected.push(candidate);
   }
   return selected.sort((a, b) => a.from - b.from);
+}
+
+export function activeGeneratedMappings<T extends { sourceOffset: number; sourceEnd?: number }>(
+  mappings: readonly T[],
+  sourceOffset: number,
+): (T & { active: boolean })[] {
+  return mappings.map((mapping) => ({
+    ...mapping,
+    active: mapping.sourceEnd !== undefined
+      && mapping.sourceOffset <= sourceOffset && sourceOffset < mapping.sourceEnd,
+  }));
 }

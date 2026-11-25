@@ -14,7 +14,7 @@ import { createGeneratedRustEditorState, generatedRustMappings, type GeneratedRu
 import type { LearningMode } from "../learning-mode";
 import { acceptRustPreview, beginRustPreview, failRustPreview, generatedRustComparison } from "../rust-preview-state";
 import { setStatus } from "../shell/status";
-import { mappedPreviewSegments, sourceMapLinks, type SourceMapLink } from "../source-map-ui";
+import { activeGeneratedMappings, mappedPreviewSegments, sourceMapLinks, type SourceMapLink } from "../source-map-ui";
 import type { Tab } from "../state/tab";
 
 type MappingState = "idle" | "generating" | "ready" | "stale" | "error";
@@ -97,7 +97,87 @@ export function mountRustPreview(host: RustPreviewHost) {
   let rustExportTimer: number | undefined;
   let rustExportGeneration = 0;
   let rustMappingLinks: SourceMapLink[] = [];
+  let rustGeneratedMappings: GeneratedRustMapping[] = [];
   let rustMappingState: MappingState = "idle";
+  let comparisonBasis = 44;
+  try {
+    const savedBasis = Number(localStorage.getItem("portugol.rust-comparison-basis"));
+    if (Number.isFinite(savedBasis) && savedBasis >= 25 && savedBasis <= 68) comparisonBasis = savedBasis;
+  } catch { /* Preferências indisponíveis não impedem a comparação. */ }
+
+  function setComparisonBasis(value: number) {
+    comparisonBasis = Math.max(25, Math.min(68, value));
+    const preview = $<HTMLElement>("rust-preview");
+    preview.style.flexBasis = `${comparisonBasis}%`;
+    const splitter = $<HTMLElement>("rust-comparison-splitter");
+    splitter.setAttribute("aria-valuenow", String(Math.round(comparisonBasis)));
+  }
+
+  setComparisonBasis(comparisonBasis);
+
+  const comparisonSplitter = $<HTMLElement>("rust-comparison-splitter");
+  comparisonSplitter.addEventListener("pointerdown", (start) => {
+    if (start.button !== 0) return;
+    comparisonSplitter.setPointerCapture(start.pointerId);
+    const origin = start.clientX;
+    const initial = comparisonBasis;
+    const width = Math.max(1, comparisonSplitter.parentElement?.clientWidth ?? window.innerWidth);
+    const move = (event: PointerEvent) => setComparisonBasis(initial - (event.clientX - origin) / width * 100);
+    const finish = () => {
+      try { localStorage.setItem("portugol.rust-comparison-basis", String(comparisonBasis)); } catch { /* Ignore storage errors. */ }
+      comparisonSplitter.removeEventListener("pointermove", move);
+      comparisonSplitter.removeEventListener("pointerup", finish);
+      comparisonSplitter.removeEventListener("pointercancel", finish);
+      comparisonSplitter.removeEventListener("lostpointercapture", finish);
+    };
+    comparisonSplitter.addEventListener("pointermove", move);
+    comparisonSplitter.addEventListener("pointerup", finish, { once: true });
+    comparisonSplitter.addEventListener("pointercancel", finish, { once: true });
+    comparisonSplitter.addEventListener("lostpointercapture", finish, { once: true });
+  });
+  comparisonSplitter.addEventListener("keydown", (event) => {
+    let next: number | null = null;
+    if (event.key === "ArrowLeft") next = comparisonBasis + 2;
+    else if (event.key === "ArrowRight") next = comparisonBasis - 2;
+    else if (event.key === "Home") next = 25;
+    else if (event.key === "End") next = 68;
+    if (next === null) return;
+    event.preventDefault();
+    setComparisonBasis(next);
+    try { localStorage.setItem("portugol.rust-comparison-basis", String(comparisonBasis)); } catch { /* Ignore storage errors. */ }
+  });
+
+  function selectComparisonPane(pane: "source" | "generated") {
+    const area = $<HTMLElement>("editor").parentElement!;
+    area.dataset.comparisonPane = pane;
+    $("rust-comparison-source-tab").setAttribute("aria-selected", String(pane === "source"));
+    $("rust-comparison-generated-tab").setAttribute("aria-selected", String(pane === "generated"));
+    $("rust-comparison-source-tab").tabIndex = pane === "source" ? 0 : -1;
+    $("rust-comparison-generated-tab").tabIndex = pane === "generated" ? 0 : -1;
+    requestAnimationFrame(() => {
+      view.requestMeasure();
+      generatedRustEditor.requestMeasure();
+    });
+  }
+  const comparisonTabs = [
+    { pane: "source" as const, button: $("rust-comparison-source-tab") },
+    { pane: "generated" as const, button: $("rust-comparison-generated-tab") },
+  ];
+  comparisonTabs.forEach(({ pane, button }, index) => {
+    button.addEventListener("click", () => selectComparisonPane(pane));
+    button.addEventListener("keydown", (event) => {
+      const next = event.key === "ArrowRight" ? (index + 1) % comparisonTabs.length
+        : event.key === "ArrowLeft" ? (index + comparisonTabs.length - 1) % comparisonTabs.length
+          : event.key === "Home" ? 0
+            : event.key === "End" ? comparisonTabs.length - 1
+              : -1;
+      if (next < 0) return;
+      event.preventDefault();
+      selectComparisonPane(comparisonTabs[next].pane);
+      comparisonTabs[next].button.focus();
+    });
+  });
+  selectComparisonPane("source");
 
   /** Descarta a tradução pendente; respostas atrasadas são ignoradas. */
   function cancelRustExport() {
@@ -162,14 +242,14 @@ export function mountRustPreview(host: RustPreviewHost) {
     if (showDiff && comparison) renderGeneratedRustDiff(diffOutput, comparison.previous.code, comparison.current.code);
 
     const code = artifact?.code ?? "";
-    const mappings: GeneratedRustMapping[] = artifact && !stale
+    rustGeneratedMappings = artifact && !stale
       ? mappedPreviewSegments(artifact.code, artifact.sourceMap).map((segment) => ({
         ...segment,
         quality: segment.quality === "approximate" ? "approximate" : "exact",
       }))
       : [];
     const generatedDocument = generatedRustEditor.state.doc;
-    const mappingEffect = generatedRustMappings.of(mappings);
+    const mappingEffect = generatedRustMappings.of(rustGeneratedMappings);
     if (generatedDocument.toString() === code) generatedRustEditor.dispatch({ effects: mappingEffect });
     else generatedRustEditor.dispatch({
       changes: { from: 0, to: generatedDocument.length, insert: code },
@@ -205,12 +285,20 @@ export function mountRustPreview(host: RustPreviewHost) {
   function renderMappingGutter() {
     const gutter = $<HTMLElement>("rust-mapping-gutter");
     const preview = $<HTMLElement>("rust-preview");
+    const comparisonTabs = $<HTMLElement>("rust-comparison-tabs");
+    const splitter = $<HTMLElement>("rust-comparison-splitter");
     const tab = activeTab();
     const visible = Boolean(tab && tab.language !== "rust" && host.learningMode() === "bridge" && !preview.hidden);
     gutter.hidden = !visible;
+    splitter.hidden = !visible;
+    comparisonTabs.hidden = !visible;
     if (!visible) return;
 
+    setComparisonBasis(comparisonBasis);
+
     const sourceLine = view.state.doc.lineAt(view.state.selection.main.head).number;
+    const activeMappings = activeGeneratedMappings(rustGeneratedMappings, view.state.selection.main.head);
+    generatedRustEditor.dispatch({ effects: generatedRustMappings.of(activeMappings) });
     const status = $<HTMLElement>("rust-mapping-status");
     const links = $<HTMLElement>("rust-mapping-links");
     links.replaceChildren();
