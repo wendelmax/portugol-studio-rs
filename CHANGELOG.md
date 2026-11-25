@@ -1,5 +1,97 @@
 # Histórico de versões
 
+## 0.4.0 (2026-11-25)
+
+### Novidades
+
+- **ide:** amplia acessibilidade de temas e controles
+- **pors:** recupera erros e acumula diagnósticos
+- **pors:** add typed multimedia bridge for Graficos, Teclado, Mouse, and Sons (#131)
+- **ide:** executar .pors na VM sem exigir Rust instalado (#142)
+- **ide:** unify cargo test execution and results in Tests panel (#130)
+- **pors:** add faca-enquanto loop and interactive CLI debugger (#129)
+
+### Documentação
+
+- fluxo de reserva de issues para trabalho em paralelo (#147)
+
+### Manutenção
+
+- **files:** extrai composição de arquivos
+- **run:** extrai composição da execução
+- **editor:** extrai composição do editor
+- **shell:** extrai shell de toolchain
+- **arquivos:** extrai shell de arquivos do sistema
+- **execucao:** extrai shell de eventos
+- **comandos:** extrai shell de atalhos
+- **aprendizado:** extrai shell do modo
+- **learning:** extrai shell de exercícios
+- **run:** extrai shell dos controladores
+- **run:** extrai shell de apresentação
+- **editor:** extrai shell de ações
+- **pors:** extrai shell da prévia visual
+- **state:** extrai composição de ativação de abas
+- **run:** extrai estado de execução
+- **editor:** compõe ações de símbolos
+- Refatoração: modularizar main.ts por responsabilidade (#202)
+- **dep:** extrai composição do debugger
+- **ide:** extrai contexto da paleta de comandos (parte de #139) (#200)
+- **files:** extrai eventos de arquivos do sistema (parte de #139) (#199)
+- **ide:** extrai controle de temas do editor (parte de #139) (#198)
+- **ide:** extrai setup e navegação do editor (parte de #139) (#197)
+- **ide:** extrai montagem compartilhada do editor (parte de #139) (#196)
+- Refatoração: extrair visualização dos recentes (#195)
+- Refatoração: extrair composição das abas (#194)
+- Refatoração: extrair despacho de atalhos (#193)
+- Refatoração: extrair barra de atividades (#192)
+- Refatoração: extrair controles da barra de execução (#191)
+- Refatoração: modularizar main.ts por responsabilidade (#190)
+- Refatoração: modularizar main.ts por responsabilidade (#189)
+- Refatoração: modularizar main.ts por responsabilidade (#188)
+- Refatoração: modularizar main.ts por responsabilidade (#187)
+- Refatoração: modularizar main.ts por responsabilidade (#186)
+- Refatoração: modularizar main.ts por responsabilidade (#185)
+- Refatoração: modularizar main.ts por responsabilidade (#184)
+- Refatoração: modularizar main.ts por responsabilidade (#183)
+- Refatoração: modularizar main.ts por responsabilidade (#182)
+- Refatoração: modularizar main.ts por responsabilidade (#181)
+- Refatoração: modularizar main.ts por responsabilidade (#180)
+- Refatoração: modularizar main.ts por responsabilidade (#179)
+- Refatoração: modularizar main.ts por responsabilidade (#178)
+- Refactor editor update lifecycle (#177)
+- Refactor IDE shortcut catalog (#176)
+- Refactor editor formatting workflow (#175)
+- Refactor editor symbol navigation (#174)
+- Refactor system file intake (#173)
+- Refactor IDE tab activation lifecycle (#172)
+- **ide:** extrai capacidades por linguagem (#171)
+- **ide:** extrai fechamento das abas (#170)
+- **ide:** extrai factory e metadados das abas (#169)
+- **ide:** extrai renderizacao das abas (#168)
+- **ide:** extrai execução do Portugol clássico (#167)
+- **ide:** extrai eventos de execução (#166)
+- **ide:** extrai execução do Portugol-RS (#165)
+- **ide:** extrai execução de projetos Rust (#164)
+- **ide:** extrai comandos do depurador (#163)
+- **ide:** extrai controles de execução (#162)
+- **ide:** extrai orquestração Cargo (#161)
+- **ide:** extrai painel de testes de exercícios (#160)
+- **ide:** extrai controlador de aprendizagem (#159)
+- **ide:** extrai leitura e escrita de arquivos (#158)
+- **ide:** separa style.css em módulos semânticos e tokens (#150)
+- Consolidar propostas de UX em docs/UX.md (#155)
+- PORS: aceitar senao se encadeado (#149)
+- **ide:** extrai janela, ajuda e diálogos do projeto do main.ts (#154)
+- **ide:** extrai paleta de comandos e atalhos do main.ts (#152)
+- **ide:** extrai painel Aprender e laboratório de ownership do main.ts (#151)
+- **ide:** extrai prévia do Rust gerado do main.ts (#148)
+- **ide:** extrai explorador do workspace e tipo Tab do main.ts (#146)
+- **ide:** extrai console, status e visão do depurador do main.ts (#145)
+- **ide:** extrai tema e decorações do editor do main.ts (#144)
+- **ide:** extrai layout de painéis e arquivos recentes do main.ts (#143)
+
+Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v0.3.0...v0.4.0
+
 ## 0.3.0 (2026-11-24)
 
 ### Novidades
