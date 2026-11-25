@@ -56,9 +56,7 @@ import { mountRunToolbar } from "./run/toolbar";
 import { loadLearningMode, saveLearningMode, type LearningMode } from "./learning-mode";
 import { createPaletteContext, isPaletteCommandAvailable } from "./command-palette";
 import { markRustPreviewStale } from "./rust-preview-state";
-import { PORS_UI_EXAMPLES } from "./pors-ui-examples";
-import { mountPorsUiPreviewPanel } from "./pors-ui-preview-panel";
-import { mountUiPreview } from "./ui-preview-renderer";
+import { mountPorsUiPreviewShell } from "./pors-ui-preview-shell";
 import * as api from "./api";
 import type { Tab } from "./state/tab";
 import { PORS_TEMPLATE, tabName } from "./state/tabs";
@@ -987,39 +985,11 @@ $<HTMLButtonElement>("rust-close").onclick = () => {
   view.focus();
 };
 
-mountPorsUiPreviewPanel({
-  elements: {
-    panel: $<HTMLElement>("pors-ui-preview"),
-    toggleButton: $<HTMLButtonElement>("btn-ui-preview"),
-    runButton: $<HTMLButtonElement>("pors-ui-run"),
-    restartButton: $<HTMLButtonElement>("pors-ui-restart"),
-    cancelButton: $<HTMLButtonElement>("pors-ui-cancel"),
-    closeButton: $<HTMLButtonElement>("pors-ui-close"),
-    exampleSelect: $<HTMLSelectElement>("pors-ui-example-select"),
-    loadExampleButton: $<HTMLButtonElement>("pors-ui-load-example"),
-    status: $<HTMLElement>("pors-ui-status"),
-    canvas: $<HTMLElement>("pors-ui-canvas"),
-  },
-  backend: {
-    startUi: (source, budget) => api.porsUiStart(source, budget),
-    dispatchUi: (sessionId, event) => api.porsUiDispatch(sessionId, event),
-    cancelUi: (sessionId) => api.porsUiCancel(sessionId),
-    closeUi: (sessionId) => api.porsUiClose(sessionId),
-  },
-  mount: mountUiPreview,
-  examples: PORS_UI_EXAMPLES,
-  getActiveSource: () => {
-    const tab = activeTab();
-    if (!tab) return null;
-    return {
-      source: view.state.doc.toString(),
-      isPors: tab.language === "portugol-rs",
-    };
-  },
-  onLoadExample: (example) => {
-    newTab(example.source, null, example.fileName, undefined, undefined, "portugol-rs");
-  },
-  onCloseFocus: () => view.focus(),
+mountPorsUiPreviewShell({
+  activeTab,
+  source: () => view.state.doc.toString(),
+  openExample: (source, fileName) => newTab(source, null, fileName, undefined, undefined, "portugol-rs"),
+  focusEditor: () => view.focus(),
 });
 mountRunToolbar({
   button: (id) => $<HTMLButtonElement>(id),
