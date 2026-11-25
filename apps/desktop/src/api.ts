@@ -419,10 +419,6 @@ export const checkPorsExercise = (id: string | null, source: string, exerciseJso
 export const inspectPorsExercise = (rawJson: string) =>
   invoke<PorsExerciseSummary>("inspect_pors_exercise", { rawJson });
 
-export const exampleCatalog = () => invoke<CatalogEntry[]>("example_catalog");
-export const openExample = (file: string) => invoke<{ source: string; workPath: string }>("open_example", { file });
-export const examplePreview = (file: string) => invoke<ArrayBuffer>("example_preview", { file });
-
 export interface RunEvents {
   output(id: number, text: string): void;
   clear(id: number): void;

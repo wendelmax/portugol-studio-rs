@@ -1,0 +1,67 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ * 	Este exemplo demonstra como utilizar as funções da biblioteca "Tipos" para verificar
+ * 	e converter dados do tipo caracter para outros tipos e vice-versa.
+ *
+ * Autores:
+ *
+ * 	Luiz Fernando Noschang (noschang@univali.br)
+ *
+ * Data: 18/07/2014
+ * Completado e adaptado para Portugol-RS (.pors)
+ */
+
+funcao inicio() {
+    seja cad1: cadeia = "Olá";
+    seja cad2: cadeia = "A";
+
+    // A função "cadeia_e_caracter" verifica se uma cadeia possui exatamente 1 caracter
+    se (Tipos.cadeia_e_caracter(cad1)) {
+        escreva("A cadeia \"", cad1, "\" representa um caracter\n");
+    } senao {
+        escreva("A cadeia \"", cad1, "\" não representa um único caracter\n");
+    }
+
+    se (Tipos.cadeia_e_caracter(cad2)) {
+        escreva("A cadeia \"", cad2, "\" representa um caracter\n");
+
+        // Converte a cadeia para caracter com segurança usando Resultado<caracter, cadeia>
+        escolha Tipos.para_caracter(cad2) {
+            caso Resultado::Ok(car) => {
+                escreva("Caracter convertido: '", car, "'\n");
+                escreva("Convertido de volta para cadeia: \"", Tipos.caracter_para_cadeia(car), "\"\n");
+            }
+            caso Resultado::Erro(erro) => {
+                escreva("Erro ao converter para caracter: ", erro, "\n");
+            }
+        }
+    }
+
+    // Conversão entre dígito caracter ('0'..'9') e inteiro
+    seja digito: caracter = '7';
+    escolha Tipos.caracter_para_inteiro(digito) {
+        caso Resultado::Ok(valor) => {
+            escreva("\nCaracter '", digito, "' convertido para inteiro: ", valor, "\n");
+        }
+        caso Resultado::Erro(erro) => {
+            escreva("Erro ao converter caracter para inteiro: ", erro, "\n");
+        }
+    }
+
+    // Conversão de inteiro (0..9) para caracter
+    escolha Tipos.inteiro_para_caracter(5) {
+        caso Resultado::Ok(c) => {
+            escreva("Inteiro 5 convertido para caracter: '", c, "'\n");
+        }
+        caso Resultado::Erro(erro) => {
+            escreva("Erro ao converter inteiro para caracter: ", erro, "\n");
+        }
+    }
+}

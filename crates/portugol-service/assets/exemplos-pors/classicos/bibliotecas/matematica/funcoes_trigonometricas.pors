@@ -1,0 +1,35 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ * 	Este exemplo demonstra o uso das funções trigonométricas "seno", "cosseno"
+ * 	e "tangente" da biblioteca "Matematica".
+ *
+ * Autores:
+ *
+ * 	Luiz Fernando Noschang (noschang@univali.br)
+ *
+ * Data: 18/07/2014
+ * Adaptado para Portugol-RS (.pors)
+ */
+
+funcao inicio() {
+    seja mutavel numero: real = 0.0;
+
+    escreva("Digite um número: ");
+    leia(numero);
+
+    seja seno: real = Matematica.seno(numero);
+    seja cosseno: real = Matematica.cosseno(numero);
+    seja tangente: real = Matematica.tangente(numero);
+
+    escreva("\nO seno de ", numero, " é: ", seno);
+    escreva("\nO cosseno de ", numero, " é: ", cosseno);
+    escreva("\nA tangente de ", numero, " é: ", tangente);
+    escreva("\n");
+}

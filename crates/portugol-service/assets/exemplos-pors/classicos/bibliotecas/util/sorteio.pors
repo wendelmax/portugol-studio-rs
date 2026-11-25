@@ -1,0 +1,51 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ * 	Este exemplo pede ao usuário que informe um valor inicial, um valor final e uma
+ * 	quantidade de sorteios a ser executada. Logo após, utiliza a função "sorteia" da
+ * 	biblioteca "Util" para sortear números entre os dois valores informados pelo
+ * 	usuário.
+ *
+ * Autores:
+ *
+ * 	Luiz Fernando Noschang (noschang@univali.br)
+ *
+ * Data: 18/07/2014
+ * Adaptado para Portugol-RS (.pors)
+ */
+
+funcao inicio() {
+    seja mutavel valor_inicial: inteiro = 0;
+    seja mutavel valor_final: inteiro = 0;
+    seja mutavel sorteios: inteiro = 0;
+
+    escreva("Informe um valor inicial: ");
+    leia(valor_inicial);
+
+    escreva("Informe um valor final: ");
+    leia(valor_final);
+
+    escreva("Informe quantos valores deseja sortear: ");
+    leia(sorteios);
+
+    para (seja mutavel i: inteiro = 1; i <= sorteios; i += 1) {
+        // Sorteia um número entre os valores informados, incluindo os extremos
+        escolha Util.sorteia(valor_inicial, valor_final) {
+            caso Resultado::Ok(valor_sorteado) => {
+                escreva("\nSorteio nº ", i, ": ", valor_sorteado);
+            }
+            caso Resultado::Erro(erro) => {
+                escreva("\nErro ao sortear: ", erro, "\n");
+                pare;
+            }
+        }
+    }
+
+    escreva("\n");
+}

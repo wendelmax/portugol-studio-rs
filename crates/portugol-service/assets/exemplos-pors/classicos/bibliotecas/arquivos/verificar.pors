@@ -1,0 +1,43 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ * 	Este exemplo demonstra como verificar a existência de um arquivo no workspace
+ * 	antes de criá-lo, após a gravação e após sua remoção usando "Arquivos.existe".
+ *
+ * Autores:
+ *
+ * 	Luiz Fernando Noschang (noschang@univali.br)
+ *
+ * Data: 18/07/2014
+ * Completado e adaptado para Portugol-RS (.pors)
+ */
+
+funcao testar_ciclo_arquivo(caminho: cadeia) -> Resultado < logico, cadeia > {
+    seja existe_antes: logico = Arquivos.existe(caminho)?;
+    escreva("Arquivo \"", caminho, "\" existe antes de criar? ", existe_antes, "\n");
+
+    seja _criado: logico = Arquivos.escrever_texto(caminho, "Teste de verificação\n")?;
+    seja existe_depois: logico = Arquivos.existe(caminho)?;
+    escreva("Arquivo \"", caminho, "\" existe após criar? ", existe_depois, "\n");
+
+    seja _removido: logico = Arquivos.remover(caminho)?;
+    seja existe_final: logico = Arquivos.existe(caminho)?;
+    escreva("Arquivo \"", caminho, "\" existe após remover? ", existe_final, "\n");
+
+    retorne Resultado::Ok(verdadeiro);
+}
+
+funcao inicio() {
+    escolha testar_ciclo_arquivo("arquivo_verificacao.txt") {
+        caso Resultado::Ok(_) => {}
+        caso Resultado::Erro(erro) => {
+            escreva("Erro ao verificar arquivo: ", erro, "\n");
+        }
+    }
+}

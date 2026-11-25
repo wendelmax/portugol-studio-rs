@@ -17,7 +17,6 @@
 //! `run:paused` (`info`) e `run:finished` (`outcome`).
 
 mod audio;
-mod catalog;
 mod graphics;
 
 mod alerts;
@@ -1000,9 +999,6 @@ pub fn run_app() {
             graphics::graphics_input,
             read_file,
             open_files::pending_files,
-            catalog::example_catalog,
-            catalog::open_example,
-            catalog::example_preview,
             write_file,
             workspace::workspace_open,
             workspace::workspace_cargo_project_available,

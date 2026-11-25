@@ -1,6 +1,6 @@
 import * as api from "./api";
 import { icon } from "./icons";
-import { buildPorsExampleCatalogFolder, PORS_EXAMPLE_PREFIX } from "./pors-catalog";
+import { buildPorsExampleCatalog, PORS_EXAMPLE_PREFIX } from "./pors-catalog";
 
 const normalize = (text: string) => text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLocaleLowerCase("pt-BR");
 
@@ -42,17 +42,6 @@ export function mountExamples(openExample: (source: string, file: string, workPa
     title.textContent = example.name;
     description.textContent = example.description;
     description.hidden = !example.description;
-    if (example.preview) {
-      void api.examplePreview(example.preview).then((data) => {
-        if (selected === example) {
-          imageUrl = URL.createObjectURL(new Blob([data]));
-          image.src = imageUrl;
-          image.hidden = false;
-        }
-      }).catch(() => {
-        // A descrição e o programa permanecem acessíveis sem a miniatura.
-      });
-    }
   }
 
   function renderEntries(entries: api.CatalogEntry[], query: string, path = "", parentMatches = false): HTMLElement[] {
@@ -101,17 +90,15 @@ export function mountExamples(openExample: (source: string, file: string, workPa
     open.disabled = true;
     error.hidden = true;
     try {
-      if (example.file.startsWith(PORS_EXAMPLE_PREFIX)) {
-        const id = example.file.slice(PORS_EXAMPLE_PREFIX.length);
-        const porsExample = porsExamplesById.get(id);
-        if (!porsExample) {
-          throw new Error(`Exemplo Portugol-RS não encontrado: ${id}`);
-        }
-        openExample(porsExample.source, porsExample.file_name, "");
-      } else {
-        const { source, workPath } = await api.openExample(example.file);
-        openExample(source, example.file.split("/").pop() ?? "exemplo.por", workPath);
+      if (!example.file.startsWith(PORS_EXAMPLE_PREFIX)) {
+        throw new Error(`Exemplo fora do catálogo Portugol-RS: ${example.file}`);
       }
+      const id = example.file.slice(PORS_EXAMPLE_PREFIX.length);
+      const porsExample = porsExamplesById.get(id);
+      if (!porsExample) {
+        throw new Error(`Exemplo Portugol-RS não encontrado: ${id}`);
+      }
+      openExample(porsExample.source, porsExample.file_name, "");
     } catch (failure) {
       error.textContent = String(failure);
       error.hidden = false;
@@ -121,27 +108,17 @@ export function mountExamples(openExample: (source: string, file: string, workPa
   };
 
   document.querySelector<HTMLButtonElement>("#example-back")!.onclick = () => showExample(null);
-  void Promise.allSettled([api.listPorsExamples(), api.exampleCatalog()]).then(([porsResult, classicResult]) => {
-    const entries: api.CatalogEntry[] = [];
-    if (porsResult.status === "fulfilled") {
-      porsExamplesById.clear();
-      for (const item of porsResult.value) {
-        porsExamplesById.set(item.id, item);
-      }
-      const porsFolder = buildPorsExampleCatalogFolder(porsResult.value);
-      if (porsFolder) entries.push(porsFolder);
+  void api.listPorsExamples().then((items) => {
+    porsExamplesById.clear();
+    for (const item of items) {
+      porsExamplesById.set(item.id, item);
     }
-    if (classicResult.status === "fulfilled") {
-      entries.push(...classicResult.value);
-    }
-    if (entries.length === 0 && porsResult.status === "rejected" && classicResult.status === "rejected") {
-      empty.hidden = false;
-      empty.textContent = `Não foi possível carregar os exemplos: ${classicResult.reason}`;
-      return;
-    }
-    catalog = entries;
+    catalog = buildPorsExampleCatalog(items);
     search.disabled = false;
     search.oninput = render;
     render();
+  }).catch((reason) => {
+    empty.hidden = false;
+    empty.textContent = `Não foi possível carregar os exemplos: ${reason}`;
   });
 }

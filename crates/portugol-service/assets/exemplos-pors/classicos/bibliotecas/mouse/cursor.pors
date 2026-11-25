@@ -1,0 +1,101 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *   Este exemplo demonstra como ocultar e exibir o cursor padrão do sistema
+ *   usando Mouse.ocultar_cursor() e Mouse.exibir_cursor(), desenhando um
+ *   cursor personalizado quando o cursor do sistema estiver oculto.
+ *
+ * Autores:
+ *
+ *   Luiz Fernando Noschang (noschang@univali.br)
+ *   Adaptado e implementado para Portugol-RS (.pors)
+ *
+ * Data: 18/07/2014
+ */
+
+funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
+    escolha Graficos.criar_cor(r, g, b) {
+        caso Resultado::Ok(cor) => {
+            retorne cor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne Graficos.COR_PRETO;
+        }
+    }
+}
+
+funcao desenhar_cursor_personalizado(x: inteiro, y: inteiro) {
+    Graficos.definir_cor(cor_rgb(255, 210, 70));
+    Graficos.desenhar_elipse(x - 14, y - 14, 28, 28, falso);
+    Graficos.desenhar_linha(x - 20, y, x - 6, y);
+    Graficos.desenhar_linha(x + 6, y, x + 20, y);
+    Graficos.desenhar_linha(x, y - 20, x, y - 6);
+    Graficos.desenhar_linha(x, y + 6, x, y + 20);
+
+    Graficos.definir_cor(cor_rgb(255, 90, 90));
+    Graficos.desenhar_elipse(x - 3, y - 3, 6, 6, verdadeiro);
+}
+
+funcao inicio() {
+    Graficos.iniciar_modo_grafico(verdadeiro);
+    Graficos.definir_dimensoes_janela(640, 420);
+    Graficos.definir_titulo_janela("Mouse - Cursor Personalizado");
+
+    seja mutavel cursor_oculto: logico = falso;
+    seja mutavel espaco_ant: logico = falso;
+
+    enquanto (!Teclado.tecla_pressionada(Teclado.TECLA_ESC)) {
+        se (Teclado.tecla_pressionada(Teclado.TECLA_O) && !cursor_oculto) {
+            Mouse.ocultar_cursor();
+            cursor_oculto = verdadeiro;
+        } senao se (Teclado.tecla_pressionada(Teclado.TECLA_E) && cursor_oculto) {
+            Mouse.exibir_cursor();
+            cursor_oculto = falso;
+        }
+
+        seja espaco_atual: logico = Teclado.tecla_pressionada(Teclado.TECLA_ESPACO);
+        se (espaco_atual && !espaco_ant) {
+            se (cursor_oculto) {
+                Mouse.exibir_cursor();
+                cursor_oculto = falso;
+            } senao {
+                Mouse.ocultar_cursor();
+                cursor_oculto = verdadeiro;
+            }
+        }
+        espaco_ant = espaco_atual;
+
+        Graficos.definir_cor(cor_rgb(20, 26, 38));
+        Graficos.limpar();
+
+        Graficos.definir_cor(Graficos.COR_BRANCO);
+        Graficos.definir_tamanho_texto(20.0);
+        Graficos.desenhar_texto(30, 30, "Controle do Cursor do Mouse");
+
+        Graficos.definir_tamanho_texto(15.0);
+        Graficos.definir_cor(cor_rgb(185, 200, 220));
+        Graficos.desenhar_texto(30, 72, "O: ocultar cursor do sistema | E: exibir cursor do sistema");
+        Graficos.desenhar_texto(30, 98, "ESPACO: alternar modo | ESC: sair");
+
+        se (cursor_oculto) {
+            Graficos.definir_cor(cor_rgb(100, 230, 150));
+            Graficos.desenhar_texto(30, 140, "Modo atual: Cursor personalizado (sistema oculto)");
+            desenhar_cursor_personalizado(Mouse.posicao_x(), Mouse.posicao_y());
+        } senao {
+            Graficos.definir_cor(cor_rgb(120, 180, 255));
+            Graficos.desenhar_texto(30, 140, "Modo atual: Cursor padrão do sistema");
+        }
+
+        Graficos.renderizar();
+        Util.aguarde(16);
+    }
+
+    Mouse.exibir_cursor();
+    Graficos.encerrar_modo_grafico();
+}

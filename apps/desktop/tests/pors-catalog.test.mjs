@@ -1,12 +1,53 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
+  buildPorsExampleCatalog,
   buildPorsExampleCatalogFolder,
   formatPorsExerciseOptionValue,
   formatPorsExerciseOutcome,
   parsePorsExerciseOptionValue,
   PORS_EXAMPLE_PREFIX,
 } from "../src/pors-catalog.ts";
+
+test("constrói árvore aninhada para categorias com separador e mantém a tela inicial somente em PORS", () => {
+  const tree = buildPorsExampleCatalog([
+    {
+      id: "classic-bib-mat-arredondar",
+      category: "Bibliotecas / Matematica",
+      title: "Arredondar",
+      file_name: "arredondar.pors",
+      description: "Exemplo de arredondamento",
+      is_visual: false,
+      license: "LGPL-3.0-only",
+      source: "funcao inicio() {}",
+    },
+    {
+      id: "classic-bib-mat-raiz",
+      category: "Bibliotecas / Matematica",
+      title: "Raiz",
+      file_name: "raiz.pors",
+      description: "Exemplo de raiz",
+      is_visual: false,
+      license: "LGPL-3.0-only",
+      source: "funcao inicio() {}",
+    },
+  ]);
+
+  assert.equal(tree.length, 1);
+  assert.equal(tree[0].kind, "folder");
+  assert.equal(tree[0].name, "Bibliotecas");
+  assert.equal(tree[0].entries.length, 1);
+  assert.equal(tree[0].entries[0].kind, "folder");
+  assert.equal(tree[0].entries[0].name, "Matematica");
+  assert.equal(tree[0].entries[0].entries.length, 2);
+
+  const examplesTs = readFileSync(new URL("../src/examples.ts", import.meta.url), "utf8");
+  assert.match(examplesTs, /api\.listPorsExamples\(\)/);
+  assert.doesNotMatch(examplesTs, /api\.exampleCatalog\(/);
+  assert.doesNotMatch(examplesTs, /api\.openExample\(/);
+  assert.doesNotMatch(examplesTs, /exemplo\.por/);
+});
 
 test("agrupa exemplos Portugol-RS por categoria dentro da pasta raiz", () => {
   assert.equal(buildPorsExampleCatalogFolder([]), null);
