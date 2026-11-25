@@ -199,6 +199,17 @@
 - [x] Move run state, editor, console, input, and API listener adapters into a focused shell.
 - [x] Run focused tests, full frontend tests, typecheck, build, and diff check.
 
+### Task 59: System files shell
+
+**Files:**
+- Create: `apps/desktop/src/files/system-files-shell.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Update: `apps/desktop/tests/system-file-events.test.mjs`
+
+- [x] Add a failing boundary assertion for incoming-file handling and platform event composition.
+- [x] Compose exercise/source opening, pending OS files, and drag-and-drop in one files shell.
+- [x] Run focused tests, full frontend tests, typecheck, build, and diff check.
+
 ### Task 46: Debugger shell composition
 
 **Files:**
