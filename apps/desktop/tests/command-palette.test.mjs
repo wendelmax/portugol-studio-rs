@@ -64,7 +64,35 @@ test("offers only debug actions supported by the current runtime state", () => {
   assert.equal(isDebugCommandAvailable("Pausar", "portugol", true, true), false);
   assert.equal(isDebugCommandAvailable("Continuar", "portugol", true, false), false);
   assert.equal(isDebugCommandAvailable("Continuar", "portugol", true, true), true);
+  assert.equal(isDebugCommandAvailable("Depurar", "portugol-rs", false, false), true);
+  assert.equal(isDebugCommandAvailable("Pausar", "portugol-rs", true, false), true);
+  assert.equal(isDebugCommandAvailable("Continuar", "portugol-rs", true, true), true);
   assert.equal(isDebugCommandAvailable("Depurar", "rust", false, false), false);
+});
+
+test("PORS palette debugger commands follow VM state while Rust keeps them unavailable", () => {
+  const idlePors = {
+    language: "portugol-rs", cargoProject: false, cargoAvailable: false, canRunAsRust: false,
+    runActive: false, paused: false, porsRunPending: false,
+  };
+  assert.equal(isPaletteCommandAvailable("Depurar", idlePors), true);
+  assert.equal(isPaletteCommandAvailable("Interromper", idlePors), false);
+  assert.equal(isPaletteCommandAvailable("Pausar", idlePors), false);
+
+  const runningPors = { ...idlePors, runActive: true };
+  assert.equal(isPaletteCommandAvailable("Interromper", runningPors), true);
+  assert.equal(isPaletteCommandAvailable("Pausar", runningPors), true);
+  assert.equal(isPaletteCommandAvailable("Continuar", runningPors), false);
+
+  const pausedPors = { ...runningPors, paused: true };
+  for (const command of ["Continuar", "Próxima instrução", "Entrar na função", "Sair da função"]) {
+    assert.equal(isPaletteCommandAvailable(command, pausedPors), true, command);
+  }
+
+  const runningRust = { ...pausedPors, language: "rust" };
+  for (const command of ["Depurar", "Interromper", "Pausar", "Continuar", "Próxima instrução", "Entrar na função", "Sair da função"]) {
+    assert.equal(isPaletteCommandAvailable(command, runningRust), false, command);
+  }
 });
 
 test("palette dialog exposes an accessible search, listbox, and empty state", () => {

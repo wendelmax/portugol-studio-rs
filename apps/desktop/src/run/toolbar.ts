@@ -1,4 +1,5 @@
 import type { SourceLanguage } from "../document-language";
+import { canDebugSource } from "../runtime-capabilities.ts";
 
 export interface RunToolbarDependencies {
   button: (id: string) => Pick<HTMLButtonElement, "onclick">;
@@ -29,7 +30,8 @@ export function mountRunToolbar(dependencies: RunToolbarDependencies) {
   dependencies.button("btn-debug").onclick = () => { void dependencies.stepOrStart(); };
   dependencies.button("btn-stop").onclick = () => { void dependencies.stop(); };
   dependencies.button("btn-debug-pause").onclick = () => {
-    if (dependencies.activeLanguage() !== "portugol") return;
+    const language = dependencies.activeLanguage();
+    if (language === null || language === undefined || !canDebugSource(language)) return;
     const id = dependencies.runId();
     if (id !== null) void dependencies.pause(id);
   };
