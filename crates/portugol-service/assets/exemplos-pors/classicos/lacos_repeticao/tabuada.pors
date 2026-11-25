@@ -1,0 +1,33 @@
+/* Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ * Adaptado para Portugol-RS (.pors)
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *     Este exemplo pede ao usuário que informe um número inteiro. Logo após, utiliza um
+ *     laço de repetição do tipo "para" para calcular e exibir a tabuada do número informado.
+ *
+ * Autores:
+ *
+ *     Giordana Maria da Costa Valle
+ *     Carlos Alexandre Krueger
+ *
+ * Data: 01/06/2013
+ */
+
+funcao inicio() {
+    seja mutavel numero: inteiro = 0;
+
+    escreva("Informe um número para ver sua tabuada: ");
+    leia(numero);
+
+    escreva("\n");
+
+    para (seja mutavel contador: inteiro = 1; contador <= 10; contador += 1) {
+        seja resultado: inteiro = numero * contador;
+        escreva(numero, " X ", contador, " = ", resultado, "\n");
+    }
+}

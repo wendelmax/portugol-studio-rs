@@ -1,0 +1,19 @@
+funcao inicio() {
+    // Variavel inteira mutavel inicializada com 0
+    seja mutavel variavel: inteiro = 0;
+
+    // Outra variavel local do tipo inteiro
+    seja mutavel outra_variavel: inteiro = 10;
+
+    // Variavel local do tipo real ja inicializada (imutavel por padrao)
+    seja altura: real = 1.79;
+
+    seja frase: cadeia = "Isso é uma variável do tipo cadeia";
+
+    seja inicial: caracter = 'P';
+
+    seja exemplo: logico = verdadeiro;
+
+    // Imprime 1.79, valor armazenado na variavel altura
+    escreva(altura, "\n");
+}

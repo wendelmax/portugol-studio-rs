@@ -1,0 +1,248 @@
+/*
+ * Copyright (C) 2017 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *   Este exemplo utiliza as funções de desenho da biblioteca gráfica para
+ *   apresentar as órbitas do sistema solar a partir de cálculos com diâmetro
+ *   e ângulo (seno e cosseno).
+ *
+ * Autores:
+ *
+ *   Alisson Steffens Henrique (ash@edu.univali.br)
+ *   Adaptado para Portugol-RS (.pors)
+ *
+ * Data: 26/06/2017
+ */
+
+enum TipoAstro {
+    Pequeno,
+    Medio,
+    Grande,
+    ComAnel,
+    Sol,
+    GiganteComAnel
+}
+
+registro Planeta {
+    x: real,
+    y: real,
+    distancia: real,
+    cor: inteiro,
+    angulo: real,
+    angulo_inc: real,
+    tipo: TipoAstro
+}
+
+funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
+    escolha Graficos.criar_cor(r, g, b) {
+        caso Resultado::Ok(cor) => {
+            retorne cor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne Graficos.COR_BRANCO;
+        }
+    }
+}
+
+funcao sortear_intervalo(minimo: inteiro, maximo: inteiro) -> inteiro {
+    escolha Util.sorteia(minimo, maximo) {
+        caso Resultado::Ok(valor) => {
+            retorne valor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne minimo;
+        }
+    }
+}
+
+funcao raio_astro(tipo: TipoAstro, unidade: inteiro) -> inteiro {
+    seja p: inteiro = unidade;
+    seja m: inteiro = p * 2;
+    seja g: inteiro = m * 2;
+    escolha tipo {
+        caso TipoAstro::Pequeno => {
+            retorne p;
+        }
+        caso TipoAstro::Medio => {
+            retorne m;
+        }
+        caso TipoAstro::Grande => {
+            retorne g;
+        }
+        caso TipoAstro::ComAnel => {
+            retorne m;
+        }
+        caso TipoAstro::Sol => {
+            retorne g * 2;
+        }
+        caso TipoAstro::GiganteComAnel => {
+            retorne g;
+        }
+    }
+}
+
+funcao tem_anel(tipo: TipoAstro) -> logico {
+    escolha tipo {
+        caso TipoAstro::ComAnel => {
+            retorne verdadeiro;
+        }
+        caso TipoAstro::GiganteComAnel => {
+            retorne verdadeiro;
+        }
+        caso _ => {
+            retorne falso;
+        }
+    }
+}
+
+funcao criar_planeta(
+indice: inteiro,
+xc: real,
+yc: real,
+espaco_planetas: real,
+speed: real,
+r: inteiro,
+g: inteiro,
+b: inteiro,
+tipo: TipoAstro,
+periodo: real
+) -> Planeta {
+    seja dist: real = Tipos.inteiro_para_real(indice) * espaco_planetas;
+    seja ang_inicial: real = Tipos.inteiro_para_real(sortear_intervalo(0, 360)) * (Matematica.PI / 180.0);
+    retorne Planeta {
+        x: xc + dist,
+        y: yc,
+        distancia: dist,
+        cor: cor_rgb(r, g, b),
+        angulo: ang_inicial,
+        angulo_inc: speed / periodo,
+        tipo: tipo
+    }
+    ;
+}
+
+funcao carregar_planetas(xc: real, yc: real, espaco_planetas: real, speed: real) -> vetor < Planeta > {
+    seja mutavel planetas: vetor < Planeta > = [];
+
+    // Dados astronômicos equivalentes aos arquivos originais 0.pln .. 9.pln
+    adicionar(planetas, criar_planeta(0, xc, yc, espaco_planetas, speed, 255, 228, 113, TipoAstro::Sol, 2.0));
+    adicionar(planetas, criar_planeta(1, xc, yc, espaco_planetas, speed, 102, 102, 102, TipoAstro::Pequeno, 0.2411));
+    adicionar(planetas, criar_planeta(2, xc, yc, espaco_planetas, speed, 255, 255, 204, TipoAstro::Pequeno, 0.6164));
+    adicionar(planetas, criar_planeta(3, xc, yc, espaco_planetas, speed, 40, 134, 255, TipoAstro::Pequeno, 1.0));
+    adicionar(planetas, criar_planeta(4, xc, yc, espaco_planetas, speed, 255, 157, 80, TipoAstro::Pequeno, 1.8822));
+    adicionar(planetas, criar_planeta(5, xc, yc, espaco_planetas, speed, 255, 234, 146, TipoAstro::Grande, 12.0));
+    adicionar(planetas, criar_planeta(6, xc, yc, espaco_planetas, speed, 159, 143, 128, TipoAstro::GiganteComAnel, 29.0));
+    adicionar(planetas, criar_planeta(7, xc, yc, espaco_planetas, speed, 146, 255, 255, TipoAstro::ComAnel, 84.0));
+    adicionar(planetas, criar_planeta(8, xc, yc, espaco_planetas, speed, 6, 6, 219, TipoAstro::Medio, 165.0));
+    adicionar(planetas, criar_planeta(9, xc, yc, espaco_planetas, speed, 252, 255, 211, TipoAstro::Pequeno, 247.7));
+
+    retorne planetas;
+}
+
+funcao atualizar_planetas(
+mutavel planetas: vetor < Planeta >,
+xc: real,
+yc: real,
+coef_elipse: real
+) -> vetor < Planeta > {
+    para (seja mutavel i: inteiro = 0; i < tamanho(planetas); i += 1) {
+        seja mutavel p: Planeta = planetas[i];
+        p.x = xc + (Matematica.cosseno(p.angulo) * p.distancia);
+        p.y = yc + (Matematica.seno(p.angulo) * p.distancia * coef_elipse);
+        p.angulo += p.angulo_inc;
+        planetas[i] = p;
+    }
+    retorne planetas;
+}
+
+funcao desenhar_planeta(p: Planeta, unidade: inteiro) {
+    seja raio: inteiro = raio_astro(p.tipo, unidade);
+    seja diametro: inteiro = raio * 2;
+    seja x: inteiro = Tipos.real_para_inteiro(p.x) - raio;
+    seja y: inteiro = Tipos.real_para_inteiro(p.y) - raio;
+
+    Graficos.definir_cor(p.cor);
+    Graficos.desenhar_elipse(x, y, diametro, diametro, verdadeiro);
+
+    se (tem_anel(p.tipo)) {
+        Graficos.desenhar_linha(x - 4, y + diametro, x + diametro + 4, y);
+    }
+}
+
+funcao desenhar_estrelas(estrelas: inteiro, cor_estrela: inteiro) {
+    seja w: inteiro = Graficos.largura_janela();
+    seja h: inteiro = Graficos.altura_janela();
+    Graficos.definir_cor(cor_estrela);
+
+    para (seja mutavel i: inteiro = 0; i < estrelas; i += 1) {
+        seja x: inteiro = sortear_intervalo(0, w);
+        seja y: inteiro = sortear_intervalo(0, h);
+        seja opacidade: inteiro = sortear_intervalo(40, 220);
+        Graficos.definir_opacidade(opacidade);
+        Graficos.desenhar_elipse(x, y, 3, 3, verdadeiro);
+    }
+    Graficos.definir_opacidade(255);
+}
+
+funcao inicio() {
+    seja largura: inteiro = 1100;
+    seja altura: inteiro = 700;
+    seja espaco_planetas: real = 54.0;
+    seja speed: real = 0.02;
+    seja coef_elipse: real = 0.7;
+
+    Graficos.iniciar_modo_grafico(verdadeiro);
+    Graficos.definir_dimensoes_janela(largura, altura);
+    Graficos.definir_titulo_janela("Sistema Solar");
+
+    seja cor_fundo: inteiro = cor_rgb(5, 33, 46);
+    seja cor_orbita: inteiro = cor_rgb(20, 62, 82);
+    seja cor_branco: inteiro = cor_rgb(180, 180, 180);
+
+    seja xc: real = Tipos.inteiro_para_real(largura) / 2.0;
+    seja yc: real = Tipos.inteiro_para_real(altura) / 2.0;
+    seja unidade: inteiro = altura / 180;
+
+    seja mutavel planetas: vetor < Planeta > = carregar_planetas(xc, yc, espaco_planetas, speed);
+
+    enquanto (!Teclado.tecla_pressionada(Teclado.TECLA_ESC)) {
+        Graficos.definir_cor(cor_fundo);
+        Graficos.limpar();
+
+        desenhar_estrelas(12, cor_branco);
+
+        // Desenha as órbitas elípticas sutis
+        Graficos.definir_cor(cor_orbita);
+        para (seja mutavel i: inteiro = 1; i < tamanho(planetas); i += 1) {
+            seja p: Planeta = planetas[i];
+            seja rx: inteiro = Tipos.real_para_inteiro(p.distancia);
+            seja ry: inteiro = Tipos.real_para_inteiro(p.distancia * coef_elipse);
+            Graficos.desenhar_elipse(
+            Tipos.real_para_inteiro(xc) - rx,
+            Tipos.real_para_inteiro(yc) - ry,
+            rx * 2,
+            ry * 2,
+            falso
+            );
+        }
+
+        para (seja mutavel i: inteiro = 0; i < tamanho(planetas); i += 1) {
+            desenhar_planeta(planetas[i], unidade);
+        }
+
+        Graficos.definir_cor(cor_branco);
+        Graficos.definir_tamanho_texto(14.0);
+        Graficos.desenhar_texto(16, 16, "Sistema Solar - Pressione ESC para sair");
+
+        Graficos.renderizar();
+        planetas = atualizar_planetas(planetas, xc, yc, coef_elipse);
+        Util.aguarde(16);
+    }
+
+    Graficos.encerrar_modo_grafico();
+}

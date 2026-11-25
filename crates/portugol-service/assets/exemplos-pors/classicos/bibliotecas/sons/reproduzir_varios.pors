@@ -1,0 +1,106 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *   Este exemplo demonstra como carregar múltiplos arquivos de áudio e
+ *   reproduzi-los simultaneamente com volumes individuais controlados por
+ *   Sons.definir_volume_reproducao().
+ *
+ * Autores:
+ *
+ *   Luiz Fernando Noschang (noschang@univali.br)
+ *   Adaptado e implementado para Portugol-RS (.pors)
+ *
+ * Data: 18/07/2014
+ */
+
+registro FaixaAudio {
+    nome: cadeia,
+    caminho: cadeia,
+    repetir: logico,
+    volume: inteiro
+}
+
+funcao inicio() {
+    seja faixas: vetor < FaixaAudio > = [
+    FaixaAudio {
+        nome: "Trilha de fundo",
+        caminho: "audio/trilha.mp3",
+        repetir: verdadeiro,
+        volume: 60
+    }
+    ,
+    FaixaAudio {
+        nome: "Efeito de moedas",
+        caminho: "audio/moeda.wav",
+        repetir: falso,
+        volume: 95
+    }
+    ,
+    FaixaAudio {
+        nome: "Efeito de pulo",
+        caminho: "audio/pulo.wav",
+        repetir: falso,
+        volume: 85
+    }
+    ];
+
+    escreva("=== Biblioteca Sons: Reproduzir Vários Sons ===\n");
+    Sons.definir_volume(90);
+    escreva("Volume geral definido para ", Sons.obter_volume(), "%.\n\n");
+
+    seja mutavel sons_carregados: vetor < inteiro > = [];
+    seja mutavel reproducoes_ativas: vetor < inteiro > = [];
+
+    para (seja mutavel i: inteiro = 0; i < tamanho(faixas); i += 1) {
+        seja faixa: FaixaAudio = faixas[i];
+        escreva("Carregando ", faixa.nome, " (", faixa.caminho, ")...\n");
+
+        escolha Sons.carregar_som(faixa.caminho) {
+            caso Resultado::Ok(som_id) => {
+                adicionar(sons_carregados, som_id);
+                escolha Sons.reproduzir_som(som_id, faixa.repetir) {
+                    caso Resultado::Ok(rep_id) => {
+                        Sons.definir_volume_reproducao(rep_id, faixa.volume);
+                        adicionar(reproducoes_ativas, rep_id);
+                        escreva(
+                        "  Reproduzindo '",
+                        faixa.nome,
+                        "' com volume individual ",
+                        Sons.obter_volume_reproducao(rep_id),
+                        "%\n"
+                        );
+                    }
+                    caso Resultado::Erro(erro_rep) => {
+                        escreva("  Falha ao reproduzir '", faixa.nome, "': ", erro_rep, "\n");
+                    }
+                }
+            }
+            caso Resultado::Erro(erro) => {
+                escreva("  Indisponível (", erro, ") - continuando com as demais faixas.\n");
+            }
+        }
+    }
+
+    se (tamanho(reproducoes_ativas) > 0) {
+        escreva("\nMantendo os sons ativos por 2 segundos...\n");
+        Util.aguarde(2000);
+
+        para (seja mutavel i: inteiro = 0; i < tamanho(reproducoes_ativas); i += 1) {
+            Sons.interromper_som(reproducoes_ativas[i]);
+        }
+        escreva("Todas as reproduções foram interrompidas.\n");
+    } senao {
+        escreva("\nNenhum arquivo de áudio foi encontrado na pasta 'audio/'.\n");
+        escreva("Adicione 'trilha.mp3', 'moeda.wav' ou 'pulo.wav' para testar a mixagem.\n");
+    }
+
+    para (seja mutavel i: inteiro = 0; i < tamanho(sons_carregados); i += 1) {
+        Sons.liberar_som(sons_carregados[i]);
+    }
+}

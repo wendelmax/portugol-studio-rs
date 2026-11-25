@@ -1,0 +1,4 @@
+seja condicao: logico = verdadeiro;
+enquanto (condicao) {
+    // Executa as instrucoes dentro do laco enquanto a condicao for verdadeira
+}

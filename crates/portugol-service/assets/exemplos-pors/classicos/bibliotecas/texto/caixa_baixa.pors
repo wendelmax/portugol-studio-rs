@@ -1,0 +1,34 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ * 	Este exemplo demonstra como utilizar a função "caixa_baixa" da biblioteca "Texto"
+ * 	para transformar os caracteres de um dado do tipo cadeia em caracteres minúsculos.
+ *
+ * Autores:
+ *
+ * 	Luiz Fernando Noschang (noschang@univali.br)
+ *
+ * Data: 18/07/2014
+ * Adaptado para Portugol-RS (.pors)
+ */
+
+funcao inicio() {
+    seja mutavel nome: cadeia = "";
+
+    escreva("Digite seu nome em letras maiúsculas: ");
+    leia(nome);
+
+    // Transforma os caracteres da cadeia em caracteres minúsculos
+    nome = Texto.caixa_baixa(nome);
+
+    // Transforma os caracteres da cadeia em caracteres minúsculos
+    seja bem_vindo: cadeia = Texto.caixa_baixa("BEM VINDO(A)");
+
+    escreva("\n", bem_vindo, " ", nome, "!!\n");
+}

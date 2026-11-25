@@ -1,0 +1,15 @@
+funcao inicio() {
+    // Atribuicao de valor literal a uma variavel mutavel
+    seja mutavel a: inteiro = 0;
+    a = 2;
+
+    // Atribuicao atraves de entrada de dados informada pelo usuario
+    seja mutavel b: inteiro = 0;
+    leia(b);
+
+    // Atribuicao atraves do valor de outra variavel
+    seja mutavel c: inteiro = 0;
+    c = b;
+
+    escreva("a = ", a, ", b = ", b, ", c = ", c, "\n");
+}

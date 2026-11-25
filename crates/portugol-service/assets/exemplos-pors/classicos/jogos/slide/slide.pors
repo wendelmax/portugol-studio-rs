@@ -1,0 +1,371 @@
+/*
+ * Copyright (C) 2016 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *   Versão estendida (800x600) do jogo quebra-cabeça deslizante Slide 3x3 com
+ *   painel lateral exibindo a imagem-gabarito ordenada, cronômetro e contador
+ *   de movimentos.
+ *
+ *   Controles:
+ *     - Clique do mouse em uma peça adjacente ao espaço vazio: desliza a peça
+ *     - Setas: movem a peça vizinha para o espaço vazio
+ *     - R: embaralha novamente
+ *     - S: resolve automaticamente
+ *     - ESC: encerra o jogo
+ *
+ * Adaptado do exemplo clássico "jogos/slide/slide.por" para Portugol-RS (.pors)
+ */
+
+registro JogoSlidePainel {
+    prancha: vetor < inteiro >,
+    movimentos: inteiro,
+    tempo_inicio_ms: inteiro,
+    tempo_final_ms: inteiro,
+    resolvido: logico,
+    mouse_estava: logico,
+    tecla_r_estava: logico,
+    tecla_s_estava: logico,
+    cima_estava: logico,
+    baixo_estava: logico,
+    esq_estava: logico,
+    dir_estava: logico,
+}
+
+funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
+    escolha Graficos.criar_cor(r, g, b) {
+        caso Resultado::Ok(cor) => {
+            retorne cor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne Graficos.COR_BRANCO;
+        }
+    }
+}
+
+funcao sortear_entre(minimo: inteiro, maximo: inteiro) -> inteiro {
+    escolha Util.sorteia(minimo, maximo) {
+        caso Resultado::Ok(v) => {
+            retorne v;
+        }
+        caso Resultado::Erro(_) => {
+            retorne minimo;
+        }
+    }
+}
+
+funcao criar_prancha_ordenada() -> vetor < inteiro > {
+    retorne [1, 2, 3, 4, 5, 6, 7, 8, 0];
+}
+
+funcao esta_ordenada(prancha: vetor < inteiro >) -> logico {
+    para (seja mutavel i: inteiro = 0; i < 8; i += 1) {
+        se (prancha[i] != i + 1) {
+            retorne falso;
+        }
+    }
+    retorne prancha[8] == 0;
+}
+
+funcao indice_vazio(prancha: vetor < inteiro >) -> inteiro {
+    para (seja mutavel i: inteiro = 0; i < 9; i += 1) {
+        se (prancha[i] == 0) {
+            retorne i;
+        }
+    }
+    retorne 8;
+}
+
+funcao tentar_mover_celula(prancha: vetor < inteiro >, linha: inteiro, coluna: inteiro) -> vetor < inteiro > {
+    seja mutavel p: vetor < inteiro > = prancha;
+    se (linha < 0 || linha >= 3 || coluna < 0 || coluna >= 3) {
+        retorne p;
+    }
+    seja pos_vazio: inteiro = indice_vazio(p);
+    seja lv: inteiro = pos_vazio / 3;
+    seja cv: inteiro = pos_vazio % 3;
+    seja dist: inteiro = Matematica.valor_absoluto_inteiro(linha - lv) + Matematica.valor_absoluto_inteiro(coluna - cv);
+    se (dist == 1) {
+        seja idx: inteiro = linha * 3 + coluna;
+        seja valor: inteiro = p[idx];
+        p[idx] = 0;
+        p[pos_vazio] = valor;
+    }
+    retorne p;
+}
+
+funcao embaralhar_soluvel() -> vetor < inteiro > {
+    seja mutavel p: vetor < inteiro > = criar_prancha_ordenada();
+    para (seja mutavel passo: inteiro = 0; passo < 100; passo += 1) {
+        seja pos_vazio: inteiro = indice_vazio(p);
+        seja lv: inteiro = pos_vazio / 3;
+        seja cv: inteiro = pos_vazio % 3;
+        seja dir: inteiro = sortear_entre(0, 3);
+        se (dir == 0) {
+            p = tentar_mover_celula(p, lv - 1, cv);
+        } senao se (dir == 1) {
+            p = tentar_mover_celula(p, lv + 1, cv);
+        } senao se (dir == 2) {
+            p = tentar_mover_celula(p, lv, cv - 1);
+        } senao {
+            p = tentar_mover_celula(p, lv, cv + 1);
+        }
+    }
+    se (esta_ordenada(p)) {
+        p = tentar_mover_celula(p, 2, 1);
+        p = tentar_mover_celula(p, 1, 1);
+    }
+    retorne p;
+}
+
+funcao criar_jogo() -> JogoSlidePainel {
+    retorne JogoSlidePainel {
+        prancha: embaralhar_soluvel(),
+        movimentos: 0,
+        tempo_inicio_ms: Util.tempo_decorrido(),
+        tempo_final_ms: 0,
+        resolvido: falso,
+        mouse_estava: falso,
+        tecla_r_estava: falso,
+        tecla_s_estava: falso,
+        cima_estava: falso,
+        baixo_estava: falso,
+        esq_estava: falso,
+        dir_estava: falso,
+    }
+    ;
+}
+
+funcao cor_peca(numero: inteiro) -> inteiro {
+    se (numero == 1) {
+        retorne cor_rgb(230, 88, 92);
+    } senao se (numero == 2) {
+        retorne cor_rgb(242, 146, 60);
+    } senao se (numero == 3) {
+        retorne cor_rgb(238, 198, 62);
+    } senao se (numero == 4) {
+        retorne cor_rgb(100, 196, 114);
+    } senao se (numero == 5) {
+        retorne cor_rgb(56, 188, 186);
+    } senao se (numero == 6) {
+        retorne cor_rgb(72, 150, 236);
+    } senao se (numero == 7) {
+        retorne cor_rgb(136, 114, 234);
+    } senao {
+        retorne cor_rgb(212, 102, 194);
+    }
+}
+
+funcao atualizar(jogo: JogoSlidePainel) -> JogoSlidePainel {
+    seja mutavel j: JogoSlidePainel = jogo;
+
+    seja tr: logico = Teclado.tecla_pressionada(Teclado.TECLA_R);
+    se (tr && !j.tecla_r_estava) {
+        j.prancha = embaralhar_soluvel();
+        j.movimentos = 0;
+        j.tempo_inicio_ms = Util.tempo_decorrido();
+        j.resolvido = falso;
+    }
+    j.tecla_r_estava = tr;
+
+    seja ts: logico = Teclado.tecla_pressionada(Teclado.TECLA_S);
+    se (ts && !j.tecla_s_estava) {
+        j.prancha = criar_prancha_ordenada();
+        j.resolvido = verdadeiro;
+        j.tempo_final_ms = Util.tempo_decorrido() - j.tempo_inicio_ms;
+    }
+    j.tecla_s_estava = ts;
+
+    seja mutavel p: vetor < inteiro > = j.prancha;
+    seja pos_antes: inteiro = indice_vazio(p);
+    seja lv: inteiro = pos_antes / 3;
+    seja cv: inteiro = pos_antes % 3;
+
+    seja cima: logico = Teclado.tecla_pressionada(Teclado.TECLA_SETA_ACIMA);
+    se (cima && !j.cima_estava && !j.resolvido) {
+        p = tentar_mover_celula(p, lv + 1, cv);
+    }
+    j.cima_estava = cima;
+
+    seja baixo: logico = Teclado.tecla_pressionada(Teclado.TECLA_SETA_ABAIXO);
+    se (baixo && !j.baixo_estava && !j.resolvido) {
+        p = tentar_mover_celula(p, lv - 1, cv);
+    }
+    j.baixo_estava = baixo;
+
+    seja esq: logico = Teclado.tecla_pressionada(Teclado.TECLA_SETA_ESQUERDA);
+    se (esq && !j.esq_estava && !j.resolvido) {
+        p = tentar_mover_celula(p, lv, cv + 1);
+    }
+    j.esq_estava = esq;
+
+    seja dir: logico = Teclado.tecla_pressionada(Teclado.TECLA_SETA_DIREITA);
+    se (dir && !j.dir_estava && !j.resolvido) {
+        p = tentar_mover_celula(p, lv, cv - 1);
+    }
+    j.dir_estava = dir;
+
+    seja clicando: logico = Mouse.botao_pressionado(Mouse.BOTAO_ESQUERDO);
+    se (clicando && !j.mouse_estava) {
+        seja mx: inteiro = Mouse.posicao_x();
+        seja my: inteiro = Mouse.posicao_y();
+
+        // Botões laterais
+        se (mx >= 612 && mx <= 776 && my >= 410 && my <= 448) {
+            p = embaralhar_soluvel();
+            j.movimentos = 0;
+            j.tempo_inicio_ms = Util.tempo_decorrido();
+            j.resolvido = falso;
+            j.prancha = p;
+            j.mouse_estava = clicando;
+            retorne j;
+        }
+        se (mx >= 612 && mx <= 776 && my >= 462 && my <= 500) {
+            p = criar_prancha_ordenada();
+            j.resolvido = verdadeiro;
+            j.tempo_final_ms = Util.tempo_decorrido() - j.tempo_inicio_ms;
+            j.prancha = p;
+            j.mouse_estava = clicando;
+            retorne j;
+        }
+
+        // Tabuleiro 3x3 (x=24..564, y=30..570, cel=180)
+        se (!j.resolvido && mx >= 24 && mx < 564 && my >= 30 && my < 570) {
+            seja col: inteiro = (mx - 24) / 180;
+            seja lin: inteiro = (my - 30) / 180;
+            p = tentar_mover_celula(p, lin, col);
+        }
+    }
+    j.mouse_estava = clicando;
+
+    seja pos_depois: inteiro = indice_vazio(p);
+    se (pos_depois != pos_antes) {
+        j.movimentos += 1;
+        se (esta_ordenada(p)) {
+            j.resolvido = verdadeiro;
+            j.tempo_final_ms = Util.tempo_decorrido() - j.tempo_inicio_ms;
+        }
+    }
+    j.prancha = p;
+
+    retorne j;
+}
+
+funcao desenhar(jogo: JogoSlidePainel) {
+    Graficos.definir_cor(cor_rgb(20, 24, 34));
+    Graficos.limpar();
+
+    // Moldura do tabuleiro principal (540x540)
+    Graficos.definir_cor(cor_rgb(12, 15, 22));
+    Graficos.desenhar_retangulo(18, 24, 552, 552, verdadeiro, verdadeiro);
+
+    seja p: vetor < inteiro > = jogo.prancha;
+    para (seja mutavel lin: inteiro = 0; lin < 3; lin += 1) {
+        para (seja mutavel col: inteiro = 0; col < 3; col += 1) {
+            seja valor: inteiro = p[lin * 3 + col];
+            seja x: inteiro = 24 + col * 180;
+            seja y: inteiro = 30 + lin * 180;
+
+            se (valor != 0) {
+                Graficos.definir_cor(cor_peca(valor));
+                Graficos.desenhar_retangulo(x + 6, y + 6, 168, 168, verdadeiro, verdadeiro);
+                Graficos.definir_cor(Graficos.COR_BRANCO);
+                Graficos.desenhar_retangulo(x + 14, y + 14, 152, 152, verdadeiro, falso);
+
+                Graficos.definir_tamanho_texto(52.0);
+                seja txt: cadeia = Tipos.inteiro_para_cadeia(valor);
+                seja lw: inteiro = Graficos.largura_texto(txt);
+                Graficos.desenhar_texto(x + (180 - lw) / 2, y + 62, txt);
+            }
+        }
+    }
+
+    // Painel lateral direito (x = 594..790)
+    Graficos.definir_cor(cor_rgb(32, 38, 52));
+    Graficos.desenhar_retangulo(594, 24, 196, 552, verdadeiro, verdadeiro);
+
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.definir_tamanho_texto(20.0);
+    Graficos.desenhar_texto(634, 42, "SLIDE 3x3");
+
+    // Gabarito em miniatura
+    Graficos.definir_cor(cor_rgb(175, 185, 204));
+    Graficos.definir_tamanho_texto(12.0);
+    Graficos.desenhar_texto(654, 78, "GABARITO");
+
+    para (seja mutavel ml: inteiro = 0; ml < 3; ml += 1) {
+        para (seja mutavel mc: inteiro = 0; mc < 3; mc += 1) {
+            seja mv: inteiro = ml * 3 + mc + 1;
+            seja mx: inteiro = 626 + mc * 46;
+            seja my: inteiro = 100 + ml * 46;
+            se (mv <= 8) {
+                Graficos.definir_cor(cor_peca(mv));
+                Graficos.desenhar_retangulo(mx, my, 42, 42, verdadeiro, verdadeiro);
+                Graficos.definir_cor(Graficos.COR_BRANCO);
+                Graficos.definir_tamanho_texto(15.0);
+                Graficos.desenhar_texto(mx + 16, my + 12, Tipos.inteiro_para_cadeia(mv));
+            } senao {
+                Graficos.definir_cor(cor_rgb(20, 24, 34));
+                Graficos.desenhar_retangulo(mx, my, 42, 42, verdadeiro, verdadeiro);
+            }
+        }
+    }
+
+    // Estatísticas
+    seja mutavel tempo_ms: inteiro = Util.tempo_decorrido() - jogo.tempo_inicio_ms;
+    se (jogo.resolvido) {
+        tempo_ms = jogo.tempo_final_ms;
+    }
+    seja segundos: inteiro = tempo_ms / 1000;
+
+    Graficos.definir_cor(cor_rgb(255, 215, 95));
+    Graficos.definir_tamanho_texto(15.0);
+    Graficos.desenhar_texto(616, 272, "Movimentos: " + Tipos.inteiro_para_cadeia(jogo.movimentos));
+    Graficos.definir_cor(cor_rgb(120, 215, 255));
+    Graficos.desenhar_texto(616, 304, "Tempo: " + Tipos.inteiro_para_cadeia(segundos) + "s");
+
+    se (jogo.resolvido) {
+        Graficos.definir_cor(cor_rgb(110, 245, 145));
+        Graficos.definir_tamanho_texto(16.0);
+        Graficos.desenhar_texto(632, 354, "RESOLVIDO!");
+    }
+
+    // Botões
+    Graficos.definir_cor(cor_rgb(64, 130, 210));
+    Graficos.desenhar_retangulo(612, 410, 164, 38, verdadeiro, verdadeiro);
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.definir_tamanho_texto(14.0);
+    Graficos.desenhar_texto(646, 421, "Embaralhar (R)");
+
+    Graficos.definir_cor(cor_rgb(72, 168, 102));
+    Graficos.desenhar_retangulo(612, 462, 164, 38, verdadeiro, verdadeiro);
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.desenhar_texto(652, 473, "Resolver (S)");
+
+    Graficos.definir_cor(cor_rgb(150, 160, 180));
+    Graficos.definir_tamanho_texto(11.0);
+    Graficos.desenhar_texto(614, 524, "Clique ou Setas p/ mover");
+    Graficos.desenhar_texto(646, 544, "[ESC] Sair");
+
+    Graficos.renderizar();
+}
+
+funcao inicio() {
+    Graficos.iniciar_modo_grafico(verdadeiro);
+    Graficos.definir_dimensoes_janela(800, 600);
+    Graficos.definir_titulo_janela("Slide Puzzle (Painel) - Portugol-RS");
+
+    seja mutavel jogo: JogoSlidePainel = criar_jogo();
+
+    enquanto (!Teclado.tecla_pressionada(Teclado.TECLA_ESC)) {
+        jogo = atualizar(jogo);
+        desenhar(jogo);
+        Util.aguarde(16);
+    }
+
+    Graficos.encerrar_modo_grafico();
+}

@@ -1,0 +1,22 @@
+funcao inicio() {
+    // Teste usando o operador logico "&&" (E): a deve ser 2 e b tambem deve ser 2
+    seja a: inteiro = 2;
+    seja b: inteiro = 2;
+    se (a == 2 && b == 2) {
+        escreva("Teste 1 positivo\n");
+    }
+
+    // Neste caso c e igual a 2, porem d nao e igual a 2, logo o resultado e falso
+    seja c: inteiro = 2;
+    seja d: inteiro = 3;
+    se (c == 2 && d == 2) {
+        escreva("Teste 2 positivo\n");
+    }
+
+    // Neste caso g e igual a 2 e f e diferente de 3, logo o resultado e verdadeiro
+    seja g: inteiro = 2;
+    seja f: inteiro = 2;
+    se (g == 2 && f != 3) {
+        escreva("Teste 3 positivo\n");
+    }
+}

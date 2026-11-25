@@ -1,0 +1,3 @@
+funcao inicio() {
+    escreva(5 | 3, "\n");
+}

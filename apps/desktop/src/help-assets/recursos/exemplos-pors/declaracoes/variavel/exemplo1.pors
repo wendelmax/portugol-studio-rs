@@ -1,0 +1,7 @@
+// Em Portugol-RS, toda declaracao informa o tipo e o valor inicial
+// Use "seja mutavel" quando o valor puder ser alterado depois
+seja mutavel nome_variavel: caracter = ' ';
+seja variavel_inicializada: inteiro = 42;
+seja mutavel nome_variavel2: real = 0.0;
+seja mutavel nome_variavel3: logico = falso;
+seja mutavel texto: cadeia = "";

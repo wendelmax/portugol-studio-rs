@@ -1,0 +1,21 @@
+funcao inicio() {
+    seja variavel: inteiro = 5;
+
+    // Escreve no console um texto qualquer
+    escreva("Escreva um texto aqui.\n");
+
+    // Escreve no console o valor da variavel "variavel"
+    escreva(variavel, "\n");
+
+    // Escreve no console o resultado da operacao
+    escreva(variavel + variavel, "\n");
+
+    // Escreve no console o texto e o valor contido na variavel
+    escreva("O valor da variável é: ", variavel, "\n");
+
+    // Escreve no console o texto com quebra de linha
+    escreva("Texto com\n", "quebra-linha\n");
+
+    // Escreve no console o texto com espaco de tabulacao
+    escreva("Texto com\t tabulação\n");
+}

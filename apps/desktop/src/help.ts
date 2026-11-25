@@ -9,7 +9,7 @@ import {
 const html = import.meta.glob<string>("./help-assets/topicos/**/*.html", {
   eager: true, query: "?raw", import: "default",
 });
-const examples = import.meta.glob<string>("../../../tests/corpus/ajuda/recursos/exemplos/**/*.por", {
+const examples = import.meta.glob<string>("./help-assets/recursos/exemplos-pors/**/*.pors", {
   eager: true, query: "?raw", import: "default",
 });
 const images = import.meta.glob<string>("./help-assets/recursos/imagens/**/*.png", {
@@ -70,7 +70,7 @@ export function mountHelp(openExample: (source: string, file: string) => void) {
     const example = node.getAttribute("data-file");
     if (node.classList.contains("codigo-portugol") && example) {
       const path = asset(example);
-      const source = examples["../../../tests/corpus/ajuda/" + path];
+      const source = examples["./help-assets/" + path];
       if (source === undefined) return null;
       const block = document.createElement("section");
       const title = document.createElement("h3");
@@ -80,8 +80,8 @@ export function mountHelp(openExample: (source: string, file: string) => void) {
       block.append(title, code);
       if (node.getAttribute("data-type") === "exemplo") {
         const button = document.createElement("button");
-        button.textContent = "Abrir no editor";
-        button.onclick = () => openExample(source, path.split("/").pop() ?? "exemplo.por");
+        button.textContent = "Abrir no editor (.pors)";
+        button.onclick = () => openExample(source, path.split("/").pop() ?? "exemplo.pors");
         block.append(button);
       }
       return block;
@@ -257,7 +257,7 @@ export function mountHelp(openExample: (source: string, file: string) => void) {
     navigation.replaceChildren();
     for (const [label, entriesList] of [
       ["Portugol-RS (PORS)", porsFragment],
-      ["Portugol clássico (legado)", language],
+      ["Guia da linguagem (.pors)", language],
       ["Bibliotecas clássicas", entries],
     ] as const) {
       if (!entriesList.childNodes.length) continue;

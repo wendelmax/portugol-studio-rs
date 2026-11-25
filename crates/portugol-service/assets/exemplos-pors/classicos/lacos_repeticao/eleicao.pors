@@ -1,0 +1,101 @@
+/* Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ * Adaptado para Portugol-RS (.pors)
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *     Este exemplo ilustra o uso do laço "faca-enquanto", simulando uma eleição entre
+ *     dois candidatos. O exemplo ilustra também o uso de "enum" com o comando "escolha"
+ *     para contabilizar os votos de cada candidato.
+ *
+ * Autores:
+ *
+ *     Giordana Maria da Costa Valle
+ *     Carlos Alexandre Krueger
+ *
+ * Data: 01/06/2013
+ */
+
+enum Voto {
+    Encerrar,
+    CandidatoA,
+    CandidatoB,
+    Branco,
+    Nulo
+}
+
+funcao classificar_voto(codigo: inteiro) -> Voto {
+    se (codigo == 0) {
+        retorne Voto::Encerrar;
+    } senao se (codigo == 1) {
+        retorne Voto::CandidatoA;
+    } senao se (codigo == 2) {
+        retorne Voto::CandidatoB;
+    } senao se (codigo == 3) {
+        retorne Voto::Branco;
+    } senao {
+        retorne Voto::Nulo;
+    }
+}
+
+funcao inicio() {
+    seja mutavel candidato_a: inteiro = 0;
+    seja mutavel candidato_b: inteiro = 0;
+    seja mutavel brancos: inteiro = 0;
+    seja mutavel nulos: inteiro = 0;
+    seja mutavel codigo_voto: inteiro = 0;
+
+    faca {
+        escreva("\nEscolha seu candidato ou tecle zero para encerrar\n\n");
+        escreva("  1 -> Candidato A\n");
+        escreva("  2 -> Candidato B\n");
+        escreva("  3 -> Branco\n");
+        escreva("\nQualquer número diferente de 0, 1, 2 e 3 anulará o seu voto\n");
+        escreva("Digite seu voto: ");
+        leia(codigo_voto);
+
+        escolha classificar_voto(codigo_voto) {
+            caso Voto::Encerrar => {
+                escreva("Votação encerrada!\n");
+            }
+            caso Voto::CandidatoA => {
+                // Soma um voto para o candidato A
+                candidato_a += 1;
+            }
+            caso Voto::CandidatoB => {
+                // Soma um voto para o candidato B
+                candidato_b += 1;
+            }
+            caso Voto::Branco => {
+                // Soma um voto em branco
+                brancos += 1;
+            }
+            caso Voto::Nulo => {
+                // Opção inválida. Soma um voto nulo
+                nulos += 1;
+            }
+        }
+    } enquanto (codigo_voto != 0);
+
+    // Calcula o total de votos
+    seja total_votos: inteiro = candidato_a + candidato_b + brancos + nulos;
+
+    // Se houve votos, calcula a porcentagem de votos de cada candidato
+    se (total_votos > 0) {
+        seja total_real: real = Tipos.inteiro_para_real(total_votos);
+        seja porcentagem_candidato_a: real = (Tipos.inteiro_para_real(candidato_a) * 100.0) / total_real;
+        seja porcentagem_candidato_b: real = (Tipos.inteiro_para_real(candidato_b) * 100.0) / total_real;
+        seja porcentagem_brancos: real = (Tipos.inteiro_para_real(brancos) * 100.0) / total_real;
+        seja porcentagem_nulos: real = (Tipos.inteiro_para_real(nulos) * 100.0) / total_real;
+
+        escreva("\n");
+        escreva("Total de votos: ", total_votos, "\n\n");
+        escreva("Candidato A: ", candidato_a, " voto(s). ", porcentagem_candidato_a, " % do total\n");
+        escreva("Candidato B: ", candidato_b, " voto(s). ", porcentagem_candidato_b, " % do total\n");
+        escreva("Brancos: ", brancos, " voto(s). ", porcentagem_brancos, " % do total\n");
+        escreva("Nulos: ", nulos, " voto(s). ", porcentagem_nulos, " % do total\n");
+    }
+}

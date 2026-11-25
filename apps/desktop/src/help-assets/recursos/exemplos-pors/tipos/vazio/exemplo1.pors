@@ -1,0 +1,31 @@
+// Em Portugol-RS, funcoes sem valor de retorno simplesmente omitem "-> Tipo"
+funcao imprime_linha() {
+    escreva("\n---------------------------------------------------------------------------------------------");
+}
+
+// Funcao sem retorno que formata uma saida com base em seus parametros
+funcao informacoes(nome: cadeia, versao: real, fornecedor: cadeia) {
+    se (nome == "Visual Basic") {
+        retorne;
+    }
+    escreva("\n");
+    escreva("A linguagem ");
+    escreva(nome);
+    escreva(" encontra-se em sua versão ");
+    escreva(versao);
+    escreva(" e é fornecida pelo(a) ");
+    escreva(fornecedor);
+}
+
+funcao inicio() {
+    imprime_linha();
+    informacoes("Portugol-RS", 1.0, "Portugol Studio RS");
+    imprime_linha();
+    informacoes("Java", 1.7, "Oracle");
+    imprime_linha();
+    informacoes("Ruby", 2.0, "ruby-lang.org");
+    imprime_linha();
+    informacoes("Visual Basic", 6.0, "Microsoft");
+    imprime_linha();
+    escreva("\n");
+}

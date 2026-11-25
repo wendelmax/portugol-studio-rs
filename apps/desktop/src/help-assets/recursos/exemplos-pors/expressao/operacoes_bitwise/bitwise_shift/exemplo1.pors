@@ -1,0 +1,8 @@
+/*
+Para fazer a operacao Bitwise 23 << 1:
+00010111 (decimal +23)
+LEFT-SHIFT uma vez
+--------
+00101110 (decimal +46)
+*/
+seja resultado: inteiro = 23 << 1;

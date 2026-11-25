@@ -1,0 +1,3 @@
+escreva(13 % 5, "\n"); // Resto da divisao 13 % 5 escrito na tela
+
+seja numero: inteiro = 50 % 4; // Resto da divisao 50 % 4 armazenado na variavel numero

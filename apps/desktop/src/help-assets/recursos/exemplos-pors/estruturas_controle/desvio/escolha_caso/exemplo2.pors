@@ -1,0 +1,25 @@
+enum Valor {
+    Zero,
+    Um,
+    Dois,
+    Outro,
+}
+
+funcao inicio() {
+    seja valor: Valor = Valor::Um;
+
+    escolha valor {
+        caso Valor::Zero => {
+            escreva("O valor é igual a 0\n");
+        }
+        caso Valor::Um => {
+            escreva("O valor é igual a 1\n");
+        }
+        caso Valor::Dois => {
+            escreva("O valor é igual a 2\n");
+        }
+        caso _ => {
+            escreva("O valor não é igual a 0, 1 ou 2\n");
+        }
+    }
+}

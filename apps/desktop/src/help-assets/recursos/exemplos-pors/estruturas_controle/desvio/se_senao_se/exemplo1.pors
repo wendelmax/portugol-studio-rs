@@ -1,0 +1,7 @@
+seja condicao: logico = falso;
+seja condicao2: logico = verdadeiro;
+se (condicao) {
+    // Instrucoes executadas se a primeira condicao for verdadeira
+} senao se (condicao2) {
+    // Instrucoes executadas se a condicao anterior for falsa e esta for verdadeira
+}

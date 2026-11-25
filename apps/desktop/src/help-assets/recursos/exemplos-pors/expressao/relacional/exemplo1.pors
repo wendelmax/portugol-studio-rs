@@ -1,0 +1,11 @@
+se (5 > 3) { // Estrutura de controle "se (...)", operacao relacional "5 > 3"
+    // Conjunto de comandos executados se for verdadeiro
+}
+
+para (seja mutavel i: inteiro = 0; i < 5; i += 1) { // Operacao relacional "i < 5"
+    // Conjunto de comandos repetidos enquanto a expressao for verdadeira
+}
+
+faca { // Estrutura "faca { ... } enquanto (...);", operacao relacional "6 < 2"
+    // Conjunto de comandos executados ao menos uma vez
+} enquanto (6 < 2);

@@ -1,0 +1,130 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *   Este exemplo demonstra o uso de Mouse.botao_pressionado() e
+ *   Mouse.algum_botao_pressionado() exibindo um diagrama interativo
+ *   que destaca em tempo real os botões pressionados do mouse.
+ *
+ * Autores:
+ *
+ *   Luiz Fernando Noschang (noschang@univali.br)
+ *   Adaptado e implementado para Portugol-RS (.pors)
+ *
+ * Data: 18/07/2014
+ */
+
+funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
+    escolha Graficos.criar_cor(r, g, b) {
+        caso Resultado::Ok(cor) => {
+            retorne cor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne Graficos.COR_PRETO;
+        }
+    }
+}
+
+funcao inicio() {
+    Graficos.iniciar_modo_grafico(verdadeiro);
+    Graficos.definir_dimensoes_janela(600, 440);
+    Graficos.definir_titulo_janela("Mouse - botao_pressionado");
+
+    seja mutavel cliques_esq: inteiro = 0;
+    seja mutavel cliques_meio: inteiro = 0;
+    seja mutavel cliques_dir: inteiro = 0;
+
+    seja mutavel esq_ant: logico = falso;
+    seja mutavel meio_ant: logico = falso;
+    seja mutavel dir_ant: logico = falso;
+
+    enquanto (!Teclado.tecla_pressionada(Teclado.TECLA_ESC)) {
+        seja esq: logico = Mouse.botao_pressionado(Mouse.BOTAO_ESQUERDO);
+        seja meio: logico = Mouse.botao_pressionado(Mouse.BOTAO_MEIO);
+        seja dir: logico = Mouse.botao_pressionado(Mouse.BOTAO_DIREITO);
+
+        se (esq && !esq_ant) {
+            cliques_esq += 1;
+        }
+        se (meio && !meio_ant) {
+            cliques_meio += 1;
+        }
+        se (dir && !dir_ant) {
+            cliques_dir += 1;
+        }
+        esq_ant = esq;
+        meio_ant = meio;
+        dir_ant = dir;
+
+        Graficos.definir_cor(cor_rgb(24, 30, 42));
+        Graficos.limpar();
+
+        Graficos.definir_cor(Graficos.COR_BRANCO);
+        Graficos.definir_tamanho_texto(22.0);
+        Graficos.definir_estilo_texto(falso, verdadeiro, falso);
+        Graficos.desenhar_texto(30, 24, "Teste de Botões do Mouse");
+
+        Graficos.definir_tamanho_texto(15.0);
+        Graficos.definir_estilo_texto(falso, falso, falso);
+        Graficos.definir_cor(cor_rgb(185, 200, 220));
+        Graficos.desenhar_texto(
+        30,
+        56,
+        "Pressione os botões esquerdo, do meio ou direito (ESC para sair)."
+        );
+
+        // Corpo do mouse ilustrado
+        Graficos.definir_cor(cor_rgb(50, 62, 84));
+        Graficos.desenhar_retangulo(210, 100, 180, 240, verdadeiro, verdadeiro);
+
+        // Botão esquerdo
+        se (esq) {
+            Graficos.definir_cor(cor_rgb(76, 209, 130));
+        } senao {
+            Graficos.definir_cor(cor_rgb(80, 95, 120));
+        }
+        Graficos.desenhar_retangulo(222, 112, 62, 95, verdadeiro, verdadeiro);
+
+        // Botão do meio (roda)
+        se (meio) {
+            Graficos.definir_cor(cor_rgb(255, 193, 7));
+        } senao {
+            Graficos.definir_cor(cor_rgb(65, 78, 102));
+        }
+        Graficos.desenhar_retangulo(290, 125, 20, 68, verdadeiro, verdadeiro);
+
+        // Botão direito
+        se (dir) {
+            Graficos.definir_cor(cor_rgb(79, 156, 255));
+        } senao {
+            Graficos.definir_cor(cor_rgb(80, 95, 120));
+        }
+        Graficos.desenhar_retangulo(316, 112, 62, 95, verdadeiro, verdadeiro);
+
+        // Status geral
+        se (Mouse.algum_botao_pressionado()) {
+            Graficos.definir_cor(Graficos.COR_AMARELO);
+            Graficos.desenhar_texto(30, 368, "Estado: Algum botão está pressionado!");
+        } senao {
+            Graficos.definir_cor(cor_rgb(170, 185, 205));
+            Graficos.desenhar_texto(30, 368, "Estado: Nenhum botão pressionado.");
+        }
+
+        Graficos.definir_cor(Graficos.COR_BRANCO);
+        Graficos.desenhar_texto(
+        30,
+        398,
+        "Cliques - Esq: " + Tipos.inteiro_para_cadeia(cliques_esq) + " | Meio: " + Tipos.inteiro_para_cadeia(cliques_meio) + " | Dir: " + Tipos.inteiro_para_cadeia(cliques_dir)
+        );
+
+        Graficos.renderizar();
+        Util.aguarde(16);
+    }
+
+    Graficos.encerrar_modo_grafico();
+}

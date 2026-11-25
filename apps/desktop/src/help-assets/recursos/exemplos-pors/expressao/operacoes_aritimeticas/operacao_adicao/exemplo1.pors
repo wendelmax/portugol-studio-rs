@@ -1,0 +1,7 @@
+escreva(1 + 5, "\n"); // Operacao aritmetica 1 + 5 escrita na tela
+
+seja numero: real = 50.0 + 30.0; // Operacao aritmetica 50.0 + 30.0 armazenada na variavel numero
+
+se (20 + 40 < 70) { // Operacao aritmetica 20 + 40 em conjunto com o operador relacional "<"
+    // Comandos
+}

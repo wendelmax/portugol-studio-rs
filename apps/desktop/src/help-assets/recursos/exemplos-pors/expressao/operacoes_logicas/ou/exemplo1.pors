@@ -1,0 +1,9 @@
+se (5 > 4 || 7 == 6) { // Operacao logica OU (||) com operacoes relacionais
+    // Comandos
+}
+
+enquanto (falso || 5 > 4) { // Operacao logica OU (||) com valor logico e relacional
+    // Comandos
+}
+
+seja saida: logico = 5 > 8 || 4 < 12 || 34 < 7; // Operacao logica OU (||) encadeada

@@ -1,0 +1,31 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ * 	Este exemplo demonstra como obter a raiz de um número usando a função "raiz" da
+ * 	biblioteca "Matematica".
+ *
+ * Autores:
+ *
+ * 	Luiz Fernando Noschang (noschang@univali.br)
+ *
+ * Data: 18/07/2014
+ * Adaptado para Portugol-RS (.pors)
+ */
+
+funcao inicio() {
+    seja mutavel numero: real = 4.0;
+    seja mutavel resultado: real = Matematica.raiz(numero, 2.0); // Obtém a raiz quadrada do número
+
+    escreva("A raiz quadrada de ", numero, " é: ", resultado, "\n");
+
+    numero = 27.0;
+    resultado = Matematica.raiz(numero, 3.0); // Obtém a raiz cúbica do número
+
+    escreva("A raiz cúbica de ", numero, " é: ", resultado, "\n");
+}

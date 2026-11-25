@@ -1,0 +1,3 @@
+// Em Portugol-RS, "seja" sem "mutavel" declara um valor imutavel (constante)
+seja NOME_DA_CONSTANTE: inteiro = 3;
+seja NOME_DA_CONSTANTE2: real = 45.0;

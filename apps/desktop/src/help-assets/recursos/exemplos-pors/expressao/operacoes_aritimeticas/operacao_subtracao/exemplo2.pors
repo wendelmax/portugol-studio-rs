@@ -1,0 +1,7 @@
+funcao inicio() {
+    escreva(10 - 3, "\n");
+
+    seja valor: inteiro = 10 - 3;
+
+    escreva(valor, "\n");
+}

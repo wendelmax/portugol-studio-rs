@@ -1,0 +1,160 @@
+/*
+ * Exemplo clássico do Portugol Studio adaptado para Portugol-RS (.pors)
+ *
+ * Descrição:
+ *
+ *   Demonstra como mover um elemento na tela com as setas direcionais,
+ *   capturar o conteúdo atual da tela com Graficos.renderizar_imagem()
+ *   e salvá-lo em arquivo com Graficos.salvar_imagem() ao pressionar P.
+ */
+
+funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
+    escolha Graficos.criar_cor(r, g, b) {
+        caso Resultado::Ok(cor) => {
+            retorne cor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne Graficos.COR_PRETO;
+        }
+    }
+}
+
+funcao carregar_opcional(caminho: cadeia) -> Opcao < inteiro > {
+    escolha Graficos.carregar_imagem(caminho) {
+        caso Resultado::Ok(id) => {
+            retorne Opcao::Algum(id);
+        }
+        caso Resultado::Erro(_) => {
+            retorne Opcao::Nenhum;
+        }
+    }
+}
+
+funcao desenhar_cena_fallback(px: inteiro, py: inteiro) {
+    Graficos.definir_gradiente(
+    Graficos.GRADIENTE_ABAIXO,
+    cor_rgb(40, 110, 190),
+    cor_rgb(160, 215, 250)
+    );
+    Graficos.desenhar_retangulo(0, 0, 800, 420, falso, verdadeiro);
+
+    Graficos.definir_cor(cor_rgb(76, 155, 86));
+    Graficos.desenhar_retangulo(0, 420, 800, 180, falso, verdadeiro);
+
+    Graficos.definir_cor(cor_rgb(255, 225, 95));
+    Graficos.desenhar_elipse(660, 50, 80, 80, verdadeiro);
+
+    // Personagem estilizado caso as imagens externas não estejam presentes
+    Graficos.definir_cor(cor_rgb(235, 145, 65));
+    Graficos.desenhar_elipse(px, py, 70, 85, verdadeiro);
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.desenhar_elipse(px + 14, py + 24, 42, 48, verdadeiro);
+    Graficos.definir_cor(Graficos.COR_PRETO);
+    Graficos.desenhar_elipse(px + 18, py + 18, 10, 10, verdadeiro);
+    Graficos.desenhar_elipse(px + 42, py + 18, 10, 10, verdadeiro);
+}
+
+funcao inicio() {
+    Graficos.iniciar_modo_grafico(verdadeiro);
+    Graficos.definir_dimensoes_janela(800, 600);
+    Graficos.definir_titulo_janela("Salvar Imagem");
+
+    seja img_fundo: Opcao < inteiro > = carregar_opcional("salvar_imagem/boba.jpg");
+    seja img_personagem: Opcao < inteiro > = carregar_opcional("salvar_imagem/porg.png");
+
+    seja mutavel porgx: inteiro = 100;
+    seja mutavel porgy: inteiro = 100;
+    seja mutavel mensagem_status: cadeia = "Setas: mover | P: capturar e salvar imagem | ESC: sair";
+    seja mutavel tecla_p_ant: logico = falso;
+
+    enquanto (!Teclado.tecla_pressionada(Teclado.TECLA_ESC)) {
+        se (Teclado.tecla_pressionada(Teclado.TECLA_SETA_ESQUERDA)) {
+            porgx -= 3;
+        }
+        se (Teclado.tecla_pressionada(Teclado.TECLA_SETA_DIREITA)) {
+            porgx += 3;
+        }
+        se (Teclado.tecla_pressionada(Teclado.TECLA_SETA_ACIMA)) {
+            porgy -= 3;
+        }
+        se (Teclado.tecla_pressionada(Teclado.TECLA_SETA_ABAIXO)) {
+            porgy += 3;
+        }
+
+        Graficos.definir_cor(Graficos.COR_BRANCO);
+        Graficos.limpar();
+
+        escolha img_fundo {
+            caso Opcao::Algum(fundo_id) => {
+                Graficos.desenhar_imagem(0, 0, fundo_id);
+                escolha img_personagem {
+                    caso Opcao::Algum(porg_id) => {
+                        Graficos.desenhar_imagem(porgx, porgy, porg_id);
+                    }
+                    caso Opcao::Nenhum => {
+                        Graficos.definir_cor(cor_rgb(235, 145, 65));
+                        Graficos.desenhar_elipse(porgx, porgy, 64, 64, verdadeiro);
+                    }
+                }
+            }
+            caso Opcao::Nenhum => {
+                desenhar_cena_fallback(porgx, porgy);
+            }
+        }
+
+        seja tecla_p_atual: logico = Teclado.tecla_pressionada(Teclado.TECLA_P);
+        se (tecla_p_atual && !tecla_p_ant) {
+            escolha Graficos.renderizar_imagem(800, 600) {
+                caso Resultado::Ok(captura) => {
+                    seja caminho: cadeia = "captura_" + Tipos.inteiro_para_cadeia(porgx) + "_" + Tipos.inteiro_para_cadeia(porgy) + ".png";
+
+                    // Efeito visual de flash
+                    Graficos.definir_cor(Graficos.COR_BRANCO);
+                    Graficos.limpar();
+                    Graficos.renderizar();
+                    Util.aguarde(80);
+
+                    escolha Graficos.salvar_imagem(captura, caminho) {
+                        caso Resultado::Ok(_) => {
+                            mensagem_status = "Imagem salva em: " + caminho;
+                        }
+                        caso Resultado::Erro(erro_salvar) => {
+                            mensagem_status = "Não foi possível salvar: " + erro_salvar;
+                        }
+                    }
+
+                    Graficos.liberar_imagem(captura);
+                }
+                caso Resultado::Erro(erro_render) => {
+                    mensagem_status = "Erro ao renderizar captura: " + erro_render;
+                }
+            }
+        }
+        tecla_p_ant = tecla_p_atual;
+
+        // Barra de instruções
+        Graficos.definir_cor(cor_rgb(20, 26, 38));
+        Graficos.desenhar_retangulo(0, 560, 800, 40, falso, verdadeiro);
+        Graficos.definir_cor(Graficos.COR_BRANCO);
+        Graficos.definir_tamanho_texto(15.0);
+        Graficos.desenhar_texto(16, 572, mensagem_status);
+
+        Graficos.renderizar();
+        Util.aguarde(16);
+    }
+
+    escolha img_fundo {
+        caso Opcao::Algum(id) => {
+            Graficos.liberar_imagem(id);
+        }
+        caso Opcao::Nenhum => {}
+    }
+    escolha img_personagem {
+        caso Opcao::Algum(id) => {
+            Graficos.liberar_imagem(id);
+        }
+        caso Opcao::Nenhum => {}
+    }
+
+    Graficos.encerrar_modo_grafico();
+}

@@ -1,0 +1,12 @@
+funcao nome_da_funcao(parametro1: inteiro, parametro2: real) -> real {
+    retorne Tipos.inteiro_para_real(parametro1) * parametro2;
+}
+
+funcao nome_da_funcao2() -> inteiro {
+    retorne 1;
+}
+
+// Em Portugol-RS, parametros sao passados por valor; retorne o novo valor
+funcao nome_da_funcao3(parametro: cadeia) -> cadeia {
+    retorne "Novo Valor";
+}

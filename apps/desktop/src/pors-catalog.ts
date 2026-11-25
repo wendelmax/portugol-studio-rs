@@ -11,33 +11,55 @@ import type {
 export const PORS_EXAMPLE_PREFIX = "pors-example:";
 export const PORS_EXERCISE_OPTION_PREFIX = "pors:";
 
-/** Constrói a pasta de catálogo `Portugol-RS (.pors)` agrupada por categoria. */
-export function buildPorsExampleCatalogFolder(
+/** Constrói a árvore de catálogo Portugol-RS agrupando categorias aninhadas por ` / `. */
+export function buildPorsExampleCatalog(
   examples: readonly PorsExampleInfo[],
-): CatalogEntry | null {
-  if (examples.length === 0) return null;
+): CatalogEntry[] {
+  if (examples.length === 0) return [];
 
-  const byCategory = new Map<string, CatalogEntry[]>();
+  const rootEntries: CatalogEntry[] = [];
+
+  function findOrCreateFolder(entries: CatalogEntry[], name: string): Extract<CatalogEntry, { kind: "folder" }> {
+    const existing = entries.find(
+      (entry): entry is Extract<CatalogEntry, { kind: "folder" }> => entry.kind === "folder" && entry.name === name,
+    );
+    if (existing) return existing;
+    const folder: Extract<CatalogEntry, { kind: "folder" }> = {
+      kind: "folder",
+      name,
+      entries: [],
+    };
+    entries.push(folder);
+    return folder;
+  }
+
   for (const example of examples) {
-    const entries = byCategory.get(example.category) ?? [];
-    entries.push({
+    const segments = example.category
+      .split(" / ")
+      .map((segment) => segment.trim())
+      .filter(Boolean);
+    let target = rootEntries;
+    for (const segment of segments.length > 0 ? segments : ["Portugol-RS"]) {
+      target = findOrCreateFolder(target, segment).entries;
+    }
+    target.push({
       kind: "file",
       name: example.title,
       file: `${PORS_EXAMPLE_PREFIX}${example.id}`,
       description: example.description,
       preview: null,
     });
-    byCategory.set(example.category, entries);
   }
 
-  const folders: CatalogEntry[] = [];
-  for (const [category, entries] of byCategory) {
-    folders.push({
-      kind: "folder",
-      name: category,
-      entries,
-    });
-  }
+  return rootEntries;
+}
+
+/** Constrói a pasta de catálogo `Portugol-RS (.pors)` agrupada por categoria. */
+export function buildPorsExampleCatalogFolder(
+  examples: readonly PorsExampleInfo[],
+): CatalogEntry | null {
+  const folders = buildPorsExampleCatalog(examples);
+  if (folders.length === 0) return null;
 
   return {
     kind: "folder",

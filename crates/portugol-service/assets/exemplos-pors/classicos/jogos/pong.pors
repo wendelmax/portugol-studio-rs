@@ -1,0 +1,348 @@
+/*
+ * Copyright (C) 2016 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *   Jogo clássico de Pong para 1 ou 2 jogadores, com aceleração progressiva da
+ *   bolinha a cada rebatida, efeito de ângulo conforme a região da raquete e
+ *   modo contra computador (IA) opcional.
+ *
+ *   Controles:
+ *     - Jogador 1 (Esquerda): W e S
+ *     - Jogador 2 (Direita): Setas Acima e Abaixo (ou IA automática)
+ *     - I: alterna Jogador 2 entre Humano e Computador (IA)
+ *     - P: pausa / continua
+ *     - R: reinicia o placar
+ *     - ESC: encerra o jogo
+ *
+ * Autores (versão original):
+ *
+ *   Adson Marques da Silva Esteves (shinadson@gmail.com)
+ *   Alisson Steffens Henrique (ash@edu.univali.br)
+ *
+ * Data original: 11/03/2016
+ * Adaptado para Portugol-RS (.pors)
+ */
+
+enum EstadoPong {
+    Jogando,
+    Pausado,
+    VitoriaP1,
+    VitoriaP2,
+}
+
+registro JogoPong {
+    estado: EstadoPong,
+    p1_y: real,
+    p2_y: real,
+    raquete_altura: inteiro,
+    raquete_largura: inteiro,
+    pontos_p1: inteiro,
+    pontos_p2: inteiro,
+    bola_x: real,
+    bola_y: real,
+    bola_vx: real,
+    bola_vy: real,
+    bola_raio: inteiro,
+    ia_ativa: logico,
+    tecla_p_estava: logico,
+    tecla_r_estava: logico,
+    tecla_i_estava: logico,
+}
+
+funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
+    escolha Graficos.criar_cor(r, g, b) {
+        caso Resultado::Ok(cor) => {
+            retorne cor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne Graficos.COR_BRANCO;
+        }
+    }
+}
+
+funcao sortear_sinal() -> real {
+    escolha Util.sorteia(0, 1) {
+        caso Resultado::Ok(v) => {
+            se (v == 0) {
+                retorne -1.0;
+            }
+            retorne 1.0;
+        }
+        caso Resultado::Erro(_) => {
+            retorne 1.0;
+        }
+    }
+}
+
+funcao resetar_bolinha(jogo: JogoPong, direcao_x: real) -> JogoPong {
+    seja mutavel j: JogoPong = jogo;
+    j.bola_x = 400.0;
+    j.bola_y = 310.0;
+    j.bola_vx = 5.2 * direcao_x;
+    j.bola_vy = 3.2 * sortear_sinal();
+    retorne j;
+}
+
+funcao criar_jogo(ia_ativa: logico) -> JogoPong {
+    seja base: JogoPong = JogoPong {
+        estado: EstadoPong::Jogando,
+        p1_y: 260.0,
+        p2_y: 260.0,
+        raquete_altura: 96,
+        raquete_largura: 14,
+        pontos_p1: 0,
+        pontos_p2: 0,
+        bola_x: 400.0,
+        bola_y: 310.0,
+        bola_vx: 5.2,
+        bola_vy: 3.0,
+        bola_raio: 9,
+        ia_ativa: ia_ativa,
+        tecla_p_estava: falso,
+        tecla_r_estava: falso,
+        tecla_i_estava: falso,
+    }
+    ;
+    retorne resetar_bolinha(base, sortear_sinal());
+}
+
+funcao limitar_real(v: real, minimo: real, maximo: real) -> real {
+    se (v < minimo) {
+        retorne minimo;
+    }
+    se (v > maximo) {
+        retorne maximo;
+    }
+    retorne v;
+}
+
+funcao atualizar(jogo: JogoPong) -> JogoPong {
+    seja mutavel j: JogoPong = jogo;
+
+    seja p_agora: logico = Teclado.tecla_pressionada(Teclado.TECLA_P);
+    se (p_agora && !j.tecla_p_estava) {
+        escolha j.estado {
+            caso EstadoPong::Jogando => {
+                j.estado = EstadoPong::Pausado;
+            }
+            caso EstadoPong::Pausado => {
+                j.estado = EstadoPong::Jogando;
+            }
+            caso _ => {}
+        }
+    }
+    j.tecla_p_estava = p_agora;
+
+    seja i_agora: logico = Teclado.tecla_pressionada(Teclado.TECLA_I);
+    se (i_agora && !j.tecla_i_estava) {
+        j.ia_ativa = !j.ia_ativa;
+    }
+    j.tecla_i_estava = i_agora;
+
+    seja r_agora: logico = Teclado.tecla_pressionada(Teclado.TECLA_R) || Teclado.tecla_pressionada(Teclado.TECLA_ENTER);
+    se (r_agora && !j.tecla_r_estava) {
+        seja ia: logico = j.ia_ativa;
+        j = criar_jogo(ia);
+        j.tecla_r_estava = verdadeiro;
+        retorne j;
+    }
+    j.tecla_r_estava = r_agora;
+
+    escolha j.estado {
+        caso EstadoPong::Jogando => {}
+        caso _ => {
+            retorne j;
+        }
+    }
+
+    seja vel_raquete: real = 6.8;
+    seja y_min: real = 64.0;
+    seja y_max: real = 576.0 - Tipos.inteiro_para_real(j.raquete_altura);
+
+    // Jogador 1 (W / S)
+    se (Teclado.tecla_pressionada(Teclado.TECLA_W)) {
+        j.p1_y = limitar_real(j.p1_y - vel_raquete, y_min, y_max);
+    }
+    se (Teclado.tecla_pressionada(Teclado.TECLA_S)) {
+        j.p1_y = limitar_real(j.p1_y + vel_raquete, y_min, y_max);
+    }
+
+    // Jogador 2 (Setas ou IA)
+    se (j.ia_ativa) {
+        seja centro_p2: real = j.p2_y + Tipos.inteiro_para_real(j.raquete_altura) / 2.0;
+        se (j.bola_y < centro_p2 - 12.0) {
+            j.p2_y = limitar_real(j.p2_y - 5.4, y_min, y_max);
+        } senao se (j.bola_y > centro_p2 + 12.0) {
+            j.p2_y = limitar_real(j.p2_y + 5.4, y_min, y_max);
+        }
+    } senao {
+        se (Teclado.tecla_pressionada(Teclado.TECLA_SETA_ACIMA)) {
+            j.p2_y = limitar_real(j.p2_y - vel_raquete, y_min, y_max);
+        }
+        se (Teclado.tecla_pressionada(Teclado.TECLA_SETA_ABAIXO)) {
+            j.p2_y = limitar_real(j.p2_y + vel_raquete, y_min, y_max);
+        }
+    }
+
+    // Movimento da bolinha
+    j.bola_x += j.bola_vx;
+    j.bola_y += j.bola_vy;
+    seja r: real = Tipos.inteiro_para_real(j.bola_raio);
+
+    // Rebote no teto e no piso
+    se (j.bola_y - r <= 60.0) {
+        j.bola_y = 60.0 + r;
+        j.bola_vy = Matematica.valor_absoluto(j.bola_vy);
+    } senao se (j.bola_y + r >= 580.0) {
+        j.bola_y = 580.0 - r;
+        j.bola_vy = -Matematica.valor_absoluto(j.bola_vy);
+    }
+
+    // Colisão com raquete 1 (x = 34..48)
+    se (j.bola_vx < 0.0 && j.bola_x - r <= 48.0 && j.bola_x + r >= 34.0 && j.bola_y + r >= j.p1_y && j.bola_y - r <= j.p1_y + Tipos.inteiro_para_real(j.raquete_altura)) {
+        seja centro1: real = j.p1_y + Tipos.inteiro_para_real(j.raquete_altura) / 2.0;
+        seja rel1: real = (j.bola_y - centro1) / (Tipos.inteiro_para_real(j.raquete_altura) / 2.0);
+        j.bola_vx = Matematica.menor_numero(Matematica.valor_absoluto(j.bola_vx) * 1.06, 12.0);
+        j.bola_vy = rel1 * 6.5;
+        j.bola_x = 48.0 + r;
+    }
+
+    // Colisão com raquete 2 (x = 752..766)
+    se (j.bola_vx > 0.0 && j.bola_x + r >= 752.0 && j.bola_x - r <= 766.0 && j.bola_y + r >= j.p2_y && j.bola_y - r <= j.p2_y + Tipos.inteiro_para_real(j.raquete_altura)) {
+        seja centro2: real = j.p2_y + Tipos.inteiro_para_real(j.raquete_altura) / 2.0;
+        seja rel2: real = (j.bola_y - centro2) / (Tipos.inteiro_para_real(j.raquete_altura) / 2.0);
+        j.bola_vx = -Matematica.menor_numero(Matematica.valor_absoluto(j.bola_vx) * 1.06, 12.0);
+        j.bola_vy = rel2 * 6.5;
+        j.bola_x = 752.0 - r;
+    }
+
+    // Pontuação
+    se (j.bola_x < 0.0) {
+        j.pontos_p2 += 1;
+        se (j.pontos_p2 >= 7) {
+            j.estado = EstadoPong::VitoriaP2;
+        } senao {
+            j = resetar_bolinha(j, 1.0);
+        }
+    } senao se (j.bola_x > 800.0) {
+        j.pontos_p1 += 1;
+        se (j.pontos_p1 >= 7) {
+            j.estado = EstadoPong::VitoriaP1;
+        } senao {
+            j = resetar_bolinha(j, -1.0);
+        }
+    }
+
+    retorne j;
+}
+
+funcao desenhar(jogo: JogoPong) {
+    Graficos.definir_cor(cor_rgb(14, 18, 28));
+    Graficos.limpar();
+
+    // Cabeçalho
+    Graficos.definir_cor(cor_rgb(24, 30, 46));
+    Graficos.desenhar_retangulo(0, 0, 800, 56, falso, verdadeiro);
+
+    Graficos.definir_cor(cor_rgb(80, 200, 255));
+    Graficos.definir_tamanho_texto(15.0);
+    Graficos.desenhar_texto(24, 18, "J1 (W/S)");
+
+    se (jogo.ia_ativa) {
+        Graficos.definir_cor(cor_rgb(255, 165, 80));
+        Graficos.desenhar_texto(668, 18, "J2 (IA)");
+    } senao {
+        Graficos.definir_cor(cor_rgb(255, 165, 80));
+        Graficos.desenhar_texto(630, 18, "J2 (Setas)");
+    }
+
+    // Placar central
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.definir_tamanho_texto(28.0);
+    seja placar: cadeia = Tipos.inteiro_para_cadeia(jogo.pontos_p1) + "  x  " + Tipos.inteiro_para_cadeia(jogo.pontos_p2);
+    seja lw: inteiro = Graficos.largura_texto(placar);
+    Graficos.desenhar_texto(400 - lw / 2, 12, placar);
+
+    // Quadra e linha tracejada central
+    Graficos.definir_cor(cor_rgb(56, 68, 94));
+    Graficos.desenhar_retangulo(16, 60, 768, 520, falso, falso);
+    para (seja mutavel y: inteiro = 70; y < 570; y += 22) {
+        Graficos.desenhar_retangulo(398, y, 4, 12, falso, verdadeiro);
+    }
+
+    // Raquetes
+    Graficos.definir_cor(cor_rgb(80, 200, 255));
+    Graficos.desenhar_retangulo(34, Tipos.real_para_inteiro(jogo.p1_y), jogo.raquete_largura, jogo.raquete_altura, verdadeiro, verdadeiro);
+
+    Graficos.definir_cor(cor_rgb(255, 165, 80));
+    Graficos.desenhar_retangulo(752, Tipos.real_para_inteiro(jogo.p2_y), jogo.raquete_largura, jogo.raquete_altura, verdadeiro, verdadeiro);
+
+    // Bolinha
+    seja bx: inteiro = Tipos.real_para_inteiro(jogo.bola_x);
+    seja by: inteiro = Tipos.real_para_inteiro(jogo.bola_y);
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.desenhar_elipse(bx - jogo.bola_raio, by - jogo.bola_raio, jogo.bola_raio * 2, jogo.bola_raio * 2, verdadeiro);
+
+    // Rodapé de atalhos
+    Graficos.definir_cor(cor_rgb(160, 172, 195));
+    Graficos.definir_tamanho_texto(12.0);
+    Graficos.desenhar_texto(110, 584, "[W/S] Jogador 1  |  [Setas] Jogador 2  |  [I] Alternar IA  |  [P] Pausa  |  [R] Reiniciar  |  [ESC] Sair");
+
+    // Sobreposições
+    escolha jogo.estado {
+        caso EstadoPong::Pausado => {
+            Graficos.definir_cor(cor_rgb(20, 24, 38));
+            Graficos.desenhar_retangulo(250, 255, 300, 100, verdadeiro, verdadeiro);
+            Graficos.definir_cor(Graficos.COR_AMARELO);
+            Graficos.definir_tamanho_texto(26.0);
+            Graficos.desenhar_texto(340, 278, "PAUSADO");
+            Graficos.definir_cor(Graficos.COR_BRANCO);
+            Graficos.definir_tamanho_texto(14.0);
+            Graficos.desenhar_texto(295, 320, "Pressione [P] para continuar");
+        }
+        caso EstadoPong::VitoriaP1 => {
+            Graficos.definir_cor(cor_rgb(16, 36, 54));
+            Graficos.desenhar_retangulo(210, 245, 380, 120, verdadeiro, verdadeiro);
+            Graficos.definir_cor(cor_rgb(80, 200, 255));
+            Graficos.definir_tamanho_texto(26.0);
+            Graficos.desenhar_texto(265, 272, "JOGADOR 1 VENCEU!");
+            Graficos.definir_cor(Graficos.COR_BRANCO);
+            Graficos.definir_tamanho_texto(14.0);
+            Graficos.desenhar_texto(265, 322, "Pressione [R] ou [ENTER] para jogar");
+        }
+        caso EstadoPong::VitoriaP2 => {
+            Graficos.definir_cor(cor_rgb(50, 30, 16));
+            Graficos.desenhar_retangulo(210, 245, 380, 120, verdadeiro, verdadeiro);
+            Graficos.definir_cor(cor_rgb(255, 165, 80));
+            Graficos.definir_tamanho_texto(26.0);
+            Graficos.desenhar_texto(265, 272, "JOGADOR 2 VENCEU!");
+            Graficos.definir_cor(Graficos.COR_BRANCO);
+            Graficos.definir_tamanho_texto(14.0);
+            Graficos.desenhar_texto(265, 322, "Pressione [R] ou [ENTER] para jogar");
+        }
+        caso EstadoPong::Jogando => {}
+    }
+
+    Graficos.renderizar();
+}
+
+funcao inicio() {
+    Graficos.iniciar_modo_grafico(verdadeiro);
+    Graficos.definir_dimensoes_janela(800, 604);
+    Graficos.definir_titulo_janela("Pong - Portugol-RS");
+
+    seja mutavel jogo: JogoPong = criar_jogo(verdadeiro);
+
+    enquanto (!Teclado.tecla_pressionada(Teclado.TECLA_ESC)) {
+        jogo = atualizar(jogo);
+        desenhar(jogo);
+        Util.aguarde(16);
+    }
+
+    Graficos.encerrar_modo_grafico();
+}

@@ -1,0 +1,10 @@
+funcao inicio() {
+    seja mutavel num: inteiro = 0;
+
+    escreva("Digite um número: ");
+    leia(num);
+
+    se (num == 0) {
+        escreva("O número digitado é 0\n");
+    }
+}

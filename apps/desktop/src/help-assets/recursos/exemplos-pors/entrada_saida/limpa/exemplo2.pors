@@ -1,0 +1,16 @@
+funcao inicio() {
+    seja mutavel nome: cadeia = "";
+
+    // Imprime a pergunta no console
+    escreva("Qual é o seu nome?\n");
+
+    // Le o texto digitado pelo usuario
+    leia(nome);
+
+    // Em Portugol-RS nao ha limpa() no console de texto;
+    // usamos quebras de linha para separar a saida anterior
+    escreva("\n------------------------------\n");
+
+    // Escreve a resposta
+    escreva("Olá, ", nome, "\n");
+}

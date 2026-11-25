@@ -1,0 +1,48 @@
+/* Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ * Adaptado para Portugol-RS (.pors)
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *     Este exemplo pede ao usuário que informe um valor de 0 a 6. Logo após, o programa
+ *     sorteia um valor também de 0 a 6 e exibe uma mensagem informando se o número sorteado
+ *     e o número digitado são iguais.
+ *
+ * Autores:
+ *
+ *     Giordana Maria da Costa Valle
+ *     Carlos Alexandre Krueger
+ *
+ * Data: 01/06/2013
+ */
+
+funcao inicio() {
+    seja mutavel num_digitado: inteiro = 0;
+
+    escreva("Informe um número de 0 a 6: ");
+    leia(num_digitado);
+
+    escolha Util.sorteia(0, 6) {
+        caso Resultado::Ok(num_sorteado) => {
+            se (num_digitado >= 0 && num_digitado <= 6) {
+                // Verifica se o valor sorteado é igual ao valor digitado pelo usuário
+                se (num_digitado == num_sorteado) {
+                    escreva("Os números são iguais!");
+                } senao {
+                    escreva("Os números são diferentes!");
+                }
+
+                escreva("\n\nNúmero digitado: ", num_digitado);
+                escreva("\nNúmero sorteado: ", num_sorteado, "\n");
+            } senao {
+                escreva("O número digitado deve estar entre 0 e 6\n");
+            }
+        }
+        caso Resultado::Erro(erro) => {
+            escreva("Erro ao sortear número: ", erro, "\n");
+        }
+    }
+}

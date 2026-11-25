@@ -1,0 +1,8 @@
+funcao inicio() {
+    seja mutavel parar: caracter = 'N';
+
+    enquanto (parar != 'S') {
+        escreva("Deseja parar o laço? (S/N) ");
+        leia(parar);
+    }
+}

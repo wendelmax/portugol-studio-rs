@@ -1,0 +1,20 @@
+/*
+ * Estrutura basica de um arquivo Portugol-RS (.pors):
+ * - Nao ha bloco envolvente nem importacao explicita de bibliotecas nativas.
+ * - No nivel superior declaramos funcoes, registros e enums.
+ * - Bibliotecas nativas (Matematica, Texto, Tipos, etc.) ficam disponiveis diretamente.
+ */
+
+funcao saudacao(nome: cadeia) {
+    escreva("Olá, ", nome, "!\n");
+}
+
+// Ponto de entrada obrigatorio do programa
+funcao inicio() {
+    /*
+     * Dentro das funcoes declaramos variaveis locais,
+     * estruturas de controle e expressoes.
+     */
+    seja linguagem: cadeia = "Portugol-RS";
+    saudacao(linguagem);
+}

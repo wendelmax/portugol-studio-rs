@@ -1,0 +1,9 @@
+se (!falso) { // Operacao logica NAO (!) sobre valor logico
+    // Comandos
+}
+
+enquanto (!(5 < 4)) { // Operacao logica NAO (!) junto com operacao relacional
+    // Comandos
+}
+
+seja saida: logico = !(5 > 3 && 4 < 5) && 6 < 7; // Operacao NAO (!) combinada com E (&&)

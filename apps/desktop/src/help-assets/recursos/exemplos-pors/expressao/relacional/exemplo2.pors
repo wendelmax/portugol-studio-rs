@@ -1,0 +1,21 @@
+funcao inicio() {
+    seja a: inteiro = 5;
+    seja b: inteiro = 3;
+
+    // Comparacao entre a e b utilizando o operador maior que
+    se (a > b) {
+        escreva("A é maior que B\n");
+    }
+
+    // Comparacao entre a e b utilizando o operador igual a
+    se (a == b) {
+        escreva("A é igual a B\n");
+    }
+
+    // Comparacao entre a e b utilizando o operador maior ou igual a
+    se (a >= b) {
+        escreva("A é maior ou igual a B\n");
+    }
+
+    // Como 5 > 3, o primeiro e o terceiro testes sao verdadeiros
+}
