@@ -59,5 +59,7 @@ test("recent files view opens the chosen path and reports open errors", async ()
 
 test("main delegates recent-file rendering to its view controller", async () => {
   const main = await readFile(new URL("../src/main.ts", import.meta.url), "utf8");
-  assert.match(main, /createRecentFilesView\(/);
+  const shell = await readFile(new URL("../src/files/workspace-files-shell.ts", import.meta.url), "utf8");
+  assert.match(main, /createWorkspaceFilesShell\(/);
+  assert.match(shell, /createRecentFilesView\(/);
 });
