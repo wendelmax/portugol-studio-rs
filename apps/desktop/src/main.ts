@@ -99,6 +99,7 @@ import { createEditorUpdateController } from "./editor/update-controller";
 import { createEditorExtensionFactory } from "./editor/extensions";
 import { createEditorSetup } from "./editor/setup";
 import { createEditorNavigationBindings } from "./editor/navigation-bindings";
+import { createEditorThemeController } from "./editor/theme-controller";
 import { createSymbolRenamer } from "./editor/symbol-rename";
 import { createUtilityInsertions } from "./editor/utility-insertions";
 import {
@@ -223,19 +224,17 @@ const extensions = createEditorExtensionFactory({
   onUpdate: editorUpdateHandler,
 });
 
-/** Reaplica o tema atual aos editores e à ajuda. */
-function refreshEditorThemes() {
-  view.dispatch({ effects: theme.reconfigure(editorTheme()) });
-  generatedRustEditor.dispatch({ effects: generatedRustTheme.reconfigure(editorTheme()) });
-  help.refreshTheme();
-}
-
-function applyTheme(choice: string) {
-  applyPageTheme(choice);
-  refreshEditorThemes();
-}
-
-onSystemThemeChange(refreshEditorThemes);
+const editorThemeController = createEditorThemeController({
+  sourceEditor: view,
+  sourceTheme: theme,
+  generatedEditor: generatedRustEditor,
+  generatedTheme: generatedRustTheme,
+  editorTheme,
+  refreshHelpTheme: () => help.refreshTheme(),
+  applyPageTheme,
+  onSystemThemeChange,
+});
+const { applyTheme } = editorThemeController;
 
 // ---------------------------------------------------------------------------
 // Abas
