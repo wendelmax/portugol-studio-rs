@@ -113,12 +113,17 @@
       <div id="workspace-explorer-splitter" class="splitter" role="separator" aria-label="Redimensionar Explorador" aria-controls="workspace-explorer" aria-orientation="vertical" aria-valuemin="180" aria-valuemax="420" aria-valuenow="240" aria-keyshortcuts="ArrowLeft ArrowRight Home End" title="Arraste ou use as setas; Home e End definem os limites" tabindex="0" hidden></div>
       <div class="workspace">
         <nav id="tabs" data-testid="editor-tabs" class="tabs" aria-label="Abas"></nav>
+        <nav id="rust-comparison-tabs" class="rust-comparison-tabs" role="tablist" aria-label="Painéis da comparação" hidden>
+          <button id="rust-comparison-source-tab" type="button" role="tab" aria-selected="true" aria-controls="editor">Portugol-RS</button>
+          <button id="rust-comparison-generated-tab" type="button" role="tab" aria-selected="false" aria-controls="rust-preview">Rust gerado</button>
+        </nav>
         <div class="editor-area">
           <section id="editor" data-testid="code-editor" class="editor"></section>
           <nav id="rust-mapping-gutter" class="rust-mapping-gutter" aria-label="Mapeamento Portugol para Rust" hidden>
             <p id="rust-mapping-status" role="status" aria-live="polite">Aguardando source maps…</p>
             <div id="rust-mapping-links"></div>
           </nav>
+          <div id="rust-comparison-splitter" class="splitter rust-comparison-splitter" role="separator" aria-label="Redimensionar painel Rust gerado" aria-controls="rust-preview" aria-orientation="vertical" aria-valuemin="25" aria-valuemax="68" aria-valuenow="44" aria-keyshortcuts="ArrowLeft ArrowRight Home End" title="Arraste ou use as setas; Home e End definem os limites" tabindex="0" hidden></div>
           <aside id="rust-preview" class="rust-preview" aria-label="Prévia de código Rust" hidden>
             <header>
               <h2>Rust gerado</h2>
