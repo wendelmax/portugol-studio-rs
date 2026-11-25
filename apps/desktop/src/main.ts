@@ -64,6 +64,7 @@ import * as api from "./api";
 import type { Tab } from "./state/tab";
 import { createTabsView } from "./state/tabs-view";
 import { createTabFactory, isTabDirty, PORS_TEMPLATE, tabName } from "./state/tabs";
+import { createTabCollection } from "./state/tab-collection";
 import { createTabCloser } from "./state/tab-closer";
 import { createLanguageControlsView } from "./state/language-controls-view";
 import { createTabActivator } from "./state/tab-activation";
@@ -166,7 +167,7 @@ const rustPreview = mountRustPreview({
 const generatedRustEditor = rustPreview.generatedEditor;
 const help = createHelpLoader({
   openExample: (source, file) => newTab(source, null, file),
-  isActive: () => activeId === helpId,
+  isActive: () => tabCollection.activeId() === helpId,
 });
 const openHelp = help.open;
 const learningPanel = mountLearningPanel({
@@ -243,24 +244,23 @@ onSystemThemeChange(refreshEditorThemes);
 // Abas
 // ---------------------------------------------------------------------------
 
-let tabs: Tab[] = [];
 const homeId = 0;
 const helpId = -1;
-let activeId = homeId;
+const tabCollection = createTabCollection(homeId);
 let helpOpen = false;
 let learningMode: LearningMode = loadLearningMode();
 let testsPanel: ReturnType<typeof createTestsPanelController> | null = null;
 
 function activeTab(): Tab | undefined {
-  return tabs.find((tab) => tab.id === activeId);
+  return tabCollection.activeTab();
 }
 
 function isDirty(tab: Tab): boolean {
-  return isTabDirty(tab, activeId, view.state.doc.toString());
+  return isTabDirty(tab, tabCollection.activeId(), view.state.doc.toString());
 }
 
 const NEW_PROGRAM = TEMPLATE.replace("\t\t\n", '\t\tescreva("Olá Mundo")\n');
-const tabFactory = createTabFactory({ extensions, addTab: (tab) => tabs.push(tab), activate });
+const tabFactory = createTabFactory({ extensions, addTab: (tab) => tabCollection.add(tab), activate });
 
 function newTab(text = PORS_TEMPLATE, path: string | null = null, exampleName?: string, examplePath?: string, exercise?: ExerciseDocument, explicitLanguage?: SourceLanguage, workspaceFile?: { id: string; path: string; preferenceKey: string }): Tab {
   return tabFactory.create({
@@ -298,8 +298,8 @@ function syncLanguageControls(tab: Tab) {
 }
 
 const tabCloser = createTabCloser({
-  tabs: () => tabs,
-  activeId: () => activeId,
+  tabs: tabCollection.tabs,
+  activeId: tabCollection.activeId,
   homeId,
   helpId,
   setHelpOpen: (open) => { helpOpen = open; },
@@ -308,7 +308,7 @@ const tabCloser = createTabCloser({
   confirmDiscard: (tab) => ask(`"${tabName(tab)}" tem alterações não salvas. Fechar mesmo assim?`, {
     title: "Fechar aba", kind: "warning", okLabel: "Fechar sem salvar", cancelLabel: "Cancelar",
   }),
-  removeTab: (index) => { tabs.splice(index, 1); },
+  removeTab: (index) => tabCollection.removeAt(index),
   activate,
   renderTabs,
 });
@@ -320,8 +320,8 @@ function closeTab(id: number): Promise<boolean> {
 const tabsView = createTabsView({
   container: $("tabs"),
   document,
-  tabs: () => tabs,
-  activeId: () => activeId,
+  tabs: tabCollection.tabs,
+  activeId: tabCollection.activeId,
   homeId,
   helpId,
   helpOpen: () => helpOpen,
@@ -349,10 +349,10 @@ function renderCursor() {
 // ---------------------------------------------------------------------------
 
 const workspaceExplorer = mountWorkspaceExplorer({
-  tabs: () => tabs,
-  replaceTabs: (next) => { tabs = next; },
+  tabs: tabCollection.tabs,
+  replaceTabs: (next) => tabCollection.replace(next),
   activeTab,
-  activeId: () => activeId,
+  activeId: tabCollection.activeId,
   homeId,
   activate,
   newTab: () => { newTab(); },
@@ -402,8 +402,8 @@ function renderRecent(recent: readonly string[] = recentFiles.list()) {
 }
 
 const fileIO = createFileIO({
-  tabs: () => tabs,
-  replaceTabs: (next) => { tabs = next; },
+  tabs: tabCollection.tabs,
+  replaceTabs: (next) => tabCollection.replace(next),
   activeTab,
   activate,
   newTab: (text, path) => { newTab(text, path); },
@@ -423,7 +423,7 @@ const fileIO = createFileIO({
     if (languageChanged && tab.rustPreview?.artifact) {
       tab.rustPreview = { ...tab.rustPreview, pending: false, stale: true, error: undefined };
     }
-    if (tab.id === activeId) {
+    if (tab.id === tabCollection.activeId()) {
       view.dispatch({ effects: [
         sourceLanguage.reconfigure(tab.language === "rust" ? rust() : tab.language === "portugol-rs" ? portugolRs() : portugol()),
         portugolTools.reconfigure(tab.language === "rust" ? [rustSourceLinter] : [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]),
@@ -438,7 +438,7 @@ const fileIO = createFileIO({
       }
     }
     if (tab.language === "rust") {
-      if (tab.id === activeId) view.dispatch(setDiagnostics(view.state, []));
+      if (tab.id === tabCollection.activeId()) view.dispatch(setDiagnostics(view.state, []));
       tab.diagnostics = [];
       tab.symbols = [];
       renderMessages();
@@ -482,7 +482,7 @@ const setRunning = runControls.setRunning;
 const debuggerCommands = createDebuggerCommands({
   runId: () => runId,
   runTabId: () => runTabId,
-  activeTabId: () => activeId,
+  activeTabId: tabCollection.activeId,
   breakpointLines,
   setBreakpoints: api.debugSetBreakpoints,
   setDebugLine: (line) => view.dispatch({ effects: setDebugLine.of(line) }),
@@ -501,10 +501,10 @@ function syncBreakpoints(state: EditorState) {
 
 const pausePresentation = createPausePresentation({
   setPausedState: (info) => { paused = info; },
-  activeTabId: () => activeId,
+  activeTabId: tabCollection.activeId,
   runTabId: () => runTabId,
   runId: () => runId,
-  runTab: () => tabs.find(({ id }) => id === runTabId),
+  runTab: () => tabCollection.tabs().find(({ id }) => id === runTabId),
   setDebugLine: (line) => view.dispatch({ effects: setDebugLine.of(line) }),
   setRunning,
   renderDebugInfo,
@@ -525,7 +525,7 @@ async function debugCommand(command: (id: number) => Promise<void>) {
 
 const rustExecution = createRustExecutionController({
   activeTab,
-  tabs: () => tabs,
+  tabs: tabCollection.tabs,
   isBusy: () => runId !== null || pendingEvents !== null || porsRunPending,
   rustcAvailable: () => rustcAvailable,
   cargoAvailable: () => cargoAvailable,
@@ -655,7 +655,7 @@ const runDispatcher = createRunDispatcher({
 const { runProgram, runOrContinue, stepOrStart, stopProgram } = runDispatcher;
 
 const cargoProjectController = createCargoProjectController({
-  tabs: () => tabs,
+  tabs: tabCollection.tabs,
   activeTab,
   isBusy: () => runId !== null || pendingEvents !== null || porsRunPending,
   cargoAvailable: () => cargoAvailable,
@@ -762,7 +762,7 @@ const runEvents = createRunEventsController({
   setRunId: (id) => { runId = id; },
   runTabId: () => runTabId,
   setRunTabId: (id) => { runTabId = id; },
-  activeTabId: () => activeId,
+  activeTabId: tabCollection.activeId,
   pendingEvents: () => pendingEvents,
   setPaused: (info) => { paused = info; },
   setPausedInfo: setPaused,
@@ -840,9 +840,9 @@ function updateLibraryButtons(symbols: api.SymbolInfo[]) {
 }
 
 const tabActivator = createTabActivator({
-  tabs: () => tabs,
+  tabs: tabCollection.tabs,
   currentTab: activeTab,
-  setActiveId: (id) => { activeId = id; },
+  setActiveId: tabCollection.setActiveId,
   editorState: () => view.state,
   homeId,
   helpId,
@@ -1011,8 +1011,8 @@ function editorMenuAction(id: string, action: () => unknown) {
   };
 }
 const exerciseTabOpener = createExerciseTabOpener({
-  tabs: () => tabs,
-  replaceTabs: (next) => { tabs = next; },
+  tabs: tabCollection.tabs,
+  replaceTabs: (next) => tabCollection.replace(next),
   activeTab,
   isDirty,
   template: TEMPLATE,
@@ -1025,9 +1025,9 @@ function openExercise(exerciseDocument: ExerciseDocument, workspaceExercise?: Wo
 }
 const exercises = mountExercises(openExercise);
 testsPanel = createTestsPanelController({
-  tabs: () => tabs,
+  tabs: tabCollection.tabs,
   activeTab,
-  activeId: () => activeId,
+  activeId: tabCollection.activeId,
   currentDocument: () => view.state.doc,
   documentForTab: (tab) => tab.state.doc,
   cargoAvailable: () => cargoAvailable,
@@ -1067,8 +1067,8 @@ editorMenuAction("editor-exercise", () => {
   const exercise = tab?.exercise;
   if (!tab || !exercise) return;
   const documentState = view.state.doc;
-  const isCurrent = () => tabs.includes(tab)
-    && (tab.id === activeId ? view.state.doc : tab.state.doc) === documentState;
+  const isCurrent = () => tabCollection.tabs().includes(tab)
+    && (tab.id === tabCollection.activeId() ? view.state.doc : tab.state.doc) === documentState;
   void exercises.grade(exercise, documentState.toString(), isCurrent);
 });
 editorMenuAction("editor-search", () => openSearchPanel(view));
@@ -1207,8 +1207,8 @@ document.querySelectorAll<HTMLButtonElement>("[data-activity]").forEach((button)
   };
 });
 function cycleTab(step: number) {
-  const ids = [homeId, ...(helpOpen ? [helpId] : []), ...tabs.map((tab) => tab.id)];
-  activate(ids[(ids.indexOf(activeId) + step + ids.length) % ids.length]);
+  const ids = [homeId, ...(helpOpen ? [helpId] : []), ...tabCollection.tabs().map((tab) => tab.id)];
+  activate(ids[(ids.indexOf(tabCollection.activeId()) + step + ids.length) % ids.length]);
 }
 
 const shortcutDialog = $<HTMLDialogElement>("shortcuts");
@@ -1285,9 +1285,9 @@ const shortcuts = createIdeShortcuts({
     showUtilities(true);
     outline.focus();
   },
-  closeTab: () => closeTab(activeId),
+  closeTab: () => closeTab(tabCollection.activeId()),
   closeAllTabs: async () => {
-    for (const tab of [...tabs]) if (!(await closeTab(tab.id))) return;
+    for (const tab of tabCollection.tabs()) if (!(await closeTab(tab.id))) return;
     if (helpOpen) await closeTab(helpId);
   },
   findReplace: () => openSearchPanel(view),
@@ -1332,7 +1332,7 @@ void runListeners.catch((error) => setStatus(String(error), "error"));
 mountWindowControls(() => {
   const current = activeTab();
   if (current) current.state = view.state;
-  return tabs.filter(isDirty).map(tabName);
+  return tabCollection.tabs().filter(isDirty).map(tabName);
 });
 
 const themeSelect = $<HTMLSelectElement>("theme");
