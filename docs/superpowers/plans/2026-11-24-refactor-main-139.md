@@ -446,3 +446,17 @@ Ruling: extract the mutable tab list and active ID into a small store while reta
 - [x] Route shared tab reads and writes through the collection store.
 - [x] Run the full frontend tests (81/81), typecheck, and build.
 - [x] Commit the tab collection group (#189).
+
+### Task 35: Editor utility insertions
+
+**Files:**
+- Create: `apps/desktop/src/editor/utility-insertions.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/utility-insertions.test.mjs`
+
+Ruling: group library insertion, snippet buttons, and utility panel tabs behind one injected editor utility controller — they are the three controls in the same utilities panel; if the grouping is too broad, the cost is a slightly wider controller API.
+
+- [x] Add tests for stale library requests, running/PORS guards, snippet insertion, and utility tab selection.
+- [x] Extract the utilities panel controls and keep library calls behind `api.ts` injection.
+- [x] Run the full frontend tests (82/82), typecheck, and build.
+- [x] Commit the utility insertions group (#190).
