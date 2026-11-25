@@ -132,6 +132,17 @@
 - [x] Move DOM, API, and controller composition for editor actions into the editor shell.
 - [x] Run focused tests, the full frontend suite, typecheck, build, and diff check.
 
+### Task 53: Execution presentation shell
+
+**Files:**
+- Create: `apps/desktop/src/run/execution-presentation.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Update: `apps/desktop/tests/debugger-shell.test.mjs`
+
+- [x] Extend the presentation boundary to own run-control DOM bindings and debugger shell adapters.
+- [x] Keep execution state and run lifecycle controllers in their existing modules.
+- [x] Run frontend tests, typecheck, build, and diff check.
+
 ### Task 46: Debugger shell composition
 
 **Files:**

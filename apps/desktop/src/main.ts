@@ -32,8 +32,7 @@ import {
 } from "./exercise-test-panel";
 import { createTestsPanelController } from "./run/tests-panel";
 import { createCargoProjectController } from "./run/cargo-project";
-import { createRunControls } from "./run/controls";
-import { createDebuggerShell } from "./run/debugger-shell";
+import { createExecutionPresentationShell } from "./run/execution-presentation";
 import { createRustExecutionController } from "./run/rust-execution";
 import { createPortugolRsExecutionController } from "./run/portugol-rs-execution";
 import { createClassicExecutionController } from "./run/classic-execution";
@@ -45,7 +44,7 @@ import { mountOutline } from "./outline";
 import { panelContentId, panelNameForKey, type PanelName } from "./panel-tabs";
 import { LIBRARIES, portugol, portugolRs, SNIPPETS } from "./portugol";
 import { detectSourceLanguage, ensureSourceExtension } from "./document-language";
-import { canDebugSource, canRunAsRust, canRunSource } from "./runtime-capabilities";
+import { canRunAsRust } from "./runtime-capabilities";
 import { parseClassicArguments, parseProcessArguments } from "./process-arguments";
 import { hasCargoExecutionConsent, hasRustExecutionConsent, rememberCargoExecutionConsent, rememberRustExecutionConsent } from "./rust-execution-consent";
 import { replayRunEvents } from "./run-event-router";
@@ -88,7 +87,6 @@ import { createPanelNavigation } from "./layout/panel-navigation";
 import { setStatus } from "./shell/status";
 import { mountFontSizeControls } from "./shell/font-size";
 import { appendConsole, appendProcessOutput, clearConsole, consoleText } from "./run/console";
-import { renderDebugInfo } from "./run/debug-view";
 import { chooseCargoTarget } from "./run/cargo-target-dialog";
 import { applyPageTheme, editorColors, editorTheme, onSystemThemeChange, themeChoice } from "./editor/theme";
 import { createEditorUpdateController } from "./editor/update-controller";
@@ -393,47 +391,20 @@ const consoleBox = $("console");
 const inputForm = $<HTMLFormElement>("console-form");
 const inputField = $<HTMLInputElement>("console-input");
 
-const runControls = createRunControls({
-  activeLanguage: () => activeTab()?.language,
-  canRun: canRunSource,
-  canDebug: canDebugSource,
-  rustcAvailable: toolchainState.rustcAvailable,
-  runId: () => runState.runId,
-  paused: () => runState.paused,
-  setButtonDisabled: (id, disabled) => { $<HTMLButtonElement>(id).disabled = disabled; },
-  setInputHidden: (hidden) => { inputForm.hidden = hidden; },
-  setDebugVarsHidden: (hidden) => { $("debug-vars").hidden = hidden; },
-  setInspectorEmptyHidden: (hidden) => { $("inspector-empty").hidden = hidden; },
-  setInspectorText: (text) => { $("inspector-empty").textContent = text; },
-});
-const setRunning = runControls.setRunning;
-
-const debuggerShell = createDebuggerShell({
-  runId: () => runState.runId,
-  runTabId: () => runState.runTabId,
+const executionPresentation = createExecutionPresentationShell({
+  activeTab,
+  tabs: tabCollection.tabs,
   activeTabId: tabCollection.activeId,
-  breakpointLines,
-  setBreakpoints: api.debugSetBreakpoints,
-  setDebugLine: (line) => view.dispatch({ effects: setDebugLine.of(line) }),
-  paused: () => runState.paused,
-  setPaused: (info) => { runState.paused = info; },
-  setRunning,
-  runLanguage: () => activeTab()?.language,
-  setStatus,
-  stop: api.stop,
-  runTab: () => tabCollection.tabs().find(({ id }) => id === runState.runTabId),
-  renderDebugInfo,
+  runState,
+  rustcAvailable: toolchainState.rustcAvailable,
+  view,
   activate,
   goTo,
+  setStatus,
   showUtilities: (visible) => showUtilities(visible),
   showDebugPanel: () => showPanel("debug"),
 });
-const {
-  debuggerCommands,
-  syncBreakpoints,
-  setPaused,
-  debugCommand,
-} = debuggerShell;
+const { setRunning, debuggerCommands, syncBreakpoints, setPaused, debugCommand } = executionPresentation;
 
 const rustExecution = createRustExecutionController({
   activeTab,
