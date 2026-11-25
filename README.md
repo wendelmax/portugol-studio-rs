@@ -94,6 +94,11 @@ Calendario, Arquivos, Objetos, Internet, ServicosWeb, Graficos, Teclado, Mouse e
 Sons. Os 196 exemplos do original fazem parte dos testes automatizados, que
 conferem a saída de cada um contra o resultado esperado.
 
+> **Nota de direção:** o Portugol-RS (`.pors`) é a linguagem principal do
+> projeto; o suporte ao Portugol clássico (`.por`/`.pex`) é mantido por
+> compatibilidade durante a transição definida no
+> [ADR 0016](docs/adr/0016-pors-como-linguagem-autoral-e-retirada-do-por.md).
+
 ```
 programa
 {
