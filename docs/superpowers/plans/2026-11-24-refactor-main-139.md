@@ -143,6 +143,18 @@
 - [x] Keep execution state and run lifecycle controllers in their existing modules.
 - [x] Run frontend tests, typecheck, build, and diff check.
 
+### Task 54: Execution controller shell
+
+**Files:**
+- Create: `apps/desktop/src/run/execution-controller-shell.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Update: `apps/desktop/tests/execution-controller-shell.test.mjs`
+- Update: `apps/desktop/tests/cargo-check.test.mjs` and `apps/desktop/tests/classic-execution-controller.test.mjs`
+
+- [x] Add a contract test for composing Rust, PORS, classic Portugol, Cargo, and run dispatch.
+- [x] Move execution controller adapters out of the application bootstrap.
+- [x] Run focused and full frontend tests, typecheck, build, and diff check.
+
 ### Task 46: Debugger shell composition
 
 **Files:**

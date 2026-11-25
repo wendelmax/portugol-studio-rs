@@ -7,6 +7,7 @@ import { isPaletteCommandAvailable } from "../src/command-palette.ts";
 test("cargo check is explicit, workspace-scoped, and mapped to the active editor", () => {
   const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
   const main = ideSource();
+  const shell = readFileSync(new URL("../src/run/execution-controller-shell.ts", import.meta.url), "utf8");
   const shortcuts = readFileSync(new URL("../src/commands/ide-shortcuts.ts", import.meta.url), "utf8");
   const controller = readFileSync(new URL("../src/run/cargo-project.ts", import.meta.url), "utf8");
   const tauri = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
@@ -14,8 +15,8 @@ test("cargo check is explicit, workspace-scoped, and mapped to the active editor
 
   assert.match(main, /isPaletteCommandAvailable\(command, paletteContext\(\)\)/);
   assert.match(shortcuts, /command: "Analisar projeto Cargo", matches: \(\) => false, action: actions\.checkCargoProject/);
-  assert.match(main, /createCargoProjectController\([\s\S]*hasCargoConsent: \(\) => hasCargoExecutionConsent\(sessionStorage\)/);
-  assert.match(main, /checkCargoProject: api\.checkCargoProject/);
+  assert.match(shell, /createCargoProjectController\([\s\S]*hasCargoConsent: \(\) => hasCargoExecutionConsent\(sessionStorage\)/);
+  assert.match(shell, /checkCargoProject: api\.checkCargoProject/);
   assert.match(controller, /rememberCargoConsent\(\)/);
   assert.match(controller, /Cargo encontrou diagnósticos no arquivo aberto; confira o Console para detalhes do projeto\./);
   const linter = main.match(/const rustSourceLinter = linter\([\s\S]*?\n\}\);/)?.[0] ?? "";
