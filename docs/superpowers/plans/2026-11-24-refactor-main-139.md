@@ -432,3 +432,17 @@ Ruling: keep capability derivation in `language-capabilities.ts` and extract onl
 - [x] Extract DOM updates for run, format, argument, library, and symbol controls.
 - [x] Run the full frontend tests (80/80), typecheck, and build.
 - [x] Commit the language controls view group (#188).
+
+### Task 34: Tab collection state
+
+**Files:**
+- Create: `apps/desktop/src/state/tab-collection.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/tab-collection.test.mjs`
+
+Ruling: extract the mutable tab list and active ID into a small store while retaining the existing factory, activation, closing, and view modules — centralizes shared state without bundling unrelated lifecycle behavior; if the store boundary is wrong, the risk is one extra indirection for tab reads.
+
+- [x] Add tests for initial active tab, add/remove/replace, and defensive list snapshots.
+- [x] Route shared tab reads and writes through the collection store.
+- [x] Run the full frontend tests (81/81), typecheck, and build.
+- [x] Commit the tab collection group (#189).
