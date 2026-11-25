@@ -97,6 +97,7 @@ import { createEditorExtensionFactory } from "./editor/extensions";
 import { createRustLintSourceCheck } from "./editor/rust-linter";
 import { createPortugolLintSourceCheck } from "./editor/portugol-linter";
 import { createSymbolRenamer } from "./editor/symbol-rename";
+import { createCenterSourceController } from "./editor/center-source";
 import {
   breakpointLines, breakpoints, createBreakpointGutter, debugLine, runtimeError, setDebugLine, setRuntimeError, toCodeMirror,
 } from "./editor/decorations";
@@ -114,13 +115,13 @@ const sourceLanguage = new Compartment();
 const portugolTools = new Compartment();
 const generatedRustTheme = new Compartment();
 
-const centerKey = "portugol.centerSource";
-let centerActive = false;
-try {
-  centerActive = localStorage.getItem(centerKey) === "true";
-} catch {
-  // A opção também funciona sem armazenamento.
-}
+const centerSource = createCenterSourceController({
+  storage: () => localStorage,
+  hasActiveTab: () => activeTab() !== undefined,
+  centerSelection,
+  setPressed: (pressed) => $("editor-center").setAttribute("aria-pressed", String(pressed)),
+  focusEditor: () => view.focus(),
+});
 
 const breakpointGutter = createBreakpointGutter((state) => syncBreakpoints(state), () => icon("pequeno/bug"));
 
@@ -190,7 +191,7 @@ const editorUpdateHandler = createEditorUpdateController({
   renderLearningPanel: () => learningPanel.render(),
   renderCursor,
   renderMappingGutter: () => rustPreview.renderMappingGutter(),
-  centerActive: () => centerActive,
+  centerActive: () => centerSource.isActive(),
   centerSelection,
 });
 
@@ -897,7 +898,7 @@ const tabActivator = createTabActivator({
   showOutline: (tab, changed) => outline.show(tab.symbols, changed),
   updateLibraryButtons: (tab) => updateLibraryButtons(tab.symbols),
   renderCursor,
-  centerSelectionEnabled: () => centerActive,
+  centerSelectionEnabled: () => centerSource.isActive(),
   centerSelection,
   bridgeMode: () => learningMode === "bridge",
   schedulePreview: () => rustPreview.schedule(),
@@ -951,24 +952,12 @@ const consoleOptions = $<HTMLDetailsElement>("console-tools");
 
 const outlineOptions = $<HTMLDetailsElement>("outline-options");
 const optionMenus = [editorOptions, consoleOptions, outlineOptions];
-const centerButton = $("editor-center");
-centerButton.setAttribute("aria-pressed", String(centerActive));
-
 function centerSelection() {
   view.dispatch({ effects: EditorView.scrollIntoView(view.state.selection.main.head, { y: "center" }) });
 }
 
 function toggleCenterSource() {
-  if (!activeTab()) return;
-  centerActive = !centerActive;
-  centerButton.setAttribute("aria-pressed", String(centerActive));
-  try {
-    localStorage.setItem(centerKey, String(centerActive));
-  } catch {
-    // A preferência permanece válida nesta sessão.
-  }
-  if (centerActive) centerSelection();
-  view.focus();
+  centerSource.toggle();
 }
 
 const symbolRenamer = createSymbolRenamer({
