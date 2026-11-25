@@ -320,7 +320,7 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - [x] Add tests for availability guards, stale document/tab results, compiler failures, and diagnostic conversion.
 - [x] Extract Rust source lint orchestration while keeping shell state and rendering injected.
 - [x] Run the full frontend tests (71/71), typecheck, and build.
-- [ ] Commit the Rust linter group.
+- [x] Commit the Rust linter group (#179).
 
 ### Task 25: Portugol and PORS source linter
 
@@ -417,3 +417,18 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - [x] Extract startup capability checks and status UI orchestration.
 - [x] Run the full frontend tests (79/79), typecheck, and build.
 - [x] Commit the toolchain status group (#187).
+
+### Task 33: Language controls view
+
+**Files:**
+- Create: `apps/desktop/src/state/language-controls-view.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/language-controls-view.test.mjs`
+- Modify: `apps/desktop/tests/language-capabilities.test.mjs`
+
+Ruling: keep capability derivation in `language-capabilities.ts` and extract only DOM presentation into an injected view controller — this separates rules from their rendering without changing language behavior; if this boundary is too narrow, it adds one small state view module.
+
+- [x] Add tests for default-title preservation and language-dependent controls.
+- [x] Extract DOM updates for run, format, argument, library, and symbol controls.
+- [x] Run the full frontend tests (80/80), typecheck, and build.
+- [x] Commit the language controls view group (#188).
