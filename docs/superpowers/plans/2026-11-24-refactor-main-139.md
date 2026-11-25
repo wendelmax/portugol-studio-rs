@@ -242,7 +242,7 @@
 - [x] Add a boundary test for composing execution state, presentation, controllers, events, and toolbar.
 - [x] Move run subsystem composition behind injected UI and API adapters without changing behavior.
 - [x] Run focused tests (6/6), frontend tests (100/100), typecheck, build, and diff check. `main.ts`: 796 lines.
-- [ ] Confirm clippy and the native window test pass in CI.
+- [x] Confirm clippy and the native window test pass in CI on Linux, macOS, and Windows (#217).
 
 ### Task 46: Debugger shell composition
 
