@@ -100,23 +100,33 @@ impl DebugControl {
         }
     }
 
+    fn lock_inner(&self) -> std::sync::MutexGuard<'_, Inner> {
+        self.inner.lock().unwrap_or_else(|error| error.into_inner())
+    }
+
+    fn lock_on_pause(&self) -> std::sync::MutexGuard<'_, Option<PauseCallback>> {
+        self.on_pause
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+    }
+
     /// Substitui os pontos de parada. Cada `Span` cobre uma linha inteira do
     /// fonte (a fachada converte o número da linha); a VM compara com o trecho
     /// que gerou cada instrução.
     pub fn set_breakpoints(&self, breakpoints: Vec<Span>) {
-        self.inner.lock().unwrap().breakpoints = breakpoints;
+        self.lock_inner().breakpoints = breakpoints;
     }
 
     /// Pede uma pausa na próxima instrução, mesmo sem ponto de parada.
     pub fn request_pause(&self) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.lock_inner();
         inner.pause_requested = true;
         self.changed.notify_all();
     }
 
     /// Ordena que a VM siga (ou dê um passo) depois da pausa atual.
     pub fn command(&self, command: DebugCommand) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.lock_inner();
         if command != DebugCommand::Continue {
             let depth = inner.paused_depth;
             inner.target_depth(depth);
@@ -128,14 +138,14 @@ impl DebugControl {
 
     /// Desbloqueia a VM e faz o laço de execução terminar em "interrompido".
     pub fn stop(&self) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.lock_inner();
         inner.stopped = true;
         self.changed.notify_all();
     }
 
     /// Chamado pela VM antes de executar a instrução em `span`.
     pub(crate) fn should_pause(&self, depth: usize, span: Span) -> bool {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.lock_inner();
         if inner.stopped {
             return false;
         }
@@ -194,13 +204,16 @@ impl DebugControl {
     /// que a espera estiver registrada, sem perder o sinal da variável de
     /// condição. O callback não deve chamar métodos deste controle.
     pub(crate) fn pause_and_wait(&self, info: &PausedInfo) -> bool {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.lock_inner();
         let seq = inner.seq;
-        if let Some(callback) = self.on_pause.lock().unwrap().as_ref() {
+        if let Some(callback) = self.lock_on_pause().as_ref() {
             callback(info);
         }
         while !inner.stopped && inner.seq == seq {
-            inner = self.changed.wait(inner).unwrap();
+            inner = self
+                .changed
+                .wait(inner)
+                .unwrap_or_else(|error| error.into_inner());
         }
         let stopped = inner.stopped;
         inner.skip_span = inner.pause_span.or(Some(info.span));
@@ -213,5 +226,32 @@ impl Inner {
         // `target_depth` é o quadro em que o passo foi pedido. Guardado num
         // campo separado para não confundir com a profundidade atual.
         self.target = depth;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn recovers_gracefully_after_mutex_poisoning() {
+        let control = DebugControl::new(|_| panic!("falha simulada no callback"));
+        let cloned = control.clone();
+        let join = std::thread::spawn(move || {
+            let info = PausedInfo {
+                span: Span::new(0, 1),
+                stack: Vec::new(),
+                variables: Vec::new(),
+            };
+            cloned.pause_and_wait(&info);
+        });
+        assert!(join.join().is_err());
+
+        // Chamadas subsequentes não devem entrar em pânico por PoisonError.
+        control.set_breakpoints(vec![Span::new(0, 10)]);
+        control.request_pause();
+        control.command(DebugCommand::Continue);
+        control.stop();
+        assert!(!control.should_pause(0, Span::new(0, 5)));
     }
 }

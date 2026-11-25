@@ -824,11 +824,53 @@ fn debug_set_breakpoints(runs: State<'_, Runs>, id: u32, source: String, lines: 
     runs.with_current(id, |handle| handle.set_breakpoints(&lines, &source));
 }
 
+const MAX_STANDALONE_FILE_BYTES: u64 = 16 * 1024 * 1024;
+const ALLOWED_READ_EXTENSIONS: &[&str] = &["pors", "por", "rs", "pex", "json"];
+const ALLOWED_WRITE_EXTENSIONS: &[&str] = &["pors", "por", "rs"];
+
+fn validate_standalone_file_path<'a>(
+    raw_path: &'a str,
+    allowed_extensions: &[&str],
+    action: &str,
+) -> Result<&'a std::path::Path, String> {
+    if raw_path.trim().is_empty() || raw_path.contains('\0') {
+        return Err(format!("Caminho inválido para {action}."));
+    }
+    let path = std::path::Path::new(raw_path);
+    let extension = path
+        .extension()
+        .and_then(std::ffi::OsStr::to_str)
+        .unwrap_or_default();
+    if !allowed_extensions
+        .iter()
+        .any(|allowed| extension.eq_ignore_ascii_case(allowed))
+    {
+        return Err(format!(
+            "Tipo de arquivo não suportado para {action}: {raw_path}"
+        ));
+    }
+    Ok(path)
+}
+
 /// Os exemplos históricos do Portugol Studio estão em ISO-8859-1; aceitamos
 /// UTF-8 (com ou sem BOM) e caímos para Latin-1 quando necessário.
 #[tauri::command]
 fn read_file(path: String) -> Result<String, String> {
-    let bytes = std::fs::read(&path).map_err(|e| format!("não foi possível ler {path}: {e}"))?;
+    let target = validate_standalone_file_path(&path, ALLOWED_READ_EXTENSIONS, "leitura")?;
+    let metadata =
+        std::fs::metadata(target).map_err(|e| format!("não foi possível ler {path}: {e}"))?;
+    if !metadata.is_file() {
+        return Err(format!(
+            "não foi possível ler {path}: o caminho não é um arquivo regular"
+        ));
+    }
+    if metadata.len() > MAX_STANDALONE_FILE_BYTES {
+        return Err(format!(
+            "não foi possível ler {path}: o arquivo excede o limite de {} MiB",
+            MAX_STANDALONE_FILE_BYTES / (1024 * 1024)
+        ));
+    }
+    let bytes = std::fs::read(target).map_err(|e| format!("não foi possível ler {path}: {e}"))?;
     Ok(decode_text(bytes))
 }
 
@@ -844,7 +886,21 @@ fn decode_text(bytes: Vec<u8>) -> String {
 
 #[tauri::command]
 fn write_file(path: String, text: String) -> Result<(), String> {
-    std::fs::write(&path, text).map_err(|e| format!("não foi possível gravar {path}: {e}"))
+    let target = validate_standalone_file_path(&path, ALLOWED_WRITE_EXTENSIONS, "gravação")?;
+    if (text.len() as u64) > MAX_STANDALONE_FILE_BYTES {
+        return Err(format!(
+            "não foi possível gravar {path}: o conteúdo excede o limite de {} MiB",
+            MAX_STANDALONE_FILE_BYTES / (1024 * 1024)
+        ));
+    }
+    if let Ok(metadata) = std::fs::metadata(target)
+        && !metadata.is_file()
+    {
+        return Err(format!(
+            "não foi possível gravar {path}: o destino não é um arquivo regular"
+        ));
+    }
+    std::fs::write(target, text).map_err(|e| format!("não foi possível gravar {path}: {e}"))
 }
 
 #[tauri::command]
@@ -1070,5 +1126,38 @@ mod rust_source_run_tests {
         sender.send("42".into()).unwrap();
         assert_eq!(receiver.recv().unwrap(), "42");
         assert!(runs.request_stop(id));
+    }
+
+    #[test]
+    fn standalone_file_commands_allow_supported_extensions_and_reject_others() {
+        let dir = std::env::temp_dir().join(format!(
+            "portugol-standalone-file-guard-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let pors = dir.join("exemplo.pors");
+        let secret = dir.join("segredo.env");
+        let script = dir.join("shell.sh");
+        let exercise = dir.join("ex.json");
+        std::fs::write(&secret, "SECRET=1").unwrap();
+        std::fs::write(&exercise, "{}").unwrap();
+
+        super::write_file(pors.display().to_string(), "funcao inicio() {}".into()).unwrap();
+        assert_eq!(
+            super::read_file(pors.display().to_string()).unwrap(),
+            "funcao inicio() {}"
+        );
+        assert_eq!(
+            super::read_file(exercise.display().to_string()).unwrap(),
+            "{}"
+        );
+
+        assert!(super::read_file(secret.display().to_string()).is_err());
+        assert!(super::write_file(script.display().to_string(), "echo hi".into()).is_err());
+        assert!(super::write_file(exercise.display().to_string(), "{}".into()).is_err());
+        assert!(super::read_file(dir.display().to_string()).is_err());
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
