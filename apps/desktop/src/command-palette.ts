@@ -76,6 +76,32 @@ export interface PaletteContext {
   porsRunPending: boolean;
 }
 
+export type PaletteLanguage = Exclude<PaletteContext["language"], null>;
+
+export interface PaletteContextDependencies {
+  activeTab?: { language: PaletteLanguage; cargoProject?: boolean };
+  cargoAvailable: boolean | null;
+  rustcAvailable: boolean | null;
+  runActive: boolean;
+  paused: boolean;
+  porsRunPending: boolean;
+  canRunAsRust: (language: PaletteLanguage, rustcAvailable: boolean | null) => boolean;
+}
+
+/** Deriva o estado da paleta a partir do snapshot atual da IDE. */
+export function createPaletteContext(dependencies: PaletteContextDependencies): PaletteContext {
+  const tab = dependencies.activeTab;
+  return {
+    language: tab?.language ?? null,
+    cargoProject: tab?.cargoProject === true,
+    cargoAvailable: dependencies.cargoAvailable === true,
+    canRunAsRust: tab !== undefined && dependencies.canRunAsRust(tab.language, dependencies.rustcAvailable),
+    runActive: dependencies.runActive,
+    paused: dependencies.paused,
+    porsRunPending: dependencies.porsRunPending,
+  };
+}
+
 export function isPaletteCommandAvailable(command: string, context: PaletteContext): boolean {
   if (command === "Paleta de comandos") return false;
   if (command === "Sobre (fora do editor); ir à declaração (no editor)") return false;

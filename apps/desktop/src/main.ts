@@ -55,7 +55,7 @@ import { replayRunEvents, type PendingRunEvent } from "./run-event-router";
 import { createRunEventsController } from "./run/run-events";
 import { mountRunToolbar } from "./run/toolbar";
 import { loadLearningMode, saveLearningMode, type LearningMode } from "./learning-mode";
-import { isPaletteCommandAvailable, type PaletteContext } from "./command-palette";
+import { createPaletteContext, isPaletteCommandAvailable } from "./command-palette";
 import { markRustPreviewStale } from "./rust-preview-state";
 import { PORS_UI_EXAMPLES } from "./pors-ui-examples";
 import { mountPorsUiPreviewPanel } from "./pors-ui-preview-panel";
@@ -1097,17 +1097,16 @@ function cycleTab(step: number) {
 
 const shortcutDialog = $<HTMLDialogElement>("shortcuts");
 
-function paletteContext(): PaletteContext {
-  const tab = activeTab();
-  return {
-    language: tab?.language ?? null,
-    cargoProject: tab?.cargoProject === true,
-    cargoAvailable: cargoAvailable === true,
-    canRunAsRust: tab !== undefined && canRunAsRust(tab.language, rustcAvailable),
+function paletteContext() {
+  return createPaletteContext({
+    activeTab: activeTab(),
+    cargoAvailable,
+    rustcAvailable,
     runActive: runId !== null,
     paused: paused !== null,
     porsRunPending,
-  };
+    canRunAsRust,
+  });
 }
 
 const commandPalette = mountCommandPalette(() =>

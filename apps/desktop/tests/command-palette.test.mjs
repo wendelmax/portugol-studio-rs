@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { filterCommands, isDebugCommandAvailable, isPaletteCommandAvailable, nextCommandIndex } from "../src/command-palette.ts";
+import { createPaletteContext, filterCommands, isDebugCommandAvailable, isPaletteCommandAvailable, nextCommandIndex } from "../src/command-palette.ts";
 import { ideSource } from "./support/ide-source.mjs";
 
 const commands = [
@@ -9,6 +9,38 @@ const commands = [
   { command: "Salvar", label: "Ctrl+S" },
   { command: "Ajuda da linguagem", label: "F1" },
 ];
+
+test("builds palette capabilities from the active tab and current execution state", () => {
+  const context = createPaletteContext({
+    activeTab: { language: "rust", cargoProject: true },
+    cargoAvailable: true,
+    rustcAvailable: false,
+    runActive: true,
+    paused: true,
+    porsRunPending: false,
+    canRunAsRust: () => false,
+  });
+
+  assert.deepEqual(context, {
+    language: "rust", cargoProject: true, cargoAvailable: true, canRunAsRust: false,
+    runActive: true, paused: true, porsRunPending: false,
+  });
+});
+
+test("empty palette context does not advertise a language or Cargo project", () => {
+  assert.deepEqual(createPaletteContext({
+    activeTab: undefined,
+    cargoAvailable: true,
+    rustcAvailable: true,
+    runActive: false,
+    paused: false,
+    porsRunPending: false,
+    canRunAsRust: () => true,
+  }), {
+    language: null, cargoProject: false, cargoAvailable: true, canRunAsRust: false,
+    runActive: false, paused: false, porsRunPending: false,
+  });
+});
 
 test("searches command names and shortcuts without case or accent sensitivity", () => {
   assert.deepEqual(filterCommands(commands, "ABRIR"), [commands[0]]);
