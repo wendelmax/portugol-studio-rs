@@ -517,3 +517,17 @@ Ruling: compose the tab collection, factory, dirty-state helper, closer, and tab
 - [x] Move tab lifecycle composition behind `createTabsShell`.
 - [x] Run the full frontend tests (86/86), typecheck, and build.
 - [x] Commit the tab shell group.
+
+### Task 40: Recent-files view
+
+**Files:**
+- Create: `apps/desktop/src/files/recent-view.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/recent-view.test.mjs`
+
+Ruling: extract only recent-files rendering and open/error click behavior into an injected view. Keep persistence and ordering in `files/recent.ts`; if the view module is too narrow, the cost is one small adapter.
+
+- [x] Add tests for empty state, path labels, opening files, and error status.
+- [x] Move recent-files DOM rendering to `recent-view.ts`.
+- [x] Run the full frontend tests (87/87), typecheck, and build.
+- [x] Commit the recent-files view group.

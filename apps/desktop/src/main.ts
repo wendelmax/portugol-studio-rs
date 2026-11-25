@@ -83,6 +83,7 @@ import { createHelpLoader } from "./shell/help-loader";
 import { createToolchainStatusController } from "./shell/toolchain-status";
 import { $ } from "./dom";
 import { createRecentFiles } from "./files/recent";
+import { createRecentFilesView } from "./files/recent-view";
 import { createFileIO } from "./files/io";
 import { createIncomingFileOpener } from "./files/system-files";
 import { mountPaneLayout } from "./layout/panes";
@@ -344,20 +345,15 @@ function localStorageOrNull(): Storage | null {
   }
 }
 
-const recentFiles = createRecentFiles(localStorageOrNull(), (list) => renderRecent(list));
-
-function renderRecent(recent: readonly string[] = recentFiles.list()) {
-  $("recent").hidden = recent.length === 0;
-  $("recent-files").replaceChildren(...recent.map((path) => {
-    const button = document.createElement("button");
-    const name = document.createElement("span");
-    name.textContent = path.split(/[\\/]/).pop() ?? path;
-    button.append(icon("grande/file"), name);
-    button.title = path;
-    button.onclick = () => void fileIO.openFile(path).catch((error) => setStatus(String(error), "error"));
-    return button;
-  }));
-}
+const recentFilesView = createRecentFilesView({
+  recent: $("recent"),
+  list: $("recent-files"),
+  document,
+  icon,
+  openFile: (path) => fileIO.openFile(path),
+  setStatus,
+});
+const recentFiles = createRecentFiles(localStorageOrNull(), (list) => recentFilesView.render(list));
 
 const fileIO = createFileIO({
   tabs: tabCollection.tabs,
@@ -1240,7 +1236,7 @@ editorMenuAction("editor-themes", themeEditor.open);
 mountFontSizeControls(["editor-font", "console-font"]);
 
 mountIcons();
-renderRecent();
+recentFilesView.render(recentFiles.list());
 mountExamples((source, file, workPath) =>
   newTab(
     source,
