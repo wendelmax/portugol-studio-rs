@@ -11,11 +11,15 @@ const activityBar = readFileSync(new URL("../src/shell/activity-bar.ts", import.
 
 test("shell tem marca, navegação de atividade e tabs dentro do workspace de edição", () => {
   assert.match(html, /class="app-brand"/);
-  assert.ok(html.includes("app-brand-mark") && html.includes("Portugol Studio"));
+  assert.match(html, /<title>Portugol Studio RS<\/title>/);
+  assert.match(html, /class="app-brand-mark"[^>]*>RS<\/span>Portugol Studio RS/);
   assert.match(html, /<aside[^>]*class="activity-rail"[^>]*aria-label="Atividades"/);
-  for (const activity of ["project", "learn", "examples", "debug", "settings"]) {
+  for (const activity of ["learn", "examples", "debug", "settings"]) {
     assert.match(html, new RegExp(`data-activity="${activity}"`));
   }
+  assert.doesNotMatch(html, /data-activity="project"/);
+  assert.match(html, /data-activity="debug"[^>]*aria-label="Painel de depuração"/);
+  assert.match(html, /<nav class="code-toolbar" aria-label="Comandos do editor">/);
   assert.match(html, /<nav id="tabs" data-testid="editor-tabs" class="tabs" aria-label="Abas"><\/nav>/);
   assert.match(html, /<div class="workspace">\s*<nav id="tabs"/);
 });
@@ -27,6 +31,7 @@ test("ações atuais e layout responsivo do shell continuam disponíveis", () =>
   assert.match(css, /\.activity-rail\s*\{[^}]*flex:\s*0 0 56px/s);
   assert.match(css, /\.utilities\s*\{[^}]*width:\s*clamp\(300px,\s*22vw,\s*380px\)/s);
   assert.match(css, /@media\s*\(max-width:\s*1439px\)/);
+  assert.doesNotMatch(css, /\.code\.expanded\s+\.code-toolbar\s*\{[^}]*flex-direction:\s*row/s);
   assert.match(main, /setWorkspaceExplorerVisible\(window\.innerWidth\s*>=\s*1440\)/);
   assert.match(main, /showUtilities\(window\.innerWidth\s*>=\s*1440\)/);
 });

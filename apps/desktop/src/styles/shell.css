@@ -51,8 +51,7 @@
   background: transparent;
 }
 
-.window-controls button:hover,
-.code-toolbar button:hover:not(:disabled) {
+.window-controls button:hover {
   background: var(--tab-active);
 }
 
@@ -113,12 +112,16 @@
 
 .activity-nav button:hover,
 .activity-nav button:focus-visible,
-.activity-nav button[aria-pressed="true"] {
+.activity-nav button[aria-pressed="true"],
+.code-toolbar button:hover:not(:disabled),
+.code-toolbar button:focus-visible,
+.code-toolbar button[aria-expanded="true"] {
   color: var(--text);
   background: var(--tab-active);
 }
 
-.activity-nav button[aria-pressed="true"] {
+.activity-nav button[aria-pressed="true"],
+.code-toolbar button[aria-expanded="true"] {
   border-left-color: var(--accent);
 }
 
@@ -136,27 +139,30 @@
   display: flex;
   flex: 0 0 auto;
   flex-direction: column;
-  gap: 1px;
-  padding: 5px;
+  align-items: center;
+  gap: 2px;
+  width: 48px;
+  padding: 0;
   border: 0;
-  background: var(--surface);
+  background: transparent;
 }
 
 .code-toolbar button {
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
+  width: 46px;
+  height: 40px;
   padding: 0;
   border: 0;
-  border-radius: 0;
+  border-left: 2px solid transparent;
+  border-radius: 5px;
   background: transparent;
-  text-align: left;
+  color: var(--muted);
 }
 
 .code-toolbar button .ui-icon {
-  width: 32px;
-  height: 32px;
+  width: 23px;
+  height: 23px;
 }
 
 .code-toolbar button#btn-unexpand .ui-icon {
@@ -164,66 +170,11 @@
   height: 18px;
 }
 
-.code-toolbar button#btn-explorer[aria-expanded="true"] {
-  background: var(--tab-active);
-  box-shadow: inset 3px 0 var(--accent);
-}
-
 .code-toolbar hr {
-  width: 100%;
-  margin: 5px 0;
+  width: calc(100% - 12px);
+  margin: 3px 0;
   border: 0;
   border-top: 1px solid var(--border);
-}
-
-.activity-rail .code-toolbar {
-  flex: 0 0 auto;
-  width: 48px;
-  padding: 0;
-  gap: 2px;
-  overflow: visible;
-  border: 0;
-  background: transparent;
-}
-
-.activity-rail .code-toolbar button {
-  width: 46px;
-  height: 40px;
-  border-radius: 5px;
-}
-
-.activity-rail .code-toolbar button .ui-icon {
-  width: 23px;
-  height: 23px;
-}
-
-.activity-rail .code-toolbar hr {
-  margin: 3px var(--space-1);
-}
-
-.code.expanded {
-  flex-direction: column;
-}
-
-.code.expanded .code-toolbar {
-  flex-direction: row;
-}
-
-.code.expanded .code-toolbar button {
-  width: 32px;
-  height: 28px;
-}
-
-.code.expanded .code-toolbar button .ui-icon {
-  width: 22px;
-  height: 22px;
-}
-
-.code.expanded .code-toolbar hr {
-  width: 0;
-  margin: 3px var(--space-1);
-  border: 0;
-  border-left: 1px solid var(--border);
 }
 
 .code.expanded #workspace-explorer,

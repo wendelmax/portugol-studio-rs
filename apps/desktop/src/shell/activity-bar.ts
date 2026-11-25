@@ -6,8 +6,6 @@ export interface ActivityBarButton {
 
 export interface ActivityBarDependencies {
   setInspectorView: (visible: boolean) => void;
-  openExplorer: () => void;
-  explorerExpanded: () => string | null;
   showPanel: (panel: "learning" | "debug") => void;
   activateHome: () => void;
   showUtilities: (visible: boolean) => void;
@@ -27,10 +25,6 @@ export function mountActivityBar(
       }
       if (button.dataset.activity !== "learn") dependencies.setInspectorView(false);
       switch (button.dataset.activity) {
-        case "project":
-          dependencies.openExplorer();
-          button.setAttribute("aria-pressed", dependencies.explorerExpanded() ?? "false");
-          break;
         case "learn":
           dependencies.showPanel("learning");
           break;
