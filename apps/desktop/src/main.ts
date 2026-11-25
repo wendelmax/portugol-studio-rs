@@ -46,8 +46,6 @@ import { createLanguageControlsView } from "./state/language-controls-view";
 import { createTabActivationShell } from "./state/tab-activation-shell";
 import type { WorkspaceExerciseRef } from "./state/exercise-tab";
 import { mountWorkspaceExplorer } from "./workspace/explorer";
-import { mountRustPreview } from "./rust/preview";
-import { mountLearningPanel } from "./learning/panel";
 import { mountLearningModeShell } from "./learning/mode-shell";
 import { createExerciseWorkbenchShell } from "./learning/exercise-workbench";
 import { cycleIdeTab } from "./commands/keyboard-dispatch";
@@ -55,7 +53,6 @@ import { mountIdeCommandShell } from "./commands/ide-command-shell";
 import { mountProjectDialogs } from "./shell/project-dialogs";
 import { mountWindowControls } from "./shell/window";
 import { mountActivityBar } from "./shell/activity-bar";
-import { createHelpLoader } from "./shell/help-loader";
 import { mountToolchainStatusShell } from "./shell/toolchain-status-shell";
 import { createToolchainState } from "./shell/toolchain-state";
 import { $ } from "./dom";
@@ -68,12 +65,8 @@ import { createPanelNavigation } from "./layout/panel-navigation";
 import { setStatus } from "./shell/status";
 import { mountFontSizeControls } from "./shell/font-size";
 import { appendConsole, appendProcessOutput, clearConsole, consoleText } from "./run/console";
-import { applyPageTheme, editorColors, editorTheme, onSystemThemeChange, themeChoice } from "./editor/theme";
-import { createEditorUpdateController } from "./editor/update-controller";
-import { createEditorExtensionFactory } from "./editor/extensions";
-import { createEditorSetup } from "./editor/setup";
-import { createEditorNavigationBindings } from "./editor/navigation-bindings";
-import { createEditorThemeController } from "./editor/theme-controller";
+import { applyPageTheme, editorTheme, onSystemThemeChange, themeChoice } from "./editor/theme";
+import { createEditorShell } from "./editor/editor-shell";
 import { createEditorActionsShell } from "./editor/actions-shell";
 import { createUtilityInsertions } from "./editor/utility-insertions";
 import {
@@ -96,120 +89,87 @@ function renderCursor() { tabsShell.renderCursor(); }
 // ---------------------------------------------------------------------------
 
 
-const editorSetup = createEditorSetup({
-  storage: () => localStorage,
-  hasActiveTab: () => activeTab() !== undefined,
-  centerSelection,
-  setCenterPressed: (pressed) => $("editor-center").setAttribute("aria-pressed", String(pressed)),
-  focusEditor: () => view.focus(),
-  syncBreakpoints: (state) => syncBreakpoints(state),
-  bugIcon: () => icon("pequeno/bug"),
-  activeTab,
-  inspectPortugol: api.inspect,
-  inspectPortugolRs: api.inspectPortugolRs,
-  renderMessages,
-  showOutline: (symbols) => outline.show(symbols),
-  updateLibraryButtons,
-  isRustcAvailable: () => toolchainState.rustcAvailable() === true,
-  checkRustSource: api.checkRustSource,
-});
 const {
   theme,
   sourceLanguage,
   portugolTools,
-  generatedRustTheme,
   centerSource,
   breakpointGutter,
   portugolLinter,
   rustSourceLinter,
-} = editorSetup;
-
-const view = new EditorView({ parent: $("editor") });
-const rustPreview = mountRustPreview({
-  sourceView: view,
-  activeTab: () => activeTab(),
-  learningMode: () => learningMode,
-  goTo,
-  editorExtensions: [editorColors, generatedRustTheme.of(editorTheme())],
-  onRendered: () => {
-    if (!$<HTMLElement>("learning-panel").hidden) learningPanel.render();
+  view,
+  rustPreview,
+  openHelp,
+  learningPanel,
+  extensions,
+  applyTheme,
+} = createEditorShell({
+  parent: $("editor"),
+  setup: {
+    storage: () => localStorage,
+    hasActiveTab: () => activeTab() !== undefined,
+    centerSelection,
+    setCenterPressed: (pressed) => $("editor-center").setAttribute("aria-pressed", String(pressed)),
+    syncBreakpoints: (state) => syncBreakpoints(state),
+    bugIcon: () => icon("pequeno/bug"),
+    activeTab,
+    inspectPortugol: api.inspect,
+    inspectPortugolRs: api.inspectPortugolRs,
+    renderMessages,
+    showOutline: (symbols) => outline.show(symbols),
+    updateLibraryButtons,
+    isRustcAvailable: () => toolchainState.rustcAvailable() === true,
+    checkRustSource: api.checkRustSource,
   },
-  openDetachedRust: (code) => {
-    const tab = newTab(code, null, undefined, undefined, undefined, "rust");
-    setStatus("Rust copiado para uma nova aba .rs independente. A origem e a prévia vinculada permanecem intactas.", "ok");
-    view.focus();
-    renderTabs();
-    syncLanguageControls(tab);
-  },
-});
-const generatedRustEditor = rustPreview.generatedEditor;
-const help = createHelpLoader({
-  openExample: (source, file) => newTab(source, null, file),
-  isActive: () => tabCollection.activeId() === helpId,
-});
-const openHelp = help.open;
-const learningPanel = mountLearningPanel({
-  sourceView: view,
-  activeTab: () => activeTab(),
-  learningMode: () => learningMode,
-  openExercise: async (exerciseId) => {
-    await exerciseWorkbench?.openById(exerciseId);
-  },
-});
-
-const editorUpdateHandler = createEditorUpdateController({
   activeTab,
-  currentEditorState: () => view.state,
-  renderMessages,
-  renderExerciseTests,
-  renderTabs,
-  markPreviewStale: markRustPreviewStale,
   learningMode: () => learningMode,
-  schedulePreview: () => rustPreview.schedule(),
-  selectionChanged: () => learningPanel.selectionChanged(),
-  learningPanelVisible: () => !$<HTMLElement>("learning-panel").hidden,
-  renderLearningPanel: () => learningPanel.render(),
-  renderCursor,
-  renderMappingGutter: () => rustPreview.renderMappingGutter(),
-  centerActive: () => centerSource.isActive(),
-  centerSelection,
+  preview: {
+    activeTab,
+    learningMode: () => learningMode,
+    goTo,
+    onRendered: () => {
+      if (!$<HTMLElement>("learning-panel").hidden) learningPanel.render();
+    },
+    openDetachedRust: (code) => {
+      const tab = newTab(code, null, undefined, undefined, undefined, "rust");
+      setStatus("Rust copiado para uma nova aba .rs independente. A origem e a prévia vinculada permanecem intactas.", "ok");
+      view.focus();
+      renderTabs();
+      syncLanguageControls(tab);
+    },
+  },
+  help: {
+    openExample: (source, file) => newTab(source, null, file),
+    isActive: () => tabCollection.activeId() === helpId,
+  },
+  learningPanel: {
+    openExercise: async (exerciseId) => { await exerciseWorkbench?.openById(exerciseId); },
+  },
+  update: {
+    renderMessages,
+    renderExerciseTests,
+    renderTabs,
+    markPreviewStale: markRustPreviewStale,
+    schedulePreview: () => rustPreview.schedule(),
+    selectionChanged: () => learningPanel.selectionChanged(),
+    learningPanelVisible: () => !$<HTMLElement>("learning-panel").hidden,
+    renderLearningPanel: () => learningPanel.render(),
+    renderCursor,
+    renderMappingGutter: () => rustPreview.renderMappingGutter(),
+    centerSelection,
+  },
+  navigation: { goToDeclarationAt },
+  extensions: {
+    portugolExtensions: () => [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine],
+    rustExtensions: () => [rustSourceLinter],
+    portugolLanguage: () => portugol(),
+    portugolRsLanguage: () => portugolRs(),
+    rustLanguage: () => rust(),
+    findDialog,
+    editorSearchKeys,
+  },
+  theme: { applyPageTheme, onSystemThemeChange },
 });
-
-const editorNavigation = createEditorNavigationBindings({
-  activeLanguage: () => activeTab()?.language,
-  selectionHead: () => view.state.selection.main.head,
-  goToDeclarationAt,
-});
-
-const extensions = createEditorExtensionFactory({
-  sourceLanguage,
-  portugolTools,
-  theme,
-  portugolExtensions: () => [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine],
-  rustExtensions: () => [rustSourceLinter],
-  portugolLanguage: () => portugol(),
-  portugolRsLanguage: () => portugolRs(),
-  rustLanguage: () => rust(),
-  editorColors,
-  editorTheme,
-  findDialog,
-  editorSearchKeys,
-  onEditorClick: editorNavigation.onEditorClick,
-  onGoToDeclaration: editorNavigation.onGoToDeclaration,
-  onUpdate: editorUpdateHandler,
-});
-
-const editorThemeController = createEditorThemeController({
-  sourceEditor: view,
-  sourceTheme: theme,
-  generatedEditor: generatedRustEditor,
-  generatedTheme: generatedRustTheme,
-  editorTheme,
-  refreshHelpTheme: () => help.refreshTheme(),
-  applyPageTheme,
-  onSystemThemeChange,
-});
-const { applyTheme } = editorThemeController;
 
 // ---------------------------------------------------------------------------
 // Abas

@@ -46,12 +46,14 @@ test("selects language and tooling extensions for classic Portugol, PORS, and Ru
 test("routes mouse, F12, and editor updates through injected shell handlers", async () => {
   const module = await readFile(new URL("../src/editor/extensions.ts", import.meta.url), "utf8");
   const main = await readFile(new URL("../src/main.ts", import.meta.url), "utf8");
+  const shell = await readFile(new URL("../src/editor/editor-shell.ts", import.meta.url), "utf8");
 
   assert.match(module, /EditorView\.domEventHandlers\([\s\S]*dependencies\.onEditorClick/);
   assert.match(module, /key: "F12", run: dependencies\.onGoToDeclaration/);
   assert.match(module, /EditorView\.updateListener\.of\(dependencies\.onUpdate\)/);
-  assert.match(main, /createEditorExtensionFactory\(/);
-  assert.match(main, /onEditorClick: editorNavigation\.onEditorClick/);
-  assert.match(main, /onGoToDeclaration: editorNavigation\.onGoToDeclaration/);
-  assert.match(main, /onUpdate: editorUpdateHandler/);
+  assert.doesNotMatch(main, /createEditorExtensionFactory\(/);
+  assert.match(shell, /createEditorExtensionFactory\(/);
+  assert.match(shell, /onEditorClick: editorNavigation\.onEditorClick/);
+  assert.match(shell, /onGoToDeclaration: editorNavigation\.onGoToDeclaration/);
+  assert.match(shell, /onUpdate: editorUpdateHandler/);
 });
