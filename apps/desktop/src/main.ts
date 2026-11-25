@@ -21,15 +21,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { renderDiagnostics } from "./diagnostics";
 import { mountExamples } from "./examples";
 import { mountHomeNewFileMenu } from "./home-new-file-menu";
-import { mountExercises, readExercise, type ExerciseDocument } from "./exercises";
-import {
-  cargoTestPanelState,
-  cargoTestStatus,
-  exerciseTestPanelState,
-  exerciseTestStatus,
-  isCurrentExerciseTestRequest,
-} from "./exercise-test-panel";
-import { createTestsPanelController } from "./run/tests-panel";
+import { readExercise, type ExerciseDocument } from "./exercises";
 import { createExecutionPresentationShell } from "./run/execution-presentation";
 import { createExecutionControllerShell } from "./run/execution-controller-shell";
 import { portugolFolding } from "./folding";
@@ -53,11 +45,12 @@ import { PORS_TEMPLATE, tabName } from "./state/tabs";
 import { createTabsShell } from "./state/tabs-shell";
 import { createLanguageControlsView } from "./state/language-controls-view";
 import { createTabActivationShell } from "./state/tab-activation-shell";
-import { createExerciseTabOpener, type WorkspaceExerciseRef } from "./state/exercise-tab";
+import type { WorkspaceExerciseRef } from "./state/exercise-tab";
 import { mountWorkspaceExplorer } from "./workspace/explorer";
 import { mountRustPreview } from "./rust/preview";
 import { mountLearningPanel } from "./learning/panel";
 import { createLearningModeController } from "./learning/mode-controller";
+import { createExerciseWorkbenchShell } from "./learning/exercise-workbench";
 import { mountCommandPalette } from "./commands/palette";
 import { renderShortcutList } from "./commands/shortcuts";
 import { createIdeShortcuts } from "./commands/ide-shortcuts";
@@ -164,7 +157,7 @@ const learningPanel = mountLearningPanel({
   activeTab: () => activeTab(),
   learningMode: () => learningMode,
   openExercise: async (exerciseId) => {
-    await exercises.openById(exerciseId);
+    await exerciseWorkbench?.openById(exerciseId);
   },
 });
 
@@ -230,7 +223,7 @@ const homeId = 0;
 const helpId = -1;
 let helpOpen = false;
 let learningMode: LearningMode = loadLearningMode();
-let testsPanel: ReturnType<typeof createTestsPanelController> | null = null;
+let exerciseWorkbench: ReturnType<typeof createExerciseWorkbenchShell> | null = null;
 const NEW_PROGRAM = TEMPLATE.replace("\t\t\n", '\t\tescreva("Olá Mundo")\n');
 function activate(id: number) {
   return tabActivator.activate(id);
@@ -465,11 +458,7 @@ function renderMessages() {
 }
 
 function renderExerciseTests() {
-  testsPanel?.render();
-}
-
-async function runExerciseTests() {
-  await testsPanel?.runExerciseTests();
+  exerciseWorkbench?.renderTests();
 }
 
 const runEvents = createRunEventsController({
@@ -648,67 +637,28 @@ function editorMenuAction(id: string, action: () => unknown) {
     action();
   };
 }
-const exerciseTabOpener = createExerciseTabOpener({
+function openExercise(exerciseDocument: ExerciseDocument, workspaceExercise?: WorkspaceExerciseRef) {
+  exerciseWorkbench?.openExercise(exerciseDocument, workspaceExercise);
+}
+exerciseWorkbench = createExerciseWorkbenchShell({
   tabs: tabCollection.tabs,
   replaceTabs: (next) => tabCollection.replace(next),
   activeTab,
+  activeId: tabCollection.activeId,
   isDirty,
   template: TEMPLATE,
   newTab,
   activate,
   selectWorkspace: (id, path) => workspaceExplorer.select(id, path),
-});
-function openExercise(exerciseDocument: ExerciseDocument, workspaceExercise?: WorkspaceExerciseRef) {
-  exerciseTabOpener.open(exerciseDocument, workspaceExercise);
-}
-const exercises = mountExercises(openExercise);
-testsPanel = createTestsPanelController({
-  tabs: tabCollection.tabs,
-  activeTab,
-  activeId: tabCollection.activeId,
   currentDocument: () => view.state.doc,
   documentForTab: (tab) => tab.state.doc,
   cargoAvailable: toolchainState.cargoAvailable,
   runId: () => runState.runId,
   runPending: () => runState.porsRunPending,
   tabName,
-  evaluateExercise: (exercise, source, isCurrent) => exercises.evaluate(exercise, source, isCurrent),
-  cargoTestPanelState,
-  cargoTestStatus,
-  exerciseTestPanelState,
-  exerciseTestStatus,
-  isCurrentExerciseTestRequest,
   runCargoTests,
-  view: {
-    clearResults: () => $<HTMLUListElement>("tests-results").replaceChildren(),
-    setTitle: (title) => { $("tests-title").textContent = title; },
-    setStatus: (status) => {
-      const element = $("tests-status");
-      if (element.textContent !== status) element.textContent = status;
-    },
-    setRunHidden: (hidden) => { $<HTMLButtonElement>("tests-run").hidden = hidden; },
-    setRunDisabled: (disabled) => { $<HTMLButtonElement>("tests-run").disabled = disabled; },
-    setRunText: (text) => { $<HTMLButtonElement>("tests-run").textContent = text; },
-    appendResult: (text) => {
-      const item = document.createElement("li");
-      item.textContent = text;
-      $<HTMLUListElement>("tests-results").append(item);
-    },
-    setResultsHidden: (hidden) => { $<HTMLUListElement>("tests-results").hidden = hidden; },
-  },
 });
-renderExerciseTests();
-$("home-exercises").onclick = exercises.browse;
-$("tests-run").onclick = () => void runExerciseTests();
-editorMenuAction("editor-exercise", () => {
-  const tab = activeTab();
-  const exercise = tab?.exercise;
-  if (!tab || !exercise) return;
-  const documentState = view.state.doc;
-  const isCurrent = () => tabCollection.tabs().includes(tab)
-    && (tab.id === tabCollection.activeId() ? view.state.doc : tab.state.doc) === documentState;
-  void exercises.grade(exercise, documentState.toString(), isCurrent);
-});
+editorMenuAction("editor-exercise", () => exerciseWorkbench?.gradeActiveExercise());
 editorMenuAction("editor-search", () => openSearchPanel(view));
 editorMenuAction("editor-definition", goToDeclarationSelection);
 editorMenuAction("editor-rename", renameSelection);
