@@ -155,6 +155,17 @@
 - [x] Move execution controller adapters out of the application bootstrap.
 - [x] Run focused and full frontend tests, typecheck, build, and diff check.
 
+### Task 55: Exercise workbench shell
+
+**Files:**
+- Create: `apps/desktop/src/learning/exercise-workbench.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/exercise-workbench-shell.test.mjs`
+
+- [x] Add a boundary test for exercise opening, evaluation, and test panel composition.
+- [x] Move exercise tab, catalog, grading, and test panel wiring into a focused shell.
+- [x] Run exercise tests, full frontend tests, typecheck, build, and diff check.
+
 ### Task 46: Debugger shell composition
 
 **Files:**
