@@ -77,6 +77,7 @@ import { createLearningModeController } from "./learning/mode-controller";
 import { mountCommandPalette } from "./commands/palette";
 import { renderShortcutList } from "./commands/shortcuts";
 import { createIdeShortcuts } from "./commands/ide-shortcuts";
+import { cycleIdeTab, mountKeyboardShortcutDispatch } from "./commands/keyboard-dispatch";
 import { mountProjectDialogs } from "./shell/project-dialogs";
 import { mountWindowControls } from "./shell/window";
 import { mountActivityBar } from "./shell/activity-bar";
@@ -1148,8 +1149,14 @@ mountActivityBar(document.querySelectorAll<HTMLButtonElement>("[data-activity]")
   },
 });
 function cycleTab(step: number) {
-  const ids = [homeId, ...(helpOpen ? [helpId] : []), ...tabCollection.tabs().map((tab) => tab.id)];
-  activate(ids[(ids.indexOf(tabCollection.activeId()) + step + ids.length) % ids.length]);
+  cycleIdeTab(step, {
+    homeId,
+    helpId,
+    helpOpen,
+    tabs: tabCollection.tabs(),
+    activeId: tabCollection.activeId(),
+    activate,
+  });
 }
 
 const shortcutDialog = $<HTMLDialogElement>("shortcuts");
@@ -1251,21 +1258,15 @@ $("home-shortcuts").onclick = showShortcuts;
 mountProjectDialogs({ version, license });
 $("home-help").onclick = $("btn-help").onclick = () => activate(helpId);
 
-window.addEventListener("keydown", (e) => {
-  if (e.defaultPrevented || document.querySelector("dialog[open]")) return;
-  if (e.key === "Escape" && !e.shiftKey) {
-    const menu = optionMenus.find((options) => options.open);
-    if (menu) {
-      e.preventDefault();
-      menu.open = false;
-      menu.querySelector("summary")?.focus();
-      return;
-    }
-  }
-  const shortcut = shortcuts.find(({ matches }) => matches(e));
-  if (!shortcut) return;
-  e.preventDefault();
-  void shortcut.action();
+mountKeyboardShortcutDispatch({
+  target: window,
+  hasOpenDialog: () => document.querySelector("dialog[open]") !== null,
+  optionMenus: optionMenus.map((menu) => ({
+    get open() { return menu.open; },
+    set open(value: boolean) { menu.open = value; },
+    focusSummary: () => menu.querySelector("summary")?.focus(),
+  })),
+  shortcuts: () => shortcuts,
 });
 
 // Confirma antes de fechar a janela com alterações não salvas.
