@@ -2711,7 +2711,7 @@ dependencies = [
 
 [[package]]
 name = "portugol-bytecode"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "portugol-hir",
  "portugol-syntax",
@@ -2719,7 +2719,7 @@ dependencies = [
 
 [[package]]
 name = "portugol-cli"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "portugol-bytecode",
  "portugol-rs-frontend",
@@ -2731,7 +2731,7 @@ dependencies = [
 
 [[package]]
 name = "portugol-desktop"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "cap-std",
  "portugol-service",
@@ -2748,11 +2748,11 @@ dependencies = [
 
 [[package]]
 name = "portugol-hir"
-version = "0.4.0"
+version = "0.5.0"
 
 [[package]]
 name = "portugol-rs-frontend"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "portugol-hir",
  "portugol-syntax",
@@ -2760,7 +2760,7 @@ dependencies = [
 
 [[package]]
 name = "portugol-rust"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "portugol-hir",
  "portugol-rs-frontend",
@@ -2770,14 +2770,14 @@ dependencies = [
 
 [[package]]
 name = "portugol-semantics"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "portugol-syntax",
 ]
 
 [[package]]
 name = "portugol-service"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "libc",
  "portugol-bytecode",
@@ -2795,14 +2795,14 @@ dependencies = [
 
 [[package]]
 name = "portugol-syntax"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "logos",
 ]
 
 [[package]]
 name = "portugol-vm"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "ab_glyph",
  "chrono",
@@ -2822,7 +2822,7 @@ dependencies = [
 
 [[package]]
 name = "portugol-wasm"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "portugol-bytecode",
  "portugol-rs-frontend",

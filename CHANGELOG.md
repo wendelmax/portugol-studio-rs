@@ -1,5 +1,16 @@
 # Histórico de versões
 
+## 0.5.0 (2026-11-25)
+
+### Manutenção
+
+- Barra de status com linguagem, modo e contagem de diagnósticos (#222)
+- Comparação lado a lado entre código e Rust gerado (#221)
+- Comandos de depuração indisponíveis para .pors na paleta e no botão Pausar (#220)
+- Trilha de aprendizado visível no painel Aprender (#219)
+
+Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v0.4.0...v0.5.0
+
 ## 0.4.0 (2026-11-25)
 
 ### Novidades
