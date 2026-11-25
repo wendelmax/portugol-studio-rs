@@ -336,10 +336,10 @@ impl<'a> Compiler<'a> {
                             self.emit(Op::Dup, arm.span);
                             self.emit(Op::PushInt((payload_index + 1) as i32), arm.span);
                             self.emit(Op::LoadElem, arm.span);
-                            if self.locals[binding.0 as usize].ty == Type::Cadeia {
-                                self.emit(Op::CloneString, arm.span);
-                            } else if self.locals[binding.0 as usize].dims > 0 {
+                            if self.locals[binding.0 as usize].dims > 0 {
                                 self.emit(Op::CloneArray, arm.span);
+                            } else if self.locals[binding.0 as usize].ty == Type::Cadeia {
+                                self.emit(Op::CloneString, arm.span);
                             }
                             self.emit(Op::StoreLocal(binding.0), arm.span);
                         }
