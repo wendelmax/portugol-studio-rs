@@ -488,3 +488,17 @@ Ruling: move the activity bar's five navigation bindings behind a small injected
 - [x] Extract activity bar event bindings and explorer/settings adapters.
 - [x] Run the full frontend tests (84/84), typecheck, and build.
 - [x] Commit the activity bar group.
+
+### Task 38: Keyboard shortcut dispatch
+
+**Files:**
+- Create: `apps/desktop/src/commands/keyboard-dispatch.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/keyboard-dispatch.test.mjs`
+
+Ruling: extract the global keydown listener and tab-cycle helper into a focused command/navigation module. Preserve dialog and Escape-menu guards, default prevention, shortcut dispatch, and tab wrapping; if the boundary is too narrow, the cost is one small adapter around the existing shortcut catalog.
+
+- [x] Add tests for guards, menu close/focus, shortcut dispatch, and tab cycling.
+- [x] Extract keydown listener and tab-cycle helper.
+- [x] Run the full frontend tests (85/85), typecheck, and build.
+- [x] Commit the keyboard dispatch group.
