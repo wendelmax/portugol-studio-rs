@@ -55,8 +55,12 @@ test("tab utilities derive names and dirty state from the active buffer", () => 
 
 test("IDE delegates tab creation and metadata helpers to the state module", async () => {
   const { readFile } = await import("node:fs/promises");
-  const main = await readFile(new URL("../src/main.ts", import.meta.url), "utf8");
-  assert.match(main, /createTabFactory\(/);
-  assert.match(main, /tabFactory\.create\(/);
-  assert.match(main, /isTabDirty\(/);
+  const [main, shell] = await Promise.all([
+    readFile(new URL("../src/main.ts", import.meta.url), "utf8"),
+    readFile(new URL("../src/state/tabs-shell.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(main, /createTabsShell\(/);
+  assert.match(shell, /createTabFactory\(/);
+  assert.match(shell, /tabFactory\.create\(/);
+  assert.match(shell, /isTabDirty\(/);
 });

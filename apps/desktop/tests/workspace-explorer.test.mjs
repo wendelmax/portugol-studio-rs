@@ -103,7 +103,7 @@ test("home start page defaults new file to Portugol-RS and groups alternate lang
   assert.match(html, /id="home-new-rust"[^>]*data-home-new-language="rust"[^>]*>Novo Rust \(\.rs\)<\/button>/);
   assert.match(html, /id="home-new-por"[^>]*data-home-new-language="portugol"[^>]*>Novo Portugol clássico \(\.por\)<\/button>/);
   assert.match(main, /\$\("home-new"\)\.onclick = \(\) => newTab\(\);/);
-  assert.match(main, /function newTab\(text = PORS_TEMPLATE/);
+  assert.match(main, /function newTab\(\s*text = PORS_TEMPLATE/);
   assert.match(main, /mountHomeNewFileMenu\(/);
   assert.match(main, /"portugol-rs": \(\) => newTab\(PORS_TEMPLATE, null, undefined, undefined, undefined, "portugol-rs"\)/);
   assert.match(main, /rust: \(\) => newTab\("fn main\(\) \{\\n    \\n\}\\n", null, undefined, undefined, undefined, "rust"\)/);

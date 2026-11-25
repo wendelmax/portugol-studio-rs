@@ -100,7 +100,11 @@ test("tab strip updates the document title for file, home, and help", () => {
 });
 
 test("IDE delegates tab strip rendering to the tested view module", async () => {
-  const main = await readFile(new URL("../src/main.ts", import.meta.url), "utf8");
-  assert.match(main, /createTabsView\(/);
-  assert.match(main, /tabsView\.render\(\)/);
+  const [main, shell] = await Promise.all([
+    readFile(new URL("../src/main.ts", import.meta.url), "utf8"),
+    readFile(new URL("../src/state/tabs-shell.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(main, /createTabsShell\(/);
+  assert.match(shell, /createTabsView\(/);
+  assert.match(shell, /tabsView\.render\(\)/);
 });
