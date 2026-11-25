@@ -78,6 +78,7 @@ import { mountWindowControls } from "./shell/window";
 import { mountActivityBar } from "./shell/activity-bar";
 import { createHelpLoader } from "./shell/help-loader";
 import { createToolchainStatusController } from "./shell/toolchain-status";
+import { createToolchainState } from "./shell/toolchain-state";
 import { $ } from "./dom";
 import { createRecentFiles } from "./files/recent";
 import { createRecentFilesView } from "./files/recent-view";
@@ -107,6 +108,7 @@ import {
 
 const TEMPLATE = "programa\n{\n\tfuncao inicio()\n\t{\n\t\t\n\t}\n}\n";
 let tabsShell: ReturnType<typeof createTabsShell>;
+const toolchainState = createToolchainState();
 
 function activeTab() { return tabsShell.activeTab(); }
 function isDirty(tab: Tab) { return tabsShell.isDirty(tab); }
@@ -134,7 +136,7 @@ const editorSetup = createEditorSetup({
   renderMessages,
   showOutline: (symbols) => outline.show(symbols),
   updateLibraryButtons,
-  isRustcAvailable: () => rustcAvailable === true,
+  isRustcAvailable: () => toolchainState.rustcAvailable() === true,
   checkRustSource: api.checkRustSource,
 });
 const {
@@ -274,9 +276,9 @@ const languageControlsView = createLanguageControlsView({
   formatButton: () => $<HTMLButtonElement>("editor-format"),
   libraryButtons: () => utilityInsertions.libraryButtons(),
   state: () => ({
-    rustcAvailable,
-    cargoAvailable,
-    rustfmtAvailable,
+    rustcAvailable: toolchainState.rustcAvailable(),
+    cargoAvailable: toolchainState.cargoAvailable(),
+    rustfmtAvailable: toolchainState.rustfmtAvailable(),
     runId,
     paused,
     busy: runId !== null || pendingEvents !== null || porsRunPending,
@@ -393,9 +395,6 @@ const fileIO = createFileIO({
 let runId: number | null = null;
 let runTabId: number | null = null;
 let pendingEvents: PendingRunEvent[] | null = null;
-let rustcAvailable: boolean | null = null;
-let cargoAvailable: boolean | null = null;
-let rustfmtAvailable: boolean | null = null;
 let porsRunPending = false;
 let paused: api.DebugInfo | null = null;
 const consoleBox = $("console");
@@ -406,7 +405,7 @@ const runControls = createRunControls({
   activeLanguage: () => activeTab()?.language,
   canRun: canRunSource,
   canDebug: canDebugSource,
-  rustcAvailable: () => rustcAvailable,
+  rustcAvailable: toolchainState.rustcAvailable,
   runId: () => runId,
   paused: () => paused,
   setButtonDisabled: (id, disabled) => { $<HTMLButtonElement>(id).disabled = disabled; },
@@ -448,8 +447,8 @@ const rustExecution = createRustExecutionController({
   activeTab,
   tabs: tabCollection.tabs,
   isBusy: () => runId !== null || pendingEvents !== null || porsRunPending,
-  rustcAvailable: () => rustcAvailable,
-  cargoAvailable: () => cargoAvailable,
+  rustcAvailable: toolchainState.rustcAvailable,
+  cargoAvailable: toolchainState.cargoAvailable,
   isDirty,
   save: () => fileIO.save(),
   argumentsText: () => $<HTMLInputElement>("args").value,
@@ -501,7 +500,7 @@ const rustExecution = createRustExecutionController({
 });
 
 const portugolRsExecution = createPortugolRsExecutionController({
-  rustcAvailable: () => rustcAvailable,
+  rustcAvailable: toolchainState.rustcAvailable,
   isCurrent: (tab, documentState) => activeTab() === tab && view.state.doc === documentState,
   runId: () => runId,
   setRunId: (id) => { runId = id; },
@@ -579,7 +578,7 @@ const cargoProjectController = createCargoProjectController({
   tabs: tabCollection.tabs,
   activeTab,
   isBusy: () => runId !== null || pendingEvents !== null || porsRunPending,
-  cargoAvailable: () => cargoAvailable,
+  cargoAvailable: toolchainState.cargoAvailable,
   isDirty,
   save: () => fileIO.save(),
   currentDocument: () => view.state.doc,
@@ -869,7 +868,7 @@ function goToDeclarationSelection() {
 const editorFormatter = createEditorFormatter({
   activeTab,
   isRunningTab: (tab) => runTabId === tab.id && runId !== null,
-  rustfmtAvailable: () => rustfmtAvailable === true,
+  rustfmtAvailable: () => toolchainState.rustfmtAvailable() === true,
   view,
   formatRust: api.formatRustSource,
   formatPortugolRs: api.formatPortugolRs,
@@ -907,7 +906,7 @@ testsPanel = createTestsPanelController({
   activeId: tabCollection.activeId,
   currentDocument: () => view.state.doc,
   documentForTab: (tab) => tab.state.doc,
-  cargoAvailable: () => cargoAvailable,
+  cargoAvailable: toolchainState.cargoAvailable,
   runId: () => runId,
   runPending: () => porsRunPending,
   tabName,
@@ -970,7 +969,7 @@ $("utilities-close").onclick = () => {
 $("btn-save").onclick = () => void fileIO.save();
 $("btn-save-as").onclick = () => void fileIO.save(true);
 const applyLearningMode = createLearningModeController({
-  rustcAvailable: () => rustcAvailable,
+  rustcAvailable: toolchainState.rustcAvailable,
   activeTab,
   setMode: (mode) => { learningMode = mode; },
   setSelectorValue: (mode) => { $<HTMLSelectElement>("learning-mode").value = mode; },
@@ -1081,8 +1080,8 @@ const shortcutDialog = $<HTMLDialogElement>("shortcuts");
 function paletteContext() {
   return createPaletteContext({
     activeTab: activeTab(),
-    cargoAvailable,
-    rustcAvailable,
+    cargoAvailable: toolchainState.cargoAvailable(),
+    rustcAvailable: toolchainState.rustcAvailable(),
     runActive: runId !== null,
     paused: paused !== null,
     porsRunPending,
@@ -1222,9 +1221,9 @@ const toolchainStatus = createToolchainStatusController({
   checkRust: api.rustToolchainAvailable,
   checkCargo: api.cargoToolchainAvailable,
   checkRustfmt: api.rustfmtAvailable,
-  setRustcAvailable: (available) => { rustcAvailable = available; },
-  setCargoAvailable: (available) => { cargoAvailable = available; },
-  setRustfmtAvailable: (available) => { rustfmtAvailable = available; },
+  setRustcAvailable: toolchainState.setRustcAvailable,
+  setCargoAvailable: toolchainState.setCargoAvailable,
+  setRustfmtAvailable: toolchainState.setRustfmtAvailable,
   setRustOptionDisabled: (disabled) => { $<HTMLOptionElement>("learning-mode-rust-option").disabled = disabled; },
   setRustHelpText: (text) => { $("learning-mode-rust-help").textContent = text; },
   restoreLearningMode: () => applyLearningMode(loadLearningMode(undefined, activeTab()?.workspacePreferenceKey), false),
