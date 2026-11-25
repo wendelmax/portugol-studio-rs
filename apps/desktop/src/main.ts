@@ -46,7 +46,7 @@ import { icon, mountIcons } from "./icons";
 import { mountOutline } from "./outline";
 import { panelContentId, panelNameForKey, type PanelName } from "./panel-tabs";
 import { LIBRARIES, portugol, portugolRs, SNIPPETS } from "./portugol";
-import { detectSourceLanguage, ensureSourceExtension, type SourceLanguage } from "./document-language";
+import { detectSourceLanguage, ensureSourceExtension } from "./document-language";
 import { semanticSymbolLanguage } from "./semantic-symbol-actions";
 import { canDebugSource, canRunAsRust, canRunSource } from "./runtime-capabilities";
 import { parseClassicArguments, parseProcessArguments } from "./process-arguments";
@@ -63,10 +63,8 @@ import { mountPorsUiPreviewPanel } from "./pors-ui-preview-panel";
 import { mountUiPreview } from "./ui-preview-renderer";
 import * as api from "./api";
 import type { Tab } from "./state/tab";
-import { createTabsView } from "./state/tabs-view";
-import { createTabFactory, isTabDirty, PORS_TEMPLATE, tabName } from "./state/tabs";
-import { createTabCollection } from "./state/tab-collection";
-import { createTabCloser } from "./state/tab-closer";
+import { PORS_TEMPLATE, tabName } from "./state/tabs";
+import { createTabsShell } from "./state/tabs-shell";
 import { createLanguageControlsView } from "./state/language-controls-view";
 import { createTabActivator } from "./state/tab-activation";
 import { createExerciseTabOpener, type WorkspaceExerciseRef } from "./state/exercise-tab";
@@ -109,6 +107,14 @@ import {
 } from "./editor/decorations";
 
 const TEMPLATE = "programa\n{\n\tfuncao inicio()\n\t{\n\t\t\n\t}\n}\n";
+let tabsShell: ReturnType<typeof createTabsShell>;
+
+function activeTab() { return tabsShell.activeTab(); }
+function isDirty(tab: Tab) { return tabsShell.isDirty(tab); }
+function newTab(...args: Parameters<typeof tabsShell.newTab>) { return tabsShell.newTab(...args); }
+function closeTab(id: number) { return tabsShell.closeTab(id); }
+function renderTabs() { tabsShell.renderTabs(); }
+function renderCursor() { tabsShell.renderCursor(); }
 
 // ---------------------------------------------------------------------------
 // Editor
@@ -250,37 +256,32 @@ onSystemThemeChange(refreshEditorThemes);
 
 const homeId = 0;
 const helpId = -1;
-const tabCollection = createTabCollection(homeId);
 let helpOpen = false;
 let learningMode: LearningMode = loadLearningMode();
 let testsPanel: ReturnType<typeof createTestsPanelController> | null = null;
-
-function activeTab(): Tab | undefined {
-  return tabCollection.activeTab();
-}
-
-function isDirty(tab: Tab): boolean {
-  return isTabDirty(tab, tabCollection.activeId(), view.state.doc.toString());
-}
-
 const NEW_PROGRAM = TEMPLATE.replace("\t\t\n", '\t\tescreva("Olá Mundo")\n');
-const tabFactory = createTabFactory({ extensions, addTab: (tab) => tabCollection.add(tab), activate });
-
-function newTab(text = PORS_TEMPLATE, path: string | null = null, exampleName?: string, examplePath?: string, exercise?: ExerciseDocument, explicitLanguage?: SourceLanguage, workspaceFile?: { id: string; path: string; preferenceKey: string }): Tab {
-  return tabFactory.create({
-    text,
-    path,
-    exampleName,
-    examplePath,
-    exercise,
-    explicitLanguage,
-    workspaceFile,
-  });
-}
-
 function activate(id: number) {
   return tabActivator.activate(id);
 }
+
+tabsShell = createTabsShell({
+  homeId,
+  helpId,
+  document,
+  container: $("tabs"),
+  icon,
+  extensions,
+  activate,
+  helpOpen: () => helpOpen,
+  setHelpOpen: (open) => { helpOpen = open; },
+  currentDocumentText: () => view.state.doc.toString(),
+  editorState: () => view.state,
+  setCursorText: (text) => { $("cursor").textContent = text; },
+  confirmDiscard: (tab) => ask(`"${tabName(tab)}" tem alterações não salvas. Fechar mesmo assim?`, {
+    title: "Fechar aba", kind: "warning", okLabel: "Fechar sem salvar", cancelLabel: "Cancelar",
+  }),
+});
+const { tabCollection } = tabsShell;
 
 const languageControlsView = createLanguageControlsView({
   button: (id) => $<HTMLButtonElement>(id),
@@ -299,53 +300,6 @@ const languageControlsView = createLanguageControlsView({
 
 function syncLanguageControls(tab: Tab) {
   languageControlsView.sync(tab);
-}
-
-const tabCloser = createTabCloser({
-  tabs: tabCollection.tabs,
-  activeId: tabCollection.activeId,
-  homeId,
-  helpId,
-  setHelpOpen: (open) => { helpOpen = open; },
-  isDirty,
-  tabName,
-  confirmDiscard: (tab) => ask(`"${tabName(tab)}" tem alterações não salvas. Fechar mesmo assim?`, {
-    title: "Fechar aba", kind: "warning", okLabel: "Fechar sem salvar", cancelLabel: "Cancelar",
-  }),
-  removeTab: (index) => tabCollection.removeAt(index),
-  activate,
-  renderTabs,
-});
-
-function closeTab(id: number): Promise<boolean> {
-  return tabCloser.close(id);
-}
-
-const tabsView = createTabsView({
-  container: $("tabs"),
-  document,
-  tabs: tabCollection.tabs,
-  activeId: tabCollection.activeId,
-  homeId,
-  helpId,
-  helpOpen: () => helpOpen,
-  tabName,
-  isDirty,
-  icon,
-  activate,
-  newTab: () => { newTab(); },
-  closeTab,
-});
-
-function renderTabs() {
-  tabsView.render();
-}
-
-function renderCursor() {
-  if (!activeTab()) return;
-  const head = view.state.selection.main.head;
-  const line = view.state.doc.lineAt(head);
-  $("cursor").textContent = `Linha ${line.number}, coluna ${head - line.from + 1}`;
 }
 
 // ---------------------------------------------------------------------------

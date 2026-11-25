@@ -69,7 +69,11 @@ test("closing a background tab preserves the active tab and rerenders the strip"
 });
 
 test("IDE delegates close confirmation and mutation to the tab closer", async () => {
-  const main = await readFile(new URL("../src/main.ts", import.meta.url), "utf8");
-  assert.match(main, /createTabCloser\(/);
-  assert.match(main, /return tabCloser\.close\(id\)/);
+  const [main, shell] = await Promise.all([
+    readFile(new URL("../src/main.ts", import.meta.url), "utf8"),
+    readFile(new URL("../src/state/tabs-shell.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(main, /createTabsShell\(/);
+  assert.match(shell, /createTabCloser\(/);
+  assert.match(shell, /return tabCloser\.close\(id\)/);
 });

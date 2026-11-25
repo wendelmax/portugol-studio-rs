@@ -502,3 +502,18 @@ Ruling: extract the global keydown listener and tab-cycle helper into a focused 
 - [x] Extract keydown listener and tab-cycle helper.
 - [x] Run the full frontend tests (85/85), typecheck, and build.
 - [x] Commit the keyboard dispatch group.
+
+### Task 39: Tab shell composition
+
+**Files:**
+- Create: `apps/desktop/src/state/tabs-shell.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/tabs-shell.test.mjs`
+- Update: `apps/desktop/tests/tabs-state.test.mjs` and `apps/desktop/tests/tabs-view.test.mjs`
+
+Ruling: compose the tab collection, factory, dirty-state helper, closer, and tab view in a `tabs-shell` factory. Keep tab activation effects in the existing activation controller; this removes lifecycle wiring from `main.ts` without creating a second source of tab behavior.
+
+- [x] Add tests for tab creation, selection, dirty state, rendering, and close behavior through the shell composition.
+- [x] Move tab lifecycle composition behind `createTabsShell`.
+- [x] Run the full frontend tests (86/86), typecheck, and build.
+- [x] Commit the tab shell group.

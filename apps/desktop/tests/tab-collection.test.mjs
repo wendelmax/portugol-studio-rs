@@ -40,9 +40,13 @@ test("tab list reads are snapshots that cannot mutate the collection", () => {
 });
 
 test("main delegates shared tab collection state to the store", async () => {
-  const main = await readFile(new URL("../src/main.ts", import.meta.url), "utf8");
+  const [main, shell] = await Promise.all([
+    readFile(new URL("../src/main.ts", import.meta.url), "utf8"),
+    readFile(new URL("../src/state/tabs-shell.ts", import.meta.url), "utf8"),
+  ]);
 
-  assert.match(main, /createTabCollection\(homeId\)/);
+  assert.match(main, /createTabsShell\(/);
+  assert.match(shell, /createTabCollection\(dependencies\.homeId\)/);
   assert.doesNotMatch(main, /let tabs: Tab\[\]/);
   assert.doesNotMatch(main, /let activeId = homeId/);
   assert.match(main, /setActiveId: tabCollection\.setActiveId/);
