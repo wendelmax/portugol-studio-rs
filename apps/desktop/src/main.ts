@@ -21,8 +21,6 @@ import { renderDiagnostics } from "./diagnostics";
 import { mountExamples } from "./examples";
 import { mountHomeNewFileMenu } from "./home-new-file-menu";
 import { readExercise, type ExerciseDocument } from "./exercises";
-import { createExecutionPresentationShell } from "./run/execution-presentation";
-import { createExecutionControllerShell } from "./run/execution-controller-shell";
 import { portugolFolding } from "./folding";
 import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
@@ -31,9 +29,8 @@ import { panelContentId, panelNameForKey, type PanelName } from "./panel-tabs";
 import { LIBRARIES, portugol, portugolRs, SNIPPETS } from "./portugol";
 import { detectSourceLanguage, ensureSourceExtension } from "./document-language";
 import { canRunAsRust } from "./runtime-capabilities";
-import { createExecutionState, isExecutionBusy } from "./run/execution-state";
-import { mountRunEventsShell } from "./run/run-events-shell";
-import { mountRunToolbar } from "./run/toolbar";
+import { isExecutionBusy } from "./run/execution-state";
+import { createRunShell } from "./run/run-shell";
 import { loadLearningMode, type LearningMode } from "./learning-mode";
 import { createPaletteContext } from "./command-palette";
 import { markRustPreviewStale } from "./rust-preview-state";
@@ -326,47 +323,53 @@ const fileIO = createFileIO({
 // Execução e console
 // ---------------------------------------------------------------------------
 
-const runState = createExecutionState();
 const consoleBox = $("console");
 const inputForm = $<HTMLFormElement>("console-form");
 const inputField = $<HTMLInputElement>("console-input");
 
-const executionPresentation = createExecutionPresentationShell({
+const runShell = createRunShell({
   activeTab,
   tabs: tabCollection.tabs,
   activeTabId: tabCollection.activeId,
-  runState,
-  rustcAvailable: toolchainState.rustcAvailable,
   view,
   activate,
   goTo,
-  setStatus,
-  showUtilities: (visible) => showUtilities(visible),
-  showDebugPanel: () => showPanel("debug"),
-});
-const { setRunning, syncBreakpoints, setPaused, debugCommand } = executionPresentation;
-
-const executionControllers = createExecutionControllerShell({
-  runState,
-  runPresentation: executionPresentation,
-  view,
-  tabs: tabCollection.tabs,
-  activeTab,
   rustcAvailable: toolchainState.rustcAvailable,
   cargoAvailable: toolchainState.cargoAvailable,
   isDirty,
   save: () => fileIO.save(),
-  runListeners: () => runListeners,
   syncLanguageControls,
   showPanel,
+  showUtilities: (visible) => showUtilities(visible),
   setStatus,
+  consoleBox,
+  inputForm,
+  inputField,
   clearConsole,
   appendConsole,
   appendProcessOutput,
+  consoleText,
+  copyText: (text) => navigator.clipboard.writeText(text),
+  sendInput: api.sendInput,
+  pause: (id) => { void api.debugPause(id); },
+  debugContinue: api.debugContinue,
+  debugStepOver: api.debugStepOver,
+  debugStepInto: api.debugStepInto,
+  debugStepOut: api.debugStepOut,
   renderMessages,
   renderExerciseTests,
 });
-const { runProgram, runOrContinue, stepOrStart, stopProgram, checkCargoProject, runCargoTests } = executionControllers;
+const {
+  runState,
+  syncBreakpoints,
+  debugCommand,
+  runProgram,
+  runOrContinue,
+  stepOrStart,
+  stopProgram,
+  checkCargoProject,
+  runCargoTests,
+} = runShell;
 
 const bottomPanelNames: PanelName[] = ["console", "tests", "messages", "debug"];
 
@@ -416,22 +419,6 @@ function renderMessages() {
 function renderExerciseTests() {
   exerciseWorkbench?.renderTests();
 }
-
-const runListeners = mountRunEventsShell({
-  state: runState,
-  activeTabId: tabCollection.activeId,
-  setPausedInfo: setPaused,
-  setRunning,
-  view,
-  consoleBox,
-  inputForm,
-  inputField,
-  appendConsole,
-  clearConsole,
-  setStatus,
-  goTo,
-  activeTab,
-});
 
 // ---------------------------------------------------------------------------
 // Divisória redimensionável e modo editor expandido
@@ -649,28 +636,6 @@ mountPorsUiPreviewShell({
   openExample: (source, fileName) => newTab(source, null, fileName, undefined, undefined, "portugol-rs"),
   focusEditor: () => view.focus(),
 });
-mountRunToolbar({
-  button: (id) => $<HTMLButtonElement>(id),
-  form: inputForm,
-  input: inputField,
-  runId: () => runState.runId,
-  activeLanguage: () => activeTab()?.language ?? null,
-  runOrContinue,
-  stepOrStart,
-  stop: stopProgram,
-  pause: (id) => { void api.debugPause(id); },
-  continueDebug: () => debugCommand(api.debugContinue),
-  stepOver: () => debugCommand(api.debugStepOver),
-  stepInto: () => debugCommand(api.debugStepInto),
-  stepOut: () => debugCommand(api.debugStepOut),
-  clearConsole,
-  consoleText,
-  copyText: (text) => navigator.clipboard.writeText(text),
-  setStatus,
-  showPanel,
-  appendConsole,
-  sendInput: api.sendInput,
-});
 mountActivityBar(document.querySelectorAll<HTMLButtonElement>("[data-activity]"), {
   setInspectorView,
   openExplorer: () => $<HTMLButtonElement>("btn-explorer").click(),
@@ -781,7 +746,6 @@ mountProjectDialogs({ version, license });
 $("home-help").onclick = $("btn-help").onclick = () => activate(helpId);
 
 // Confirma antes de fechar a janela com alterações não salvas.
-void runListeners.catch((error) => setStatus(String(error), "error"));
 mountWindowControls(() => {
   const current = activeTab();
   if (current) current.state = view.state;

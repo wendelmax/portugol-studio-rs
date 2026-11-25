@@ -232,6 +232,18 @@
 - [x] Move editor-local controller and view composition behind `createEditorShell` while exposing shared tab/file integration points.
 - [x] Run focused tests, full frontend tests (99/99), typecheck, build, and diff check. `main.ts`: 832 lines.
 
+### Task 62: Run composition shell
+
+**Files:**
+- Create: `apps/desktop/src/run/run-shell.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/run-shell.test.mjs`
+
+- [x] Add a boundary test for composing execution state, presentation, controllers, events, and toolbar.
+- [x] Move run subsystem composition behind injected UI and API adapters without changing behavior.
+- [x] Run focused tests (6/6), frontend tests (100/100), typecheck, build, and diff check. `main.ts`: 796 lines.
+- [ ] Confirm clippy and the native window test pass in CI.
+
 ### Task 46: Debugger shell composition
 
 **Files:**
