@@ -96,6 +96,6 @@ test("activating a file configures workspace, editor, previews, and diagnostics"
 
 test("IDE delegates tab activation sequencing to the state module", async () => {
   const main = await readFile(new URL("../src/main.ts", import.meta.url), "utf8");
-  assert.match(main, /createTabActivator\(/);
+  assert.match(main, /createTabActivationShell\(/);
   assert.match(main, /return tabActivator\.activate\(id\)/);
 });

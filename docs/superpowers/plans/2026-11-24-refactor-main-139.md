@@ -153,6 +153,18 @@
 - [x] Move execution identity, pending events, pending PORS run, and pause data into a typed store.
 - [x] Run frontend tests, typecheck, and build.
 
+### Task 50: Tab activation shell composition
+
+**Files:**
+- Create: `apps/desktop/src/state/tab-activation-shell.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/tab-activation-shell.test.mjs`
+- Modify: `apps/desktop/tests/tab-activation.test.mjs`
+
+- [x] Add a failing boundary test for tab activation shell composition.
+- [x] Move DOM and subsystem adapters out of `main.ts`.
+- [x] Run frontend tests, typecheck, and build.
+
 ### Task 44: System file event bindings
 
 **Files:**
