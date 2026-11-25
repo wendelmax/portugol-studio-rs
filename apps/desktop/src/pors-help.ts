@@ -18,9 +18,12 @@ export interface PorsHelpLibraryItem {
   readonly description: string;
 }
 
+export type PorsHelpLibraryGroup = "standard" | "visual";
+
 export interface PorsHelpLibrary {
   readonly id: string;
   readonly name: string;
+  readonly group: PorsHelpLibraryGroup;
   readonly description: string;
   readonly items: readonly PorsHelpLibraryItem[];
 }
@@ -54,6 +57,34 @@ export const PORS_HELP_TOPICS: readonly PorsHelpTopic[] = [
       title: "Classificação por nota",
       fileName: "condicionais-encadeadas.pors",
       source: `funcao classificar(nota: inteiro) -> inteiro {\n    se (nota >= 9) {\n        retorne 1;\n    } senao se (nota >= 7) {\n        retorne 2;\n    } senao {\n        retorne 3;\n    }\n}\n\nfuncao inicio() {\n    escreva(classificar(8));\n}\n`,
+    },
+  },
+  {
+    id: "pors:lacos",
+    title: "Laços de repetição (para, enquanto, faca-enquanto)",
+    summary: "Estruturas de repetição tipadas com controle explícito por pare e continue.",
+    paragraphs: [
+      "Em Portugol-RS você pode usar `para (seja mutavel i: inteiro = 0; i < n; i += 1)`, `enquanto (condicao)` e `faca { ... } enquanto (condicao);`.",
+      "Use `continue;` para pular para a próxima iteração e `pare;` para interromper o laço imediatamente, com o mesmo comportamento na VM e no Rust gerado.",
+    ],
+    example: {
+      title: "Soma seletiva com para, continue e pare",
+      fileName: "guia-pors-lacos.pors",
+      source: `funcao inicio() {\n    seja mutavel soma: inteiro = 0;\n    para (seja mutavel i: inteiro = 1; i <= 10; i += 1) {\n        se (i % 2 == 0) {\n            continue;\n        }\n        se (i > 7) {\n            pare;\n        }\n        soma += i;\n    }\n    escreva("Soma dos ímpares até 7: ", soma);\n}\n`,
+    },
+  },
+  {
+    id: "pors:funcoes",
+    title: "Funções tipadas e recursão",
+    summary: "Funções auxiliares com parâmetros tipados, passagem por valor e retorno explícito.",
+    paragraphs: [
+      "Funções em Portugol-RS declaram tipos explícitos nos parâmetros e no retorno (`-> Tipo`), podendo omitir `->` quando não retornam valor.",
+      "Parâmetros são imutáveis por padrão (ou `mutavel` para cópia local mutável) e podem ser chamados em qualquer ordem ou recursivamente.",
+    ],
+    example: {
+      title: "Fatorial recursivo tipado",
+      fileName: "guia-pors-funcoes.pors",
+      source: `funcao fatorial(n: inteiro) -> inteiro {\n    se (n <= 1) {\n        retorne 1;\n    }\n    retorne n * fatorial(n - 1);\n}\n\nfuncao inicio() {\n    escreva("5! = ", fatorial(5));\n}\n`,
     },
   },
   {
@@ -104,6 +135,7 @@ export const PORS_HELP_LIBRARIES: readonly PorsHelpLibrary[] = [
   {
     id: "pors-lib:Matematica",
     name: "PORS: Matematica",
+    group: "standard",
     description: "Constantes (`PI`, `E`) e 16 funções matemáticas tipadas sem coerção implícita (VM mínima, WASM e Rust).",
     items: [
       { name: "PI", signature: "Matematica.PI: real", description: "Constante π." },
@@ -119,6 +151,7 @@ export const PORS_HELP_LIBRARIES: readonly PorsHelpLibrary[] = [
   {
     id: "pors-lib:Texto",
     name: "PORS: Texto",
+    group: "standard",
     description: "13 operações Unicode-safe indexadas por `char`, com orçamento de memória verificado antes de alocar.",
     items: [
       { name: "numero_caracteres", signature: "Texto.numero_caracteres(texto: cadeia) -> inteiro", description: "Conta caracteres Unicode (`char`)." },
@@ -136,6 +169,7 @@ export const PORS_HELP_LIBRARIES: readonly PorsHelpLibrary[] = [
   {
     id: "pors-lib:Tipos",
     name: "PORS: Tipos",
+    group: "standard",
     description: "19 conversões explícitas e predicados com `Resultado<T, cadeia>` para parses falíveis.",
     items: [
       { name: "para_inteiro", signature: "Tipos.para_inteiro(texto: cadeia) -> Resultado<inteiro, cadeia>", description: "Converte cadeia decimal em `inteiro`." },
@@ -150,6 +184,7 @@ export const PORS_HELP_LIBRARIES: readonly PorsHelpLibrary[] = [
   {
     id: "pors-lib:Util",
     name: "PORS: Util",
+    group: "standard",
     description: "Utilitários determinísticos e canceláveis (VM mínima, WASM e Rust).",
     items: [
       { name: "sorteia", signature: "Util.sorteia(min: inteiro, max: inteiro) -> Resultado<inteiro, cadeia>", description: "Sorteia inteiro em `[min, max]` com erro tipado se `min > max`." },
@@ -161,6 +196,7 @@ export const PORS_HELP_LIBRARIES: readonly PorsHelpLibrary[] = [
   {
     id: "pors-lib:Calendario",
     name: "PORS: Calendario",
+    group: "standard",
     description: "Contrato UTC gregoriano determinístico com 19 constantes (`DIA_*`, `MES_*`) e 15 funções.",
     items: [
       { name: "data_iso_atual", signature: "Calendario.data_iso_atual() -> cadeia", description: "Retorna a data UTC atual no formato `AAAA-MM-DD`." },
@@ -173,6 +209,7 @@ export const PORS_HELP_LIBRARIES: readonly PorsHelpLibrary[] = [
   {
     id: "pors-lib:Arquivos",
     name: "PORS: Arquivos",
+    group: "standard",
     description: "Leitura e escrita UTF-8 estritamente confinadas ao workspace (bloqueia caminhos absolutos, `..` e symlinks; limite de 2 MiB).",
     items: [
       { name: "ler_texto", signature: "Arquivos.ler_texto(caminho: cadeia) -> Resultado<cadeia, cadeia>", description: "Lê arquivo UTF-8 relativo ao workspace." },
@@ -187,6 +224,7 @@ export const PORS_HELP_LIBRARIES: readonly PorsHelpLibrary[] = [
   {
     id: "pors-lib:Json",
     name: "PORS: Json",
+    group: "standard",
     description: "19 operações JSON (RFC 8259) puras e zero-dependência para validar, consultar, construir e formatar objetos JSON (VM mínima, WASM e Rust).",
     items: [
       { name: "valido", signature: "Json.valido(texto: cadeia) -> logico", description: "Valida sintaxe JSON (profundidade máxima 64)." },
@@ -204,6 +242,7 @@ export const PORS_HELP_LIBRARIES: readonly PorsHelpLibrary[] = [
   {
     id: "pors-lib:Internet",
     name: "PORS: Internet",
+    group: "standard",
     description: "Requisições HTTP/HTTPS com consentimento explícito (negado por padrão), timeout (100..30000 ms), cancelamento no debugger e limite de 1 MiB.",
     items: [
       { name: "definir_tempo_limite", signature: "Internet.definir_tempo_limite(ms: inteiro)", description: "Ajusta o timeout das requisições HTTP." },
@@ -215,6 +254,7 @@ export const PORS_HELP_LIBRARIES: readonly PorsHelpLibrary[] = [
   {
     id: "pors-lib:UI",
     name: "PORS: UI",
+    group: "visual",
     description: "Componentes declarativos MVU para interfaces gráficas interativas na IDE, WASM e Rust.",
     items: [
       { name: "coluna", signature: "UI.coluna(filhos: vetor<inteiro>) -> inteiro", description: "Empilha componentes verticalmente." },
@@ -228,6 +268,7 @@ export const PORS_HELP_LIBRARIES: readonly PorsHelpLibrary[] = [
   {
     id: "pors-lib:Graficos",
     name: "PORS: Graficos",
+    group: "visual",
     description: "Janela gráfica nativa, cores, formas, polígonos com vetores tipados, texto, imagens e GIFs via ponte da VM (feature `stdlib`).",
     items: [
       { name: "iniciar_modo_grafico", signature: "Graficos.iniciar_modo_grafico(manter_visivel: logico)", description: "Abre a janela gráfica nativa da IDE/VM." },
@@ -242,6 +283,7 @@ export const PORS_HELP_LIBRARIES: readonly PorsHelpLibrary[] = [
   {
     id: "pors-lib:Teclado",
     name: "PORS: Teclado",
+    group: "visual",
     description: "Consulta de estado e espera cancelável de teclas na janela gráfica com constantes `TECLA_*`.",
     items: [
       { name: "tecla_pressionada", signature: "Teclado.tecla_pressionada(tecla: inteiro) -> logico", description: "Verifica se uma tecla específica está pressionada." },
@@ -253,6 +295,7 @@ export const PORS_HELP_LIBRARIES: readonly PorsHelpLibrary[] = [
   {
     id: "pors-lib:Mouse",
     name: "PORS: Mouse",
+    group: "visual",
     description: "Consulta de botões, posição e cursor do mouse na janela gráfica com constantes `BOTAO_*`.",
     items: [
       { name: "botao_pressionado", signature: "Mouse.botao_pressionado(botao: inteiro) -> logico", description: "Verifica se o botão informado está pressionado." },
@@ -264,6 +307,7 @@ export const PORS_HELP_LIBRARIES: readonly PorsHelpLibrary[] = [
   {
     id: "pors-lib:Sons",
     name: "PORS: Sons",
+    group: "visual",
     description: "Carregamento de áudio confinado ao workspace, reprodução em loop, busca e controle de volume via host da VM.",
     items: [
       { name: "carregar_som", signature: "Sons.carregar_som(caminho: cadeia) -> Resultado<inteiro, cadeia>", description: "Carrega um arquivo de áudio do workspace." },
