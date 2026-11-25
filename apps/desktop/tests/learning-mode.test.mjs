@@ -59,7 +59,7 @@ test("workspace tabs carry their stable preference key and restore mode on activ
   assert.match(main, /applyLearningMode\(loadLearningMode\(undefined, tab\.workspacePreferenceKey\), false\)/);
   assert.match(modeShell, /persist: \(mode, preferenceKey\) => saveLearningMode\(mode, undefined, preferenceKey\)/);
   assert.match(modeController, /dependencies\.persist\(availableMode, dependencies\.activeTab\(\)\?\.workspacePreferenceKey\)/);
-  assert.match(main, /restoreLearningMode: \(\) => applyLearningMode\(loadLearningMode\(undefined, activeTab\(\)\?\.workspacePreferenceKey\), false\)/);
+  assert.match(main, /restoreLearningMode: \(\) => \{[\s\S]*applyLearningMode\(loadLearningMode\(undefined, activeTab\(\)\?\.workspacePreferenceKey\), false\);[\s\S]*renderStatusBar\(\)/);
   assert.match(toolchainStatus, /dependencies\.restoreLearningMode\(\)/);
 });
 

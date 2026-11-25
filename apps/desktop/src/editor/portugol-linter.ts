@@ -20,6 +20,7 @@ export function createPortugolLintSourceCheck(dependencies: PortugolLintDependen
     const tab = dependencies.activeTab();
     if (tab?.language === "rust") {
       tab.diagnostics = [];
+      tab.diagnosticsAnalysis = { source: doc.toString(), status: "unavailable" };
       tab.symbols = [];
       dependencies.renderMessages();
       dependencies.showOutline([]);
@@ -28,12 +29,22 @@ export function createPortugolLintSourceCheck(dependencies: PortugolLintDependen
     }
 
     const language = tab?.language ?? "portugol";
-    const inspection = language === "portugol-rs"
-      ? await dependencies.inspectPortugolRs(doc.toString())
-      : await dependencies.inspectPortugol(doc.toString());
+    let inspection: Inspection;
+    try {
+      inspection = language === "portugol-rs"
+        ? await dependencies.inspectPortugolRs(doc.toString())
+        : await dependencies.inspectPortugol(doc.toString());
+    } catch {
+      if (tab && tab === dependencies.activeTab() && view.state.doc === doc) {
+        tab.diagnosticsAnalysis = { source: doc.toString(), status: "unavailable" };
+        dependencies.renderMessages();
+      }
+      return [];
+    }
     const { diagnostics, symbols } = inspection;
     if (tab && tab === dependencies.activeTab() && view.state.doc === doc) {
       tab.diagnostics = diagnostics;
+      tab.diagnosticsAnalysis = { source: doc.toString(), status: "complete" };
       tab.symbols = symbols;
       dependencies.renderMessages();
       dependencies.showOutline(symbols);

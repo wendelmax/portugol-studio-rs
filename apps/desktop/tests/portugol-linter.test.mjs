@@ -37,6 +37,16 @@ test("routes Portugol and PORS documents to their existing inspection services",
   f.tab.language = "portugol-rs";
   assert.equal((await check(editor("pors")))[0].item.code, "pors");
   assert.deepEqual(f.tab.symbols, [{ name: "pors" }]);
+  assert.deepEqual(f.tab.diagnosticsAnalysis, { source: "pors", status: "complete" });
+});
+
+test("marks the current source unavailable when language inspection fails", async () => {
+  const f = fixture();
+  f.setInspectPortugol(async () => { throw new Error("inspector offline"); });
+
+  assert.deepEqual(await f.createCheck()(editor("fonte")), []);
+  assert.deepEqual(f.tab.diagnosticsAnalysis, { source: "fonte", status: "unavailable" });
+  assert.ok(f.calls.includes("messages"));
 });
 
 test("clears diagnostics, symbols, outline, and library controls for Rust tabs", async () => {

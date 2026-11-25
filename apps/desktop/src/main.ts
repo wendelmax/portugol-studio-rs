@@ -11,6 +11,7 @@ import license from "../../../LICENSE?raw";
 import { version } from "../package.json";
 
 import { EditorView } from "@codemirror/view";
+import { EditorState } from "@codemirror/state";
 import { isolateHistory } from "@codemirror/commands";
 import { forceLinting, setDiagnostics } from "@codemirror/lint";
 import { openSearchPanel } from "@codemirror/search";
@@ -57,6 +58,7 @@ import { mountSystemFilesShell } from "./files/system-files-shell";
 import { mountPaneLayout } from "./layout/panes";
 import { createPanelNavigation } from "./layout/panel-navigation";
 import { setStatus } from "./shell/status";
+import { mountStatusBar } from "./shell/status-bar";
 import { mountFontSizeControls } from "./shell/font-size";
 import { appendConsole, appendProcessOutput, clearConsole, consoleText } from "./run/console";
 import { applyPageTheme, editorTheme, onSystemThemeChange, themeChoice } from "./editor/theme";
@@ -75,8 +77,15 @@ function activeTab() { return tabsShell.activeTab(); }
 function isDirty(tab: Tab) { return tabsShell.isDirty(tab); }
 function newTab(...args: Parameters<typeof tabsShell.newTab>) { return tabsShell.newTab(...args); }
 function closeTab(id: number) { return tabsShell.closeTab(id); }
-function renderTabs() { tabsShell.renderTabs(); }
-function renderCursor() { tabsShell.renderCursor(); }
+let renderStatusBar: () => void = () => {};
+function renderTabs() {
+  tabsShell.renderTabs();
+  renderStatusBar();
+}
+function renderCursor() {
+  tabsShell.renderCursor();
+  renderStatusBar();
+}
 
 // ---------------------------------------------------------------------------
 // Editor
@@ -261,6 +270,7 @@ const workspaceFilesShell = createWorkspaceFilesShell({
       if (languageChanged && tab.rustPreview?.artifact) {
         tab.rustPreview = { ...tab.rustPreview, pending: false, stale: true, error: undefined };
       }
+      if (languageChanged) tab.diagnosticsAnalysis = undefined;
       if (tab.id === tabCollection.activeId()) {
         view.dispatch({ effects: [
           sourceLanguage.reconfigure(tab.language === "rust" ? rust() : tab.language === "portugol-rs" ? portugolRs() : portugol()),
@@ -274,6 +284,7 @@ const workspaceFilesShell = createWorkspaceFilesShell({
           if (learningMode === "bridge" && tab.language !== "rust") rustPreview.schedule();
           else rustPreview.renderMappingGutter();
         }
+        renderStatusBar();
       }
       if (tab.language === "rust") {
         if (tab.id === tabCollection.activeId()) view.dispatch(setDiagnostics(view.state, []));
@@ -368,6 +379,16 @@ function showPanel(which: PanelName) {
   panelNavigation.showPanel(which);
 }
 
+const statusBar = mountStatusBar({
+  activeTab,
+  source: () => view.state.doc.toString(),
+  tabSize: () => view.state.facet(EditorState.tabSize),
+  learningMode: () => learningMode,
+  rustcAvailable: toolchainState.rustcAvailable,
+  openMessages: () => showPanel("messages"),
+});
+renderStatusBar = statusBar.render;
+
 document.querySelector<HTMLElement>(".panel-tabs")?.addEventListener("keydown", (event) => {
   const target = event.target;
   if (!(target instanceof HTMLElement)) return;
@@ -389,6 +410,7 @@ function goTo(offset: number) {
 function renderMessages() {
   const tab = activeTab();
   renderDiagnostics([...(tab?.diagnostics ?? []), ...(tab?.runtimeCompileDiagnostics ?? [])], view.state.doc.lines, goTo);
+  renderStatusBar();
 }
 
 function renderExerciseTests() {
@@ -594,7 +616,7 @@ const applyLearningMode = mountLearningModeShell({
   currentMode: () => learningMode,
   rustcAvailable: toolchainState.rustcAvailable,
   activeTab,
-  setMode: (mode) => { learningMode = mode; },
+  setMode: (mode) => { learningMode = mode; renderStatusBar(); },
   panelVisible: () => !$<HTMLElement>("learning-panel").hidden,
   renderPanel: () => learningPanel.render(),
   setPreviewHidden: (hidden) => { $("rust-preview").hidden = hidden; },
@@ -754,7 +776,10 @@ setWorkspaceExplorerVisible(window.innerWidth >= 1440);
 showUtilities(window.innerWidth >= 1440);
 mountToolchainStatusShell({
   state: toolchainState,
-  restoreLearningMode: () => applyLearningMode(loadLearningMode(undefined, activeTab()?.workspacePreferenceKey), false),
+  restoreLearningMode: () => {
+    applyLearningMode(loadLearningMode(undefined, activeTab()?.workspacePreferenceKey), false);
+    renderStatusBar();
+  },
   activeTab,
   syncLanguageControls,
   forceRustLint: () => forceLinting(view),

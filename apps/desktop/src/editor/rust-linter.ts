@@ -20,6 +20,7 @@ export function createRustLintSourceCheck(dependencies: RustLintDependencies) {
     if (tab?.language !== "rust" || tab.cargoProject === true || !dependencies.isRustcAvailable()) {
       if (tab?.language === "rust") {
         tab.diagnostics = [];
+        tab.diagnosticsAnalysis = { source: doc.toString(), status: "unavailable" };
         dependencies.renderMessages();
       }
       return [];
@@ -48,6 +49,10 @@ export function createRustLintSourceCheck(dependencies: RustLintDependencies) {
         }];
       });
     tab.diagnostics = diagnostics;
+    tab.diagnosticsAnalysis = {
+      source: doc.toString(),
+      status: checked.error ? "unavailable" : "complete",
+    };
     dependencies.renderMessages();
     return [...diagnostics, ...(tab.runtimeCompileDiagnostics ?? [])]
       .map((diagnostic) => dependencies.toCodeMirror(diagnostic, doc.length));
