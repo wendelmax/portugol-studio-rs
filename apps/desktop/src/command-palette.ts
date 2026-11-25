@@ -1,3 +1,6 @@
+import type { SourceLanguage } from "./document-language";
+import { canDebugSource } from "./runtime-capabilities.ts";
+
 export interface CommandSearchItem {
   command: string;
   label: string;
@@ -5,11 +8,11 @@ export interface CommandSearchItem {
 
 export function isDebugCommandAvailable(
   command: string,
-  language: string | null,
+  language: SourceLanguage | null,
   runActive: boolean,
   paused: boolean,
 ): boolean {
-  if (language !== "portugol") return false;
+  if (language === null || !canDebugSource(language)) return false;
   if (command === "Depurar") return !runActive || paused;
   if (command === "Interromper") return runActive;
   if (command === "Pausar") return runActive && !paused;
@@ -66,7 +69,7 @@ export const DEBUG_COMMANDS: ReadonlySet<string> = new Set([
 /** Estado da IDE que decide quais comandos aparecem na paleta. */
 export interface PaletteContext {
   /** Linguagem da aba ativa; `null` sem aba de código. */
-  language: "portugol" | "portugol-rs" | "rust" | null;
+  language: SourceLanguage | null;
   cargoProject: boolean;
   cargoAvailable: boolean;
   /** A aba ativa pode executar o Rust gerado com `rustc`. */
@@ -76,7 +79,7 @@ export interface PaletteContext {
   porsRunPending: boolean;
 }
 
-export type PaletteLanguage = Exclude<PaletteContext["language"], null>;
+export type PaletteLanguage = Exclude<SourceLanguage, null>;
 
 export interface PaletteContextDependencies {
   activeTab?: { language: PaletteLanguage; cargoProject?: boolean };

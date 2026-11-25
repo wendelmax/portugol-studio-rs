@@ -43,7 +43,7 @@ function fixture({ copyText } = {}) {
   };
 }
 
-test("run and debugger buttons dispatch their commands with the Portugol pause guard", () => {
+test("run and debugger buttons dispatch their commands for Portugol and PORS, but not Rust", () => {
   const f = fixture();
 
   f.buttons.get("btn-run").onclick();
@@ -54,11 +54,13 @@ test("run and debugger buttons dispatch their commands with the Portugol pause g
   f.buttons.get("btn-debug-step-over").onclick();
   f.buttons.get("btn-debug-step-into").onclick();
   f.buttons.get("btn-debug-step-out").onclick();
+  f.setLanguage("portugol-rs");
+  f.buttons.get("btn-debug-pause").onclick();
   f.setLanguage("rust");
   f.buttons.get("btn-debug-pause").onclick();
 
   assert.deepEqual(f.events, [
-    ["run"], ["debug"], ["stop"], ["pause", 7], ["continue"], ["over"], ["into"], ["out"],
+    ["run"], ["debug"], ["stop"], ["pause", 7], ["continue"], ["over"], ["into"], ["out"], ["pause", 7],
   ]);
 });
 
