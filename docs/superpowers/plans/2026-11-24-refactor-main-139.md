@@ -460,3 +460,17 @@ Ruling: group library insertion, snippet buttons, and utility panel tabs behind 
 - [x] Extract the utilities panel controls and keep library calls behind `api.ts` injection.
 - [x] Run the full frontend tests (82/82), typecheck, and build.
 - [x] Commit the utility insertions group (#190).
+
+### Task 36: Run toolbar and console bindings
+
+**Files:**
+- Create: `apps/desktop/src/run/toolbar.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/run-toolbar.test.mjs`
+
+Ruling: group run/debug buttons, panel shortcuts, console copy/clear, and runtime input submission in one toolbar controller — they all wire the run/console surface; if the grouping is too broad, the cost is one controller with several injected UI actions.
+
+- [x] Add tests for run/debug dispatch, pause language guard, console copy/error, panel selection, and runtime input submission.
+- [x] Extract run toolbar and console event bindings.
+- [x] Run the full frontend tests (83/83), typecheck, and build.
+- [x] Commit the toolbar group.
