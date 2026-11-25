@@ -142,6 +142,17 @@
 - [x] Move the composition and editor adapters out of `main.ts`.
 - [x] Run frontend tests, typecheck, and build.
 
+### Task 49: Execution state store
+
+**Files:**
+- Create: `apps/desktop/src/run/execution-state.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/execution-state.test.mjs`
+
+- [x] Add a failing test for initial idle state and busy lifecycle transitions.
+- [x] Move execution identity, pending events, pending PORS run, and pause data into a typed store.
+- [x] Run frontend tests, typecheck, and build.
+
 ### Task 44: System file event bindings
 
 **Files:**

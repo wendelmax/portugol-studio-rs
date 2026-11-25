@@ -49,7 +49,8 @@ import { semanticSymbolLanguage } from "./semantic-symbol-actions";
 import { canDebugSource, canRunAsRust, canRunSource } from "./runtime-capabilities";
 import { parseClassicArguments, parseProcessArguments } from "./process-arguments";
 import { hasCargoExecutionConsent, hasRustExecutionConsent, rememberCargoExecutionConsent, rememberRustExecutionConsent } from "./rust-execution-consent";
-import { replayRunEvents, type PendingRunEvent } from "./run-event-router";
+import { replayRunEvents } from "./run-event-router";
+import { createExecutionState, isExecutionBusy } from "./run/execution-state";
 import { createRunEventsController } from "./run/run-events";
 import { mountRunToolbar } from "./run/toolbar";
 import { loadLearningMode, saveLearningMode, type LearningMode } from "./learning-mode";
@@ -278,9 +279,9 @@ const languageControlsView = createLanguageControlsView({
     rustcAvailable: toolchainState.rustcAvailable(),
     cargoAvailable: toolchainState.cargoAvailable(),
     rustfmtAvailable: toolchainState.rustfmtAvailable(),
-    runId,
-    paused,
-    busy: runId !== null || pendingEvents !== null || porsRunPending,
+    runId: runState.runId,
+    paused: runState.paused,
+    busy: isExecutionBusy(runState),
   }),
 });
 
@@ -391,11 +392,7 @@ const fileIO = createFileIO({
 // Execução e console
 // ---------------------------------------------------------------------------
 
-let runId: number | null = null;
-let runTabId: number | null = null;
-let pendingEvents: PendingRunEvent[] | null = null;
-let porsRunPending = false;
-let paused: api.DebugInfo | null = null;
+const runState = createExecutionState();
 const consoleBox = $("console");
 const inputForm = $<HTMLFormElement>("console-form");
 const inputField = $<HTMLInputElement>("console-input");
@@ -405,8 +402,8 @@ const runControls = createRunControls({
   canRun: canRunSource,
   canDebug: canDebugSource,
   rustcAvailable: toolchainState.rustcAvailable,
-  runId: () => runId,
-  paused: () => paused,
+  runId: () => runState.runId,
+  paused: () => runState.paused,
   setButtonDisabled: (id, disabled) => { $<HTMLButtonElement>(id).disabled = disabled; },
   setInputHidden: (hidden) => { inputForm.hidden = hidden; },
   setDebugVarsHidden: (hidden) => { $("debug-vars").hidden = hidden; },
@@ -416,19 +413,19 @@ const runControls = createRunControls({
 const setRunning = runControls.setRunning;
 
 const debuggerShell = createDebuggerShell({
-  runId: () => runId,
-  runTabId: () => runTabId,
+  runId: () => runState.runId,
+  runTabId: () => runState.runTabId,
   activeTabId: tabCollection.activeId,
   breakpointLines,
   setBreakpoints: api.debugSetBreakpoints,
   setDebugLine: (line) => view.dispatch({ effects: setDebugLine.of(line) }),
-  paused: () => paused,
-  setPaused: (info) => { paused = info; },
+  paused: () => runState.paused,
+  setPaused: (info) => { runState.paused = info; },
   setRunning,
   runLanguage: () => activeTab()?.language,
   setStatus,
   stop: api.stop,
-  runTab: () => tabCollection.tabs().find(({ id }) => id === runTabId),
+  runTab: () => tabCollection.tabs().find(({ id }) => id === runState.runTabId),
   renderDebugInfo,
   activate,
   goTo,
@@ -445,7 +442,7 @@ const {
 const rustExecution = createRustExecutionController({
   activeTab,
   tabs: tabCollection.tabs,
-  isBusy: () => runId !== null || pendingEvents !== null || porsRunPending,
+  isBusy: () => isExecutionBusy(runState),
   rustcAvailable: toolchainState.rustcAvailable,
   cargoAvailable: toolchainState.cargoAvailable,
   isDirty,
@@ -454,10 +451,10 @@ const rustExecution = createRustExecutionController({
   parseArguments: parseProcessArguments,
   currentDocument: () => view.state.doc,
   isCurrent: (tab, documentState) => activeTab() === tab && view.state.doc === documentState,
-  runId: () => runId,
-  setRunId: (id) => { runId = id; },
-  setPending: (pending) => { porsRunPending = pending; },
-  setRunTabId: (id) => { runTabId = id; },
+  runId: () => runState.runId,
+  setRunId: (id) => { runState.runId = id; },
+  setPending: (pending) => { runState.porsRunPending = pending; },
+  setRunTabId: (id) => { runState.runTabId = id; },
   syncLanguageControls,
   setRunning,
   hasConsent: (consent) => consent === "cargo"
@@ -484,7 +481,7 @@ const rustExecution = createRustExecutionController({
   runRustSource: api.runRustSource,
   clearRuntimeError: () => view.dispatch({ effects: setRuntimeError.of(null) }),
   clearDebugLine: () => view.dispatch({ effects: setDebugLine.of(null) }),
-  clearPaused: () => { paused = null; },
+  clearPaused: () => { runState.paused = null; },
   showConsole: () => showPanel("console"),
   clearConsole,
   appendProcessOutput,
@@ -501,15 +498,15 @@ const rustExecution = createRustExecutionController({
 const portugolRsExecution = createPortugolRsExecutionController({
   rustcAvailable: toolchainState.rustcAvailable,
   isCurrent: (tab, documentState) => activeTab() === tab && view.state.doc === documentState,
-  runId: () => runId,
-  setRunId: (id) => { runId = id; },
-  setPending: (pending) => { porsRunPending = pending; },
-  setRunTabId: (id) => { runTabId = id; },
-  setPendingEvents: (events) => { pendingEvents = events; },
+  runId: () => runState.runId,
+  setRunId: (id) => { runState.runId = id; },
+  setPending: (pending) => { runState.porsRunPending = pending; },
+  setRunTabId: (id) => { runState.runTabId = id; },
+  setPendingEvents: (events) => { runState.pendingEvents = events; },
   setRunning,
   clearRuntimeError: () => view.dispatch({ effects: setRuntimeError.of(null) }),
   clearDebugLine: () => view.dispatch({ effects: setDebugLine.of(null) }),
-  clearPaused: () => { paused = null; },
+  clearPaused: () => { runState.paused = null; },
   showConsole: () => showPanel("console"),
   clearConsole,
   hideInput: () => { inputForm.hidden = true; },
@@ -538,12 +535,12 @@ const classicExecution = createClassicExecutionController({
   run: api.run,
   setRuntimeError: () => view.dispatch({ effects: setRuntimeError.of(null) }),
   setDebugLine: () => view.dispatch({ effects: setDebugLine.of(null) }),
-  clearPaused: () => { paused = null; },
+  clearPaused: () => { runState.paused = null; },
   showConsole: () => showPanel("console"),
   clearConsole,
-  setPendingEvents: (events) => { pendingEvents = events; },
-  setRunTabId: (id) => { runTabId = id; },
-  setRunId: (id) => { runId = id; },
+  setPendingEvents: (events) => { runState.pendingEvents = events; },
+  setRunTabId: (id) => { runState.runTabId = id; },
+  setRunId: (id) => { runState.runId = id; },
   setRunButtonsDisabled: (disabled) => {
     $<HTMLButtonElement>("btn-run").disabled = disabled;
     $<HTMLButtonElement>("btn-debug").disabled = disabled;
@@ -557,7 +554,7 @@ const classicExecution = createClassicExecutionController({
 });
 
 const runDispatcher = createRunDispatcher({
-  isBusy: () => runId !== null || pendingEvents !== null || porsRunPending,
+  isBusy: () => isExecutionBusy(runState),
   activeTab,
   currentDocument: () => view.state.doc,
   editorState: () => view.state,
@@ -566,7 +563,7 @@ const runDispatcher = createRunDispatcher({
   rustExecution,
   portugolRsExecution,
   classicExecution,
-  isPaused: () => paused !== null,
+  isPaused: () => runState.paused !== null,
   debugContinue: () => debugCommand(api.debugContinue),
   debugStepOver: () => debugCommand(api.debugStepOver),
   stop: () => debuggerCommands.stopProgram(),
@@ -576,16 +573,16 @@ const { runProgram, runOrContinue, stepOrStart, stopProgram } = runDispatcher;
 const cargoProjectController = createCargoProjectController({
   tabs: tabCollection.tabs,
   activeTab,
-  isBusy: () => runId !== null || pendingEvents !== null || porsRunPending,
+  isBusy: () => isExecutionBusy(runState),
   cargoAvailable: toolchainState.cargoAvailable,
   isDirty,
   save: () => fileIO.save(),
   currentDocument: () => view.state.doc,
   isCurrent: (tab, documentState) => activeTab() === tab && view.state.doc === documentState,
-  setPending: (pending) => { porsRunPending = pending; },
-  setRunTabId: (id) => { runTabId = id; },
-  runId: () => runId,
-  setRunId: (id) => { runId = id; },
+  setPending: (pending) => { runState.porsRunPending = pending; },
+  setRunTabId: (id) => { runState.runTabId = id; },
+  runId: () => runState.runId,
+  setRunId: (id) => { runState.runId = id; },
   syncLanguageControls,
   setRunning,
   hasCargoConsent: () => hasCargoExecutionConsent(sessionStorage),
@@ -677,13 +674,13 @@ async function runExerciseTests() {
 }
 
 const runEvents = createRunEventsController({
-  runId: () => runId,
-  setRunId: (id) => { runId = id; },
-  runTabId: () => runTabId,
-  setRunTabId: (id) => { runTabId = id; },
+  runId: () => runState.runId,
+  setRunId: (id) => { runState.runId = id; },
+  runTabId: () => runState.runTabId,
+  setRunTabId: (id) => { runState.runTabId = id; },
   activeTabId: tabCollection.activeId,
-  pendingEvents: () => pendingEvents,
-  setPaused: (info) => { paused = info; },
+  pendingEvents: () => runState.pendingEvents,
+  setPaused: (info) => { runState.paused = info; },
   setPausedInfo: setPaused,
   setRunning,
   setDebugLine: (line) => view.dispatch({ effects: setDebugLine.of(line) }),
@@ -722,7 +719,7 @@ const utilityInsertions = createUtilityInsertions({
   appendLibraryButton: (button) => $("utilities-libraries").append(button),
   appendSnippetButton: (button) => $("utilities-models").append(button),
   activeTab,
-  isRunning: (tab) => tab.id === runTabId && runId !== null,
+  isRunning: (tab) => tab.id === runState.runTabId && runState.runId !== null,
   currentDocument: () => view.state.doc,
   includeLibrary: api.includeLibrary,
   isCurrent: (tab, doc) => activeTab() === tab && view.state.doc === doc,
@@ -771,7 +768,7 @@ const tabActivator = createTabActivator({
     theme.reconfigure(editorTheme()),
     sourceLanguage.reconfigure(tab.language === "rust" ? rust() : tab.language === "portugol-rs" ? portugolRs() : portugol()),
     portugolTools.reconfigure(tab.language === "rust" ? [rustSourceLinter] : [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]),
-    setDebugLine.of(tab.id === runTabId ? paused?.position.line ?? null : null),
+    setDebugLine.of(tab.id === runState.runTabId ? runState.paused?.position.line ?? null : null),
   ] }),
   applyPanes: () => panes.applyAll(),
   clearRustDiagnostics: () => view.dispatch(setDiagnostics(view.state, [])),
@@ -818,8 +815,8 @@ function toggleCenterSource() {
 const symbolEditorActions = createSymbolEditorActions({
   activeTab,
   view,
-  runId: () => runId,
-  runTabId: () => runTabId,
+  runId: () => runState.runId,
+  runTabId: () => runState.runTabId,
   hasOpenDialog: () => document.querySelector("dialog[open]") !== null,
   semanticSymbolLanguage,
   renameTargetPortugol: api.renameTarget,
@@ -860,7 +857,7 @@ function goToDeclarationSelection() {
 
 const editorFormatter = createEditorFormatter({
   activeTab,
-  isRunningTab: (tab) => runTabId === tab.id && runId !== null,
+  isRunningTab: (tab) => runState.runTabId === tab.id && runState.runId !== null,
   rustfmtAvailable: () => toolchainState.rustfmtAvailable() === true,
   view,
   formatRust: api.formatRustSource,
@@ -900,8 +897,8 @@ testsPanel = createTestsPanelController({
   currentDocument: () => view.state.doc,
   documentForTab: (tab) => tab.state.doc,
   cargoAvailable: toolchainState.cargoAvailable,
-  runId: () => runId,
-  runPending: () => porsRunPending,
+  runId: () => runState.runId,
+  runPending: () => runState.porsRunPending,
   tabName,
   evaluateExercise: (exercise, source, isCurrent) => exercises.evaluate(exercise, source, isCurrent),
   cargoTestPanelState,
@@ -1027,7 +1024,7 @@ mountRunToolbar({
   button: (id) => $<HTMLButtonElement>(id),
   form: inputForm,
   input: inputField,
-  runId: () => runId,
+  runId: () => runState.runId,
   activeLanguage: () => activeTab()?.language ?? null,
   runOrContinue,
   stepOrStart,
@@ -1075,9 +1072,9 @@ function paletteContext() {
     activeTab: activeTab(),
     cargoAvailable: toolchainState.cargoAvailable(),
     rustcAvailable: toolchainState.rustcAvailable(),
-    runActive: runId !== null,
-    paused: paused !== null,
-    porsRunPending,
+    runActive: runState.runId !== null,
+    paused: runState.paused !== null,
+    porsRunPending: runState.porsRunPending,
     canRunAsRust,
   });
 }
@@ -1105,7 +1102,7 @@ const shortcuts = createIdeShortcuts({
   runOrContinue,
   stepOrStart,
   stopProgram,
-  pauseDebug: () => { if (runId !== null) void api.debugPause(runId); },
+  pauseDebug: () => { if (runState.runId !== null) void api.debugPause(runState.runId); },
   continueDebug: () => debugCommand(api.debugContinue),
   stepOver: () => debugCommand(api.debugStepOver),
   stepInto: () => debugCommand(api.debugStepInto),
