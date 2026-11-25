@@ -108,6 +108,18 @@
 - [x] Add failing tests for active, paused, and stopped run controls.
 - [x] Extract button, input, and inspector state synchronization behind callbacks.
 - [x] Run frontend tests, typecheck, and build.
+
+### Task 42: Editor navigation bindings
+
+**Files:**
+- Create: `apps/desktop/src/editor/navigation-bindings.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/editor-navigation-bindings.test.mjs`
+- Modify: `apps/desktop/tests/editor-extensions.test.mjs`
+
+- [x] Add tests for Rust exclusion, click modifiers/button/coordinates, quiet navigation, and F12 cursor navigation.
+- [x] Move editor click and F12 handlers behind an injected navigation binding.
+- [x] Run frontend tests, typecheck, and build.
 - [x] Commit the run-controls group.
 
 ### Task 8: Debugger commands
