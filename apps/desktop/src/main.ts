@@ -54,6 +54,7 @@ import { hasCargoExecutionConsent, hasRustExecutionConsent, rememberCargoExecuti
 import { createLatestOnlyRustSourceChecker } from "./rust-source-check";
 import { replayRunEvents, type PendingRunEvent } from "./run-event-router";
 import { createRunEventsController } from "./run/run-events";
+import { mountRunToolbar } from "./run/toolbar";
 import { loadLearningMode, saveLearningMode, type LearningMode } from "./learning-mode";
 import { isPaletteCommandAvailable, type PaletteContext } from "./command-palette";
 import { markRustPreviewStale } from "./rust-preview-state";
@@ -783,15 +784,6 @@ const runEvents = createRunEventsController({
 
 const runListeners = api.listenRun(runEvents.handlers);
 
-inputForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  if (runId === null) return;
-  const line = inputField.value;
-  appendConsole(line + "\n", "echo");
-  inputForm.hidden = true;
-  void api.sendInput(runId, line);
-});
-
 // ---------------------------------------------------------------------------
 // Divisória redimensionável e modo editor expandido
 // ---------------------------------------------------------------------------
@@ -1058,7 +1050,6 @@ $("utilities-close").onclick = () => {
 };
 $("btn-save").onclick = () => void fileIO.save();
 $("btn-save-as").onclick = () => void fileIO.save(true);
-$("btn-run").onclick = () => void runOrContinue();
 const applyLearningMode = createLearningModeController({
   rustcAvailable: () => rustcAvailable,
   activeTab,
@@ -1121,29 +1112,28 @@ mountPorsUiPreviewPanel({
   },
   onCloseFocus: () => view.focus(),
 });
-$("btn-debug").onclick = () => void stepOrStart();
-$("btn-stop").onclick = () => void stopProgram();
-$("btn-debug-pause").onclick = () => {
-  if (activeTab()?.language !== "portugol") return;
-  if (runId !== null) void api.debugPause(runId);
-};
-$("btn-debug-continue").onclick = () => void debugCommand(api.debugContinue);
-$("btn-debug-step-over").onclick = () => void debugCommand(api.debugStepOver);
-$("btn-debug-step-into").onclick = () => void debugCommand(api.debugStepInto);
-$("btn-debug-step-out").onclick = () => void debugCommand(api.debugStepOut);
-$("btn-clear").onclick = () => clearConsole();
-$("btn-copy").onclick = async () => {
-  try {
-    await navigator.clipboard.writeText(consoleText());
-    setStatus("Saída copiada.", "ok");
-  } catch (error) {
-    setStatus(String(error), "error");
-  }
-};
-$("tab-console").onclick = () => showPanel("console");
-$("tab-tests").onclick = () => showPanel("tests");
-$("tab-messages").onclick = () => showPanel("messages");
-$("tab-debug").onclick = () => showPanel("debug");
+mountRunToolbar({
+  button: (id) => $<HTMLButtonElement>(id),
+  form: inputForm,
+  input: inputField,
+  runId: () => runId,
+  activeLanguage: () => activeTab()?.language ?? null,
+  runOrContinue,
+  stepOrStart,
+  stop: stopProgram,
+  pause: (id) => { void api.debugPause(id); },
+  continueDebug: () => debugCommand(api.debugContinue),
+  stepOver: () => debugCommand(api.debugStepOver),
+  stepInto: () => debugCommand(api.debugStepInto),
+  stepOut: () => debugCommand(api.debugStepOut),
+  clearConsole,
+  consoleText,
+  copyText: (text) => navigator.clipboard.writeText(text),
+  setStatus,
+  showPanel,
+  appendConsole,
+  sendInput: api.sendInput,
+});
 document.querySelectorAll<HTMLButtonElement>("[data-activity]").forEach((button) => {
   button.onclick = () => {
     document.querySelectorAll<HTMLButtonElement>("[data-activity]").forEach((activity) => {

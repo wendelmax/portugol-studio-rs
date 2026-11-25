@@ -6,6 +6,7 @@ import { ideSource } from "./support/ide-source.mjs";
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const main = ideSource();
+const toolbar = readFileSync(new URL("../src/run/toolbar.ts", import.meta.url), "utf8");
 const exercises = readFileSync(new URL("../src/exercises.ts", import.meta.url), "utf8");
 
 test("Tests tab keeps an honest empty state and exposes real cases only for exercises", () => {
@@ -17,11 +18,12 @@ test("Tests tab keeps an honest empty state and exposes real cases only for exer
   assert.match(html, /<ul id="tests-results"[^>]*aria-label="Falhas dos casos de teste"/);
   assert.doesNotMatch(html, /runner de testes ainda não está integrado/i);
   assert.doesNotMatch(html, /\b\d+\s+(?:testes?\s+)?(?:aprovados?|falhos?|passaram?)\b/i);
-  assert.match(main, /\$\("tab-tests"\)\.onclick\s*=\s*\(\)\s*=>\s*showPanel\("tests"\)/);
+  assert.match(toolbar, /button\("tab-tests"\)\.onclick\s*=\s*\(\)\s*=>\s*dependencies\.showPanel\("tests"\)/);
   assert.match(main, /function renderExerciseTests\(/);
   assert.match(main, /void exercises\.grade\(exercise, documentState\.toString\(\), isCurrent\)/);
   assert.match(exercises, /\(\) => id === modalAttempt && isCurrent\(\)/);
-  assert.match(main, /\["console",\s*"tests",\s*"messages",\s*"debug"\]/);
+  assert.match(main, /mountRunToolbar\(\{[\s\S]*showPanel,/);
+  assert.match(toolbar, /button\("tab-console"\)[\s\S]*button\("tab-debug"\)/);
 });
 
 test("bottom tabs support arrow, Home, and End keyboard navigation", () => {
