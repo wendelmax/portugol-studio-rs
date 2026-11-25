@@ -47,6 +47,7 @@ test("workspace modes persist independently and fall back to the global legacy p
 test("workspace tabs carry their stable preference key and restore mode on activation", () => {
   const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
   const main = ideSource();
+  const modeShell = readFileSync(new URL("../src/learning/mode-shell.ts", import.meta.url), "utf8");
   const toolchainStatus = readFileSync(new URL("../src/shell/toolchain-status.ts", import.meta.url), "utf8");
   const modeController = readFileSync(new URL("../src/learning/mode-controller.ts", import.meta.url), "utf8");
   const workspace = readFileSync(new URL("../src-tauri/src/workspace.rs", import.meta.url), "utf8");
@@ -56,7 +57,7 @@ test("workspace tabs carry their stable preference key and restore mode on activ
   assert.match(workspace, /Sha256::digest\(canonical\.to_string_lossy\(\)\.as_bytes\(\)\)/);
   assert.match(main, /workspacePreferenceKey\?: string/);
   assert.match(main, /applyLearningMode\(loadLearningMode\(undefined, tab\.workspacePreferenceKey\), false\)/);
-  assert.match(main, /persist: \(mode, preferenceKey\) => \{ saveLearningMode\(mode, undefined, preferenceKey\); \}/);
+  assert.match(modeShell, /persist: \(mode, preferenceKey\) => saveLearningMode\(mode, undefined, preferenceKey\)/);
   assert.match(modeController, /dependencies\.persist\(availableMode, dependencies\.activeTab\(\)\?\.workspacePreferenceKey\)/);
   assert.match(main, /restoreLearningMode: \(\) => applyLearningMode\(loadLearningMode\(undefined, activeTab\(\)\?\.workspacePreferenceKey\), false\)/);
   assert.match(toolchainStatus, /dependencies\.restoreLearningMode\(\)/);

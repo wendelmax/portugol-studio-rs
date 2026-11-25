@@ -35,7 +35,7 @@ import { canRunAsRust } from "./runtime-capabilities";
 import { createExecutionState, isExecutionBusy } from "./run/execution-state";
 import { createRunEventsController } from "./run/run-events";
 import { mountRunToolbar } from "./run/toolbar";
-import { loadLearningMode, saveLearningMode, type LearningMode } from "./learning-mode";
+import { loadLearningMode, type LearningMode } from "./learning-mode";
 import { createPaletteContext, isPaletteCommandAvailable } from "./command-palette";
 import { markRustPreviewStale } from "./rust-preview-state";
 import { mountPorsUiPreviewShell } from "./pors-ui-preview-shell";
@@ -49,7 +49,7 @@ import type { WorkspaceExerciseRef } from "./state/exercise-tab";
 import { mountWorkspaceExplorer } from "./workspace/explorer";
 import { mountRustPreview } from "./rust/preview";
 import { mountLearningPanel } from "./learning/panel";
-import { createLearningModeController } from "./learning/mode-controller";
+import { mountLearningModeShell } from "./learning/mode-shell";
 import { createExerciseWorkbenchShell } from "./learning/exercise-workbench";
 import { mountCommandPalette } from "./commands/palette";
 import { renderShortcutList } from "./commands/shortcuts";
@@ -680,33 +680,21 @@ $("utilities-close").onclick = () => {
 };
 $("btn-save").onclick = () => void fileIO.save();
 $("btn-save-as").onclick = () => void fileIO.save(true);
-const applyLearningMode = createLearningModeController({
+const applyLearningMode = mountLearningModeShell({
+  initialMode: learningMode,
+  currentMode: () => learningMode,
   rustcAvailable: toolchainState.rustcAvailable,
   activeTab,
   setMode: (mode) => { learningMode = mode; },
-  setSelectorValue: (mode) => { $<HTMLSelectElement>("learning-mode").value = mode; },
-  persist: (mode, preferenceKey) => { saveLearningMode(mode, undefined, preferenceKey); },
   panelVisible: () => !$<HTMLElement>("learning-panel").hidden,
   renderPanel: () => learningPanel.render(),
-  setPreviewHidden: (hidden) => { $<HTMLElement>("rust-preview").hidden = hidden; },
+  setPreviewHidden: (hidden) => { $("rust-preview").hidden = hidden; },
   renderMappingGutter: () => rustPreview.renderMappingGutter(),
   setBridgePressed: (pressed) => $<HTMLButtonElement>("btn-rust").setAttribute("aria-pressed", String(pressed)),
   schedulePreview: () => rustPreview.schedule(),
   cancelPreview: () => rustPreview.cancel(),
+  focusEditor: () => view.focus(),
 });
-
-$<HTMLSelectElement>("learning-mode").onchange = (event) => {
-  const selected = (event.currentTarget as HTMLSelectElement).value;
-  if (selected === "beginner" || selected === "bridge" || selected === "rust") applyLearningMode(selected);
-};
-applyLearningMode(learningMode, false);
-$<HTMLButtonElement>("btn-rust").onclick = () => {
-  applyLearningMode(learningMode === "bridge" ? "beginner" : "bridge");
-};
-$<HTMLButtonElement>("rust-close").onclick = () => {
-  applyLearningMode("beginner");
-  view.focus();
-};
 
 mountPorsUiPreviewShell({
   activeTab,

@@ -166,6 +166,17 @@
 - [x] Move exercise tab, catalog, grading, and test panel wiring into a focused shell.
 - [x] Run exercise tests, full frontend tests, typecheck, build, and diff check.
 
+### Task 56: Learning mode shell
+
+**Files:**
+- Create: `apps/desktop/src/learning/mode-shell.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Update: `apps/desktop/tests/learning-mode.test.mjs`
+
+- [x] Move learning-mode DOM bindings and controller composition behind a dedicated shell.
+- [x] Preserve initial mode application, workspace persistence, Rust bridge toggle, and editor focus behavior.
+- [x] Run focused tests, full frontend tests, typecheck, build, and diff check.
+
 ### Task 46: Debugger shell composition
 
 **Files:**
