@@ -79,6 +79,7 @@ import { renderShortcutList } from "./commands/shortcuts";
 import { createIdeShortcuts } from "./commands/ide-shortcuts";
 import { mountProjectDialogs } from "./shell/project-dialogs";
 import { mountWindowControls } from "./shell/window";
+import { mountActivityBar } from "./shell/activity-bar";
 import { createHelpLoader } from "./shell/help-loader";
 import { createToolchainStatusController } from "./shell/toolchain-status";
 import { $ } from "./dom";
@@ -1134,33 +1135,17 @@ mountRunToolbar({
   appendConsole,
   sendInput: api.sendInput,
 });
-document.querySelectorAll<HTMLButtonElement>("[data-activity]").forEach((button) => {
-  button.onclick = () => {
-    document.querySelectorAll<HTMLButtonElement>("[data-activity]").forEach((activity) => {
-      activity.setAttribute("aria-pressed", String(activity === button));
-    });
-    if (button.dataset.activity !== "learn") setInspectorView(false);
-    switch (button.dataset.activity) {
-      case "project":
-        $("btn-explorer").click();
-        button.setAttribute("aria-pressed", $("btn-explorer").getAttribute("aria-expanded") ?? "false");
-        break;
-      case "learn":
-        showPanel("learning");
-        break;
-      case "examples":
-        activate(homeId);
-        break;
-      case "debug":
-        showUtilities(true);
-        showPanel("debug");
-        break;
-      case "settings":
-        $("editor-options").setAttribute("open", "");
-        $<HTMLSelectElement>("theme").focus();
-        break;
-    }
-  };
+mountActivityBar(document.querySelectorAll<HTMLButtonElement>("[data-activity]"), {
+  setInspectorView,
+  openExplorer: () => $<HTMLButtonElement>("btn-explorer").click(),
+  explorerExpanded: () => $("btn-explorer").getAttribute("aria-expanded"),
+  showPanel,
+  activateHome: () => activate(homeId),
+  showUtilities,
+  openSettings: () => {
+    $("editor-options").setAttribute("open", "");
+    $<HTMLSelectElement>("theme").focus();
+  },
 });
 function cycleTab(step: number) {
   const ids = [homeId, ...(helpOpen ? [helpId] : []), ...tabCollection.tabs().map((tab) => tab.id)];

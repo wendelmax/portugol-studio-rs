@@ -474,3 +474,17 @@ Ruling: group run/debug buttons, panel shortcuts, console copy/clear, and runtim
 - [x] Extract run toolbar and console event bindings.
 - [x] Run the full frontend tests (83/83), typecheck, and build.
 - [x] Commit the toolbar group.
+
+### Task 37: Activity bar bindings
+
+**Files:**
+- Create: `apps/desktop/src/shell/activity-bar.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/activity-bar.test.mjs`
+
+Ruling: move the activity bar's five navigation bindings behind a small injected controller. Keep its `aria-pressed` updates, explorer toggle state, and current panel/view routing unchanged; if this boundary is too small, the cost is one simple shell adapter.
+
+- [x] Add tests for selection state and each activity destination.
+- [x] Extract activity bar event bindings and explorer/settings adapters.
+- [x] Run the full frontend tests (84/84), typecheck, and build.
+- [x] Commit the activity bar group.
