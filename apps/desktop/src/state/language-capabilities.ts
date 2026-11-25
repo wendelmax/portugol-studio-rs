@@ -64,10 +64,26 @@ export function deriveLanguageControls(
       ? "Instale o componente rustfmt com `rustup component add rustfmt`."
       : "Formatar código-fonte",
   };
-  const libraries = Object.fromEntries(state.libraryNames.map((name) => [name, {
-    disabled: pors || rustFile || tab.symbols.some((symbol) => symbol.kind === "library" && symbol.name.split(" → ", 1)[0] === name),
-    title: rustFile ? "Bibliotecas Portugol não se aplicam a Rust." : pors ? "Bibliotecas clássicas não se aplicam ao Portugol-RS." : `Incluir biblioteca ${name}`,
-  }]));
+const PORS_LIBRARY_NAMES: ReadonlySet<string> = new Set([
+  "UI", "Matematica", "Texto", "Tipos", "Util", "Calendario",
+  "Arquivos", "Json", "Internet", "Graficos", "Teclado", "Mouse", "Sons",
+]);
+
+  const libraries = Object.fromEntries(state.libraryNames.map((name) => {
+    const porsAvailable = pors && PORS_LIBRARY_NAMES.has(name);
+    return [name, {
+      disabled: rustFile
+        || (pors && !porsAvailable)
+        || (!pors && tab.symbols.some((symbol) => symbol.kind === "library" && symbol.name.split(" → ", 1)[0] === name)),
+      title: rustFile
+        ? "Bibliotecas Portugol não se aplicam a Rust."
+        : porsAvailable
+          ? `Inserir módulo PORS ${name}.`
+          : pors
+            ? "Bibliotecas clássicas não se aplicam ao Portugol-RS."
+            : `Incluir biblioteca ${name}`,
+    }];
+  }));
   const symbolActions = {
     disabled: rustFile,
     description: rustFile ? "Navegação e renomeação de símbolos Rust ainda não estão implementadas." : "",

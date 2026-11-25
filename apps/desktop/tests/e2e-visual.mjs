@@ -5,7 +5,7 @@
 //   npm run build && node tests/e2e-visual.mjs
 //   node tests/e2e-visual.mjs --screenshots /tmp/portugol-e2e-shots
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import http from "node:http";
 import { tmpdir } from "node:os";
@@ -183,10 +183,15 @@ function e2eHarnessScript(scenario, width, height) {
     if (window.innerWidth > 1280) {
       const previewHeader = document.querySelector("#rust-preview header");
       const editorOptionsSummary = document.querySelector("#editor-options > summary");
+      const libButtons = [...document.querySelectorAll("#utilities-libraries button")];
+      const libNames = libButtons.map((b) => b.textContent);
       check("bridge-split-visible-wide", isVisible(document.getElementById("rust-preview")) && isVisible(document.getElementById("rust-mapping-gutter")));
       check("editor-options-no-overlap-rust-header",
         !overlaps(rect(editorOptionsSummary), rect(previewHeader)),
         "options=" + JSON.stringify(rect(editorOptionsSummary)) + " rustHeader=" + JSON.stringify(rect(previewHeader)));
+      check("inspector-pors-libraries-enabled",
+        libNames.includes("UI") && libNames.includes("Json") && !libNames.includes("Objetos") && libButtons.every((b) => !b.disabled),
+        libNames.join(","));
     } else {
       check("bridge-tabs-visible-compact", isVisible(document.getElementById("rust-comparison-tabs")));
     }
@@ -361,8 +366,52 @@ const server = http.createServer((req, res) => {
   res.end(readFileSync(filePath));
 });
 
+function detectBrowser() {
+  const candidates = process.env.E2E_BROWSER
+    ? [process.env.E2E_BROWSER]
+    : ["google-chrome", "chromium", "chromium-browser", "firefox"];
+  for (const bin of candidates) {
+    try {
+      const resolved = execFileSync("which", [bin], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+      if (resolved) {
+        return { bin: resolved, engine: bin.includes("firefox") ? "firefox" : "chromium" };
+      }
+    } catch {
+      // Tentar próximo navegador instalado.
+    }
+  }
+  throw new Error("Nenhum navegador headless encontrado (esperado google-chrome, chromium ou firefox).");
+}
+
+const browser = detectBrowser();
+
+function browserArgs(profileDir, width, height, url, screenshotFile) {
+  if (browser.engine === "chromium") {
+    const flags = [
+      "--headless=new",
+      "--no-sandbox",
+      "--disable-gpu",
+      "--disable-dev-shm-usage",
+      `--user-data-dir=${profileDir}`,
+      `--window-size=${width},${height}`,
+    ];
+    if (screenshotFile) flags.push(`--screenshot=${screenshotFile}`);
+    flags.push(url);
+    return flags;
+  }
+  const flags = [
+    "--headless",
+    "--no-remote",
+    "--profile", profileDir,
+    `--window-size=${width},${height}`,
+  ];
+  if (screenshotFile) flags.push("--screenshot", screenshotFile);
+  flags.push(url);
+  return flags;
+}
+
 async function runViewport({ scenario, width, height, screenshotName }) {
-  const profileDir = mkdtempSync(path.join(tmpdir(), "portugol-ff-e2e-"));
+  const profileDir = mkdtempSync(path.join(tmpdir(), "portugol-e2e-"));
   const address = server.address();
   const targetUrl = `http://127.0.0.1:${address.port}/?e2e=${encodeURIComponent(scenario)}&w=${width}&h=${height}`;
 
@@ -377,13 +426,7 @@ async function runViewport({ scenario, width, height, screenshotName }) {
     };
   });
 
-  const child = spawn("firefox", [
-    "--headless",
-    "--no-remote",
-    "--profile", profileDir,
-    `--window-size=${width},${height}`,
-    targetUrl,
-  ], {
+  const child = spawn(browser.bin, browserArgs(profileDir, width, height, targetUrl, null), {
     env: { ...process.env, MOZ_HEADLESS: "1" },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -403,28 +446,24 @@ async function runViewport({ scenario, width, height, screenshotName }) {
     await new Promise((resolve) => child.on("close", resolve));
 
     if (screenshotsDir) {
-      const shotProfile = mkdtempSync(path.join(tmpdir(), "portugol-ff-shot-"));
+      const shotProfile = mkdtempSync(path.join(tmpdir(), "portugol-shot-"));
       const shotFile = path.join(screenshotsDir, screenshotName);
       const shotUrl = `http://127.0.0.1:${address.port}/?shot=${encodeURIComponent(scenario)}&w=${width}&h=${height}`;
       try {
         await new Promise((resolve, reject) => {
-          const shotProc = spawn("firefox", [
-            "--headless",
-            "--no-remote",
-            "--profile", shotProfile,
-            `--window-size=${width},${height}`,
-            "--screenshot", shotFile,
-            shotUrl,
-          ], { env: { ...process.env, MOZ_HEADLESS: "1" }, stdio: ["ignore", "ignore", "ignore"] });
+          const shotProc = spawn(browser.bin, browserArgs(shotProfile, width, height, shotUrl, shotFile), {
+            env: { ...process.env, MOZ_HEADLESS: "1" },
+            stdio: ["ignore", "ignore", "ignore"],
+          });
           shotProc.on("close", (code) => (code === 0 ? resolve() : reject(new Error(`Screenshot falhou (code ${code})`))));
         });
         assert.ok(existsSync(shotFile), `Screenshot esperado não gerado: ${shotFile}`);
       } finally {
         rmSync(shotProfile, { recursive: true, force: true });
       }
-      console.log(`✔ E2E ${scenario} @ ${width}x${height} (${report.checks.length} verificações OK) → ${shotFile}`);
+      console.log(`✔ E2E [${browser.engine}] ${scenario} @ ${width}x${height} (${report.checks.length} verificações OK) → ${shotFile}`);
     } else {
-      console.log(`✔ E2E ${scenario} @ ${width}x${height} (${report.checks.length} verificações OK)`);
+      console.log(`✔ E2E [${browser.engine}] ${scenario} @ ${width}x${height} (${report.checks.length} verificações OK)`);
     }
   } finally {
     child.kill("SIGKILL");
