@@ -1,0 +1,7 @@
+se (12 < 5) {
+    // Instrucoes executadas se a primeira condicao for verdadeira
+} senao se ("palavra" == "texto") {
+    // Instrucoes executadas se a condicao anterior for falsa e esta for verdadeira
+} senao {
+    // Instrucoes executadas se todas as condicoes anteriores forem falsas
+}

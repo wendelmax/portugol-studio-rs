@@ -1,0 +1,9 @@
+seja condicao: logico = verdadeiro;
+se (condicao) {
+    // Instrucoes executadas se a condicao for verdadeira
+}
+
+seja x: inteiro = 5;
+se (x > 3) {
+    // Instrucoes executadas se a condicao for verdadeira
+}

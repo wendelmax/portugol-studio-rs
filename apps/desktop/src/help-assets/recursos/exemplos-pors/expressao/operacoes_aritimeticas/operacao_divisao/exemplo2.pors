@@ -1,0 +1,7 @@
+funcao inicio() {
+    escreva(20 / 10, "\n");
+
+    seja valor: inteiro = 20 / 10;
+
+    escreva(valor, "\n");
+}

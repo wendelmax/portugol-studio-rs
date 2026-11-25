@@ -1,0 +1,23 @@
+// Em Portugol-RS, "escolha" realiza casamento exaustivo sobre valores de um "enum"
+enum OpcaoMenu {
+    Um,
+    Dois,
+    Cinquenta,
+    Outra,
+}
+
+seja opcao: OpcaoMenu = OpcaoMenu::Um;
+escolha opcao {
+    caso OpcaoMenu::Um => {
+        // Instrucoes caso a opcao seja Um
+    }
+    caso OpcaoMenu::Dois => {
+        // Instrucoes caso a opcao seja Dois
+    }
+    caso OpcaoMenu::Cinquenta => {
+        // Instrucoes caso a opcao seja Cinquenta
+    }
+    caso _ => {
+        // Instrucoes caso nenhum dos casos anteriores corresponda
+    }
+}

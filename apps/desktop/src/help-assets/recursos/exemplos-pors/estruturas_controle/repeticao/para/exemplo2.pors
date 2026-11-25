@@ -1,0 +1,6 @@
+funcao inicio() {
+    para (seja mutavel c: inteiro = 1; c <= 10; c += 1) {
+        seja tab: inteiro = c * 3;
+        escreva("3 x ", c, " = ", tab, "\n");
+    }
+}

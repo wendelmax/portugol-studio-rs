@@ -1,0 +1,3 @@
+escreva(15 / 5, "\n"); // Divisao inteira 15 / 5 escrita na tela
+
+seja numero: real = 50.0 / 25.6; // Divisao real 50.0 / 25.6 armazenada na variavel numero

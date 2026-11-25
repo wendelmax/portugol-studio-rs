@@ -1,0 +1,7 @@
+funcao inicio() {
+    escreva(5 + 8, "\n");
+
+    seja valor: inteiro = 5 + 8;
+
+    escreva(valor, "\n");
+}

@@ -1,0 +1,10 @@
+funcao inicio() {
+    // Variavel inicializada diretamente no codigo
+    seja vogal: caracter = 'a';
+    seja mutavel consoante: caracter = ' ';
+
+    escreva("Digite uma consoante: ");
+    leia(consoante);
+
+    escreva("Vogal: ", vogal, "\n", "Consoante: ", consoante, "\n");
+}

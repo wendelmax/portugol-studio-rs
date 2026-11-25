@@ -1,0 +1,11 @@
+// Vetores vazios tipados (crescem dinamicamente com adicionar)
+seja mutavel numeros: vetor<inteiro> = [];
+seja mutavel letras: vetor<caracter> = [];
+
+// Vetores inicializados
+seja vetor3: vetor<real> = [1.4, 2.5];
+seja vetor4: vetor<logico> = [verdadeiro, falso, verdadeiro, verdadeiro];
+seja mutavel vetor5: vetor<cadeia> = ["Questão", "Fundamental"];
+
+// Mudando o valor de vetor5 na posicao 0 de "Questão" para "Pergunta"
+vetor5[0] = "Pergunta";

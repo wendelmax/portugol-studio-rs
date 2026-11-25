@@ -1,0 +1,44 @@
+// Funcao sem retorno e sem parametro
+funcao imprime_linha() {
+    escreva("\n-----------------------------\n");
+}
+
+// Funcao com retorno do tipo real e tres parametros inteiros
+funcao media(m1: inteiro, m2: inteiro, m3: inteiro) -> real {
+    retorne Tipos.inteiro_para_real(m1 * 2 + m2 * 3 + m3 * 8) / 13.0;
+}
+
+// Em Portugol-RS, parametros sao passados por valor: retornamos o novo valor
+funcao zera_valor(valor: inteiro) -> inteiro {
+    retorne 0;
+}
+
+// Funcao com retorno do tipo logico e parametro inteiro
+funcao verifica_par(num: inteiro) -> logico {
+    se (num % 2 != 0) {
+        retorne falso;
+    }
+
+    retorne verdadeiro;
+}
+
+// Funcao principal do programa
+funcao inicio() {
+    // Imprime o retorno da funcao media
+    escreva(media(4, 9, 8));
+
+    imprime_linha();
+
+    seja mutavel variavel: inteiro = 123;
+    variavel = zera_valor(variavel);
+
+    // Imprime 0
+    escreva(variavel);
+
+    imprime_linha();
+
+    seja num: inteiro = 3;
+
+    // Verifica se o numero 3 e par com uma resposta do tipo logico
+    escreva(num, " é par? ", verifica_par(num), "\n");
+}

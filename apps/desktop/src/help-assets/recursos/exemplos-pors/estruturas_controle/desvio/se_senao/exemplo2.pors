@@ -1,0 +1,12 @@
+funcao inicio() {
+    seja mutavel hora: inteiro = 0;
+
+    escreva("Digite a hora: ");
+    leia(hora);
+
+    se (hora >= 6 && hora <= 18) {
+        escreva("É dia\n");
+    } senao {
+        escreva("É noite\n");
+    }
+}

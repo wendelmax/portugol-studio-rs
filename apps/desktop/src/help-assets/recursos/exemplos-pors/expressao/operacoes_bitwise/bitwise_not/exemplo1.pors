@@ -1,0 +1,5 @@
+/*
+Para fazer a operacao Bitwise NOT 7 (em complemento de dois):
+~7 resulta em -8 (todos os bits sao invertidos)
+*/
+seja resultado: inteiro = ~7;

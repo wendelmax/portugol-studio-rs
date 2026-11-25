@@ -1,0 +1,13 @@
+// Em Portugol-RS, matrizes sao representadas como vetor linear (linha * colunas + coluna)
+// Matriz de numeros reais com 5 linhas e 3 colunas (15 elementos)
+seja colunas: inteiro = 3;
+seja mutavel nome_da_variavel: vetor<real> = [
+    0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0
+];
+
+// Gravar um valor na linha 0 (primeira linha) e coluna 1 (segunda coluna)
+nome_da_variavel[0 * colunas + 1] = 2.5;

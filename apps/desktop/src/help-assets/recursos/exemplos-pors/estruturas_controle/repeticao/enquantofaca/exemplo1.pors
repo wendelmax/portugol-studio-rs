@@ -1,0 +1,4 @@
+seja condicao: logico = verdadeiro;
+faca {
+    // Executa os comandos pelo menos uma vez e repete enquanto a condicao for verdadeira
+} enquanto (condicao);

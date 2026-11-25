@@ -1,0 +1,5 @@
+funcao inicio() {
+    seja div: real = 8.0 / 3.0;
+
+    escreva(div, "\n");
+}
