@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Portugol Studio Next Traceability Matrix",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "features"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "ui",
+          "useCases",
+          "acceptance",
+          "implementationStatus",
+          "testStatus"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "ui": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "useCases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "backend": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tauriIpc": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scenarios": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "acceptance": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "implementationStatus": {
+            "enum": [
+              "not_assessed",
+              "missing",
+              "partial",
+              "implemented",
+              "blocked"
+            ]
+          },
+          "testStatus": {
+            "enum": [
+              "not_run",
+              "blocked",
+              "fail",
+              "pass"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

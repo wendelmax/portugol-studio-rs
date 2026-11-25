@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   PORS_HELP_DEFAULT_TOPIC,
   PORS_HELP_LIBRARIES,
@@ -7,7 +8,7 @@ import {
   filterPorsHelp,
 } from "../src/pors-help.ts";
 
-test("PORS help starts on a PORS topic and covers all 13 PORS libraries", () => {
+test("PORS help starts on a PORS topic and covers all 13 PORS libraries grouped into standard and visual", () => {
   assert.ok(PORS_HELP_TOPICS.some((topic) => topic.id === PORS_HELP_DEFAULT_TOPIC));
   const libNames = PORS_HELP_LIBRARIES.map((lib) => lib.name);
   for (const expected of [
@@ -27,6 +28,36 @@ test("PORS help starts on a PORS topic and covers all 13 PORS libraries", () => 
   ]) {
     assert.ok(libNames.includes(expected), `esperava biblioteca ${expected} na ajuda PORS`);
   }
+
+  const standardLibs = PORS_HELP_LIBRARIES.filter((lib) => lib.group === "standard");
+  const visualLibs = PORS_HELP_LIBRARIES.filter((lib) => lib.group === "visual");
+  assert.equal(standardLibs.length, 8);
+  assert.equal(visualLibs.length, 5);
+});
+
+test("PORS help covers loops and typed functions alongside core topics", () => {
+  const topicIds = PORS_HELP_TOPICS.map((topic) => topic.id);
+  for (const id of [
+    "pors:visao-geral",
+    "pors:condicionais",
+    "pors:lacos",
+    "pors:funcoes",
+    "pors:opcao-resultado",
+    "pors:colecoes-tipos-compostos",
+    "pors:ui-mvu",
+  ]) {
+    assert.ok(topicIds.includes(id), `esperava tópico ${id} na ajuda PORS`);
+  }
+});
+
+test("help.ts organizes navigation around PORS without classic library menu", () => {
+  const helpSource = readFileSync(new URL("../src/help.ts", import.meta.url), "utf8");
+  assert.ok(!helpSource.includes("help-assets/bibliotecas.json"));
+  assert.ok(!helpSource.includes("Bibliotecas clássicas"));
+  assert.ok(helpSource.includes("Primeiros passos (PORS)"));
+  assert.ok(helpSource.includes("Bibliotecas padrão (PORS)"));
+  assert.ok(helpSource.includes("UI e Multimídia (PORS)"));
+  assert.ok(helpSource.includes("Referência da sintaxe (.pors)"));
 });
 
 test("PORS help examples use .pors syntax without classic Portugol keywords", () => {

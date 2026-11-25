@@ -1,0 +1,29 @@
+schemaVersion: '1.0'
+status: proposed
+# Exemplo, expandir para UI-001..UI-035 após auditoria do repo.
+features:
+  - id: FEAT-EXEC-001
+    title: Executar arquivo ativo
+    ui: [UI-003, UI-021, UI-033]
+    useCases: [UC-06]
+    backend: [ExecutionPort]
+    tauriIpc: [run_start, run_cancel] # nomes provisórios
+    scenarios: [FT-03]
+    acceptance:
+      - "Executa a revisão capturada, não uma revisão posterior"
+      - "O console apresenta somente eventos da execução ativa"
+      - "Cancelamento é confirmado pelo backend"
+    implementationStatus: not_assessed
+    testStatus: not_run
+  - id: FEAT-TRANSLATION-001
+    title: Tradução Portugol para Rust
+    ui: [UI-015, UI-016]
+    useCases: [UC-08]
+    backend: [TranslationPort]
+    tauriIpc: [source_translate]
+    scenarios: [FT-06]
+    acceptance:
+      - "Resultado vinculado à revisão e com status de compatibilidade"
+      - "Código desvinculado nunca é sobrescrito"
+    implementationStatus: not_assessed
+    testStatus: not_run

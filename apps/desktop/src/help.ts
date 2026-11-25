@@ -1,9 +1,9 @@
-import libraries from "./help-assets/bibliotecas.json";
 import {
   PORS_HELP_DEFAULT_TOPIC,
   PORS_HELP_LIBRARIES,
   PORS_HELP_TOPICS,
   filterPorsHelp,
+  type PorsHelpLibrary,
 } from "./pors-help";
 
 const html = import.meta.glob<string>("./help-assets/topicos/**/*.html", {
@@ -126,10 +126,22 @@ export function mountHelp(openExample: (source: string, file: string) => void) {
     return element;
   }
 
-  function renderLibrary(name: string, description: string, resources: LibraryResource[], member?: string) {
+  function renderLibrary(
+    name: string,
+    description: string,
+    resources: LibraryResource[],
+    member?: string,
+    fullLibraryId?: string,
+  ) {
     const header = document.createElement("h1");
     header.textContent = name;
     article.append(header, paragraph(description));
+    if (member && fullLibraryId) {
+      const back = document.createElement("button");
+      back.textContent = `Ver todos os itens de ${name.replace(/^PORS:\s*/, "")}`;
+      back.onclick = () => choose(fullLibraryId);
+      article.append(back);
+    }
     for (const resource of resources) {
       if (member && member !== resource.name) continue;
       const section = document.createElement("section");
@@ -181,7 +193,8 @@ export function mountHelp(openExample: (source: string, file: string) => void) {
       article.scrollTop = 0;
       return;
     }
-    const porsLibrary = PORS_HELP_LIBRARIES.find(({ id }) => id === selected);
+    const [libraryId, libraryMember] = selected.split(".");
+    const porsLibrary = PORS_HELP_LIBRARIES.find(({ id }) => id === libraryId);
     if (porsLibrary) {
       renderLibrary(
         porsLibrary.name,
@@ -191,6 +204,8 @@ export function mountHelp(openExample: (source: string, file: string) => void) {
           signature: item.signature,
           description: item.description,
         })),
+        libraryMember,
+        porsLibrary.id,
       );
       refreshTheme();
       article.scrollTop = 0;
@@ -202,10 +217,6 @@ export function mountHelp(openExample: (source: string, file: string) => void) {
         const rendered = renderNode(child, topic.id);
         if (rendered) article.append(rendered);
       }
-    } else {
-      const [name, member] = selected.split(".");
-      const library = libraries[name as keyof typeof libraries];
-      if (library) renderLibrary(name, library.description, library.resources, member);
     }
     refreshTheme();
     article.scrollTop = 0;
@@ -226,39 +237,54 @@ export function mountHelp(openExample: (source: string, file: string) => void) {
     return button;
   }
 
+  function appendLibraryEntries(
+    target: DocumentFragment,
+    libs: readonly PorsHelpLibrary[],
+    query: string,
+  ) {
+    for (const lib of libs) {
+      const shortName = lib.name.replace(/^PORS:\s*/, "");
+      target.append(topicButton(lib.id, shortName));
+      if (!query) continue;
+      for (const item of lib.items) {
+        if (normalize(`${shortName} ${item.name} ${item.signature} ${item.description}`).includes(query)) {
+          target.append(topicButton(`${lib.id}.${item.name}`, `${shortName}.${item.name}`, 1));
+        }
+      }
+    }
+  }
+
   function renderNavigation() {
     const query = normalize(search.value.trim());
     const porsMatches = filterPorsHelp(search.value);
-    const porsFragment = document.createDocumentFragment();
+    const porsTopics = document.createDocumentFragment();
     for (const topic of porsMatches.topics) {
-      porsFragment.append(topicButton(topic.id, topic.title));
+      porsTopics.append(topicButton(topic.id, topic.title));
     }
-    for (const lib of porsMatches.libraries) {
-      porsFragment.append(topicButton(lib.id, lib.name));
-    }
+    const standardLibraries = document.createDocumentFragment();
+    appendLibraryEntries(
+      standardLibraries,
+      porsMatches.libraries.filter((lib) => lib.group === "standard"),
+      query,
+    );
+    const visualLibraries = document.createDocumentFragment();
+    appendLibraryEntries(
+      visualLibraries,
+      porsMatches.libraries.filter((lib) => lib.group === "visual"),
+      query,
+    );
     const language = document.createDocumentFragment();
-    const entries = document.createDocumentFragment();
     for (const { id, title, body } of topics) {
       if (query && !normalize(title + " " + body.textContent).includes(query)) continue;
       language.append(topicButton(id, title, query ? 0 : id.split("/").length - 3));
     }
-    for (const [name, { description, resources }] of Object.entries(libraries)) {
-      if (!query || normalize(name + " " + description).includes(query)) {
-        entries.append(topicButton(name, name));
-      }
-      if (!query) continue;
-      for (const resource of resources) {
-        if (normalize(name + " " + resource.name + " " + resource.description).includes(query)) {
-          entries.append(topicButton(name + "." + resource.name, name + "." + resource.name, 1));
-        }
-      }
-    }
 
     navigation.replaceChildren();
     for (const [label, entriesList] of [
-      ["Portugol-RS (PORS)", porsFragment],
-      ["Guia da linguagem (.pors)", language],
-      ["Bibliotecas clássicas", entries],
+      ["Primeiros passos (PORS)", porsTopics],
+      ["Bibliotecas padrão (PORS)", standardLibraries],
+      ["UI e Multimídia (PORS)", visualLibraries],
+      ["Referência da sintaxe (.pors)", language],
     ] as const) {
       if (!entriesList.childNodes.length) continue;
       const heading = document.createElement("h2");

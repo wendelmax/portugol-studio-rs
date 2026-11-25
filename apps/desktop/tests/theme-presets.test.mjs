@@ -8,6 +8,10 @@ test("presets populares têm IDs estáveis e cores para todos os tokens da IDE",
   assert.ok(existsSync(registryUrl), "o registro de temas embutidos deve existir");
   const { BUILTIN_THEMES, THEME_COLOR_FIELDS } = await import(registryUrl.href);
   const expected = {
+    "preset:intellij-rust-dark": ["IntelliJ Rust Dark", "dark"],
+    "preset:intellij-rust-light": ["IntelliJ Rust Light", "light"],
+    "preset:vscode-dark-modern": ["VS Code Dark Modern", "dark"],
+    "preset:vscode-light-modern": ["VS Code Light Modern", "light"],
     "preset:github-light": ["GitHub Light", "light"],
     "preset:github-dark": ["GitHub Dark", "dark"],
     "preset:one-dark-pro": ["One Dark Pro", "dark"],
@@ -75,6 +79,8 @@ test("presets populares têm IDs estáveis e cores para todos os tokens da IDE",
 test("seletor mantém os temas originais e oferece cada preset pelo ID estável", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   for (const value of ["system", "light", "dark", ...[
+    "preset:intellij-rust-dark", "preset:intellij-rust-light",
+    "preset:vscode-dark-modern", "preset:vscode-light-modern",
     "preset:github-light", "preset:github-dark", "preset:one-dark-pro", "preset:dracula",
     "preset:catppuccin-mocha", "preset:night-owl",
     "preset:portugol-studio-next", "preset:high-contrast",

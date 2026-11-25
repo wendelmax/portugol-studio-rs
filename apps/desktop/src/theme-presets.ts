@@ -87,8 +87,41 @@ function theme(name: string, base: Base, p: Palette): Theme {
   return { name, base, colors };
 }
 
-// Cores próprias do Portugol Studio, inspiradas em paletas conhecidas do VS Code.
+// Paletas padronizadas do Portugol Studio RS: Portugol Studio Next, IntelliJ Rust (RustRover)
+// e os temas claros e escuros mais usados do VS Code, calibrados para contraste WCAG AA (>= 4,5:1).
 export const BUILTIN_THEMES: Readonly<Record<string, Theme>> = {
+  "preset:intellij-rust-dark": theme("IntelliJ Rust Dark", "dark", {
+    bg: "#1e1f22", surface: "#2b2d30", border: "#393b40", text: "#dfe1e5", muted: "#a3a7b0",
+    accent: "#6b9eff", accentText: "#0f172a", error: "#f77681", errorText: "#1e1f22", warning: "#e5c07b", ok: "#73bd79",
+    frame: "#18191c", homeTitleText: "#dfe1e5", console: "#25272a", examples: "#25272a", editor: "#1e1f22", caret: "#ced0d6",
+    editorError: "#472529", line: "#26282e", selection: "#21385c", gutter: "#8c919c",
+    keyword: "#e09f7d", type: "#d896d0", function: "#7cbcff", logical: "#e09f7d",
+    number: "#56c8d3", string: "#82c78a", comment: "#b0b5bf", operator: "#dfe1e5",
+  }),
+  "preset:intellij-rust-light": theme("IntelliJ Rust Light", "light", {
+    bg: "#ffffff", surface: "#f7f8fa", border: "#d3d5db", text: "#080808", muted: "#5a5d66",
+    accent: "#285fd0", accentText: "#ffffff", error: "#c92a2a", errorText: "#ffffff", warning: "#8f5600", ok: "#067d17",
+    frame: "#2b2d30", homeTitleText: "#ffffff", console: "#f2f4f7", examples: "#f7f8fa", editor: "#ffffff", caret: "#080808",
+    editorError: "#ffe6e6", line: "#f2f5fc", selection: "#d7e8ff", gutter: "#5e626c",
+    keyword: "#0033b3", type: "#7c1089", function: "#005a70", logical: "#0033b3",
+    number: "#1746d4", string: "#066c14", comment: "#565a63", operator: "#080808",
+  }),
+  "preset:vscode-dark-modern": theme("VS Code Dark Modern", "dark", {
+    bg: "#1f1f1f", surface: "#181818", border: "#3c3c3c", text: "#d4d4d4", muted: "#9d9d9d",
+    accent: "#4daafc", accentText: "#0b1929", error: "#f48771", errorText: "#1f1f1f", warning: "#e2b93d", ok: "#89d185",
+    frame: "#181818", homeTitleText: "#e0e0e0", console: "#181818", examples: "#181818", editor: "#1f1f1f", caret: "#aeafad",
+    editorError: "#4b1f22", line: "#282828", selection: "#1d3b5a", gutter: "#969696",
+    keyword: "#75b7f0", type: "#6ad9c3", function: "#dcdcaa", logical: "#75b7f0",
+    number: "#b5cea8", string: "#e0a58d", comment: "#9cc986", operator: "#d4d4d4",
+  }),
+  "preset:vscode-light-modern": theme("VS Code Light Modern", "light", {
+    bg: "#ffffff", surface: "#f8f8f8", border: "#d4d4d4", text: "#1f1f1f", muted: "#595959",
+    accent: "#005fb8", accentText: "#ffffff", error: "#c72e0f", errorText: "#ffffff", warning: "#8a5a00", ok: "#167a32",
+    frame: "#2c2c2c", homeTitleText: "#ffffff", console: "#f3f3f3", examples: "#f8f8f8", editor: "#ffffff", caret: "#000000",
+    editorError: "#fde8e8", line: "#f3f6fa", selection: "#d6ebff", gutter: "#5e5e5e",
+    keyword: "#0000df", type: "#126378", function: "#6b521f", logical: "#0000df",
+    number: "#066e47", string: "#a31515", comment: "#006c00", operator: "#1f1f1f",
+  }),
   "preset:github-light": theme("GitHub Light", "light", {
     bg: "#ffffff", surface: "#f6f8fa", border: "#d0d7de", text: "#1f2328", muted: "#656d76",
     accent: "#0969da", accentText: "#ffffff", error: "#cf222e", errorText: "#ffffff", warning: "#9a6700", ok: "#1a7f37",
