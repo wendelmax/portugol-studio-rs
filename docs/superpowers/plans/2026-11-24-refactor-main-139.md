@@ -109,6 +109,17 @@
 - [x] Extract button, input, and inspector state synchronization behind callbacks.
 - [x] Run frontend tests, typecheck, and build.
 
+### Task 46: Debugger shell composition
+
+**Files:**
+- Create: `apps/desktop/src/run/debugger-shell.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/debugger-shell.test.mjs`
+
+- [x] Add a composition contract test for debugger commands and pause presentation.
+- [x] Compose existing debugger controllers behind one injected shell.
+- [x] Run frontend tests, typecheck, and build.
+
 ### Task 44: System file event bindings
 
 **Files:**

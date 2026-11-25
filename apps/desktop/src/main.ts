@@ -10,7 +10,6 @@ import "./style.css";
 import license from "../../../LICENSE?raw";
 import { version } from "../package.json";
 
-import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { isolateHistory } from "@codemirror/commands";
 import { forceLinting, setDiagnostics } from "@codemirror/lint";
@@ -34,12 +33,11 @@ import {
 import { createTestsPanelController } from "./run/tests-panel";
 import { createCargoProjectController } from "./run/cargo-project";
 import { createRunControls } from "./run/controls";
-import { createDebuggerCommands } from "./run/debugger-commands";
+import { createDebuggerShell } from "./run/debugger-shell";
 import { createRustExecutionController } from "./run/rust-execution";
 import { createPortugolRsExecutionController } from "./run/portugol-rs-execution";
 import { createClassicExecutionController } from "./run/classic-execution";
 import { createRunDispatcher } from "./run/dispatcher";
-import { createPausePresentation } from "./run/pause-presentation";
 import { portugolFolding } from "./folding";
 import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
@@ -419,7 +417,7 @@ const runControls = createRunControls({
 });
 const setRunning = runControls.setRunning;
 
-const debuggerCommands = createDebuggerCommands({
+const debuggerShell = createDebuggerShell({
   runId: () => runId,
   runTabId: () => runTabId,
   activeTabId: tabCollection.activeId,
@@ -432,36 +430,19 @@ const debuggerCommands = createDebuggerCommands({
   runLanguage: () => activeTab()?.language,
   setStatus,
   stop: api.stop,
-});
-
-/** Pontos de parada podem mudar enquanto o programa está em execução. */
-function syncBreakpoints(state: EditorState) {
-  debuggerCommands.syncBreakpoints(state);
-}
-
-const pausePresentation = createPausePresentation({
-  setPausedState: (info) => { paused = info; },
-  activeTabId: tabCollection.activeId,
-  runTabId: () => runTabId,
-  runId: () => runId,
   runTab: () => tabCollection.tabs().find(({ id }) => id === runTabId),
-  setDebugLine: (line) => view.dispatch({ effects: setDebugLine.of(line) }),
-  setRunning,
   renderDebugInfo,
   activate,
   goTo,
   showUtilities: (visible) => showUtilities(visible),
   showDebugPanel: () => showPanel("debug"),
-  setStatus,
 });
-
-function setPaused(info: api.DebugInfo | null) {
-  pausePresentation.setPaused(info);
-}
-
-async function debugCommand(command: (id: number) => Promise<void>) {
-  await debuggerCommands.debugCommand(command);
-}
+const {
+  debuggerCommands,
+  syncBreakpoints,
+  setPaused,
+  debugCommand,
+} = debuggerShell;
 
 const rustExecution = createRustExecutionController({
   activeTab,
