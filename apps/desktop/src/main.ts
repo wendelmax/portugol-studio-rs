@@ -85,6 +85,7 @@ import { createRecentFiles } from "./files/recent";
 import { createRecentFilesView } from "./files/recent-view";
 import { createFileIO } from "./files/io";
 import { createIncomingFileOpener } from "./files/system-files";
+import { mountSystemFileEvents } from "./files/system-file-events";
 import { mountPaneLayout } from "./layout/panes";
 import { createPanelNavigation } from "./layout/panel-navigation";
 import { setStatus } from "./shell/status";
@@ -1263,15 +1264,10 @@ const openIncomingFiles = createIncomingFileOpener({
   setStatus,
 });
 
-async function consumeSystemFiles() {
-  try {
-    await openIncomingFiles(await api.pendingFiles());
-  } catch {
-    setStatus("Não foi possível receber arquivos do sistema.", "error");
-  }
-}
-
-void api.onSystemFiles(() => { void consumeSystemFiles(); }).then(consumeSystemFiles, consumeSystemFiles);
-void getCurrentWindow().onDragDropEvent(({ payload }) => {
-  if (payload.type === "drop") void openIncomingFiles(payload.paths, true);
-}).catch(() => {});
+mountSystemFileEvents({
+  pendingFiles: api.pendingFiles,
+  listenForFiles: api.onSystemFiles,
+  listenForDrop: (listener) => getCurrentWindow().onDragDropEvent(({ payload }) => listener(payload)),
+  openFiles: openIncomingFiles,
+  setStatus,
+});

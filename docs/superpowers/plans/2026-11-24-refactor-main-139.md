@@ -109,6 +109,17 @@
 - [x] Extract button, input, and inspector state synchronization behind callbacks.
 - [x] Run frontend tests, typecheck, and build.
 
+### Task 44: System file event bindings
+
+**Files:**
+- Create: `apps/desktop/src/files/system-file-events.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/system-file-events.test.mjs`
+
+- [x] Add tests for startup file replay, incoming event dispatch, drag-drop filtering, and failure feedback.
+- [x] Move Tauri file event orchestration behind injected listeners.
+- [x] Keep Tauri calls passed from `api.ts`/window shell and run frontend validations.
+
 ### Task 43: Editor theme lifecycle
 
 **Files:**
