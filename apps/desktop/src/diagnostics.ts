@@ -19,7 +19,7 @@ function diagnosticTable(
     const row = document.createElement("tr");
     row.className = diagnostic.severity;
     const severity = row.insertCell();
-    const badge = icon(diagnostic.severity === "error" ? "pequeno/exclamation" : "pequeno/warning");
+    const badge = icon(diagnostic.severity === "error" ? "alert-circle" : "alert-triangle");
     badge.title = kind(diagnostic);
     severity.append(badge);
 

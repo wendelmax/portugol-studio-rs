@@ -85,11 +85,11 @@
   --radius-pill: 9px;
 
   /* Tamanhos estruturais do shell */
-  --size-titlebar: 42px;
+  --size-titlebar: 50px;
   --size-activity-rail: 56px;
-  --size-tabs: 42px;
-  --size-splitter: 15px;
-  --size-explorer-splitter: 9px;
+  --size-tabs: 40px;
+  --size-splitter: 8px;
+  --size-explorer-splitter: 8px;
   --size-error-strip: 12px;
   --size-mapping-gutter: 76px;
 

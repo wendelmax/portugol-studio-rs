@@ -66,7 +66,7 @@ test("tab strip renders home, help, file tabs, and new-file action", () => {
   assert.equal(container.children[2].children[0].textContent, "aula.por");
   assert.equal(container.children[2].children[0].className, "dirty");
   assert.equal(container.children[3].children[0].textContent, "exemplo.pors");
-  assert.equal(container.children[0].textContent, "Portugol Studio");
+  assert.equal(container.children[0].textContent, "Início");
   assert.equal(container.children[2].title, "/tmp/aula.por");
   assert.equal(container.children[3].title, "Arquivo ainda não salvo");
   assert.equal(container.children.at(-1).textContent, "+");
