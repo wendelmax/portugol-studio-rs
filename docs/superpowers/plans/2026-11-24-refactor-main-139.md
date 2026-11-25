@@ -120,6 +120,17 @@
 - [x] Compose existing debugger controllers behind one injected shell.
 - [x] Run frontend tests, typecheck, and build.
 
+### Task 47: Toolchain availability state
+
+**Files:**
+- Create: `apps/desktop/src/shell/toolchain-state.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/toolchain-state.test.mjs`
+
+- [x] Add a failing test for independent, initially unknown toolchain availability.
+- [x] Move rustc/Cargo/rustfmt availability into a small state store.
+- [x] Run frontend tests, typecheck, and build.
+
 ### Task 44: System file event bindings
 
 **Files:**
