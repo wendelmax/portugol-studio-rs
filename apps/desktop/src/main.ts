@@ -36,7 +36,7 @@ import { createExecutionState, isExecutionBusy } from "./run/execution-state";
 import { createRunEventsController } from "./run/run-events";
 import { mountRunToolbar } from "./run/toolbar";
 import { loadLearningMode, type LearningMode } from "./learning-mode";
-import { createPaletteContext, isPaletteCommandAvailable } from "./command-palette";
+import { createPaletteContext } from "./command-palette";
 import { markRustPreviewStale } from "./rust-preview-state";
 import { mountPorsUiPreviewShell } from "./pors-ui-preview-shell";
 import * as api from "./api";
@@ -51,10 +51,8 @@ import { mountRustPreview } from "./rust/preview";
 import { mountLearningPanel } from "./learning/panel";
 import { mountLearningModeShell } from "./learning/mode-shell";
 import { createExerciseWorkbenchShell } from "./learning/exercise-workbench";
-import { mountCommandPalette } from "./commands/palette";
-import { renderShortcutList } from "./commands/shortcuts";
-import { createIdeShortcuts } from "./commands/ide-shortcuts";
-import { cycleIdeTab, mountKeyboardShortcutDispatch } from "./commands/keyboard-dispatch";
+import { cycleIdeTab } from "./commands/keyboard-dispatch";
+import { mountIdeCommandShell } from "./commands/ide-command-shell";
 import { mountProjectDialogs } from "./shell/project-dialogs";
 import { mountWindowControls } from "./shell/window";
 import { mountActivityBar } from "./shell/activity-bar";
@@ -747,8 +745,6 @@ function cycleTab(step: number) {
   });
 }
 
-const shortcutDialog = $<HTMLDialogElement>("shortcuts");
-
 function paletteContext() {
   return createPaletteContext({
     activeTab: activeTab(),
@@ -761,15 +757,6 @@ function paletteContext() {
   });
 }
 
-const commandPalette = mountCommandPalette(() =>
-  shortcuts.filter(({ command }) => isPaletteCommandAvailable(command, paletteContext())),
-);
-const showCommandPalette = commandPalette.show;
-
-function showShortcuts() {
-  if (!shortcutDialog.open) shortcutDialog.showModal();
-}
-
 const filterOutlineType = (type: string) => () => {
   if (!activeTab()) return;
   showUtilities(true);
@@ -780,81 +767,69 @@ const filterOutlineKind = (kind: "variable" | "array" | "matrix" | "function" | 
   showUtilities(true);
   outline.filterKind(kind);
 };
-const shortcuts = createIdeShortcuts({
-  runOrContinue,
-  stepOrStart,
-  stopProgram,
-  pauseDebug: () => { if (runState.runId !== null) void api.debugPause(runState.runId); },
-  continueDebug: () => debugCommand(api.debugContinue),
-  stepOver: () => debugCommand(api.debugStepOver),
-  stepInto: () => debugCommand(api.debugStepInto),
-  stepOut: () => debugCommand(api.debugStepOut),
-  help: () => activate(helpId),
-  renameSymbol: renameSelection,
-  formatCode,
-  runAsRust: () => runProgram(false, true),
-  checkCargoProject,
-  runCargoTests,
-  openTips: () => tips.open(),
-  about: () => $<HTMLDialogElement>("about").showModal(),
-  showShortcuts,
-  home: () => activate(homeId),
-  previousTab: () => cycleTab(-1),
-  nextTab: () => cycleTab(1),
-  toggleCenter: toggleCenterSource,
-  toggleExpanded,
-  commandPalette: showCommandPalette,
-  newFile: () => newTab(),
-  openFile: () => fileIO.openFiles(),
-  toggleExplorer: () => workspaceExplorer.toggleExplorer(),
-  save: () => fileIO.save(),
-  saveAs: () => fileIO.save(true),
-  executionParameters: () => {
-    if (!activeTab()) return;
-    editorOptions.open = true;
-    $("args").focus();
+mountIdeCommandShell({
+  paletteContext,
+  optionMenus,
+  actions: {
+    runOrContinue,
+    stepOrStart,
+    stopProgram,
+    pauseDebug: () => { if (runState.runId !== null) void api.debugPause(runState.runId); },
+    continueDebug: () => debugCommand(api.debugContinue),
+    stepOver: () => debugCommand(api.debugStepOver),
+    stepInto: () => debugCommand(api.debugStepInto),
+    stepOut: () => debugCommand(api.debugStepOut),
+    help: () => activate(helpId),
+    renameSymbol: renameSelection,
+    formatCode,
+    runAsRust: () => runProgram(false, true),
+    checkCargoProject,
+    runCargoTests,
+    openTips: () => tips.open(),
+    about: () => $<HTMLDialogElement>("about").showModal(),
+    home: () => activate(homeId),
+    previousTab: () => cycleTab(-1),
+    nextTab: () => cycleTab(1),
+    toggleCenter: toggleCenterSource,
+    toggleExpanded,
+    newFile: () => newTab(),
+    openFile: () => fileIO.openFiles(),
+    toggleExplorer: () => workspaceExplorer.toggleExplorer(),
+    save: () => fileIO.save(),
+    saveAs: () => fileIO.save(true),
+    executionParameters: () => {
+      if (!activeTab()) return;
+      editorOptions.open = true;
+      $("args").focus();
+    },
+    utilities: toggleUtilities,
+    searchOutline: () => {
+      if (!activeTab()) return;
+      showUtilities(true);
+      outline.focus();
+    },
+    closeTab: () => closeTab(tabCollection.activeId()),
+    closeAllTabs: async () => {
+      for (const tab of tabCollection.tabs()) if (!(await closeTab(tab.id))) return;
+      if (helpOpen) await closeTab(helpId);
+    },
+    findReplace: () => openSearchPanel(view),
+    filterTypeInteger: filterOutlineType("inteiro"),
+    filterTypeCharacter: filterOutlineType("caracter"),
+    filterTypeReal: filterOutlineType("real"),
+    filterTypeString: filterOutlineType("cadeia"),
+    filterTypeLogical: filterOutlineType("logico"),
+    filterTypeVoid: filterOutlineType("vazio"),
+    showAllTypes: filterOutlineType(""),
+    filterVariable: filterOutlineKind("variable"),
+    filterArray: filterOutlineKind("array"),
+    filterMatrix: filterOutlineKind("matrix"),
+    filterFunction: filterOutlineKind("function"),
+    filterConstant: filterOutlineKind("constant"),
   },
-  utilities: toggleUtilities,
-  searchOutline: () => {
-    if (!activeTab()) return;
-    showUtilities(true);
-    outline.focus();
-  },
-  closeTab: () => closeTab(tabCollection.activeId()),
-  closeAllTabs: async () => {
-    for (const tab of tabCollection.tabs()) if (!(await closeTab(tab.id))) return;
-    if (helpOpen) await closeTab(helpId);
-  },
-  findReplace: () => openSearchPanel(view),
-  filterTypeInteger: filterOutlineType("inteiro"),
-  filterTypeCharacter: filterOutlineType("caracter"),
-  filterTypeReal: filterOutlineType("real"),
-  filterTypeString: filterOutlineType("cadeia"),
-  filterTypeLogical: filterOutlineType("logico"),
-  filterTypeVoid: filterOutlineType("vazio"),
-  showAllTypes: filterOutlineType(""),
-  filterVariable: filterOutlineKind("variable"),
-  filterArray: filterOutlineKind("array"),
-  filterMatrix: filterOutlineKind("matrix"),
-  filterFunction: filterOutlineKind("function"),
-  filterConstant: filterOutlineKind("constant"),
 });
-
-renderShortcutList(shortcuts);
-$("home-shortcuts").onclick = showShortcuts;
 mountProjectDialogs({ version, license });
 $("home-help").onclick = $("btn-help").onclick = () => activate(helpId);
-
-mountKeyboardShortcutDispatch({
-  target: window,
-  hasOpenDialog: () => document.querySelector("dialog[open]") !== null,
-  optionMenus: optionMenus.map((menu) => ({
-    get open() { return menu.open; },
-    set open(value: boolean) { menu.open = value; },
-    focusSummary: () => menu.querySelector("summary")?.focus(),
-  })),
-  shortcuts: () => shortcuts,
-});
 
 // Confirma antes de fechar a janela com alterações não salvas.
 void runListeners.catch((error) => setStatus(String(error), "error"));

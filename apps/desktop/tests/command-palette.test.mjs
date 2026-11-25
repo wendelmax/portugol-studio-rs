@@ -2,7 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createPaletteContext, filterCommands, isDebugCommandAvailable, isPaletteCommandAvailable, nextCommandIndex } from "../src/command-palette.ts";
-import { ideSource } from "./support/ide-source.mjs";
 
 const commands = [
   { command: "Abrir arquivo", label: "Ctrl+O" },
@@ -77,9 +76,13 @@ test("palette dialog exposes an accessible search, listbox, and empty state", ()
 });
 
 test("command palette shortcut is advertised", () => {
-  const main = ideSource();
-const shortcuts = readFileSync(new URL("../src/commands/ide-shortcuts.ts", import.meta.url), "utf8");
-  assert.match(main, /createIdeShortcuts\(/);
+  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+  const commandShell = readFileSync(new URL("../src/commands/ide-command-shell.ts", import.meta.url), "utf8");
+  const shortcuts = readFileSync(new URL("../src/commands/ide-shortcuts.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(main, /createIdeShortcuts\(/);
+  assert.match(commandShell, /createIdeShortcuts\(/);
+  assert.match(commandShell, /mountKeyboardShortcutDispatch\(/);
+  assert.match(commandShell, /renderShortcutList\(/);
   assert.match(shortcuts, /label: "Ctrl\+Shift\+P", command: "Paleta de comandos"/i);
 });
 
