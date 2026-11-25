@@ -120,6 +120,18 @@
 - [x] Move preview panel composition from `main.ts` into the dedicated shell.
 - [x] Run frontend tests, typecheck, and build.
 
+### Task 52: Editor actions shell
+
+**Files:**
+- Create: `apps/desktop/src/editor/actions-shell.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Update: `apps/desktop/tests/symbol-editor-actions.test.mjs`
+- Update: `apps/desktop/tests/pors-formatting.test.mjs` and `apps/desktop/tests/rust-formatting.test.mjs`
+
+- [x] Add a boundary assertion for symbol and formatting action composition outside `main.ts`.
+- [x] Move DOM, API, and controller composition for editor actions into the editor shell.
+- [x] Run focused tests, the full frontend suite, typecheck, build, and diff check.
+
 ### Task 46: Debugger shell composition
 
 **Files:**

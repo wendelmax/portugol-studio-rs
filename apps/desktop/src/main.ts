@@ -45,7 +45,6 @@ import { mountOutline } from "./outline";
 import { panelContentId, panelNameForKey, type PanelName } from "./panel-tabs";
 import { LIBRARIES, portugol, portugolRs, SNIPPETS } from "./portugol";
 import { detectSourceLanguage, ensureSourceExtension } from "./document-language";
-import { semanticSymbolLanguage } from "./semantic-symbol-actions";
 import { canDebugSource, canRunAsRust, canRunSource } from "./runtime-capabilities";
 import { parseClassicArguments, parseProcessArguments } from "./process-arguments";
 import { hasCargoExecutionConsent, hasRustExecutionConsent, rememberCargoExecutionConsent, rememberRustExecutionConsent } from "./rust-execution-consent";
@@ -92,13 +91,12 @@ import { appendConsole, appendProcessOutput, clearConsole, consoleText } from ".
 import { renderDebugInfo } from "./run/debug-view";
 import { chooseCargoTarget } from "./run/cargo-target-dialog";
 import { applyPageTheme, editorColors, editorTheme, onSystemThemeChange, themeChoice } from "./editor/theme";
-import { createEditorFormatter } from "./editor/format";
 import { createEditorUpdateController } from "./editor/update-controller";
 import { createEditorExtensionFactory } from "./editor/extensions";
 import { createEditorSetup } from "./editor/setup";
 import { createEditorNavigationBindings } from "./editor/navigation-bindings";
 import { createEditorThemeController } from "./editor/theme-controller";
-import { createSymbolEditorActions } from "./editor/symbol-editor-actions";
+import { createEditorActionsShell } from "./editor/actions-shell";
 import { createUtilityInsertions } from "./editor/utility-insertions";
 import {
   breakpointLines, breakpoints, debugLine, runtimeError, setDebugLine, setRuntimeError, toCodeMirror,
@@ -804,69 +802,41 @@ const consoleOptions = $<HTMLDetailsElement>("console-tools");
 const outlineOptions = $<HTMLDetailsElement>("outline-options");
 const optionMenus = [editorOptions, consoleOptions, outlineOptions];
 function centerSelection() {
-  view.dispatch({ effects: EditorView.scrollIntoView(view.state.selection.main.head, { y: "center" }) });
+  editorActions.centerSelection();
 }
 
 function toggleCenterSource() {
-  centerSource.toggle();
+  editorActions.toggleCenterSource();
 }
 
-const symbolEditorActions = createSymbolEditorActions({
-  activeTab,
+const editorActions = createEditorActionsShell({
   view,
+  activeTab,
   runId: () => runState.runId,
   runTabId: () => runState.runTabId,
-  hasOpenDialog: () => document.querySelector("dialog[open]") !== null,
-  semanticSymbolLanguage,
-  renameTargetPortugol: api.renameTarget,
-  renameTargetPortugolRs: api.renameTargetPortugolRs,
-  renameSymbolPortugol: api.renameSymbol,
-  renameSymbolPortugolRs: api.renameSymbolPortugolRs,
-  resolvePortugol: api.resolveSymbol,
-  resolvePortugolRs: api.resolveSymbolPortugolRs,
-  applyChanges: (changes) => view.dispatch({ changes, annotations: isolateHistory.of("full"), userEvent: "input.rename" }),
-  focusEditor: () => view.focus(),
-  setStatus,
-  ui: {
-    dialog: $<HTMLDialogElement>("rename"),
-    form: $<HTMLFormElement>("rename-form"),
-    input: $<HTMLInputElement>("rename-input"),
-    error: $("rename-error"),
-    submit: $<HTMLButtonElement>("rename-submit"),
-    description: $("rename-description"),
-    cancelButton: $<HTMLButtonElement>("rename-cancel"),
-  },
+  rustfmtAvailable: () => toolchainState.rustfmtAvailable() === true,
+  centerSelection: () => view.dispatch({ effects: EditorView.scrollIntoView(view.state.selection.main.head, { y: "center" }) }),
+  toggleCenterSource: () => centerSource.toggle(),
 });
 
 function renameAt(offset: number) {
-  return symbolEditorActions.renameAt(offset);
+  return editorActions.renameAt(offset);
 }
 
 function goToDeclarationAt(offset: number, quiet = false) {
-  return symbolEditorActions.goToDeclarationAt(offset, quiet);
+  return editorActions.goToDeclarationAt(offset, quiet);
 }
 
 function renameSelection() {
-  return renameAt(view.state.selection.main.from);
+  return editorActions.renameSelection();
 }
 
 function goToDeclarationSelection() {
-  return goToDeclarationAt(view.state.selection.main.head);
+  return editorActions.goToDeclarationSelection();
 }
 
-const editorFormatter = createEditorFormatter({
-  activeTab,
-  isRunningTab: (tab) => runState.runTabId === tab.id && runState.runId !== null,
-  rustfmtAvailable: () => toolchainState.rustfmtAvailable() === true,
-  view,
-  formatRust: api.formatRustSource,
-  formatPortugolRs: api.formatPortugolRs,
-  formatPortugol: api.formatSource,
-  setStatus,
-});
-
 function formatCode() {
-  return editorFormatter.formatCode();
+  return editorActions.formatCode();
 }
 
 function editorMenuAction(id: string, action: () => unknown) {
