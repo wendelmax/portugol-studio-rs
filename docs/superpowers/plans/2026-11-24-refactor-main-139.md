@@ -392,4 +392,16 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - [x] Add tests for language routing, stale requests, submission, change application, and error display.
 - [x] Extract rename target and dialog orchestration with editor and UI dependencies injected.
 - [x] Run the full frontend tests (77/77), typecheck, and build.
-- [ ] Commit the symbol rename group.
+- [x] Commit the symbol rename group (#185).
+
+### Task 31: Center-source preference
+
+**Files:**
+- Create: `apps/desktop/src/editor/center-source.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/center-source.test.mjs`
+
+- [x] Add tests for preference restore, inactive-tab guard, center toggling, focus, and storage failures.
+- [x] Extract center-source preference state and UI orchestration.
+- [x] Run the full frontend tests (78/78), typecheck, and build.
+- [ ] Commit the editor centering group.
