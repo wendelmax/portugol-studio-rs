@@ -131,6 +131,17 @@
 - [x] Move rustc/Cargo/rustfmt availability into a small state store.
 - [x] Run frontend tests, typecheck, and build.
 
+### Task 48: Symbol editor actions
+
+**Files:**
+- Create: `apps/desktop/src/editor/symbol-editor-actions.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/symbol-editor-actions.test.mjs`
+
+- [x] Add a failing contract test for composing rename and declaration navigation.
+- [x] Move the composition and editor adapters out of `main.ts`.
+- [x] Run frontend tests, typecheck, and build.
+
 ### Task 44: System file event bindings
 
 **Files:**
