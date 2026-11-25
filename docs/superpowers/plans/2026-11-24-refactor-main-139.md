@@ -109,6 +109,17 @@
 - [x] Extract button, input, and inspector state synchronization behind callbacks.
 - [x] Run frontend tests, typecheck, and build.
 
+### Task 51: PORS visual preview shell
+
+**Files:**
+- Create: `apps/desktop/src/pors-ui-preview-shell.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/pors-ui-preview-shell.test.mjs`
+
+- [x] Add a boundary test for the PORS preview panel, DOM bindings, and `api.ts` adapters.
+- [x] Move preview panel composition from `main.ts` into the dedicated shell.
+- [x] Run frontend tests, typecheck, and build.
+
 ### Task 46: Debugger shell composition
 
 **Files:**
