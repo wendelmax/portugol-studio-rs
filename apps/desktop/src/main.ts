@@ -19,7 +19,6 @@ import { open as openDialog, save as saveDialog, ask } from "@tauri-apps/plugin-
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import { renderDiagnostics } from "./diagnostics";
-import { sourceDiagnostic } from "./source-map-ui";
 import { mountExamples } from "./examples";
 import { mountHomeNewFileMenu } from "./home-new-file-menu";
 import { mountExercises, readExercise, type ExerciseDocument } from "./exercises";
@@ -31,12 +30,8 @@ import {
   isCurrentExerciseTestRequest,
 } from "./exercise-test-panel";
 import { createTestsPanelController } from "./run/tests-panel";
-import { createCargoProjectController } from "./run/cargo-project";
 import { createExecutionPresentationShell } from "./run/execution-presentation";
-import { createRustExecutionController } from "./run/rust-execution";
-import { createPortugolRsExecutionController } from "./run/portugol-rs-execution";
-import { createClassicExecutionController } from "./run/classic-execution";
-import { createRunDispatcher } from "./run/dispatcher";
+import { createExecutionControllerShell } from "./run/execution-controller-shell";
 import { portugolFolding } from "./folding";
 import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
@@ -45,9 +40,6 @@ import { panelContentId, panelNameForKey, type PanelName } from "./panel-tabs";
 import { LIBRARIES, portugol, portugolRs, SNIPPETS } from "./portugol";
 import { detectSourceLanguage, ensureSourceExtension } from "./document-language";
 import { canRunAsRust } from "./runtime-capabilities";
-import { parseClassicArguments, parseProcessArguments } from "./process-arguments";
-import { hasCargoExecutionConsent, hasRustExecutionConsent, rememberCargoExecutionConsent, rememberRustExecutionConsent } from "./rust-execution-consent";
-import { replayRunEvents } from "./run-event-router";
 import { createExecutionState, isExecutionBusy } from "./run/execution-state";
 import { createRunEventsController } from "./run/run-events";
 import { mountRunToolbar } from "./run/toolbar";
@@ -87,7 +79,6 @@ import { createPanelNavigation } from "./layout/panel-navigation";
 import { setStatus } from "./shell/status";
 import { mountFontSizeControls } from "./shell/font-size";
 import { appendConsole, appendProcessOutput, clearConsole, consoleText } from "./run/console";
-import { chooseCargoTarget } from "./run/cargo-target-dialog";
 import { applyPageTheme, editorColors, editorTheme, onSystemThemeChange, themeChoice } from "./editor/theme";
 import { createEditorUpdateController } from "./editor/update-controller";
 import { createEditorExtensionFactory } from "./editor/extensions";
@@ -97,7 +88,7 @@ import { createEditorThemeController } from "./editor/theme-controller";
 import { createEditorActionsShell } from "./editor/actions-shell";
 import { createUtilityInsertions } from "./editor/utility-insertions";
 import {
-  breakpointLines, breakpoints, debugLine, runtimeError, setDebugLine, setRuntimeError, toCodeMirror,
+  breakpoints, debugLine, runtimeError, setDebugLine, setRuntimeError,
 } from "./editor/decorations";
 
 const TEMPLATE = "programa\n{\n\tfuncao inicio()\n\t{\n\t\t\n\t}\n}\n";
@@ -404,188 +395,29 @@ const executionPresentation = createExecutionPresentationShell({
   showUtilities: (visible) => showUtilities(visible),
   showDebugPanel: () => showPanel("debug"),
 });
-const { setRunning, debuggerCommands, syncBreakpoints, setPaused, debugCommand } = executionPresentation;
+const { setRunning, syncBreakpoints, setPaused, debugCommand } = executionPresentation;
 
-const rustExecution = createRustExecutionController({
-  activeTab,
+const executionControllers = createExecutionControllerShell({
+  runState,
+  runPresentation: executionPresentation,
+  view,
   tabs: tabCollection.tabs,
-  isBusy: () => isExecutionBusy(runState),
+  activeTab,
   rustcAvailable: toolchainState.rustcAvailable,
   cargoAvailable: toolchainState.cargoAvailable,
   isDirty,
   save: () => fileIO.save(),
-  argumentsText: () => $<HTMLInputElement>("args").value,
-  parseArguments: parseProcessArguments,
-  currentDocument: () => view.state.doc,
-  isCurrent: (tab, documentState) => activeTab() === tab && view.state.doc === documentState,
-  runId: () => runState.runId,
-  setRunId: (id) => { runState.runId = id; },
-  setPending: (pending) => { runState.porsRunPending = pending; },
-  setRunTabId: (id) => { runState.runTabId = id; },
-  syncLanguageControls,
-  setRunning,
-  hasConsent: (consent) => consent === "cargo"
-    ? hasCargoExecutionConsent(sessionStorage)
-    : hasRustExecutionConsent(sessionStorage),
-  askConsent: (consent) => ask(
-    consent === "cargo"
-      ? "Cargo pode acessar a rede e executar scripts de build, macros procedurais e dependências no seu usuário local. Esta execução não possui sandbox. Execute apenas projetos em que você confia. Deseja continuar?"
-      : "Arquivos Rust compilados e executados podem acessar arquivos, processos e recursos permitidos à sua conta. Esta execução não possui sandbox. Execute apenas código em que você confia. Deseja continuar?",
-    {
-      title: consent === "cargo" ? "Executar projeto Cargo sem sandbox" : "Executar código Rust sem sandbox",
-      kind: "warning",
-      okLabel: "Executar Rust",
-      cancelLabel: "Cancelar",
-    },
-  ),
-  rememberConsent: (consent) => consent === "cargo"
-    ? rememberCargoExecutionConsent(sessionStorage, true)
-    : rememberRustExecutionConsent(sessionStorage, true),
-  chooseCargoTarget,
-  registerRun: api.registerRustSourceRun,
-  cargoRunTargets: api.cargoProjectRunTargets,
-  runCargoProject: api.runCargoProject,
-  runRustSource: api.runRustSource,
-  clearRuntimeError: () => view.dispatch({ effects: setRuntimeError.of(null) }),
-  clearDebugLine: () => view.dispatch({ effects: setDebugLine.of(null) }),
-  clearPaused: () => { runState.paused = null; },
-  showConsole: () => showPanel("console"),
-  clearConsole,
-  appendProcessOutput,
-  appendConsole,
-  setStatus,
-  renderMessages,
-  setDiagnostics: (tab, diagnostics) => {
-    tab.runtimeCompileDiagnostics = diagnostics;
-    view.dispatch(setDiagnostics(view.state, diagnostics.map((item) => toCodeMirror(item, view.state.doc.length))));
-  },
-  showMessages: () => showPanel("messages"),
-});
-
-const portugolRsExecution = createPortugolRsExecutionController({
-  rustcAvailable: toolchainState.rustcAvailable,
-  isCurrent: (tab, documentState) => activeTab() === tab && view.state.doc === documentState,
-  runId: () => runState.runId,
-  setRunId: (id) => { runState.runId = id; },
-  setPending: (pending) => { runState.porsRunPending = pending; },
-  setRunTabId: (id) => { runState.runTabId = id; },
-  setPendingEvents: (events) => { runState.pendingEvents = events; },
-  setRunning,
-  clearRuntimeError: () => view.dispatch({ effects: setRuntimeError.of(null) }),
-  clearDebugLine: () => view.dispatch({ effects: setDebugLine.of(null) }),
-  clearPaused: () => { runState.paused = null; },
-  showConsole: () => showPanel("console"),
-  clearConsole,
-  hideInput: () => { inputForm.hidden = true; },
   runListeners: () => runListeners,
-  startVm: api.startPortugolRsVm,
-  registerRun: api.registerPortugolRsRun,
-  runGeneratedRust: api.runPortugolRs,
-  setStatus,
-  appendProcessOutput,
-  appendConsole,
-  renderMessages,
-  setDiagnostics: (tab, diagnostics) => {
-    tab.runtimeCompileDiagnostics = diagnostics;
-    view.dispatch(setDiagnostics(view.state, diagnostics.map((item) => toCodeMirror(item, view.state.doc.length))));
-  },
-  setVmDiagnostics: (tab, diagnostics) => { tab.diagnostics = diagnostics as api.DiagnosticInfo[]; },
-  showMessages: () => showPanel("messages"),
-  sourceDiagnostic,
-  toCodeMirror,
-  replayEvents: replayRunEvents,
-});
-
-const classicExecution = createClassicExecutionController({
-  parseArguments: parseClassicArguments,
-  runListeners: () => runListeners,
-  run: api.run,
-  setRuntimeError: () => view.dispatch({ effects: setRuntimeError.of(null) }),
-  setDebugLine: () => view.dispatch({ effects: setDebugLine.of(null) }),
-  clearPaused: () => { runState.paused = null; },
-  showConsole: () => showPanel("console"),
-  clearConsole,
-  setPendingEvents: (events) => { runState.pendingEvents = events; },
-  setRunTabId: (id) => { runState.runTabId = id; },
-  setRunId: (id) => { runState.runId = id; },
-  setRunButtonsDisabled: (disabled) => {
-    $<HTMLButtonElement>("btn-run").disabled = disabled;
-    $<HTMLButtonElement>("btn-debug").disabled = disabled;
-  },
-  setRunning,
-  setStatus,
-  replayEvents: replayRunEvents,
-  setDiagnostics: (tab, diagnostics) => { tab.diagnostics = diagnostics; },
-  renderMessages,
-  showMessages: () => showPanel("messages"),
-});
-
-const runDispatcher = createRunDispatcher({
-  isBusy: () => isExecutionBusy(runState),
-  activeTab,
-  currentDocument: () => view.state.doc,
-  editorState: () => view.state,
-  argumentsText: () => $<HTMLInputElement>("args").value,
-  breakpointLines: (state) => breakpointLines(state),
-  rustExecution,
-  portugolRsExecution,
-  classicExecution,
-  isPaused: () => runState.paused !== null,
-  debugContinue: () => debugCommand(api.debugContinue),
-  debugStepOver: () => debugCommand(api.debugStepOver),
-  stop: () => debuggerCommands.stopProgram(),
-});
-const { runProgram, runOrContinue, stepOrStart, stopProgram } = runDispatcher;
-
-const cargoProjectController = createCargoProjectController({
-  tabs: tabCollection.tabs,
-  activeTab,
-  isBusy: () => isExecutionBusy(runState),
-  cargoAvailable: toolchainState.cargoAvailable,
-  isDirty,
-  save: () => fileIO.save(),
-  currentDocument: () => view.state.doc,
-  isCurrent: (tab, documentState) => activeTab() === tab && view.state.doc === documentState,
-  setPending: (pending) => { runState.porsRunPending = pending; },
-  setRunTabId: (id) => { runState.runTabId = id; },
-  runId: () => runState.runId,
-  setRunId: (id) => { runState.runId = id; },
   syncLanguageControls,
-  setRunning,
-  hasCargoConsent: () => hasCargoExecutionConsent(sessionStorage),
-  askCargoConsent: (operation) => operation === "check"
-    ? ask(
-      "cargo check pode acessar a rede e executar scripts de build, macros procedurais e dependências no seu usuário local. Esta análise não possui sandbox. Execute apenas projetos em que você confia. Deseja continuar?",
-      { title: "Analisar projeto Cargo sem sandbox", kind: "warning", okLabel: "Analisar Cargo", cancelLabel: "Cancelar" },
-    )
-    : ask(
-      "cargo test pode acessar a rede e executar scripts de build, macros procedurais e código de teste no seu usuário local. Esta execução não possui sandbox. Execute apenas projetos em que você confia. Deseja continuar?",
-      { title: "Executar cargo test sem sandbox", kind: "warning", okLabel: "Executar testes", cancelLabel: "Cancelar" },
-    ),
-  rememberCargoConsent: () => rememberCargoExecutionConsent(sessionStorage, true),
-  registerRun: api.registerRustSourceRun,
-  checkCargoProject: api.checkCargoProject,
-  testCargoProject: api.testCargoProject,
-  clearRuntimeError: () => view.dispatch({ effects: setRuntimeError.of(null) }),
-  clearConsole,
   showPanel,
   setStatus,
-  setDiagnostics: (tab, diagnostics) => {
-    tab.diagnostics = diagnostics;
-    renderMessages();
-    view.dispatch(setDiagnostics(view.state, diagnostics.map((item) => toCodeMirror(item, view.state.doc.length))));
-  },
+  clearConsole,
   appendConsole,
+  appendProcessOutput,
+  renderMessages,
   renderExerciseTests,
 });
-
-async function checkCargoProject() {
-  await cargoProjectController.check();
-}
-
-async function runCargoTests() {
-  await cargoProjectController.runTests();
-}
+const { runProgram, runOrContinue, stepOrStart, stopProgram, checkCargoProject, runCargoTests } = executionControllers;
 
 const bottomPanelNames: PanelName[] = ["console", "tests", "messages", "debug"];
 
