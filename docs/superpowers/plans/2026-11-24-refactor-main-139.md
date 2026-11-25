@@ -404,4 +404,16 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - [x] Add tests for preference restore, inactive-tab guard, center toggling, focus, and storage failures.
 - [x] Extract center-source preference state and UI orchestration.
 - [x] Run the full frontend tests (78/78), typecheck, and build.
-- [ ] Commit the editor centering group.
+- [x] Commit the editor centering group (#186).
+
+### Task 32: Toolchain capability startup
+
+**Files:**
+- Create: `apps/desktop/src/shell/toolchain-status.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/toolchain-status.test.mjs`
+
+- [x] Add tests for Rust, Cargo, and rustfmt success/failure and active-tab updates.
+- [x] Extract startup capability checks and status UI orchestration.
+- [x] Run the full frontend tests (79/79), typecheck, and build.
+- [x] Commit the toolchain status group (#187).
