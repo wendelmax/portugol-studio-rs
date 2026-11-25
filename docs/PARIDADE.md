@@ -71,7 +71,7 @@ são executados e validados sem tela.
 | Ir à declaração (`resolve_symbol`) | ✅ | F12 no editor, Ctrl/Cmd+clique e ação no menu; Portugol clássico e `.pors` resolvem bindings por escopo, preservam o buffer e descartam respostas obsoletas |
 | Renomear símbolo (`TelaRenomearSimbolo`) | ✅ | Ctrl+R, menu do editor e duplo clique na árvore; Portugol clássico e `.pors` verificam conflitos e preservam referências sombreadas |
 | Dobras de código | ✅ | blocos aninhados e comentários de várias linhas, com marcadores no cabeçalho |
-| Formatador de código (`editor/formatador`) | ✅ | opções do editor e Ctrl+Alt+F; Portugol usa o formatador existente e `.rs` usa rustfmt instalado (Rust 2021, limite de 5 s/1 MiB), com uma única etapa de desfazer. Portugol-RS permanece sem formatador próprio. |
+| Formatador de código (`editor/formatador`) | ✅ | opções do editor e Ctrl+Alt+F; Portugol usa o formatador clássico, Portugol-RS usa o formatador próprio (`portugol-rs-frontend`) e `.rs` usa `rustfmt` instalado (Rust 2021, limite de 5 s/1 MiB), com uma única etapa de desfazer. |
 | Exercícios com correção automática e progresso validado (`assets/exercicios`, módulo `checker`) | ✅ | 54 exercícios originais, arquivos `.pex` externos e seis regras estáticas opcionais. Conclusões locais só são registradas quando todos os casos reais passam e ficam vinculadas ao hash da revisão avaliada; abrir/executar não registra progresso. |
 | Tamanho da fonte do editor | ✅ | ajuste de 10 a 50, salvo localmente |
 | Dicas de interface (`TelaDicas`) | ✅ | 18 dicas do original, F3, setas, acesso ao editor de temas e opção de mostrar ao iniciar |

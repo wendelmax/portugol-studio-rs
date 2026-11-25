@@ -21,7 +21,7 @@ O Portugol Studio é uma IDE com:
 | Layout de IDE | HTML/CSS flexível | limitado | limitado |
 | Núcleo Rust | total | total | total |
 | Ecossistema | enorme (web) | pequeno | médio |
-| Depurador/console | xterm.js, painéis | manual | manual |
+| Depurador/console | painéis DOM dedicados | manual | manual |
 | Consistência | WebView varia por SO | nativa | nativa |
 
 **Decisão: Tauri v2.** A UI da IDE é o maior custo do port e é exatamente onde a
@@ -39,18 +39,22 @@ dados densos (como o Sniffnet), não para um editor de código completo.
 
 ```
 crates/
-  portugol-syntax/     # lexer, parser, AST, spans, diagnósticos         (feito)
-  portugol-semantics/  # símbolos, escopos, tipos, análise semântica    (feito)
-  portugol-bytecode/   # instruções + compilador AST -> bytecode         (feito)
-  portugol-vm/         # VM, E/S e bibliotecas de console (stdlib/)      (feito)
-  portugol-service/    # fachada usada pelo Tauri (parse/analyze/run/debug)
+  portugol-syntax/       # lexer, parser, AST, spans, diagnósticos (clássico)
+  portugol-semantics/    # símbolos, escopos, tipos, análise semântica (clássico)
+  portugol-hir/          # representação intermediária tipada compartilhada
+  portugol-rs-frontend/  # lexer, parser, formatador e checagem do Portugol-RS (.pors)
+  portugol-bytecode/     # instruções e compilador AST/HIR -> bytecode
+  portugol-vm/           # VM, depurador, protocolo gráfico, stdlib e bibliotecas PORS
+  portugol-rust/         # lowering e geração de código Rust + source maps
+  portugol-wasm/         # núcleo PORS sem dependências externas para WebAssembly
+  portugol-service/      # fachada da IDE (análise, execução, depuração, exemplos, exercícios)
+  portugol-cli/          # executável `portugol`
 apps/
   desktop/
-    src-tauri/         # comandos e eventos Tauri
-    src/               # frontend (Vite + TypeScript)
+    src-tauri/           # comandos e eventos Tauri v2, workspace (cap-std), áudio/gráficos
+    src/                 # frontend (Vite + TypeScript + CodeMirror 6)
 tests/
-  corpus/              # .por + saída esperada
-  differential/        # comparação com o Java original
+  corpus/                # .por + saída esperada (regressão do clássico)
 ```
 
 ## 3. Núcleo da linguagem
@@ -202,14 +206,14 @@ Tauri traduz isso em comandos `debug_*` e no evento `run:paused`.
 
 ### Frontend
 
-- **Vite + TypeScript** (sem framework pesado; Svelte é opcional).
+- **Vite + TypeScript** (sem framework pesado; estado e painéis organizados em módulos/shells).
 - **CodeMirror 6**:
-  - linguagem Lezer para Portugol (highlighting e indentação);
+  - destaque de sintaxe para Portugol clássico, Portugol-RS (`.pors`) e Rust (`@codemirror/lang-rust`);
   - `@codemirror/lint` para diagnósticos do backend;
-  - autocomplete via comandos Tauri;
+  - autocomplete via catálogo/serviço;
   - busca, dobramento e multi-cursor nativos.
-- **xterm.js** para o console (entrada/saída e `leia`).
-- Layout: árvore de arquivos | editor com abas | painel de problemas/console.
+- **Console integrado em DOM** (entrada/saída e `leia`, sem dependência de xterm.js).
+- Layout: barra de atividades | explorador/aprender | editor com abas e prévia Rust/UI | painel inferior (console, testes, mensagens, depuração).
 
 ### Backend (comandos Tauri)
 
