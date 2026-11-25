@@ -51,5 +51,7 @@ test("routes mouse, F12, and editor updates through injected shell handlers", as
   assert.match(module, /key: "F12", run: dependencies\.onGoToDeclaration/);
   assert.match(module, /EditorView\.updateListener\.of\(dependencies\.onUpdate\)/);
   assert.match(main, /createEditorExtensionFactory\(/);
+  assert.match(main, /onEditorClick: editorNavigation\.onEditorClick/);
+  assert.match(main, /onGoToDeclaration: editorNavigation\.onGoToDeclaration/);
   assert.match(main, /onUpdate: editorUpdateHandler/);
 });

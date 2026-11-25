@@ -98,6 +98,7 @@ import { createEditorFormatter } from "./editor/format";
 import { createEditorUpdateController } from "./editor/update-controller";
 import { createEditorExtensionFactory } from "./editor/extensions";
 import { createEditorSetup } from "./editor/setup";
+import { createEditorNavigationBindings } from "./editor/navigation-bindings";
 import { createSymbolRenamer } from "./editor/symbol-rename";
 import { createUtilityInsertions } from "./editor/utility-insertions";
 import {
@@ -198,6 +199,12 @@ const editorUpdateHandler = createEditorUpdateController({
   centerSelection,
 });
 
+const editorNavigation = createEditorNavigationBindings({
+  activeLanguage: () => activeTab()?.language,
+  selectionHead: () => view.state.selection.main.head,
+  goToDeclarationAt,
+});
+
 const extensions = createEditorExtensionFactory({
   sourceLanguage,
   portugolTools,
@@ -211,19 +218,8 @@ const extensions = createEditorExtensionFactory({
   editorTheme,
   findDialog,
   editorSearchKeys,
-  onEditorClick: (event, editor) => {
-    const mouse = event as MouseEvent;
-    if (activeTab()?.language === "rust") return false;
-    if (mouse.button !== 0 || (!mouse.ctrlKey && !mouse.metaKey)) return false;
-    const offset = editor.posAtCoords({ x: mouse.clientX, y: mouse.clientY });
-    if (offset === null) return false;
-    void goToDeclarationAt(offset, true);
-    return false;
-  },
-  onGoToDeclaration: () => {
-    void goToDeclarationAt(view.state.selection.main.head);
-    return true;
-  },
+  onEditorClick: editorNavigation.onEditorClick,
+  onGoToDeclaration: editorNavigation.onGoToDeclaration,
   onUpdate: editorUpdateHandler,
 });
 
