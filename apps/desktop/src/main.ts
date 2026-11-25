@@ -78,6 +78,7 @@ import { createIdeShortcuts } from "./commands/ide-shortcuts";
 import { mountProjectDialogs } from "./shell/project-dialogs";
 import { mountWindowControls } from "./shell/window";
 import { createHelpLoader } from "./shell/help-loader";
+import { createToolchainStatusController } from "./shell/toolchain-status";
 import { $ } from "./dom";
 import { createRecentFiles } from "./files/recent";
 import { createFileIO } from "./files/io";
@@ -1380,47 +1381,21 @@ applyTheme(themeChoice());
 showPanel("console");
 setWorkspaceExplorerVisible(window.innerWidth >= 1440);
 showUtilities(window.innerWidth >= 1440);
-void api.rustToolchainAvailable().then((available) => {
-  rustcAvailable = available;
-  const rustOption = $<HTMLOptionElement>("learning-mode-rust-option");
-  rustOption.disabled = !available;
-  $("learning-mode-rust-help").textContent = available
-    ? "Toolchain rustc disponível. Novo Rust cria um arquivo .rs; trocar de nível não altera o arquivo aberto."
-    : "Instale a toolchain Rust (rustc) para habilitar este nível e executar arquivos .rs.";
-  applyLearningMode(loadLearningMode(undefined, activeTab()?.workspacePreferenceKey), false);
-  const tab = activeTab();
-  if (!tab) return;
-  syncLanguageControls(tab);
-  if (tab.language === "rust") forceLinting(view);
-}).catch(() => {
-  rustcAvailable = false;
-  $<HTMLOptionElement>("learning-mode-rust-option").disabled = true;
-  $("learning-mode-rust-help").textContent = "Não foi possível verificar rustc. Instale ou configure a toolchain Rust para habilitar este nível.";
-  applyLearningMode(loadLearningMode(undefined, activeTab()?.workspacePreferenceKey), false);
-  const tab = activeTab();
-  if (tab) {
-    syncLanguageControls(tab);
-    if (tab.language === "rust") forceLinting(view);
-  }
+const toolchainStatus = createToolchainStatusController({
+  checkRust: api.rustToolchainAvailable,
+  checkCargo: api.cargoToolchainAvailable,
+  checkRustfmt: api.rustfmtAvailable,
+  setRustcAvailable: (available) => { rustcAvailable = available; },
+  setCargoAvailable: (available) => { cargoAvailable = available; },
+  setRustfmtAvailable: (available) => { rustfmtAvailable = available; },
+  setRustOptionDisabled: (disabled) => { $<HTMLOptionElement>("learning-mode-rust-option").disabled = disabled; },
+  setRustHelpText: (text) => { $("learning-mode-rust-help").textContent = text; },
+  restoreLearningMode: () => applyLearningMode(loadLearningMode(undefined, activeTab()?.workspacePreferenceKey), false),
+  activeTab,
+  syncLanguageControls,
+  forceRustLint: () => forceLinting(view),
 });
-void api.cargoToolchainAvailable().then((available) => {
-  cargoAvailable = available;
-  const tab = activeTab();
-  if (tab) syncLanguageControls(tab);
-}).catch(() => {
-  cargoAvailable = false;
-  const tab = activeTab();
-  if (tab) syncLanguageControls(tab);
-});
-void api.rustfmtAvailable().then((available) => {
-  rustfmtAvailable = available;
-  const tab = activeTab();
-  if (tab) syncLanguageControls(tab);
-}).catch(() => {
-  rustfmtAvailable = false;
-  const tab = activeTab();
-  if (tab) syncLanguageControls(tab);
-});
+void toolchainStatus.initialize();
 const tips = mountTips(themeEditor.open);
 $("home-tips").onclick = tips.open;
 

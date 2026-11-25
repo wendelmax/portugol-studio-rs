@@ -47,6 +47,7 @@ test("workspace modes persist independently and fall back to the global legacy p
 test("workspace tabs carry their stable preference key and restore mode on activation", () => {
   const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
   const main = ideSource();
+  const toolchainStatus = readFileSync(new URL("../src/shell/toolchain-status.ts", import.meta.url), "utf8");
   const modeController = readFileSync(new URL("../src/learning/mode-controller.ts", import.meta.url), "utf8");
   const workspace = readFileSync(new URL("../src-tauri/src/workspace.rs", import.meta.url), "utf8");
 
@@ -57,29 +58,32 @@ test("workspace tabs carry their stable preference key and restore mode on activ
   assert.match(main, /applyLearningMode\(loadLearningMode\(undefined, tab\.workspacePreferenceKey\), false\)/);
   assert.match(main, /persist: \(mode, preferenceKey\) => \{ saveLearningMode\(mode, undefined, preferenceKey\); \}/);
   assert.match(modeController, /dependencies\.persist\(availableMode, dependencies\.activeTab\(\)\?\.workspacePreferenceKey\)/);
-  assert.equal((main.match(/applyLearningMode\(loadLearningMode\(undefined, activeTab\(\)\?\.workspacePreferenceKey\), false\)/g) ?? []).length, 2);
+  assert.match(main, /restoreLearningMode: \(\) => applyLearningMode\(loadLearningMode\(undefined, activeTab\(\)\?\.workspacePreferenceKey\), false\)/);
+  assert.match(toolchainStatus, /dependencies\.restoreLearningMode\(\)/);
 });
 
 test("seletor associa a disponibilidade de Rust à toolchain e mantém instrução correta", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   const main = ideSource();
+  const toolchainStatus = readFileSync(new URL("../src/shell/toolchain-status.ts", import.meta.url), "utf8");
   assert.match(html, /id="learning-mode"/);
   assert.match(html, /for="learning-mode"/);
   assert.match(html, /value="beginner"/);
   assert.match(html, /value="bridge"/);
   assert.match(html, /value="rust"[^>]*disabled/);
   assert.match(html, /learning-mode-rust-help/);
-  assert.match(main, /rustc\) para habilitar este nível/);
+  assert.match(toolchainStatus, /rustc\) para habilitar este nível/);
 });
 
 test("modo Rust usa editor e executor Rust existentes sem reescrever a fonte", () => {
   const main = ideSource();
+  const toolchainStatus = readFileSync(new URL("../src/shell/toolchain-status.ts", import.meta.url), "utf8");
   const modeController = readFileSync(new URL("../src/learning/mode-controller.ts", import.meta.url), "utf8");
   const rustExecution = readFileSync(new URL("../src/run/rust-execution.ts", import.meta.url), "utf8");
-  assert.match(main, /rustToolchainAvailable\(\)/);
+  assert.match(main, /checkRust: api\.rustToolchainAvailable/);
   assert.match(main, /runRustSource: api\.runRustSource/);
   assert.match(rustExecution, /dependencies\.runRustSource\(id, source, rustArgs\)/);
-  assert.match(main, /rustOption\.disabled = !available/);
+  assert.match(toolchainStatus, /setRustOptionDisabled\(!available\)/);
   assert.match(main, /Nível Rust:[\s\S]{0,180}arquivo atual permanece intacto/);
   const applyMode = modeController.match(/return \(mode: LearningMode,[\s\S]*?\n  \};/)?.[0];
   assert.ok(applyMode, "a troca de modo precisa ter implementação identificável");
