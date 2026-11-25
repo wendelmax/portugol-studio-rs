@@ -21,6 +21,7 @@ test("clears Rust diagnostics when rustc is unavailable or a Cargo project owns 
   f.setAvailable(false);
   assert.deepEqual(await check(editor("fn main() {}")), []);
   assert.deepEqual(f.selected().diagnostics, []);
+  assert.deepEqual(f.selected().diagnosticsAnalysis, { source: "fn main() {}", status: "unavailable" });
   assert.deepEqual(f.calls, ["render"]);
   f.setAvailable(true);
   f.setSelected({ ...f.selected(), diagnostics: [diagnostic()], cargoProject: true });
@@ -58,6 +59,7 @@ test("converts compiler errors and warnings while ignoring other severities", as
   assert.equal(result[0].info.help, "value was moved here");
   assert.equal(result[0].length, 4);
   assert.equal(f.selected().diagnostics.length, 2);
+  assert.deepEqual(f.selected().diagnosticsAnalysis, { source: "abcd", status: "complete" });
   assert.deepEqual(f.calls, ["render"]);
 });
 
@@ -72,4 +74,5 @@ test("turns source-check failures into visible warnings and preserves runtime di
   assert.equal(result[0].info.code, "rustc.check");
   assert.match(result[0].info.message, /rustc failed/);
   assert.equal(result[1].info.code, "runtime");
+  assert.deepEqual(f.selected().diagnosticsAnalysis, { source: "fn main() {}", status: "unavailable" });
 });

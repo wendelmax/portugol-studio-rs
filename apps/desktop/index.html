@@ -656,8 +656,17 @@
     </dialog>
 
     <footer class="statusbar">
-      <span id="status" role="status" aria-live="polite">Pronto</span>
-      <span id="cursor"></span>
+      <div class="statusbar-start">
+        <span id="status" role="status" aria-live="polite">Pronto</span>
+        <button id="statusbar-diagnostics" type="button" aria-label="Contagem de erros e avisos" hidden></button>
+      </div>
+      <div id="statusbar-context" class="statusbar-context" role="group" aria-label="Contexto do arquivo" hidden>
+        <span id="statusbar-language" aria-label="Linguagem ativa"></span>
+        <span id="statusbar-mode" aria-label="Modo de aprendizagem"></span>
+        <span id="statusbar-engines" aria-label="Motores de execução disponíveis" hidden></span>
+        <span id="statusbar-format" aria-label="Indentação e codificação"></span>
+        <span id="cursor" aria-label="Posição do cursor"></span>
+      </div>
     </footer>
 
     <script type="module" src="/src/main.ts"></script>

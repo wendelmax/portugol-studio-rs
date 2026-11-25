@@ -401,10 +401,106 @@
 .statusbar {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
   padding: 3px var(--space-3);
   border-top: 1px solid var(--border);
   color: var(--muted);
   font-size: var(--font-size-sm);
+}
+
+.statusbar-start,
+.statusbar-context {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.statusbar-start {
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.statusbar-start #status {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statusbar-context {
+  flex: 0 1 auto;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.statusbar-context > span,
+.statusbar-diagnostics {
+  padding: 2px 5px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: var(--font-size-2xs);
+}
+
+.statusbar-context #statusbar-language::before {
+  content: "Linguagem: ";
+  color: var(--muted);
+}
+
+.statusbar-context #statusbar-mode::before {
+  content: "Modo: ";
+  color: var(--muted);
+}
+
+.statusbar-context #statusbar-engines::before {
+  content: "Motor: ";
+  color: var(--muted);
+}
+
+.statusbar-context #statusbar-format::before {
+  content: "Formato: ";
+  color: var(--muted);
+}
+
+.statusbar-diagnostics {
+  flex: 0 0 auto;
+  border: 0;
+  color: inherit;
+}
+
+.statusbar-diagnostics:not(:disabled) {
+  cursor: pointer;
+}
+
+.statusbar-diagnostics:disabled {
+  opacity: 0.8;
+}
+
+.statusbar-diagnostics:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.statusbar-context[hidden],
+.statusbar-diagnostics[hidden],
+.statusbar-context > span[hidden] {
+  display: none;
+}
+
+@media (max-width: 1280px) {
+  .statusbar {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+
+  .statusbar-context {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
 }
 
 .statusbar .ok {

@@ -31,6 +31,8 @@ export interface Tab {
   /** Texto da última gravação, para saber se há alterações. */
   saved: string;
   diagnostics: DiagnosticInfo[];
+  /** Revisão exata para a qual os diagnósticos foram calculados. */
+  diagnosticsAnalysis?: { source: string; status: "complete" | "unavailable" };
   runtimeCompileDiagnostics?: DiagnosticInfo[];
   symbols: SymbolInfo[];
 }
