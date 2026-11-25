@@ -13,6 +13,32 @@ test("opens a built-in exercise by its explicit catalog ID", async () => {
   assert.deepEqual(opened, [{ exercise, name: "Exercício 12" }]);
 });
 
+test("opens a PORS exercise by its stable catalog ID", async () => {
+  const { createPorsExerciseOpener } = await import("../src/exercise-opening.ts");
+  const opened = [];
+  const exercise = { id: "pors-05-divisao-segura", title: "Divisão segura", statement: "Divida com segurança", cases: 3 };
+  const open = createPorsExerciseOpener(async () => [exercise], (document) => opened.push(document));
+
+  const result = await open(exercise.id);
+
+  assert.equal(result, exercise);
+  assert.deepEqual(opened, [{
+    exercise: { id: 0, statement: exercise.statement, cases: exercise.cases },
+    name: exercise.title,
+    contents: undefined,
+    pors: exercise,
+  }]);
+});
+
+test("does not open a document when a PORS exercise is absent", async () => {
+  const { createPorsExerciseOpener } = await import("../src/exercise-opening.ts");
+  let opened = false;
+  const open = createPorsExerciseOpener(async () => [], () => { opened = true; });
+
+  await assert.rejects(open("pors-missing"), /não encontrado no catálogo/);
+  assert.equal(opened, false);
+});
+
 test("does not open a document when the requested exercise is absent", async () => {
   let opened = false;
   const open = createExerciseOpener(async () => [], () => { opened = true; });

@@ -94,6 +94,7 @@ export function createExerciseWorkbenchShell(dependencies: ExerciseWorkbenchDepe
     openExercise: (exercise: ExerciseDocument, workspaceExercise?: WorkspaceExerciseRef) =>
       exerciseTabOpener.open(exercise, workspaceExercise),
     openById: (exerciseId: number) => exercises.openById(exerciseId),
+    openPorsById: (exerciseId: string) => exercises.openPorsById(exerciseId),
     renderTests: () => testsPanel.render(),
     runTests: () => testsPanel.runExerciseTests(),
     gradeActiveExercise,

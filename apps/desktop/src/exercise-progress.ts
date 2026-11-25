@@ -39,6 +39,17 @@ export interface CryptoLike {
 
 const storageKey = "portugol.exercise-progress.v1";
 const emptyState = (): ExerciseProgressState => ({ version: 1, exercises: {} });
+const progressListeners = new Set<() => void>();
+
+function notifyProgressListeners() {
+  for (const listener of progressListeners) {
+    try {
+      listener();
+    } catch {
+      // An observer must not interfere with recording a validated exercise result.
+    }
+  }
+}
 
 async function digest(value: string, cryptoApi: CryptoLike | null | undefined): Promise<string | null> {
   if (!cryptoApi?.subtle?.digest) return null;
@@ -188,13 +199,19 @@ export function createExerciseProgress(
     try {
       if (!localStorage) return { recorded: false, completed, revision };
       localStorage.setItem(storageKey, JSON.stringify(state));
+      notifyProgressListeners();
       return { recorded: true, completed, revision };
     } catch {
       return { recorded: false, completed, revision };
     }
   }
 
-  return { read, hasPassed, record };
+  function subscribe(listener: () => void): () => void {
+    progressListeners.add(listener);
+    return () => progressListeners.delete(listener);
+  }
+
+  return { read, hasPassed, record, subscribe };
 }
 
 export function createValidatedExerciseGrader<T extends ExerciseEvaluation & { hints: string[] }>(

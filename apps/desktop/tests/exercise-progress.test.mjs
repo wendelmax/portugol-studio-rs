@@ -48,6 +48,21 @@ test("only a complete real checker result creates validated progress", async () 
   assert.equal(storage.value().includes("programa {"), false);
 });
 
+test("progress subscribers are notified only after a result is persisted", async () => {
+  const { createExerciseProgress } = await import(moduleUrl.href);
+  const progress = createExerciseProgress(memoryStorage());
+  let notifications = 0;
+  const unsubscribe = progress.subscribe(() => { notifications += 1; });
+
+  await progress.record("builtin:21", "source", { total: 0, passed: 0, failures: [], hints: [] });
+  assert.equal(notifications, 0);
+  await progress.record("builtin:21", "source", { total: 1, passed: 1, failures: [], hints: [] });
+  assert.equal(notifications, 1);
+  unsubscribe();
+  await progress.record("builtin:21", "source two", { total: 1, passed: 1, failures: [], hints: [] });
+  assert.equal(notifications, 1);
+});
+
 test("completion remains historical while every result retains its tested revision", async () => {
   const { createExerciseProgress } = await import(moduleUrl.href);
   const progress = createExerciseProgress(memoryStorage());

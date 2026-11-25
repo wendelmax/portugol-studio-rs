@@ -262,6 +262,17 @@
               </div>
               <span id="learning-provenance">Conceito selecionado manualmente</span>
             </header>
+            <section class="learning-trail" aria-labelledby="learning-trail-heading">
+              <header class="learning-trail-heading">
+                <div>
+                  <h3 id="learning-trail-heading">Sua trilha</h3>
+                  <span id="learning-trail-count"></span>
+                </div>
+                <button id="learning-trail-next" type="button" data-testid="learning-trail-next">Próximo exercício</button>
+              </header>
+              <p id="learning-trail-message" role="status" aria-live="polite"></p>
+              <ol id="learning-trail-stages"></ol>
+            </section>
             <label class="learning-concept-picker" for="learning-concept">Conceito para estudar
               <select id="learning-concept" data-testid="learning-concept"></select>
             </label>
