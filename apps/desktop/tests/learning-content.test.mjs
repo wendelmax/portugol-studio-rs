@@ -12,7 +12,10 @@ test("Beginner, Bridge e Rust apresentam os conceitos próprios de cada nível",
   const rust = conceptsForMode("rust");
 
   assert.deepEqual(beginner.map(({ id }) => id), ["variables", "conditionals", "loops"]);
-  assert.deepEqual(bridge.map(({ id }) => id), ["variables", "conditionals", "loops", "mutability", "ownership", "borrowing"]);
+  assert.deepEqual(
+    bridge.map(({ id }) => id),
+    ["variables", "conditionals", "loops", "mutability", "ownership", "borrowing", "functions", "option-result", "collections", "records-enums"],
+  );
   assert.deepEqual(rust.map(({ id }) => id), ["mutability", "ownership", "borrowing"]);
 });
 

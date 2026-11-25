@@ -6,6 +6,7 @@
 
 * {
   box-sizing: border-box;
+  scrollbar-color: var(--border) transparent;
 }
 
 html,

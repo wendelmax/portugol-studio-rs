@@ -63,6 +63,15 @@ export function savePaneLayout(storage: Pick<Storage, "setItem">, layout: PaneLa
   }
 }
 
+export function resetPaneLayout(storage: Pick<Storage, "removeItem">, preferenceKey?: string): PaneLayout {
+  try {
+    storage.removeItem(preferenceKey ? workspaceStorageKey(preferenceKey) : PANE_LAYOUT_KEY);
+  } catch {
+    // Mesmo sem armazenamento, o layout em memória volta ao padrão.
+  }
+  return { ...DEFAULT_PANE_LAYOUT };
+}
+
 export function resizePaneForKey(
   key: string,
   orientation: "horizontal" | "vertical",

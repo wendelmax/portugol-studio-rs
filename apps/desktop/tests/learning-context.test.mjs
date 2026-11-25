@@ -174,3 +174,45 @@ test("explains mapped mutability according to the active source dialect", () => 
   assert.match(explainMappedConcept(mapped, "portugol-rs"), /Portugol-RS/);
   assert.match(explainMappedConcept(mapped, "portugol-rs"), /let mut/);
 });
+
+test("maps exact PORS functions, match/Option/Result, Vec collections, and struct/enum declarations", () => {
+  const cases = [
+    {
+      conceptId: "functions",
+      source: "funcao dobro(x: inteiro) -> inteiro { retorne x * 2; }",
+      rust: "fn dobro(x: i32) -> i32 { x * 2 }",
+      explanation: /fn tipada/,
+    },
+    {
+      conceptId: "option-result",
+      source: "escolha res { caso Resultado::Ok(v) => { escreva(v); } caso Resultado::Erro(e) => { escreva(e); } }",
+      rust: "match res { Result::Ok(v) => println!(\"{v}\"), Result::Err(e) => println!(\"{e}\") }",
+      explanation: /match\/Option\/Result/,
+    },
+    {
+      conceptId: "collections",
+      source: "seja mutavel notas: vetor<inteiro> = [];",
+      rust: "let mut notas: Vec<i32> = Vec::new();",
+      explanation: /Vec<T>/,
+    },
+    {
+      conceptId: "records-enums",
+      source: "registro Ponto { x: inteiro, y: inteiro }",
+      rust: "#[derive(Clone, Debug)]\nstruct Ponto { x: i32, y: i32 }",
+      explanation: /struct ou enum/,
+    },
+  ];
+
+  for (const item of cases) {
+    const result = learningContextAtSelection({
+      source: item.source,
+      selectionFrom: 0,
+      selectionTo: item.source.length,
+      artifact: { source: item.source, code: item.rust, sourceMap: [mapping(0, item.source.length, 0, item.rust.length)] },
+      stale: false,
+    });
+    assert.equal(result?.conceptId, item.conceptId);
+    assert.equal(result?.provenance, "source-map");
+    assert.match(explainMappedConcept(result, "portugol-rs"), item.explanation);
+  }
+});

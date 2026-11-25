@@ -4,8 +4,10 @@ dialog {
   color: var(--text);
   background: var(--surface);
   border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   padding: var(--space-5);
   max-height: calc(100% - 24px);
+  box-shadow: var(--shadow-palette);
 }
 
 dialog::backdrop {
@@ -387,6 +389,69 @@ dialog h2 {
 #alerts-list p {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+/* Configurações da IDE */
+#settings-dialog {
+  width: min(720px, calc(100% - 24px));
+}
+
+.settings-header {
+  margin-bottom: var(--space-4);
+}
+
+.settings-header h2 {
+  margin: 0 0 var(--space-1);
+}
+
+.settings-subtitle,
+.settings-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-3);
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+}
+
+.settings-section h3 {
+  margin: 0 0 var(--space-1);
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.settings-section label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+}
+
+.settings-section :is(select, input) {
+  width: 100%;
+  min-height: 32px;
+}
+
+.settings-section button {
+  align-self: flex-start;
+  min-height: 32px;
 }
 
 /* Editor de temas */

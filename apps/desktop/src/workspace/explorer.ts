@@ -81,6 +81,14 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
     $<HTMLButtonElement>("workspace-new-file").disabled = !workspaceState || workspaceLoading;
     name.hidden = !workspaceState;
     name.textContent = workspaceState?.name ?? "";
+    const titlebarWorkspaceName = document.querySelector<HTMLElement>("#titlebar-workspace-name");
+    if (titlebarWorkspaceName) titlebarWorkspaceName.textContent = workspaceState?.name ?? "Sem projeto";
+    const titlebarWorkspaceBtn = document.querySelector<HTMLButtonElement>("#titlebar-workspace");
+    if (titlebarWorkspaceBtn) {
+      titlebarWorkspaceBtn.title = workspaceState
+        ? `Projeto aberto: ${workspaceState.name} (clique para alternar o Explorador)`
+        : "Abrir pasta de projeto ou alternar o Explorador (Ctrl+Shift+E)";
+    }
 
     const rows = flattenWorkspaceEntries(workspaceState?.entries ?? [], expandedWorkspaceFolders);
     tree.setAttribute("aria-label", workspaceState ? `Arquivos em ${workspaceState.name}` : "Arquivos do projeto");
@@ -722,6 +730,8 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
     showWorkspaceDeleteError(null);
   };
   $("btn-explorer").onclick = toggleExplorer;
+  const titlebarWorkspace = document.querySelector<HTMLButtonElement>("#titlebar-workspace");
+  if (titlebarWorkspace) titlebarWorkspace.onclick = toggleExplorer;
 
   $("workspace-tree").addEventListener("keydown", (event) => {
     if (!(event instanceof KeyboardEvent)) return;

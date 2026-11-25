@@ -21,11 +21,18 @@ export interface LearningModeShellDependencies {
 
 /** Compõe seleção, persistência e controles visuais do modo de aprendizado. */
 export function mountLearningModeShell(dependencies: LearningModeShellDependencies) {
+  const modeSelectors = [
+    $<HTMLSelectElement>("learning-mode"),
+    document.querySelector<HTMLSelectElement>("#titlebar-learning-mode"),
+  ].filter((element): element is HTMLSelectElement => element !== null);
+
   const applyLearningMode = createLearningModeController({
     rustcAvailable: dependencies.rustcAvailable,
     activeTab: dependencies.activeTab,
     setMode: dependencies.setMode,
-    setSelectorValue: (mode) => { $<HTMLSelectElement>("learning-mode").value = mode; },
+    setSelectorValue: (mode) => {
+      for (const selector of modeSelectors) selector.value = mode;
+    },
     persist: (mode, preferenceKey) => saveLearningMode(mode, undefined, preferenceKey),
     panelVisible: dependencies.panelVisible,
     renderPanel: dependencies.renderPanel,
@@ -36,10 +43,12 @@ export function mountLearningModeShell(dependencies: LearningModeShellDependenci
     cancelPreview: dependencies.cancelPreview,
   });
 
-  $<HTMLSelectElement>("learning-mode").onchange = (event) => {
-    const selected = (event.currentTarget as HTMLSelectElement).value;
-    if (selected === "beginner" || selected === "bridge" || selected === "rust") applyLearningMode(selected);
-  };
+  for (const selector of modeSelectors) {
+    selector.onchange = (event) => {
+      const selected = (event.currentTarget as HTMLSelectElement).value;
+      if (selected === "beginner" || selected === "bridge" || selected === "rust") applyLearningMode(selected);
+    };
+  }
   applyLearningMode(dependencies.initialMode, false);
   $<HTMLButtonElement>("btn-rust").onclick = () => {
     applyLearningMode(dependencies.currentMode() === "bridge" ? "beginner" : "bridge");

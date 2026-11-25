@@ -1,7 +1,16 @@
 import type { SourceMapInfo } from "./api";
 
+export type MappedLearningConceptId =
+  | "mutability"
+  | "conditionals"
+  | "loops"
+  | "functions"
+  | "option-result"
+  | "collections"
+  | "records-enums";
+
 export interface LearningContext {
-  conceptId: "mutability" | "conditionals" | "loops";
+  conceptId: MappedLearningConceptId;
   provenance: "source-map";
   bindingMutability?: "mutable" | "immutable";
   sourceStart: number;
@@ -20,6 +29,18 @@ export function explainMappedConcept(context: LearningContext, language: "portug
   }
   if (context.conceptId === "loops") {
     return "Esta repetição foi mapeada para a estrutura correspondente no Rust gerado.";
+  }
+  if (context.conceptId === "functions") {
+    return "Esta função foi mapeada para uma declaração fn tipada no Rust gerado.";
+  }
+  if (context.conceptId === "option-result") {
+    return "Esta expressão escolha/Opcao/Resultado foi mapeada para correspondência ou variante tipada (match/Option/Result) no Rust gerado.";
+  }
+  if (context.conceptId === "collections") {
+    return "Esta coleção vetor<T> foi mapeada para um Vec<T> dinâmico no Rust gerado.";
+  }
+  if (context.conceptId === "records-enums") {
+    return "Esta declaração de tipo composto foi mapeada para struct ou enum nominal no Rust gerado.";
   }
   const rustBinding = context.bindingMutability === "mutable" ? "let mut" : "let";
   const rustEffect = context.bindingMutability === "mutable"
@@ -56,12 +77,18 @@ export function learningContextAtSelection(input: {
     const rustSnippet = artifact.code!.slice(generatedStart, generatedEnd).trim();
     const binding = /^let\s+(mut\s+)?[A-Za-z_]\w*\b/.exec(rustSnippet);
     const conceptId: LearningContext["conceptId"] | null = binding
-      ? "mutability"
+      ? (/\bVec<|\bvec!\[|\bVec::new\(/.test(rustSnippet) ? "collections" : "mutability")
       : /^if\b/.test(rustSnippet)
         ? "conditionals"
         : /^while\b/.test(rustSnippet) || /^\{\n[\s\S]*?'pors_for_\d+: while\b/.test(rustSnippet)
           ? "loops"
-          : null;
+          : /^match\b|\b(?:Option|Result)::(?:Some|None|Ok|Err)\b/.test(rustSnippet)
+            ? "option-result"
+            : /^(?:#\[[^\]]+\]\s*)*(?:pub\s+)?(?:struct|enum)\s+[A-Za-z_]\w*\b/.test(rustSnippet)
+              ? "records-enums"
+              : /^(?:pub\s+)?fn\s+[A-Za-z_]\w*\s*\(/.test(rustSnippet)
+                ? "functions"
+                : null;
     if (!conceptId) return [];
     return [{
       conceptId,
@@ -71,7 +98,7 @@ export function learningContextAtSelection(input: {
       generatedEnd,
       sourceSnippet: source.slice(sourceStart, sourceEnd),
       rustSnippet,
-      ...(binding ? { bindingMutability: binding[1] ? "mutable" as const : "immutable" as const } : {}),
+      ...(conceptId === "mutability" && binding ? { bindingMutability: binding[1] ? "mutable" as const : "immutable" as const } : {}),
     }];
   });
   candidates.sort((a, b) => (a.sourceEnd - a.sourceStart) - (b.sourceEnd - b.sourceStart)

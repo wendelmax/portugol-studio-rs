@@ -589,6 +589,19 @@ exerciseWorkbench = createExerciseWorkbenchShell({
   tabName,
   runCargoTests,
 });
+const settingsDialog = $<HTMLDialogElement>("settings-dialog");
+function openSettings(focusId = "theme") {
+  editorOptions.open = false;
+  if (!settingsDialog.open) settingsDialog.showModal();
+  $(focusId)?.focus();
+}
+function resetLayout() {
+  panes.reset();
+  rustPreview.resetComparisonBasis();
+  setStatus("Layout dos painéis restaurado para o padrão.", "ok");
+}
+$("settings-reset-layout").onclick = resetLayout;
+
 editorMenuAction("editor-exercise", () => exerciseWorkbench?.gradeActiveExercise());
 editorMenuAction("editor-search", () => openSearchPanel(view));
 editorMenuAction("editor-definition", goToDeclarationSelection);
@@ -597,6 +610,7 @@ editorMenuAction("editor-format", formatCode);
 editorMenuAction("editor-center", toggleCenterSource);
 editorMenuAction("editor-expand", toggleExpanded);
 editorMenuAction("btn-utilities", toggleUtilities);
+editorMenuAction("editor-open-settings", () => openSettings("theme"));
 $("btn-unexpand").onclick = toggleExpanded;
 
 document.addEventListener("click", (event) => {
@@ -638,10 +652,7 @@ mountActivityBar(document.querySelectorAll<HTMLButtonElement>("[data-activity]")
   showPanel,
   activateHome: () => activate(homeId),
   showUtilities,
-  openSettings: () => {
-    $("editor-options").setAttribute("open", "");
-    $<HTMLSelectElement>("theme").focus();
-  },
+  openSettings: () => openSettings("theme"),
 });
 function cycleTab(step: number) {
   cycleIdeTab(step, {
@@ -708,9 +719,10 @@ mountIdeCommandShell({
     saveAs: () => fileIO.save(true),
     executionParameters: () => {
       if (!activeTab()) return;
-      editorOptions.open = true;
-      $("args").focus();
+      openSettings("args");
     },
+    openSettings: () => openSettings("theme"),
+    resetLayout,
     utilities: toggleUtilities,
     searchOutline: () => {
       if (!activeTab()) return;
@@ -751,7 +763,10 @@ const themeSelect = $<HTMLSelectElement>("theme");
 const themeEditor = mountThemeEditor(themeSelect, applyTheme);
 themeSelect.value = themeChoice();
 themeSelect.onchange = () => applyTheme(themeSelect.value);
-editorMenuAction("editor-themes", themeEditor.open);
+$("editor-themes").onclick = () => {
+  if (settingsDialog.open) settingsDialog.close();
+  themeEditor.open();
+};
 
 mountFontSizeControls(["editor-font", "console-font"]);
 

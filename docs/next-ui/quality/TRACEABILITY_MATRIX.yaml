@@ -1,29 +1,87 @@
 schemaVersion: '1.0'
-status: proposed
-# Exemplo, expandir para UI-001..UI-035 após auditoria do repo.
+status: active
+updatedAt: '2026-11-25'
+# Matriz completa de rastreabilidade UI-001..UI-035 do Portugol Studio RS.
 features:
+  - id: FEAT-SHELL-001
+    title: Shell da IDE, seletor de projeto, ActivityRail e layout persistente com reset
+    ui: [UI-001, UI-002, UI-007, UI-031, UI-035]
+    useCases: [UC-01, UC-02, UC-18, UC-20]
+    backend: [WorkspaceStore, LayoutStore, PreferencesStore]
+    tauriIpc: [workspace_open, workspace_restore]
+    scenarios: [FT-01, FT-09]
+    acceptance:
+      - "TitleBar exibe marca proprietária, seletor do projeto e seletor rápido de modo"
+      - "Ajustes abre diálogo dedicado de Configurações com tema, fonte, modo, parâmetros e Restaurar layout padrão"
+      - "Divisórias redimensionáveis por mouse e teclado persistem proporções por workspace e restauram padrão"
+    implementationStatus: implemented
+    testStatus: unit_and_component_passing
+
+  - id: FEAT-WORKSPACE-001
+    title: Explorador de arquivos, CRUD protegido e exportação local
+    ui: [UI-006, UI-008, UI-009]
+    useCases: [UC-03, UC-14]
+    backend: [FileService, ExportService]
+    tauriIpc: [workspace_read_file, workspace_write_file, workspace_create_file, workspace_rename_file, workspace_delete_file, workspace_export_files]
+    scenarios: [FT-01, FT-08, FT-10]
+    acceptance:
+      - "Criar, renomear e excluir arquivos .pors/.rs/.por/.pex com proteção de alterações não salvas"
+      - "Exportação local copia apenas arquivos selecionados sem alegar upload em nuvem"
+    implementationStatus: implemented
+    testStatus: unit_and_integration_passing
+
+  - id: FEAT-EDITOR-001
+    title: Abas, CodeMirror 6 multi-linguagem (.pors/.rs/.por), diagnósticos e exemplos
+    ui: [UI-010, UI-011, UI-012, UI-022, UI-029, UI-030, UI-034]
+    useCases: [UC-04, UC-05, UC-12, UC-16, UC-17, UC-19]
+    backend: [LanguageService, DiagnosticStore, ExampleCatalog]
+    tauriIpc: [inspect_portugol_rs, inspect, check_rust_source, list_pors_examples]
+    scenarios: [FT-01, FT-02, FT-08, FT-09]
+    acceptance:
+      - "Catálogo inicial e ajuda 100% migrados para .pors"
+      - "Paleta de comandos (Ctrl+Shift+P), StatusBar derivada e navegação por diagnósticos"
+    implementationStatus: implemented
+    testStatus: unit_and_integration_passing
+
   - id: FEAT-EXEC-001
-    title: Executar arquivo ativo
-    ui: [UI-003, UI-021, UI-033]
-    useCases: [UC-06]
-    backend: [ExecutionPort]
-    tauriIpc: [run_start, run_cancel] # nomes provisórios
-    scenarios: [FT-03]
+    title: Execução, cancelamento, console, testes e depuração real da VM
+    ui: [UI-003, UI-004, UI-005, UI-018, UI-019, UI-020, UI-021, UI-026, UI-032, UI-033]
+    useCases: [UC-06, UC-09, UC-10, UC-11]
+    backend: [ExecutionPort, DebugPort, TestPort]
+    tauriIpc: [run_portugol_rs, run_rust_source, run_program, stop_program, debug_pause, debug_continue, debug_step_over, debug_step_into, debug_step_out, cargo_check_workspace, cargo_test_workspace]
+    scenarios: [FT-03, FT-06, FT-07]
     acceptance:
-      - "Executa a revisão capturada, não uma revisão posterior"
-      - "O console apresenta somente eventos da execução ativa"
-      - "Cancelamento é confirmado pelo backend"
-    implementationStatus: not_assessed
-    testStatus: not_run
+      - "Executa a revisão capturada e identifica o motor real no console"
+      - "Cancelamento interrompe execução sem exibir sucesso"
+      - "Debugger VM fornece breakpoints, stepping, pilha e inspetor de variáveis reais"
+    implementationStatus: implemented
+    testStatus: unit_integration_and_smoke_passing
+
   - id: FEAT-TRANSLATION-001
-    title: Tradução Portugol para Rust
-    ui: [UI-015, UI-016]
-    useCases: [UC-08]
+    title: Ponte Portugol-RS → Rust lado a lado, source map, diff e desvinculação segura
+    ui: [UI-013, UI-014, UI-015, UI-016, UI-017]
+    useCases: [UC-07, UC-08]
     backend: [TranslationPort]
-    tauriIpc: [source_translate]
-    scenarios: [FT-06]
+    tauriIpc: [export_portugol_rs, export_rust]
+    scenarios: [FT-04]
     acceptance:
-      - "Resultado vinculado à revisão e com status de compatibilidade"
-      - "Código desvinculado nunca é sobrescrito"
-    implementationStatus: not_assessed
-    testStatus: not_run
+      - "Rust gerado é somente leitura com marcação de desatualizado e descarte de respostas obsoletas"
+      - "MappingGutter navega spans exatos/aproximados entre origem e Rust"
+      - "Desvincular e editar cria nova aba .rs sem sobrescrever código do aluno"
+    implementationStatus: implemented
+    testStatus: unit_and_integration_passing
+
+  - id: FEAT-LEARN-001
+    title: Modos de aprendizagem, LearningInspector contextual PORS→Rust, trilha e laboratório de ownership
+    ui: [UI-023, UI-024, UI-025, UI-027, UI-028]
+    useCases: [UC-05, UC-13, UC-15]
+    backend: [LearningService, ProgressStore, MemoryModel]
+    tauriIpc: [rust_toolchain_available, evaluate_exercise]
+    scenarios: [FT-02, FT-05, FT-07]
+    acceptance:
+      - "Trocar modo (Iniciante/Ponte para Rust/Rust) não altera código nem motor silenciosamente"
+      - "Mapeamento exato associa mutabilidade, decisões, laços, funções, Opcao/Resultado, vetores e registros/enums"
+      - "Laboratório de ownership exibe rótulo explícito de simulação didática"
+      - "Progresso da trilha exige aprovação em todos os casos de teste reais"
+    implementationStatus: implemented
+    testStatus: unit_and_component_passing
