@@ -109,6 +109,17 @@
 - [x] Extract button, input, and inspector state synchronization behind callbacks.
 - [x] Run frontend tests, typecheck, and build.
 
+### Task 43: Editor theme lifecycle
+
+**Files:**
+- Create: `apps/desktop/src/editor/theme-controller.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/editor-theme-controller.test.mjs`
+
+- [x] Add tests for applying a selected theme and refreshing both editors and help on system theme changes.
+- [x] Move editor theme refresh/application orchestration into a controller.
+- [x] Run frontend tests, typecheck, and build.
+
 ### Task 42: Editor navigation bindings
 
 **Files:**
