@@ -33,7 +33,7 @@ import { LIBRARIES, portugol, portugolRs, SNIPPETS } from "./portugol";
 import { detectSourceLanguage, ensureSourceExtension } from "./document-language";
 import { canRunAsRust } from "./runtime-capabilities";
 import { createExecutionState, isExecutionBusy } from "./run/execution-state";
-import { createRunEventsController } from "./run/run-events";
+import { mountRunEventsShell } from "./run/run-events-shell";
 import { mountRunToolbar } from "./run/toolbar";
 import { loadLearningMode, type LearningMode } from "./learning-mode";
 import { createPaletteContext } from "./command-palette";
@@ -79,7 +79,7 @@ import { createEditorThemeController } from "./editor/theme-controller";
 import { createEditorActionsShell } from "./editor/actions-shell";
 import { createUtilityInsertions } from "./editor/utility-insertions";
 import {
-  breakpoints, debugLine, runtimeError, setDebugLine, setRuntimeError,
+  breakpoints, debugLine, runtimeError, setDebugLine,
 } from "./editor/decorations";
 
 const TEMPLATE = "programa\n{\n\tfuncao inicio()\n\t{\n\t\t\n\t}\n}\n";
@@ -459,30 +459,21 @@ function renderExerciseTests() {
   exerciseWorkbench?.renderTests();
 }
 
-const runEvents = createRunEventsController({
-  runId: () => runState.runId,
-  setRunId: (id) => { runState.runId = id; },
-  runTabId: () => runState.runTabId,
-  setRunTabId: (id) => { runState.runTabId = id; },
+const runListeners = mountRunEventsShell({
+  state: runState,
   activeTabId: tabCollection.activeId,
-  pendingEvents: () => runState.pendingEvents,
-  setPaused: (info) => { runState.paused = info; },
   setPausedInfo: setPaused,
   setRunning,
-  setDebugLine: (line) => view.dispatch({ effects: setDebugLine.of(line) }),
-  setRuntimeError: (range) => view.dispatch({ effects: setRuntimeError.of(range) }),
+  view,
+  consoleBox,
+  inputForm,
+  inputField,
   appendConsole,
   clearConsole,
-  setInputHint: (text) => { $("console-hint").textContent = text; },
-  showInput: () => { inputForm.hidden = false; },
-  clearInput: () => { inputField.value = ""; },
-  focusInput: () => { if (activeTab()) inputField.focus(); },
-  scrollConsole: () => { consoleBox.scrollTop = consoleBox.scrollHeight; },
   setStatus,
   goTo,
+  activeTab,
 });
-
-const runListeners = api.listenRun(runEvents.handlers);
 
 // ---------------------------------------------------------------------------
 // Divisória redimensionável e modo editor expandido
