@@ -7,6 +7,7 @@ import { ideSource } from "./support/ide-source.mjs";
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const main = ideSource();
 const toolbar = readFileSync(new URL("../src/run/toolbar.ts", import.meta.url), "utf8");
+const runShell = readFileSync(new URL("../src/run/run-shell.ts", import.meta.url), "utf8");
 const exercises = readFileSync(new URL("../src/exercises.ts", import.meta.url), "utf8");
 
 test("Tests tab keeps an honest empty state and exposes real cases only for exercises", () => {
@@ -22,7 +23,8 @@ test("Tests tab keeps an honest empty state and exposes real cases only for exer
   assert.match(main, /function renderExerciseTests\(/);
   assert.match(main, /void exercises\.grade\(exercise, documentState\.toString\(\), isCurrent\)/);
   assert.match(exercises, /\(\) => id === modalAttempt && isCurrent\(\)/);
-  assert.match(main, /mountRunToolbar\(\{[\s\S]*showPanel,/);
+  assert.match(main, /createRunShell\(\{[\s\S]*showPanel,/);
+  assert.match(runShell, /mountRunToolbar\(\{[\s\S]*showPanel: dependencies\.showPanel/);
   assert.match(toolbar, /button\("tab-console"\)[\s\S]*button\("tab-debug"\)/);
 });
 
