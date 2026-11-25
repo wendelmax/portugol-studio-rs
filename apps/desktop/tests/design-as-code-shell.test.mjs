@@ -7,6 +7,7 @@ import { ideStyles } from "./support/ide-styles.mjs";
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const css = ideStyles();
 const main = ideSource();
+const activityBar = readFileSync(new URL("../src/shell/activity-bar.ts", import.meta.url), "utf8");
 
 test("shell tem marca, navegação de atividade e tabs dentro do workspace de edição", () => {
   assert.match(html, /class="app-brand"/);
@@ -36,5 +37,5 @@ test("aprender é servido pelo inspector; variáveis e ferramentas existentes co
   assert.match(html, /id="utilities-insert"/);
   assert.match(html, /id="outline"/);
   assert.match(html, /Simulação didática — não é execução nem trace de memória Rust\./);
-  assert.ok(main.includes('if (button.dataset.activity !== "learn") setInspectorView(false);'));
+  assert.ok(activityBar.includes('if (button.dataset.activity !== "learn") dependencies.setInspectorView(false);'));
 });
