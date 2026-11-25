@@ -120,6 +120,17 @@
 - [x] Move Tauri file event orchestration behind injected listeners.
 - [x] Keep Tauri calls passed from `api.ts`/window shell and run frontend validations.
 
+### Task 45: Command palette context
+
+**Files:**
+- Modify: `apps/desktop/src/command-palette.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/command-palette.test.mjs`
+
+- [x] Add unit tests for empty-tab and active-tab palette context derivation.
+- [x] Move capability/run-state snapshot calculation out of `main.ts`.
+- [x] Run frontend tests, typecheck, and build.
+
 ### Task 43: Editor theme lifecycle
 
 **Files:**
