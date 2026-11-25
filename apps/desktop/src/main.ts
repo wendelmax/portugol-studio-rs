@@ -138,6 +138,7 @@ const {
   },
   learningPanel: {
     openExercise: async (exerciseId) => { await exerciseWorkbench?.openById(exerciseId); },
+    openPorsExercise: async (exerciseId) => { await exerciseWorkbench?.openPorsById(exerciseId); },
   },
   update: {
     renderMessages,

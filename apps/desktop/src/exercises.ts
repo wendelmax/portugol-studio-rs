@@ -11,7 +11,7 @@ import {
   type ExerciseCheckResult,
   type PorsExerciseSummary,
 } from "./api";
-import { createExerciseOpener } from "./exercise-opening";
+import { createExerciseOpener, createPorsExerciseOpener, porsExerciseDocument } from "./exercise-opening";
 import {
   createExerciseProgress,
   createExerciseEvaluationRunner,
@@ -41,25 +41,12 @@ export interface ExerciseGrade {
   current: boolean;
 }
 
-function porsToExerciseDocument(
-  summary: PorsExerciseSummary,
-  name = summary.title,
-  contents?: string,
-): ExerciseDocument {
-  return {
-    exercise: { id: 0, statement: summary.statement, cases: summary.cases },
-    name,
-    contents,
-    pors: summary,
-  };
-}
-
 export async function readExercise(path: string): Promise<ExerciseDocument> {
   const contents = await readFile(path);
   const fileName = path.split(/[\\/]/).pop() ?? "Exercício";
   if (path.toLowerCase().endsWith(".json")) {
     const summary = await inspectPorsExercise(contents);
-    return porsToExerciseDocument(summary, summary.title || fileName, contents);
+    return porsExerciseDocument(summary, summary.title || fileName, contents);
   }
   const exercise = await inspectExercise(contents);
   return { exercise, name: fileName, contents };
@@ -115,6 +102,10 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
   }
 
   const openById = createExerciseOpener(loadCatalog, openSource);
+  const openPorsById = createPorsExerciseOpener(async () => {
+    await loadCatalog();
+    return porsCatalog;
+  }, openSource);
 
   function showExercise() {
     const porsId = parsePorsExerciseOptionValue(list.value);
@@ -170,7 +161,7 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
       const porsExercise = porsCatalog.find(({ id }) => id === porsId);
       if (!porsExercise) return;
       chooser.close();
-      openSource(porsToExerciseDocument(porsExercise));
+      openSource(porsExerciseDocument(porsExercise));
       return;
     }
     const exercise = catalog.find(({ id }) => id === Number(list.value));
@@ -282,5 +273,5 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
     }
   }
 
-  return { browse, grade, evaluate, openById };
+  return { browse, grade, evaluate, openById, openPorsById };
 }

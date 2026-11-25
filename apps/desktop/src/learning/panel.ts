@@ -4,10 +4,12 @@
 
 import type { EditorView } from "@codemirror/view";
 import { $ } from "../dom";
+import { createExerciseProgress } from "../exercise-progress";
 import { conceptsForMode, resolveConceptForMode } from "../learning-content";
 import { explainMappedConcept, learningContextAtSelection } from "../learning-context";
 import type { LearningMode } from "../learning-mode";
 import { learningPinForMode, setLearningPin, toggleLearningPin } from "../learning-pins";
+import { LEARNING_TRAIL, learningTrailProgress } from "./trail";
 import type { Tab } from "../state/tab";
 import { mountOwnershipLab } from "./ownership-view";
 
@@ -17,10 +19,13 @@ export interface LearningPanelHost {
   learningMode(): LearningMode;
   /** Abre o exercício de prática pelo número do catálogo. */
   openExercise(id: number): Promise<void>;
+  /** Abre exercício Portugol-RS pelo identificador do catálogo .pors. */
+  openPorsExercise(id: string): Promise<void>;
 }
 
 export function mountLearningPanel(host: LearningPanelHost) {
   const ownership = mountOwnershipLab();
+  const exerciseProgress = createExerciseProgress();
   let selectedLearningConceptId = "variables";
   let learningConceptManuallySelected = false;
   let learningPracticeBusy = false;
@@ -41,6 +46,44 @@ export function mountLearningPanel(host: LearningPanelHost) {
       })
       : null;
     const concept = resolveConceptForMode(learningMode, pinnedConceptId ?? context?.conceptId ?? selectedLearningConceptId);
+
+    const trail = learningTrailProgress(LEARNING_TRAIL, exerciseProgress.hasPassed);
+    $("learning-trail-count").textContent = trail.status === "empty"
+      ? "Sem exercícios"
+      : `${trail.completedStages} de ${trail.totalStages} etapas concluídas`;
+    $("learning-trail-message").textContent = trail.message;
+    const trailStages = $<HTMLOListElement>("learning-trail-stages");
+    const currentStageIndex = trail.stages.findIndex(({ completed }) => !completed);
+    trailStages.replaceChildren(...trail.stages.map(({ stage, completed, completedExercises }, index) => {
+      const item = document.createElement("li");
+      item.className = completed ? "is-complete" : index === currentStageIndex ? "is-current" : "";
+      if (index === currentStageIndex) item.setAttribute("aria-current", "step");
+      const heading = document.createElement("div");
+      heading.className = "learning-trail-stage-heading";
+      const title = document.createElement("strong");
+      title.textContent = stage.title;
+      const status = document.createElement("span");
+      status.textContent = completed
+        ? "Concluída"
+        : index === currentStageIndex || completedExercises > 0
+          ? `${completedExercises}/${stage.exercises.length} exercícios`
+          : "Não iniciada";
+      heading.append(title, status);
+      const description = document.createElement("p");
+      description.textContent = stage.description;
+      const examples = document.createElement("small");
+      examples.textContent = `Exemplos: ${stage.examplePaths.join(", ")}`;
+      const exercises = document.createElement("small");
+      exercises.textContent = `Exercícios: ${stage.exercises.map(({ title: name }) => name).join(" · ")}`;
+      item.append(heading, description, examples, exercises);
+      return item;
+    }));
+    const nextButton = $<HTMLButtonElement>("learning-trail-next");
+    nextButton.disabled = !trail.suggestedExercise || learningPracticeBusy;
+    nextButton.textContent = trail.suggestedExercise
+      ? `Resolver: ${trail.suggestedExercise.title}`
+      : trail.status === "completed" ? "Trilha concluída" : "Sem exercícios disponíveis";
+    nextButton.dataset.exerciseId = trail.suggestedExercise ? String(trail.suggestedExercise.id) : "";
 
     const picker = $<HTMLSelectElement>("learning-concept");
     picker.replaceChildren(...concepts.map((item) => {
@@ -142,6 +185,27 @@ export function mountLearningPanel(host: LearningPanelHost) {
       renderLearningPanel();
     }
   };
+
+  $<HTMLButtonElement>("learning-trail-next").onclick = async (event) => {
+    if (learningPracticeBusy) return;
+    const button = event.currentTarget as HTMLButtonElement;
+    const exerciseId = button.dataset.exerciseId;
+    if (!exerciseId) return;
+
+    learningPracticeBusy = true;
+    button.disabled = true;
+    $("learning-trail-message").textContent = `Abrindo ${button.textContent}…`;
+    try {
+      await host.openPorsExercise(exerciseId);
+    } catch {
+      $("learning-trail-message").textContent = "Não foi possível abrir o próximo exercício. Tente novamente pela lista de exercícios.";
+    } finally {
+      learningPracticeBusy = false;
+      renderLearningPanel();
+    }
+  };
+
+  exerciseProgress.subscribe(renderLearningPanel);
 
   return {
     render: renderLearningPanel,
