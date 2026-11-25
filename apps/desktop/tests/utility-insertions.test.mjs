@@ -88,7 +88,7 @@ test("library insertion ignores stale results and reports current-tab failures",
   assert.deepEqual(failed.events, [["status", "Falha ao incluir", "error"]]);
 });
 
-test("library insertion enforces running and PORS guards", async () => {
+test("library insertion enforces running guard and supports PORS module insertion", async () => {
   const f = fixture();
   f.setRunning(true);
   await f.libraryButtons[0].onclick();
@@ -98,7 +98,60 @@ test("library insertion enforces running and PORS guards", async () => {
   f.setTab({ id: 2, language: "portugol-rs" });
   await f.libraryButtons[0].onclick();
 
-  assert.deepEqual(f.events, [["status", "Bibliotecas clássicas ainda não estão disponíveis no Portugol-RS.", undefined]]);
+  assert.deepEqual(f.events, [["status", "Use Matematica.funcao(...) diretamente em Portugol-RS.", undefined]]);
+});
+
+test("utility insertions switch to PORS modules and PORS snippets for .pors tabs", async () => {
+  const events = [];
+  const libraryButtons = [];
+  const snippetButtons = [];
+  const tabButtons = new Map([["libraries", fakeButton()], ["models", fakeButton()]]);
+  const panels = new Map([["libraries", { hidden: false }], ["models", { hidden: true }]]);
+  let activeTab = { id: 1, language: "portugol-rs" };
+
+  const controller = createUtilityInsertions({
+    libraries: ["Objetos", "Matematica"],
+    porsLibraries: ["UI", "Json", "Texto"],
+    snippets: [{ label: "programa", detail: "clássico" }],
+    porsSnippets: [{ label: "seja", detail: "binding imutável", apply: () => {} }],
+    createButton: fakeButton,
+    clearLibraryButtons: () => { libraryButtons.length = 0; },
+    clearSnippetButtons: () => { snippetButtons.length = 0; },
+    appendLibraryButton: (button) => libraryButtons.push(button),
+    appendSnippetButton: (button) => snippetButtons.push(button),
+    activeTab: () => activeTab,
+    isRunning: () => false,
+    currentDocument: () => ({ toString: () => "funcao inicio() {}" }),
+    includeLibrary: async () => null,
+    isCurrent: () => true,
+    applyLibraryChange: () => {},
+    insertText: (text) => events.push(["insertText", text]),
+    focusEditor: () => events.push(["focus"]),
+    setStatus: (message, kind) => events.push(["status", message, kind]),
+    createProgramTab: () => {},
+    selection: () => ({ from: 0, to: 0 }),
+    applySnippet: (snippet) => events.push(["snippet", snippet.label]),
+    utilityTabButton: (name) => tabButtons.get(name),
+    utilityPanel: (name) => panels.get(name),
+  });
+  controller.mount();
+  controller.updateLibraryButtons([], "portugol-rs");
+
+  assert.deepEqual(libraryButtons.map((b) => b.textContent), ["UI", "Json", "Texto"]);
+  assert.deepEqual(snippetButtons.map((b) => b.textContent), ["seja"]);
+  assert.equal(libraryButtons[0].disabled, false);
+
+  await libraryButtons[1].onclick();
+  assert.deepEqual(events, [
+    ["insertText", "Json."],
+    ["focus"],
+    ["status", "Módulo PORS inserido: Json. (use Ctrl+Espaço para completar).", "ok"],
+  ]);
+
+  activeTab = { id: 2, language: "portugol" };
+  controller.updateLibraryButtons([], "portugol");
+  assert.deepEqual(libraryButtons.map((b) => b.textContent), ["Objetos", "Matematica"]);
+  assert.deepEqual(snippetButtons.map((b) => b.textContent), ["programa"]);
 });
 
 test("snippet buttons retain language guards, insertion, and new-program action", () => {

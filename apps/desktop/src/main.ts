@@ -27,7 +27,7 @@ import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
 import { mountOutline } from "./outline";
 import { panelContentId, panelNameForKey, type PanelName } from "./panel-tabs";
-import { LIBRARIES, portugol, portugolRs, SNIPPETS } from "./portugol";
+import { LIBRARIES, PORS_MODULES, PORS_SNIPPETS, portugol, portugolRs, SNIPPETS } from "./portugol";
 import { detectSourceLanguage, ensureSourceExtension } from "./document-language";
 import { canRunAsRust } from "./runtime-capabilities";
 import { isExecutionBusy } from "./run/execution-state";
@@ -433,8 +433,12 @@ const outline = mountOutline(goTo, renameAt);
 
 const utilityInsertions = createUtilityInsertions({
   libraries: LIBRARIES,
+  porsLibraries: PORS_MODULES,
   snippets: SNIPPETS,
+  porsSnippets: PORS_SNIPPETS,
   createButton: () => document.createElement("button"),
+  clearLibraryButtons: () => $("utilities-libraries").replaceChildren(),
+  clearSnippetButtons: () => $("utilities-models").replaceChildren(),
   appendLibraryButton: (button) => $("utilities-libraries").append(button),
   appendSnippetButton: (button) => $("utilities-models").append(button),
   activeTab,
@@ -443,6 +447,10 @@ const utilityInsertions = createUtilityInsertions({
   includeLibrary: api.includeLibrary,
   isCurrent: (tab, doc) => activeTab() === tab && view.state.doc === doc,
   applyLibraryChange: (change) => view.dispatch({ changes: change, annotations: isolateHistory.of("full") }),
+  insertText: (text) => {
+    const { from, to } = view.state.selection.main;
+    view.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from + text.length } });
+  },
   focusEditor: () => view.focus(),
   setStatus,
   createProgramTab: () => { newTab(); },

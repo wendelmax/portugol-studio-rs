@@ -33,15 +33,20 @@ test("classic Portugol keeps run/debug and enables applicable libraries", () => 
   assert.equal(controls.format.disabled, false);
 });
 
-test("PORS disables classic-only arguments and libraries but keeps VM debugging", () => {
-  const controls = fixture({ tab: { language: "portugol-rs" } });
+test("PORS disables classic-only arguments/libraries, enables PORS modules, and keeps VM debugging", () => {
+  const controls = fixture({
+    tab: { language: "portugol-rs" },
+    state: { libraryNames: ["Matematica", "Texto", "Objetos"] },
+  });
 
   assert.equal(controls.buttons["btn-run"].disabled, false);
   assert.equal(controls.buttons["btn-debug"].disabled, false);
   assert.equal(controls.buttons["btn-run"].title, "Executar na VM do Portugol-RS (Shift+F6)");
   assert.equal(controls.arguments.disabled, true);
   assert.equal(controls.arguments.title, "Parâmetros ainda não são suportados em Portugol-RS.");
-  assert.equal(controls.libraries.Texto.disabled, true);
+  assert.equal(controls.libraries.Texto.disabled, false);
+  assert.equal(controls.libraries.Texto.title, "Inserir módulo PORS Texto.");
+  assert.equal(controls.libraries.Objetos.disabled, true);
 });
 
 test("Rust without detected Cargo shows a discovery message and locks execution", () => {

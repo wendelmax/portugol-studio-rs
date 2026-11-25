@@ -13,8 +13,12 @@ export interface LibraryChange {
 
 export interface UtilityInsertionsDependencies {
   libraries: readonly string[];
+  porsLibraries?: readonly string[];
   snippets: readonly Completion[];
+  porsSnippets?: readonly Completion[];
   createButton: () => EditorButton;
+  clearLibraryButtons?: () => void;
+  clearSnippetButtons?: () => void;
   appendLibraryButton: (button: EditorButton) => void;
   appendSnippetButton: (button: EditorButton) => void;
   activeTab: () => Tab | undefined;
@@ -23,6 +27,7 @@ export interface UtilityInsertionsDependencies {
   includeLibrary: (source: string, name: string) => Promise<LibraryChange | null>;
   isCurrent: (tab: Tab, document: { toString(): string }) => boolean;
   applyLibraryChange: (change: LibraryChange) => void;
+  insertText?: (text: string) => void;
   focusEditor: () => void;
   setStatus: (message: string, kind?: "error" | "ok") => void;
   createProgramTab: () => void;
@@ -35,17 +40,33 @@ export interface UtilityInsertionsDependencies {
 /** Wires library, snippet, and tab controls for the editor utilities panel. */
 export function createUtilityInsertions(dependencies: UtilityInsertionsDependencies) {
   const libraryButtons = new Map<string, EditorButton>();
+  let renderedPorsMode: boolean | null = null;
 
-  function mount() {
-    for (const name of dependencies.libraries) {
+  function renderCatalog(porsMode: boolean) {
+    if (renderedPorsMode === porsMode) return;
+    renderedPorsMode = porsMode;
+    libraryButtons.clear();
+    dependencies.clearLibraryButtons?.();
+    dependencies.clearSnippetButtons?.();
+
+    const activeLibraries = porsMode && dependencies.porsLibraries?.length
+      ? dependencies.porsLibraries
+      : dependencies.libraries;
+    for (const name of activeLibraries) {
       const button = dependencies.createButton();
       button.textContent = name;
-      button.title = `Incluir biblioteca ${name}`;
+      button.title = porsMode ? `Inserir módulo PORS ${name}.` : `Incluir biblioteca ${name}`;
       button.onclick = async () => {
         const tab = dependencies.activeTab();
         if (!tab || dependencies.isRunning(tab)) return;
         if (tab.language === "portugol-rs") {
-          dependencies.setStatus("Bibliotecas clássicas ainda não estão disponíveis no Portugol-RS.");
+          if (dependencies.insertText) {
+            dependencies.insertText(`${name}.`);
+            dependencies.focusEditor();
+            dependencies.setStatus(`Módulo PORS inserido: ${name}. (use Ctrl+Espaço para completar).`, "ok");
+          } else {
+            dependencies.setStatus(`Use ${name}.funcao(...) diretamente em Portugol-RS.`);
+          }
           return;
         }
         const document = dependencies.currentDocument();
@@ -65,7 +86,10 @@ export function createUtilityInsertions(dependencies: UtilityInsertionsDependenc
       libraryButtons.set(name, button);
     }
 
-    for (const snippet of dependencies.snippets) {
+    const activeSnippets = porsMode && dependencies.porsSnippets?.length
+      ? dependencies.porsSnippets
+      : dependencies.snippets;
+    for (const snippet of activeSnippets) {
       const button = dependencies.createButton();
       button.textContent = snippet.label;
       button.title = snippet.detail ?? snippet.label;
@@ -82,6 +106,10 @@ export function createUtilityInsertions(dependencies: UtilityInsertionsDependenc
       };
       dependencies.appendSnippetButton(button);
     }
+  }
+
+  function mount() {
+    renderCatalog(Boolean(dependencies.porsLibraries?.length && dependencies.activeTab()?.language !== "portugol"));
 
     for (const selected of ["libraries", "models"] as const) {
       dependencies.utilityTabButton(selected).onclick = () => {
@@ -94,6 +122,17 @@ export function createUtilityInsertions(dependencies: UtilityInsertionsDependenc
   }
 
   function updateLibraryButtons(symbols: SymbolInfo[], language: SourceLanguage | undefined) {
+    const porsMode = language === "portugol-rs" && Boolean(dependencies.porsLibraries?.length);
+    if (dependencies.porsLibraries?.length || dependencies.porsSnippets?.length) {
+      renderCatalog(porsMode);
+    }
+    if (porsMode) {
+      for (const [name, button] of libraryButtons) {
+        button.disabled = false;
+        button.title = `Inserir módulo PORS ${name}.`;
+      }
+      return;
+    }
     const included = new Set(symbols.filter((symbol) => symbol.kind === "library")
       .map(({ name }) => name.split(" → ", 1)[0]));
     const unsupported = language !== "portugol";

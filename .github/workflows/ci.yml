@@ -107,6 +107,10 @@ jobs:
           npm ci
           npm test
           npm run build
+      - name: Verificação E2E e visual (1536×960 e 1280×800)
+        working-directory: apps/desktop
+        timeout-minutes: 3
+        run: npm run test:e2e
       - name: Clippy do app
         run: cargo clippy -p portugol-desktop -- -D warnings
       - name: Compilar o app com protocolo de produção
