@@ -6,6 +6,7 @@ import { ideSource } from "./support/ide-source.mjs";
 const { createLatestOnlyRustSourceChecker } = await import("../src/rust-source-check.ts");
 const main = ideSource();
 const rustLinter = readFileSync(new URL("../src/editor/rust-linter.ts", import.meta.url), "utf8");
+const editorSetup = readFileSync(new URL("../src/editor/setup.ts", import.meta.url), "utf8");
 const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
 const tauri = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
 
@@ -52,8 +53,9 @@ test("a failed check does not block the next queued source", async () => {
 });
 
 test("Rust editor lint routes through the bounded Tauri source-check command", () => {
-  assert.match(main, /const rustSourceLinter = linter\(createRustLintSourceCheck\(/);
-  assert.match(main, /createLatestOnlyRustSourceChecker\(api\.checkRustSource\)/);
+  assert.match(editorSetup, /const rustSourceLinter = linter\(createRustLintSourceCheck\(/);
+  assert.match(editorSetup, /createLatestOnlyRustSourceChecker\(dependencies\.checkRustSource\)/);
+  assert.match(main, /checkRustSource: api\.checkRustSource/);
   assert.match(rustLinter, /editor\.state\.doc !== doc/);
   assert.match(main, /rustExtensions: \(\) => \[rustSourceLinter\]/);
   assert.equal((main.match(/portugolTools\.reconfigure\(tab\.language === "rust" \? \[rustSourceLinter\]/g) ?? []).length, 2);

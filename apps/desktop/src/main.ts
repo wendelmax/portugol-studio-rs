@@ -10,10 +10,10 @@ import "./style.css";
 import license from "../../../LICENSE?raw";
 import { version } from "../package.json";
 
-import { EditorState, Compartment } from "@codemirror/state";
+import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { isolateHistory } from "@codemirror/commands";
-import { forceLinting, linter, setDiagnostics } from "@codemirror/lint";
+import { forceLinting, setDiagnostics } from "@codemirror/lint";
 import { openSearchPanel } from "@codemirror/search";
 import { rust } from "@codemirror/lang-rust";
 import { open as openDialog, save as saveDialog, ask } from "@tauri-apps/plugin-dialog";
@@ -51,7 +51,6 @@ import { semanticSymbolLanguage } from "./semantic-symbol-actions";
 import { canDebugSource, canRunAsRust, canRunSource } from "./runtime-capabilities";
 import { parseClassicArguments, parseProcessArguments } from "./process-arguments";
 import { hasCargoExecutionConsent, hasRustExecutionConsent, rememberCargoExecutionConsent, rememberRustExecutionConsent } from "./rust-execution-consent";
-import { createLatestOnlyRustSourceChecker } from "./rust-source-check";
 import { replayRunEvents, type PendingRunEvent } from "./run-event-router";
 import { createRunEventsController } from "./run/run-events";
 import { mountRunToolbar } from "./run/toolbar";
@@ -98,13 +97,11 @@ import { createSymbolNavigator } from "./editor/symbol-navigation";
 import { createEditorFormatter } from "./editor/format";
 import { createEditorUpdateController } from "./editor/update-controller";
 import { createEditorExtensionFactory } from "./editor/extensions";
-import { createRustLintSourceCheck } from "./editor/rust-linter";
-import { createPortugolLintSourceCheck } from "./editor/portugol-linter";
+import { createEditorSetup } from "./editor/setup";
 import { createSymbolRenamer } from "./editor/symbol-rename";
-import { createCenterSourceController } from "./editor/center-source";
 import { createUtilityInsertions } from "./editor/utility-insertions";
 import {
-  breakpointLines, breakpoints, createBreakpointGutter, debugLine, runtimeError, setDebugLine, setRuntimeError, toCodeMirror,
+  breakpointLines, breakpoints, debugLine, runtimeError, setDebugLine, setRuntimeError, toCodeMirror,
 } from "./editor/decorations";
 
 const TEMPLATE = "programa\n{\n\tfuncao inicio()\n\t{\n\t\t\n\t}\n}\n";
@@ -122,40 +119,33 @@ function renderCursor() { tabsShell.renderCursor(); }
 // ---------------------------------------------------------------------------
 
 
-// Compartimentos reconfigurados ao trocar de aba, linguagem ou tema.
-const theme = new Compartment();
-const sourceLanguage = new Compartment();
-const portugolTools = new Compartment();
-const generatedRustTheme = new Compartment();
-
-const centerSource = createCenterSourceController({
+const editorSetup = createEditorSetup({
   storage: () => localStorage,
   hasActiveTab: () => activeTab() !== undefined,
   centerSelection,
-  setPressed: (pressed) => $("editor-center").setAttribute("aria-pressed", String(pressed)),
+  setCenterPressed: (pressed) => $("editor-center").setAttribute("aria-pressed", String(pressed)),
   focusEditor: () => view.focus(),
-});
-
-const breakpointGutter = createBreakpointGutter((state) => syncBreakpoints(state), () => icon("pequeno/bug"));
-
-const portugolLinter = linter(createPortugolLintSourceCheck({
+  syncBreakpoints: (state) => syncBreakpoints(state),
+  bugIcon: () => icon("pequeno/bug"),
   activeTab,
   inspectPortugol: api.inspect,
   inspectPortugolRs: api.inspectPortugolRs,
   renderMessages,
   showOutline: (symbols) => outline.show(symbols),
   updateLibraryButtons,
-  toCodeMirror,
-}), { delay: 350 });
-
-const latestRustSourceCheck = createLatestOnlyRustSourceChecker(api.checkRustSource);
-const rustSourceLinter = linter(createRustLintSourceCheck({
-  activeTab,
   isRustcAvailable: () => rustcAvailable === true,
-  checkSource: latestRustSourceCheck,
-  renderMessages,
-  toCodeMirror,
-}), { delay: 500 });
+  checkRustSource: api.checkRustSource,
+});
+const {
+  theme,
+  sourceLanguage,
+  portugolTools,
+  generatedRustTheme,
+  centerSource,
+  breakpointGutter,
+  portugolLinter,
+  rustSourceLinter,
+} = editorSetup;
 
 const view = new EditorView({ parent: $("editor") });
 const rustPreview = mountRustPreview({
