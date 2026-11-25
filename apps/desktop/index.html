@@ -9,35 +9,49 @@
     <header class="titlebar">
       <div class="app-brand"><span class="app-brand-mark" aria-hidden="true">RS</span>Portugol Studio RS</div>
       <div class="titlebar-drag" data-tauri-drag-region></div>
+      <nav class="titlebar-actions" aria-label="Execução e visualizações">
+        <button id="btn-run" class="titlebar-run-btn" data-testid="run" title="Executar até o próximo ponto de parada (Shift+F6)" aria-label="Executar"><span data-icon="play"></span><span>Executar</span></button>
+        <button id="btn-debug" class="titlebar-action-btn" data-testid="debug" title="Executar passo a passo (Shift+F5)" aria-label="Depurar"><span data-icon="step-forward"></span><span>Depurar</span></button>
+        <button id="btn-stop" class="titlebar-action-btn titlebar-stop-btn" data-testid="stop" title="Interromper a execução ou depuração (Shift+F7)" aria-label="Interromper" disabled><span data-icon="square"></span><span>Parar</span></button>
+        <span class="titlebar-divider" aria-hidden="true"></span>
+        <button id="btn-rust" class="titlebar-pill-btn" title="Comparar e exportar este programa para Rust" aria-label="Ver tradução para Rust">Rust</button>
+        <button id="btn-ui-preview" class="titlebar-pill-btn" title="Abrir preview visual declarativo PORS (UI.*)" aria-label="Preview Visual PORS" aria-pressed="false">UI</button>
+      </nav>
       <div class="window-controls" role="group" aria-label="Controles da janela">
-        <button id="window-min" title="Minimizar" aria-label="Minimizar"><span data-icon="pequeno/window_min"></span></button>
-        <button id="window-max" title="Maximizar ou restaurar" aria-label="Maximizar ou restaurar"><span data-icon="pequeno/window_max"></span></button>
-        <button id="window-close" title="Fechar" aria-label="Fechar"><span data-icon="pequeno/window_close"></span></button>
+        <button id="window-min" title="Minimizar" aria-label="Minimizar"><span data-icon="window-min"></span></button>
+        <button id="window-max" title="Maximizar ou restaurar" aria-label="Maximizar ou restaurar"><span data-icon="window-max"></span></button>
+        <button id="window-close" title="Fechar" aria-label="Fechar"><span data-icon="window-close"></span></button>
       </div>
     </header>
 
     <main id="home" class="home" tabindex="-1">
       <section class="home-welcome" aria-label="Portugol Studio RS">
-        <div class="home-actions">
-          <div class="home-new-file-group">
-            <button id="home-new" title="Novo arquivo Portugol-RS (.pors) (Ctrl+N)"><span data-icon="grande/newfile64"></span>Novo Arquivo</button>
-            <details id="home-new-menu" class="home-new-menu" data-testid="home-new-menu">
-              <summary id="home-new-menu-toggle" aria-label="Criar arquivo em outra linguagem" aria-controls="home-new-menu-items" title="Criar arquivo em outra linguagem"><span aria-hidden="true">▾</span></summary>
-              <div id="home-new-menu-items" class="home-new-menu-items" aria-label="Outras linguagens">
-                <button id="home-new-pors" type="button" data-home-new-language="portugol-rs" title="Novo arquivo Portugol-RS (.pors)">Novo Portugol-RS (.pors)</button>
-                <button id="home-new-rust" type="button" data-home-new-language="rust" title="Novo arquivo Rust (.rs)">Novo Rust (.rs)</button>
-                <button id="home-new-por" type="button" data-home-new-language="portugol" title="Novo arquivo Portugol clássico (.por)">Novo Portugol clássico (.por)</button>
-              </div>
-            </details>
-          </div>
-          <button id="home-open" title="Abrir arquivo (Ctrl+O)"><span data-icon="grande/openfile64"></span>Abrir Arquivo</button>
-          <button id="home-open-folder" title="Abrir pasta de projeto"><span data-icon="pequeno/folder_closed"></span>Abrir Pasta</button>
-          <button id="home-help" title="Ajuda (F1)"><span data-icon="grande/helplow"></span>Ajuda</button>
-        </div>
         <div class="home-brand">
-          <div class="home-logo" role="img" aria-label="Portugol Studio RS">
-            <span class="home-logo-mark" aria-hidden="true">RS</span>
-            <span class="home-logo-name" aria-hidden="true">Portugol Studio RS</span>
+          <div class="home-hero">
+            <div class="home-logo" role="img" aria-label="Portugol Studio RS">
+              <span class="home-logo-mark" aria-hidden="true">RS</span>
+              <div class="home-logo-copy">
+                <span class="home-logo-name" aria-hidden="true">Portugol Studio RS</span>
+                <p class="home-tagline">Aprenda lógica em Portugol-RS (.pors) e evolua para Rust real (.rs).</p>
+              </div>
+            </div>
+            <span id="home-version"></span>
+          </div>
+          <div class="home-actions">
+            <div class="home-new-file-group">
+              <button id="home-new" title="Novo arquivo Portugol-RS (.pors) (Ctrl+N)"><span data-icon="file-plus"></span>Novo Arquivo</button>
+              <details id="home-new-menu" class="home-new-menu" data-testid="home-new-menu">
+                <summary id="home-new-menu-toggle" aria-label="Criar arquivo em outra linguagem" aria-controls="home-new-menu-items" title="Criar arquivo em outra linguagem"><span aria-hidden="true">▾</span></summary>
+                <div id="home-new-menu-items" class="home-new-menu-items" aria-label="Outras linguagens">
+                  <button id="home-new-pors" type="button" data-home-new-language="portugol-rs" title="Novo arquivo Portugol-RS (.pors)">Novo Portugol-RS (.pors)</button>
+                  <button id="home-new-rust" type="button" data-home-new-language="rust" title="Novo arquivo Rust (.rs)">Novo Rust (.rs)</button>
+                  <button id="home-new-por" type="button" data-home-new-language="portugol" title="Novo arquivo Portugol clássico (.por)">Novo Portugol clássico (.por)</button>
+                </div>
+              </details>
+            </div>
+            <button id="home-open" title="Abrir arquivo (Ctrl+O)"><span data-icon="folder-open"></span>Abrir Arquivo</button>
+            <button id="home-open-folder" title="Abrir pasta de projeto"><span data-icon="folder"></span>Abrir Pasta</button>
+            <button id="home-help" title="Ajuda (F1)"><span data-icon="book-open"></span>Ajuda</button>
           </div>
           <section id="recent" aria-labelledby="recent-title" hidden>
             <h2 id="recent-title">Arquivos recentes</h2>
@@ -54,49 +68,43 @@
             </div>
           </section>
         </div>
-        <span id="home-version"></span>
       </section>
       <section class="home-examples">
         <div class="home-example-list">
-          <h2><span data-icon="pequeno/light_pix"></span>Exemplos</h2>
-          <input id="example-search" type="search" disabled placeholder="Buscar Exemplos" aria-label="Buscar exemplos" />
+          <h2><span data-icon="sparkles"></span>Exemplos</h2>
+          <input id="example-search" type="search" disabled placeholder="Buscar exemplos (.pors)" aria-label="Buscar exemplos" />
           <div id="examples"></div>
           <p id="examples-empty" role="status" hidden>Nenhum exemplo encontrado.</p>
         </div>
-        <button id="home-exercises">Exercícios</button>
+        <button id="home-exercises"><span data-icon="check-square"></span>Exercícios</button>
       </section>
       <footer class="home-links">
-        <button id="home-tips">Dicas Interface (F3)</button>
-        <button id="home-shortcuts">Atalhos de teclado (F11)</button>
-        <button id="home-report">Relatar um Bug</button>
+        <button id="home-tips">Dicas da IDE (F3)</button>
+        <button id="home-shortcuts">Atalhos (F11)</button>
+        <button id="home-report">Relatar Bug</button>
         <button id="home-contribute">Contribuir</button>
         <button id="home-about">Sobre (F12)</button>
-        <button id="home-alerts">Mostrar Alertas</button>
+        <button id="home-alerts">Alertas</button>
       </footer>
     </main>
 
     <main id="code" class="code" hidden>
       <aside class="activity-rail" aria-label="Atividades">
         <nav class="activity-nav" aria-label="Atividades">
-          <button type="button" data-activity="learn" aria-label="Aprender" aria-controls="utilities" title="Aprender">?</button>
-          <button type="button" data-activity="examples" aria-label="Exemplos" title="Início e exemplos"><span data-icon="pequeno/light_pix"></span></button>
-          <button type="button" data-activity="debug" aria-label="Painel de depuração" aria-controls="bottom-panel" title="Painel de depuração"><span data-icon="pequeno/bug"></span></button>
-          <button type="button" data-activity="settings" aria-label="Configurações do editor" aria-controls="editor-options" title="Configurações"><span data-icon="pequeno/gear_in"></span></button>
+          <button type="button" data-activity="learn" aria-label="Aprender" aria-controls="utilities" title="Aprender"><span data-icon="graduation-cap"></span><span class="rail-label">Aprender</span></button>
+          <button type="button" data-activity="examples" aria-label="Exemplos" title="Início e exemplos"><span data-icon="sparkles"></span><span class="rail-label">Exemplos</span></button>
+          <button type="button" data-activity="debug" aria-label="Painel de depuração" aria-controls="bottom-panel" title="Painel de depuração"><span data-icon="bug"></span><span class="rail-label">Depurar</span></button>
+          <button type="button" data-activity="settings" aria-label="Configurações do editor" aria-controls="editor-options" title="Configurações"><span data-icon="settings"></span><span class="rail-label">Ajustes</span></button>
         </nav>
         <nav class="code-toolbar" aria-label="Comandos do editor">
-          <button id="btn-explorer" title="Mostrar ou ocultar o explorador (Ctrl+Shift+E)" aria-label="Explorador" aria-expanded="false"><span data-icon="pequeno/folder_closed"></span></button>
-          <button id="btn-run" data-testid="run" title="Executar até o próximo ponto de parada (Shift+F6)" aria-label="Executar"><span data-icon="grande/resultset_next"></span></button>
-          <button id="btn-debug" data-testid="debug" title="Executar passo a passo (Shift+F5)" aria-label="Depurar"><span data-icon="grande/step"></span></button>
-          <button id="btn-stop" data-testid="stop" title="Interromper a execução ou depuração (Shift+F7)" aria-label="Interromper" disabled><span data-icon="grande/stop"></span></button>
-          <button id="btn-rust" title="Comparar e exportar este programa para Rust" aria-label="Ver tradução para Rust">Rust</button>
-          <button id="btn-ui-preview" title="Abrir preview visual declarativo PORS (UI.*)" aria-label="Preview Visual PORS" aria-pressed="false">UI</button>
+          <button id="btn-explorer" title="Mostrar ou ocultar o explorador (Ctrl+Shift+E)" aria-label="Explorador" aria-expanded="false"><span data-icon="folder"></span></button>
           <hr />
-          <button id="btn-save" data-testid="save" title="Salvar (Ctrl+S)" aria-label="Salvar"><span data-icon="grande/save"></span></button>
-          <button id="btn-save-as" title="Salvar como (Ctrl+Shift+S)" aria-label="Salvar como"><span data-icon="grande/save_as"></span></button>
-          <button id="btn-open" data-testid="open" title="Abrir (Ctrl+O)" aria-label="Abrir"><span data-icon="grande/open"></span></button>
+          <button id="btn-save" data-testid="save" title="Salvar (Ctrl+S)" aria-label="Salvar"><span data-icon="save"></span></button>
+          <button id="btn-save-as" title="Salvar como (Ctrl+Shift+S)" aria-label="Salvar como"><span data-icon="save-as"></span></button>
+          <button id="btn-open" data-testid="open" title="Abrir (Ctrl+O)" aria-label="Abrir"><span data-icon="folder-open"></span></button>
           <hr />
-          <button id="btn-help" title="Ajuda da linguagem e das bibliotecas (F1)" aria-label="Ajuda"><span data-icon="grande/helplow"></span></button>
-          <button id="btn-unexpand" title="Sair do modo expandido (Shift+Esc)" aria-label="Sair do modo expandido" hidden><span data-icon="pequeno/expandir_componente"></span></button>
+          <button id="btn-help" title="Ajuda da linguagem e das bibliotecas (F1)" aria-label="Ajuda"><span data-icon="book-open"></span></button>
+          <button id="btn-unexpand" title="Sair do modo expandido (Shift+Esc)" aria-label="Sair do modo expandido" hidden><span data-icon="minimize-2"></span></button>
         </nav>
       </aside>
       <aside id="workspace-explorer" data-testid="workspace-explorer" class="workspace-explorer" aria-labelledby="workspace-title" hidden>
@@ -104,8 +112,8 @@
           <h2 id="workspace-title">Explorador</h2>
           <div class="workspace-explorer-actions">
             <button id="workspace-export" title="Exportar arquivos do projeto localmente" aria-label="Exportar projeto" disabled>⇧</button>
-            <button id="workspace-new-file" title="Novo arquivo .por, .pors ou .rs" aria-label="Novo arquivo" disabled>＋</button>
-            <button id="workspace-open-folder" title="Abrir outra pasta" aria-label="Abrir outra pasta"><span data-icon="pequeno/folder_closed"></span></button>
+            <button id="workspace-new-file" title="Novo arquivo .pors, .rs ou .por" aria-label="Novo arquivo" disabled>＋</button>
+            <button id="workspace-open-folder" title="Abrir outra pasta" aria-label="Abrir outra pasta"><span data-icon="folder"></span></button>
           </div>
         </header>
         <p id="workspace-name" class="workspace-name" hidden></p>
@@ -161,7 +169,7 @@
           </aside>
           <aside class="error-strip" aria-label="Diagnósticos por linha"><div id="error-strip"></div></aside>
           <details id="editor-options" class="options editor-options">
-            <summary title="Opções do editor" aria-label="Opções do editor"><span data-icon="pequeno/gear_in"></span></summary>
+            <summary title="Opções do editor" aria-label="Opções do editor"><span data-icon="settings"></span></summary>
             <div class="options-menu">
               <label class="learning-mode" for="learning-mode">Modo de aprendizagem
                 <select id="learning-mode" data-testid="learning-mode" aria-describedby="learning-mode-rust-help">
@@ -218,7 +226,7 @@
             <button id="tab-messages" data-testid="tab-messages" role="tab" aria-selected="false" aria-controls="messages">Mensagens <span id="message-count"></span></button>
             <button id="tab-debug" data-testid="tab-debug" role="tab" aria-selected="false" aria-controls="debug">Depuração</button>
             <details id="console-tools" class="options right">
-              <summary title="Opções do console" aria-label="Opções do console"><span data-icon="pequeno/gear_in"></span></summary>
+              <summary title="Opções do console" aria-label="Opções do console"><span data-icon="settings"></span></summary>
               <div class="options-menu">
                 <label class="font-size" for="console-font">Tamanho da fonte
                   <input id="console-font" type="number" min="10" max="50" value="12" />
@@ -375,7 +383,7 @@
         <div id="learning-inspector-slot"></div>
         <section id="utilities-insert" class="utilities-insert" aria-label="Inserir bibliotecas e modelos">
           <div class="utilities-insert-tabs" role="tablist">
-            <button id="utilities-libraries-tab" role="tab" aria-selected="true" aria-controls="utilities-libraries"><span data-icon="pequeno/biblioteca"></span>Bibliotecas</button>
+            <button id="utilities-libraries-tab" role="tab" aria-selected="true" aria-controls="utilities-libraries"><span data-icon="library"></span>Bibliotecas</button>
             <button id="utilities-models-tab" role="tab" aria-selected="false" aria-controls="utilities-models">Modelos</button>
           </div>
           <div id="utilities-libraries" role="tabpanel" aria-labelledby="utilities-libraries-tab"></div>
@@ -385,7 +393,7 @@
           <div class="outline-heading">
             <input id="outline-search" type="search" placeholder="Localizar (Ctrl+L)" aria-label="Buscar na estrutura (Ctrl+L)" />
             <details id="outline-options" class="options">
-              <summary title="Filtros da estrutura" aria-label="Filtros da estrutura"><span data-icon="pequeno/gear_in"></span></summary>
+              <summary title="Filtros da estrutura" aria-label="Filtros da estrutura"><span data-icon="settings"></span></summary>
               <div class="options-menu">
                 <label>Tipo de dado <select id="outline-type"><option value="">Todos os tipos</option></select></label>
                 <label>Tipo de símbolo <select id="outline-kind"><option value="">Todos os símbolos</option></select></label>
@@ -539,7 +547,7 @@
       <p id="exercise-error" role="status" hidden></p>
       <div class="dialog-actions">
         <button id="exercise-solve" disabled>Resolver</button>
-        <button id="exercise-import">Abrir arquivo .pex</button>
+        <button id="exercise-import">Importar exercício</button>
         <form method="dialog"><button>Fechar</button></form>
       </div>
     </dialog>
@@ -565,16 +573,12 @@
           <label>Base <select id="theme-base"><option value="light">Portugol</option><option value="dark">Dark</option></select></label>
         </div>
         <div id="theme-preview" class="theme-palette">
-          <pre><span class="theme-comment">// Prévia do editor</span>
-<span class="theme-keyword">programa</span>
-{
-  <span class="theme-keyword">funcao</span> inicio()
-  {
-    <span class="theme-type">inteiro</span> numero <span class="theme-operator">=</span> <span class="theme-number">42</span>
-    escreva(<span class="theme-string">"Olá, Portugol!"</span>, numero)
-  }
+          <pre><span class="theme-comment">// Prévia do editor (.pors)</span>
+<span class="theme-keyword">funcao</span> inicio() {
+  <span class="theme-keyword">seja</span> numero: <span class="theme-type">inteiro</span> <span class="theme-operator">=</span> <span class="theme-number">42</span>;
+  escreva(<span class="theme-string">"Olá, Portugol-RS! "</span>, numero);
 }</pre>
-          <div class="theme-preview-console">Olá, Portugol!42</div>
+          <div class="theme-preview-console">Olá, Portugol-RS! 42</div>
         </div>
         <div id="theme-colors"></div>
         <p id="theme-error" role="status" hidden></p>
@@ -602,8 +606,12 @@
     </dialog>
 
     <dialog id="tips" aria-labelledby="tips-title">
-      <h2 id="tips-title" aria-live="polite">Dicas de interface</h2>
-      <img id="tips-image" alt="" />
+      <div class="tips-meta">
+        <span id="tips-badge"></span>
+        <span id="tips-shortcut"></span>
+      </div>
+      <h2 id="tips-title" aria-live="polite">Dicas da IDE</h2>
+      <div id="tips-visual"></div>
       <p id="tips-description"></p>
       <div class="tips-actions">
         <button id="tips-previous" aria-label="Dica anterior">←</button>
@@ -645,7 +653,7 @@
     <dialog id="about" aria-labelledby="about-title">
       <h2 id="about-title">Sobre o Portugol Studio RS</h2>
       <p id="about-version"></p>
-      <p>IDE e implementação em Rust da linguagem Portugol 2.0, baseada no Portugol Studio do Laboratório de Inovação Tecnológica na Educação da UNIVALI.</p>
+      <p>Ambiente educacional proprietário em Rust para aprender lógica com Portugol-RS (.pors) e evoluir para Rust real (.rs). Obra derivada do Portugol Studio do Laboratório de Inovação Tecnológica na Educação da UNIVALI.</p>
       <details>
         <summary>Licença LGPL-3.0</summary>
         <pre id="about-license"></pre>

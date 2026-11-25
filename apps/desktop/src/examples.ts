@@ -53,7 +53,7 @@ export function mountExamples(openExample: (source: string, file: string, workPa
         if (!children.length) return [];
         const group = document.createElement("details");
         const summary = document.createElement("summary");
-        summary.append(icon("pequeno/folder_closed"), entry.name);
+        summary.append(icon("folder"), entry.name);
         group.append(summary, ...children);
         group.open = Boolean(query) || expanded.has(key);
         group.ontoggle = () => {

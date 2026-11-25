@@ -215,18 +215,132 @@ dialog h2 {
 }
 
 #tips {
-  width: min(680px, calc(100% - 24px));
+  width: min(640px, calc(100% - 24px));
 }
 
-#tips-image {
+.tips-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+#tips-badge {
+  padding: 2px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--tab-active);
+  color: var(--accent);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+#tips-shortcut {
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: var(--font-size-xs);
+}
+
+#tips-visual {
   display: block;
   width: 100%;
-  height: min(48vh, 360px);
-  object-fit: contain;
-  background: var(--bg);
+  margin: var(--space-2) 0 var(--space-3);
+}
+
+.tip-illustration {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.tip-frame {
+  fill: var(--bg);
+  stroke: var(--border);
+  stroke-width: 1.5;
+}
+
+.tip-bar {
+  fill: var(--surface);
+}
+
+.tip-card {
+  fill: var(--surface);
+  stroke: var(--border);
+  stroke-width: 1.2;
+}
+
+.tip-highlight {
+  fill: var(--tab-active);
+}
+
+.tip-pill {
+  fill: var(--accent);
+}
+
+.tip-pill-text {
+  fill: var(--accent-text);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tip-dot {
+  fill: var(--border);
+}
+
+.tip-dot-accent {
+  fill: var(--accent);
+}
+
+.tip-dot-ok {
+  fill: var(--ok);
+}
+
+.tip-dot-error {
+  fill: var(--error);
+}
+
+.tip-stroke-accent {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.tip-label {
+  fill: var(--muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tip-label-accent {
+  fill: var(--accent);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tip-title-sm {
+  fill: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.tip-code {
+  fill: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
 }
 
 #tips-description {
+  margin: 0 0 var(--space-3);
+  line-height: 1.55;
   white-space: pre-line;
 }
 

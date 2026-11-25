@@ -72,11 +72,19 @@ select {
 }
 
 .ui-icon {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   width: 16px;
   height: 16px;
-  background: var(--icon-light) center / contain no-repeat;
+  color: inherit;
+}
+
+.ui-icon > svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -88,15 +96,5 @@ select {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     transition-delay: 0ms !important;
-  }
-}
-
-:root[data-theme="dark"] .ui-icon {
-  background-image: var(--icon-dark);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .ui-icon {
-    background-image: var(--icon-dark);
   }
 }

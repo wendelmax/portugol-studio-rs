@@ -15,8 +15,6 @@ const EXPECTED_MODULES = [
 const OTHER_STYLES = ["graphics-window.css"];
 
 const RUNTIME_CSS_VARS = new Set([
-  "--icon-light",
-  "--icon-dark",
   "--editor-font",
   "--console-font",
 ]);

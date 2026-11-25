@@ -23,7 +23,7 @@ export function createTabsView(dependencies: TabsViewDependencies) {
     const activeId = dependencies.activeId();
     const home = document.createElement("button");
     home.className = "tab home-tab" + (activeId === dependencies.homeId ? " active" : "");
-    home.append(dependencies.icon("pequeno/light_pix"), "Portugol Studio");
+    home.append(dependencies.icon("home"), "Início");
     home.title = "Tela inicial (Alt+Home)";
     home.setAttribute("aria-current", String(activeId === dependencies.homeId));
     home.onclick = () => dependencies.activate(dependencies.homeId);
@@ -67,7 +67,7 @@ export function createTabsView(dependencies: TabsViewDependencies) {
           event.stopPropagation();
           void dependencies.closeTab(tab.id);
         };
-        name.prepend(dependencies.icon("pequeno/light_pix"));
+        name.prepend(dependencies.icon("file-code"));
         element.append(name, close);
         name.onclick = () => dependencies.activate(tab.id);
         element.onauxclick = (event) => event.button === 1 && void dependencies.closeTab(tab.id);

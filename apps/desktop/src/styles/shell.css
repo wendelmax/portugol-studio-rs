@@ -2,9 +2,10 @@
 
 .titlebar {
   display: flex;
-  align-items: stretch;
+  align-items: center;
+  gap: var(--space-2);
   min-height: var(--size-titlebar);
-  padding-inline: 14px 6px;
+  padding-inline: 14px 8px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
@@ -15,48 +16,120 @@
   gap: 9px;
   min-width: max-content;
   color: var(--text);
-  font-weight: 650;
-  letter-spacing: 0.01em;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  letter-spacing: -0.015em;
 }
 
 .app-brand-mark {
   display: grid;
   place-items: center;
-  width: 25px;
-  height: 25px;
-  border-radius: 7px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   background: var(--accent);
   color: var(--accent-text);
+  font-size: var(--font-size-sm);
   font-weight: 800;
+  letter-spacing: -0.04em;
 }
 
 .titlebar-drag {
   flex: 1;
+  align-self: stretch;
   min-width: 24px;
+}
+
+.titlebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-inline-end: var(--space-2);
+}
+
+body:has(#code[hidden]) .titlebar-actions {
+  display: none;
+}
+
+.titlebar-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 11px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.titlebar-actions .ui-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.titlebar-run-btn {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.titlebar-run-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 88%, var(--text));
+  border-color: color-mix(in srgb, var(--accent) 88%, var(--text));
+}
+
+.titlebar-action-btn,
+.titlebar-pill-btn {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.titlebar-action-btn:hover:not(:disabled),
+.titlebar-pill-btn:hover:not(:disabled),
+.titlebar-pill-btn[aria-pressed="true"] {
+  background: var(--tab-active);
+  border-color: var(--accent);
+}
+
+.titlebar-stop-btn:not(:disabled) {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.titlebar-divider {
+  width: 1px;
+  height: 20px;
+  margin-inline: 2px;
+  background: var(--border);
 }
 
 .window-controls {
   display: flex;
   align-self: center;
-  height: 30px;
+  gap: 2px;
+  height: 32px;
 }
 
 .window-controls button {
   display: grid;
   place-items: center;
-  width: 28px;
+  width: 30px;
   border: 0;
-  border-radius: 0;
+  border-radius: var(--radius-sm);
   padding: 0;
   background: transparent;
+  color: var(--muted);
 }
 
 .window-controls button:hover {
   background: var(--tab-active);
+  color: var(--text);
 }
 
 #window-close:hover {
   background: var(--error);
+  color: var(--error-text);
 }
 
 /* Área de trabalho e barra lateral de atividades */
@@ -65,6 +138,8 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  padding: 0 var(--space-2) var(--space-2);
+  background: var(--bg);
 }
 
 .code {
@@ -82,6 +157,7 @@
   flex: 0 0 56px;
   flex-direction: column;
   align-items: center;
+  justify-content: space-between;
   gap: var(--space-3);
   min-height: 0;
   padding: var(--space-2) 3px;
@@ -97,17 +173,26 @@
 }
 
 .activity-nav button {
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 48px;
+  min-height: 46px;
+  padding: 4px 2px;
   border: 0;
   border-left: 2px solid transparent;
-  border-radius: 5px;
+  border-radius: var(--radius-md);
   background: transparent;
   color: var(--muted);
-  font-size: 19px;
+}
+
+.rail-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1;
 }
 
 .activity-nav button:hover,
@@ -123,6 +208,7 @@
 .activity-nav button[aria-pressed="true"],
 .code-toolbar button[aria-expanded="true"] {
   border-left-color: var(--accent);
+  color: var(--accent);
 }
 
 .activity-nav button:focus-visible {
@@ -131,8 +217,8 @@
 }
 
 .activity-nav .ui-icon {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
 }
 
 .code-toolbar {
@@ -140,7 +226,7 @@
   flex: 0 0 auto;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   width: 48px;
   padding: 0;
   border: 0;
@@ -150,19 +236,19 @@
 .code-toolbar button {
   display: grid;
   place-items: center;
-  width: 46px;
-  height: 40px;
+  width: 44px;
+  height: 36px;
   padding: 0;
   border: 0;
   border-left: 2px solid transparent;
-  border-radius: 5px;
+  border-radius: var(--radius-md);
   background: transparent;
   color: var(--muted);
 }
 
 .code-toolbar button .ui-icon {
-  width: 23px;
-  height: 23px;
+  width: 19px;
+  height: 19px;
 }
 
 .code-toolbar button#btn-unexpand .ui-icon {

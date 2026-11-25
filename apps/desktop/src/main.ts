@@ -114,7 +114,7 @@ const {
     centerSelection,
     setCenterPressed: (pressed) => $("editor-center").setAttribute("aria-pressed", String(pressed)),
     syncBreakpoints: (state) => syncBreakpoints(state),
-    bugIcon: () => icon("pequeno/bug"),
+    bugIcon: () => icon("bug"),
     activeTab,
     inspectPortugol: api.inspect,
     inspectPortugolRs: api.inspectPortugolRs,
