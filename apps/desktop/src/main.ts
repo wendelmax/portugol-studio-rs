@@ -16,7 +16,6 @@ import { forceLinting, setDiagnostics } from "@codemirror/lint";
 import { openSearchPanel } from "@codemirror/search";
 import { rust } from "@codemirror/lang-rust";
 import { open as openDialog, save as saveDialog, ask } from "@tauri-apps/plugin-dialog";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import { renderDiagnostics } from "./diagnostics";
 import { mountExamples } from "./examples";
@@ -63,8 +62,7 @@ import { $ } from "./dom";
 import { createRecentFiles } from "./files/recent";
 import { createRecentFilesView } from "./files/recent-view";
 import { createFileIO } from "./files/io";
-import { createIncomingFileOpener } from "./files/system-files";
-import { mountSystemFileEvents } from "./files/system-file-events";
+import { mountSystemFilesShell } from "./files/system-files-shell";
 import { mountPaneLayout } from "./layout/panes";
 import { createPanelNavigation } from "./layout/panel-navigation";
 import { setStatus } from "./shell/status";
@@ -874,17 +872,9 @@ const tips = mountTips(themeEditor.open);
 $("home-tips").onclick = tips.open;
 
 
-const openIncomingFiles = createIncomingFileOpener({
+mountSystemFilesShell({
   readExercise,
   openExercise,
   openFile: (path) => fileIO.openFile(path),
-  setStatus,
-});
-
-mountSystemFileEvents({
-  pendingFiles: api.pendingFiles,
-  listenForFiles: api.onSystemFiles,
-  listenForDrop: (listener) => getCurrentWindow().onDragDropEvent(({ payload }) => listener(payload)),
-  openFiles: openIncomingFiles,
   setStatus,
 });

@@ -1,6 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { mountSystemFileEvents } from "../src/files/system-file-events.ts";
+
+test("main composes incoming files and operating system events through a shell", () => {
+  const main = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+  const shell = readFileSync(new URL("../src/files/system-files-shell.ts", import.meta.url), "utf8");
+
+  assert.match(main, /mountSystemFilesShell\(/);
+  assert.doesNotMatch(main, /createIncomingFileOpener\(|mountSystemFileEvents\(/);
+  assert.match(shell, /createIncomingFileOpener\(/);
+  assert.match(shell, /mountSystemFileEvents\(/);
+});
 
 test("replays pending files at startup and after OS file events", async () => {
   const calls = [];
