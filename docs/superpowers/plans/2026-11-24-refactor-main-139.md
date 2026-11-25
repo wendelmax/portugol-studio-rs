@@ -188,6 +188,17 @@
 - [x] Move command UI composition behind a shell while injecting IDE actions and current palette context.
 - [x] Run focused tests, full frontend tests, typecheck, build, and diff check.
 
+### Task 58: Run events shell
+
+**Files:**
+- Create: `apps/desktop/src/run/run-events-shell.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Update: `apps/desktop/tests/run-event-router.test.mjs`
+
+- [x] Add a failing boundary assertion for run event controller and API listener composition.
+- [x] Move run state, editor, console, input, and API listener adapters into a focused shell.
+- [x] Run focused tests, full frontend tests, typecheck, build, and diff check.
+
 ### Task 46: Debugger shell composition
 
 **Files:**
