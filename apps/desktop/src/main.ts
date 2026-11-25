@@ -635,8 +635,6 @@ mountPorsUiPreviewShell({
 });
 mountActivityBar(document.querySelectorAll<HTMLButtonElement>("[data-activity]"), {
   setInspectorView,
-  openExplorer: () => $<HTMLButtonElement>("btn-explorer").click(),
-  explorerExpanded: () => $("btn-explorer").getAttribute("aria-expanded"),
   showPanel,
   activateHome: () => activate(homeId),
   showUtilities,
