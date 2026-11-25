@@ -221,6 +221,17 @@
 - [x] Move toolchain checks, capability labels, and initialization behind a shell.
 - [x] Run focused tests, full frontend tests, typecheck, build, and diff check.
 
+### Task 61: Editor composition shell
+
+**Files:**
+- Create: `apps/desktop/src/editor/editor-shell.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Update: `apps/desktop/tests/editor-setup.test.mjs`
+
+- [x] Add a failing boundary assertion for editor setup, view, previews, learning panel, extensions, and theme composition.
+- [x] Move editor-local controller and view composition behind `createEditorShell` while exposing shared tab/file integration points.
+- [x] Run focused tests, full frontend tests (99/99), typecheck, build, and diff check. `main.ts`: 832 lines.
+
 ### Task 46: Debugger shell composition
 
 **Files:**

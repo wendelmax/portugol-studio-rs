@@ -13,6 +13,7 @@ const css = ideStyles();
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const generatedEditor = readFileSync(new URL("../src/generated-rust-editor.ts", import.meta.url), "utf8");
 const editorThemeController = readFileSync(new URL("../src/editor/theme-controller.ts", import.meta.url), "utf8");
+const editorShell = readFileSync(new URL("../src/editor/editor-shell.ts", import.meta.url), "utf8");
 
 test("Rust export API exposes generated and source editor ranges", () => {
   assert.match(api, /interface SourceMapInfo[\s\S]*generatedStart: Position[\s\S]*generatedEnd: Position[\s\S]*sourceStart: Position \| null[\s\S]*sourceEnd: Position \| null[\s\S]*quality: "exact" \| "approximate" \| "generated_only"/);
@@ -143,7 +144,7 @@ test("Rust editor keeps the per-tab artifact marked stale until current translat
   assert.match(main, /const generatedRustEditor = new EditorView\([\s\S]*createGeneratedRustEditorState/);
   assert.match(main, /generatedRustEditor\.state\.doc\.toString\(\)/);
   assert.match(editorThemeController, /generatedTheme\.reconfigure\(dependencies\.editorTheme\(\)\)/);
-  assert.match(main, /generatedTheme: generatedRustTheme/);
+  assert.match(editorShell, /generatedTheme: editorSetup\.generatedRustTheme/);
   const renderer = main.match(/\n( *)function renderRustPreview\(tab: Tab\) \{([\s\S]*?)\n\1\}/)?.[2] ?? "";
   assert.match(renderer, /artifact && !stale[\s\S]*mappedPreviewSegments\(artifact\.code, artifact\.sourceMap\)/);
   assert.match(renderer, /generatedRustMappings\.of\(mappings\)/);
