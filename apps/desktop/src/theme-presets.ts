@@ -87,8 +87,8 @@ function theme(name: string, base: Base, p: Palette): Theme {
   return { name, base, colors };
 }
 
-// Paletas padronizadas do Portugol Studio RS: Portugol Studio Next, IntelliJ Rust (RustRover)
-// e os temas claros e escuros mais usados do VS Code, calibrados para contraste WCAG AA (>= 4,5:1).
+// Paletas padronizadas do Portugol Studio RS: IntelliJ Rust (RustRover) e os temas claros e
+// escuros mais usados do VS Code, calibrados para contraste WCAG AA (>= 4,5:1).
 export const BUILTIN_THEMES: Readonly<Record<string, Theme>> = {
   "preset:intellij-rust-dark": theme("IntelliJ Rust Dark", "dark", {
     bg: "#1e1f22", surface: "#2b2d30", border: "#393b40", text: "#dfe1e5", muted: "#a3a7b0",
@@ -169,14 +169,6 @@ export const BUILTIN_THEMES: Readonly<Record<string, Theme>> = {
     editorError: "#442f3c", line: "#0b253a", selection: "#1d3b53", gutter: "#91a5b8",
     keyword: "#c792ea", type: "#ffcb8b", function: "#82aaff", logical: "#ff9ba6",
     number: "#f78c6c", string: "#ecc48d", comment: "#8ea6b0", operator: "#7fdbca",
-  }),
-  "preset:portugol-studio-next": theme("Portugol Studio Next", "dark", {
-    bg: "#0c1118", surface: "#111923", border: "#263241", text: "#e6edf3", muted: "#9aa9b8",
-    accent: "#34d399", accentText: "#07140f", error: "#f87171", errorText: "#000000", warning: "#fbbf24", ok: "#34d399",
-    frame: "#090e14", homeTitleText: "#e6edf3", console: "#111923", examples: "#111923", editor: "#0d141d", caret: "#34d399",
-    editorError: "#3b2025", line: "#111923", selection: "#18352f", gutter: "#a8b5bc",
-    keyword: "#c792ea", type: "#82aaff", function: "#7dd3fc", logical: "#34d399",
-    number: "#fbbf24", string: "#a5d6a7", comment: "#a8b5bc", operator: "#89ddff",
   }),
   "preset:high-contrast": theme("Alto contraste", "dark", {
     bg: "#000000", surface: "#000000", border: "#ffffff", text: "#ffffff", muted: "#ffffff",

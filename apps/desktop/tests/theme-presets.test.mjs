@@ -18,7 +18,6 @@ test("presets populares têm IDs estáveis e cores para todos os tokens da IDE",
     "preset:dracula": ["Dracula", "dark"],
     "preset:catppuccin-mocha": ["Catppuccin Mocha", "dark"],
     "preset:night-owl": ["Night Owl", "dark"],
-    "preset:portugol-studio-next": ["Portugol Studio Next", "dark"],
     "preset:high-contrast": ["Alto contraste", "dark"],
   };
 
@@ -69,21 +68,19 @@ test("presets populares têm IDs estáveis e cores para todos os tokens da IDE",
     assert.ok(contrast(theme.colors["--accent-text"], theme.colors["--accent"]) >= 4.5, `${id}: texto do destaque precisa de contraste AA`);
     assert.ok(contrast(theme.colors["--error-text"], theme.colors["--error"]) >= 4.5, `${id}: texto do erro precisa de contraste AA`);
   }
-  const next = BUILTIN_THEMES["preset:portugol-studio-next"];
-  assert.equal(next.colors["--bg"], "#0c1118");
-  assert.equal(next.colors["--surface"], "#111923");
-  assert.equal(next.colors["--editor-bg"], "#0d141d");
-  assert.equal(next.colors["--accent"], "#34d399");
+  const themeSource = readFileSync(new URL("../src/editor/theme.ts", import.meta.url), "utf8");
+  assert.match(themeSource, /export const DEFAULT_THEME = "system";/);
 });
 
-test("seletor mantém os temas originais e oferece cada preset pelo ID estável", () => {
+test("seletor mantém os temas do sistema e oferece cada preset pelo ID estável", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+  assert.ok(!html.includes('value="preset:portugol-studio-next"'), "Portugol Studio Next é especificação de UI/UX, não preset de cor");
   for (const value of ["system", "light", "dark", ...[
     "preset:intellij-rust-dark", "preset:intellij-rust-light",
     "preset:vscode-dark-modern", "preset:vscode-light-modern",
     "preset:github-light", "preset:github-dark", "preset:one-dark-pro", "preset:dracula",
     "preset:catppuccin-mocha", "preset:night-owl",
-    "preset:portugol-studio-next", "preset:high-contrast",
+    "preset:high-contrast",
   ]]) assert.ok(html.includes(`value="${value}"`), `seletor deve conter ${value}`);
 });
 

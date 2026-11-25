@@ -9,7 +9,7 @@ import { tags } from "@lezer/highlight";
 import { applyThemeColors, themeProfile } from "../themes";
 
 export const THEME_KEY = "portugol.theme";
-export const DEFAULT_THEME = "preset:portugol-studio-next";
+export const DEFAULT_THEME = "system";
 
 const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
