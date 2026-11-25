@@ -42,7 +42,6 @@ import { createTabsShell } from "./state/tabs-shell";
 import { createLanguageControlsView } from "./state/language-controls-view";
 import { createTabActivationShell } from "./state/tab-activation-shell";
 import type { WorkspaceExerciseRef } from "./state/exercise-tab";
-import { mountWorkspaceExplorer } from "./workspace/explorer";
 import { mountLearningModeShell } from "./learning/mode-shell";
 import { createExerciseWorkbenchShell } from "./learning/exercise-workbench";
 import { cycleIdeTab } from "./commands/keyboard-dispatch";
@@ -53,9 +52,7 @@ import { mountActivityBar } from "./shell/activity-bar";
 import { mountToolchainStatusShell } from "./shell/toolchain-status-shell";
 import { createToolchainState } from "./shell/toolchain-state";
 import { $ } from "./dom";
-import { createRecentFiles } from "./files/recent";
-import { createRecentFilesView } from "./files/recent-view";
-import { createFileIO } from "./files/io";
+import { createWorkspaceFilesShell } from "./files/workspace-files-shell";
 import { mountSystemFilesShell } from "./files/system-files-shell";
 import { mountPaneLayout } from "./layout/panes";
 import { createPanelNavigation } from "./layout/panel-navigation";
@@ -224,100 +221,77 @@ function syncLanguageControls(tab: Tab) {
 // Arquivos
 // ---------------------------------------------------------------------------
 
-const workspaceExplorer = mountWorkspaceExplorer({
-  tabs: tabCollection.tabs,
-  replaceTabs: (next) => tabCollection.replace(next),
-  activeTab,
-  activeId: tabCollection.activeId,
-  homeId,
-  activate,
-  newTab: () => { newTab(); },
-  openWorkspaceSource: (source, path, workspaceFile) =>
-    newTab(source, path, undefined, undefined, undefined, undefined, workspaceFile),
-  openExercise,
-  isDirty,
-  save: () => fileIO.save(),
-  renderTabs,
-  setExplorerVisible: (visible) => setWorkspaceExplorerVisible(visible),
-  cargoProjectDetected: (tab, checked) => {
-    if (activeTab() !== tab) return;
-    syncLanguageControls(tab);
-    if (checked) forceLinting(view);
+const workspaceFilesShell = createWorkspaceFilesShell({
+  state: {
+    tabs: tabCollection.tabs,
+    replaceTabs: (next) => tabCollection.replace(next),
+    activeTab,
+    activate,
+    newWorkspaceTab: () => { newTab(); },
+    newFileTab: (text, path) => { newTab(text, path); },
+    isDirty,
   },
-  recentFiles: {
-    remember: (path) => recentFiles.remember(path),
-    rename: (oldPath, newPath) => recentFiles.rename(oldPath, newPath),
-    forget: (path) => recentFiles.forget(path),
-  },
-});
-
-workspaceExplorer.render();
-void workspaceExplorer.restore();
-
-function localStorageOrNull(): Storage | null {
-  try {
-    return localStorage;
-  } catch {
-    return null;
-  }
-}
-
-const recentFilesView = createRecentFilesView({
-  recent: $("recent"),
-  list: $("recent-files"),
-  document,
-  icon,
-  openFile: (path) => fileIO.openFile(path),
-  setStatus,
-});
-const recentFiles = createRecentFiles(localStorageOrNull(), (list) => recentFilesView.render(list));
-
-const fileIO = createFileIO({
-  tabs: tabCollection.tabs,
-  replaceTabs: (next) => tabCollection.replace(next),
-  activeTab,
-  activate,
-  newTab: (text, path) => { newTab(text, path); },
-  isDirty,
-  readFile: api.readFile,
-  openDialog,
-  saveDialog,
-  writeFile: api.writeFile,
-  writeWorkspaceFile: api.writeWorkspaceFile,
-  currentText: () => view.state.doc.toString(),
-  detectSourceLanguage,
-  ensureSourceExtension,
-  rememberRecent: (path) => recentFiles.remember(path),
-  renderTabs,
-  setStatus,
-  afterSave: (tab, _previousLanguage, languageChanged) => {
-    if (languageChanged && tab.rustPreview?.artifact) {
-      tab.rustPreview = { ...tab.rustPreview, pending: false, stale: true, error: undefined };
-    }
-    if (tab.id === tabCollection.activeId()) {
-      view.dispatch({ effects: [
-        sourceLanguage.reconfigure(tab.language === "rust" ? rust() : tab.language === "portugol-rs" ? portugolRs() : portugol()),
-        portugolTools.reconfigure(tab.language === "rust" ? [rustSourceLinter] : [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]),
-      ] });
+  workspace: {
+    activeId: tabCollection.activeId,
+    homeId,
+    openWorkspaceSource: (source, path, workspaceFile) =>
+      newTab(source, path, undefined, undefined, undefined, undefined, workspaceFile),
+    openExercise,
+    renderTabs,
+    setExplorerVisible: (visible) => setWorkspaceExplorerVisible(visible),
+    cargoProjectDetected: (tab, checked) => {
+      if (activeTab() !== tab) return;
       syncLanguageControls(tab);
-      if (languageChanged) {
-        rustPreview.cancel();
-        $<HTMLElement>("rust-preview").hidden = learningMode !== "bridge" || tab.language === "rust";
-        rustPreview.render(tab);
-        if (learningMode === "bridge" && tab.language !== "rust") rustPreview.schedule();
-        else rustPreview.renderMappingGutter();
+      if (checked) forceLinting(view);
+    },
+  },
+  files: {
+    readFile: api.readFile,
+    openDialog,
+    saveDialog,
+    writeFile: api.writeFile,
+    writeWorkspaceFile: api.writeWorkspaceFile,
+    currentText: () => view.state.doc.toString(),
+    detectSourceLanguage,
+    ensureSourceExtension,
+    renderTabs,
+    setStatus,
+    afterSave: (tab, _previousLanguage, languageChanged) => {
+      if (languageChanged && tab.rustPreview?.artifact) {
+        tab.rustPreview = { ...tab.rustPreview, pending: false, stale: true, error: undefined };
       }
-    }
-    if (tab.language === "rust") {
-      if (tab.id === tabCollection.activeId()) view.dispatch(setDiagnostics(view.state, []));
-      tab.diagnostics = [];
-      tab.symbols = [];
-      renderMessages();
-      outline.show([]);
-      updateLibraryButtons([]);
-    }
+      if (tab.id === tabCollection.activeId()) {
+        view.dispatch({ effects: [
+          sourceLanguage.reconfigure(tab.language === "rust" ? rust() : tab.language === "portugol-rs" ? portugolRs() : portugol()),
+          portugolTools.reconfigure(tab.language === "rust" ? [rustSourceLinter] : [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]),
+        ] });
+        syncLanguageControls(tab);
+        if (languageChanged) {
+          rustPreview.cancel();
+          $<HTMLElement>("rust-preview").hidden = learningMode !== "bridge" || tab.language === "rust";
+          rustPreview.render(tab);
+          if (learningMode === "bridge" && tab.language !== "rust") rustPreview.schedule();
+          else rustPreview.renderMappingGutter();
+        }
+      }
+      if (tab.language === "rust") {
+        if (tab.id === tabCollection.activeId()) view.dispatch(setDiagnostics(view.state, []));
+        tab.diagnostics = [];
+        tab.symbols = [];
+        renderMessages();
+        outline.show([]);
+        updateLibraryButtons([]);
+      }
+    },
+  },
+  recentView: {
+    recent: $("recent"),
+    list: $("recent-files"),
+    document,
+    icon,
   },
 });
+const { fileIO, recentFiles, recentFilesView, workspaceExplorer } = workspaceFilesShell;
 
 // ---------------------------------------------------------------------------
 // Execução e console

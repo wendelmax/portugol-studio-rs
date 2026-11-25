@@ -244,6 +244,18 @@
 - [x] Run focused tests (6/6), frontend tests (100/100), typecheck, build, and diff check. `main.ts`: 796 lines.
 - [x] Confirm clippy and the native window test pass in CI on Linux, macOS, and Windows (#217).
 
+### Task 63: Workspace and file composition shell
+
+**Files:**
+- Create: `apps/desktop/src/files/workspace-files-shell.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/workspace-files-shell.test.mjs`
+
+- [x] Add a boundary test for composing workspace explorer, recent files, and file I/O.
+- [x] Move the cyclic service wiring behind a shell while preserving startup rendering and restore order.
+- [x] Run focused tests (5/5), frontend tests (101/101), typecheck, build, and diff check. `main.ts`: 770 lines.
+- [ ] Confirm clippy and the native window test pass in CI.
+
 ### Task 46: Debugger shell composition
 
 **Files:**
