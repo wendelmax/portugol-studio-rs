@@ -100,6 +100,7 @@ import { createRustLintSourceCheck } from "./editor/rust-linter";
 import { createPortugolLintSourceCheck } from "./editor/portugol-linter";
 import { createSymbolRenamer } from "./editor/symbol-rename";
 import { createCenterSourceController } from "./editor/center-source";
+import { createUtilityInsertions } from "./editor/utility-insertions";
 import {
   breakpointLines, breakpoints, createBreakpointGutter, debugLine, runtimeError, setDebugLine, setRuntimeError, toCodeMirror,
 } from "./editor/decorations";
@@ -282,7 +283,7 @@ const languageControlsView = createLanguageControlsView({
   button: (id) => $<HTMLButtonElement>(id),
   argumentsInput: () => $<HTMLInputElement>("args"),
   formatButton: () => $<HTMLButtonElement>("editor-format"),
-  libraryButtons: () => libraryButtons,
+  libraryButtons: () => utilityInsertions.libraryButtons(),
   state: () => ({
     rustcAvailable,
     cargoAvailable,
@@ -805,38 +806,32 @@ const setWorkspaceExplorerVisible = panes.setExplorerVisible;
 $("learning-inspector-slot").append($("learning-panel"));
 const outline = mountOutline(goTo, renameAt);
 
-const libraryButtons = new Map<string, HTMLButtonElement>();
-for (const name of LIBRARIES) {
-  const button = document.createElement("button");
-  button.textContent = name;
-  button.title = `Incluir biblioteca ${name}`;
-  button.onclick = async () => {
-    const tab = activeTab();
-    if (!tab || (tab.id === runTabId && runId !== null)) return;
-    if (tab.language === "portugol-rs") {
-      setStatus("Bibliotecas clássicas ainda não estão disponíveis no Portugol-RS.");
-      return;
-    }
-    const doc = view.state.doc;
-    try {
-      const change = await api.includeLibrary(doc.toString(), name);
-      if (activeTab() !== tab || view.state.doc !== doc) return;
-      if (change) view.dispatch({ changes: change, annotations: isolateHistory.of("full") });
-      button.disabled = true;
-      view.focus();
-    } catch (message) {
-      if (activeTab() === tab) setStatus(typeof message === "string" ? message : "Não foi possível incluir a biblioteca.", "error");
-    }
-  };
-  $("utilities-libraries").append(button);
-  libraryButtons.set(name, button);
-}
+const utilityInsertions = createUtilityInsertions({
+  libraries: LIBRARIES,
+  snippets: SNIPPETS,
+  createButton: () => document.createElement("button"),
+  appendLibraryButton: (button) => $("utilities-libraries").append(button),
+  appendSnippetButton: (button) => $("utilities-models").append(button),
+  activeTab,
+  isRunning: (tab) => tab.id === runTabId && runId !== null,
+  currentDocument: () => view.state.doc,
+  includeLibrary: api.includeLibrary,
+  isCurrent: (tab, doc) => activeTab() === tab && view.state.doc === doc,
+  applyLibraryChange: (change) => view.dispatch({ changes: change, annotations: isolateHistory.of("full") }),
+  focusEditor: () => view.focus(),
+  setStatus,
+  createProgramTab: () => { newTab(); },
+  selection: () => view.state.selection.main,
+  applySnippet: (snippet, from, to) => {
+    if (typeof snippet.apply === "function") snippet.apply(view, snippet, from, to);
+  },
+  utilityTabButton: (name) => $<HTMLButtonElement>(`utilities-${name}-tab`),
+  utilityPanel: (name) => $<HTMLElement>(`utilities-${name}`),
+});
+utilityInsertions.mount();
 
 function updateLibraryButtons(symbols: api.SymbolInfo[]) {
-  const included = new Set(symbols.filter((symbol) => symbol.kind === "library")
-    .map(({ name }) => name.split(" → ", 1)[0]));
-  const unsupported = activeTab()?.language !== "portugol";
-  for (const [name, button] of libraryButtons) button.disabled = unsupported || included.has(name);
+  utilityInsertions.updateLibraryButtons(symbols, activeTab()?.language);
 }
 
 const tabActivator = createTabActivator({
@@ -885,35 +880,6 @@ const tabActivator = createTabActivator({
   syncLanguageControls,
   focusEditor: () => view.focus(),
 });
-
-for (const snippet of SNIPPETS) {
-  const button = document.createElement("button");
-  button.textContent = snippet.label;
-  button.title = snippet.detail ?? snippet.label;
-  button.onclick = () => {
-    const tab = activeTab();
-    if (!tab || tab.language === "rust" || (tab.id === runTabId && runId !== null)) return;
-    if (snippet.label === "programa") {
-      newTab();
-      return;
-    }
-    const { from, to } = view.state.selection.main;
-    if (typeof snippet.apply === "function") snippet.apply(view, snippet, from, to);
-    view.focus();
-  };
-  $("utilities-models").append(button);
-}
-
-for (const selected of ["libraries", "models"]) {
-  $(`utilities-${selected}-tab`).onclick = () => {
-    for (const name of ["libraries", "models"]) {
-      $(`utilities-${name}-tab`).setAttribute("aria-selected", String(name === selected));
-      $(`utilities-${name}`).hidden = name !== selected;
-    }
-  };
-}
-
-
 
 // ---------------------------------------------------------------------------
 // Botões e atalhos
