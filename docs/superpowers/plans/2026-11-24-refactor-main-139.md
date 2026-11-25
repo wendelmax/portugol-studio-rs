@@ -177,6 +177,17 @@
 - [x] Preserve initial mode application, workspace persistence, Rust bridge toggle, and editor focus behavior.
 - [x] Run focused tests, full frontend tests, typecheck, build, and diff check.
 
+### Task 57: IDE command shell
+
+**Files:**
+- Create: `apps/desktop/src/commands/ide-command-shell.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Update: `apps/desktop/tests/command-palette.test.mjs`, `apps/desktop/tests/cargo-check.test.mjs`
+
+- [x] Add a failing boundary assertion for palette, shortcut-list, and global keyboard composition.
+- [x] Move command UI composition behind a shell while injecting IDE actions and current palette context.
+- [x] Run focused tests, full frontend tests, typecheck, build, and diff check.
+
 ### Task 46: Debugger shell composition
 
 **Files:**
