@@ -61,6 +61,6 @@
     "title": "Escolha seu tema e ajuste o conforto visual",
     "shortcut": "Opções do editor",
     "visual": "themes",
-    "description": "Alterne entre Portugol Studio Next, GitHub, One Dark Pro, Dracula, Catppuccin, Night Owl, Alto contraste ou crie sua própria paleta no Editor de temas — com suporte total a navegação por teclado."
+    "description": "Use o tema automático do sistema (VS Code Light/Dark Modern) ou alterne entre IntelliJ Rust, GitHub, One Dark Pro, Dracula, Catppuccin, Night Owl, Alto contraste e paletas personalizadas no Editor de temas."
   }
 ]

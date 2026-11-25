@@ -3,44 +3,44 @@
 
 :root,
 .theme-palette {
-  /* Paleta do tema claro (também lida pelo editor de temas em themes.ts) */
-  --bg: #fafafa;
-  --surface: #fafafa;
-  --border: #c1d9f5;
-  --text: #333333;
-  --muted: #536674;
-  --accent: #005494;
+  /* Paleta padrão clara baseada em VS Code Light Modern (também lida pelo editor de temas em themes.ts) */
+  --bg: #ffffff;
+  --surface: #f8f8f8;
+  --border: #d4d4d4;
+  --text: #1f1f1f;
+  --muted: #595959;
+  --accent: #005fb8;
   --accent-text: #ffffff;
-  --error: #c62828;
-  --warning: #a15c00;
-  --ok: #1b7f3b;
-  --input-echo: #1d4ed8;
-  --tab-active: #d2e7fc;
-  --console-surface: #e6e6e6;
-  --frame: #316892;
-  --home-border: #c1d9f5;
+  --error: #c72e0f;
+  --warning: #8a5a00;
+  --ok: #167a32;
+  --input-echo: #005fb8;
+  --tab-active: #d6ebff;
+  --console-surface: #f3f3f3;
+  --frame: #2c2c2c;
+  --home-border: #d4d4d4;
   --home-title-text: #ffffff;
-  --examples-surface: #e4f1fe;
-  --editor-text: #000000;
-  --editor-caret: #ff0000;
-  --editor-error: #ffcccc;
-  --syntax-function: #806000;
-  --syntax-logical: #0000ff;
-  --editor-bg: #fafafa;
-  --editor-line: #ddf1ff;
-  --editor-selection: #c0ced1;
-  --editor-gutter: #6b6b6b;
-  --syntax-keyword: #0000ff;
-  --syntax-type: #008080;
-  --syntax-number: #6400c8;
-  --syntax-string: #a00070;
-  --syntax-comment: #6b6b6b;
-  --syntax-operator: #804040;
+  --examples-surface: #f8f8f8;
+  --editor-text: #1f1f1f;
+  --editor-caret: #000000;
+  --editor-error: #fde8e8;
+  --syntax-function: #6b521f;
+  --syntax-logical: #0000df;
+  --editor-bg: #ffffff;
+  --editor-line: #f3f6fa;
+  --editor-selection: #d6ebff;
+  --editor-gutter: #5e5e5e;
+  --syntax-keyword: #0000df;
+  --syntax-type: #126378;
+  --syntax-number: #066e47;
+  --syntax-string: #a31515;
+  --syntax-comment: #006c00;
+  --syntax-operator: #1f1f1f;
 
   /* Tokens semânticos derivados e de estado */
   --error-text: #ffffff;
   --diagnostic-row-hover-text: #ffffff;
-  --diagnostic-row-hover-bg: #005494;
+  --diagnostic-row-hover-bg: #005fb8;
   --tab-indicator-bottom: #d7a600;
   --tab-indicator: #ffc200;
   --backdrop: rgb(0 0 0 / 55%);
@@ -96,82 +96,82 @@
   color-scheme: light;
 }
 
-/* Tema escuro: escolhido no seletor (data-theme="dark") ou herdado do
-   sistema quando o seletor está em "Sistema". */
+/* Tema escuro padrão baseado em VS Code Dark Modern: escolhido no seletor
+   (data-theme="dark") ou herdado do sistema quando o seletor está em "Sistema". */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #121e24;
-    --surface: #263238;
-    --border: #445056;
-    --text: #cdcdcd;
-    --muted: #a8b5bc;
-    --accent: #45bdff;
-    --accent-text: #121e24;
-    --error: #ff756e;
-    --error-text: #121e24;
-    --warning: #ffc200;
-    --ok: #00efc0;
-    --input-echo: #45bdff;
-    --tab-active: #3a464c;
-    --console-surface: #3a464c;
-    --frame: #121e24;
-    --home-border: #263238;
-    --home-title-text: #cdcdcd;
-    --examples-surface: #445056;
-    --editor-text: #fbfbfb;
-    --editor-caret: #c1cbc2;
-    --editor-error: #5c0000;
-    --syntax-function: #fbfbfb;
-    --syntax-logical: #ff8a82;
-    --editor-bg: #263238;
-    --editor-line: #2f393c;
-    --editor-selection: #404e51;
-    --editor-gutter: #a8b5bc;
-    --syntax-keyword: #ff8a82;
-    --syntax-type: #45beff;
-    --syntax-number: #00f0c0;
-    --syntax-string: #ffc200;
-    --syntax-comment: #a8b5bc;
-    --syntax-operator: #e8e2b7;
+    --bg: #1f1f1f;
+    --surface: #181818;
+    --border: #3c3c3c;
+    --text: #d4d4d4;
+    --muted: #9d9d9d;
+    --accent: #4daafc;
+    --accent-text: #0b1929;
+    --error: #f48771;
+    --error-text: #1f1f1f;
+    --warning: #e2b93d;
+    --ok: #89d185;
+    --input-echo: #4daafc;
+    --tab-active: #1d3b5a;
+    --console-surface: #181818;
+    --frame: #181818;
+    --home-border: #3c3c3c;
+    --home-title-text: #e0e0e0;
+    --examples-surface: #181818;
+    --editor-text: #d4d4d4;
+    --editor-caret: #aeafad;
+    --editor-error: #4b1f22;
+    --syntax-function: #dcdcaa;
+    --syntax-logical: #75b7f0;
+    --editor-bg: #1f1f1f;
+    --editor-line: #282828;
+    --editor-selection: #1d3b5a;
+    --editor-gutter: #969696;
+    --syntax-keyword: #75b7f0;
+    --syntax-type: #6ad9c3;
+    --syntax-number: #b5cea8;
+    --syntax-string: #e0a58d;
+    --syntax-comment: #9cc986;
+    --syntax-operator: #d4d4d4;
     color-scheme: dark;
   }
 }
 
 :root[data-theme="dark"],
 .theme-palette[data-theme="dark"] {
-  --bg: #121e24;
-  --surface: #263238;
-  --border: #445056;
-  --text: #cdcdcd;
-  --muted: #a8b5bc;
-  --accent: #45bdff;
-  --accent-text: #121e24;
-  --error: #ff756e;
-  --error-text: #121e24;
-  --warning: #ffc200;
-  --ok: #00efc0;
-  --input-echo: #45bdff;
-  --tab-active: #3a464c;
-  --console-surface: #3a464c;
-  --frame: #121e24;
-  --home-border: #263238;
-  --home-title-text: #cdcdcd;
-  --examples-surface: #445056;
-  --editor-text: #fbfbfb;
-  --editor-caret: #c1cbc2;
-  --editor-error: #5c0000;
-  --syntax-function: #fbfbfb;
-  --syntax-logical: #ff8a82;
-  --editor-bg: #263238;
-  --editor-line: #2f393c;
-  --editor-selection: #404e51;
-  --editor-gutter: #a8b5bc;
-  --syntax-keyword: #ff8a82;
-  --syntax-type: #45beff;
-  --syntax-number: #00f0c0;
-  --syntax-string: #ffc200;
-  --syntax-comment: #a8b5bc;
-  --syntax-operator: #e8e2b7;
+  --bg: #1f1f1f;
+  --surface: #181818;
+  --border: #3c3c3c;
+  --text: #d4d4d4;
+  --muted: #9d9d9d;
+  --accent: #4daafc;
+  --accent-text: #0b1929;
+  --error: #f48771;
+  --error-text: #1f1f1f;
+  --warning: #e2b93d;
+  --ok: #89d185;
+  --input-echo: #4daafc;
+  --tab-active: #1d3b5a;
+  --console-surface: #181818;
+  --frame: #181818;
+  --home-border: #3c3c3c;
+  --home-title-text: #e0e0e0;
+  --examples-surface: #181818;
+  --editor-text: #d4d4d4;
+  --editor-caret: #aeafad;
+  --editor-error: #4b1f22;
+  --syntax-function: #dcdcaa;
+  --syntax-logical: #75b7f0;
+  --editor-bg: #1f1f1f;
+  --editor-line: #282828;
+  --editor-selection: #1d3b5a;
+  --editor-gutter: #969696;
+  --syntax-keyword: #75b7f0;
+  --syntax-type: #6ad9c3;
+  --syntax-number: #b5cea8;
+  --syntax-string: #e0a58d;
+  --syntax-comment: #9cc986;
+  --syntax-operator: #d4d4d4;
   color-scheme: dark;
 }
 
