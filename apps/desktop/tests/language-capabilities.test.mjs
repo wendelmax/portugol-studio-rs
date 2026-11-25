@@ -89,7 +89,9 @@ test("execution and pause state gate run buttons while preserving pause actions"
 
 test("IDE applies derived language controls through the tested state module", async () => {
   const main = await readFile(new URL("../src/main.ts", import.meta.url), "utf8");
-  assert.match(main, /deriveLanguageControls\(/);
-  assert.match(main, /const controls = deriveLanguageControls\(tab/);
-  assert.match(main, /controls\.buttons\[id\]/);
+  const view = await readFile(new URL("../src/state/language-controls-view.ts", import.meta.url), "utf8");
+  assert.match(main, /createLanguageControlsView\(/);
+  assert.match(main, /languageControlsView\.sync\(tab\)/);
+  assert.match(view, /deriveLanguageControls\(tab/);
+  assert.match(view, /controls\.buttons\[id\]/);
 });

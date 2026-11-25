@@ -65,7 +65,7 @@ import type { Tab } from "./state/tab";
 import { createTabsView } from "./state/tabs-view";
 import { createTabFactory, isTabDirty, PORS_TEMPLATE, tabName } from "./state/tabs";
 import { createTabCloser } from "./state/tab-closer";
-import { deriveLanguageControls, LANGUAGE_BUTTON_IDS } from "./state/language-capabilities";
+import { createLanguageControlsView } from "./state/language-controls-view";
 import { createTabActivator } from "./state/tab-activation";
 import { createExerciseTabOpener, type WorkspaceExerciseRef } from "./state/exercise-tab";
 import { mountWorkspaceExplorer } from "./workspace/explorer";
@@ -278,44 +278,23 @@ function activate(id: number) {
   return tabActivator.activate(id);
 }
 
-function syncLanguageControls(tab: Tab) {
-  const defaultTitles: Partial<Record<(typeof LANGUAGE_BUTTON_IDS)[number], string>> = {};
-  for (const id of LANGUAGE_BUTTON_IDS) {
-    const button = $<HTMLButtonElement>(id);
-    button.dataset.defaultTitle ??= button.title;
-    defaultTitles[id] = button.dataset.defaultTitle;
-  }
-  const controls = deriveLanguageControls(tab, {
+const languageControlsView = createLanguageControlsView({
+  button: (id) => $<HTMLButtonElement>(id),
+  argumentsInput: () => $<HTMLInputElement>("args"),
+  formatButton: () => $<HTMLButtonElement>("editor-format"),
+  libraryButtons: () => libraryButtons,
+  state: () => ({
     rustcAvailable,
     cargoAvailable,
     rustfmtAvailable,
     runId,
     paused,
     busy: runId !== null || pendingEvents !== null || porsRunPending,
-    defaultTitles,
-    libraryNames: [...libraryButtons.keys()],
-  });
-  for (const id of LANGUAGE_BUTTON_IDS) {
-    const button = $<HTMLButtonElement>(id);
-    button.disabled = controls.buttons[id].disabled;
-    button.title = controls.buttons[id].title;
-    button.setAttribute("aria-description", controls.buttons[id].description);
-  }
-  const args = $<HTMLInputElement>("args");
-  args.disabled = controls.arguments.disabled;
-  args.title = controls.arguments.title;
-  const format = $<HTMLButtonElement>("editor-format");
-  format.disabled = controls.format.disabled;
-  format.title = controls.format.title;
-  for (const [name, button] of libraryButtons) {
-    button.disabled = controls.libraries[name].disabled;
-    button.title = controls.libraries[name].title;
-  }
-  for (const id of ["editor-definition", "editor-rename"]) {
-    const button = $<HTMLButtonElement>(id);
-    button.disabled = controls.symbolActions.disabled;
-    button.setAttribute("aria-description", controls.symbolActions.description);
-  }
+  }),
+});
+
+function syncLanguageControls(tab: Tab) {
+  languageControlsView.sync(tab);
 }
 
 const tabCloser = createTabCloser({
