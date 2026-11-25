@@ -531,3 +531,16 @@ Ruling: extract only recent-files rendering and open/error click behavior into a
 - [x] Move recent-files DOM rendering to `recent-view.ts`.
 - [x] Run the full frontend tests (87/87), typecheck, and build.
 - [x] Commit the recent-files view group.
+
+### Task 41: Shared editor setup
+
+**Files:**
+- Create: `apps/desktop/src/editor/setup.ts`
+- Modify: `apps/desktop/src/main.ts`
+- Test: `apps/desktop/tests/editor-setup.test.mjs`
+- Modify: `apps/desktop/tests/rust-source-check.test.mjs`
+
+- [x] Add a contract test for the editor setup boundary and verify it fails before extraction.
+- [x] Move shared CodeMirror compartments, centering, breakpoint gutter, and language linters into an injected setup factory.
+- [x] Keep CodeMirror execution services routed through existing controllers and `api.ts`.
+- [x] Run frontend tests, typecheck, and build.
