@@ -143,6 +143,17 @@ secrets existem.
 Pacotes `.deb`/`.rpm`/`.AppImage` não exigem assinatura para instalar. O
 checksum de cada arquivo aparece na página do release.
 
-## Toolchain Rust
+## Toolchain Rust e arquivos suportados
 
-Os instaladores não incluem nem instalam `rustc`. O uso de execução para arquivos `.rs` e `.pors` requer a toolchain Rust instalada no computador e acessível pelo `PATH`. O Portugol clássico continua executando sem essa dependência.
+Programas **Portugol-RS (`.pors`)** e exercícios **`.pors.json`** executam e
+depuram diretamente na máquina virtual embutida na IDE, sem precisar instalar
+nada além do instalador.
+
+Os instaladores não incluem nem instalam `rustc`. A toolchain Rust
+([rustup.rs](https://rustup.rs)) só é necessária para executar arquivos `.rs`,
+projetos Cargo, a verificação real com `rustc` no Laboratório de Ownership e a
+opção **Executar como Rust**.
+
+Arquivos legados `.por` e `.pex` não são suportados nesta versão (ADR 0016);
+para projetos nesse formato, utilize o
+[Portugol Studio original](https://github.com/UNIVALI-LITE/Portugol-Studio).
