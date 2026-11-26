@@ -12,7 +12,6 @@ import { version } from "../package.json";
 
 import { EditorView } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
-import { isolateHistory } from "@codemirror/commands";
 import { forceLinting, setDiagnostics } from "@codemirror/lint";
 import { openSearchPanel } from "@codemirror/search";
 import { rust } from "@codemirror/lang-rust";
@@ -27,7 +26,7 @@ import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
 import { mountOutline } from "./outline";
 import { panelContentId, panelNameForKey, type PanelName } from "./panel-tabs";
-import { LIBRARIES, PORS_MODULES, PORS_SNIPPETS, portugol, portugolRs, SNIPPETS } from "./portugol";
+import { PORS_MODULES, PORS_SNIPPETS, portugolRs } from "./portugol";
 import { detectSourceLanguage, ensureSourceExtension } from "./document-language";
 import { canRunAsRust } from "./runtime-capabilities";
 import { isExecutionBusy } from "./run/execution-state";
@@ -69,7 +68,6 @@ import {
   breakpoints, debugLine, runtimeError, setDebugLine,
 } from "./editor/decorations";
 
-const TEMPLATE = "programa\n{\n\tfuncao inicio()\n\t{\n\t\t\n\t}\n}\n";
 let tabsShell: ReturnType<typeof createTabsShell>;
 const toolchainState = createToolchainState();
 
@@ -116,7 +114,6 @@ const {
     syncBreakpoints: (state) => syncBreakpoints(state),
     bugIcon: () => icon("bug"),
     activeTab,
-    inspectPortugol: api.inspect,
     inspectPortugolRs: api.inspectPortugolRs,
     renderMessages,
     showOutline: (symbols) => outline.show(symbols),
@@ -146,7 +143,6 @@ const {
     isActive: () => tabCollection.activeId() === helpId,
   },
   learningPanel: {
-    openExercise: async (exerciseId) => { await exerciseWorkbench?.openById(exerciseId); },
     openPorsExercise: async (exerciseId) => { await exerciseWorkbench?.openPorsById(exerciseId); },
   },
   update: {
@@ -166,7 +162,6 @@ const {
   extensions: {
     portugolExtensions: () => [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine],
     rustExtensions: () => [rustSourceLinter],
-    portugolLanguage: () => portugol(),
     portugolRsLanguage: () => portugolRs(),
     rustLanguage: () => rust(),
     findDialog,
@@ -184,7 +179,6 @@ const helpId = -1;
 let helpOpen = false;
 let learningMode: LearningMode = loadLearningMode();
 let exerciseWorkbench: ReturnType<typeof createExerciseWorkbenchShell> | null = null;
-const NEW_PROGRAM = TEMPLATE.replace("\t\t\n", '\t\tescreva("Olá Mundo")\n');
 function activate(id: number) {
   return tabActivator.activate(id);
 }
@@ -273,7 +267,7 @@ const workspaceFilesShell = createWorkspaceFilesShell({
       if (languageChanged) tab.diagnosticsAnalysis = undefined;
       if (tab.id === tabCollection.activeId()) {
         view.dispatch({ effects: [
-          sourceLanguage.reconfigure(tab.language === "rust" ? rust() : tab.language === "portugol-rs" ? portugolRs() : portugol()),
+          sourceLanguage.reconfigure(tab.language === "rust" ? rust() : portugolRs()),
           portugolTools.reconfigure(tab.language === "rust" ? [rustSourceLinter] : [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]),
         ] });
         syncLanguageControls(tab);
@@ -432,9 +426,7 @@ $("learning-inspector-slot").append($("learning-panel"));
 const outline = mountOutline(goTo, renameAt);
 
 const utilityInsertions = createUtilityInsertions({
-  libraries: LIBRARIES,
   porsLibraries: PORS_MODULES,
-  snippets: SNIPPETS,
   porsSnippets: PORS_SNIPPETS,
   createButton: () => document.createElement("button"),
   clearLibraryButtons: () => $("utilities-libraries").replaceChildren(),
@@ -443,10 +435,6 @@ const utilityInsertions = createUtilityInsertions({
   appendSnippetButton: (button) => $("utilities-models").append(button),
   activeTab,
   isRunning: (tab) => tab.id === runState.runTabId && runState.runId !== null,
-  currentDocument: () => view.state.doc,
-  includeLibrary: api.includeLibrary,
-  isCurrent: (tab, doc) => activeTab() === tab && view.state.doc === doc,
-  applyLibraryChange: (change) => view.dispatch({ changes: change, annotations: isolateHistory.of("full") }),
   insertText: (text) => {
     const { from, to } = view.state.selection.main;
     view.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from + text.length } });
@@ -482,7 +470,7 @@ const tabActivator = createTabActivationShell({
     setState: (tab) => view.setState(tab.state),
     configure: (tab) => view.dispatch({ effects: [
       theme.reconfigure(editorTheme()),
-      sourceLanguage.reconfigure(tab.language === "rust" ? rust() : tab.language === "portugol-rs" ? portugolRs() : portugol()),
+      sourceLanguage.reconfigure(tab.language === "rust" ? rust() : portugolRs()),
       portugolTools.reconfigure(tab.language === "rust" ? [rustSourceLinter] : [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]),
       setDebugLine.of(tab.id === runState.runTabId ? runState.paused?.position.line ?? null : null),
     ] }),
@@ -523,7 +511,6 @@ $("home-new").onclick = () => newTab();
 mountHomeNewFileMenu($<HTMLDetailsElement>("home-new-menu"), {
   "portugol-rs": () => newTab(PORS_TEMPLATE, null, undefined, undefined, undefined, "portugol-rs"),
   rust: () => newTab("fn main() {\n    \n}\n", null, undefined, undefined, undefined, "rust"),
-  portugol: () => newTab(NEW_PROGRAM, null, undefined, undefined, undefined, "portugol"),
 });
 $("home-open").onclick = () => void fileIO.openFiles();
 $("btn-open").onclick = () => void fileIO.openFiles();
@@ -585,7 +572,7 @@ exerciseWorkbench = createExerciseWorkbenchShell({
   activeTab,
   activeId: tabCollection.activeId,
   isDirty,
-  template: TEMPLATE,
+  template: PORS_TEMPLATE,
   newTab,
   activate,
   selectWorkspace: (id, path) => workspaceExplorer.select(id, path),
@@ -787,7 +774,7 @@ mountExamples((source, file, workPath) =>
     file,
     workPath || undefined,
     undefined,
-    file.toLowerCase().endsWith(".pors") ? "portugol-rs" : undefined,
+    "portugol-rs",
   ),
 );
 activate(0);

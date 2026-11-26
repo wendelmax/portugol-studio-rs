@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { EditorState } from "@codemirror/state";
 import { createEditorFormatter } from "../src/editor/format.ts";
 
-function fixture(language = "portugol", overrides = {}) {
+function fixture(language = "portugol-rs", overrides = {}) {
   const events = [];
   let active = { id: 1, language };
   let state = EditorState.create({ doc: "codigo" });
@@ -22,7 +22,6 @@ function fixture(language = "portugol", overrides = {}) {
     view,
     formatRust: async () => "formatado",
     formatPortugolRs: async () => [{ from: 0, to: 6, insert: "formatado" }],
-    formatPortugol: async () => [{ from: 0, to: 6, insert: "formatado" }],
     setStatus: (message, kind) => events.push(["status", message, kind]),
     ...overrides,
   };
@@ -34,12 +33,11 @@ function fixture(language = "portugol", overrides = {}) {
 }
 
 test("uses the formatter for each source language and updates the editor", async () => {
-  for (const [language, expected] of [["portugol", "classic"], ["portugol-rs", "pors"], ["rust", "rust"]]) {
+  for (const [language, expected] of [["portugol-rs", "pors"], ["rust", "rust"]]) {
     const calls = [];
     const { formatter, dependencies, view, events } = fixture(language, {
       formatRust: async (source) => { calls.push(["rust", source]); return "formatado"; },
       formatPortugolRs: async (source) => { calls.push(["pors", source]); return [{ from: 0, to: 6, insert: "formatado" }]; },
-      formatPortugol: async (source) => { calls.push(["classic", source]); return [{ from: 0, to: 6, insert: "formatado" }]; },
     });
 
     await formatter.formatCode();
@@ -60,7 +58,7 @@ test("reports when the source is already formatted without dispatching an edit",
 });
 
 test("does not format a running tab and explains when rustfmt is unavailable", async () => {
-  const running = fixture("portugol", { isRunningTab: () => true });
+  const running = fixture("portugol-rs", { isRunningTab: () => true });
   await running.formatter.formatCode();
   assert.deepEqual(running.events, []);
 
@@ -71,8 +69,8 @@ test("does not format a running tab and explains when rustfmt is unavailable", a
 
 test("ignores formatting results after the active document changes", async () => {
   let resolve;
-  const { formatter, events, setState } = fixture("portugol", {
-    formatPortugol: () => new Promise((done) => { resolve = done; }),
+  const { formatter, events, setState } = fixture("portugol-rs", {
+    formatPortugolRs: () => new Promise((done) => { resolve = done; }),
   });
   const pending = formatter.formatCode();
   setState(EditorState.create({ doc: "outro documento" }));

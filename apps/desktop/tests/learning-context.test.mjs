@@ -77,7 +77,7 @@ test("maps exact conditionals and loops to their learning concepts", () => {
     assert.equal(result?.conceptId, conceptId);
     assert.equal(result?.sourceSnippet, source);
     assert.equal(result?.rustSnippet, rust);
-    assert.match(explainMappedConcept(result, "portugol"), conceptId === "conditionals" ? /decisão/ : /repetição/);
+    assert.match(explainMappedConcept(result, "portugol-rs"), conceptId === "conditionals" ? /decisão/ : /repetição/);
   }
 });
 
@@ -168,9 +168,8 @@ test("chooses the narrowest overlapping exact mapping that identifies a binding"
   assert.equal(result?.rustSnippet, "let mut idade: i32 = 16_i32;");
 });
 
-test("explains mapped mutability according to the active source dialect", () => {
+test("explains mapped mutability for Portugol-RS", () => {
   const mapped = context();
-  assert.match(explainMappedConcept(mapped, "portugol"), /Portugol clássico/);
   assert.match(explainMappedConcept(mapped, "portugol-rs"), /Portugol-RS/);
   assert.match(explainMappedConcept(mapped, "portugol-rs"), /let mut/);
 });

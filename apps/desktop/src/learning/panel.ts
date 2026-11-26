@@ -17,8 +17,6 @@ export interface LearningPanelHost {
   sourceView: EditorView;
   activeTab(): Tab | undefined;
   learningMode(): LearningMode;
-  /** Abre o exercício de prática pelo número do catálogo. */
-  openExercise(id: number): Promise<void>;
   /** Abre exercício Portugol-RS pelo identificador do catálogo .pors. */
   openPorsExercise(id: string): Promise<void>;
 }
@@ -118,7 +116,7 @@ export function mountLearningPanel(host: LearningPanelHost) {
         ? "Relacionado à seleção por mapeamento exato da tradução atual"
         : "Conceito selecionado manualmente";
     $("learning-definition").textContent = context
-      ? `${concept.definition} ${explainMappedConcept(context, tab?.language === "portugol-rs" ? "portugol-rs" : "portugol")}`
+      ? `${concept.definition} ${explainMappedConcept(context, "portugol-rs")}`
       : concept.definition;
     $("learning-what-changed").textContent = concept.whatChanged;
     $("learning-why-it-matters").textContent = concept.whyItMatters;

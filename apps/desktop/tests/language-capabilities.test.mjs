@@ -5,7 +5,7 @@ import { deriveLanguageControls } from "../src/state/language-capabilities.ts";
 
 function fixture(overrides = {}) {
   const tab = {
-    language: "portugol",
+    language: "portugol-rs",
     symbols: [],
     ...overrides.tab,
   };
@@ -23,19 +23,8 @@ function fixture(overrides = {}) {
   return deriveLanguageControls(tab, state);
 }
 
-test("classic Portugol keeps run/debug and enables applicable libraries", () => {
-  const controls = fixture();
-
-  assert.equal(controls.buttons["btn-run"].disabled, false);
-  assert.equal(controls.buttons["btn-debug"].disabled, false);
-  assert.equal(controls.arguments.disabled, false);
-  assert.equal(controls.libraries.Matematica.disabled, false);
-  assert.equal(controls.format.disabled, false);
-});
-
-test("PORS disables classic-only arguments/libraries, enables PORS modules, and keeps VM debugging", () => {
+test("Portugol-RS keeps run/debug, enables PORS modules, and disables unsupported arguments", () => {
   const controls = fixture({
-    tab: { language: "portugol-rs" },
     state: { libraryNames: ["Matematica", "Texto", "Objetos"] },
   });
 
@@ -47,6 +36,7 @@ test("PORS disables classic-only arguments/libraries, enables PORS modules, and 
   assert.equal(controls.libraries.Texto.disabled, false);
   assert.equal(controls.libraries.Texto.title, "Inserir módulo PORS Texto.");
   assert.equal(controls.libraries.Objetos.disabled, true);
+  assert.equal(controls.format.disabled, false);
 });
 
 test("Rust without detected Cargo shows a discovery message and locks execution", () => {
@@ -60,7 +50,7 @@ test("Rust without detected Cargo shows a discovery message and locks execution"
   assert.equal(controls.buttons["btn-run"].description, "Verificando se este arquivo pertence a um projeto Cargo.");
   assert.equal(controls.buttons["btn-debug"].disabled, true);
   assert.equal(controls.arguments.disabled, false);
-  assert.equal(controls.libraries.Matematica.title, "Bibliotecas Portugol não se aplicam a Rust.");
+  assert.equal(controls.libraries.Matematica.title, "Módulos PORS não se aplicam a Rust.");
 });
 
 test("Rust reports missing tools, formatter, and unsupported symbol actions", () => {

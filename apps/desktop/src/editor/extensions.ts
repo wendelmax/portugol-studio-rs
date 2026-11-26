@@ -16,7 +16,6 @@ export interface EditorExtensionDependencies {
   theme: Compartment;
   portugolExtensions: () => Extension[];
   rustExtensions: () => Extension[];
-  portugolLanguage: () => Extension;
   portugolRsLanguage: () => Extension;
   rustLanguage: () => Extension;
   editorColors: Extension;
@@ -35,7 +34,7 @@ export function createEditorExtensionFactory(dependencies: EditorExtensionDepend
     const tools = isRust ? dependencies.rustExtensions() : dependencies.portugolExtensions();
     const languageExtension = isRust
       ? dependencies.rustLanguage()
-      : language === "portugol-rs" ? dependencies.portugolRsLanguage() : dependencies.portugolLanguage();
+      : dependencies.portugolRsLanguage();
 
     return [
       lineNumbers(),

@@ -201,9 +201,7 @@ export function mountRustPreview(host: RustPreviewHost) {
     rustExportTimer = window.setTimeout(async () => {
       let result: api.RustExport;
       try {
-        result = tab.language === "portugol-rs"
-          ? await api.exportPortugolRs(source)
-          : await api.exportRust(source);
+        result = await api.exportPortugolRs(source);
       } catch (error) {
         if (generation !== rustExportGeneration || activeTab()?.id !== tabId || view.state.doc.toString() !== source) return;
         tab.rustPreview = failRustPreview(tab.rustPreview ?? { pending: false, stale: false }, "Falha ao solicitar a tradução: " + String(error));

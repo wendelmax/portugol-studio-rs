@@ -13,11 +13,11 @@ test("tab factory assigns unique ids, detects language, and activates each creat
   });
 
   const first = factory.create({ text: "funcao inicio() {}", path: "aula.pors" });
-  const second = factory.create({ text: "programa {}", path: "aula.por" });
+  const second = factory.create({ text: "fn main() {}", path: "main.rs" });
 
   assert.deepEqual([first.id, second.id], [1, 2]);
   assert.equal(first.language, "portugol-rs");
-  assert.equal(second.language, "portugol");
+  assert.equal(second.language, "rust");
   assert.deepEqual(tabs, [first, second]);
   assert.deepEqual(activations, [1, 2]);
   assert.ok(first.state instanceof EditorState);

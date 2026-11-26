@@ -1,11 +1,10 @@
-export type SourceLanguage = "portugol" | "portugol-rs" | "rust";
+export type SourceLanguage = "portugol-rs" | "rust";
 
 export function detectSourceLanguage(path: string): SourceLanguage {
-  if (/\.rs$/i.test(path)) return "rust";
-  return /\.pors$/i.test(path) ? "portugol-rs" : "portugol";
+  return /\.rs$/i.test(path) ? "rust" : "portugol-rs";
 }
 
 export function ensureSourceExtension(path: string, language: SourceLanguage): string {
-  if (/\.(por|pors|rs)$/i.test(path)) return path;
-  return `${path}.${language === "portugol-rs" ? "pors" : language === "rust" ? "rs" : "por"}`;
+  if (/\.(pors|rs)$/i.test(path)) return path;
+  return `${path}.${language === "rust" ? "rs" : "pors"}`;
 }

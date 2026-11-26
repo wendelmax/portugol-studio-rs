@@ -57,15 +57,12 @@ test("moves the selected command cyclically with arrow keys", () => {
 });
 
 test("offers only debug actions supported by the current runtime state", () => {
-  assert.equal(isDebugCommandAvailable("Depurar", "portugol", false, false), true);
-  assert.equal(isDebugCommandAvailable("Depurar", "portugol", true, false), false);
-  assert.equal(isDebugCommandAvailable("Interromper", "portugol", false, false), false);
-  assert.equal(isDebugCommandAvailable("Pausar", "portugol", true, false), true);
-  assert.equal(isDebugCommandAvailable("Pausar", "portugol", true, true), false);
-  assert.equal(isDebugCommandAvailable("Continuar", "portugol", true, false), false);
-  assert.equal(isDebugCommandAvailable("Continuar", "portugol", true, true), true);
   assert.equal(isDebugCommandAvailable("Depurar", "portugol-rs", false, false), true);
+  assert.equal(isDebugCommandAvailable("Depurar", "portugol-rs", true, false), false);
+  assert.equal(isDebugCommandAvailable("Interromper", "portugol-rs", false, false), false);
   assert.equal(isDebugCommandAvailable("Pausar", "portugol-rs", true, false), true);
+  assert.equal(isDebugCommandAvailable("Pausar", "portugol-rs", true, true), false);
+  assert.equal(isDebugCommandAvailable("Continuar", "portugol-rs", true, false), false);
   assert.equal(isDebugCommandAvailable("Continuar", "portugol-rs", true, true), true);
   assert.equal(isDebugCommandAvailable("Depurar", "rust", false, false), false);
 });
@@ -116,7 +113,7 @@ test("command palette shortcut is advertised", () => {
 
 test("palette hides tab commands without a tab and Rust-unsupported commands in Rust files", () => {
   const idle = {
-    language: "portugol", cargoProject: false, cargoAvailable: false, canRunAsRust: false,
+    language: "portugol-rs", cargoProject: false, cargoAvailable: false, canRunAsRust: false,
     runActive: false, paused: false, porsRunPending: false,
   };
   assert.equal(isPaletteCommandAvailable("Paleta de comandos", idle), false);

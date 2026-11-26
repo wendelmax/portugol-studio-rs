@@ -11,7 +11,6 @@ const tauri = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), 
 
 test(".pors formatting uses the PORS backend command and applies only to the captured editor document", () => {
   assert.match(shell, /formatPortugolRs: api\.formatPortugolRs/);
-  assert.match(formatter, /tab\.language === "portugol-rs"/);
   assert.match(formatter, /dependencies\.formatPortugolRs\(source\)/);
   assert.match(formatter, /dependencies\.activeTab\(\) !== tab \|\| dependencies\.view\.state\.doc !== doc/);
   assert.match(formatter, /annotations: isolateHistory\.of\("full"\)/);

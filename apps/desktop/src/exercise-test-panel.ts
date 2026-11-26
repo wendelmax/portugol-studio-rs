@@ -53,7 +53,7 @@ export function isCurrentExerciseTestRequest(
 
 export function exerciseTestStatus(
   state: ExerciseTestPanelState,
-  language?: "portugol" | "portugol-rs",
+  language?: "portugol-rs",
 ): string {
   const tag = language === "portugol-rs" ? " (.pors)" : "";
   switch (state.kind) {

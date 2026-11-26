@@ -5,16 +5,21 @@ use tauri::{AppHandle, RunEvent, State};
 
 pub(crate) struct PendingFiles(Mutex<Vec<String>>);
 
+fn is_pors_exercise(path: &std::path::Path) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name.to_ascii_lowercase().ends_with(".pors.json"))
+}
+
 fn file_paths(paths: impl IntoIterator<Item = PathBuf>) -> Vec<String> {
     paths
         .into_iter()
         .filter(|path| {
-            path.extension().is_some_and(|extension| {
-                extension.eq_ignore_ascii_case("por")
-                    || extension.eq_ignore_ascii_case("pors")
-                    || extension.eq_ignore_ascii_case("rs")
-                    || extension.eq_ignore_ascii_case("pex")
-            }) && path.is_file()
+            (is_pors_exercise(path)
+                || path.extension().is_some_and(|extension| {
+                    extension.eq_ignore_ascii_case("pors") || extension.eq_ignore_ascii_case("rs")
+                }))
+                && path.is_file()
         })
         .filter_map(|path| path.into_os_string().into_string().ok())
         .collect()
@@ -56,34 +61,41 @@ mod tests {
     use super::*;
 
     #[test]
-    fn keeps_existing_programs_and_exercises_from_the_arguments() {
+    fn keeps_existing_pors_rust_and_pors_exercise_files_from_arguments() {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../..");
-        let base = root.join("crates/portugol-service/assets/exercicios");
-        let pex = base.join("exercicio01.pex");
-        let por = root.join("tests/corpus/exemplos/jogos/pong.por");
+        let pors_exercise =
+            std::env::temp_dir().join(format!("exercicio-{}.pors.json", std::process::id()));
         let pors = std::env::temp_dir().join(format!("Portugol á {}.PORS", std::process::id()));
         let rust = std::env::temp_dir().join(format!("Portugol {}.RS", std::process::id()));
+        let legacy_por = std::env::temp_dir().join(format!("legado-{}.por", std::process::id()));
+        let legacy_pex = std::env::temp_dir().join(format!("legado-{}.pex", std::process::id()));
+        std::fs::write(&pors_exercise, "{}").unwrap();
         std::fs::write(&pors, "funcao inicio() {}").unwrap();
         std::fs::write(&rust, "fn main() {}").unwrap();
+        std::fs::write(&legacy_por, "programa { funcao inicio() {} }").unwrap();
+        std::fs::write(&legacy_pex, "{}").unwrap();
         let not_source = root.join("Cargo.toml");
         let paths = file_paths([
-            pex.clone(),
+            pors_exercise.clone(),
             not_source,
-            por.clone(),
+            legacy_por.clone(),
+            legacy_pex.clone(),
             pors.clone(),
             rust.clone(),
-            base.join("missing.pex"),
+            root.join("missing.pors.json"),
         ]);
         assert_eq!(
             paths,
             [
-                pex.to_str().unwrap(),
-                por.to_str().unwrap(),
+                pors_exercise.to_str().unwrap(),
                 pors.to_str().unwrap(),
                 rust.to_str().unwrap()
             ]
         );
+        std::fs::remove_file(pors_exercise).unwrap();
         std::fs::remove_file(pors).unwrap();
         std::fs::remove_file(rust).unwrap();
+        std::fs::remove_file(legacy_por).unwrap();
+        std::fs::remove_file(legacy_pex).unwrap();
     }
 }

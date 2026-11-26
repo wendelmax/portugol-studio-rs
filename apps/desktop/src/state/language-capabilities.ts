@@ -72,16 +72,12 @@ const PORS_LIBRARY_NAMES: ReadonlySet<string> = new Set([
   const libraries = Object.fromEntries(state.libraryNames.map((name) => {
     const porsAvailable = pors && PORS_LIBRARY_NAMES.has(name);
     return [name, {
-      disabled: rustFile
-        || (pors && !porsAvailable)
-        || (!pors && tab.symbols.some((symbol) => symbol.kind === "library" && symbol.name.split(" → ", 1)[0] === name)),
+      disabled: rustFile || !porsAvailable,
       title: rustFile
-        ? "Bibliotecas Portugol não se aplicam a Rust."
+        ? "Módulos PORS não se aplicam a Rust."
         : porsAvailable
           ? `Inserir módulo PORS ${name}.`
-          : pors
-            ? "Bibliotecas clássicas não se aplicam ao Portugol-RS."
-            : `Incluir biblioteca ${name}`,
+          : "Módulo indisponível em Portugol-RS.",
     }];
   }));
   const symbolActions = {

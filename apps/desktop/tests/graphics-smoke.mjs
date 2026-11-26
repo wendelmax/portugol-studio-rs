@@ -6,44 +6,77 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
-const program = String.raw`programa {
-    inclua biblioteca Graficos --> g
-    inclua biblioteca Teclado --> t
-    inclua biblioteca Mouse --> m
-    inclua biblioteca Util --> u
-    funcao inicio() {
-        g.iniciar_modo_grafico(falso)
-        g.definir_titulo_janela("Portugol Verificacao Grafica")
-        g.definir_dimensoes_janela(320, 240)
-        g.definir_cor(0x224466)
-        g.limpar()
-        g.definir_cor(0xff8800)
-        g.desenhar_retangulo(24, 24, 80, 60, falso, verdadeiro)
-        g.renderizar()
-
-        inteiro tecla = t.ler_tecla()
-        se (tecla == 76)
-            g.definir_cor(0xff00ff)
-        senao
-            g.definir_cor(0xff0000)
-        g.limpar()
-        g.renderizar()
-
-        inteiro botao = m.ler_botao()
-        g.definir_cor(0x00ff00)
-        g.desenhar_ponto(1, 1)
-        inteiro imagem = g.renderizar_imagem(4, 4)
-        se (botao == 0 e g.obter_cor_pixel(imagem, 1, 1) == -16711936)
-            g.definir_cor(0x00ff00)
-        senao
-            g.definir_cor(0xff0000)
-        g.limpar()
-        g.renderizar()
-        u.aguarde(8000)
+const program = String.raw`funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
+    escolha Graficos.criar_cor(r, g, b) {
+        caso Resultado::Ok(cor) => {
+            retorne cor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne Graficos.COR_PRETO;
+        }
     }
+}
+
+funcao inicio() {
+    Graficos.iniciar_modo_grafico(falso);
+    Graficos.definir_titulo_janela("Portugol Verificacao Grafica");
+    Graficos.definir_dimensoes_janela(320, 240);
+    Graficos.definir_cor(cor_rgb(34, 68, 102));
+    Graficos.limpar();
+    Graficos.definir_cor(cor_rgb(255, 136, 0));
+    Graficos.desenhar_retangulo(24, 24, 80, 60, falso, verdadeiro);
+    Graficos.renderizar();
+
+    seja tecla_res: Resultado<inteiro, cadeia> = Teclado.ler_tecla();
+    escolha tecla_res {
+        caso Resultado::Ok(tecla) => {
+            se (tecla == 76) {
+                Graficos.definir_cor(cor_rgb(255, 0, 255));
+            } senao {
+                Graficos.definir_cor(cor_rgb(255, 0, 0));
+            }
+        }
+        caso Resultado::Erro(_) => {
+            Graficos.definir_cor(cor_rgb(255, 0, 0));
+        }
+    }
+    Graficos.limpar();
+    Graficos.renderizar();
+
+    seja botao_res: Resultado<inteiro, cadeia> = Mouse.ler_botao();
+    Graficos.definir_cor(cor_rgb(0, 255, 0));
+    Graficos.desenhar_ponto(1, 1);
+    seja imagem_res: Resultado<inteiro, cadeia> = Graficos.renderizar_imagem(4, 4);
+    seja mutavel ok: logico = falso;
+    escolha botao_res {
+        caso Resultado::Ok(botao) => {
+            escolha imagem_res {
+                caso Resultado::Ok(imagem) => {
+                    escolha Graficos.obter_cor_pixel(imagem, 1, 1) {
+                        caso Resultado::Ok(cor) => {
+                            se (botao == 0 && cor == -16711936) {
+                                ok = verdadeiro;
+                            }
+                        }
+                        caso Resultado::Erro(_) => {}
+                    }
+                }
+                caso Resultado::Erro(_) => {}
+            }
+        }
+        caso Resultado::Erro(_) => {}
+    }
+    se (ok) {
+        Graficos.definir_cor(cor_rgb(0, 255, 0));
+    } senao {
+        Graficos.definir_cor(cor_rgb(255, 0, 0));
+    }
+    Graficos.limpar();
+    Graficos.renderizar();
+    Util.aguarde(8000);
 }`;
 
-const smokeFile = join(tmpdir(), `portugol-graphics-smoke-${process.pid}.por`);
+const smokeFile = join(tmpdir(), `portugol-graphics-smoke-${process.pid}.pors`);
 writeFileSync(smokeFile, program, "utf8");
 
 const app = spawn(process.argv[2] ?? "target/debug/portugol-desktop", [smokeFile], {
@@ -112,7 +145,7 @@ try {
   const copy = (text) => execFileSync("xclip", [...selection, "-i"], {
     input: text, timeout: 3000, stdio: ["pipe", "ignore", "ignore"],
   });
-  await waitFor("O editor não carregou o programa .por", async () => {
+  await waitFor("O editor não carregou o programa .pors", async () => {
     copy("verificacao-do-teste");
     xdotool("key", "ctrl+a", "ctrl+c");
     await delay(150);
@@ -125,7 +158,7 @@ try {
       return false;
     }
   });
-  console.log("Programa .por carregado e conferido no editor.");
+  console.log("Programa .pors carregado e conferido no editor.");
   xdotool("key", "shift+F6");
   const graphics = await waitFor(
     "Janela gráfica não encontrada", () => windowByTitle("^Portugol Verificacao Grafica$"),

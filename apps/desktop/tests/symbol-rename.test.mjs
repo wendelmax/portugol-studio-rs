@@ -4,7 +4,7 @@ import { createSymbolRenamer } from "../src/editor/symbol-rename.ts";
 
 function fixture() {
   const calls = [];
-  let tab = { id: 1, language: "portugol" };
+  let tab = { id: 1, language: "portugol-rs" };
   let doc = { toString: () => "fonte" };
   let running = false;
   let otherDialogOpen = false;
@@ -25,10 +25,8 @@ function fixture() {
     isRunning: () => running,
     isCurrent: (candidate, document) => candidate === tab && document === doc,
     hasOpenDialog: () => otherDialogOpen,
-    semanticSymbolLanguage: (language) => language === "portugol-rs" ? "portugol-rs" : "portugol",
-    renameTargetPortugol: (source, offset) => targetRequest("portugol", source, offset),
+    semanticSymbolLanguage: (language) => language === "portugol-rs" ? "portugol-rs" : null,
     renameTargetPortugolRs: (source, offset) => targetRequest("portugol-rs", source, offset),
-    renameSymbolPortugol: (source, offset, name) => renameRequest("portugol", source, offset, name),
     renameSymbolPortugolRs: (source, offset, name) => renameRequest("portugol-rs", source, offset, name),
     applyChanges: (changes) => calls.push(["changes", changes]),
     focusEditor: () => calls.push(["focus"]),
@@ -52,7 +50,7 @@ test("ignores missing, Rust, or currently running tabs", async () => {
   await f.renamer.openAt(0);
   f.setTab({ id: 2, language: "rust" });
   await f.renamer.openAt(0);
-  f.setTab({ id: 1, language: "portugol" });
+  f.setTab({ id: 1, language: "portugol-rs" });
   f.setRunning(true);
   await f.renamer.openAt(0);
   assert.deepEqual(f.calls, []);
@@ -91,7 +89,7 @@ test("submits trimmed names, applies changes, closes the dialog, and focuses the
   let prevented = false;
   await f.ui.form.onsubmit({ preventDefault: () => { prevented = true; } });
   assert.equal(prevented, true);
-  assert.deepEqual(f.calls.find(([name]) => name === "rename"), ["rename", "portugol", "fonte", 3, "anos"]);
+  assert.deepEqual(f.calls.find(([name]) => name === "rename"), ["rename", "portugol-rs", "fonte", 3, "anos"]);
   assert.deepEqual(f.calls.find(([name]) => name === "changes"), ["changes", [{ from: 0, to: 3, insert: "anos" }]]);
   assert.equal(f.ui.dialog.open, false);
   assert.equal(f.ui.submit.disabled, false);

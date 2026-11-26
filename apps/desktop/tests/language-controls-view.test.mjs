@@ -40,15 +40,15 @@ function fixture() {
 
 test("applies derived language controls and remembers button default titles", () => {
   const f = fixture();
-  const tab = { language: "portugol", symbols: [] };
+  const tab = { language: "portugol-rs", symbols: [] };
 
   f.view.sync(tab);
 
   assert.equal(f.buttons.get("btn-run").disabled, false);
-  assert.equal(f.buttons.get("btn-run").title, "Padrão btn-run");
+  assert.equal(f.buttons.get("btn-run").title, "Executar na VM do Portugol-RS (Shift+F6)");
   assert.equal(f.buttons.get("btn-run").dataset.defaultTitle, "Padrão btn-run");
   assert.equal(f.buttons.get("btn-run").attributes["aria-description"], "");
-  assert.equal(f.args.disabled, false);
+  assert.equal(f.args.disabled, true);
   assert.equal(f.format.disabled, false);
   assert.equal(f.libraries.get("Matematica").disabled, false);
   assert.equal(f.buttons.get("editor-rename").disabled, false);
@@ -57,7 +57,7 @@ test("applies derived language controls and remembers button default titles", ()
 test("refreshes controls when the active tab becomes Rust with missing tools", () => {
   const f = fixture();
   const run = f.buttons.get("btn-run");
-  f.view.sync({ language: "portugol", symbols: [] });
+  f.view.sync({ language: "portugol-rs", symbols: [] });
   f.state.rustcAvailable = false;
   f.state.rustfmtAvailable = false;
 

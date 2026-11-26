@@ -86,7 +86,7 @@ test("cartão Aprender apresenta seções nomeadas e renderiza o conteúdo do ca
   assert.match(html, /<h3 id="learning-title" aria-live="polite" aria-atomic="true">/);
   assert.match(html, /id="learning-practice-open"[^>]*hidden/);
   assert.match(html, /id="learning-practice-status"[^>]*role="status"/);
-  assert.match(main, /exercises\.openById\(exerciseId\)/);
+  assert.match(main, /exercises\.openPorsById\(exerciseId\)/);
 });
 
 test("ownership explica move de String e identifica o trecho como exemplo editorial", async () => {

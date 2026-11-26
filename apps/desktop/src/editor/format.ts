@@ -15,7 +15,6 @@ export interface EditorFormatterDependencies {
   view: Pick<EditorViewType, "state" | "dispatch" | "focus">;
   formatRust: (source: string) => Promise<string>;
   formatPortugolRs: (source: string) => Promise<FormatChange[] | null>;
-  formatPortugol: (source: string) => Promise<FormatChange[] | null>;
   setStatus: (message: string, kind?: "error" | "ok") => void;
 }
 
@@ -36,9 +35,7 @@ export function createEditorFormatter(dependencies: EditorFormatterDependencies)
         const formatted = await dependencies.formatRust(source);
         changes = formatted === source ? [] : [{ from: 0, to: doc.length, insert: formatted }];
       } else {
-        changes = tab.language === "portugol-rs"
-          ? await dependencies.formatPortugolRs(source)
-          : await dependencies.formatPortugol(source);
+        changes = await dependencies.formatPortugolRs(source);
       }
       if (dependencies.activeTab() !== tab || dependencies.view.state.doc !== doc) return;
       if (!changes) {

@@ -54,7 +54,7 @@ export function createExerciseTabOpener(dependencies: ExerciseTabDependencies) {
       exerciseDocument.name,
       undefined,
       exerciseDocument,
-      exerciseDocument.pors ? "portugol-rs" : "portugol",
+      "portugol-rs",
     );
     if (!workspaceExercise) return;
 

@@ -8,8 +8,8 @@ export interface FileDialogFilter {
 
 export const FILE_FILTERS: FileDialogFilter[] = [
   { name: "Portugol-RS e Rust", extensions: ["pors", "rs"] },
-  { name: "Portugol clássico (legado)", extensions: ["por"] },
-  { name: "Todos os programas", extensions: ["pors", "rs", "por"] },
+  { name: "Portugol-RS", extensions: ["pors"] },
+  { name: "Rust", extensions: ["rs"] },
 ];
 
 export interface FileIODependencies {
@@ -69,15 +69,13 @@ export function createFileIO(dependencies: FileIODependencies) {
     let path = tab.path;
     let workspaceFile = Boolean(tab.workspaceId && tab.workspacePath);
     if (!path || as) {
-      const extension = tab.language === "portugol-rs" ? "pors" : tab.language === "rust" ? "rs" : "por";
+      const extension = tab.language === "rust" ? "rs" : "pors";
       const exerciseName = tab.exercise
-        ? `${tab.exercise.name.replace(/\.(pex|pors\.json|json)$/i, "")}.${extension}`
+        ? `${tab.exercise.name.replace(/\.(pors\.json|json)$/i, "")}.${extension}`
         : undefined;
       const filters = tab.language === "rust"
         ? [{ name: "Rust", extensions: ["rs"] }]
-        : tab.language === "portugol-rs"
-          ? [{ name: "Portugol-RS", extensions: ["pors"] }, ...FILE_FILTERS]
-          : [{ name: "Portugol clássico", extensions: ["por"] }, ...FILE_FILTERS];
+        : [{ name: "Portugol-RS", extensions: ["pors"] }, ...FILE_FILTERS];
       path = await dependencies.saveDialog({
         filters,
         defaultPath: tab.path ?? exerciseName ?? tab.exampleName ?? `programa.${extension}`,

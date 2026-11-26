@@ -6,13 +6,11 @@ const position = (offset) => ({ offset, line: 1, column: offset + 1 });
 const diagnostic = (code = "parser") => ({ severity: "error", code, message: code, help: null, start: position(0), end: position(1) });
 function fixture() {
   const calls = [];
-  const tab = { language: "portugol", diagnostics: [], symbols: [], runtimeCompileDiagnostics: [] };
+  const tab = { language: "portugol-rs", diagnostics: [], symbols: [], runtimeCompileDiagnostics: [] };
   let active = tab;
-  let inspection = async (source) => ({ diagnostics: [diagnostic(source)], symbols: [{ name: source }] });
   let porsInspection = async (source) => ({ diagnostics: [diagnostic(source)], symbols: [{ name: source }] });
   const createCheck = () => createPortugolLintSourceCheck({
     activeTab: () => active,
-    inspectPortugol: (source) => inspection(source),
     inspectPortugolRs: (source) => porsInspection(source),
     renderMessages: () => calls.push("messages"),
     showOutline: (symbols) => calls.push(["outline", symbols]),
@@ -22,19 +20,15 @@ function fixture() {
   return {
     calls, tab, createCheck,
     setActive: (next) => { active = next; },
-    setInspectPortugol: (fn) => { inspection = fn; },
     setInspectPortugolRs: (fn) => { porsInspection = fn; },
   };
 }
 const document = (text) => ({ length: text.length, toString: () => text });
 const editor = (text) => ({ state: { doc: document(text) } });
 
-test("routes Portugol and PORS documents to their existing inspection services", async () => {
+test("routes PORS documents to the PORS inspection service", async () => {
   const f = fixture();
-  f.tab.language = "portugol";
   const check = f.createCheck();
-  assert.equal((await check(editor("classic")))[0].item.code, "classic");
-  f.tab.language = "portugol-rs";
   assert.equal((await check(editor("pors")))[0].item.code, "pors");
   assert.deepEqual(f.tab.symbols, [{ name: "pors" }]);
   assert.deepEqual(f.tab.diagnosticsAnalysis, { source: "pors", status: "complete" });
@@ -42,7 +36,7 @@ test("routes Portugol and PORS documents to their existing inspection services",
 
 test("marks the current source unavailable when language inspection fails", async () => {
   const f = fixture();
-  f.setInspectPortugol(async () => { throw new Error("inspector offline"); });
+  f.setInspectPortugolRs(async () => { throw new Error("inspector offline"); });
 
   assert.deepEqual(await f.createCheck()(editor("fonte")), []);
   assert.deepEqual(f.tab.diagnosticsAnalysis, { source: "fonte", status: "unavailable" });
@@ -71,7 +65,7 @@ test("aggregates runtime diagnostics and converts against the document length", 
 test("does not update UI for an inspection result from a replaced document", async () => {
   const f = fixture();
   let resolveInspection;
-  f.setInspectPortugol((source) => new Promise((resolve) => { resolveInspection = () => resolve({ diagnostics: [diagnostic(source)], symbols: [{ name: source }] }); }));
+  f.setInspectPortugolRs((source) => new Promise((resolve) => { resolveInspection = () => resolve({ diagnostics: [diagnostic(source)], symbols: [{ name: source }] }); }));
   const view = editor("old");
   const pending = f.createCheck()(view);
   view.state.doc = document("new");

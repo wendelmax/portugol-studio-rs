@@ -27,11 +27,8 @@ export function createEditorActionsShell(dependencies: EditorActionsShellDepende
     runTabId: dependencies.runTabId,
     hasOpenDialog: () => document.querySelector("dialog[open]") !== null,
     semanticSymbolLanguage,
-    renameTargetPortugol: api.renameTarget,
     renameTargetPortugolRs: api.renameTargetPortugolRs,
-    renameSymbolPortugol: api.renameSymbol,
     renameSymbolPortugolRs: api.renameSymbolPortugolRs,
-    resolvePortugol: api.resolveSymbol,
     resolvePortugolRs: api.resolveSymbolPortugolRs,
     applyChanges: (changes) => dependencies.view.dispatch({
       changes,
@@ -57,7 +54,6 @@ export function createEditorActionsShell(dependencies: EditorActionsShellDepende
     view: dependencies.view,
     formatRust: api.formatRustSource,
     formatPortugolRs: api.formatPortugolRs,
-    formatPortugol: api.formatSource,
     setStatus,
   });
 

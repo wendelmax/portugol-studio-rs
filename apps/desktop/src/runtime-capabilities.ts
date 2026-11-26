@@ -1,8 +1,8 @@
 import type { SourceLanguage } from "./document-language";
 
-/** Portugol e Portugol-RS executam na VM; arquivos Rust exigem `rustc`. */
+/** Portugol-RS executa na VM; arquivos Rust exigem `rustc`. */
 export function canRunSource(language: SourceLanguage, rustcAvailable: boolean | null): boolean {
-  if (language === "portugol" || language === "portugol-rs") return true;
+  if (language === "portugol-rs") return true;
   return language === "rust" && rustcAvailable === true;
 }
 
@@ -12,10 +12,10 @@ export function canRunAsRust(language: SourceLanguage, rustcAvailable: boolean |
 }
 
 export function canDebugSource(language: SourceLanguage): boolean {
-  return language === "portugol" || language === "portugol-rs";
+  return language === "portugol-rs";
 }
 
 export function canFormatSource(language: SourceLanguage, rustfmtAvailable: boolean | null): boolean {
-  if (language === "portugol" || language === "portugol-rs") return true;
+  if (language === "portugol-rs") return true;
   return language === "rust" && rustfmtAvailable === true;
 }

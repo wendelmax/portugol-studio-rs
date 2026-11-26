@@ -16,7 +16,6 @@ function fixture() {
     theme: new Compartment(),
     portugolExtensions: () => [marker("portugolTools")],
     rustExtensions: () => [marker("rustTools")],
-    portugolLanguage: () => marker("portugol"),
     portugolRsLanguage: () => marker("pors"),
     rustLanguage: () => marker("rust"),
     editorColors: EditorState.tabSize.of(4),
@@ -30,17 +29,15 @@ function fixture() {
   return { createExtensions: createEditorExtensionFactory(dependencies), calls };
 }
 
-test("selects language and tooling extensions for classic Portugol, PORS, and Rust", () => {
+test("selects language and tooling extensions for PORS and Rust", () => {
   const { createExtensions, calls } = fixture();
 
-  const classic = createExtensions("portugol");
   const pors = createExtensions("portugol-rs");
   const rust = createExtensions("rust");
 
-  assert.ok(classic.length > 10);
   assert.ok(pors.length > 10);
   assert.ok(rust.length > 10);
-  assert.deepEqual(calls, ["portugolTools", "portugol", "portugolTools", "pors", "rustTools", "rust"]);
+  assert.deepEqual(calls, ["portugolTools", "pors", "rustTools", "rust"]);
 });
 
 test("routes mouse, F12, and editor updates through injected shell handlers", async () => {
