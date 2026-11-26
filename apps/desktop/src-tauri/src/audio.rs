@@ -154,20 +154,46 @@ impl Sound for Clip {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::PathBuf;
+
+    fn synthetic_wav_bytes(sample_rate: u32, num_samples: usize) -> Vec<u8> {
+        let data_size = (num_samples * 2) as u32;
+        let mut wav = Vec::with_capacity(44 + data_size as usize);
+        wav.extend_from_slice(b"RIFF");
+        wav.extend_from_slice(&(36 + data_size).to_le_bytes());
+        wav.extend_from_slice(b"WAVE");
+        wav.extend_from_slice(b"fmt ");
+        wav.extend_from_slice(&16u32.to_le_bytes()); // PCM chunk size
+        wav.extend_from_slice(&1u16.to_le_bytes()); // PCM format
+        wav.extend_from_slice(&1u16.to_le_bytes()); // mono
+        wav.extend_from_slice(&sample_rate.to_le_bytes());
+        wav.extend_from_slice(&(sample_rate * 2).to_le_bytes()); // byte rate
+        wav.extend_from_slice(&2u16.to_le_bytes()); // block align
+        wav.extend_from_slice(&16u16.to_le_bytes()); // bits per sample
+        wav.extend_from_slice(b"data");
+        wav.extend_from_slice(&data_size.to_le_bytes());
+        for i in 0..num_samples {
+            let sample = ((i as f32 * 0.1).sin() * 8000.0) as i16;
+            wav.extend_from_slice(&sample.to_le_bytes());
+        }
+        wav
+    }
 
     #[test]
-    fn decodes_original_mp3_and_wav_without_opening_a_device() {
-        let base =
-            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../tests/corpus/exemplos/jogos");
+    fn decodes_wav_without_opening_a_device() {
+        let path = std::env::temp_dir().join(format!(
+            "portugol-desktop-audio-test-{}.wav",
+            std::process::id()
+        ));
+        std::fs::write(&path, synthetic_wav_bytes(16_000, 1_600)).unwrap();
+
         let audio = AudioOutput::default();
-        for file in ["theballsaga/theballsaga/sons/bump.mp3", "pong/colision.wav"] {
-            let mut clip = audio.load(&base.join(file)).unwrap();
-            assert!(clip.duration() > Duration::ZERO);
-            let position = clip.duration() / 2;
-            clip.seek(position).unwrap();
-            assert_eq!(clip.position(), position);
-        }
+        let mut clip = audio.load(&path).unwrap();
+        assert!(clip.duration() > Duration::ZERO);
+        let position = clip.duration() / 2;
+        clip.seek(position).unwrap();
+        assert_eq!(clip.position(), position);
         assert!(audio.0.borrow().is_none());
+
+        let _ = std::fs::remove_file(&path);
     }
 }

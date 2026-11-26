@@ -19,8 +19,8 @@ mod ui_session;
 
 use serde::Serialize;
 
+use portugol_hir::{Diagnostic, Severity};
 use portugol_rust::{GeneratedRust, SourceMapQuality as RustSourceMapQuality};
-use portugol_syntax::{Diagnostic, Severity};
 
 pub use cargo_project::{
     CargoProjectCheckResult, CargoProjectDiagnostic, CargoProjectRunResult, CargoProjectTestResult,

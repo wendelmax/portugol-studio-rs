@@ -4,7 +4,7 @@
 use std::path::Path;
 use std::process::ExitCode;
 
-use portugol_syntax::{Diagnostic, Span};
+use portugol_hir::{Diagnostic, Span};
 use portugol_vm::{StdIo, Vm};
 
 use crate::{is_pors_file, read_source, report_unsupported_extension};
@@ -84,7 +84,7 @@ pub fn main(args: &[String]) -> ExitCode {
             let diagnostic = Diagnostic::error("exec.error", error.message, error.span);
             eprintln!("{}", diagnostic.render(&source, file));
             for (function, span) in error.trace.iter().skip(1) {
-                let (line, column) = portugol_syntax::span::line_col(&source, span.start);
+                let (line, column) = portugol_hir::line_col(&source, span.start);
                 eprintln!("  chamado em {function} ({file}:{line}:{column})");
             }
             ExitCode::FAILURE

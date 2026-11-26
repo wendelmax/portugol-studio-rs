@@ -2,7 +2,7 @@
 
 mod codegen;
 
-use portugol_syntax::Diagnostic;
+use portugol_hir::Diagnostic;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SourceRange {
@@ -63,7 +63,7 @@ pub fn export_portugol_rs_with_map(source: &str) -> Result<GeneratedRust, Vec<Di
             format!(
                 "A exportação Rust para chamadas nativas `{module}.{name}` ainda não está disponível."
             ),
-            portugol_syntax::Span::new(span.start, span.end),
+            span,
         )]);
     }
     Ok(codegen::render_pors_with_map(&hir))

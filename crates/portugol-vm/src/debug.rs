@@ -6,7 +6,7 @@
 
 use std::sync::{Condvar, Mutex};
 
-use portugol_syntax::Span;
+use portugol_hir::Span;
 
 /// O que a VM deve fazer depois de voltar de uma pausa.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

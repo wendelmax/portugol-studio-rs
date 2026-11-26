@@ -1,8 +1,8 @@
-//! Diagnósticos produzidos pelo lexer, parser e (futuramente) pelo analisador
-//! semântico.
+//! Diagnósticos produzidos pelo frontend, compilador e geradores.
 
-use crate::span::{Span, line_col};
 use std::fmt;
+
+use crate::{Span, line_col};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Severity {
@@ -22,7 +22,7 @@ impl fmt::Display for Severity {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Diagnostic {
     pub severity: Severity,
-    /// Código estável, útil para testes e para a UI (ex.: `syntax.expected-token`).
+    /// Código estável, útil para testes e para a UI (ex.: `pors.expected-token`).
     pub code: &'static str,
     pub message: String,
     pub span: Span,
@@ -56,7 +56,7 @@ impl Diagnostic {
         self
     }
 
-    /// Renderiza no formato `arquivo:linha:coluna: erro: mensagem`.
+    /// Renderiza no formato `arquivo:linha:coluna: erro[código]: mensagem`.
     pub fn render(&self, source: &str, file: &str) -> String {
         let (line, column) = line_col(source, self.span.start);
         let mut out = format!(

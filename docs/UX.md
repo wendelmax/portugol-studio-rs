@@ -13,13 +13,11 @@ linguagem e a toolchain reais. A interface deve preservar familiaridade útil
 com uma IDE educacional e evoluir em função desses fluxos, sem exigir paridade
 pixel a pixel com o Portugol Studio clássico.
 
-O suporte a Portugol clássico (`.por`/`.pex`) permanece temporariamente por
-compatibilidade até o gate de migração definido no
-[ADR 0016](adr/0016-pors-como-linguagem-autoral-e-retirada-do-por.md). Enquanto
-existir, a interface deve identificá-lo como clássico, não convertê-lo nem
-alterá-lo silenciosamente e não apresentá-lo como destino de aprendizagem do
-produto. O Portugol Studio original continua sendo a opção para materiais que
-dependem desse formato.
+O suporte a Portugol clássico (`.por`/`.pex`) foi retirado na Fase 6 do
+[ADR 0016](adr/0016-pors-como-linguagem-autoral-e-retirada-do-por.md). Quando o
+usuário tenta abrir um arquivo `.por` ou `.pex`, a interface e a CLI exibem uma
+orientação clara em português indicando o Portugol Studio original — sem
+converter nem modificar o arquivo do usuário.
 
 ## Princípios de experiência
 
@@ -59,12 +57,11 @@ dependem desse formato.
 
 - Criar Portugol-RS (`.pors`) é a ação principal; Rust (`.rs`) também pode ser
   criado pelo menu de linguagens.
-- Portugol clássico (`.por`) permanece disponível apenas como compatibilidade
-  temporária, conforme o gate do ADR 0016.
-- Abrir arquivo ou pasta inicia trabalho existente; arquivos recentes e a
-  lista de exemplos ajudam a retomar ou explorar programas.
-- Exercícios, Ajuda, Dicas de interface, Atalhos, Alertas e Sobre ficam
-  acessíveis a partir da tela inicial.
+- Abrir arquivo ou pasta inicia trabalho existente em `.pors`, `.rs` ou
+  `.pors.json`; arquivos recentes e o catálogo 100% `.pors` de exemplos ajudam
+  a retomar ou explorar programas.
+- Exercícios `.pors.json`, Ajuda PORS, Dicas de interface, Atalhos, Alertas e
+  Sobre ficam acessíveis a partir da tela inicial.
 
 ### Espaço de trabalho
 
@@ -92,9 +89,10 @@ dependem desse formato.
 
 | Documento | Comportamento apresentado ao usuário |
 | --- | --- |
-| `.pors` | Linguagem principal; análise e execução na VM PORS, depuração quando suportada e Rust gerado como tradução. Executar o fonte não deve exigir `rustc`. |
+| `.pors` | Linguagem principal; análise, execução e depuração na VM PORS, além de prévia/exportação Rust. Executar o fonte não exige `rustc`. |
 | `.rs` | Código Rust real. Análise, formatação, compilação e execução dependem das ferramentas Rust correspondentes instaladas; a IDE informa quando uma capacidade não está disponível. |
-| `.por` / `.pex` | Compatibilidade clássica temporária até cumprir o gate de migração. Não converter ou substituir o original silenciosamente. |
+| `.pors.json` | Exercício estruturado Portugol-RS avaliado no serviço local com casos de teste reais. |
+| `.por` / `.pex` | Não suportados (Fase 6 / ADR 0016). A IDE e a CLI rejeitam a abertura com aviso claro orientando o usuário ao Portugol Studio original, sem alterar nem converter o arquivo. |
 
 O Rust gerado é um artefato de tradução do Portugol-RS, não uma promessa de
 compatibilidade com toda a linguagem Rust. A prévia deve corresponder à revisão

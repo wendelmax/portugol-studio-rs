@@ -9,8 +9,7 @@ use std::process::ExitCode;
 use std::sync::mpsc;
 use std::thread;
 
-use portugol_syntax::span::line_col;
-use portugol_syntax::{Diagnostic, Span};
+use portugol_hir::{Diagnostic, Span, line_col};
 use portugol_vm::debug::{DebugCommand, DebugControl, PausedInfo};
 use portugol_vm::{StdIo, Vm};
 

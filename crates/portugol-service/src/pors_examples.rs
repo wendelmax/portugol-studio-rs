@@ -1497,7 +1497,6 @@ pub fn find_pors_example(id: &str) -> Option<&'static PorsExample> {
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
-    use std::path::Path;
     use std::sync::Arc;
     use std::sync::atomic::AtomicBool;
 
@@ -1506,38 +1505,17 @@ mod tests {
 
     use super::*;
 
-    fn count_files_with_ext(dir: &Path, ext: &str) -> usize {
-        let mut count = 0;
-        for entry in std::fs::read_dir(dir).unwrap() {
-            let entry = entry.unwrap();
-            let path = entry.path();
-            if path.is_dir() {
-                count += count_files_with_ext(&path, ext);
-            } else if path
-                .extension()
-                .and_then(|e| e.to_str())
-                .is_some_and(|e| e.eq_ignore_ascii_case(ext))
-            {
-                count += 1;
-            }
-        }
-        count
-    }
-
     #[test]
-    fn initial_catalog_has_a_pors_entry_for_every_classic_example() {
+    fn initial_catalog_preserves_all_migrated_and_native_pors_examples() {
+        const MIGRATED_CLASSIC_COUNT: usize = 119;
         let examples = pors_examples();
-        let classic_corpus =
-            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/corpus/exemplos");
-        let classic_count = count_files_with_ext(&classic_corpus, "por");
-        assert_eq!(classic_count, 119);
 
         let migrated_count = examples
             .iter()
             .filter(|example| example.id.starts_with("classic-"))
             .count();
-        assert_eq!(migrated_count, classic_count);
-        assert_eq!(examples.len(), 14 + classic_count);
+        assert_eq!(migrated_count, MIGRATED_CLASSIC_COUNT);
+        assert_eq!(examples.len(), 14 + MIGRATED_CLASSIC_COUNT);
         assert!(
             examples
                 .iter()

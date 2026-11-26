@@ -12,8 +12,7 @@ use std::time::Duration;
 use std::time::Instant;
 
 use portugol_bytecode::{Module, Op, ValueType};
-use portugol_syntax::Span;
-use portugol_syntax::ast::Type;
+use portugol_hir::Span;
 
 use crate::debug::{DebugControl, DebugFrame, DebugVariable, PausedInfo};
 use crate::io::Io;
@@ -143,12 +142,12 @@ pub fn run(module: &Module, io: &mut dyn Io) -> Result<(), RuntimeError> {
 type Exec<T> = Result<T, String>;
 
 /// Nome do tipo mostrado no inspetor, incluindo dimensões e `&`.
-fn type_label(ty: Type, dims: u8, by_ref: bool) -> String {
+fn type_label(ty: ValueType, dims: u8, by_ref: bool) -> String {
     let mut label = String::new();
     if by_ref {
         label.push('&');
     }
-    label.push_str(ty.as_str());
+    label.push_str(ty.name());
     for _ in 0..dims {
         label.push_str("[]");
     }
@@ -350,7 +349,7 @@ impl<'a> Vm<'a> {
         let globals = module
             .globals
             .iter()
-            .map(|g| Value::default_for(g.ty.into()))
+            .map(|g| Value::default_for(g.ty))
             .collect();
         let strings = module
             .strings

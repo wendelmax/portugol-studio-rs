@@ -2,12 +2,11 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use portugol_bytecode::{Function, LocalInfo, Module, NativeRef, Op, ValueType};
-use portugol_syntax::Span;
-use portugol_syntax::ast::Type;
+use portugol_hir::Span;
 use portugol_vm::ui::{UiBudget, UiError, UiEvent, UiNode, UiSession};
 use portugol_vm::{BufferIo, RuntimeLimitReason, Value, Vm};
 
-fn local(name: &str, ty: Type) -> LocalInfo {
+fn local(name: &str, ty: ValueType) -> LocalInfo {
     LocalInfo {
         name: name.into(),
         ty,
@@ -92,10 +91,10 @@ fn counter_mvu_module() -> Module {
         arity: 4,
         return_type: ValueType::Inteiro,
         locals: vec![
-            local("estado", Type::Inteiro),
-            local("tipo", Type::Cadeia),
-            local("id", Type::Cadeia),
-            local("valor", Type::Cadeia),
+            local("estado", ValueType::Inteiro),
+            local("tipo", ValueType::Cadeia),
+            local("id", ValueType::Cadeia),
+            local("valor", ValueType::Cadeia),
         ],
         spans: vec![span; atualizar_code.len()],
         code: atualizar_code,
@@ -127,7 +126,7 @@ fn counter_mvu_module() -> Module {
         name: "visualizar".into(),
         arity: 1,
         return_type: ValueType::Inteiro,
-        locals: vec![local("estado", Type::Inteiro)],
+        locals: vec![local("estado", ValueType::Inteiro)],
         spans: vec![span; visualizar_code.len()],
         code: visualizar_code,
         span,

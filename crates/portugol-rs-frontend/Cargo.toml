@@ -7,4 +7,3 @@ description = "Frontend didático Portugol-RS que baixa para HIR compartilhada"
 
 [dependencies]
 portugol-hir = { path = "../portugol-hir" }
-portugol-syntax = { path = "../portugol-syntax" }

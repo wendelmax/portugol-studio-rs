@@ -1,11 +1,9 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/portugol-syntax",
     "crates/portugol-hir",
     "crates/portugol-rs-frontend",
     "crates/portugol-rust",
-    "crates/portugol-semantics",
     "crates/portugol-bytecode",
     "crates/portugol-vm",
     "crates/portugol-wasm",
@@ -16,10 +14,8 @@ members = [
 # A IDE depende de webkit2gtk/Tauri; fica fora do `cargo build`/`cargo test`
 # padrão. Use `-p portugol-desktop` ou `npm run tauri` em apps/desktop.
 default-members = [
-    "crates/portugol-syntax",
     "crates/portugol-hir",
     "crates/portugol-rs-frontend",
-    "crates/portugol-semantics",
     "crates/portugol-bytecode",
     "crates/portugol-vm",
     "crates/portugol-wasm",

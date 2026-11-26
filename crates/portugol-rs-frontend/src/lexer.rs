@@ -1,4 +1,4 @@
-use portugol_syntax::{Diagnostic, Span};
+use portugol_hir::{Diagnostic, Span};
 
 #[derive(Debug, Clone, PartialEq)]
 pub(super) enum Kind {

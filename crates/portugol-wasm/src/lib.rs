@@ -19,8 +19,8 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use portugol_bytecode::{Module, ValueType};
+use portugol_hir::Diagnostic;
 use portugol_rs_frontend::WhitespaceEdit;
-use portugol_syntax::Diagnostic;
 use portugol_vm::ui::{DEFAULT_MAX_STRING_BYTES, UiBudget, UiError, UiEvent, UiSession};
 use portugol_vm::{Io, RuntimeLimitReason, Status, Vm};
 

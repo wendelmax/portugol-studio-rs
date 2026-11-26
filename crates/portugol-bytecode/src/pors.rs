@@ -1,7 +1,7 @@
 //! Compilador HIR Portugol-RS -> bytecode da VM educacional.
 
 use portugol_hir as hir;
-use portugol_syntax::{Span, ast::Type};
+use portugol_hir::Span;
 
 use crate::op::{
     Function, LocalInfo, Module, NativeRef, Op, PorsDebugField, PorsDebugShape, PorsDebugType,
@@ -338,7 +338,7 @@ impl<'a> Compiler<'a> {
                             self.emit(Op::LoadElem, arm.span);
                             if self.locals[binding.0 as usize].dims > 0 {
                                 self.emit(Op::CloneArray, arm.span);
-                            } else if self.locals[binding.0 as usize].ty == Type::Cadeia {
+                            } else if self.locals[binding.0 as usize].ty == ValueType::Cadeia {
                                 self.emit(Op::CloneString, arm.span);
                             }
                             self.emit(Op::StoreLocal(binding.0), arm.span);
@@ -860,14 +860,14 @@ fn pors_vm_module(module: &str) -> &str {
     }
 }
 
-fn classic_type(ty: hir::Type) -> portugol_syntax::ast::Type {
+fn classic_type(ty: hir::Type) -> ValueType {
     match ty {
-        hir::Type::Unit => portugol_syntax::ast::Type::Vazio,
-        hir::Type::Integer => portugol_syntax::ast::Type::Inteiro,
-        hir::Type::Real => portugol_syntax::ast::Type::Real,
-        hir::Type::Boolean => portugol_syntax::ast::Type::Logico,
-        hir::Type::String => portugol_syntax::ast::Type::Cadeia,
-        hir::Type::Character => portugol_syntax::ast::Type::Caracter,
+        hir::Type::Unit => ValueType::Vazio,
+        hir::Type::Integer => ValueType::Inteiro,
+        hir::Type::Real => ValueType::Real,
+        hir::Type::Boolean => ValueType::Logico,
+        hir::Type::String => ValueType::Cadeia,
+        hir::Type::Character => ValueType::Caracter,
         hir::Type::VectorInteger
         | hir::Type::VectorReal
         | hir::Type::VectorBoolean
@@ -877,7 +877,7 @@ fn classic_type(ty: hir::Type) -> portugol_syntax::ast::Type {
         | hir::Type::VectorEnum(_) => {
             unreachable!("tipo vetor precisa ser reduzido ao tipo do elemento")
         }
-        hir::Type::Record(_) | hir::Type::Enum(_) => portugol_syntax::ast::Type::Vazio,
+        hir::Type::Record(_) | hir::Type::Enum(_) => ValueType::Vazio,
     }
 }
 
@@ -985,16 +985,13 @@ fn debug_type_label(ty: hir::Type, program: &hir::Program) -> String {
 }
 
 fn value_type_hir(ty: hir::Type) -> ValueType {
-    value_type(classic_type(ty.vector_element().unwrap_or(ty)))
+    classic_type(ty.vector_element().unwrap_or(ty))
 }
-fn value_type(ty: portugol_syntax::ast::Type) -> ValueType {
-    ty.into()
+fn value_type(ty: ValueType) -> ValueType {
+    ty
 }
 fn convert_span(span: hir::Span) -> Span {
-    Span {
-        start: span.start,
-        end: span.end,
-    }
+    span
 }
 fn assign_op(op: hir::AssignOp) -> Option<Op> {
     match op {

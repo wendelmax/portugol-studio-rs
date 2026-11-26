@@ -6,7 +6,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use portugol_syntax::{Diagnostic, Severity};
+use portugol_hir::{Diagnostic, Severity};
 
 const PORS_STARTER: &str = "funcao inicio() {\n    seja mutavel idade: inteiro = 16;\n    idade += 1;\n    escreva(idade);\n}\n";
 

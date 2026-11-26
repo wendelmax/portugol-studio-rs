@@ -1,5 +1,5 @@
+use portugol_hir::Diagnostic;
 use portugol_hir::Program;
-use portugol_syntax::Diagnostic;
 
 use crate::{lexer, parser::Parser};
 
