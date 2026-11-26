@@ -2,7 +2,10 @@ use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use portugol_service::{DebugInfo, Level, RunObserver, RunOptions, RunOutcome, check, start};
+use portugol_service::{
+    DebugInfo, Host, Level, RunObserver, RunOptions, RunOutcome, SymbolKind, graphics,
+    inspect_portugol_rs, start_portugol_rs, start_portugol_rs_with_host,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 enum Event {
@@ -59,16 +62,14 @@ fn collect_until_finished(rx: &mpsc::Receiver<Event>) -> Vec<Event> {
 }
 
 #[test]
-fn check_devolve_posicoes_do_editor() {
-    // Identificadores só aceitam [a-zA-Z_], como na gramática original; o
-    // acento na cadeia testa a conversão para UTF-16.
-    let source = "programa {\n funcao inicio() {\n  escreva(\"ação😀\", x)\n }\n}";
-    let diagnostics = check(source);
-    assert_eq!(diagnostics.len(), 1);
-    let d = &diagnostics[0];
+fn inspect_portugol_rs_devolve_posicoes_utf16_do_editor() {
+    let source = "funcao inicio() {\n  escreva(\"ação😀\", x);\n}";
+    let inspection = inspect_portugol_rs(source);
+    assert_eq!(inspection.diagnostics.len(), 1);
+    let d = &inspection.diagnostics[0];
     assert_eq!(d.severity, Level::Error);
-    assert_eq!(d.code, "sem.symbol-not-declared");
-    assert_eq!((d.start.line, d.start.column), (3, 20));
+    assert!(d.code.starts_with("pors."), "código inesperado: {}", d.code);
+    assert_eq!((d.start.line, d.start.column), (2, 20));
     let utf16: Vec<u16> = source.encode_utf16().collect();
     assert_eq!(utf16[d.start.offset as usize], 'x' as u16);
     assert_eq!(d.end.offset - d.start.offset, 1);
@@ -77,13 +78,13 @@ fn check_devolve_posicoes_do_editor() {
 #[test]
 fn executa_com_leia_e_saida() {
     let (observer, rx) = recorder();
-    let handle = start(
-        r#"programa { funcao inicio() {
-            inteiro n
-            escreva("n? ")
-            leia(n)
-            escreva(n * 2)
-        } }"#,
+    let handle = start_portugol_rs(
+        r#"funcao inicio() {
+            seja mutavel n: inteiro = 0;
+            escreva("n? ");
+            leia(n);
+            escreva(n * 2);
+        }"#,
         RunOptions::default(),
         observer,
     )
@@ -103,30 +104,10 @@ fn executa_com_leia_e_saida() {
 }
 
 #[test]
-fn limpa_descarta_saida_anterior() {
-    let (observer, rx) = recorder();
-    start(
-        r#"programa { funcao inicio() { escreva("a") limpa() escreva("b") } }"#,
-        RunOptions::default(),
-        observer,
-    )
-    .unwrap()
-    .join();
-    assert_eq!(
-        collect_until_finished(&rx),
-        [
-            Event::Clear,
-            Event::Output("b".into()),
-            Event::Finished(RunOutcome::Finished)
-        ]
-    );
-}
-
-#[test]
 fn parar_laco_infinito_e_leia() {
     let (observer, rx) = recorder();
-    let handle = start(
-        "programa { funcao inicio() { enquanto (verdadeiro) { } } }",
+    let handle = start_portugol_rs(
+        "funcao inicio() { enquanto (verdadeiro) { } }",
         RunOptions::default(),
         observer,
     )
@@ -137,8 +118,8 @@ fn parar_laco_infinito_e_leia() {
     handle.join();
 
     let (observer, rx) = recorder();
-    let handle = start(
-        "programa { funcao inicio() { cadeia s leia(s) } }",
+    let handle = start_portugol_rs(
+        "funcao inicio() { seja mutavel s: cadeia = \"\"; leia(s); }",
         RunOptions::default(),
         observer,
     )
@@ -151,8 +132,8 @@ fn parar_laco_infinito_e_leia() {
 #[test]
 fn erro_de_execucao_tem_posicao_e_pilha() {
     let (observer, rx) = recorder();
-    start(
-        "programa {\n funcao inicio() {\n  inteiro z = 0\n  escreva(1 / z)\n }\n}",
+    start_portugol_rs(
+        "funcao inicio() {\n  seja z: inteiro = 0;\n  escreva(1 / z);\n}",
         RunOptions::default(),
         observer,
     )
@@ -168,19 +149,19 @@ fn erro_de_execucao_tem_posicao_e_pilha() {
         panic!("esperava erro");
     };
     assert_eq!(message, "Foi efetuada uma divisão por zero.");
-    assert_eq!(start.line, 4);
+    assert_eq!(start.line, 3);
     assert_eq!(trace[0].function, "inicio");
 }
 
 #[test]
 fn depurador_pausa_continua_e_termina() {
-    let source = "programa { funcao inicio() {\n inteiro x = 1\n escreva(x)\n} }";
+    let source = "funcao inicio() {\n seja x: inteiro = 1;\n escreva(x);\n}";
     let (observer, rx) = recorder();
     let options = RunOptions {
         breakpoints: vec![3], // a linha do escreva
         ..RunOptions::default()
     };
-    let handle = start(source, options, observer).expect("compilar");
+    let handle = start_portugol_rs(source, options, observer).expect("compilar");
 
     let Event::Paused(info) = next(&rx) else {
         panic!("esperava uma pausa no depurador");
@@ -213,21 +194,21 @@ fn depurador_pausa_continua_e_termina() {
 #[test]
 fn programa_com_erro_nao_executa() {
     let (observer, _rx) = recorder();
-    let Err(errors) = start(
-        "programa { funcao inicio() { x = 1 } }",
+    let Err(errors) = start_portugol_rs(
+        "funcao inicio() { x = 1; }",
         RunOptions::default(),
         observer,
     ) else {
         panic!("não deveria executar");
     };
-    assert_eq!(errors[0].code, "sem.symbol-not-declared");
+    assert!(errors[0].code.starts_with("pors."));
 }
 
 #[test]
 fn depuracao_inicia_pausada_sem_ponto_de_parada() {
     let (observer, rx) = recorder();
-    let handle = start(
-        "programa { funcao inicio() { escreva(42) } }",
+    let handle = start_portugol_rs(
+        "funcao inicio() { escreva(42); }",
         RunOptions {
             pause_on_start: true,
             ..RunOptions::default()
@@ -250,9 +231,6 @@ fn depuracao_inicia_pausada_sem_ponto_de_parada() {
 
 #[test]
 fn executa_graficos_com_o_host_da_ide() {
-    use portugol_service::{Host, graphics, start_with_host};
-    use std::sync::Mutex;
-
     struct HostGrafico(Arc<Mutex<Vec<&'static str>>>);
 
     impl Host for HostGrafico {
@@ -277,15 +255,12 @@ fn executa_graficos_com_o_host_da_ide() {
     let (observer, rx) = recorder();
     let operations = Arc::new(Mutex::new(Vec::new()));
     let host_operations = Arc::clone(&operations);
-    start_with_host(
-        r"programa {
-            inclua biblioteca Graficos --> g
-            funcao inicio() {
-                g.iniciar_modo_grafico(falso)
-                g.desenhar_ponto(2, 3)
-                g.renderizar()
-                g.encerrar_modo_grafico()
-            }
+    start_portugol_rs_with_host(
+        r"funcao inicio() {
+            Graficos.iniciar_modo_grafico(falso);
+            Graficos.desenhar_ponto(2, 3);
+            Graficos.renderizar();
+            Graficos.encerrar_modo_grafico();
         }",
         RunOptions::default(),
         observer,
@@ -298,46 +273,40 @@ fn executa_graficos_com_o_host_da_ide() {
 }
 
 #[test]
-fn arvore_estrutural_inclui_bibliotecas_escopos_e_posicoes_utf16() {
-    use portugol_service::{SymbolKind, inspect};
+fn arvore_estrutural_inclui_funcoes_parametros_e_posicoes_utf16() {
+    let source = r#"funcao saudacao(nome: cadeia) -> cadeia {
+        // 😀
+        seja prefixo: cadeia = "Olá, ";
+        retorne prefixo + nome;
+    }
 
-    let source = r#"programa {
-        inclua biblioteca Matematica --> mat
-        const inteiro LIMITE = 2
-        funcao inicio() {
-            // 😀
-            cadeia nome = "Portugol"
-            para (inteiro i = 0; i < LIMITE; i++) {
-                real medidas[2][3]
-            }
-        }
+    funcao inicio() {
+        seja resultado: cadeia = saudacao("Portugol-RS");
+        escreva(resultado);
     }"#;
-    let result = inspect(source);
-    assert!(
-        result
-            .diagnostics
-            .iter()
-            .all(|d| d.severity != Level::Error)
-    );
-    assert_eq!(result.symbols[0].name, "Matematica → mat");
-    assert_eq!(result.symbols[0].kind, SymbolKind::Library);
-    assert_eq!(result.symbols[1].kind, SymbolKind::Constant);
-    let function = &result.symbols[2];
-    assert_eq!(function.kind, SymbolKind::Function);
-    assert_eq!(function.name, "inicio");
+    let result = inspect_portugol_rs(source);
+    assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
+    let helper = result
+        .symbols
+        .iter()
+        .find(|symbol| symbol.name == "saudacao")
+        .expect("função auxiliar");
+    assert_eq!(helper.kind, SymbolKind::Function);
+    assert_eq!(helper.ty, "cadeia");
     assert_eq!(
-        function
+        helper
             .children
             .iter()
-            .map(|s| s.name.as_str())
+            .map(|s| (s.name.as_str(), s.kind, s.ty))
             .collect::<Vec<_>>(),
-        ["nome", "i", "medidas"]
+        [
+            ("nome", SymbolKind::Parameter, "cadeia"),
+            ("prefixo", SymbolKind::Variable, "cadeia"),
+        ]
     );
-    assert_eq!(function.children[2].kind, SymbolKind::Matrix);
-    assert_eq!(function.children[2].ty, "real");
-    let before_name = source.split_once("nome").unwrap().0;
+    let before_prefixo = source.split_once("prefixo").unwrap().0;
     assert_eq!(
-        function.children[0].position.offset as usize,
-        before_name.encode_utf16().count()
+        helper.children[1].position.offset as usize,
+        before_prefixo.encode_utf16().count()
     );
 }

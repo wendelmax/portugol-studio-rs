@@ -6,25 +6,30 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use portugol_semantics::analyze;
-use portugol_syntax::{Diagnostic, Severity, parse};
+use portugol_syntax::{Diagnostic, Severity};
 
 const PORS_STARTER: &str = "funcao inicio() {\n    seja mutavel idade: inteiro = 16;\n    idade += 1;\n    escreva(idade);\n}\n";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum FileKind {
-    Pors,
-    ClassicPor,
+pub(crate) fn is_pors_file(path: &Path) -> bool {
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("pors"))
 }
 
-pub(crate) fn detect_kind(path: &Path) -> Option<FileKind> {
-    let ext = path.extension()?.to_str()?;
-    if ext.eq_ignore_ascii_case("pors") {
-        Some(FileKind::Pors)
-    } else if ext.eq_ignore_ascii_case("por") {
-        Some(FileKind::ClassicPor)
+pub(crate) fn is_legacy_file(path: &Path) -> bool {
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("por") || ext.eq_ignore_ascii_case("pex"))
+}
+
+pub(crate) fn report_unsupported_extension(path: &Path) {
+    if is_legacy_file(path) {
+        eprintln!(
+            "{}: arquivos legados .por/.pex não são suportados no Portugol Studio RS; use o Portugol Studio original para abri-los ou converta para .pors",
+            path.display()
+        );
     } else {
-        None
+        eprintln!("{}: extensão não suportada (use .pors)", path.display());
     }
 }
 
@@ -48,30 +53,25 @@ fn main() -> ExitCode {
 
     let mut paths = Vec::new();
     let mut quiet = false;
-    let mut syntax_only = false;
 
     for arg in &args {
         match arg.as_str() {
             "-q" | "--quiet" => quiet = true,
-            "--syntax-only" => syntax_only = true,
             _ => paths.push(PathBuf::from(arg)),
         }
     }
 
     let mut files = Vec::new();
     for path in paths {
-        if !path.is_dir() && detect_kind(&path).is_none() {
-            eprintln!(
-                "{}: extensão não suportada (use .pors ou .por)",
-                path.display()
-            );
+        if !path.is_dir() && !is_pors_file(&path) {
+            report_unsupported_extension(&path);
             return ExitCode::FAILURE;
         }
         collect_files(&path, &mut files);
     }
 
     if files.is_empty() {
-        eprintln!("nenhum arquivo .pors ou .por encontrado");
+        eprintln!("nenhum arquivo .pors encontrado");
         return ExitCode::FAILURE;
     }
 
@@ -92,27 +92,9 @@ fn main() -> ExitCode {
             }
         };
 
-        let diagnostics: Vec<Diagnostic> = match detect_kind(&file) {
-            Some(FileKind::Pors) => match portugol_rs_frontend::lower(&source) {
-                Ok(_) => Vec::new(),
-                Err(diagnostics) => diagnostics,
-            },
-            Some(FileKind::ClassicPor) => {
-                let result = parse(&source);
-                let mut diagnostics = result.diagnostics;
-
-                // Com erro de sintaxe a AST pode estar incompleta; a semântica geraria
-                // diagnósticos em cascata. Só roda quando a sintaxe está limpa.
-                if !syntax_only
-                    && !diagnostics
-                        .iter()
-                        .any(|diagnostic| diagnostic.severity == Severity::Error)
-                {
-                    diagnostics.extend(analyze(&result.program));
-                }
-                diagnostics
-            }
-            None => continue,
+        let diagnostics: Vec<Diagnostic> = match portugol_rs_frontend::lower(&source) {
+            Ok(_) => Vec::new(),
+            Err(diagnostics) => diagnostics,
         };
 
         let errors = diagnostics
@@ -163,7 +145,7 @@ fn new_command(args: &[String]) -> ExitCode {
     if path.extension().is_none() {
         path.set_extension("pors");
     }
-    if detect_kind(&path) != Some(FileKind::Pors) {
+    if !is_pors_file(&path) {
         eprintln!(
             "{}: o comando `novo` cria apenas arquivos .pors",
             path.display()
@@ -207,14 +189,14 @@ fn format_command(args: &[String]) -> ExitCode {
         }
     }
     let Some(file) = file else {
-        eprintln!("uso: portugol formatar [--check] <arquivo.pors | arquivo.por>");
+        eprintln!("uso: portugol formatar [--check] <arquivo.pors>");
         return ExitCode::FAILURE;
     };
     let path = Path::new(file);
-    let Some(kind) = detect_kind(path) else {
-        eprintln!("{file}: extensão não suportada (use .pors ou .por)");
+    if !is_pors_file(path) {
+        report_unsupported_extension(path);
         return ExitCode::FAILURE;
-    };
+    }
     let source = match read_source(path) {
         Ok(source) => source,
         Err(error) => {
@@ -223,20 +205,13 @@ fn format_command(args: &[String]) -> ExitCode {
         }
     };
 
-    let edits: Option<Vec<(usize, usize, String)>> = match kind {
-        FileKind::Pors => portugol_rs_frontend::format(&source).map(|edits| {
+    let edits: Option<Vec<(usize, usize, String)>> =
+        portugol_rs_frontend::format(&source).map(|edits| {
             edits
                 .into_iter()
                 .map(|edit| (edit.from, edit.to, edit.insert))
                 .collect()
-        }),
-        FileKind::ClassicPor => portugol_syntax::format::format(&source).map(|edits| {
-            edits
-                .into_iter()
-                .map(|edit| (edit.from, edit.to, edit.insert))
-                .collect()
-        }),
-    };
+        });
 
     let Some(edits) = edits else {
         eprintln!("{file}: não foi possível formatar (corrija os erros do programa primeiro)");
@@ -273,15 +248,15 @@ fn format_command(args: &[String]) -> ExitCode {
 
 fn export_rust_command(args: &[String]) -> ExitCode {
     if args.len() != 1 || args[0] == "-h" || args[0] == "--help" {
-        eprintln!("uso: portugol exportar-rust <arquivo.pors | arquivo.por>");
+        eprintln!("uso: portugol exportar-rust <arquivo.pors>");
         return ExitCode::FAILURE;
     }
     let file = &args[0];
     let path = Path::new(file);
-    let Some(kind) = detect_kind(path) else {
-        eprintln!("{file}: extensão não suportada (use .pors ou .por)");
+    if !is_pors_file(path) {
+        report_unsupported_extension(path);
         return ExitCode::FAILURE;
-    };
+    }
     let source = match read_source(path) {
         Ok(source) => source,
         Err(error) => {
@@ -290,29 +265,17 @@ fn export_rust_command(args: &[String]) -> ExitCode {
         }
     };
 
-    match kind {
-        FileKind::Pors => match portugol_rust::export_portugol_rs(&source) {
-            Ok(code) => {
-                print!("{code}");
-                ExitCode::SUCCESS
-            }
-            Err(diagnostics) => {
-                for diagnostic in diagnostics {
-                    eprintln!("{}", diagnostic.render(&source, file));
-                }
-                ExitCode::FAILURE
-            }
-        },
-        FileKind::ClassicPor => match portugol_rust::export(&source) {
-            Ok(code) => {
-                print!("{code}");
-                ExitCode::SUCCESS
-            }
-            Err(diagnostic) => {
+    match portugol_rust::export_portugol_rs(&source) {
+        Ok(code) => {
+            print!("{code}");
+            ExitCode::SUCCESS
+        }
+        Err(diagnostics) => {
+            for diagnostic in diagnostics {
                 eprintln!("{}", diagnostic.render(&source, file));
-                ExitCode::FAILURE
             }
-        },
+            ExitCode::FAILURE
+        }
     }
 }
 
@@ -324,8 +287,8 @@ fn export_cargo_command(args: &[String]) -> ExitCode {
     let file = &args[0];
     let target_dir = Path::new(&args[1]);
     let path = Path::new(file);
-    if detect_kind(path) != Some(FileKind::Pors) {
-        eprintln!("{file}: `exportar-cargo` aceita apenas arquivos .pors");
+    if !is_pors_file(path) {
+        report_unsupported_extension(path);
         return ExitCode::FAILURE;
     }
     if target_dir.join("Cargo.toml").exists() {
@@ -387,18 +350,16 @@ fn print_usage() {
         "portugol {}\n\
          \n\
          Uso:\n\
-           portugol [opções] <arquivo.pors | arquivo.por | diretório>...   valida os arquivos\n\
-           portugol novo <arquivo.pors>                                    cria um modelo .pors\n\
-           portugol formatar [--check] <arquivo.pors | arquivo.por>        formata o código-fonte\n\
-           portugol exportar-rust <arquivo.pors | arquivo.por>             imprime o Rust gerado\n\
-           portugol exportar-cargo <arquivo.pors> <pasta>                  gera um projeto Cargo pronto\n\
-           portugol executar [--bytecode] <arquivo.pors | arquivo.por> [-- parâmetros...]\n\
-                                                                           executa um programa na VM\n\
-           portugol depurar [--ponto <linha>]... <arquivo.pors>            depura um programa .pors interativamente\n\
+           portugol [opções] <arquivo.pors | diretório>...       valida os arquivos\n\
+           portugol novo <arquivo.pors>                          cria um modelo .pors\n\
+           portugol formatar [--check] <arquivo.pors>            formata o código-fonte\n\
+           portugol exportar-rust <arquivo.pors>                 imprime o Rust gerado\n\
+           portugol exportar-cargo <arquivo.pors> <pasta>        gera um projeto Cargo pronto\n\
+           portugol executar [--bytecode] <arquivo.pors>         executa um programa na VM\n\
+           portugol depurar [--ponto <linha>]... <arquivo.pors>  depura um programa .pors interativamente\n\
          \n\
          Opções da validação:\n\
            -q, --quiet   só mostra arquivos com erro\n\
-           --syntax-only só valida a sintaxe de arquivos .por (desliga a análise semântica)\n\
            -h, --help    mostra esta ajuda",
         env!("CARGO_PKG_VERSION")
     );
@@ -412,13 +373,11 @@ fn collect_files(path: &Path, files: &mut Vec<PathBuf>) {
         for entry in entries.flatten() {
             collect_files(&entry.path(), files);
         }
-    } else if detect_kind(path).is_some() {
+    } else if is_pors_file(path) {
         files.push(path.to_path_buf());
     }
 }
 
-/// Os exemplos históricos do Portugol Studio estão em ISO-8859-1; aceitamos
-/// UTF-8 (com ou sem BOM) e caímos para Latin-1 quando necessário.
 pub(crate) fn read_source(path: &Path) -> std::io::Result<String> {
     let bytes = fs::read(path)?;
 

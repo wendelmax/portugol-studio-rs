@@ -15,12 +15,12 @@ use std::time::Duration;
 use serde::Serialize;
 
 use portugol_bytecode::ValueType;
-use portugol_syntax::{Diagnostic, Severity, Span};
+use portugol_syntax::{Diagnostic, Span};
 use portugol_vm::debug::{DebugCommand, DebugControl, PausedInfo};
 use portugol_vm::{FileFilter, Host, Io, Vm};
 
 use crate::position::{LineIndex, Position};
-use crate::{DiagnosticInfo, analyze, describe};
+use crate::{DiagnosticInfo, describe};
 
 const FLUSH_INTERVAL: Duration = Duration::from_millis(30);
 /// Acima disso o lote é entregue na hora, sem esperar o intervalo.
@@ -199,21 +199,6 @@ impl RunHandle {
     }
 }
 
-/// Analisa, compila e começa a executar. Erros de análise ou compilação
-/// voltam como diagnósticos e nada é executado.
-pub fn start(
-    source: &str,
-    options: RunOptions,
-    observer: Arc<dyn RunObserver>,
-) -> Result<RunHandle, Vec<DiagnosticInfo>> {
-    let host_observer = Arc::clone(&observer);
-    start_with_host(source, options, observer, |_| {
-        Box::new(ServiceHost {
-            observer: host_observer,
-        })
-    })
-}
-
 /// Lower, compila e inicia uma sessão de depuração Portugol-RS na VM.
 /// A execução normal do dialeto continua usando o backend Rust (`rustc`).
 pub fn start_portugol_rs(
@@ -269,31 +254,6 @@ pub fn start_portugol_rs_with_host(
             string_bytes: PORS_DEBUG_STRING_LIMIT,
         }),
     )
-}
-
-/// Executa com um host próprio, construído na thread da VM. A flag recebida
-/// pela fábrica permite interromper operações do host que aguardam a interface.
-pub fn start_with_host(
-    source: &str,
-    options: RunOptions,
-    observer: Arc<dyn RunObserver>,
-    make_host: impl FnOnce(Arc<AtomicBool>) -> Box<dyn Host> + Send + 'static,
-) -> Result<RunHandle, Vec<DiagnosticInfo>> {
-    let index = LineIndex::new(source);
-    let (diagnostics, program) = analyze(source);
-    let Some(program) = program else {
-        return Err(diagnostics
-            .iter()
-            .filter(|d| d.severity == Severity::Error)
-            .map(|d| describe(&index, d))
-            .collect());
-    };
-    let module = portugol_bytecode::compile(&program).map_err(|error| {
-        let diagnostic = Diagnostic::error("compile.error", error.message, error.span);
-        vec![describe(&index, &diagnostic)]
-    })?;
-
-    start_module(source, options, observer, make_host, module, None)
 }
 
 fn start_module(

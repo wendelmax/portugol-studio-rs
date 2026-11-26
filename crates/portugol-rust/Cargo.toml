@@ -3,11 +3,10 @@ name = "portugol-rust"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Lowering didático de um subconjunto de Portugol para Rust"
+description = "Lowering didático de Portugol-RS (.pors) para Rust"
 
 [dependencies]
 portugol-syntax = { path = "../portugol-syntax" }
-portugol-semantics = { path = "../portugol-semantics" }
 
 portugol-hir = { path = "../portugol-hir" }
 portugol-rs-frontend = { path = "../portugol-rs-frontend" }

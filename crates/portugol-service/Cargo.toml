@@ -3,11 +3,10 @@ name = "portugol-service"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Fachada do núcleo do Portugol para a IDE: análise e execução em segundo plano"
+description = "Fachada do núcleo do Portugol-RS para a IDE: análise e execução em segundo plano"
 
 [dependencies]
 portugol-syntax = { path = "../portugol-syntax" }
-portugol-semantics = { path = "../portugol-semantics" }
 portugol-rust = { path = "../portugol-rust" }
 portugol-rs-frontend = { path = "../portugol-rs-frontend" }
 portugol-hir = { path = "../portugol-hir" }
@@ -15,7 +14,6 @@ portugol-bytecode = { path = "../portugol-bytecode" }
 portugol-vm = { path = "../portugol-vm" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-roxmltree = "0.20"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

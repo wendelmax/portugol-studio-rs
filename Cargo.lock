@@ -2724,7 +2724,6 @@ dependencies = [
  "portugol-bytecode",
  "portugol-rs-frontend",
  "portugol-rust",
- "portugol-semantics",
  "portugol-syntax",
  "portugol-vm",
 ]
@@ -2764,7 +2763,6 @@ version = "0.5.0"
 dependencies = [
  "portugol-hir",
  "portugol-rs-frontend",
- "portugol-semantics",
  "portugol-syntax",
 ]
 
@@ -2784,10 +2782,8 @@ dependencies = [
  "portugol-hir",
  "portugol-rs-frontend",
  "portugol-rust",
- "portugol-semantics",
  "portugol-syntax",
  "portugol-vm",
- "roxmltree",
  "serde",
  "serde_json",
  "windows-sys 0.61.2",

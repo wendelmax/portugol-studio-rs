@@ -1,22 +1,5 @@
 use portugol_vm::Value;
-use portugol_vm::stdlib::{constant, native};
-
-#[test]
-fn todos_os_recursos_da_ajuda_existem_na_vm() {
-    let catalog = include_str!("../../../apps/desktop/src/help-assets/bibliotecas.json");
-    let libraries: serde_json::Value = serde_json::from_str(catalog).unwrap();
-    for (library, item) in libraries.as_object().unwrap() {
-        for resource in item["resources"].as_array().unwrap() {
-            let name = resource["name"].as_str().unwrap();
-            let signature = resource["signature"].as_str().unwrap();
-            if signature.starts_with("funcao ") {
-                assert!(native(library, name).is_some(), "{library}.{name}");
-            } else {
-                assert!(constant(library, name).is_some(), "{library}.{name}");
-            }
-        }
-    }
-}
+use portugol_vm::stdlib::constant;
 
 #[test]
 fn constantes_do_teclado_usam_os_codigos_do_keyevent() {

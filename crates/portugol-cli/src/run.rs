@@ -1,14 +1,13 @@
 //! Subcomando `executar`: análise completa, compilação e execução na VM
-//! para programas Portugol-RS (`.pors`) e Portugol clássico (`.por`).
+//! para programas Portugol-RS (`.pors`).
 
 use std::path::Path;
 use std::process::ExitCode;
 
-use portugol_semantics::analyze;
-use portugol_syntax::{Diagnostic, Severity, Span, parse};
+use portugol_syntax::{Diagnostic, Span};
 use portugol_vm::{StdIo, Vm};
 
-use crate::{FileKind, detect_kind, read_source};
+use crate::{is_pors_file, read_source, report_unsupported_extension};
 
 pub fn main(args: &[String]) -> ExitCode {
     let (args, program_args) = match args.iter().position(|a| a == "--") {
@@ -28,18 +27,16 @@ pub fn main(args: &[String]) -> ExitCode {
         }
     }
     let Some(file) = file else {
-        eprintln!(
-            "uso: portugol executar [--bytecode] <arquivo.pors | arquivo.por> [-- parâmetros...]"
-        );
+        eprintln!("uso: portugol executar [--bytecode] <arquivo.pors>");
         return ExitCode::FAILURE;
     };
 
     let path = Path::new(file);
-    let Some(kind) = detect_kind(path) else {
-        eprintln!("{file}: extensão não suportada (use .pors ou .por)");
+    if !is_pors_file(path) {
+        report_unsupported_extension(path);
         return ExitCode::FAILURE;
-    };
-    if kind == FileKind::Pors && !program_args.is_empty() {
+    }
+    if !program_args.is_empty() {
         eprintln!(
             "{file}: parâmetros de linha de comando ainda não são suportados em funcao inicio() de .pors"
         );
@@ -54,47 +51,22 @@ pub fn main(args: &[String]) -> ExitCode {
         }
     };
 
-    let module = match kind {
-        FileKind::Pors => {
-            let program = match portugol_rs_frontend::lower(&source) {
-                Ok(program) => program,
-                Err(diagnostics) => {
-                    for diagnostic in diagnostics {
-                        eprintln!("{}", diagnostic.render(&source, file));
-                    }
-                    return ExitCode::FAILURE;
-                }
-            };
-            match portugol_bytecode::compile_pors(&program) {
-                Ok(module) => module,
-                Err(error) => {
-                    let span = Span::new(error.span.start, error.span.end);
-                    let diagnostic = Diagnostic::error("pors.compile-error", error.message, span);
-                    eprintln!("{}", diagnostic.render(&source, file));
-                    return ExitCode::FAILURE;
-                }
+    let program = match portugol_rs_frontend::lower(&source) {
+        Ok(program) => program,
+        Err(diagnostics) => {
+            for diagnostic in diagnostics {
+                eprintln!("{}", diagnostic.render(&source, file));
             }
+            return ExitCode::FAILURE;
         }
-        FileKind::ClassicPor => {
-            let result = parse(&source);
-            let mut diagnostics = result.diagnostics;
-            if !has_errors(&diagnostics) {
-                diagnostics.extend(analyze(&result.program));
-            }
-            if has_errors(&diagnostics) {
-                for diagnostic in diagnostics.iter().filter(|d| d.severity == Severity::Error) {
-                    eprintln!("{}", diagnostic.render(&source, file));
-                }
-                return ExitCode::FAILURE;
-            }
-            match portugol_bytecode::compile(&result.program) {
-                Ok(module) => module,
-                Err(error) => {
-                    let diagnostic = Diagnostic::error("compile.error", error.message, error.span);
-                    eprintln!("{}", diagnostic.render(&source, file));
-                    return ExitCode::FAILURE;
-                }
-            }
+    };
+    let module = match portugol_bytecode::compile_pors(&program) {
+        Ok(module) => module,
+        Err(error) => {
+            let span = Span::new(error.span.start, error.span.end);
+            let diagnostic = Diagnostic::error("pors.compile-error", error.message, span);
+            eprintln!("{}", diagnostic.render(&source, file));
+            return ExitCode::FAILURE;
         }
     };
 
@@ -104,7 +76,7 @@ pub fn main(args: &[String]) -> ExitCode {
     }
 
     let mut io = StdIo;
-    let mut vm = Vm::new(&module, &mut io).with_args(program_args);
+    let mut vm = Vm::new(&module, &mut io);
     match vm.run() {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
@@ -118,10 +90,6 @@ pub fn main(args: &[String]) -> ExitCode {
             ExitCode::FAILURE
         }
     }
-}
-
-fn has_errors(diagnostics: &[Diagnostic]) -> bool {
-    diagnostics.iter().any(|d| d.severity == Severity::Error)
 }
 
 fn print_listing(module: &portugol_bytecode::Module) {
