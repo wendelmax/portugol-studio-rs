@@ -318,8 +318,17 @@
                 <button id="ownership-previous" type="button" aria-label="Passo anterior" disabled>← Anterior</button>
                 <button id="ownership-next" type="button" aria-label="Próximo passo">Próximo →</button>
                 <button id="ownership-restart" type="button" aria-label="Reiniciar cenário" disabled>Reiniciar</button>
+                <button id="ownership-check-rustc" type="button" aria-label="Verificar cenário com rustc">Verificar com rustc</button>
+                <button id="ownership-open-rs" type="button" aria-label="Abrir cenário como arquivo Rust">Abrir como .rs</button>
                 <span id="ownership-step-status" role="status" aria-live="polite"></span>
               </div>
+              <section id="ownership-rustc-panel" class="ownership-rustc-panel" aria-live="polite" hidden>
+                <header class="ownership-rustc-header">
+                  <span id="ownership-rustc-provenance" class="ownership-rustc-provenance">Verificação real via rustc</span>
+                </header>
+                <p id="ownership-rustc-summary" class="ownership-rustc-summary"></p>
+                <ul id="ownership-rustc-diagnostics" class="ownership-rustc-diagnostics" aria-label="Diagnósticos reais do rustc"></ul>
+              </section>
               <article class="ownership-step">
                 <h4 id="ownership-step-title"></h4>
                 <p id="ownership-explanation"></p>

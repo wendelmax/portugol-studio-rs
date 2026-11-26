@@ -165,6 +165,7 @@ cargo run -p portugol-cli -- exportar-cargo programa.pors pasta  # gera um proje
 | `crates/portugol-service` | camada usada pela IDE: verificar, executar, depurar, exemplos e exercícios `.pors.json` |
 | `crates/portugol-cli` | executável `portugol` |
 | `apps/desktop` | IDE em Tauri v2 com frontend TypeScript e CodeMirror 6 |
+| `apps/web-playground` | playground web estático sem dependências usando `portugol-wasm` (`scripts/build-web-playground.sh`) |
 | `docs` | arquitetura, decisões técnicas (`docs/adr`) e distribuição |
 
 A IDE usa Tauri porque o produto depende de um editor de código completo

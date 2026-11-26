@@ -585,6 +585,76 @@
   background: var(--ownership-diagnostic-bg);
 }
 
+.ownership-rustc-panel {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-xs);
+  background: var(--bg);
+}
+
+.ownership-rustc-panel[data-status="compile-error"] {
+  border-left-color: var(--error);
+}
+
+.ownership-rustc-panel[data-status="compiled"] {
+  border-left-color: var(--ok);
+}
+
+.ownership-rustc-provenance {
+  display: inline-block;
+  padding: 2px var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.ownership-rustc-summary {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+}
+
+.ownership-rustc-diagnostics {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ownership-rustc-item {
+  display: grid;
+  gap: 2px;
+  padding: 6px var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--surface);
+  font-size: var(--font-size-xs);
+}
+
+.ownership-rustc-item[data-severity="error"] {
+  border-color: var(--error);
+  background: var(--ownership-diagnostic-bg);
+}
+
+.ownership-rustc-meta {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.ownership-rustc-item code {
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .ownership-memory-grid {
   display: grid;
   grid-template-columns: minmax(260px, 1.2fr) repeat(2, minmax(210px, 1fr));

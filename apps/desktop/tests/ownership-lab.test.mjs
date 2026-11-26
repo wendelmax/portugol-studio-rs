@@ -147,4 +147,42 @@ test("painel visual só aparece para ownership e oferece controles acessíveis",
   assert.ok(/id="ownership-step-status"[^>]*aria-live="polite"/.test(html), "mudança de passo é anunciada sem interromper");
   assert.ok(/id="ownership-bindings"[^>]*aria-label=/.test(html), "bindings têm região nomeada");
   assert.ok(/id="ownership-heap"[^>]*aria-label=/.test(html), "heap tem região nomeada");
+  assert.ok(/id="ownership-check-rustc"[^>]*aria-label=/.test(html), "botão de verificação real tem nome acessível");
+  assert.ok(/id="ownership-open-rs"[^>]*aria-label=/.test(html), "botão de abrir .rs tem nome acessível");
+  assert.ok(/id="ownership-rustc-panel"[^>]*hidden/.test(html), "painel de verificação rustc começa oculto");
+  assert.ok(/id="ownership-rustc-provenance"/.test(html), "verificação rustc tem rótulo próprio de proveniência");
+});
+
+test("formatOwnershipRustcCheck distingue proveniência real e interpreta erros esperados", async () => {
+  const { getOwnershipScenario } = await import(moduleUrl.href);
+  const { formatOwnershipRustcCheck, formatOwnershipRustcUnavailable } = await import(
+    new URL("../src/learning/ownership-rustc.ts", import.meta.url).href
+  );
+
+  const moveScenario = getOwnershipScenario("move");
+  const moveReport = formatOwnershipRustcCheck(moveScenario, [
+    {
+      severity: "error",
+      code: "E0382",
+      message: "borrow of moved value: `a`",
+      rendered: null,
+      start: { offset: 0, line: 4, column: 16 },
+      end: { offset: 1, line: 4, column: 17 },
+    },
+  ]);
+  assert.equal(moveReport.provenance, "rustc-real");
+  assert.equal(moveReport.status, "compile-error");
+  assert.equal(moveReport.matchesExpected, true);
+  assert.match(moveReport.provenanceLabel, /rustc/i);
+  assert.equal(moveReport.items[0].code, "E0382");
+  assert.equal(moveReport.items[0].location, "linha 4, coluna 16");
+
+  const borrowScenario = getOwnershipScenario("shared-borrow");
+  const borrowReport = formatOwnershipRustcCheck(borrowScenario, []);
+  assert.equal(borrowReport.status, "compiled");
+  assert.equal(borrowReport.matchesExpected, true);
+
+  const unavailable = formatOwnershipRustcUnavailable();
+  assert.equal(unavailable.status, "unavailable");
+  assert.match(unavailable.summary, /rustc/i);
 });

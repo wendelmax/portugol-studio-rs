@@ -39,6 +39,7 @@ jobs:
               - '.github/workflows/ci.yml'
             ide:
               - 'apps/desktop/**'
+              - 'apps/web-playground/**'
               - 'crates/**'
               - 'Cargo.toml'
               - 'Cargo.lock'
