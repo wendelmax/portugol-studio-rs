@@ -20,6 +20,27 @@ export default defineConfig({
         ide: fileURLToPath(new URL("./index.html", import.meta.url)),
         graphics: fileURLToPath(new URL("./graphics.html", import.meta.url)),
       },
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: "codemirror-view",
+              test: /node_modules[\\/]@codemirror[\\/]view/,
+              priority: 30,
+            },
+            {
+              name: "codemirror",
+              test: /node_modules[\\/](@codemirror|@lezer)[\\/]/,
+              priority: 20,
+            },
+            {
+              name: "tauri",
+              test: /node_modules[\\/]@tauri-apps[\\/]/,
+              priority: 10,
+            },
+          ],
+        },
+      },
     },
     target: "es2021",
     minify: !process.env.TAURI_ENV_DEBUG,
