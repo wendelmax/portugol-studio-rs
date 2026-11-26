@@ -9,7 +9,7 @@ test("execution controller wiring lives in a dedicated shell", async () => {
 
   assert.match(shell, /createRustExecutionController\(/);
   assert.match(shell, /createPortugolRsExecutionController\(/);
-  assert.match(shell, /createClassicExecutionController\(/);
+  assert.doesNotMatch(shell, /createClassicExecutionController\(/);
   assert.match(shell, /createCargoProjectController\(/);
   assert.match(shell, /createRunDispatcher\(/);
   assert.match(main, /createRunShell\(/);

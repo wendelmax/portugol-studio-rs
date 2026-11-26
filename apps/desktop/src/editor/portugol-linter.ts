@@ -5,7 +5,6 @@ import type { Tab } from "../state/tab";
 
 export interface PortugolLintDependencies {
   activeTab: () => Tab | undefined;
-  inspectPortugol: (source: string) => Promise<Inspection>;
   inspectPortugolRs: (source: string) => Promise<Inspection>;
   renderMessages: () => void;
   showOutline: (symbols: SymbolInfo[]) => void;
@@ -13,7 +12,7 @@ export interface PortugolLintDependencies {
   toCodeMirror: (diagnostic: DiagnosticInfo, length: number) => CodeMirrorDiagnostic;
 }
 
-/** Inspects Portugol/PORS source and synchronizes its diagnostics and symbols. */
+/** Inspects Portugol-RS source and synchronizes its diagnostics and symbols. */
 export function createPortugolLintSourceCheck(dependencies: PortugolLintDependencies) {
   return async (view: EditorView): Promise<CodeMirrorDiagnostic[]> => {
     const doc = view.state.doc;
@@ -28,12 +27,9 @@ export function createPortugolLintSourceCheck(dependencies: PortugolLintDependen
       return [];
     }
 
-    const language = tab?.language ?? "portugol";
     let inspection: Inspection;
     try {
-      inspection = language === "portugol-rs"
-        ? await dependencies.inspectPortugolRs(doc.toString())
-        : await dependencies.inspectPortugol(doc.toString());
+      inspection = await dependencies.inspectPortugolRs(doc.toString());
     } catch {
       if (tab && tab === dependencies.activeTab() && view.state.doc === doc) {
         tab.diagnosticsAnalysis = { source: doc.toString(), status: "unavailable" };

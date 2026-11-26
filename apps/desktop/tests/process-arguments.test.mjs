@@ -41,13 +41,6 @@ test("encaminha argv como lista tipada do editor ao processo Rust, sem shell", (
   assert.doesNotMatch(runner, /Command::new\(args|sh -c.*args/);
 });
 
-test("classic Portugol arguments split on spaces and group quoted text", async () => {
-  const { parseClassicArguments } = await import("../src/process-arguments.ts");
-  assert.deepEqual(parseClassicArguments('"João Silva" 19 ativo'), ["João Silva", "19", "ativo"]);
-  assert.deepEqual(parseClassicArguments('  a   ""  b '), ["a", "", "b"]);
-  assert.deepEqual(parseClassicArguments(""), []);
-});
-
 test("execution parameters are hidden for Portugol-RS, which takes no argv", async () => {
   const { isPaletteCommandAvailable } = await import("../src/command-palette.ts");
   const context = {
@@ -55,7 +48,6 @@ test("execution parameters are hidden for Portugol-RS, which takes no argv", asy
     runActive: false, paused: false, porsRunPending: false,
   };
   assert.equal(isPaletteCommandAvailable("Parâmetros de execução", context), false);
-  assert.equal(isPaletteCommandAvailable("Parâmetros de execução", { ...context, language: "portugol" }), true);
   assert.equal(isPaletteCommandAvailable("Parâmetros de execução", { ...context, language: "rust" }), true);
   assert.equal(isPaletteCommandAvailable("Parâmetros de execução", { ...context, language: null }), false);
 });

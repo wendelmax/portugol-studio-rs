@@ -65,26 +65,12 @@ test("home new file menu Escape closes and restores focus", () => {
   assert.equal(state.summary.focused, true);
 });
 
-test("home new file menu selects classic Portugol and closes", () => {
-  const state = setup(["portugol-rs", "rust", "portugol"]);
-  let selected = "";
-  mountHomeNewFileMenu(state.menu, {
-    "portugol-rs": () => { selected = "portugol-rs"; },
-    rust: () => { selected = "rust"; },
-    portugol: () => { selected = "portugol"; },
-  });
-
-  state.callbacks.get("portugol:click")();
-
-  assert.equal(selected, "portugol");
-  assert.equal(state.menu.open, false);
-});
-
-test("home new file menu ignores unknown language values", () => {
-  const state = setup(["toString"]);
+test("home new file menu ignores legacy classic Portugol and unknown language values", () => {
+  const state = setup(["portugol", "toString"]);
   let invoked = false;
   mountHomeNewFileMenu(state.menu, { "portugol-rs": () => { invoked = true; }, rust: () => { invoked = true; } });
 
+  state.callbacks.get("portugol:click")();
   state.callbacks.get("toString:click")();
 
   assert.equal(invoked, false);

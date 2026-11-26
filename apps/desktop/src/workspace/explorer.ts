@@ -4,6 +4,7 @@
 import { ask } from "@tauri-apps/plugin-dialog";
 import * as api from "../api";
 import { $ } from "../dom";
+import { porsExerciseDocument } from "../exercise-opening";
 import type { ExerciseDocument } from "../exercises";
 import { setStatus } from "../shell/status";
 import type { Tab, WorkspaceFileRef } from "../state/tab";
@@ -101,7 +102,7 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
       const marker = document.createElement("span");
       marker.className = "workspace-tree-marker";
       marker.setAttribute("aria-hidden", "true");
-      marker.textContent = isFolder ? (isExpanded ? "▾" : "▸") : workspaceFileKind(entry.path) === "rust" ? "R" : workspaceFileKind(entry.path) === "portugol-rs" ? "RS" : workspaceFileKind(entry.path) === "exercise" ? "EX" : "POR";
+      marker.textContent = isFolder ? (isExpanded ? "▾" : "▸") : workspaceFileKind(entry.path) === "rust" ? "R" : workspaceFileKind(entry.path) === "exercise" ? "EX" : "RS";
       const label = document.createElement("span");
       label.className = "workspace-tree-label";
       label.textContent = entry.name;
@@ -185,7 +186,7 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
       message.textContent = "Abra uma pasta para navegar pelos arquivos do projeto.";
       message.hidden = false;
     } else if (rows.length === 0) {
-      message.textContent = "Esta pasta não contém arquivos .por, .pors, .rs ou .pex.";
+      message.textContent = "Esta pasta não contém arquivos .pors, .rs ou .pors.json.";
       message.hidden = false;
     } else {
       message.textContent = "";
@@ -260,9 +261,14 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
       }
       const loaded = await api.readWorkspaceFile(selected.id, entry.path);
       if (workspaceState?.id !== selected.id) return;
-      const exercise = await api.inspectExercise(loaded.source);
+      const summary = await api.inspectPorsExercise(loaded.source);
       if (workspaceState?.id !== selected.id) return;
-      host.openExercise({ exercise, name: loaded.path.split("/").pop() ?? entry.name, contents: loaded.source }, {
+      const exerciseDoc = porsExerciseDocument(
+        summary,
+        summary.title || loaded.path.split("/").pop() || entry.name,
+        loaded.source,
+      );
+      host.openExercise(exerciseDoc, {
         id: selected.id,
         path: loaded.relativePath,
         preferenceKey: selected.preferenceKey,
@@ -621,7 +627,7 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
     if (!selected) return;
 
     const name = $<HTMLInputElement>("workspace-create-name");
-    const language = $<HTMLSelectElement>("workspace-create-language").value as "por" | "pors" | "rs";
+    const language = $<HTMLSelectElement>("workspace-create-language").value as "pors" | "rs";
     let fileName: string;
     try {
       fileName = workspaceSourceFileName(name.value, language);

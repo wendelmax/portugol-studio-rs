@@ -12,9 +12,6 @@ export interface RunDispatcherDependencies {
   portugolRsExecution: {
     run: (tab: Tab, document: Text, breakpoints: number[], pauseOnStart: boolean, asRust: boolean) => Promise<void>;
   };
-  classicExecution: {
-    run: (tab: Tab, document: Text, argumentsText: string, breakpoints: number[], pauseOnStart: boolean) => Promise<void>;
-  };
   isPaused: () => boolean;
   debugContinue: () => Promise<void>;
   debugStepOver: () => Promise<void>;
@@ -33,11 +30,7 @@ export function createRunDispatcher(dependencies: RunDispatcherDependencies) {
     }
     const document = dependencies.currentDocument();
     const breakpoints = dependencies.breakpointLines(dependencies.editorState());
-    if (tab.language === "portugol-rs") {
-      await dependencies.portugolRsExecution.run(tab, document, breakpoints, pauseOnStart, asRust);
-      return;
-    }
-    await dependencies.classicExecution.run(tab, document, dependencies.argumentsText(), breakpoints, pauseOnStart);
+    await dependencies.portugolRsExecution.run(tab, document, breakpoints, pauseOnStart, asRust);
   }
 
   return {

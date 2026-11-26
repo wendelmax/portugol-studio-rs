@@ -40,47 +40,50 @@ test("collects all workspace files recursively in tree order", () => {
   assert.deepEqual(collectWorkspaceFiles([]), []);
 });
 
-test("classifies Portugol, Portugol-RS, Rust, and exercise files case-insensitively", () => {
-  assert.equal(workspaceFileKind("aula.POR"), "portugol");
+test("classifies Portugol-RS, Rust, and PORS exercise files case-insensitively and ignores legacy .por/.pex", () => {
+  assert.equal(workspaceFileKind("aula.POR"), null);
   assert.equal(workspaceFileKind("ponte.PORS"), "portugol-rs");
   assert.equal(workspaceFileKind("main.RS"), "rust");
-  assert.equal(workspaceFileKind("listas.PEX"), "exercise");
+  assert.equal(workspaceFileKind("listas.PORS.JSON"), "exercise");
+  assert.equal(workspaceFileKind("listas.PEX"), null);
   assert.equal(workspaceFileKind("leia-me.md"), null);
 });
 
 test("validates Rust workspace source filenames", () => {
   assert.equal(workspaceSourceFileName("main", "rs"), "main.rs");
   assert.equal(workspaceSourceFileName("main.RS", "rs"), "main.RS");
-  assert.throws(() => workspaceSourceFileName("main.por", "rs"), /extensão/);
+  assert.throws(() => workspaceSourceFileName("main.pors", "rs"), /extensão/);
 });
 
-test("builds new Portugol, Portugol-RS, and Rust filenames from the selected language", () => {
-  assert.equal(workspaceSourceFileName("ola", "por"), "ola.por");
+test("builds new Portugol-RS and Rust filenames from the selected language", () => {
+  assert.equal(workspaceSourceFileName("ola", "pors"), "ola.pors");
   assert.equal(workspaceSourceFileName("ponte.pors", "pors"), "ponte.pors");
   assert.equal(workspaceSourceFileName("main", "rs"), "main.rs");
-  assert.equal(workspaceSourceFileName("classico.POR", "por"), "classico.POR");
+  assert.equal(workspaceSourceFileName("moderno.PORS", "pors"), "moderno.PORS");
 });
 
 test("rejects empty names, path separators, and extensions that conflict with the language", () => {
-  assert.throws(() => workspaceSourceFileName("", "por"), /nome/i);
-  assert.throws(() => workspaceSourceFileName("../fora", "por"), /nome/i);
+  assert.throws(() => workspaceSourceFileName("", "pors"), /nome/i);
+  assert.throws(() => workspaceSourceFileName("../fora", "pors"), /nome/i);
   assert.throws(() => workspaceSourceFileName("subpasta\\programa", "pors"), /nome/i);
   assert.throws(() => workspaceSourceFileName("programa.por", "pors"), /extensão/i);
 });
 
 test("renames a workspace file while preserving its original extension", () => {
-  assert.equal(workspaceRenameFileName("novo", "antigo.por"), "novo.por");
+  assert.equal(workspaceRenameFileName("novo", "antigo.pors"), "novo.pors");
   assert.equal(workspaceRenameFileName("ponte.pors", "classico.pors"), "ponte.pors");
   assert.equal(workspaceRenameFileName("crates.rs", "main.rs"), "crates.rs");
-  assert.equal(workspaceRenameFileName("atividade.pex", "exercicio.pex"), "atividade.pex");
-  assert.equal(workspaceRenameFileName(" nome.por ", " nome.por "), " nome.por ");
+  assert.equal(workspaceRenameFileName("atividade", "exercicio.pors.json"), "atividade.pors.json");
+  assert.equal(workspaceRenameFileName("atividade.pors.json", "exercicio.pors.json"), "atividade.pors.json");
+  assert.equal(workspaceRenameFileName(" nome.pors ", " nome.pors "), " nome.pors ");
 });
 
 test("rejects unsafe rename names and extension changes", () => {
-  assert.throws(() => workspaceRenameFileName("", "antigo.por"), /nome/i);
-  assert.throws(() => workspaceRenameFileName("../fora", "antigo.por"), /nome/i);
-  assert.throws(() => workspaceRenameFileName("novo.pors", "antigo.por"), /extensão/i);
+  assert.throws(() => workspaceRenameFileName("", "antigo.pors"), /nome/i);
+  assert.throws(() => workspaceRenameFileName("../fora", "antigo.pors"), /nome/i);
+  assert.throws(() => workspaceRenameFileName("novo.rs", "antigo.pors"), /extensão/i);
   assert.throws(() => workspaceRenameFileName("novo", "notas.txt"), /extensão/i);
+  assert.throws(() => workspaceRenameFileName("novo", "antigo.por"), /extensão/i);
 });
 
 test("home action and explorer tree expose stable accessible controls", () => {
@@ -101,13 +104,13 @@ test("home start page defaults new file to Portugol-RS and groups alternate lang
   assert.match(html, /<summary[^>]*aria-label="Criar arquivo em outra linguagem"/);
   assert.match(html, /id="home-new-pors"[^>]*data-home-new-language="portugol-rs"[^>]*>Novo Portugol-RS \(\.pors\)<\/button>/);
   assert.match(html, /id="home-new-rust"[^>]*data-home-new-language="rust"[^>]*>Novo Rust \(\.rs\)<\/button>/);
-  assert.match(html, /id="home-new-por"[^>]*data-home-new-language="portugol"[^>]*>Novo Portugol clássico \(\.por\)<\/button>/);
+  assert.doesNotMatch(html, /id="home-new-por"/);
   assert.match(main, /\$\("home-new"\)\.onclick = \(\) => newTab\(\);/);
   assert.match(main, /function newTab\(\s*text = PORS_TEMPLATE/);
   assert.match(main, /mountHomeNewFileMenu\(/);
   assert.match(main, /"portugol-rs": \(\) => newTab\(PORS_TEMPLATE, null, undefined, undefined, undefined, "portugol-rs"\)/);
   assert.match(main, /rust: \(\) => newTab\("fn main\(\) \{\\n    \\n\}\\n", null, undefined, undefined, undefined, "rust"\)/);
-  assert.match(main, /portugol: \(\) => newTab\(NEW_PROGRAM, null, undefined, undefined, undefined, "portugol"\)/);
+  assert.doesNotMatch(main, /portugol: \(\) => newTab/);
   assert.doesNotMatch(main, /const newPorsButton = document\.createElement/);
   assert.doesNotMatch(main, /const newRustButton = document\.createElement/);
   assert.match(css, /\.home-actions > button,\s*\.home-new-file-group > button/);
@@ -115,14 +118,14 @@ test("home start page defaults new file to Portugol-RS and groups alternate lang
   assert.match(css, /\.home-new-menu > summary:focus-visible,[\s\S]*?outline: 2px solid var\(--accent\)/);
 });
 
-test("workspace create dialog exposes the .pors (default), .rs, and .por choices and an error status", () => {
+test("workspace create dialog exposes the .pors (default) and .rs choices and an error status", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   assert.match(html, /id="workspace-new-file"/);
   assert.match(html, /id="workspace-create-dialog"[^>]*aria-labelledby="workspace-create-title"/);
   assert.match(html, /id="workspace-create-name"[^>]*aria-describedby="workspace-create-error"/);
   assert.match(html, /<option value="pors" selected>[^<]*\.pors\)<\/option>/);
   assert.match(html, /<option value="rs">[^<]*\.rs\)<\/option>/);
-  assert.match(html, /<option value="por">[^<]*\.por\)<\/option>/);
+  assert.doesNotMatch(html, /<option value="por">/);
   assert.match(html, /id="workspace-create-error"[^>]*role="status"/);
   assert.match(html, /id="workspace-create-submit"/);
   assert.match(html, /id="workspace-create-cancel"/);

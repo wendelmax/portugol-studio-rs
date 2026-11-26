@@ -6,7 +6,7 @@ function fixture() {
   const calls = [];
   const document = { id: "document" };
   const editorState = { id: "editor-state" };
-  let tab = { language: "portugol" };
+  let tab = { language: "portugol-rs" };
   let busy = false;
   let paused = false;
   const dispatcher = createRunDispatcher({
@@ -18,7 +18,6 @@ function fixture() {
     breakpointLines: (state) => { calls.push(["breakpoints", state]); return [3, 8]; },
     rustExecution: { run: async (pause) => calls.push(["rust", pause]) },
     portugolRsExecution: { run: async (...args) => calls.push(["pors", ...args]) },
-    classicExecution: { run: async (...args) => calls.push(["portugol", ...args]) },
     isPaused: () => paused,
     debugContinue: async () => calls.push(["continue"]),
     debugStepOver: async () => calls.push(["step"]),
@@ -42,18 +41,15 @@ test("busy and no-tab guards prevent starting a program", async () => {
   assert.deepEqual(f.calls, []);
 });
 
-test("dispatches Rust, PORS, and classic programs with their existing controller arguments", async () => {
+test("dispatches Rust and PORS programs with their existing controller arguments", async () => {
   const f = fixture();
   f.setTab({ language: "rust" });
   await f.dispatcher.runProgram(true, false);
   f.setTab({ language: "portugol-rs" });
   await f.dispatcher.runProgram(true, true);
-  f.setTab({ language: "portugol" });
-  await f.dispatcher.runProgram(false, true);
   assert.deepEqual(f.calls, [
     ["rust", true],
     ["breakpoints", f.editorState], ["pors", { language: "portugol-rs" }, f.document, [3, 8], true, true],
-    ["breakpoints", f.editorState], ["portugol", { language: "portugol" }, f.document, "arg1 arg2", [3, 8], false],
   ]);
 });
 
@@ -65,8 +61,8 @@ test("continues or steps when paused, otherwise starts execution", async () => {
   await f.dispatcher.runOrContinue();
   await f.dispatcher.stepOrStart();
   assert.deepEqual(f.calls, [
-    ["breakpoints", f.editorState], ["portugol", { language: "portugol" }, f.document, "arg1 arg2", [3, 8], false],
-    ["breakpoints", f.editorState], ["portugol", { language: "portugol" }, f.document, "arg1 arg2", [3, 8], true],
+    ["breakpoints", f.editorState], ["pors", { language: "portugol-rs" }, f.document, [3, 8], false, false],
+    ["breakpoints", f.editorState], ["pors", { language: "portugol-rs" }, f.document, [3, 8], true, false],
     ["continue"], ["step"],
   ]);
 });

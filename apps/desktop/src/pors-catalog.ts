@@ -1,5 +1,5 @@
 // Adaptadores puros para integrar exemplos e exercícios Portugol-RS (.pors)
-// à tela inicial e ao avaliador da IDE desktop, preservando .por/.pex.
+// à tela inicial e ao avaliador da IDE desktop.
 
 import type {
   CatalogEntry,

@@ -21,11 +21,9 @@ export interface LearningContext {
   rustSnippet: string;
 }
 
-export function explainMappedConcept(context: LearningContext, language: "portugol" | "portugol-rs"): string {
+export function explainMappedConcept(context: LearningContext, _language: "portugol-rs" = "portugol-rs"): string {
   if (context.conceptId === "conditionals") {
-    return language === "portugol-rs"
-      ? "Esta decisão Portugol-RS foi mapeada para uma condição if no Rust gerado."
-      : "Esta decisão Portugol foi mapeada para uma condição if no Rust gerado.";
+    return "Esta decisão Portugol-RS foi mapeada para uma condição if no Rust gerado.";
   }
   if (context.conceptId === "loops") {
     return "Esta repetição foi mapeada para a estrutura correspondente no Rust gerado.";
@@ -46,9 +44,7 @@ export function explainMappedConcept(context: LearningContext, language: "portug
   const rustEffect = context.bindingMutability === "mutable"
     ? "este vínculo pode ser alterado"
     : "este vínculo não pode ser reatribuído";
-  return language === "portugol-rs"
-    ? `No Portugol-RS, a declaração expressa a mutabilidade. O Rust gerado usa ${rustBinding}: ${rustEffect}.`
-    : `No Portugol clássico, a reatribuição não exige uma anotação de mutabilidade. O Rust gerado usa ${rustBinding}: ${rustEffect}.`;
+  return `No Portugol-RS, a declaração expressa a mutabilidade. O Rust gerado usa ${rustBinding}: ${rustEffect}.`;
 }
 
 export function learningContextAtSelection(input: {

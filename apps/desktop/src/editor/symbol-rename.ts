@@ -30,9 +30,7 @@ export interface SymbolRenamerDependencies {
   isCurrent: (tab: Tab, document: { toString(): string }) => boolean;
   hasOpenDialog: () => boolean;
   semanticSymbolLanguage: (language: SourceLanguage) => SemanticSymbolLanguage | null;
-  renameTargetPortugol: (source: string, offset: number) => Promise<RenameTarget>;
   renameTargetPortugolRs: (source: string, offset: number) => Promise<RenameTarget>;
-  renameSymbolPortugol: (source: string, offset: number, name: string) => Promise<RenameChange[]>;
   renameSymbolPortugolRs: (source: string, offset: number, name: string) => Promise<RenameChange[]>;
   applyChanges: (changes: RenameChange[]) => void;
   focusEditor: () => void;
@@ -48,12 +46,9 @@ export function createSymbolRenamer(dependencies: SymbolRenamerDependencies) {
     const doc = dependencies.currentDocument();
     const language = dependencies.semanticSymbolLanguage(tab.language);
     if (!language) return;
-    const lookup = language === "portugol-rs"
-      ? dependencies.renameTargetPortugolRs
-      : dependencies.renameTargetPortugol;
 
     try {
-      const target = await lookup(doc.toString(), offset);
+      const target = await dependencies.renameTargetPortugolRs(doc.toString(), offset);
       if (!dependencies.isCurrent(tab, doc) || dependencies.hasOpenDialog()) return;
 
       const { dialog, form, input, error, submit, description, cancelButton } = dependencies.ui;
@@ -66,10 +61,7 @@ export function createSymbolRenamer(dependencies: SymbolRenamerDependencies) {
         error.hidden = true;
         submit.disabled = true;
         try {
-          const rename = language === "portugol-rs"
-            ? dependencies.renameSymbolPortugolRs
-            : dependencies.renameSymbolPortugol;
-          const changes = await rename(doc.toString(), offset, input.value.trim());
+          const changes = await dependencies.renameSymbolPortugolRs(doc.toString(), offset, input.value.trim());
           if (!dialog.open || !dependencies.isCurrent(tab, doc)) return;
           if (changes.length) dependencies.applyChanges(changes);
           dialog.close();

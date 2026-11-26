@@ -27,7 +27,7 @@ function fixture(initialTabs = []) {
   return { calls, opener, tabs: () => tabs };
 }
 
-test("creates a classic exercise tab with a safely wrapped statement", () => {
+test("creates a PORS exercise tab with a safely wrapped statement", () => {
   const f = fixture();
   f.opener.open(exercise());
   const [, source, path, name, examplePath, document, language] = f.calls[0];
@@ -35,7 +35,7 @@ test("creates a classic exercise tab with a safely wrapped statement", () => {
   assert.equal(name, "Variáveis");
   assert.equal(examplePath, undefined);
   assert.equal(document.name, "Variáveis");
-  assert.equal(language, "portugol");
+  assert.equal(language, "portugol-rs");
   assert.match(source, /Use \* \/ no comentário/);
   assert.match(source, /programa \{ funcao inicio\(\) \{\} \}/);
 });

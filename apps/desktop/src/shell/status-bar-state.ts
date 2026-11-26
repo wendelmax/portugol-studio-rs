@@ -26,7 +26,6 @@ export interface StatusBarState {
 }
 
 const languages: Record<SourceLanguage, string> = {
-  portugol: "Portugol",
   "portugol-rs": "Portugol-RS",
   rust: "Rust",
 };

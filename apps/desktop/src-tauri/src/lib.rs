@@ -2,15 +2,15 @@
 //!
 //! Comandos chamados pelo frontend:
 //!
-//! | comando        | o que faz                                          |
-//! |----------------|----------------------------------------------------|
-//! | `check`        | diagnósticos de sintaxe + semântica                |
-//! | `run`          | compila e executa; devolve o id da execução        |
-//! | `send_input`   | responde a um `leia`                               |
-//! | `stop`         | interrompe a execução                              |
-//! | `debug_*`      | pausa, continua, passos e pontos de parada         |
-//! | `read_file`    | lê `.por` em UTF-8 ou ISO-8859-1                   |
-//! | `write_file`   | grava em UTF-8                                     |
+//! | comando                  | o que faz                                          |
+//! |--------------------------|----------------------------------------------------|
+//! | `inspect_portugol_rs`    | diagnósticos e símbolos de `.pors`                 |
+//! | `debug_portugol_rs`      | compila e executa `.pors` na VM; devolve o id      |
+//! | `send_input`             | responde a um `leia`                               |
+//! | `stop`                   | interrompe a execução                              |
+//! | `debug_*`                | pausa, continua, passos e pontos de parada         |
+//! | `read_file`              | lê `.pors`, `.rs` ou `.json` em UTF-8              |
+//! | `write_file`             | grava `.pors` ou `.rs` em UTF-8                    |
 //!
 //! Eventos emitidos durante uma execução (todos com `id`):
 //! `run:output` (`text`), `run:clear`, `run:input` (`expected`),
@@ -201,25 +201,8 @@ impl RunObserver for EventSink {
 }
 
 #[tauri::command]
-fn check(source: String) -> Vec<DiagnosticInfo> {
-    portugol_service::check(&source)
-}
-
-#[tauri::command]
-fn inspect(source: String) -> portugol_service::Inspection {
-    portugol_service::inspect(&source)
-}
-
-#[tauri::command]
 fn inspect_portugol_rs(source: String) -> portugol_service::Inspection {
     portugol_service::inspect_portugol_rs(&source)
-}
-
-#[tauri::command]
-async fn export_rust(source: String) -> Result<portugol_service::RustExport, String> {
-    tauri::async_runtime::spawn_blocking(move || portugol_service::export_rust(&source))
-        .await
-        .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -550,50 +533,8 @@ async fn test_cargo_project(
 }
 
 #[tauri::command]
-fn format_source(source: String) -> Option<Vec<portugol_service::TextEdit>> {
-    portugol_service::format_source(&source)
-}
-
-#[tauri::command]
 fn format_portugol_rs(source: String) -> Option<Vec<portugol_service::TextEdit>> {
     portugol_service::format_portugol_rs(&source)
-}
-
-#[tauri::command]
-fn include_library(
-    source: String,
-    name: String,
-) -> Result<Option<portugol_service::TextEdit>, String> {
-    portugol_service::include_library(&source, &name)
-}
-
-#[tauri::command]
-fn exercise_catalog() -> Vec<portugol_service::Exercise> {
-    portugol_service::exercises()
-}
-
-#[tauri::command]
-fn inspect_exercise(contents: String) -> Result<portugol_service::Exercise, String> {
-    portugol_service::inspect_exercise(&contents)
-}
-
-#[tauri::command]
-async fn check_exercise(
-    id: u32,
-    source: String,
-    contents: Option<String>,
-) -> Result<portugol_service::ExerciseResult, String> {
-    tauri::async_runtime::spawn_blocking(move || match contents {
-        Some(raw) => portugol_service::check_imported_exercise(&raw, &source),
-        None => portugol_service::check_exercise(id, &source),
-    })
-    .await
-    .map_err(|error| error.to_string())?
-}
-
-#[tauri::command]
-fn rename_target(source: String, offset: u32) -> Result<portugol_service::RenameTarget, String> {
-    portugol_service::rename_target(&source, offset)
 }
 
 #[tauri::command]
@@ -605,25 +546,11 @@ fn rename_target_portugol_rs(
 }
 
 #[tauri::command]
-fn resolve_symbol(source: String, offset: u32) -> Result<portugol_service::SymbolLocation, String> {
-    portugol_service::resolve_symbol(&source, offset)
-}
-
-#[tauri::command]
 fn resolve_symbol_portugol_rs(
     source: String,
     offset: u32,
 ) -> Result<portugol_service::SymbolLocation, String> {
     portugol_service::resolve_symbol_portugol_rs(&source, offset)
-}
-
-#[tauri::command]
-fn rename_symbol(
-    source: String,
-    offset: u32,
-    name: String,
-) -> Result<Vec<portugol_service::RenameEdit>, String> {
-    portugol_service::rename_symbol(&source, offset, &name)
 }
 
 #[tauri::command]
@@ -677,53 +604,9 @@ async fn open_project_page(page: ProjectPage) -> Result<(), String> {
     }
 }
 
-/// Inicia uma execução, parando a anterior se ainda estiver rodando.
-#[tauri::command]
-fn run(
-    app: AppHandle,
-    runs: State<'_, Runs>,
-    source: String,
-    args: Vec<String>,
-    path: Option<String>,
-    breakpoints: Vec<u32>,
-    pause_on_start: Option<bool>,
-) -> Result<u32, Vec<DiagnosticInfo>> {
-    let id = runs.next_id.fetch_add(1, Ordering::Relaxed) + 1;
-    let mut current = runs.current.lock().unwrap_or_else(|e| e.into_inner());
-    if let Some((_, previous)) = current.take() {
-        previous.stop();
-    }
-    let observer: Arc<dyn RunObserver> = Arc::new(EventSink {
-        app: app.clone(),
-        id,
-    });
-    let host_observer = Arc::clone(&observer);
-    // Como no original, caminhos relativos partem da pasta do programa.
-    let working_dir = path
-        .as_deref()
-        .and_then(|p| std::path::Path::new(p).parent())
-        .map(std::path::Path::to_path_buf);
-    let options = RunOptions {
-        args,
-        working_dir,
-        breakpoints,
-        pause_on_start: pause_on_start.unwrap_or_default(),
-    };
-    let handle = portugol_service::start_with_host(&source, options, observer, move |interrupt| {
-        Box::new(graphics::DesktopHost::new(
-            app,
-            id,
-            host_observer,
-            interrupt,
-        ))
-    })?;
-    *current = Some((id, handle));
-    Ok(id)
-}
-
 /// Executa ou depura Portugol-RS na VM educacional, sem depender de `rustc`.
 /// Com `pause_on_start` falso é a execução normal: para apenas nos pontos de
-/// parada, como o `run` do Portugol clássico.
+/// parada.
 #[tauri::command]
 fn debug_portugol_rs(
     app: AppHandle,
@@ -824,8 +707,8 @@ fn debug_set_breakpoints(runs: State<'_, Runs>, id: u32, source: String, lines: 
 }
 
 const MAX_STANDALONE_FILE_BYTES: u64 = 16 * 1024 * 1024;
-const ALLOWED_READ_EXTENSIONS: &[&str] = &["pors", "por", "rs", "pex", "json"];
-const ALLOWED_WRITE_EXTENSIONS: &[&str] = &["pors", "por", "rs"];
+const ALLOWED_READ_EXTENSIONS: &[&str] = &["pors", "rs", "json"];
+const ALLOWED_WRITE_EXTENSIONS: &[&str] = &["pors", "rs"];
 
 fn validate_standalone_file_path<'a>(
     raw_path: &'a str,
@@ -840,6 +723,12 @@ fn validate_standalone_file_path<'a>(
         .extension()
         .and_then(std::ffi::OsStr::to_str)
         .unwrap_or_default();
+    if extension.eq_ignore_ascii_case("por") || extension.eq_ignore_ascii_case("pex") {
+        return Err(
+            "Arquivos legados .por e .pex não são suportados no Portugol Studio RS. Use o Portugol Studio original para abri-los ou utilize arquivos .pors, .rs e .pors.json."
+                .into(),
+        );
+    }
     if !allowed_extensions
         .iter()
         .any(|allowed| extension.eq_ignore_ascii_case(allowed))
@@ -999,10 +888,7 @@ pub fn run_app() {
         .manage(open_files::PendingFiles::from_args())
         .manage(graphics::GraphicsWindows::default())
         .invoke_handler(tauri::generate_handler![
-            check,
-            inspect,
             inspect_portugol_rs,
-            export_rust,
             export_portugol_rs,
             format_rust_source,
             rustfmt_available,
@@ -1017,7 +903,6 @@ pub fn run_app() {
             run_cargo_project,
             check_cargo_project,
             test_cargo_project,
-            format_source,
             format_portugol_rs,
             pors_ui_start,
             pors_ui_dispatch,
@@ -1027,20 +912,12 @@ pub fn run_app() {
             pors_exercise_catalog,
             check_pors_exercise,
             inspect_pors_exercise,
-            include_library,
-            exercise_catalog,
-            check_exercise,
-            inspect_exercise,
-            rename_target,
             rename_target_portugol_rs,
-            rename_symbol,
             rename_symbol_portugol_rs,
-            resolve_symbol,
             resolve_symbol_portugol_rs,
             open_project_page,
             updates::check_updates,
             alerts::project_alerts,
-            run,
             debug_portugol_rs,
             send_input,
             stop,
@@ -1133,9 +1010,13 @@ mod rust_source_run_tests {
         std::fs::create_dir_all(&dir).unwrap();
 
         let pors = dir.join("exemplo.pors");
+        let legacy_por = dir.join("legado.por");
+        let legacy_pex = dir.join("legado.pex");
         let secret = dir.join("segredo.env");
         let script = dir.join("shell.sh");
         let exercise = dir.join("ex.json");
+        std::fs::write(&legacy_por, "programa {}").unwrap();
+        std::fs::write(&legacy_pex, "{}").unwrap();
         std::fs::write(&secret, "SECRET=1").unwrap();
         std::fs::write(&exercise, "{}").unwrap();
 
@@ -1149,6 +1030,17 @@ mod rust_source_run_tests {
             "{}"
         );
 
+        assert!(
+            super::read_file(legacy_por.display().to_string())
+                .unwrap_err()
+                .contains("Portugol Studio original")
+        );
+        assert!(
+            super::read_file(legacy_pex.display().to_string())
+                .unwrap_err()
+                .contains("Portugol Studio original")
+        );
+        assert!(super::write_file(legacy_por.display().to_string(), "programa {}".into()).is_err());
         assert!(super::read_file(secret.display().to_string()).is_err());
         assert!(super::write_file(script.display().to_string(), "echo hi".into()).is_err());
         assert!(super::write_file(exercise.display().to_string(), "{}".into()).is_err());

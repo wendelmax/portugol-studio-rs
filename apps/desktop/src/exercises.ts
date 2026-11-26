@@ -1,22 +1,17 @@
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import {
-  checkExercise,
   checkPorsExercise,
-  inspectExercise,
   inspectPorsExercise,
-  listExercises,
   listPorsExercises,
   readFile,
   type Exercise,
   type ExerciseCheckResult,
   type PorsExerciseSummary,
 } from "./api";
-import { createExerciseOpener, createPorsExerciseOpener, porsExerciseDocument } from "./exercise-opening";
+import { createPorsExerciseOpener, porsExerciseDocument } from "./exercise-opening";
 import {
   createExerciseProgress,
-  createExerciseEvaluationRunner,
   createValidatedExerciseGrader,
-  exerciseIdentity,
   exerciseOptionLabel,
   exerciseResultSummary,
   exerciseRevisionStatus,
@@ -32,7 +27,7 @@ export interface ExerciseDocument {
   exercise: Exercise;
   name: string;
   contents?: string;
-  pors?: PorsExerciseSummary;
+  pors: PorsExerciseSummary;
 }
 
 export interface ExerciseGrade {
@@ -42,14 +37,13 @@ export interface ExerciseGrade {
 }
 
 export async function readExercise(path: string): Promise<ExerciseDocument> {
+  if (/\.pex$/i.test(path)) {
+    throw "Arquivos legados .pex não são suportados no Portugol Studio RS. Use o Portugol Studio original para abri-los ou importe um exercício .pors.json.";
+  }
   const contents = await readFile(path);
   const fileName = path.split(/[\\/]/).pop() ?? "Exercício";
-  if (path.toLowerCase().endsWith(".json")) {
-    const summary = await inspectPorsExercise(contents);
-    return porsExerciseDocument(summary, summary.title || fileName, contents);
-  }
-  const exercise = await inspectExercise(contents);
-  return { exercise, name: fileName, contents };
+  const summary = await inspectPorsExercise(contents);
+  return porsExerciseDocument(summary, summary.title || fileName, contents);
 }
 
 export function mountExercises(openSource: (document: ExerciseDocument) => void) {
@@ -65,35 +59,26 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
   const failures = document.querySelector<HTMLUListElement>("#exercise-failures")!;
   const hints = document.querySelector<HTMLElement>("#exercise-hints")!;
   const hintItems = hints.querySelector("ul")!;
-  let pending: Promise<Exercise[]> | null = null;
-  let catalog: Exercise[] = [];
+  let pending: Promise<PorsExerciseSummary[]> | null = null;
   let porsCatalog: PorsExerciseSummary[] = [];
   let catalogLoaded = false;
   let modalAttempt = 0;
   let porsAttempt = 0;
   const latestPorsByExercise = new Map<string, number>();
   const progress = createExerciseProgress();
-  const evaluationRunner = createExerciseEvaluationRunner<ExerciseCheckResult>({
-    check: checkExercise,
-    identify: exerciseIdentity,
-    progress,
-  });
+
   async function loadCatalog() {
-    if (catalogLoaded) return catalog;
-    pending ??= listPorsExercises().then((porsItems) => {
-      porsCatalog = porsItems;
-      return [];
-    });
+    if (catalogLoaded) return porsCatalog;
+    pending ??= listPorsExercises();
     try {
-      catalog = await pending;
+      porsCatalog = await pending;
       catalogLoaded = true;
-      return catalog;
+      return porsCatalog;
     } finally {
       pending = null;
     }
   }
 
-  const openById = createExerciseOpener(listExercises, openSource);
   const openPorsById = createPorsExerciseOpener(async () => {
     await loadCatalog();
     return porsCatalog;
@@ -101,17 +86,11 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
 
   function showExercise() {
     const porsId = parsePorsExerciseOptionValue(list.value);
-    if (porsId !== null) {
-      const porsExercise = porsCatalog.find(({ id }) => id === porsId);
-      statement.textContent = porsExercise
-        ? `${porsExercise.statement}\n\nCasos de teste (.pors): ${porsExercise.cases}`
-        : "";
-      solve.disabled = !porsExercise;
-      return;
-    }
-    const exercise = catalog.find(({ id }) => id === Number(list.value));
-    statement.textContent = exercise ? `${exercise.statement}\n\nCasos de teste: ${exercise.cases}` : "";
-    solve.disabled = !exercise;
+    const porsExercise = porsId !== null ? porsCatalog.find(({ id }) => id === porsId) : undefined;
+    statement.textContent = porsExercise
+      ? `${porsExercise.statement}\n\nCasos de teste (.pors): ${porsExercise.cases}`
+      : "";
+    solve.disabled = !porsExercise;
   }
 
   function renderCatalog() {
@@ -136,17 +115,10 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
   list.onchange = showExercise;
   solve.onclick = () => {
     const porsId = parsePorsExerciseOptionValue(list.value);
-    if (porsId !== null) {
-      const porsExercise = porsCatalog.find(({ id }) => id === porsId);
-      if (!porsExercise) return;
-      chooser.close();
-      openSource(porsExerciseDocument(porsExercise));
-      return;
-    }
-    const exercise = catalog.find(({ id }) => id === Number(list.value));
-    if (!exercise) return;
+    const porsExercise = porsId !== null ? porsCatalog.find(({ id }) => id === porsId) : undefined;
+    if (!porsExercise) return;
     chooser.close();
-    openSource({ exercise, name: `Exercício ${exercise.id}` });
+    openSource(porsExerciseDocument(porsExercise));
   };
 
   open.onclick = async () => {
@@ -155,7 +127,7 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
     try {
       const path = await openDialog({
         filters: [
-          { name: "Exercício Portugol-RS / Portugol", extensions: ["json", "pex"] },
+          { name: "Exercício Portugol-RS (.pors.json)", extensions: ["json"] },
         ],
       });
       if (typeof path !== "string" || !chooser.open) return;
@@ -189,29 +161,26 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
     source: string,
     isCurrent: () => boolean = () => true,
   ): Promise<ExerciseGrade> {
-    if (exerciseDocument.pors) {
-      const pors = exerciseDocument.pors;
-      const scope = `pors:${pors.id}:${exerciseDocument.contents ?? "builtin"}`;
-      const request = ++porsAttempt;
-      latestPorsByExercise.set(scope, request);
-      try {
-        const isRunCurrent = () => latestPorsByExercise.get(scope) === request && isCurrent();
-        const grader = createValidatedExerciseGrader(
-          async (gradedSource) =>
-            formatPorsExerciseOutcome(
-              await checkPorsExercise(pors.id, gradedSource, exerciseDocument.contents),
-            ),
-          progress,
-          `pors:${pors.id}`,
-          isRunCurrent,
-        );
-        const { evaluation, result } = await grader(source);
-        return { evaluation, progress: result, current: isCurrent() };
-      } finally {
-        if (latestPorsByExercise.get(scope) === request) latestPorsByExercise.delete(scope);
-      }
+    const pors = exerciseDocument.pors;
+    const scope = `pors:${pors.id}:${exerciseDocument.contents ?? "builtin"}`;
+    const request = ++porsAttempt;
+    latestPorsByExercise.set(scope, request);
+    try {
+      const isRunCurrent = () => latestPorsByExercise.get(scope) === request && isCurrent();
+      const grader = createValidatedExerciseGrader(
+        async (gradedSource) =>
+          formatPorsExerciseOutcome(
+            await checkPorsExercise(pors.id, gradedSource, exerciseDocument.contents),
+          ),
+        progress,
+        `pors:${pors.id}`,
+        isRunCurrent,
+      );
+      const { evaluation, result } = await grader(source);
+      return { evaluation, progress: result, current: isCurrent() };
+    } finally {
+      if (latestPorsByExercise.get(scope) === request) latestPorsByExercise.delete(scope);
     }
-    return evaluationRunner.evaluate(exerciseDocument, source, isCurrent);
   }
 
   async function grade(exerciseDocument: ExerciseDocument, source: string, isCurrent: () => boolean = () => true) {
@@ -252,5 +221,5 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
     }
   }
 
-  return { browse, grade, evaluate, openById, openPorsById };
+  return { browse, grade, evaluate, openPorsById };
 }

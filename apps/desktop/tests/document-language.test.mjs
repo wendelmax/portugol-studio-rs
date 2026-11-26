@@ -6,10 +6,10 @@ test("detects Portugol-RS from case-insensitive .pors paths", () => {
   assert.equal(detectSourceLanguage("/tmp/Aula álgebra.PORS"), "portugol-rs");
 });
 
-test("keeps classic Portugol as the default for other paths", () => {
-  assert.equal(detectSourceLanguage("/tmp/programa.por"), "portugol");
+test("keeps Portugol-RS as the default for non-Rust paths", () => {
+  assert.equal(detectSourceLanguage("/tmp/programa.pors"), "portugol-rs");
   assert.equal(detectSourceLanguage("/tmp/lib.rs"), "rust");
-  assert.equal(detectSourceLanguage("/tmp/programa.txt"), "portugol");
+  assert.equal(detectSourceLanguage("/tmp/programa.txt"), "portugol-rs");
 });
 
 test("adds the correct source extension for Rust documents", () => {
@@ -19,6 +19,6 @@ test("adds the correct source extension for Rust documents", () => {
 
 test("adds the active language extension without changing an explicit source suffix", () => {
   assert.equal(ensureSourceExtension("/tmp/Olá", "portugol-rs"), "/tmp/Olá.pors");
-  assert.equal(ensureSourceExtension("/tmp/Olá.PORS", "portugol"), "/tmp/Olá.PORS");
-  assert.equal(ensureSourceExtension("/tmp/aula", "portugol"), "/tmp/aula.por");
+  assert.equal(ensureSourceExtension("/tmp/Olá.PORS", "portugol-rs"), "/tmp/Olá.PORS");
+  assert.equal(ensureSourceExtension("/tmp/aula.rs", "portugol-rs"), "/tmp/aula.rs");
 });

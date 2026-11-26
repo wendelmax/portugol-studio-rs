@@ -17,7 +17,6 @@ export interface EditorSetupDependencies {
   syncBreakpoints: (state: import("@codemirror/state").EditorState) => void;
   bugIcon: () => HTMLElement;
   activeTab: () => Tab | undefined;
-  inspectPortugol: (source: string) => Promise<Inspection>;
   inspectPortugolRs: (source: string) => Promise<Inspection>;
   renderMessages: () => void;
   showOutline: (symbols: SymbolInfo[]) => void;
@@ -48,7 +47,6 @@ export function createEditorSetup(dependencies: EditorSetupDependencies) {
 
   const portugolLinter = linter(createPortugolLintSourceCheck({
     activeTab: dependencies.activeTab,
-    inspectPortugol: dependencies.inspectPortugol,
     inspectPortugolRs: dependencies.inspectPortugolRs,
     renderMessages: dependencies.renderMessages,
     showOutline: dependencies.showOutline,

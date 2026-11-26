@@ -13,7 +13,7 @@ function fixture({ copyText } = {}) {
   const form = { hidden: false, handler: null, addEventListener(name, handler) { assert.equal(name, "submit"); this.handler = handler; } };
   const input = { value: "resposta" };
   let runId = 7;
-  let language = "portugol";
+  let language = "portugol-rs";
   mountRunToolbar({
     button: (id) => buttons.get(id),
     form,
@@ -43,7 +43,7 @@ function fixture({ copyText } = {}) {
   };
 }
 
-test("run and debugger buttons dispatch their commands for Portugol and PORS, but not Rust", () => {
+test("run and debugger buttons dispatch their commands for PORS, but not Rust", () => {
   const f = fixture();
 
   f.buttons.get("btn-run").onclick();
@@ -54,13 +54,11 @@ test("run and debugger buttons dispatch their commands for Portugol and PORS, bu
   f.buttons.get("btn-debug-step-over").onclick();
   f.buttons.get("btn-debug-step-into").onclick();
   f.buttons.get("btn-debug-step-out").onclick();
-  f.setLanguage("portugol-rs");
-  f.buttons.get("btn-debug-pause").onclick();
   f.setLanguage("rust");
   f.buttons.get("btn-debug-pause").onclick();
 
   assert.deepEqual(f.events, [
-    ["run"], ["debug"], ["stop"], ["pause", 7], ["continue"], ["over"], ["into"], ["out"], ["pause", 7],
+    ["run"], ["debug"], ["stop"], ["pause", 7], ["continue"], ["over"], ["into"], ["out"],
   ]);
 });
 

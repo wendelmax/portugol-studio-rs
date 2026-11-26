@@ -72,12 +72,6 @@ export interface Inspection {
   symbols: SymbolInfo[];
 }
 
-export const includeLibrary = (source: string, name: string) =>
-  invoke<{ from: number; to: number; insert: string } | null>("include_library", { source, name });
-
-export const formatSource = (source: string) =>
-  invoke<{ from: number; to: number; insert: string }[] | null>("format_source", { source });
-
 export const formatPortugolRs = (source: string) =>
   invoke<{ from: number; to: number; insert: string }[] | null>("format_portugol_rs", { source });
 
@@ -94,23 +88,12 @@ export interface ExerciseCheckResult {
   hints: string[];
 }
 
-export const listExercises = () => invoke<Exercise[]>("exercise_catalog");
-export const inspectExercise = (contents: string) => invoke<Exercise>("inspect_exercise", { contents });
-export const checkExercise = (id: number, source: string, contents?: string) =>
-  invoke<ExerciseCheckResult>("check_exercise", { id, source, contents });
-
-export const renameTarget = (source: string, offset: number) =>
-  invoke<{ name: string; occurrences: number }>("rename_target", { source, offset });
 export const renameTargetPortugolRs = (source: string, offset: number) =>
   invoke<{ name: string; occurrences: number }>("rename_target_portugol_rs", { source, offset });
 
-export const renameSymbol = (source: string, offset: number, name: string) =>
-  invoke<{ from: number; to: number; insert: string }[]>("rename_symbol", { source, offset, name });
 export const renameSymbolPortugolRs = (source: string, offset: number, name: string) =>
   invoke<{ from: number; to: number; insert: string }[]>("rename_symbol_portugol_rs", { source, offset, name });
 
-export const resolveSymbol = (source: string, offset: number) =>
-  invoke<SymbolLocation>("resolve_symbol", { source, offset });
 export const resolveSymbolPortugolRs = (source: string, offset: number) =>
   invoke<SymbolLocation>("resolve_symbol_portugol_rs", { source, offset });
 
@@ -127,8 +110,6 @@ export const projectAlerts = () =>
 
 export const checkUpdates = () => invoke<UpdateInfo>("check_updates");
 
-export const inspect = (source: string) => invoke<Inspection>("inspect", { source });
-
 export interface SourceMapInfo {
   generatedStart: Position;
   generatedEnd: Position;
@@ -143,7 +124,6 @@ export interface RustExport {
   sourceMap: SourceMapInfo[];
 }
 
-export const exportRust = (source: string) => invoke<RustExport>("export_rust", { source });
 export const inspectPortugolRs = (source: string) => invoke<Inspection>("inspect_portugol_rs", { source });
 export const exportPortugolRs = (source: string) => invoke<RustExport>("export_portugol_rs", { source });
 export interface PortugolRsCompileDiagnostic {
@@ -259,10 +239,6 @@ export type RustSourceRunResult =
 export const registerRustSourceRun = () => invoke<number>("register_rust_source_run");
 export const runRustSource = (id: number, source: string, args: string[] = []) =>
   invoke<RustSourceRunResult>("run_rust_source", { id, source, args });
-
-/** Id da execução; rejeita com a lista de erros se o programa não compila. */
-export const run = (source: string, args: string[], path: string | null, breakpoints: number[] = [], pauseOnStart = false) =>
-  invoke<number>("run", { source, args, path, breakpoints, pauseOnStart });
 
 /** Executa Portugol-RS na VM educacional; não depende de `rustc`. */
 export const startPortugolRsVm = (

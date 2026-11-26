@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { EditorState } from "@codemirror/state";
 import { createSymbolNavigator } from "../src/editor/symbol-navigation.ts";
 
-function fixture(language = "portugol", overrides = {}) {
+function fixture(language = "portugol-rs", overrides = {}) {
   const events = [];
   let active = { id: 1, language };
   let state = EditorState.create({ doc: "funcao inicio() {}" });
@@ -18,7 +18,6 @@ function fixture(language = "portugol", overrides = {}) {
   const dependencies = {
     activeTab: () => active,
     view,
-    resolvePortugol: async () => ({ start: { offset: 4 }, end: { offset: 11 } }),
     resolvePortugolRs: async () => ({ start: { offset: 5 }, end: { offset: 8 } }),
     setStatus: (message, kind) => events.push(["status", message, kind]),
     ...overrides,
@@ -30,25 +29,19 @@ function fixture(language = "portugol", overrides = {}) {
   };
 }
 
-test("resolves Portugol and PORS symbols with their own service and selects the declaration", async () => {
-  for (const [language, resolverName, expected] of [
-    ["portugol", "resolvePortugol", { anchor: 4, head: 11 }],
-    ["portugol-rs", "resolvePortugolRs", { anchor: 5, head: 8 }],
-  ]) {
-    const calls = [];
-    const { navigator, dependencies, events, view } = fixture(language, {
-      resolvePortugol: async (...args) => { calls.push(["portugol", ...args]); return { start: { offset: 4 }, end: { offset: 11 } }; },
-      resolvePortugolRs: async (...args) => { calls.push(["pors", ...args]); return { start: { offset: 5 }, end: { offset: 8 } }; },
-    });
+test("resolves PORS symbols with its service and selects the declaration", async () => {
+  const calls = [];
+  const { navigator, dependencies, events, view } = fixture("portugol-rs", {
+    resolvePortugolRs: async (...args) => { calls.push(["pors", ...args]); return { start: { offset: 5 }, end: { offset: 8 } }; },
+  });
 
-    await navigator.goToDeclarationAt(2);
+  await navigator.goToDeclarationAt(2);
 
-    assert.equal(calls.length, 1);
-    assert.equal(calls[0][0], resolverName === "resolvePortugol" ? "portugol" : "pors");
-    assert.deepEqual({ from: view.state.selection.main.from, to: view.state.selection.main.to }, { from: expected.anchor, to: expected.head });
-    assert.deepEqual(events.map(([name]) => name), ["dispatch", "focus"]);
-    assert.equal(dependencies.activeTab().language, language);
-  }
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][0], "pors");
+  assert.deepEqual({ from: view.state.selection.main.from, to: view.state.selection.main.to }, { from: 5, to: 8 });
+  assert.deepEqual(events.map(([name]) => name), ["dispatch", "focus"]);
+  assert.equal(dependencies.activeTab().language, "portugol-rs");
 });
 
 test("Rust navigation reports that symbol navigation is unavailable", async () => {
@@ -61,8 +54,8 @@ test("Rust navigation reports that symbol navigation is unavailable", async () =
 
 test("ignores a result when the active document changes while resolution is pending", async () => {
   let resolve;
-  const { navigator, events, setState } = fixture("portugol", {
-    resolvePortugol: () => new Promise((done) => { resolve = done; }),
+  const { navigator, events, setState } = fixture("portugol-rs", {
+    resolvePortugolRs: () => new Promise((done) => { resolve = done; }),
   });
   const pending = navigator.goToDeclarationAt(0);
   setState(EditorState.create({ doc: "outro documento" }));

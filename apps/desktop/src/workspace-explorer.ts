@@ -28,16 +28,16 @@ export function flattenWorkspaceEntries(
   return rows;
 }
 
-export function workspaceFileKind(path: string): "portugol" | "portugol-rs" | "rust" | "exercise" | null {
-  const extension = path.split(/[\\/]/).pop()?.split(".").pop()?.toLowerCase();
-  if (extension === "por") return "portugol";
+export function workspaceFileKind(path: string): "portugol-rs" | "rust" | "exercise" | null {
+  const fileName = path.split(/[\\/]/).pop()?.toLowerCase() ?? "";
+  if (fileName.endsWith(".pors.json")) return "exercise";
+  const extension = fileName.split(".").pop();
   if (extension === "pors") return "portugol-rs";
   if (extension === "rs") return "rust";
-  if (extension === "pex") return "exercise";
   return null;
 }
 
-export function workspaceSourceFileName(name: string, language: "por" | "pors" | "rs"): string {
+export function workspaceSourceFileName(name: string, language: "pors" | "rs"): string {
   const trimmed = name.trim();
   if (!trimmed || trimmed === "." || trimmed === ".." || /[\\/]/.test(trimmed)) {
     throw new Error("Informe um nome de arquivo sem pastas.");
@@ -68,10 +68,25 @@ export function workspaceRenameFileName(name: string, currentPath: string): stri
     throw new Error("O nome do arquivo não pode terminar com ponto.");
   }
 
-  const currentDot = currentName.lastIndexOf(".");
-  const extension = currentDot >= 0 ? currentName.slice(currentDot + 1).toLowerCase() : "";
-  if (extension !== "por" && extension !== "pors" && extension !== "rs" && extension !== "pex") {
+  const lowerCurrent = currentName.toLowerCase();
+  const extension = lowerCurrent.endsWith(".pors.json")
+    ? "pors.json"
+    : lowerCurrent.endsWith(".pors")
+      ? "pors"
+      : lowerCurrent.endsWith(".rs")
+        ? "rs"
+        : "";
+  if (!extension) {
     throw new Error("A extensão deste arquivo não pode ser alterada no Explorador.");
+  }
+
+  const lowerTrimmed = trimmed.toLowerCase();
+  if (extension === "pors.json") {
+    if (lowerTrimmed.endsWith(".pors.json")) return trimmed;
+    if (trimmed.includes(".")) {
+      throw new Error("A extensão deve continuar sendo .pors.json.");
+    }
+    return `${trimmed}.pors.json`;
   }
 
   const dot = trimmed.lastIndexOf(".");

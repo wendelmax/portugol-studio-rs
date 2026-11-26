@@ -14,13 +14,13 @@ function fixture(overrides = {}) {
   return { openIncomingFiles: createIncomingFileOpener(dependencies), dependencies, events };
 }
 
-test("opens supported exercise and source files in input order", async () => {
+test("opens supported exercise and source files in input order and ignores legacy .por/.pex", async () => {
   const { openIncomingFiles, events } = fixture();
 
-  await openIncomingFiles(["a.pex", "b.POR", "c.pors", "d.rs"], true);
+  await openIncomingFiles(["a.pors.json", "b.POR", "c.pors", "d.rs", "e.pex"], true);
 
   assert.deepEqual(events, [
-    ["exercise", "a.pex"], ["file", "b.POR"], ["file", "c.pors"], ["file", "d.rs"],
+    ["exercise", "a.pors.json"], ["file", "c.pors"], ["file", "d.rs"],
   ]);
 });
 
@@ -28,10 +28,15 @@ test("warns when requested and no incoming path has a supported extension", asyn
   const { openIncomingFiles, events } = fixture();
 
   await openIncomingFiles(["readme.txt"], true);
+  await openIncomingFiles(["legado.por"], true);
   await openIncomingFiles([], true);
   await openIncomingFiles(["programa.pors"], true);
 
-  assert.deepEqual(events, [["status", "Escolha um arquivo .por, .pors, .rs ou .pex.", "error"], ["file", "programa.pors"]]);
+  assert.deepEqual(events, [
+    ["status", "Escolha um arquivo .pors, .rs ou .pors.json.", "error"],
+    ["status", "Arquivos legados .por e .pex não são suportados no Portugol Studio RS. Use o Portugol Studio original para abri-los, ou escolha um arquivo .pors, .rs ou .pors.json.", "error"],
+    ["file", "programa.pors"],
+  ]);
 });
 
 test("reports a failed path and continues opening remaining files", async () => {

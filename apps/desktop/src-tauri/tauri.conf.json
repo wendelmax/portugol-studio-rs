@@ -50,20 +50,11 @@
         "mimeType": "text/x-portugol-rs"
       },
       {
-        "ext": [
-          "por"
-        ],
-        "name": "Programa Portugol clássico",
-        "description": "Programa Portugol clássico",
+        "ext": ["rs"],
+        "name": "Código-fonte Rust",
+        "description": "Programa Rust (.rs)",
         "role": "Editor",
-        "mimeType": "text/x-portugol"
-      },
-      {
-        "ext": ["pex"],
-        "name": "Exercício Portugol",
-        "description": "Exercício do Portugol Studio",
-        "role": "Editor",
-        "mimeType": "application/x-portugol-exercicio"
+        "mimeType": "text/x-rust"
       }
     ],
     "windows": {

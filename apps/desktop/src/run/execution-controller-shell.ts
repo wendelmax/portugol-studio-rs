@@ -4,12 +4,11 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import * as api from "../api";
 import { sourceDiagnostic } from "../source-map-ui";
 import { toCodeMirror, setDebugLine, setRuntimeError } from "../editor/decorations";
-import { parseClassicArguments, parseProcessArguments } from "../process-arguments";
+import { parseProcessArguments } from "../process-arguments";
 import { hasCargoExecutionConsent, hasRustExecutionConsent, rememberCargoExecutionConsent, rememberRustExecutionConsent } from "../rust-execution-consent";
 import { replayRunEvents } from "../run-event-router";
 import { chooseCargoTarget } from "./cargo-target-dialog";
 import { createCargoProjectController } from "./cargo-project";
-import { createClassicExecutionController } from "./classic-execution";
 import { createPortugolRsExecutionController } from "./portugol-rs-execution";
 import { createRunDispatcher } from "./dispatcher";
 import { createRustExecutionController } from "./rust-execution";
@@ -139,30 +138,6 @@ export function createExecutionControllerShell(dependencies: ExecutionController
     replayEvents: replayRunEvents,
   });
 
-  const classicExecution = createClassicExecutionController({
-    parseArguments: parseClassicArguments,
-    runListeners: dependencies.runListeners,
-    run: api.run,
-    setRuntimeError: () => dependencies.view.dispatch({ effects: setRuntimeError.of(null) }),
-    setDebugLine: () => dependencies.view.dispatch({ effects: setDebugLine.of(null) }),
-    clearPaused: () => { runState.paused = null; },
-    showConsole: () => dependencies.showPanel("console"),
-    clearConsole: dependencies.clearConsole,
-    setPendingEvents: (events) => { runState.pendingEvents = events; },
-    setRunTabId: (id) => { runState.runTabId = id; },
-    setRunId: (id) => { runState.runId = id; },
-    setRunButtonsDisabled: (disabled) => {
-      $<HTMLButtonElement>("btn-run").disabled = disabled;
-      $<HTMLButtonElement>("btn-debug").disabled = disabled;
-    },
-    setRunning: runPresentation.setRunning,
-    setStatus: dependencies.setStatus,
-    replayEvents: replayRunEvents,
-    setDiagnostics: (tab, diagnostics) => { tab.diagnostics = diagnostics; },
-    renderMessages: dependencies.renderMessages,
-    showMessages: () => dependencies.showPanel("messages"),
-  });
-
   const runDispatcher = createRunDispatcher({
     isBusy: () => isExecutionBusy(runState),
     activeTab: dependencies.activeTab,
@@ -172,7 +147,6 @@ export function createExecutionControllerShell(dependencies: ExecutionController
     breakpointLines: (state) => breakpointLines(state),
     rustExecution: runRustExecution,
     portugolRsExecution: runPortugolRsExecution,
-    classicExecution,
     isPaused: () => runState.paused !== null,
     debugContinue: () => runPresentation.debugCommand(api.debugContinue),
     debugStepOver: () => runPresentation.debugCommand(api.debugStepOver),

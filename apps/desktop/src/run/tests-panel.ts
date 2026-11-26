@@ -41,7 +41,7 @@ export interface TestsPanelDependencies {
     currentDocument: object,
     run: ExerciseTestRun | undefined,
   ) => ExerciseTestPanelState;
-  exerciseTestStatus: (state: ExerciseTestPanelState, language?: "portugol" | "portugol-rs") => string;
+  exerciseTestStatus: (state: ExerciseTestPanelState, language?: "portugol-rs") => string;
   isCurrentExerciseTestRequest: (
     request: ExerciseTestRequest,
     current: ExerciseTestRequest,
@@ -78,7 +78,7 @@ export function createTestsPanelController(dependencies: TestsPanelDependencies)
     }
 
     const state = dependencies.exerciseTestPanelState(tab?.exercise?.exercise, dependencies.currentDocument(), tab?.exerciseTestRun);
-    const language = tab?.exercise?.pors ? "portugol-rs" : "portugol";
+    const language = tab?.exercise ? "portugol-rs" : undefined;
     view.setTitle(tab?.exercise ? `Testes — ${dependencies.tabName(tab)}` : "Testes do projeto");
     view.setStatus(dependencies.exerciseTestStatus(state, language));
     view.setRunHidden(state.kind === "empty" || state.kind === "no-cases");
