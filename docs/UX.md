@@ -68,8 +68,8 @@ dependem desse formato.
 
 ### Espaço de trabalho
 
-- **Barra de atividades:** Projeto, Aprender, Exemplos, Depuração e
-  Configurações do editor.
+- **Barra superior (`TitleBar`):** identidade proprietária `RS`, seletor do projeto aberto, seletor rápido de modo de aprendizagem (`Iniciante`, `Ponte para Rust`, `Rust`), ações primárias (`Executar`, `Depurar`, `Parar`, `Rust`, `UI`) e controles da janela.
+- **Barra de atividades (`ActivityRail`):** Aprender, Exemplos, Depurar e Ajustes (abre o diálogo dedicado de `Configurações`, `Ctrl+,`, com Tema, Fonte, Modo, Parâmetros e `Restaurar layout padrão`), além de atalhos rápidos de Explorador, Salvar, Abrir e Ajuda.
 - **Explorador e abas:** navegação pela pasta aberta e pelos documentos em
   edição. O conteúdo e a extensão da aba ativa determinam a linguagem do
   documento.
@@ -79,15 +79,14 @@ dependem desse formato.
 - **Painel inferior:** Console, Testes, Mensagens e Depuração. Diagnósticos
   apontam para o código; o depurador apresenta estado real da VM para
   linguagens suportadas.
-- **Aprender e Utilitários:** explicações e prática contextual; bibliotecas,
-  modelos, estrutura do programa e inspeção de variáveis ficam no painel de
-  utilitários.
+- **Inspector (`Aprender` e utilitários PORS):** explicações contextuais mapeadas por source map (mutabilidade, decisões, laços, funções, `Opcao`/`Resultado`, vetores, registros/enums), prática vinculada diretamente a exercícios `.pors`, 13 módulos PORS e 11 modelos `.pors`, estrutura do programa e inspetor de variáveis.
 - **Prévia Rust:** mostra Rust gerado, estado da tradução, mapeamentos de
   origem e diferenças. O usuário pode copiar, salvar ou desvincular para editar
   um arquivo `.rs` independente.
 - **Prévia Visual PORS:** executa uma prévia interativa dos programas visuais
   suportados; seus estados, limitações e ações de cancelar/reiniciar são
   explícitos.
+- **Paletas de cores padronizadas:** `Sistema` como padrão (alternando entre VS Code Light Modern e VS Code Dark Modern em `tokens.css`), `IntelliJ Rust Dark/Light`, temas populares do VS Code e `Alto contraste`, todos verificados em WCAG AA (`>= 4,5:1`) — ver [`docs/next-ui/design/COLOR_THEMES.md`](next-ui/design/COLOR_THEMES.md).
 
 ### Arquivos e execução
 

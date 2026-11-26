@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Portugol Studio",
+        "title": "Portugol Studio RS",
         "width": 1200,
         "height": 800,
         "decorations": false,
@@ -38,25 +38,25 @@
     "publisher": "Portugol Studio RS",
     "copyright": "Baseado no Portugol Studio (UNIVALI). LGPL-3.0.",
     "category": "Education",
-    "shortDescription": "IDE para a linguagem Portugol",
-    "longDescription": "Ambiente para aprender programação em Portugol: editor, análise de erros, execução e console. Port em Rust do Portugol Studio.",
+    "shortDescription": "IDE educacional para Portugol-RS (.pors) e Rust (.rs)",
+    "longDescription": "Ambiente educacional proprietário em Rust para aprender lógica de programação em Portugol-RS (.pors) e evoluir para Rust real (.rs), com editor, análise, depurador, prévia visual e exercícios automáticos.",
     "licenseFile": "../../../LICENSE",
     "fileAssociations": [
-      {
-        "ext": [
-          "por"
-        ],
-        "name": "Programa Portugol",
-        "description": "Programa Portugol",
-        "role": "Editor",
-        "mimeType": "text/x-portugol"
-      },
       {
         "ext": ["pors"],
         "name": "Programa Portugol-RS",
         "description": "Programa Portugol-RS",
         "role": "Editor",
         "mimeType": "text/x-portugol-rs"
+      },
+      {
+        "ext": [
+          "por"
+        ],
+        "name": "Programa Portugol clássico",
+        "description": "Programa Portugol clássico",
+        "role": "Editor",
+        "mimeType": "text/x-portugol"
       },
       {
         "ext": ["pex"],

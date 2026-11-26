@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E3A8A"/>
+      <stop offset="50%" stop-color="#005FB8"/>
+      <stop offset="100%" stop-color="#0EA5E9"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="48" y="48" width="928" height="928" rx="220" fill="url(#bg)"/>
+  <rect x="48" y="48" width="928" height="464" rx="220" fill="url(#shine)"/>
+  <rect x="76" y="76" width="872" height="872" rx="194" fill="none" stroke="#FFFFFF" stroke-opacity="0.22" stroke-width="10"/>
+  <!-- Símbolo geométrico proprietário RS com kerning equilibrado -->
+  <g fill="#FFFFFF">
+    <!-- Letra R -->
+    <g transform="translate(-38, 0) scale(0.92, 1) translate(46, 0)">
+      <path d="M 196 300 H 416 C 506 300 562 350 562 430 C 562 492 526 536 468 552 L 566 724 H 460 L 374 564 H 288 V 724 H 196 Z M 288 380 V 488 H 404 C 446 488 470 468 470 434 C 470 400 446 380 404 380 Z"/>
+    </g>
+    <!-- Letra S -->
+    <g transform="translate(52, 0) scale(0.92, 1) translate(16, 0)">
+      <path d="M 818 408 H 726 C 722 380 698 364 662 364 C 624 364 602 380 602 404 C 602 426 620 438 668 450 L 722 464 C 794 482 832 520 832 586 C 832 674 762 732 658 732 C 556 732 494 676 490 594 H 584 C 588 632 618 656 662 656 C 708 656 738 634 738 598 C 738 570 718 554 672 542 L 614 528 C 546 510 510 472 510 412 C 510 334 574 288 666 288 C 756 288 814 334 818 408 Z"/>
+    </g>
+  </g>
+  <!-- Acento de código / ponte para Rust -->
+  <rect x="176" y="794" width="672" height="32" rx="16" fill="#FFFFFF" fill-opacity="0.30"/>
+  <rect x="176" y="794" width="310" height="32" rx="16" fill="#FDE68A"/>
+</svg>
