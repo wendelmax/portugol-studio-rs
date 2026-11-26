@@ -4,6 +4,7 @@ export interface RunControlsDependencies {
   activeLanguage: () => SourceLanguage | undefined;
   canRun: (language: SourceLanguage, rustcAvailable: boolean | null) => boolean;
   canDebug: (language: SourceLanguage) => boolean;
+  canPause?: () => boolean;
   rustcAvailable: () => boolean | null;
   runId: () => number | null;
   paused: () => { variables: unknown[] } | null;
@@ -20,12 +21,13 @@ export function createRunControls(dependencies: RunControlsDependencies) {
     const language = dependencies.activeLanguage();
     const canRun = language !== undefined && dependencies.canRun(language, dependencies.rustcAvailable());
     const canDebug = language !== undefined && dependencies.canDebug(language);
+    const canPause = dependencies.canPause ? dependencies.canPause() : true;
     const paused = dependencies.paused();
     const isBusy = running && paused === null;
     dependencies.setButtonDisabled("btn-run", !canRun || isBusy);
     dependencies.setButtonDisabled("btn-debug", !canDebug || isBusy);
     dependencies.setButtonDisabled("btn-stop", !running || dependencies.runId() === null);
-    dependencies.setButtonDisabled("btn-debug-pause", !canDebug || !running || paused !== null);
+    dependencies.setButtonDisabled("btn-debug-pause", !canDebug || !canPause || !running || paused !== null);
     for (const id of [
       "btn-debug-continue", "btn-debug-step-over", "btn-debug-step-into", "btn-debug-step-out",
     ]) {

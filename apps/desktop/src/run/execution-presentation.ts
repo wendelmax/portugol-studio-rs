@@ -15,6 +15,7 @@ export interface ExecutionPresentationDependencies {
   activeTabId: () => number;
   runState: ExecutionState;
   rustcAvailable: () => boolean | null;
+  cargoAvailable?: () => boolean | null;
   view: Pick<EditorView, "dispatch">;
   activate: (id: number) => void;
   goTo: (offset: number) => void;
@@ -29,8 +30,18 @@ export function createExecutionPresentationShell(dependencies: ExecutionPresenta
   const inputForm = $<HTMLFormElement>("console-form");
   const runControls = createRunControls({
     activeLanguage: () => dependencies.activeTab()?.language,
-    canRun: canRunSource,
+    canRun: (language, rustcAvailable) => {
+      if (!canRunSource(language, rustcAvailable)) return false;
+      const tab = dependencies.activeTab();
+      if (language === "rust" && tab) {
+        const cargoDetectionPending = Boolean(tab.workspaceId && tab.workspacePath) && tab.cargoProject === undefined;
+        if (cargoDetectionPending) return false;
+        if (tab.cargoProject === true && dependencies.cargoAvailable?.() === false) return false;
+      }
+      return true;
+    },
     canDebug: canDebugSource,
+    canPause: () => !runState.porsRunPending,
     rustcAvailable: dependencies.rustcAvailable,
     runId: () => runState.runId,
     paused: () => runState.paused,
@@ -41,6 +52,7 @@ export function createExecutionPresentationShell(dependencies: ExecutionPresenta
     setInspectorText: (text) => { $("inspector-empty").textContent = text; },
   });
   const setRunning = runControls.setRunning;
+  const runTab = () => dependencies.tabs().find(({ id }) => id === runState.runTabId);
   const debuggerShell = createDebuggerShell({
     runId: () => runState.runId,
     runTabId: () => runState.runTabId,
@@ -51,10 +63,10 @@ export function createExecutionPresentationShell(dependencies: ExecutionPresenta
     paused: () => runState.paused,
     setPaused: (info) => { runState.paused = info; },
     setRunning,
-    runLanguage: () => dependencies.activeTab()?.language,
+    runLanguage: () => runTab()?.language ?? dependencies.activeTab()?.language,
     setStatus: dependencies.setStatus,
     stop: api.stop,
-    runTab: () => dependencies.tabs().find(({ id }) => id === runState.runTabId),
+    runTab,
     renderDebugInfo,
     activate: dependencies.activate,
     goTo: dependencies.goTo,

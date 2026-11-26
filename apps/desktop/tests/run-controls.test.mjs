@@ -59,3 +59,12 @@ test("stopped run hides input and explains that the inspector needs a pause", ()
   assert.equal(state.inspectorEmptyHidden, false);
   assert.equal(state.inspectorText, "Pause a execução para inspecionar as variáveis.");
 });
+
+test("native rustc execution disables debug pause even on a portugol-rs tab", () => {
+  const { controls, state } = fixture({ canPause: () => false });
+
+  controls.setRunning(true);
+
+  assert.equal(state.disabled["btn-stop"], false);
+  assert.equal(state.disabled["btn-debug-pause"], true);
+});

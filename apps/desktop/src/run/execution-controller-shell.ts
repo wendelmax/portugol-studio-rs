@@ -131,7 +131,18 @@ export function createExecutionControllerShell(dependencies: ExecutionController
       tab.runtimeCompileDiagnostics = diagnostics;
       dependencies.view.dispatch(applyDiagnostics(dependencies.view.state, diagnostics.map((item) => toCodeMirror(item, dependencies.view.state.doc.length))));
     },
-    setVmDiagnostics: (tab, diagnostics) => { tab.diagnostics = diagnostics as api.DiagnosticInfo[]; },
+    setVmDiagnostics: (tab, diagnostics) => {
+      const items = diagnostics as api.DiagnosticInfo[];
+      tab.diagnostics = items;
+      if (dependencies.activeTab() === tab) {
+        dependencies.view.dispatch(
+          applyDiagnostics(
+            dependencies.view.state,
+            items.map((item) => toCodeMirror(item, dependencies.view.state.doc.length)),
+          ),
+        );
+      }
+    },
     showMessages: () => dependencies.showPanel("messages"),
     sourceDiagnostic,
     toCodeMirror,

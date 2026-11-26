@@ -50,6 +50,7 @@ export function createRunShell(dependencies: RunShellDependencies) {
     activeTabId: dependencies.activeTabId,
     runState,
     rustcAvailable: dependencies.rustcAvailable,
+    cargoAvailable: dependencies.cargoAvailable,
     view: dependencies.view,
     activate: dependencies.activate,
     goTo: dependencies.goTo,
