@@ -188,3 +188,134 @@ test("renderUiNodeTree builds interactive DOM nodes safely via createElement and
     { kind: "entrada_alterada", id: "nome", value: "Lovelace" },
   ]);
 });
+
+test("Prévia UI loads a visual example when the editor holds a console program", async () => {
+  class FakeElement {
+    children = [];
+    dataset = {};
+    attributes = new Map();
+    listeners = new Map();
+    textContent = "";
+    value = "";
+    hidden = false;
+    disabled = false;
+    className = "";
+    placeholder = "";
+    scrollTop = 0;
+    scrollLeft = 0;
+    constructor(tag) { this.tag = tag; }
+    append(...nodes) { this.children.push(...nodes); }
+    replaceChildren(...nodes) { this.children = nodes; }
+    setAttribute(key, value) { this.attributes.set(key, String(value)); }
+    addEventListener(type, fn) {
+      if (!this.listeners.has(type)) this.listeners.set(type, []);
+      this.listeners.get(type).push(fn);
+    }
+    fire(type) {
+      for (const fn of this.listeners.get(type) ?? []) fn({ preventDefault() {} });
+    }
+  }
+
+  const ids = [
+    "pg-status", "pg-status-text", "pg-theme", "pg-example", "pg-editor", "pg-highlight",
+    "pg-stdin", "pg-output", "pg-output-empty", "pg-output-badge", "pg-diagnostics",
+    "pg-ui-container", "pg-ui-section", "pg-rust-section", "pg-rust-code", "pg-copy-rust",
+    "pg-validate", "pg-format", "pg-run", "pg-run-ui", "pg-export-rust",
+  ];
+  const elements = new Map(ids.map((id) => [id, new FakeElement("div")]));
+  const doc = {
+    documentElement: new FakeElement("html"),
+    activeElement: null,
+    getElementById: (id) => elements.get(id) ?? null,
+    createElement: (tag) => new FakeElement(tag),
+    createTextNode: (text) => ({ textContent: text }),
+    createDocumentFragment: () => new FakeElement("fragment"),
+  };
+
+  const memory = new WebAssembly.Memory({ initial: 1 });
+  const encoder = new TextEncoder();
+  let nextPtr = 1024;
+  let resultPtr = 2048;
+  let resultLen = 0;
+  const writeResult = (payload) => {
+    const bytes = encoder.encode(JSON.stringify(payload));
+    resultPtr = 2048;
+    resultLen = bytes.length;
+    new Uint8Array(memory.buffer, resultPtr, resultLen).set(bytes);
+    return resultLen;
+  };
+  const readUtf8 = (ptr, len) => new TextDecoder().decode(new Uint8Array(memory.buffer, ptr, len));
+  const exports = {
+    memory,
+    pors_alloc(len) { const ptr = nextPtr; nextPtr += len; return ptr; },
+    pors_dealloc() {},
+    pors_result_ptr: () => resultPtr,
+    pors_result_len: () => resultLen,
+    pors_validate: () => writeResult({ ok: true, diagnostics: [] }),
+    pors_format: () => writeResult({ ok: true, changed: false, formatted: "" }),
+    pors_export_rust: () => writeResult({ ok: true, code: "", diagnostics: [] }),
+    pors_run(ptr, len) {
+      return writeResult({ ok: true, stdout: readUtf8(ptr, len), diagnostics: [] });
+    },
+    pors_ui_start: () => writeResult({
+      ok: true,
+      session: 1,
+      step: 0,
+      tree: { kind: "texto", content: "Prévia visual" },
+      stdout: "",
+    }),
+    pors_ui_dispatch: () => writeResult({
+      ok: true,
+      session: 1,
+      step: 1,
+      tree: { kind: "texto", content: "Prévia visual" },
+      stdout: "",
+    }),
+    pors_ui_snapshot: () => writeResult({ ok: true, session: 1, step: 0, tree: { kind: "texto", content: "" }, stdout: "" }),
+    pors_ui_close: () => 1,
+  };
+
+  const globals = {
+    document: Object.getOwnPropertyDescriptor(globalThis, "document"),
+    CSS: Object.getOwnPropertyDescriptor(globalThis, "CSS"),
+    localStorage: Object.getOwnPropertyDescriptor(globalThis, "localStorage"),
+    navigator: Object.getOwnPropertyDescriptor(globalThis, "navigator"),
+    fetch: Object.getOwnPropertyDescriptor(globalThis, "fetch"),
+    instantiate: Object.getOwnPropertyDescriptor(WebAssembly, "instantiate"),
+  };
+  globalThis.document = doc;
+  globalThis.CSS = { escape: (value) => value };
+  globalThis.localStorage = { getItem: () => null, setItem() {} };
+  Object.defineProperty(globalThis, "navigator", { value: { clipboard: { writeText: async () => {} } }, configurable: true });
+  globalThis.fetch = async () => ({
+    ok: true,
+    clone() { throw new Error("stream indisponível no teste"); },
+    async arrayBuffer() { return new ArrayBuffer(8); },
+  });
+  Object.defineProperty(WebAssembly, "instantiate", {
+    value: async () => ({ instance: { exports } }),
+    configurable: true,
+    writable: true,
+  });
+
+  try {
+    await import("../../web-playground/app.mjs?ui-preview-regression");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const editor = elements.get("pg-editor");
+    assert.match(editor.value, /^funcao saudar\(/);
+
+    elements.get("pg-run-ui").fire("click");
+
+    assert.match(editor.value, /funcao iniciar\(/);
+    assert.equal(elements.get("pg-example").value, "ui-contador");
+    assert.equal(elements.get("pg-ui-section").hidden, false);
+    assert.equal(elements.get("pg-ui-container").children.length, 1);
+  } finally {
+    for (const [key, descriptor] of Object.entries(globals)) {
+      const target = key === "instantiate" ? WebAssembly : globalThis;
+      if (descriptor) Object.defineProperty(target, key, descriptor);
+      else delete target[key];
+    }
+  }
+});
