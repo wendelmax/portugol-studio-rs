@@ -1,6 +1,7 @@
 // Laboratório de ownership: cenários guiados de `String` (move, `&T`,
-// `&mut T` e escopo). É uma simulação didática, não um trace de execução.
+// `&mut T` e escopo) com verificação opcional real pelo compilador `rustc`.
 
+import type { RustSourceCompileDiagnostic } from "../api";
 import { $ } from "../dom";
 import {
   getOwnershipScenario,
@@ -9,6 +10,17 @@ import {
   type OwnershipBindingState,
   type OwnershipScenarioId,
 } from "../ownership-lab";
+import {
+  formatOwnershipRustcCheck,
+  formatOwnershipRustcUnavailable,
+  type OwnershipRustcReport,
+} from "./ownership-rustc";
+
+export interface OwnershipLabHost {
+  isRustcAvailable(): boolean;
+  checkRustSource(source: string): Promise<RustSourceCompileDiagnostic[]>;
+  openRustScenario(source: string, fileName: string): void;
+}
 
 const ownershipStateLabels: Record<OwnershipBindingState, string> = {
   owner: "Dono",
@@ -19,9 +31,55 @@ const ownershipStateLabels: Record<OwnershipBindingState, string> = {
   dropped: "Liberado ao sair do escopo",
 };
 
-export function mountOwnershipLab() {
+export function mountOwnershipLab(host?: OwnershipLabHost) {
   let ownershipScenarioId: OwnershipScenarioId = "move";
   let ownershipStepIndex = 0;
+  let rustcCheckBusy = false;
+  let rustcReportScenarioId: OwnershipScenarioId | null = null;
+  let rustcReport: OwnershipRustcReport | null = null;
+  let checkSeq = 0;
+
+  function renderRustcPanel() {
+    const panel = document.getElementById("ownership-rustc-panel");
+    const provenance = document.getElementById("ownership-rustc-provenance");
+    const summary = document.getElementById("ownership-rustc-summary");
+    const list = document.getElementById("ownership-rustc-diagnostics");
+    const checkButton = document.getElementById("ownership-check-rustc") as HTMLButtonElement | null;
+
+    if (checkButton) {
+      checkButton.disabled = rustcCheckBusy;
+      checkButton.textContent = rustcCheckBusy ? "Verificando com rustc…" : "Verificar com rustc";
+    }
+    if (!panel || !provenance || !summary || !list) return;
+
+    if (!rustcReport || rustcReportScenarioId !== ownershipScenarioId) {
+      panel.hidden = true;
+      list.replaceChildren();
+      return;
+    }
+
+    panel.hidden = false;
+    panel.dataset.status = rustcReport.status;
+    provenance.textContent = rustcReport.provenanceLabel;
+    summary.textContent = rustcReport.summary;
+    list.replaceChildren(...rustcReport.items.map((item) => {
+      const li = document.createElement("li");
+      li.className = "ownership-rustc-item";
+      li.dataset.severity = item.severity;
+      const meta = document.createElement("span");
+      meta.className = "ownership-rustc-meta";
+      const parts = [
+        item.severity === "error" ? "erro" : "aviso",
+        item.code ? `[${item.code}]` : null,
+        item.location,
+      ].filter((part): part is string => Boolean(part));
+      meta.textContent = parts.join(" · ");
+      const message = document.createElement("code");
+      message.textContent = item.message;
+      li.append(meta, message);
+      return li;
+    }));
+  }
 
   function renderOwnershipLab() {
     const scenario = getOwnershipScenario(ownershipScenarioId);
@@ -118,12 +176,17 @@ export function mountOwnershipLab() {
     $<HTMLButtonElement>("ownership-previous").disabled = ownershipStepIndex === 0;
     $<HTMLButtonElement>("ownership-next").disabled = ownershipStepIndex >= scenario.snapshots.length - 1;
     $<HTMLButtonElement>("ownership-restart").disabled = ownershipStepIndex === 0;
+    renderRustcPanel();
   }
 
   $<HTMLSelectElement>("ownership-scenario").onchange = (event) => {
     const selected = (event.currentTarget as HTMLSelectElement).value;
     if (ownershipScenarioIds().includes(selected as OwnershipScenarioId)) ownershipScenarioId = selected as OwnershipScenarioId;
     ownershipStepIndex = 0;
+    rustcReport = null;
+    rustcReportScenarioId = null;
+    checkSeq += 1;
+    rustcCheckBusy = false;
     renderOwnershipLab();
   };
   $<HTMLButtonElement>("ownership-previous").onclick = () => {
@@ -139,6 +202,47 @@ export function mountOwnershipLab() {
     ownershipStepIndex = 0;
     renderOwnershipLab();
   };
+
+  const checkButton = document.getElementById("ownership-check-rustc") as HTMLButtonElement | null;
+  if (checkButton) {
+    checkButton.onclick = async () => {
+      const scenario = getOwnershipScenario(ownershipScenarioId);
+      if (!scenario || rustcCheckBusy) return;
+      if (!host || !host.isRustcAvailable()) {
+        rustcReportScenarioId = scenario.id;
+        rustcReport = formatOwnershipRustcUnavailable();
+        renderRustcPanel();
+        return;
+      }
+      const currentSeq = ++checkSeq;
+      rustcCheckBusy = true;
+      renderRustcPanel();
+      try {
+        const diagnostics = await host.checkRustSource(scenario.source);
+        if (currentSeq !== checkSeq) return;
+        rustcReportScenarioId = scenario.id;
+        rustcReport = formatOwnershipRustcCheck(scenario, diagnostics);
+      } catch {
+        if (currentSeq !== checkSeq) return;
+        rustcReportScenarioId = scenario.id;
+        rustcReport = formatOwnershipRustcUnavailable();
+      } finally {
+        if (currentSeq === checkSeq) {
+          rustcCheckBusy = false;
+          renderRustcPanel();
+        }
+      }
+    };
+  }
+
+  const openRsButton = document.getElementById("ownership-open-rs") as HTMLButtonElement | null;
+  if (openRsButton) {
+    openRsButton.onclick = () => {
+      const scenario = getOwnershipScenario(ownershipScenarioId);
+      if (!scenario || !host) return;
+      host.openRustScenario(scenario.source, scenario.fixture);
+    };
+  }
 
   return { render: renderOwnershipLab };
 }

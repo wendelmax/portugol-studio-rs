@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portugol-RS Web Playground (WASM)</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <header class="pg-header">
+    <div>
+      <h1>Portugol-RS Playground</h1>
+      <p>Validação, formatação, execução e apps visuais <code>UI.*</code> rodando 100% no navegador via WebAssembly.</p>
+    </div>
+    <div class="pg-toolbar" role="toolbar" aria-label="Ações do playground">
+      <label class="pg-select-wrap" for="pg-example">
+        <span>Exemplo</span>
+        <select id="pg-example" aria-label="Selecionar exemplo Portugol-RS"></select>
+      </label>
+      <button id="pg-validate" type="button">Validar</button>
+      <button id="pg-format" type="button">Formatar</button>
+      <button id="pg-run" type="button" class="pg-primary">Executar</button>
+      <button id="pg-run-ui" type="button">Prévia UI</button>
+    </div>
+  </header>
+
+  <div id="pg-status" class="pg-status" role="status" aria-live="polite" data-tone="info">
+    Carregando módulo WebAssembly…
+  </div>
+
+  <main class="pg-main">
+    <section class="pg-pane" aria-labelledby="pg-editor-heading">
+      <h2 id="pg-editor-heading">Código Portugol-RS (<code>.pors</code>)</h2>
+      <textarea
+        id="pg-editor"
+        class="pg-editor"
+        spellcheck="false"
+        aria-label="Editor de código Portugol-RS"
+      ></textarea>
+      <label class="pg-stdin-label" for="pg-stdin">
+        Entrada padrão (<code>leia</code>, uma linha por leitura)
+        <textarea
+          id="pg-stdin"
+          class="pg-stdin"
+          rows="3"
+          spellcheck="false"
+          aria-label="Entrada padrão do programa"
+        ></textarea>
+      </label>
+    </section>
+
+    <section class="pg-pane" aria-labelledby="pg-output-heading">
+      <h2 id="pg-output-heading">Saída e diagnósticos</h2>
+      <ul id="pg-diagnostics" class="pg-diagnostics" aria-label="Diagnósticos do compilador" hidden></ul>
+      <pre id="pg-output" class="pg-output" aria-label="Saída do console"></pre>
+
+      <section id="pg-ui-section" class="pg-ui-section" aria-labelledby="pg-ui-heading" hidden>
+        <h3 id="pg-ui-heading">Prévia Visual Declarativa (MVU)</h3>
+        <div id="pg-ui-container" class="pg-ui-container"></div>
+      </section>
+    </section>
+  </main>
+
+  <script type="module" src="./app.mjs"></script>
+</body>
+</html>

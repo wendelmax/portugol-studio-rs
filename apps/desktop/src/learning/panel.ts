@@ -11,7 +11,7 @@ import type { LearningMode } from "../learning-mode";
 import { learningPinForMode, setLearningPin, toggleLearningPin } from "../learning-pins";
 import { LEARNING_TRAIL, learningTrailProgress } from "./trail";
 import type { Tab } from "../state/tab";
-import { mountOwnershipLab } from "./ownership-view";
+import { mountOwnershipLab, type OwnershipLabHost } from "./ownership-view";
 
 export interface LearningPanelHost {
   sourceView: EditorView;
@@ -19,10 +19,11 @@ export interface LearningPanelHost {
   learningMode(): LearningMode;
   /** Abre exercício Portugol-RS pelo identificador do catálogo .pors. */
   openPorsExercise(id: string): Promise<void>;
+  ownership?: OwnershipLabHost;
 }
 
 export function mountLearningPanel(host: LearningPanelHost) {
-  const ownership = mountOwnershipLab();
+  const ownership = mountOwnershipLab(host.ownership);
   const exerciseProgress = createExerciseProgress();
   let selectedLearningConceptId = "variables";
   let learningConceptManuallySelected = false;

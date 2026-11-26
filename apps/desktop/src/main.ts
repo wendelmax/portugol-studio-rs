@@ -144,6 +144,17 @@ const {
   },
   learningPanel: {
     openPorsExercise: async (exerciseId) => { await exerciseWorkbench?.openPorsById(exerciseId); },
+    ownership: {
+      isRustcAvailable: () => toolchainState.rustcAvailable() === true,
+      checkRustSource: api.checkRustSource,
+      openRustScenario: (source, fileName) => {
+        const tab = newTab(source, null, fileName, undefined, undefined, "rust");
+        setStatus(`Cenário "${fileName}" aberto em uma nova aba .rs para testar com rustc.`, "ok");
+        view.focus();
+        renderTabs();
+        syncLanguageControls(tab);
+      },
+    },
   },
   update: {
     renderMessages,
