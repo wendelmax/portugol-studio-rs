@@ -208,6 +208,12 @@ export function mountLearningPanel(host: LearningPanelHost) {
 
   return {
     render: renderLearningPanel,
+    /** Seleciona explicitamente um conceito (ex.: ao abrir o Laboratório de Ownership pela Ajuda). */
+    selectConcept(id: string) {
+      selectedLearningConceptId = id;
+      learningConceptManuallySelected = true;
+      renderLearningPanel();
+    },
     /** A seleção mudou no editor: o contexto detectado volta a valer. */
     selectionChanged() {
       learningConceptManuallySelected = false;

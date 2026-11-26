@@ -403,13 +403,21 @@
         <div class="help-header-actions">
           <button id="help-back-editor" type="button" hidden>← Voltar ao editor</button>
           <button id="help-go-home" type="button" title="Ir para a tela inicial (Alt+Home)">Início</button>
+          <span class="help-header-divider" aria-hidden="true"></span>
+          <button id="help-history-back" type="button" title="Tópico anterior" aria-label="Tópico anterior" disabled>←</button>
+          <button id="help-history-forward" type="button" title="Próximo tópico" aria-label="Próximo tópico" disabled>→</button>
+          <button id="help-home-topic" type="button" title="Voltar ao sumário da ajuda">Sumário</button>
         </div>
-        <span class="help-header-title">Ajuda — Portugol Studio RS</span>
+        <nav id="help-breadcrumbs" class="help-breadcrumbs" aria-label="Caminho na ajuda"></nav>
         <button id="help-close" type="button" aria-label="Fechar ajuda" title="Fechar ajuda (Ctrl+Q)">× Fechar</button>
       </header>
       <div class="help-body">
         <aside class="help-sidebar" aria-label="Tópicos de ajuda">
-          <input id="help-search" type="search" placeholder="Buscar na ajuda" aria-label="Buscar na ajuda" />
+          <div class="help-search-bar">
+            <input id="help-search" type="search" placeholder="Buscar tópicos, funções e constantes" aria-label="Buscar na ajuda" />
+            <button id="help-search-clear" type="button" aria-label="Limpar busca" title="Limpar busca" hidden>×</button>
+          </div>
+          <p id="help-search-count" class="help-search-count" role="status" hidden></p>
           <nav id="help-topics" aria-label="Tópicos"></nav>
           <p id="help-empty" role="status" hidden>Nenhum tópico encontrado.</p>
         </aside>

@@ -15,6 +15,8 @@ import {
 } from "@codemirror/autocomplete";
 import { hoverTooltip, type Tooltip } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
+import { PORS_STDLIB_CATALOG, PORS_STDLIB_MODULES } from "./pors-stdlib-catalog.ts";
+import { resolveHelpTopicForEditor } from "./help-navigation.ts";
 
 export interface PorsDocEntry {
   readonly label: string;
@@ -43,248 +45,19 @@ const PORS_TYPES = [
 
 const PORS_BUILTINS = ["escreva", "leia", "tamanho", "adicionar", "remover", "obter"] as const;
 
-export const PORS_MODULES = [
-  "UI",
-  "Matematica",
-  "Texto",
-  "Tipos",
-  "Util",
-  "Calendario",
-  "Arquivos",
-  "Json",
-  "Internet",
-  "Graficos",
-  "Teclado",
-  "Mouse",
-  "Sons",
-] as const;
+export const PORS_MODULES = PORS_STDLIB_MODULES;
 
-const PORS_MODULE_MEMBERS: Record<(typeof PORS_MODULES)[number], readonly PorsDocEntry[]> = {
-  UI: [
-    { label: "texto", kind: "function", signature: "UI.texto(valor, ...) -> inteiro", description: "Cria um nó de texto declarativo concatenando valores escalares." },
-    { label: "botao", kind: "function", signature: "UI.botao(id: cadeia, rotulo: cadeia) -> inteiro", description: "Cria um botão interativo que dispara eventos de clique com o identificador informado." },
-    { label: "entrada", kind: "function", signature: "UI.entrada(id: cadeia, valor: cadeia, dica: cadeia) -> inteiro", description: "Cria um campo de texto controlado que dispara eventos `entrada_alterada`." },
-    { label: "coluna", kind: "function", signature: "UI.coluna(filhos: vetor<inteiro>) -> inteiro", description: "Organiza nós filhos verticalmente em uma coluna." },
-    { label: "linha", kind: "function", signature: "UI.linha(filhos: vetor<inteiro>) -> inteiro", description: "Organiza nós filhos horizontalmente em uma linha." },
-    { label: "lista", kind: "function", signature: "UI.lista(itens: vetor<inteiro>) -> inteiro", description: "Renderiza uma lista de nós visuais filhos." },
-  ],
-  Matematica: [
-    { label: "PI", kind: "constant", signature: "Matematica.PI: real", description: "Constante matemática π (≈ 3.141592653589793)." },
-    { label: "E", kind: "constant", signature: "Matematica.E: real", description: "Constante de Euler e (≈ 2.718281828459045)." },
-    { label: "potencia", kind: "function", signature: "Matematica.potencia(base: real, expoente: real) -> real", description: "Calcula `base` elevado a `expoente`." },
-    { label: "raiz", kind: "function", signature: "Matematica.raiz(radicando: real, indice: real) -> real", description: "Calcula a raiz de índice `indice` de `radicando`." },
-    { label: "raiz_quadrada", kind: "function", signature: "Matematica.raiz_quadrada(numero: real) -> real", description: "Calcula a raiz quadrada de `numero`." },
-    { label: "arredondar", kind: "function", signature: "Matematica.arredondar(numero: real, casas: inteiro) -> real", description: "Arredonda `numero` para a quantidade de casas decimais informada (0 a 15)." },
-    { label: "piso", kind: "function", signature: "Matematica.piso(numero: real) -> real", description: "Retorna o maior inteiro (como `real`) menor ou igual a `numero`." },
-    { label: "teto", kind: "function", signature: "Matematica.teto(numero: real) -> real", description: "Retorna o menor inteiro (como `real`) maior ou igual a `numero`." },
-    { label: "logaritmo", kind: "function", signature: "Matematica.logaritmo(numero: real, base: real) -> real", description: "Calcula o logaritmo de `numero` na base especificada." },
-    { label: "seno", kind: "function", signature: "Matematica.seno(angulo: real) -> real", description: "Calcula o seno de `angulo` em radianos." },
-    { label: "cosseno", kind: "function", signature: "Matematica.cosseno(angulo: real) -> real", description: "Calcula o cosseno de `angulo` em radianos." },
-    { label: "tangente", kind: "function", signature: "Matematica.tangente(angulo: real) -> real", description: "Calcula a tangente de `angulo` em radianos." },
-    { label: "valor_absoluto", kind: "function", signature: "Matematica.valor_absoluto(numero: real) -> real", description: "Retorna o módulo (valor absoluto) de um número `real`." },
-    { label: "valor_absoluto_inteiro", kind: "function", signature: "Matematica.valor_absoluto_inteiro(numero: inteiro) -> inteiro", description: "Retorna o módulo (valor absoluto) de um número `inteiro`." },
-    { label: "maior_numero", kind: "function", signature: "Matematica.maior_numero(a: real, b: real) -> real", description: "Retorna o maior entre dois valores `real`." },
-    { label: "menor_numero", kind: "function", signature: "Matematica.menor_numero(a: real, b: real) -> real", description: "Retorna o menor entre dois valores `real`." },
-    { label: "maior_inteiro", kind: "function", signature: "Matematica.maior_inteiro(a: inteiro, b: inteiro) -> inteiro", description: "Retorna o maior entre dois valores `inteiro`." },
-    { label: "menor_inteiro", kind: "function", signature: "Matematica.menor_inteiro(a: inteiro, b: inteiro) -> inteiro", description: "Retorna o menor entre dois valores `inteiro`." },
-  ],
-  Texto: [
-    { label: "numero_caracteres", kind: "function", signature: "Texto.numero_caracteres(texto: cadeia) -> inteiro", description: "Retorna a quantidade de caracteres Unicode (`char`) da cadeia." },
-    { label: "caixa_alta", kind: "function", signature: "Texto.caixa_alta(texto: cadeia) -> cadeia", description: "Retorna uma nova cadeia convertida para letras maiúsculas." },
-    { label: "caixa_baixa", kind: "function", signature: "Texto.caixa_baixa(texto: cadeia) -> cadeia", description: "Retorna uma nova cadeia convertida para letras minúsculas." },
-    { label: "aparar", kind: "function", signature: "Texto.aparar(texto: cadeia) -> cadeia", description: "Remove espaços e quebras de linha no início e no fim da cadeia." },
-    { label: "contem", kind: "function", signature: "Texto.contem(texto: cadeia, trecho: cadeia) -> logico", description: "Verifica se `texto` contém a subcadeia `trecho`." },
-    { label: "comeca_com", kind: "function", signature: "Texto.comeca_com(texto: cadeia, prefixo: cadeia) -> logico", description: "Verifica se `texto` começa com `prefixo`." },
-    { label: "termina_com", kind: "function", signature: "Texto.termina_com(texto: cadeia, sufixo: cadeia) -> logico", description: "Verifica se `texto` termina com `sufixo`." },
-    { label: "substituir", kind: "function", signature: "Texto.substituir(texto: cadeia, antigo: cadeia, novo: cadeia) -> cadeia", description: "Substitui todas as ocorrências de `antigo` por `novo`, respeitando o limite de memória." },
-    { label: "preencher_a_esquerda", kind: "function", signature: "Texto.preencher_a_esquerda(car: caracter, tamanho: inteiro, texto: cadeia) -> cadeia", description: "Preenche `texto` à esquerda com `car` até atingir `tamanho` caracteres." },
-    { label: "obter_caracter", kind: "function", signature: "Texto.obter_caracter(texto: cadeia, indice: inteiro) -> Opcao<caracter>", description: "Retorna `Opcao::Algum(c)` no índice Unicode informado, ou `Opcao::Nenhum` fora dos limites." },
-    { label: "posicao_texto", kind: "function", signature: "Texto.posicao_texto(trecho: cadeia, texto: cadeia, inicio: inteiro) -> Opcao<inteiro>", description: "Procura `trecho` em `texto` a partir do índice Unicode `inicio`, retornando `Opcao<inteiro>`." },
-    { label: "extrair_subtexto", kind: "function", signature: "Texto.extrair_subtexto(texto: cadeia, inicio: inteiro, fim: inteiro) -> Resultado<cadeia, cadeia>", description: "Extrai a fatia Unicode `[inicio..fim)` retornando `Resultado<cadeia, cadeia>`." },
-    { label: "dividir", kind: "function", signature: "Texto.dividir(texto: cadeia, separador: cadeia) -> vetor<cadeia>", description: "Divide `texto` nas ocorrências de `separador` (ou em caracteres Unicode quando `separador` é vazio)." },
-  ],
-  Tipos: [
-    { label: "para_inteiro", kind: "function", signature: "Tipos.para_inteiro(texto: cadeia) -> Resultado<inteiro, cadeia>", description: "Converte uma cadeia decimal em `inteiro`, retornando `Resultado::Erro` se for inválida." },
-    { label: "para_inteiro_base", kind: "function", signature: "Tipos.para_inteiro_base(texto: cadeia, base: inteiro) -> Resultado<inteiro, cadeia>", description: "Converte uma cadeia em `inteiro` na base 2, 10 ou 16." },
-    { label: "para_real", kind: "function", signature: "Tipos.para_real(texto: cadeia) -> Resultado<real, cadeia>", description: "Converte uma cadeia em `real` finito, retornando `Resultado<real, cadeia>`." },
-    { label: "para_logico", kind: "function", signature: "Tipos.para_logico(texto: cadeia) -> Resultado<logico, cadeia>", description: "Converte `\"verdadeiro\"` ou `\"falso\"` em `logico`, retornando `Resultado<logico, cadeia>`." },
-    { label: "para_caracter", kind: "function", signature: "Tipos.para_caracter(texto: cadeia) -> Resultado<caracter, cadeia>", description: "Converte uma cadeia de exatamente 1 caractere Unicode em `caracter`." },
-    { label: "inteiro_para_real", kind: "function", signature: "Tipos.inteiro_para_real(valor: inteiro) -> real", description: "Converte explicitamente um `inteiro` em `real`." },
-    { label: "real_para_inteiro", kind: "function", signature: "Tipos.real_para_inteiro(valor: real) -> inteiro", description: "Converte explicitamente um `real` em `inteiro` truncando a parte fracionária." },
-    { label: "inteiro_para_cadeia", kind: "function", signature: "Tipos.inteiro_para_cadeia(valor: inteiro) -> cadeia", description: "Converte um `inteiro` para representação textual decimal." },
-    { label: "inteiro_para_cadeia_base", kind: "function", signature: "Tipos.inteiro_para_cadeia_base(valor: inteiro, base: inteiro) -> Resultado<cadeia, cadeia>", description: "Formata um `inteiro` em cadeia na base 2, 10 ou 16." },
-    { label: "real_para_cadeia", kind: "function", signature: "Tipos.real_para_cadeia(valor: real) -> cadeia", description: "Converte um `real` em cadeia." },
-    { label: "logico_para_cadeia", kind: "function", signature: "Tipos.logico_para_cadeia(valor: logico) -> cadeia", description: "Converte um `logico` em `\"verdadeiro\"` ou `\"falso\"`." },
-    { label: "caracter_para_cadeia", kind: "function", signature: "Tipos.caracter_para_cadeia(valor: caracter) -> cadeia", description: "Converte um `caracter` em cadeia de 1 caractere." },
-    { label: "logico_para_inteiro", kind: "function", signature: "Tipos.logico_para_inteiro(valor: logico) -> inteiro", description: "Converte `verdadeiro` em `1` e `falso` em `0`." },
-    { label: "caracter_para_inteiro", kind: "function", signature: "Tipos.caracter_para_inteiro(valor: caracter) -> Resultado<inteiro, cadeia>", description: "Converte um caractere de dígito (`'0'` a `'9'`) no inteiro correspondente." },
-    { label: "inteiro_para_caracter", kind: "function", signature: "Tipos.inteiro_para_caracter(valor: inteiro) -> Resultado<caracter, cadeia>", description: "Converte um inteiro entre `0` e `9` no caractere de dígito correspondente." },
-    { label: "cadeia_e_inteiro", kind: "function", signature: "Tipos.cadeia_e_inteiro(texto: cadeia) -> logico", description: "Verifica se `texto` representa um `inteiro` válido." },
-    { label: "cadeia_e_real", kind: "function", signature: "Tipos.cadeia_e_real(texto: cadeia) -> logico", description: "Verifica se `texto` representa um `real` finito válido." },
-    { label: "cadeia_e_logico", kind: "function", signature: "Tipos.cadeia_e_logico(texto: cadeia) -> logico", description: "Verifica se `texto` é `\"verdadeiro\"` ou `\"falso\"`." },
-    { label: "cadeia_e_caracter", kind: "function", signature: "Tipos.cadeia_e_caracter(texto: cadeia) -> logico", description: "Verifica se `texto` contém exatamente 1 caractere Unicode." },
-  ],
-  Util: [
-    { label: "sorteia", kind: "function", signature: "Util.sorteia(min: inteiro, max: inteiro) -> Resultado<inteiro, cadeia>", description: "Sorteia um inteiro no intervalo fechado `[min, max]`, retornando `Resultado::Erro` se `min > max`." },
-    { label: "definir_semente", kind: "function", signature: "Util.definir_semente(semente: inteiro)", description: "Fixa a semente determinística do gerador de `Util.sorteia`." },
-    { label: "tempo_decorrido", kind: "function", signature: "Util.tempo_decorrido() -> inteiro", description: "Retorna o tempo decorrido em milissegundos desde o início do programa." },
-    { label: "aguarde", kind: "function", signature: "Util.aguarde(ms: inteiro)", description: "Pausa a execução por `ms` milissegundos (0 a 60000 ms, cancelável na IDE)." },
-  ],
-  Calendario: [
-    { label: "DIA_DOMINGO", kind: "constant", signature: "Calendario.DIA_DOMINGO: inteiro", description: "Constante para domingo (1)." },
-    { label: "DIA_SEGUNDA_FEIRA", kind: "constant", signature: "Calendario.DIA_SEGUNDA_FEIRA: inteiro", description: "Constante para segunda-feira (2)." },
-    { label: "DIA_TERCA_FEIRA", kind: "constant", signature: "Calendario.DIA_TERCA_FEIRA: inteiro", description: "Constante para terça-feira (3)." },
-    { label: "DIA_QUARTA_FEIRA", kind: "constant", signature: "Calendario.DIA_QUARTA_FEIRA: inteiro", description: "Constante para quarta-feira (4)." },
-    { label: "DIA_QUINTA_FEIRA", kind: "constant", signature: "Calendario.DIA_QUINTA_FEIRA: inteiro", description: "Constante para quinta-feira (5)." },
-    { label: "DIA_SEXTA_FEIRA", kind: "constant", signature: "Calendario.DIA_SEXTA_FEIRA: inteiro", description: "Constante para sexta-feira (6)." },
-    { label: "DIA_SABADO", kind: "constant", signature: "Calendario.DIA_SABADO: inteiro", description: "Constante para sábado (7)." },
-    { label: "MES_JANEIRO", kind: "constant", signature: "Calendario.MES_JANEIRO: inteiro", description: "Constante para janeiro (1)." },
-    { label: "MES_FEVEREIRO", kind: "constant", signature: "Calendario.MES_FEVEREIRO: inteiro", description: "Constante para fevereiro (2)." },
-    { label: "MES_MARCO", kind: "constant", signature: "Calendario.MES_MARCO: inteiro", description: "Constante para março (3)." },
-    { label: "MES_ABRIL", kind: "constant", signature: "Calendario.MES_ABRIL: inteiro", description: "Constante para abril (4)." },
-    { label: "MES_MAIO", kind: "constant", signature: "Calendario.MES_MAIO: inteiro", description: "Constante para maio (5)." },
-    { label: "MES_JUNHO", kind: "constant", signature: "Calendario.MES_JUNHO: inteiro", description: "Constante para junho (6)." },
-    { label: "MES_JULHO", kind: "constant", signature: "Calendario.MES_JULHO: inteiro", description: "Constante para julho (7)." },
-    { label: "MES_AGOSTO", kind: "constant", signature: "Calendario.MES_AGOSTO: inteiro", description: "Constante para agosto (8)." },
-    { label: "MES_SETEMBRO", kind: "constant", signature: "Calendario.MES_SETEMBRO: inteiro", description: "Constante para setembro (9)." },
-    { label: "MES_OUTUBRO", kind: "constant", signature: "Calendario.MES_OUTUBRO: inteiro", description: "Constante para outubro (10)." },
-    { label: "MES_NOVEMBRO", kind: "constant", signature: "Calendario.MES_NOVEMBRO: inteiro", description: "Constante para novembro (11)." },
-    { label: "MES_DEZEMBRO", kind: "constant", signature: "Calendario.MES_DEZEMBRO: inteiro", description: "Constante para dezembro (12)." },
-    { label: "ano_atual", kind: "function", signature: "Calendario.ano_atual() -> inteiro", description: "Retorna o ano UTC atual." },
-    { label: "mes_atual", kind: "function", signature: "Calendario.mes_atual() -> inteiro", description: "Retorna o mês UTC atual (1 a 12)." },
-    { label: "dia_mes_atual", kind: "function", signature: "Calendario.dia_mes_atual() -> inteiro", description: "Retorna o dia do mês UTC atual (1 a 31)." },
-    { label: "dia_semana_atual", kind: "function", signature: "Calendario.dia_semana_atual() -> inteiro", description: "Retorna o dia da semana UTC atual (1 = Domingo a 7 = Sábado)." },
-    { label: "hora_atual", kind: "function", signature: "Calendario.hora_atual(formato_12h: logico) -> inteiro", description: "Retorna a hora UTC atual (0..23 ou 0..11 se `formato_12h` for verdadeiro)." },
-    { label: "minuto_atual", kind: "function", signature: "Calendario.minuto_atual() -> inteiro", description: "Retorna o minuto UTC atual (0 a 59)." },
-    { label: "segundo_atual", kind: "function", signature: "Calendario.segundo_atual() -> inteiro", description: "Retorna o segundo UTC atual (0 a 59)." },
-    { label: "milisegundo_atual", kind: "function", signature: "Calendario.milisegundo_atual() -> inteiro", description: "Retorna o milissegundo UTC atual (0 a 999)." },
-    { label: "dia_semana_completo", kind: "function", signature: "Calendario.dia_semana_completo(dia: inteiro, caixa_alta: logico, caixa_baixa: logico) -> Resultado<cadeia, cadeia>", description: "Retorna o nome completo do dia da semana (1 a 7) em `Resultado`." },
-    { label: "dia_semana_curto", kind: "function", signature: "Calendario.dia_semana_curto(dia: inteiro, caixa_alta: logico, caixa_baixa: logico) -> Resultado<cadeia, cadeia>", description: "Retorna o nome curto do dia da semana (1 a 7) em `Resultado`." },
-    { label: "dia_semana_abreviado", kind: "function", signature: "Calendario.dia_semana_abreviado(dia: inteiro, caixa_alta: logico, caixa_baixa: logico) -> Resultado<cadeia, cadeia>", description: "Retorna a abreviação de 3 letras do dia da semana (1 a 7) em `Resultado`." },
-    { label: "nome_mes", kind: "function", signature: "Calendario.nome_mes(mes: inteiro) -> Resultado<cadeia, cadeia>", description: "Retorna o nome em português do mês informado (1 a 12)." },
-    { label: "eh_bissexto", kind: "function", signature: "Calendario.eh_bissexto(ano: inteiro) -> logico", description: "Verifica se o ano gregoriano informado é bissexto." },
-    { label: "dias_no_mes", kind: "function", signature: "Calendario.dias_no_mes(ano: inteiro, mes: inteiro) -> Resultado<inteiro, cadeia>", description: "Retorna a quantidade de dias do mês/ano informados (28 a 31)." },
-    { label: "data_iso_atual", kind: "function", signature: "Calendario.data_iso_atual() -> cadeia", description: "Retorna a data UTC atual formatada como `AAAA-MM-DD`." },
-  ],
-  Arquivos: [
-    { label: "ler_texto", kind: "function", signature: "Arquivos.ler_texto(caminho: cadeia) -> Resultado<cadeia, cadeia>", description: "Lê um arquivo de texto UTF-8 confinado ao workspace (limite de 2 MiB)." },
-    { label: "ler_linhas", kind: "function", signature: "Arquivos.ler_linhas(caminho: cadeia) -> Resultado<vetor<cadeia>, cadeia>", description: "Lê as linhas de um arquivo UTF-8 do workspace em `vetor<cadeia>`." },
-    { label: "escrever_texto", kind: "function", signature: "Arquivos.escrever_texto(caminho: cadeia, conteudo: cadeia) -> Resultado<logico, cadeia>", description: "Grava texto UTF-8 em um caminho relativo ao workspace (criando subpastas se necessário)." },
-    { label: "acrescentar_texto", kind: "function", signature: "Arquivos.acrescentar_texto(caminho: cadeia, conteudo: cadeia) -> Resultado<logico, cadeia>", description: "Acrescenta texto ao final de um arquivo relativo ao workspace." },
-    { label: "existe", kind: "function", signature: "Arquivos.existe(caminho: cadeia) -> Resultado<logico, cadeia>", description: "Verifica se o caminho relativo existe dentro do workspace." },
-    { label: "remover", kind: "function", signature: "Arquivos.remover(caminho: cadeia) -> Resultado<logico, cadeia>", description: "Remove um arquivo dentro do workspace." },
-    { label: "listar", kind: "function", signature: "Arquivos.listar(diretorio: cadeia) -> Resultado<vetor<cadeia>, cadeia>", description: "Lista de forma ordenada até 1024 entradas de um diretório relativo ao workspace." },
-  ],
-  Json: [
-    { label: "valido", kind: "function", signature: "Json.valido(texto: cadeia) -> logico", description: "Verifica se `texto` é um documento JSON válido (RFC 8259, profundidade máxima 64)." },
-    { label: "formatar", kind: "function", signature: "Json.formatar(texto: cadeia) -> Resultado<cadeia, cadeia>", description: "Indenta um documento JSON válido com 2 espaços por nível." },
-    { label: "minificar", kind: "function", signature: "Json.minificar(texto: cadeia) -> Resultado<cadeia, cadeia>", description: "Compacta um documento JSON válido removendo espaços desnecessários." },
-    { label: "escapar_cadeia", kind: "function", signature: "Json.escapar_cadeia(texto: cadeia) -> cadeia", description: "Codifica uma cadeia como literal de string JSON escapado (`\"...\"`)." },
-    { label: "contem_chave", kind: "function", signature: "Json.contem_chave(json: cadeia, chave: cadeia) -> Resultado<logico, cadeia>", description: "Verifica se o objeto JSON raiz contém a chave informada." },
-    { label: "obter_chaves", kind: "function", signature: "Json.obter_chaves(json: cadeia) -> Resultado<vetor<cadeia>, cadeia>", description: "Retorna a lista de chaves do objeto JSON raiz em ordem." },
-    { label: "obter_cadeia", kind: "function", signature: "Json.obter_cadeia(json: cadeia, chave: cadeia) -> Resultado<cadeia, cadeia>", description: "Lê uma propriedade de texto (`cadeia`) do objeto JSON." },
-    { label: "obter_inteiro", kind: "function", signature: "Json.obter_inteiro(json: cadeia, chave: cadeia) -> Resultado<inteiro, cadeia>", description: "Lê uma propriedade numérica inteira (`inteiro`) do objeto JSON." },
-    { label: "obter_real", kind: "function", signature: "Json.obter_real(json: cadeia, chave: cadeia) -> Resultado<real, cadeia>", description: "Lê uma propriedade numérica finita (`real`) do objeto JSON." },
-    { label: "obter_logico", kind: "function", signature: "Json.obter_logico(json: cadeia, chave: cadeia) -> Resultado<logico, cadeia>", description: "Lê uma propriedade booleana (`logico`) do objeto JSON." },
-    { label: "obter_json", kind: "function", signature: "Json.obter_json(json: cadeia, chave: cadeia) -> Resultado<cadeia, cadeia>", description: "Extrai o subvalor JSON (objeto, lista ou primitivo) de uma chave como cadeia JSON minificada." },
-    { label: "obter_lista_cadeia", kind: "function", signature: "Json.obter_lista_cadeia(json: cadeia, chave: cadeia) -> Resultado<vetor<cadeia>, cadeia>", description: "Lê uma propriedade de lista JSON de strings em `vetor<cadeia>`." },
-    { label: "obter_lista_inteiro", kind: "function", signature: "Json.obter_lista_inteiro(json: cadeia, chave: cadeia) -> Resultado<vetor<inteiro>, cadeia>", description: "Lê uma propriedade de lista JSON de inteiros em `vetor<inteiro>`." },
-    { label: "definir_cadeia", kind: "function", signature: "Json.definir_cadeia(json: cadeia, chave: cadeia, valor: cadeia) -> Resultado<cadeia, cadeia>", description: "Retorna um novo objeto JSON com a chave definida para a cadeia informada." },
-    { label: "definir_inteiro", kind: "function", signature: "Json.definir_inteiro(json: cadeia, chave: cadeia, valor: inteiro) -> Resultado<cadeia, cadeia>", description: "Retorna um novo objeto JSON com a chave definida para o inteiro informado." },
-    { label: "definir_real", kind: "function", signature: "Json.definir_real(json: cadeia, chave: cadeia, valor: real) -> Resultado<cadeia, cadeia>", description: "Retorna um novo objeto JSON com a chave definida para o número real finito informado." },
-    { label: "definir_logico", kind: "function", signature: "Json.definir_logico(json: cadeia, chave: cadeia, valor: logico) -> Resultado<cadeia, cadeia>", description: "Retorna um novo objeto JSON com a chave definida para o valor lógico informado." },
-    { label: "definir_json", kind: "function", signature: "Json.definir_json(json: cadeia, chave: cadeia, valor_json: cadeia) -> Resultado<cadeia, cadeia>", description: "Retorna um novo objeto JSON com a chave definida para um subvalor JSON já válido (objeto ou lista)." },
-    { label: "remover_chave", kind: "function", signature: "Json.remover_chave(json: cadeia, chave: cadeia) -> Resultado<cadeia, cadeia>", description: "Retorna um novo objeto JSON sem a chave especificada." },
-  ],
-  Internet: [
-    { label: "definir_tempo_limite", kind: "function", signature: "Internet.definir_tempo_limite(ms: inteiro)", description: "Define o tempo limite das requisições HTTP entre 100 e 30000 ms (padrão: 5000 ms)." },
-    { label: "obter_texto", kind: "function", signature: "Internet.obter_texto(url: cadeia) -> Resultado<cadeia, cadeia>", description: "Executa HTTP GET com consentimento explícito, cancelamento cooperativo e limite de 1 MiB." },
-    { label: "enviar_json", kind: "function", signature: "Internet.enviar_json(url: cadeia, corpo_json: cadeia) -> Resultado<cadeia, cadeia>", description: "Valida o JSON e envia via HTTP POST (`application/json`), retornando a resposta em `Resultado`." },
-    { label: "endereco_disponivel", kind: "function", signature: "Internet.endereco_disponivel(url: cadeia) -> Resultado<logico, cadeia>", description: "Verifica se um endereço HTTP/HTTPS responde via HEAD com status 2xx/3xx." },
-  ],
-  Graficos: [
-    { label: "COR_PRETO", kind: "constant", signature: "Graficos.COR_PRETO: inteiro", description: "Constante de cor preta (ARGB)." },
-    { label: "COR_BRANCO", kind: "constant", signature: "Graficos.COR_BRANCO: inteiro", description: "Constante de cor branca (ARGB)." },
-    { label: "COR_AZUL", kind: "constant", signature: "Graficos.COR_AZUL: inteiro", description: "Constante de cor azul (ARGB)." },
-    { label: "COR_VERMELHO", kind: "constant", signature: "Graficos.COR_VERMELHO: inteiro", description: "Constante de cor vermelha (ARGB)." },
-    { label: "COR_VERDE", kind: "constant", signature: "Graficos.COR_VERDE: inteiro", description: "Constante de cor verde (ARGB)." },
-    { label: "COR_AMARELO", kind: "constant", signature: "Graficos.COR_AMARELO: inteiro", description: "Constante de cor amarela (ARGB)." },
-    { label: "CANAL_R", kind: "constant", signature: "Graficos.CANAL_R: inteiro", description: "Canal vermelho (0) para `Graficos.obter_rgb`." },
-    { label: "CANAL_G", kind: "constant", signature: "Graficos.CANAL_G: inteiro", description: "Canal verde (1) para `Graficos.obter_rgb`." },
-    { label: "CANAL_B", kind: "constant", signature: "Graficos.CANAL_B: inteiro", description: "Canal azul (2) para `Graficos.obter_rgb`." },
-    { label: "GRADIENTE_DIREITA", kind: "constant", signature: "Graficos.GRADIENTE_DIREITA: inteiro", description: "Direção de gradiente horizontal para a direita." },
-    { label: "GRADIENTE_ABAIXO", kind: "constant", signature: "Graficos.GRADIENTE_ABAIXO: inteiro", description: "Direção de gradiente vertical para baixo." },
-    { label: "iniciar_modo_grafico", kind: "function", signature: "Graficos.iniciar_modo_grafico(manter_visivel: logico)", description: "Abre a janela gráfica nativa do host da VM." },
-    { label: "encerrar_modo_grafico", kind: "function", signature: "Graficos.encerrar_modo_grafico()", description: "Encerra e fecha a janela gráfica ativa." },
-    { label: "definir_dimensoes_janela", kind: "function", signature: "Graficos.definir_dimensoes_janela(largura: inteiro, altura: inteiro)", description: "Define a largura e altura da janela gráfica." },
-    { label: "definir_titulo_janela", kind: "function", signature: "Graficos.definir_titulo_janela(titulo: cadeia)", description: "Define o título da janela gráfica." },
-    { label: "largura_janela", kind: "function", signature: "Graficos.largura_janela() -> inteiro", description: "Retorna a largura atual da janela gráfica em pixels." },
-    { label: "altura_janela", kind: "function", signature: "Graficos.altura_janela() -> inteiro", description: "Retorna a altura atual da janela gráfica em pixels." },
-    { label: "limpar", kind: "function", signature: "Graficos.limpar()", description: "Limpa o quadro atual com a cor selecionada." },
-    { label: "renderizar", kind: "function", signature: "Graficos.renderizar()", description: "Apresenta as operações de desenho acumuladas na janela." },
-    { label: "definir_cor", kind: "function", signature: "Graficos.definir_cor(cor: inteiro)", description: "Define a cor ativa de desenho e preenchimento." },
-    { label: "definir_opacidade", kind: "function", signature: "Graficos.definir_opacidade(opacidade: inteiro)", description: "Define a opacidade (0 a 255) das próximas operações." },
-    { label: "definir_rotacao", kind: "function", signature: "Graficos.definir_rotacao(angulo: inteiro)", description: "Define o ângulo de rotação em graus para as próximas formas." },
-    { label: "criar_cor", kind: "function", signature: "Graficos.criar_cor(r: inteiro, g: inteiro, b: inteiro) -> Resultado<inteiro, cadeia>", description: "Cria uma cor RGB (0..255) retornando `Resultado<inteiro, cadeia>`." },
-    { label: "obter_rgb", kind: "function", signature: "Graficos.obter_rgb(cor: inteiro, canal: inteiro) -> inteiro", description: "Extrai o valor (0..255) do canal `CANAL_R`, `CANAL_G` ou `CANAL_B`." },
-    { label: "desenhar_retangulo", kind: "function", signature: "Graficos.desenhar_retangulo(x: inteiro, y: inteiro, largura: inteiro, altura: inteiro, arredondar: logico, preencher: logico)", description: "Desenha um retângulo no quadro atual." },
-    { label: "desenhar_elipse", kind: "function", signature: "Graficos.desenhar_elipse(x: inteiro, y: inteiro, largura: inteiro, altura: inteiro, preencher: logico)", description: "Desenha uma elipse ou círculo no quadro atual." },
-    { label: "desenhar_linha", kind: "function", signature: "Graficos.desenhar_linha(x1: inteiro, y1: inteiro, x2: inteiro, y2: inteiro)", description: "Desenha um segmento de reta entre `(x1, y1)` e `(x2, y2)`." },
-    { label: "desenhar_ponto", kind: "function", signature: "Graficos.desenhar_ponto(x: inteiro, y: inteiro)", description: "Desenha um ponto em `(x, y)`." },
-    { label: "desenhar_poligono", kind: "function", signature: "Graficos.desenhar_poligono(xs: vetor<inteiro>, ys: vetor<inteiro>, preencher: logico) -> Resultado<logico, cadeia>", description: "Desenha um polígono a partir de vetores tipados de coordenadas X e Y." },
-    { label: "desenhar_texto", kind: "function", signature: "Graficos.desenhar_texto(x: inteiro, y: inteiro, texto: cadeia)", description: "Desenha texto no quadro atual na posição `(x, y)`." },
-    { label: "definir_tamanho_texto", kind: "function", signature: "Graficos.definir_tamanho_texto(tamanho: real)", description: "Define o tamanho da fonte de texto." },
-    { label: "definir_estilo_texto", kind: "function", signature: "Graficos.definir_estilo_texto(italico: logico, negrito: logico, sublinhado: logico)", description: "Configura itálico, negrito e sublinhado do texto." },
-    { label: "largura_texto", kind: "function", signature: "Graficos.largura_texto(texto: cadeia) -> inteiro", description: "Calcula a largura do texto na fonte atual em pixels." },
-    { label: "altura_texto", kind: "function", signature: "Graficos.altura_texto(texto: cadeia) -> inteiro", description: "Calcula a altura do texto na fonte atual em pixels." },
-    { label: "carregar_imagem", kind: "function", signature: "Graficos.carregar_imagem(caminho: cadeia) -> Resultado<inteiro, cadeia>", description: "Carrega imagem (PNG/JPG/GIF) confinada ao workspace retornando seu identificador." },
-    { label: "liberar_imagem", kind: "function", signature: "Graficos.liberar_imagem(imagem: inteiro)", description: "Libera uma imagem carregada da memória da VM." },
-    { label: "desenhar_imagem", kind: "function", signature: "Graficos.desenhar_imagem(x: inteiro, y: inteiro, imagem: inteiro)", description: "Desenha a imagem carregada na posição `(x, y)`." },
-    { label: "largura_imagem", kind: "function", signature: "Graficos.largura_imagem(imagem: inteiro) -> Resultado<inteiro, cadeia>", description: "Retorna a largura da imagem em pixels via `Resultado`." },
-    { label: "altura_imagem", kind: "function", signature: "Graficos.altura_imagem(imagem: inteiro) -> Resultado<inteiro, cadeia>", description: "Retorna a altura da imagem em pixels via `Resultado`." },
-    { label: "salvar_imagem", kind: "function", signature: "Graficos.salvar_imagem(imagem: inteiro, caminho: cadeia) -> Resultado<logico, cadeia>", description: "Salva a imagem em PNG dentro do workspace." },
-    { label: "carregar_fonte", kind: "function", signature: "Graficos.carregar_fonte(caminho: cadeia) -> Resultado<logico, cadeia>", description: "Carrega uma fonte TTF/OTF confinada ao workspace." },
-  ],
-  Teclado: [
-    { label: "TECLA_ESC", kind: "constant", signature: "Teclado.TECLA_ESC: inteiro", description: "Código da tecla Escape (27)." },
-    { label: "TECLA_ENTER", kind: "constant", signature: "Teclado.TECLA_ENTER: inteiro", description: "Código da tecla Enter (10)." },
-    { label: "TECLA_ESPACO", kind: "constant", signature: "Teclado.TECLA_ESPACO: inteiro", description: "Código da tecla Espaço (32)." },
-    { label: "TECLA_SETA_ESQUERDA", kind: "constant", signature: "Teclado.TECLA_SETA_ESQUERDA: inteiro", description: "Código da seta para a esquerda (37)." },
-    { label: "TECLA_SETA_ACIMA", kind: "constant", signature: "Teclado.TECLA_SETA_ACIMA: inteiro", description: "Código da seta para cima (38)." },
-    { label: "TECLA_SETA_DIREITA", kind: "constant", signature: "Teclado.TECLA_SETA_DIREITA: inteiro", description: "Código da seta para a direita (39)." },
-    { label: "TECLA_SETA_ABAIXO", kind: "constant", signature: "Teclado.TECLA_SETA_ABAIXO: inteiro", description: "Código da seta para baixo (40)." },
-    { label: "tecla_pressionada", kind: "function", signature: "Teclado.tecla_pressionada(tecla: inteiro) -> logico", description: "Verifica se a tecla informada está pressionada na janela gráfica." },
-    { label: "alguma_tecla_pressionada", kind: "function", signature: "Teclado.alguma_tecla_pressionada() -> logico", description: "Verifica se qualquer tecla está pressionada." },
-    { label: "ler_tecla", kind: "function", signature: "Teclado.ler_tecla() -> Resultado<inteiro, cadeia>", description: "Aguarda uma tecla na janela gráfica retornando `Resultado<inteiro, cadeia>`." },
-    { label: "caracter_tecla", kind: "function", signature: "Teclado.caracter_tecla(tecla: inteiro) -> caracter", description: "Converte um código de tecla em `caracter`." },
-  ],
-  Mouse: [
-    { label: "BOTAO_ESQUERDO", kind: "constant", signature: "Mouse.BOTAO_ESQUERDO: inteiro", description: "Código do botão esquerdo do mouse (0)." },
-    { label: "BOTAO_DIREITO", kind: "constant", signature: "Mouse.BOTAO_DIREITO: inteiro", description: "Código do botão direito do mouse (1)." },
-    { label: "BOTAO_MEIO", kind: "constant", signature: "Mouse.BOTAO_MEIO: inteiro", description: "Código do botão central do mouse (2)." },
-    { label: "botao_pressionado", kind: "function", signature: "Mouse.botao_pressionado(botao: inteiro) -> logico", description: "Verifica se o botão especificado está pressionado." },
-    { label: "algum_botao_pressionado", kind: "function", signature: "Mouse.algum_botao_pressionado() -> logico", description: "Verifica se algum botão do mouse está pressionado." },
-    { label: "ler_botao", kind: "function", signature: "Mouse.ler_botao() -> Resultado<inteiro, cadeia>", description: "Aguarda um clique na janela gráfica retornando `Resultado<inteiro, cadeia>`." },
-    { label: "posicao_x", kind: "function", signature: "Mouse.posicao_x() -> inteiro", description: "Retorna a coordenada X atual do mouse na janela." },
-    { label: "posicao_y", kind: "function", signature: "Mouse.posicao_y() -> inteiro", description: "Retorna a coordenada Y atual do mouse na janela." },
-    { label: "ocultar_cursor", kind: "function", signature: "Mouse.ocultar_cursor()", description: "Oculta o cursor do mouse sobre a janela gráfica." },
-    { label: "exibir_cursor", kind: "function", signature: "Mouse.exibir_cursor()", description: "Volta a exibir o cursor do mouse sobre a janela gráfica." },
-  ],
-  Sons: [
-    { label: "carregar_som", kind: "function", signature: "Sons.carregar_som(caminho: cadeia) -> Resultado<inteiro, cadeia>", description: "Carrega um arquivo de áudio confinado ao workspace e retorna seu identificador." },
-    { label: "liberar_som", kind: "function", signature: "Sons.liberar_som(som: inteiro)", description: "Libera o som carregado da memória." },
-    { label: "reproduzir_som", kind: "function", signature: "Sons.reproduzir_som(som: inteiro, repetir: logico) -> Resultado<inteiro, cadeia>", description: "Inicia a reprodução do som, opcionalmente em loop." },
-    { label: "pausar_som", kind: "function", signature: "Sons.pausar_som(som: inteiro)", description: "Pausa a reprodução do som informado." },
-    { label: "interromper_som", kind: "function", signature: "Sons.interromper_som(som: inteiro)", description: "Interrompe a reprodução do som e volta ao início." },
-    { label: "obter_tamanho_musica", kind: "function", signature: "Sons.obter_tamanho_musica(som: inteiro) -> inteiro", description: "Retorna a duração total da faixa em milissegundos." },
-    { label: "obter_posicao_atual_musica", kind: "function", signature: "Sons.obter_posicao_atual_musica(som: inteiro) -> inteiro", description: "Retorna a posição atual da reprodução em milissegundos." },
-    { label: "definir_posicao_atual_musica", kind: "function", signature: "Sons.definir_posicao_atual_musica(som: inteiro, posicao_ms: inteiro) -> Resultado<logico, cadeia>", description: "Move a reprodução para a posição informada em milissegundos." },
-    { label: "definir_volume", kind: "function", signature: "Sons.definir_volume(volume: inteiro)", description: "Define o volume mestre de áudio (0 a 100)." },
-    { label: "definir_volume_reproducao", kind: "function", signature: "Sons.definir_volume_reproducao(som: inteiro, volume: inteiro)", description: "Define o volume individual de um som carregado (0 a 100)." },
-    { label: "obter_volume", kind: "function", signature: "Sons.obter_volume() -> inteiro", description: "Retorna o volume mestre atual (0 a 100)." },
-    { label: "obter_volume_reproducao", kind: "function", signature: "Sons.obter_volume_reproducao(som: inteiro) -> inteiro", description: "Retorna o volume individual do som informado." },
-  ],
-};
+const PORS_MODULE_MEMBERS = new Map<string, readonly PorsDocEntry[]>(
+  PORS_STDLIB_CATALOG.map((lib) => [
+    lib.module,
+    lib.items.map<PorsDocEntry>((item) => ({
+      label: item.name,
+      kind: item.kind,
+      signature: item.signature,
+      description: item.description,
+    })),
+  ]),
+);
 
 const PORS_BUILTIN_VARIANTS: Record<"Opcao" | "Resultado", readonly PorsDocEntry[]> = {
   Opcao: [
@@ -557,8 +330,8 @@ function completePors(context: CompletionContext): CompletionResult | null {
   const member = context.matchBefore(/[A-Za-z_]\w*\.\w*/);
   if (member) {
     const [scope] = member.text.split(".");
-    if (scope in PORS_MODULE_MEMBERS) {
-      const entries = PORS_MODULE_MEMBERS[scope as keyof typeof PORS_MODULE_MEMBERS];
+    const entries = PORS_MODULE_MEMBERS.get(scope);
+    if (entries) {
       return {
         from: member.from + scope.length + 1,
         options: entries.map(toMemberCompletion),
@@ -625,10 +398,9 @@ export function porsHoverInfo(doc: string, pos: number): PorsHoverInfo | null {
     let modStart = start - 1;
     while (modStart > 0 && isIdent(doc[modStart - 1])) modStart -= 1;
     const modName = doc.slice(modStart, start - 1);
-    if (modName in PORS_MODULE_MEMBERS) {
-      const entry = PORS_MODULE_MEMBERS[modName as keyof typeof PORS_MODULE_MEMBERS].find(
-        (item) => item.label === word,
-      );
+    const members = PORS_MODULE_MEMBERS.get(modName);
+    if (members) {
+      const entry = members.find((item) => item.label === word);
       if (entry) {
         return {
           from: modStart,
@@ -672,8 +444,10 @@ export function porsHoverInfo(doc: string, pos: number): PorsHoverInfo | null {
 }
 
 const porsHoverExtension = hoverTooltip((view, pos): Tooltip | null => {
-  const info = porsHoverInfo(view.state.doc.toString(), pos);
+  const doc = view.state.doc.toString();
+  const info = porsHoverInfo(doc, pos);
   if (!info) return null;
+  const helpTopicId = resolveHelpTopicForEditor(doc, pos);
   return {
     pos: info.from,
     end: info.to,
@@ -688,6 +462,23 @@ const porsHoverExtension = hoverTooltip((view, pos): Tooltip | null => {
       desc.className = "cm-pors-hover-description";
       desc.textContent = info.description;
       dom.append(sig, desc);
+      if (helpTopicId) {
+        const footer = document.createElement("div");
+        footer.className = "cm-pors-hover-footer";
+        const helpButton = document.createElement("button");
+        helpButton.type = "button";
+        helpButton.className = "cm-pors-hover-help";
+        helpButton.textContent = "Ver na Ajuda (F1)";
+        helpButton.onclick = (event) => {
+          event.preventDefault();
+          view.dom.dispatchEvent(new CustomEvent("pors-open-help", {
+            bubbles: true,
+            detail: { topicId: helpTopicId },
+          }));
+        };
+        footer.append(helpButton);
+        dom.append(footer);
+      }
       return { dom };
     },
   };

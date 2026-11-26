@@ -2,15 +2,12 @@
 <body>
 <div>
             <h1>Escolha-caso</h1>
-            <p>Qual a melhor forma para programar um menu de, por exemplo, uma calculadora? Esta tarefa poderia ser executada através de desvios condicionais <span class="palavra-reservada">se</span> e <span class="palavra-reservada">senão</span>, porém esta solução seria complexa e demorada. Pode-se executar esta tarefa de uma maneira melhor, através de outro tipo de desvio condicional: o <span class="palavra-reservada">escolha</span> junto com o <span class="palavra-reservada">caso</span>. Este comando é similar aos comandos <span class="palavra-reservada">se</span> e <span class="palavra-reservada">senão</span>, e reduz a complexidade do problema.</p>
-            <p>Apesar de suas similaridades com o <span class="palavra-reservada">se</span>, ele possui algumas diferenças. Neste comando não é possível o uso de operadores lógicos, ele apenas trabalha com valores definidos, ou o valor é igual ou diferente. Além disto, o <span class="palavra-reservada">escolha</span> e o <span class="palavra-reservada">caso</span> tem alguns casos testes, e se a instrução <span class="palavra-reservada">pare</span> não for colocada ao fim de cada um destes testes, o comando executará todos casos existentes.</p>
-            <p>A sintaxe do <span class="palavra-reservada">escolha</span> é respectivamente o comando <span class="palavra-reservada">escolha</span> a condição a ser testada e entre chaves se coloca os casos</p>
-            <p>A sintaxe para se criar um caso é a palavra reservada <span class="palavra-reservada">caso</span>, o valor que a condição testada deve possuir, dois pontos e suas instruções. Lembre-se de termina-las com o comando <span class="palavra-reservada">pare</span> </p>
+            <p>A estrutura <span class="palavra-reservada">escolha</span>/<span class="palavra-reservada">caso</span> seleciona um bloco de código de acordo com a variante de um <code>enum</code>, <code>Opcao&lt;T&gt;</code> ou <code>Resultado&lt;T, E&gt;</code> — funcionando exatamente como <code>match</code> em Rust.</p>
+            <p>Diferente de linguagens antigas com queda entre casos, em Portugol-RS cada ramo usa a seta <code>=> { ... }</code> e termina automaticamente ao fim do bloco, sem precisar de <code>pare</code>. Além disso, o compilador verifica <b>exaustividade</b>: todas as variantes precisam ser tratadas explicitamente ou cobertas pelo curinga <code>caso _ => { ... }</code>.</p>
             <div class="codigo-portugol" data-type='sintaxe' data-title="Exemplo de Sintaxe" data-file="../../../../recursos/exemplos-pors/estruturas_controle/desvio/escolha_caso/exemplo1.pors"></div>
-            <p>O comando pare evita que os blocos de comando seguinte sejam executados por engano. O caso contrario será executado caso nenhuma das expressões anteriores sejam executadas.</p>
-            <p>A figura a seguir ilustra um algoritmo que verifica se o a variável valor é igual a 0, 1 ou 2.</p>
-            <img src="../../../../recursos/imagens/${tema}/escolha_caso.png" alt='Fluxograma ilustrando o funcionamento do escolha-caso'>
-            <p>O exemplo a seguir ilustra em portugol o mesmo algoritmo do fluxograma acima.</p>
+            <p>Quando precisar comparar faixas numéricas ou condições booleanas gerais, utilize <a href="topicos/linguagem_portugol/estruturas_controle/desvio/se_senao_se.html">se / senao se</a>. A figura a seguir ilustra o fluxo de decisão entre múltiplos caminhos:</p>
+            <img src="../../../../recursos/imagens/${tema}/escolha_caso.png" alt='Fluxograma ilustrando o desvio entre múltiplos casos'>
+            <p>Confira no exemplo abaixo como modelar opções tipadas com <code>enum</code> e <code>escolha</code> em Portugol-RS:</p>
             <div class="codigo-portugol" data-type='exemplo' data-title="Exemplo" data-file="../../../../recursos/exemplos-pors/estruturas_controle/desvio/escolha_caso/exemplo2.pors"></div>
         </div>
 </body>

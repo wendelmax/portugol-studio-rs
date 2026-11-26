@@ -1,11 +1,11 @@
-<title>Declaração de Constante</title>
+<title>Declaração de Constante (Imutável)</title>
 <body>
 <div>
-            <h1>Declaração de Constante</h1>
-            <p>Existem algumas situações em que precisamos que um determinado parâmetro não tenha seu valor alterado durante a execução do programa. Para isso, existem as constantes. Constante é um identificador cujo valor associado não pode ser alterado pelo programa durante a sua execução.</p>
-            <p>Para declarar uma constante basta adicionar a palavra reservada <span class="palavra-reservada">const</span> seguida do tipo de dado, pelo nome da constante e atribuir um valor a ela.</p>
+            <h1>Declaração de Constante (Imutável)</h1>
+            <p>Em muitas situações precisamos garantir que um valor não seja alterado durante a execução do programa. Em Portugol-RS, toda variável declarada com <span class="palavra-reservada">seja</span> (sem a palavra <span class="palavra-reservada">mutavel</span>) já é imutável por padrão, assim como <code>let</code> em Rust.</p>
+            <p>Para declarar um valor imutável, utilize <span class="palavra-reservada">seja</span> seguido do nome, dois-pontos, o tipo explícito e o valor inicial obrigatório.</p>
             <div class="codigo-portugol" data-type='sintaxe' data-title="Exemplo de Sintaxe" data-file="../../../recursos/exemplos-pors/declaracoes/constante/exemplo1.pors"></div>
-            <p>Por uma questão de convenção, é aconselhável deixar o nome da sua constante em caixa alta (todas as letras em maiúsculo)</p>
+            <p>Por convenção, nomes de constantes conceituais costumam ser escritos em caixa alta (por exemplo, <code>PRECO_UNITARIO</code> ou <code>LIMITE_MAXIMO</code>) para destacar que representam valores fixos.</p>
             <p>Para melhor compreensão deste conceito, confira o exemplo abaixo.</p>
         </div>
         <div class="codigo-portugol" data-type='exemplo' data-title="Exemplo" data-file="../../../recursos/exemplos-pors/declaracoes/constante/exemplo2.pors"></div>

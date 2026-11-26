@@ -2,48 +2,50 @@
 <body>
 <div>
             <h1>Operações Lógicas</h1>
-            <p>As operações lógicas são uma novidade para muitos, pois raramente são vistas na escola. Um operador lógico opera somente valores lógicos, ou seja, é necessário que o valor à esquerda e a direita do operador sejam valores lógicos (verdadeiro ou falso).</p>
-            <p>É muito comum usar expressões relacionais (que dão resultado lógico) e combiná-las usando operadores lógicos. Por exemplo:</p>
+            <p>Operadores lógicos atuam exclusivamente sobre valores do tipo <code>logico</code> (<code>verdadeiro</code> ou <code>falso</code>), permitindo combinar ou inverter resultados de comparações relacionais.</p>
+            <p>Em Portugol-RS, os operadores lógicos usam a mesma notação simbólica de Rust: <code>&&</code> (E lógico), <code>||</code> (OU lógico) e <code>!</code> (NÃO lógico), com avaliação em curto-circuito.</p>
                 <table>
                     <tr>
-                        <th>Operações</th>
+                        <th>Expressão</th>
                         <th>Resultado</th>
                     </tr>
                     <tr>
-                        <td>5 > 3 <span class="palavra-reservada">e</span> 2 &#60 1</td>
+                        <td><code>5 > 3 && 2 &lt; 1</code></td>
                         <td>falso</td>
                     </tr>
                     <tr>
-                        <td><span class="palavra-reservada">nao</span> (8 &#60 4)</td>
+                        <td><code>!(8 &lt; 4)</code></td>
                         <td>verdadeiro</td>
                     </tr>
                     <tr>
-                        <td>1 > 3 <span class="palavra-reservada">ou</span> 1 <= 1</td>
+                        <td><code>1 > 3 || 1 &lt;= 1</code></td>
                         <td>verdadeiro</td>
                     </tr>
-
                 </table>
-            <p>Assim como as operações aritméticas, as operações lógicas também possuem prioridades. Veja a tabela abaixo:</p>
+            <p>Assim como nas operações aritméticas, há ordem de precedência (do menor para o maior):</p>
                 <table>
                     <tr>
                         <th>Operador</th>
+                        <th>Significado</th>
                         <th>Prioridade</th>
                     </tr>
                     <tr>
-                        <td><span class="palavra-reservada">ou</span></td>
-                        <td>1</td>
+                        <td><code>||</code></td>
+                        <td>OU lógico</td>
+                        <td>1 (menor)</td>
                     </tr>
                     <tr>
-                        <td><span class="palavra-reservada">e</span></td>
+                        <td><code>&&</code></td>
+                        <td>E lógico</td>
                         <td>2</td>
                     </tr>
                     <tr>
-                        <td><span class="palavra-reservada">nao</span></td>
-                        <td>3</td>
+                        <td><code>!</code></td>
+                        <td>NÃO lógico</td>
+                        <td>3 (maior)</td>
                     </tr>
-
                 </table>
-            <p>Ou seja, o <span class="palavra-reservada">nao</span> tem maior prioridade que todos, e o <span class="palavra-reservada">ou</span> tem a menor. Veja os exemplos a seguir:</p>
+            <p>Veja o passo a passo da avaliação:</p>
                 <table>
                     <tr>
                         <th>Passo</th>
@@ -52,25 +54,25 @@
                     </tr>
                     <tr>
                         <td>Passo 1</td>
-                        <td><span class="palavra-reservada">nao</span> verdadeiro <span class="palavra-reservada">ou</span> falso</td>
-                        <td>verdadeiro <span class="palavra-reservada">e</span> falso <span class="palavra-reservada">ou</span> verdadeiro</td>
+                        <td><code>!verdadeiro || falso</code></td>
+                        <td><code>verdadeiro && falso || verdadeiro</code></td>
                     </tr>
                     <tr>
                         <td>Passo 2</td>
-                        <td>falso <span class="palavra-reservada">ou</span> falso</td>
-                        <td>falso <span class="palavra-reservada">ou</span> verdadeiro</td>
+                        <td><code>falso || falso</code></td>
+                        <td><code>falso || verdadeiro</code></td>
                     </tr>
                     <tr>
                         <td>Passo 3</td>
-                        <td>falso</td>
-                        <td>verdadeiro</td>
+                        <td><code>falso</code></td>
+                        <td><code>verdadeiro</code></td>
                     </tr>
                 </table>
             <p>Nesta seção, serão abordados os seguintes tópicos:</p>
             <ul>
-                <li><a href="topicos/linguagem_portugol/expressao/operacoes_logicas/e.html">e</a></li>
-                <li><a href="topicos/linguagem_portugol/expressao/operacoes_logicas/ou.html">ou</a></li>
-                <li><a href="topicos/linguagem_portugol/expressao/operacoes_logicas/nao.html">nao</a></li>
+                <li><a href="topicos/linguagem_portugol/expressao/operacoes_logicas/e.html">E lógico (&amp;&amp;)</a></li>
+                <li><a href="topicos/linguagem_portugol/expressao/operacoes_logicas/ou.html">OU lógico (||)</a></li>
+                <li><a href="topicos/linguagem_portugol/expressao/operacoes_logicas/nao.html">NÃO lógico (!)</a></li>
             </ul>
         </div>
 </body>

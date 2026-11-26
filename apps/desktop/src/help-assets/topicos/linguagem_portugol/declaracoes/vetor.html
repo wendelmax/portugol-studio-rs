@@ -2,12 +2,10 @@
 <body>
 <div>
             <h1>Declaração de Vetor</h1>
-            <p>Armazenar a nota de um aluno é possível utilizando uma variável do tipo real. Mas para armazenar as notas de todos os alunos de uma turma? Seria necessário criar uma variável para cada aluno? E se cada turma tiver quantidade de alunos variáveis? E os nomes de cada um dos alunos? Poderíamos armazenar estes dados em variáveis, porém o controle de muitas variáveis em um programa não é uma solução prática. Ao invés disso, utiliza-se uma estrutura de dados que agrupa todos estes valores em um nome único. Esta estrutura chama-se vetor.</p>
-            <p>Um vetor pode ser visto como uma variável que possui diversas posições, e com isso armazena diversos valores, porém todos do mesmo tipo.</p>
-            <p>Assim como as variáveis, o vetor tem que ser declarado. Sua declaração é similar à declaração de variáveis, definindo primeiro o seu tipo, em seguida do seu nome e por fim a sua dimensão entre colchetes (opcional se for atribuir valores a ele na declaração).</p>
+            <p>Quando precisamos guardar vários valores do mesmo tipo — como todas as notas de uma turma ou uma lista de nomes — usamos um vetor. Em Portugol-RS, vetores têm tipo explícito <code>vetor&lt;Tipo&gt;</code> e tamanho dinâmico (equivalente a <code>Vec&lt;T&gt;</code> em Rust).</p>
+            <p>Para declarar um vetor, use <span class="palavra-reservada">seja</span> (ou <span class="palavra-reservada">seja mutavel</span> para alterar itens ou redimensionar), informe o tipo <code>vetor&lt;T&gt;</code> e inicialize com colchetes <code>[v1, v2, ...]</code> ou vazio <code>[]</code>.</p>
             <div class="codigo-portugol" data-type='sintaxe' data-title="Exemplo de Sintaxe" data-file="../../../recursos/exemplos-pors/declaracoes/vetor/exemplo1.pors"></div>
-            <p>Elementos individuais são acessados por sua posição no vetor. Como um vetor tem mais de uma posição, deve-se indicar qual posição do vetor se quer fazer acesso. Para isso é necessário usarmos um índice.</p>
-            <p>O índice é um valor inteiro que aparece sempre entre colchetes "[ ]" após o nome do vetor. Adotamos que a primeira posição do vetor tem índice zero (similar a linguagem C) e a última depende do tamanho do vetor. Em um vetor de dez elementos tem-se as posições 0,1,2,3,4,5,6,7,8,9. Já um vetor de quatro elementos tem apenas os índices 0,1,2,3.</p>
+            <p>A primeira posição tem índice <code>0</code> e a última tem índice <code>tamanho(v) - 1</code>. Além do acesso direto <code>v[i]</code>, o Portugol-RS oferece operações seguras integradas: <code>tamanho(v)</code>, <code>adicionar(v, valor)</code>, <code>remover(v)</code> (retorna <code>Opcao&lt;T&gt;</code>) e <code>obter(v, indice)</code> (retorna <code>Opcao&lt;T&gt;</code> sem erro de limites).</p>
             <p>Para melhor compreensão deste conceito, confira o exemplo abaixo.</p>
             <div class="codigo-portugol" data-type='exemplo' data-title="Exemplo" data-file="../../../recursos/exemplos-pors/declaracoes/vetor/exemplo2.pors"></div>
         </div>
