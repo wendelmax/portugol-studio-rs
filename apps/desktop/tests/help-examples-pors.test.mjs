@@ -89,3 +89,22 @@ test("all 48 HTML help topics and help.ts reference .pors examples with zero bro
   assert.ok(!helpTs.includes("tests/corpus/ajuda/recursos/exemplos"));
   assert.ok(!helpTs.includes('"exemplo.por"'));
 });
+
+test("HTML help topics do not teach removed classic .por syntax", () => {
+  const htmlFiles = walk(topicosDir, ".html");
+  const forbidden = [
+    { label: "inclua biblioteca", pattern: /inclua\s+biblioteca/i },
+    { label: "palavra reservada const", pattern: /palavra\s+reservada[^.<]*\bconst\b/i },
+    { label: "caso contrario", pattern: /caso\s+contr[aá]rio/i },
+    { label: "funcao do tipo vazio", pattern: /fun[çc][ãa]o\s+do\s+tipo\s+vazio|retorno\s+[ée]\s+do\s+tipo\s+vazio/i },
+    { label: "passagem por referencia com &", pattern: /s[ií]mbolo\s+&/i },
+  ];
+
+  for (const htmlFile of htmlFiles) {
+    const content = fs.readFileSync(htmlFile, "utf8");
+    const relHtml = path.relative(helpAssetsDir, htmlFile).replaceAll("\\", "/");
+    for (const rule of forbidden) {
+      assert.equal(rule.pattern.test(content), false, `${relHtml} ainda ensina sintaxe legada: ${rule.label}`);
+    }
+  }
+});

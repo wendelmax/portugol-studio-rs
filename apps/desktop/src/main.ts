@@ -27,6 +27,7 @@ import { icon, mountIcons } from "./icons";
 import { mountOutline } from "./outline";
 import { panelContentId, panelNameForKey, type PanelName } from "./panel-tabs";
 import { PORS_MODULES, PORS_SNIPPETS, portugolRs } from "./portugol";
+import { resolveHelpTopicForEditor } from "./help-navigation";
 import { detectSourceLanguage, ensureSourceExtension } from "./document-language";
 import { canRunAsRust } from "./runtime-capabilities";
 import { isExecutionBusy } from "./run/execution-state";
@@ -140,6 +141,19 @@ const {
   },
   help: {
     openExample: (source, file) => newTab(source, null, file),
+    runExample: (source, file) => {
+      newTab(source, null, file);
+      void runProgram(false, false);
+    },
+    openOwnershipLab: () => {
+      if (!tabCollection.tabs().length) newTab();
+      else returnToEditor();
+      if (learningMode === "beginner") applyLearningMode("bridge");
+      showPanel("learning");
+      activityBarControls?.setPressed("learn");
+      learningPanel.selectConcept("ownership");
+      $("ownership-lab").scrollIntoView?.({ block: "start" });
+    },
     isActive: () => tabCollection.activeId() === helpId,
   },
   learningPanel: {
@@ -716,6 +730,19 @@ const filterOutlineKind = (kind: "variable" | "array" | "matrix" | "function" | 
   showUtilities(true);
   outline.filterKind(kind);
 };
+function openContextualHelp(explicitTopicId?: string) {
+  const active = activeTab();
+  const topicId = explicitTopicId
+    ?? (active?.language === "portugol-rs"
+      ? resolveHelpTopicForEditor(view.state.doc.toString(), view.state.selection.main.head) ?? undefined
+      : undefined);
+  activate(helpId);
+  if (topicId) void openHelp(topicId);
+}
+view.dom.addEventListener("pors-open-help", (event) => {
+  const detail = (event as CustomEvent<{ topicId?: string }>).detail;
+  openContextualHelp(detail?.topicId);
+});
 mountIdeCommandShell({
   paletteContext,
   optionMenus,
@@ -728,7 +755,7 @@ mountIdeCommandShell({
     stepOver: () => debugCommand(api.debugStepOver),
     stepInto: () => debugCommand(api.debugStepInto),
     stepOut: () => debugCommand(api.debugStepOut),
-    help: () => activate(helpId),
+    help: () => openContextualHelp(),
     renameSymbol: renameSelection,
     formatCode,
     runAsRust: () => runProgram(false, true),
@@ -779,7 +806,8 @@ mountIdeCommandShell({
   },
 });
 mountProjectDialogs({ version, license });
-$("home-help").onclick = $("btn-help").onclick = () => activate(helpId);
+$("home-help").onclick = () => activate(helpId);
+$("btn-help").onclick = () => openContextualHelp();
 $("home-return-editor").onclick = $("help-back-editor").onclick = returnToEditor;
 $("help-go-home").onclick = () => activate(homeId);
 $("help-close").onclick = () => void closeTab(helpId);
