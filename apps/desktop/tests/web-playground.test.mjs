@@ -31,6 +31,20 @@ test("web playground does not overwrite the execution status when refreshing gen
   assert.match(app, /if \(rustWasOpen\) runExportRust\(false\)/);
 });
 
+test("web playground exposes a persistent theme toggle and a safe syntax highlight layer", () => {
+  const html = readFileSync(new URL("../../web-playground/index.html", import.meta.url), "utf8");
+  assert.match(html, /id="pg-theme"/);
+  assert.match(html, /id="pg-highlight"[^>]*aria-hidden="true"/);
+
+  const css = readFileSync(new URL("../../web-playground/style.css", import.meta.url), "utf8");
+  assert.match(css, /:root\[data-theme="dark"\]/);
+  assert.match(css, /@media \(max-width: 720px\)/);
+
+  const app = readFileSync(new URL("../../web-playground/app.mjs", import.meta.url), "utf8");
+  assert.match(app, /localStorage\.setItem\(THEME_STORAGE_KEY/);
+  assert.match(app, /document\.createTextNode\(/);
+});
+
 test("playground runtime encodes/decodes UTF-8 across linear memory for validate/run/ui", () => {
   const memory = new WebAssembly.Memory({ initial: 1 });
   let nextPtr = 64;
