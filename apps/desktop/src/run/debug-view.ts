@@ -9,9 +9,13 @@ type StackFrame = DebugInfo["stack"][number];
 export function renderDebugInfo(info: DebugInfo, onSelectFrame: (frame: StackFrame) => void) {
   $("debug-stack").replaceChildren(...info.stack.map((frame, index) => {
     const li = document.createElement("li");
-    li.textContent = `${frame.function} — linha ${frame.position.line}:${frame.position.column}`;
     if (index === 0) li.className = "current";
-    li.onclick = () => onSelectFrame(frame);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "debug-frame-btn";
+    button.textContent = `${frame.function} — linha ${frame.position.line}:${frame.position.column}`;
+    button.onclick = () => onSelectFrame(frame);
+    li.append(button);
     return li;
   }));
   const body = document.querySelector<HTMLTableSectionElement>("#debug-vars tbody")!;

@@ -79,7 +79,7 @@ test("tab shell renders cursor and tab strip, and closes dirty tabs only after c
   f.shell.renderTabs();
 
   assert.deepEqual(f.prompts[0], ["cursor", "Linha 2, coluna 3"]);
-  assert.equal(f.document.title, "aula.pors — Portugol Studio");
+  assert.equal(f.document.title, "aula.pors — Portugol Studio RS");
   assert.equal(f.container.children[1].children[0].textContent, "aula.pors");
 
   f.setCurrentText("alterado");

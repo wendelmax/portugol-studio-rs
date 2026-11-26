@@ -48,3 +48,13 @@ test("shows console tools only for the console and renders tests on the tests pa
   f.navigation.showPanel("tests");
   assert.deepEqual(f.calls.slice(-2), [["consoleTools", true], ["tests"]]);
 });
+
+test("switching bottom panels preserves the right learning inspector without hiding it", () => {
+  const f = fixture();
+  f.navigation.showPanel("learning");
+  f.calls.length = 0;
+
+  f.navigation.showPanel("console");
+
+  assert.equal(f.calls.some(([name]) => name === "inspector"), false);
+});

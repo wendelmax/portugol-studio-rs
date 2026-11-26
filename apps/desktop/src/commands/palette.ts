@@ -22,10 +22,11 @@ export function mountCommandPalette<T extends PaletteCommand>(availableCommands:
     selectedCommandIndex = paletteCommands.length > 0 ? Math.min(Math.max(selectedCommandIndex, 0), paletteCommands.length - 1) : -1;
     commandResults.replaceChildren();
     commandEmpty.hidden = paletteCommands.length > 0;
-    commandSearch.setAttribute("aria-expanded", "true");
+    commandSearch.setAttribute("aria-expanded", String(paletteCommands.length > 0));
     for (const [index, item] of paletteCommands.entries()) {
       const option = document.createElement("button");
       option.type = "button";
+      option.tabIndex = -1;
       option.className = "command-option";
       option.id = `command-option-${index}`;
       option.setAttribute("role", "option");
@@ -46,9 +47,12 @@ export function mountCommandPalette<T extends PaletteCommand>(availableCommands:
   }
 
   function updateSelectedPaletteCommand() {
-    for (const [index, option] of [...commandResults.querySelectorAll<HTMLElement>("[role=option]")].entries()) {
+    const options = [...commandResults.querySelectorAll<HTMLElement>("[role=option]")];
+    for (const [index, option] of options.entries()) {
       option.setAttribute("aria-selected", String(index === selectedCommandIndex));
     }
+    const active = selectedCommandIndex >= 0 ? options[selectedCommandIndex] : undefined;
+    active?.scrollIntoView?.({ block: "nearest" });
     const id = selectedCommandIndex >= 0 ? `command-option-${selectedCommandIndex}` : "";
     if (id) commandSearch.setAttribute("aria-activedescendant", id);
     else commandSearch.removeAttribute("aria-activedescendant");
@@ -61,6 +65,7 @@ export function mountCommandPalette<T extends PaletteCommand>(availableCommands:
       renderCommandPalette();
       return;
     }
+    paletteReturnFocus = null;
     commandPalette.close();
     void item.action();
   }

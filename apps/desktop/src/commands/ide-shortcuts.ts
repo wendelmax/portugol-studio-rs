@@ -6,16 +6,18 @@ export type IdeShortcutActions = Record<string, () => unknown>;
 export function createIdeShortcuts(actions: IdeShortcutActions): Shortcut[] {
   const shortcuts: Shortcut[] = [
     { label: "Shift+F6 / Ctrl+Enter", command: "Executar", matches: (e) =>
-      (e.shiftKey && e.key === "F6") || ((e.ctrlKey || e.metaKey) && e.key === "Enter"), action: actions.runOrContinue },
-    { label: "Shift+F5", command: "Depurar", matches: (e) => e.shiftKey && e.key === "F5", action: actions.stepOrStart },
-    { label: "Shift+F7", command: "Interromper", matches: (e) => e.shiftKey && e.key === "F7", action: actions.stopProgram },
-    { label: "F9", command: "Pausar", matches: (e) => !e.shiftKey && e.key === "F9", action: actions.pauseDebug },
-    { label: "F5", command: "Continuar", matches: (e) => !e.shiftKey && e.key === "F5", action: actions.continueDebug },
+      (e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey && e.key === "F6")
+      || ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key === "Enter"), action: actions.runOrContinue },
+    { label: "Shift+F5", command: "Depurar", matches: (e) => e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey && e.key === "F5", action: actions.stepOrStart },
+    { label: "Shift+F7", command: "Interromper", matches: (e) => e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey && e.key === "F7", action: actions.stopProgram },
+    { label: "F9", command: "Pausar", matches: (e) => !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey && e.key === "F9", action: actions.pauseDebug },
+    { label: "F5", command: "Continuar", matches: (e) => !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey && e.key === "F5", action: actions.continueDebug },
     { label: "Shift+F9 / F10", command: "Próxima instrução",
-      matches: (e) => (e.shiftKey && e.key === "F9") || e.key === "F10", action: actions.stepOver },
-    { label: "Alt+F11", command: "Entrar na função", matches: (e) => e.altKey && !e.shiftKey && e.key === "F11", action: actions.stepInto },
-    { label: "Shift+F11", command: "Sair da função", matches: (e) => e.shiftKey && e.key === "F11", action: actions.stepOut },
-    { label: "F1", command: "Ajuda", matches: (e) => e.key === "F1", action: actions.help },
+      matches: (e) => (e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey && e.key === "F9")
+      || (!e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey && e.key === "F10"), action: actions.stepOver },
+    { label: "Alt+F11", command: "Entrar na função", matches: (e) => e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey && e.key === "F11", action: actions.stepInto },
+    { label: "Shift+F11", command: "Sair da função", matches: (e) => e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey && e.key === "F11", action: actions.stepOut },
+    { label: "F1", command: "Ajuda", matches: (e) => !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey && e.key === "F1", action: actions.help },
     { label: "Ctrl+R", command: "Renomear símbolo",
       matches: (e) => (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === "KeyR", action: actions.renameSymbol },
     { label: "Ctrl+Alt+F", command: "Formatar código-fonte",
@@ -23,9 +25,9 @@ export function createIdeShortcuts(actions: IdeShortcutActions): Shortcut[] {
     { label: "via paleta de comandos", command: "Executar como Rust", matches: () => false, action: actions.runAsRust },
     { label: "via paleta de comandos", command: "Analisar projeto Cargo", matches: () => false, action: actions.checkCargoProject },
     { label: "via paleta de comandos", command: "Testar projeto Cargo", matches: () => false, action: actions.runCargoTests },
-    { label: "F3", command: "Dicas de interface", matches: (e) => e.key === "F3", action: actions.openTips },
-    { label: "F12", command: "Sobre (fora do editor); ir à declaração (no editor)", matches: (e) => e.key === "F12", action: actions.about },
-    { label: "F11", command: "Atalhos de teclado", matches: (e) => !e.altKey && !e.shiftKey && e.key === "F11", action: actions.showShortcuts },
+    { label: "F3", command: "Dicas de interface", matches: (e) => !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey && e.key === "F3", action: actions.openTips },
+    { label: "F12", command: "Sobre (fora do editor); ir à declaração (no editor)", matches: (e) => !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey && e.key === "F12", action: actions.about },
+    { label: "F11", command: "Atalhos de teclado", matches: (e) => !e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey && e.key === "F11", action: actions.showShortcuts },
     { label: "Alt+Home", command: "Tela inicial", matches: (e) => e.altKey && e.key === "Home", action: actions.home },
     { label: "Alt+←", command: "Aba anterior", matches: (e) => e.altKey && e.key === "ArrowLeft", action: actions.previousTab },
     { label: "Alt+→", command: "Próxima aba", matches: (e) => e.altKey && e.key === "ArrowRight", action: actions.nextTab },
@@ -74,7 +76,7 @@ export function createIdeShortcuts(actions: IdeShortcutActions): Shortcut[] {
 
   const symbolFilters = [
     ["A", "variável", actions.filterVariable],
-    ["E", "vetor", actions.filterArray],
+    ["V", "vetor", actions.filterArray],
     ["M", "matriz", actions.filterMatrix],
     ["F", "função", actions.filterFunction],
     ["T", "constante", actions.filterConstant],

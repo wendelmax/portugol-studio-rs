@@ -191,6 +191,7 @@ let helpOpen = false;
 let learningMode: LearningMode = loadLearningMode();
 let exerciseWorkbench: ReturnType<typeof createExerciseWorkbenchShell> | null = null;
 function activate(id: number) {
+  if (id > 0) lastCodeTabId = id;
   return tabActivator.activate(id);
 }
 
@@ -368,6 +369,7 @@ const panelNavigation = createPanelNavigation({
   bottomPanels: bottomPanelNames,
   inspectorElements: ["utilities-insert", "outline", "variable-inspector"],
   setInspectorElementHidden: (id, hidden) => { $<HTMLElement>(id).hidden = hidden; },
+  setInspectorTitle: (title) => { $("utilities-title").textContent = title; },
   showUtilities: (visible) => panes.showUtilities(visible),
   renderLearningPanel: () => learningPanel.render(),
   setTabState: (name, active, selected) => {
@@ -529,7 +531,8 @@ const editorOptions = $<HTMLDetailsElement>("editor-options");
 const consoleOptions = $<HTMLDetailsElement>("console-tools");
 
 const outlineOptions = $<HTMLDetailsElement>("outline-options");
-const optionMenus = [editorOptions, consoleOptions, outlineOptions];
+const homeNewMenu = $<HTMLDetailsElement>("home-new-menu");
+const optionMenus = [editorOptions, consoleOptions, outlineOptions, homeNewMenu];
 function centerSelection() {
   editorActions.centerSelection();
 }
@@ -625,8 +628,24 @@ document.addEventListener("click", (event) => {
     if (options.open && !options.contains(event.target)) options.open = false;
   }
 });
+let activityBarControls: { setPressed: (activity: string | null) => void } | null = null;
+let lastCodeTabId: number | null = null;
+function returnToEditor() {
+  const openTabs = tabCollection.tabs();
+  if (!openTabs.length) {
+    activate(homeId);
+    return;
+  }
+  const target = openTabs.find(({ id }) => id === lastCodeTabId) ?? openTabs[0];
+  activate(target.id);
+}
+settingsDialog.addEventListener("close", () => {
+  const learningOpen = panes.utilitiesVisible() && !$<HTMLElement>("learning-panel").hidden;
+  activityBarControls?.setPressed(learningOpen ? "learn" : null);
+});
 $("utilities-close").onclick = () => {
   showUtilities(false);
+  activityBarControls?.setPressed(null);
   view.focus();
 };
 $("btn-save").onclick = () => void fileIO.save();
@@ -653,12 +672,16 @@ mountPorsUiPreviewShell({
   openExample: (source, fileName) => newTab(source, null, fileName, undefined, undefined, "portugol-rs"),
   focusEditor: () => view.focus(),
 });
-mountActivityBar(document.querySelectorAll<HTMLButtonElement>("[data-activity]"), {
+activityBarControls = mountActivityBar(document.querySelectorAll<HTMLButtonElement>("[data-activity]"), {
   setInspectorView,
   showPanel,
-  activateHome: () => activate(homeId),
+  activateHome: () => {
+    activityBarControls?.setPressed(null);
+    activate(homeId);
+  },
   showUtilities,
   openSettings: () => openSettings("theme"),
+  isLearningActive: () => panes.utilitiesVisible() && !$<HTMLElement>("learning-panel").hidden,
 });
 function cycleTab(step: number) {
   cycleIdeTab(step, {
@@ -757,6 +780,9 @@ mountIdeCommandShell({
 });
 mountProjectDialogs({ version, license });
 $("home-help").onclick = $("btn-help").onclick = () => activate(helpId);
+$("home-return-editor").onclick = $("help-back-editor").onclick = returnToEditor;
+$("help-go-home").onclick = () => activate(homeId);
+$("help-close").onclick = () => void closeTab(helpId);
 
 // Confirma antes de fechar a janela com alterações não salvas.
 mountWindowControls(() => {
@@ -803,7 +829,11 @@ mountToolchainStatusShell({
   syncLanguageControls,
   forceRustLint: () => forceLinting(view),
 });
-const tips = mountTips(themeEditor.open);
+const tips = mountTips(() => {
+  const tipsDialog = $<HTMLDialogElement>("tips");
+  if (tipsDialog.open) tipsDialog.close();
+  themeEditor.open();
+});
 $("home-tips").onclick = tips.open;
 
 

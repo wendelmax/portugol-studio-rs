@@ -4,6 +4,7 @@ export interface PanelNavigationDependencies {
   bottomPanels: readonly PanelName[];
   inspectorElements: readonly string[];
   setInspectorElementHidden: (id: string, hidden: boolean) => void;
+  setInspectorTitle?: (title: string) => void;
   showUtilities: (visible: boolean) => void;
   renderLearningPanel: () => void;
   setTabState: (name: PanelName, active: boolean, selected: boolean) => void;
@@ -17,12 +18,12 @@ export function createPanelNavigation(dependencies: PanelNavigationDependencies)
   function setInspectorView(learning: boolean) {
     dependencies.setInspectorElementHidden("learning-panel", !learning);
     for (const id of dependencies.inspectorElements) dependencies.setInspectorElementHidden(id, learning);
+    dependencies.setInspectorTitle?.(learning ? "Aprender" : "Utilitários");
   }
 
   function showPanel(which: PanelName) {
-    const learningActive = which === "learning";
-    setInspectorView(learningActive);
-    if (learningActive) {
+    if (which === "learning") {
+      setInspectorView(true);
       dependencies.showUtilities(true);
       dependencies.renderLearningPanel();
       return;

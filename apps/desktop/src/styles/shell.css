@@ -273,7 +273,8 @@ body:has(#code[hidden]) .titlebar-actions {
 .activity-nav button[aria-pressed="true"],
 .code-toolbar button[aria-expanded="true"] {
   border-left-color: var(--accent);
-  color: var(--accent);
+  color: var(--text);
+  font-weight: 600;
 }
 
 .activity-nav button:focus-visible {

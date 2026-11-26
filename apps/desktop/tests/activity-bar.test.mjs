@@ -53,3 +53,27 @@ test("activity destinations preserve the editor's view actions", () => {
   assert.ok(f.events.some(([name, value]) => name === "panel" && value === "debug"));
   assert.ok(f.events.some(([name]) => name === "settings"));
 });
+
+test("clicking learn while already active toggles utilities closed and clears pressed state", () => {
+  const events = [];
+  let learningOpen = true;
+  const buttons = ["learn", "examples", "debug", "settings"].map((activity) => ({
+    dataset: { activity },
+    attributes: {},
+    onclick: null,
+    setAttribute(name, value) { this.attributes[name] = value; },
+  }));
+  mountActivityBar(buttons, {
+    setInspectorView: (visible) => events.push(["inspector", visible]),
+    showPanel: (panel) => events.push(["panel", panel]),
+    activateHome: () => events.push(["home"]),
+    showUtilities: (visible) => { learningOpen = visible; events.push(["utilities", visible]); },
+    openSettings: () => events.push(["settings"]),
+    isLearningActive: () => learningOpen,
+  });
+
+  buttons[0].onclick();
+
+  assert.equal(buttons[0].attributes["aria-pressed"], "false");
+  assert.deepEqual(events, [["utilities", false]]);
+});

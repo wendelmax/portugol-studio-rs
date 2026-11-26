@@ -39,8 +39,8 @@
 
   /* Tokens semânticos derivados e de estado */
   --error-text: #ffffff;
-  --diagnostic-row-hover-text: #ffffff;
-  --diagnostic-row-hover-bg: #005fb8;
+  --diagnostic-row-hover-text: var(--accent-text);
+  --diagnostic-row-hover-bg: var(--accent);
   --tab-indicator-bottom: #d7a600;
   --tab-indicator: #ffc200;
   --backdrop: rgb(0 0 0 / 55%);

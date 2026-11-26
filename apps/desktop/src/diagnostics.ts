@@ -30,8 +30,13 @@ function diagnosticTable(
 
     const message = row.insertCell();
     const button = document.createElement("button");
+    button.type = "button";
     button.textContent = diagnostic.message;
     button.setAttribute("aria-label", `${kind(diagnostic)}. ${location(diagnostic)}. ${diagnostic.message}`);
+    button.onclick = (event) => {
+      event.stopPropagation();
+      jump(diagnostic.start.offset);
+    };
     message.append(button);
     if (diagnostic.help) {
       const help = document.createElement("span");

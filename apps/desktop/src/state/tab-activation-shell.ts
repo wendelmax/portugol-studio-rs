@@ -57,10 +57,13 @@ export function createTabActivationShell(dependencies: TabActivationShellDepende
     helpId: dependencies.ids.help,
     setHelpOpen: dependencies.help.setOpen,
     setPageVisibility: (id, tab) => {
+      const hasCodeTabs = dependencies.tabs.all().length > 0;
       $("home").hidden = id !== dependencies.ids.home;
       $("help").hidden = id !== dependencies.ids.help;
       $("code").hidden = !tab;
       $("editor-exercise").hidden = !tab?.exercise;
+      $("home-return-editor").hidden = !hasCodeTabs;
+      $("help-back-editor").hidden = !hasCodeTabs;
     },
     cancelPreview: dependencies.preview.cancel,
     renderTabs: dependencies.tabs.render,

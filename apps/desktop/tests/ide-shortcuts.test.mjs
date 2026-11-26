@@ -40,3 +40,16 @@ test("registers all file, symbol-filter, and contextual actions in the catalog",
     assert.ok(commands.has(command), `${command} should be available to the command palette`);
   }
 });
+
+test("shortcuts have unique key labels and respect modifier guards", () => {
+  const { shortcuts } = fixture();
+  const realLabels = shortcuts.map(({ label }) => label).filter((label) => label !== "via paleta de comandos");
+  assert.equal(new Set(realLabels).size, realLabels.length, "nenhum atalho de teclado deve ser duplicado");
+
+  const save = shortcuts.find(({ command }) => command === "Salvar");
+  assert.equal(save.matches(keyboardEvent({ key: "s", code: "KeyS", ctrlKey: true, altKey: true })), false);
+
+  const stepOver = shortcuts.find(({ command }) => command === "Próxima instrução");
+  assert.equal(stepOver.matches(keyboardEvent({ key: "F10", shiftKey: true })), false);
+  assert.equal(stepOver.matches(keyboardEvent({ key: "F10" })), true);
+});

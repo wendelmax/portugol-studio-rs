@@ -101,17 +101,19 @@ export function mountPaneLayout(options: PaneLayoutOptions) {
   let layout = loadSavedPaneLayout();
 
   function paneChromeWidth() {
-    const toolbar = $("code").querySelector<HTMLElement>(".code-toolbar")?.getBoundingClientRect().width ?? 56;
+    const rail = $("code").querySelector<HTMLElement>(".activity-rail")?.getBoundingClientRect().width || 56;
+    const mappingGutter = $("rust-mapping-gutter").hidden ? 0 : ($("rust-mapping-gutter").getBoundingClientRect().width || 76);
+    const uiPreview = $("pors-ui-preview").hidden ? 0 : Math.max(260, $("pors-ui-preview").getBoundingClientRect().width || 260);
     const editorMinimum = $("rust-preview").hidden ? 100 : 360;
-    return toolbar + editorMinimum;
+    return rail + mappingGutter + uiPreview + editorMinimum;
   }
 
   function sideMinimums(available: number) {
     return calculateSidePaneMinimums(
       available,
       paneChromeWidth(),
-      explorerSplitter.offsetWidth || 9,
-      utilitiesSplitter.offsetWidth || 15,
+      explorerSplitter.offsetWidth || 8,
+      utilitiesSplitter.offsetWidth || 8,
       !explorer.hidden,
       !utilities.hidden,
     );
@@ -221,6 +223,7 @@ export function mountPaneLayout(options: PaneLayoutOptions) {
   }
 
   function setExplorerVisible(visible: boolean) {
+    if (visible && $("code").classList.contains("expanded")) toggleExpanded();
     explorer.hidden = !visible;
     explorerSplitter.hidden = !visible;
     $("btn-explorer").setAttribute("aria-expanded", String(visible));
