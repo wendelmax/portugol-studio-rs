@@ -9,8 +9,8 @@ import {
 test("canceling the dirty-buffer confirmation never saves or renames", async () => {
   let saves = 0;
   const result = await prepareWorkspaceRename({
-    tabs: [{ workspacePath: "aula.por", dirty: true }],
-    sourcePath: "aula.por",
+    tabs: [{ workspacePath: "aula.pors", dirty: true }],
+    sourcePath: "aula.pors",
     isDirty: (tab) => tab.dirty,
     confirmSave: async () => false,
     saveTab: async () => { saves++; return true; },
@@ -24,10 +24,10 @@ test("save failure stops before the file rename can proceed", async () => {
   const saveOrder = [];
   const result = await prepareWorkspaceRename({
     tabs: [
-      { workspacePath: "aula.por", id: 1, dirty: true },
-      { workspacePath: "aula.por", id: 2, dirty: true },
+      { workspacePath: "aula.pors", id: 1, dirty: true },
+      { workspacePath: "aula.pors", id: 2, dirty: true },
     ],
-    sourcePath: "aula.por",
+    sourcePath: "aula.pors",
     isDirty: (tab) => tab.dirty,
     confirmSave: async () => true,
     saveTab: async (tab) => { saveOrder.push(tab.id); return tab.id !== 1; },
@@ -41,11 +41,11 @@ test("saves all dirty source tabs in order and ignores dirty exercise answer buf
   const saveOrder = [];
   const result = await prepareWorkspaceRename({
     tabs: [
-      { workspacePath: "aula.por", id: 1, dirty: true },
-      { workspacePath: "aula.por", id: 2, dirty: true },
-      { workspaceExercisePath: "atividade.pex", id: 3, dirty: true },
+      { workspacePath: "aula.pors", id: 1, dirty: true },
+      { workspacePath: "aula.pors", id: 2, dirty: true },
+      { workspaceExercisePath: "atividade.pors.json", id: 3, dirty: true },
     ],
-    sourcePath: "aula.por",
+    sourcePath: "aula.pors",
     isDirty: (tab) => tab.dirty,
     confirmSave: async () => true,
     saveTab: async (tab) => { saveOrder.push(tab.id); return true; },
@@ -55,12 +55,12 @@ test("saves all dirty source tabs in order and ignores dirty exercise answer buf
   assert.deepEqual(saveOrder, [1, 2]);
 });
 
-test("renaming a .pex never tries to save its generated exercise answer buffer", async () => {
+test("renaming a .pors.json never tries to save its generated exercise answer buffer", async () => {
   let confirmations = 0;
   let saves = 0;
   const result = await prepareWorkspaceRename({
-    tabs: [{ workspaceExercisePath: "atividade.pex", id: 3, dirty: true }],
-    sourcePath: "atividade.pex",
+    tabs: [{ workspaceExercisePath: "atividade.pors.json", id: 3, dirty: true }],
+    sourcePath: "atividade.pors.json",
     isDirty: (tab) => tab.dirty,
     confirmSave: async () => { confirmations++; return true; },
     saveTab: async () => { saves++; return true; },
@@ -72,47 +72,47 @@ test("renaming a .pex never tries to save its generated exercise answer buffer",
 });
 
 test("updates open source and exercise paths only after rename success, preserving buffers", () => {
-  const source = { path: "/tmp/aula.por", workspacePath: "aula.por", source: "escreva(1)" };
-  const exercise = { workspaceExercisePath: "atividade.pex", exampleName: "atividade.pex", source: "resposta" };
-  const unchanged = { workspacePath: "outra.por", path: "/tmp/outra.por" };
+  const source = { path: "/tmp/aula.pors", workspacePath: "aula.pors", source: "escreva(1);" };
+  const exercise = { workspaceExercisePath: "atividade.pors.json", exampleName: "atividade.pors.json", source: "resposta" };
+  const unchanged = { workspacePath: "outra.pors", path: "/tmp/outra.pors" };
 
   const recentPaths = applyWorkspaceRenameToTabs(
     [source, exercise, unchanged],
-    "aula.por",
-    { path: "/tmp/novo.por", relativePath: "novo.por" },
+    "aula.pors",
+    { path: "/tmp/novo.pors", relativePath: "novo.pors" },
   );
 
-  assert.equal(source.path, "/tmp/novo.por");
-  assert.equal(source.workspacePath, "novo.por");
-  assert.equal(source.source, "escreva(1)");
-  assert.equal(exercise.workspaceExercisePath, "atividade.pex");
-  assert.equal(exercise.exampleName, "atividade.pex");
-  assert.equal(unchanged.workspacePath, "outra.por");
-  assert.deepEqual(recentPaths, ["/tmp/aula.por"]);
+  assert.equal(source.path, "/tmp/novo.pors");
+  assert.equal(source.workspacePath, "novo.pors");
+  assert.equal(source.source, "escreva(1);");
+  assert.equal(exercise.workspaceExercisePath, "atividade.pors.json");
+  assert.equal(exercise.exampleName, "atividade.pors.json");
+  assert.equal(unchanged.workspacePath, "outra.pors");
+  assert.deepEqual(recentPaths, ["/tmp/aula.pors"]);
 });
 
-test("updates an open exercise tab when a .pex file is renamed", () => {
-  const exercise = { workspaceExercisePath: "atividade.pex", exampleName: "atividade.pex", source: "resposta" };
+test("updates an open exercise tab when a .pors.json file is renamed", () => {
+  const exercise = { workspaceExercisePath: "atividade.pors.json", exampleName: "atividade.pors.json", source: "resposta" };
 
-  applyWorkspaceRenameToTabs([exercise], "atividade.pex", {
-    path: "/tmp/nova.pex",
-    relativePath: "nova.pex",
+  applyWorkspaceRenameToTabs([exercise], "atividade.pors.json", {
+    path: "/tmp/nova.pors.json",
+    relativePath: "nova.pors.json",
   });
 
-  assert.equal(exercise.workspaceExercisePath, "nova.pex");
-  assert.equal(exercise.exampleName, "nova.pex");
+  assert.equal(exercise.workspaceExercisePath, "nova.pors.json");
+  assert.equal(exercise.exampleName, "nova.pors.json");
   assert.equal(exercise.source, "resposta");
 });
 
 test("canceling file deletion has no save or filesystem side effects", async () => {
   let saves = 0;
   let deletions = 0;
-  const tabs = [{ workspaceId: "w1", workspacePath: "aula.por", dirty: true }];
+  const tabs = [{ workspaceId: "w1", workspacePath: "aula.pors", dirty: true }];
 
   const result = await deleteWorkspaceFileFlow({
     tabs,
     workspaceId: "w1",
-    filePath: "aula.por",
+    filePath: "aula.pors",
     choice: "cancel",
     isDirty: (tab) => tab.dirty,
     saveTab: async () => { saves++; return true; },
@@ -129,14 +129,14 @@ test("saving dirty tabs keeps the file and saves source and exercise buffers", a
   const saved = [];
   let deletions = 0;
   const tabs = [
-    { workspaceId: "w1", workspacePath: "aula.por", id: 1, dirty: true },
-    { workspaceId: "w1", workspaceExercisePath: "aula.por", id: 2, dirty: true },
+    { workspaceId: "w1", workspacePath: "aula.pors", id: 1, dirty: true },
+    { workspaceId: "w1", workspaceExercisePath: "aula.pors", id: 2, dirty: true },
   ];
 
   const result = await deleteWorkspaceFileFlow({
     tabs,
     workspaceId: "w1",
-    filePath: "aula.por",
+    filePath: "aula.pors",
     choice: "save",
     isDirty: (tab) => tab.dirty,
     saveTab: async (tab) => { saved.push(tab.id); return true; },
@@ -154,11 +154,11 @@ test("a failed save keeps the file and stops saving later tabs", async () => {
   let deletions = 0;
   const result = await deleteWorkspaceFileFlow({
     tabs: [
-      { workspaceId: "w1", workspacePath: "aula.por", id: 1, dirty: true },
-      { workspaceId: "w1", workspacePath: "aula.por", id: 2, dirty: true },
+      { workspaceId: "w1", workspacePath: "aula.pors", id: 1, dirty: true },
+      { workspaceId: "w1", workspacePath: "aula.pors", id: 2, dirty: true },
     ],
     workspaceId: "w1",
-    filePath: "aula.por",
+    filePath: "aula.pors",
     choice: "save",
     isDirty: (tab) => tab.dirty,
     saveTab: async (tab) => { saved.push(tab.id); return false; },
@@ -173,9 +173,9 @@ test("a failed save keeps the file and stops saving later tabs", async () => {
 test("a dirty file cannot take the clean delete path without a discard choice", async () => {
   let deletions = 0;
   const result = await deleteWorkspaceFileFlow({
-    tabs: [{ workspaceId: "w1", workspacePath: "aula.por", dirty: true }],
+    tabs: [{ workspaceId: "w1", workspacePath: "aula.pors", dirty: true }],
     workspaceId: "w1",
-    filePath: "aula.por",
+    filePath: "aula.pors",
     choice: "delete",
     isDirty: (tab) => tab.dirty,
     saveTab: async () => true,
@@ -188,37 +188,37 @@ test("a dirty file cannot take the clean delete path without a discard choice", 
 
 test("a failed backend delete leaves all tabs associated with the existing file", async () => {
   const tabs = [
-    { workspaceId: "w1", workspacePath: "aula.por", path: "/tmp/aula.por" },
-    { workspaceId: "w1", workspaceExercisePath: "aula.por" },
+    { workspaceId: "w1", workspacePath: "aula.pors", path: "/tmp/aula.pors" },
+    { workspaceId: "w1", workspaceExercisePath: "aula.pors" },
   ];
 
   await assert.rejects(deleteWorkspaceFileFlow({
     tabs,
     workspaceId: "w1",
-    filePath: "aula.por",
+    filePath: "aula.pors",
     choice: "discard",
     isDirty: () => false,
     saveTab: async () => true,
     deleteFile: async () => { throw new Error("permission denied"); },
   }), /permission denied/);
-  assert.equal(tabs[0].workspacePath, "aula.por");
-  assert.equal(tabs[1].workspaceExercisePath, "aula.por");
+  assert.equal(tabs[0].workspacePath, "aula.pors");
+  assert.equal(tabs[1].workspaceExercisePath, "aula.pors");
 });
 
 test("a successful delete returns only unrelated tabs and removes source and exercise tabs", async () => {
-  const deletion = { path: "/tmp/aula.por", relativePath: "aula.por" };
+  const deletion = { path: "/tmp/aula.pors", relativePath: "aula.pors" };
   const tabs = [
-    { workspaceId: "w1", workspacePath: "aula.por", id: 1 },
-    { workspaceId: "w1", workspaceExercisePath: "aula.por", id: 2 },
-    { workspaceId: "w1", workspacePath: "outra.por", id: 3 },
-    { workspaceId: "w2", workspacePath: "aula.por", id: 4 },
+    { workspaceId: "w1", workspacePath: "aula.pors", id: 1 },
+    { workspaceId: "w1", workspaceExercisePath: "aula.pors", id: 2 },
+    { workspaceId: "w1", workspacePath: "outra.pors", id: 3 },
+    { workspaceId: "w2", workspacePath: "aula.pors", id: 4 },
   ];
   let deleted = null;
 
   const result = await deleteWorkspaceFileFlow({
     tabs,
     workspaceId: "w1",
-    filePath: "aula.por",
+    filePath: "aula.pors",
     choice: "discard",
     isDirty: () => false,
     saveTab: async () => true,

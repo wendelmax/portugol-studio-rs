@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { createTabCloser } from "../src/state/tab-closer.ts";
 
 function fixture({ activeId = 2, dirty = new Set(), confirm = true } = {}) {
-  const tabs = [{ id: 1, path: "um.por" }, { id: 2, path: "dois.por" }, { id: 3, path: "tres.por" }];
+  const tabs = [{ id: 1, path: "um.pors" }, { id: 2, path: "dois.pors" }, { id: 3, path: "tres.pors" }];
   const events = [];
   const dependencies = {
     tabs: () => tabs,

@@ -31,7 +31,7 @@ function fixture() {
   const container = new FakeElement("nav");
   const events = [];
   const tabs = [
-    { id: 1, path: "/tmp/aula.por", dirty: true },
+    { id: 1, path: "/tmp/aula.pors", dirty: true },
     { id: 2, path: null, exampleName: "exemplo.pors", dirty: false },
   ];
   let activeId = 1;
@@ -63,11 +63,11 @@ test("tab strip renders home, help, file tabs, and new-file action", () => {
     "tab home-tab", "file-tab tab", "file-tab tab active", "file-tab tab", "tab add-tab",
   ]);
   assert.equal(container.children[1].children[0].textContent, "Ajuda");
-  assert.equal(container.children[2].children[0].textContent, "aula.por");
+  assert.equal(container.children[2].children[0].textContent, "aula.pors");
   assert.equal(container.children[2].children[0].className, "dirty");
   assert.equal(container.children[3].children[0].textContent, "exemplo.pors");
   assert.equal(container.children[0].textContent, "Início");
-  assert.equal(container.children[2].title, "/tmp/aula.por");
+  assert.equal(container.children[2].title, "/tmp/aula.pors");
   assert.equal(container.children[3].title, "Arquivo ainda não salvo");
   assert.equal(container.children.at(-1).textContent, "+");
 });
@@ -88,7 +88,7 @@ test("tab strip routes navigation, closing, and new-file actions to the shell", 
 test("tab strip updates the document title for file, home, and help", () => {
   const { doc, view, setActiveId } = fixture();
   view.render();
-  assert.equal(doc.title, "aula.por — Portugol Studio");
+  assert.equal(doc.title, "aula.pors — Portugol Studio");
 
   setActiveId(0);
   view.render();
