@@ -3,7 +3,7 @@ name = "portugol-cli"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "CLI do Portugol: criação, validação, formatação, exportação Rust e execução de programas .pors e .por"
+description = "CLI do Portugol Studio RS: criação, validação, formatação, exportação Rust/Cargo, execução e depuração de programas .pors"
 
 [[bin]]
 name = "portugol"
@@ -11,7 +11,6 @@ path = "src/main.rs"
 
 [dependencies]
 portugol-syntax = { path = "../portugol-syntax" }
-portugol-semantics = { path = "../portugol-semantics" }
 portugol-rs-frontend = { path = "../portugol-rs-frontend" }
 portugol-rust = { path = "../portugol-rust" }
 portugol-bytecode = { path = "../portugol-bytecode" }

@@ -119,7 +119,7 @@ fn formats_unformatted_pors_and_runs_interactive_input_and_vectors() {
 }
 
 #[test]
-fn preserves_classic_por_support_and_rejects_unknown_extensions() {
+fn rejects_legacy_por_with_guidance_and_unknown_extensions() {
     let dir = TempDir::new();
     let classic = dir.0.join("classico.por");
     fs::write(
@@ -128,12 +128,19 @@ fn preserves_classic_por_support_and_rejects_unknown_extensions() {
     )
     .unwrap();
 
-    let valid = cli().arg(&classic).output().unwrap();
-    assert!(valid.status.success(), "{valid:?}");
+    let legacy_check = cli().arg(&classic).output().unwrap();
+    assert!(!legacy_check.status.success());
+    assert!(
+        String::from_utf8_lossy(&legacy_check.stderr).contains("Portugol Studio original"),
+        "{legacy_check:?}"
+    );
 
-    let run = cli().args(["executar"]).arg(&classic).output().unwrap();
-    assert!(run.status.success(), "{run:?}");
-    assert_eq!(String::from_utf8_lossy(&run.stdout), "42");
+    let legacy_run = cli().args(["executar"]).arg(&classic).output().unwrap();
+    assert!(!legacy_run.status.success());
+    assert!(
+        String::from_utf8_lossy(&legacy_run.stderr).contains("Portugol Studio original"),
+        "{legacy_run:?}"
+    );
 
     let unknown = dir.0.join("notas.txt");
     fs::write(&unknown, "texto").unwrap();

@@ -20,10 +20,6 @@ use types::{
     rust_enum_type_name, rust_enum_variant_path, rust_type, statements_have_read,
 };
 
-pub(crate) fn render_with_map(program: &Program) -> GeneratedRust {
-    render(program, false)
-}
-
 pub(crate) fn render_pors_with_map(program: &Program) -> GeneratedRust {
     render(program, true)
 }

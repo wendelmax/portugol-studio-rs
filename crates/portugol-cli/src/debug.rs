@@ -14,7 +14,7 @@ use portugol_syntax::{Diagnostic, Span};
 use portugol_vm::debug::{DebugCommand, DebugControl, PausedInfo};
 use portugol_vm::{StdIo, Vm};
 
-use crate::{FileKind, detect_kind, read_source};
+use crate::{is_pors_file, read_source, report_unsupported_extension};
 
 enum Event {
     Paused(PausedInfo),
@@ -66,8 +66,8 @@ pub fn main(args: &[String]) -> ExitCode {
     };
 
     let path = Path::new(file);
-    if detect_kind(path) != Some(FileKind::Pors) {
-        eprintln!("{file}: o depurador interativo suporta arquivos .pors");
+    if !is_pors_file(path) {
+        report_unsupported_extension(path);
         return ExitCode::FAILURE;
     }
 
