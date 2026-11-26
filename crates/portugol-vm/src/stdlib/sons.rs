@@ -59,7 +59,7 @@ fn milliseconds(duration: Duration) -> i32 {
 
 fn load(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
     arity(args, 1, "carregar_som")?;
-    let path = super::arquivos::resolve(ctx, text(&args[0])?);
+    let path = super::resolve_path(ctx, text(&args[0])?);
     let path = path.canonicalize().unwrap_or(path);
     if let Some((&id, _)) = ctx
         .sounds

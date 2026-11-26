@@ -625,7 +625,7 @@ fn definir_estilo_texto(ctx: &mut NativeContext, args: &[Value]) -> Result<Value
 fn carregar_fonte(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
     arity(args, 1, "carregar_fonte")?;
     let raw = text(&args[0])?;
-    let path = super::arquivos::resolve(ctx, raw);
+    let path = super::resolve_path(ctx, raw);
     if !path.exists() {
         return Err(format!("A fonte '{raw}' não foi encontrada"));
     }
@@ -713,7 +713,7 @@ fn current_pixels(ctx: &mut NativeContext, address: i32) -> Result<Arc<RgbaImage
 fn carregar_imagem(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
     arity(args, 1, "carregar_imagem")?;
     let raw = text(&args[0])?;
-    let path = super::arquivos::resolve(ctx, raw);
+    let path = super::resolve_path(ctx, raw);
     if !path.exists() {
         return Err(format!("A imagem '{raw}' não foi encontrada"));
     }
@@ -1037,7 +1037,7 @@ fn redimensionar_imagem(ctx: &mut NativeContext, args: &[Value]) -> Result<Value
 fn salvar_imagem(ctx: &mut NativeContext, args: &[Value]) -> Result<Value, String> {
     arity(args, 2, "salvar_imagem")?;
     let pixels = current_pixels(ctx, int(&args[0])?)?;
-    let path = super::arquivos::resolve(ctx, text(&args[1])?);
+    let path = super::resolve_path(ctx, text(&args[1])?);
     if let Some(parent) = path.parent() {
         let _ = std::fs::create_dir_all(parent);
     }

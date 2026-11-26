@@ -463,14 +463,6 @@ impl<'a> Vm<'a> {
         self
     }
 
-    /// Diretório devolvido por `Util.obter_diretorio_usuario` nesta execução.
-    /// Permite isolar as gravações dos exemplos na suíte de regressão.
-    #[cfg(feature = "stdlib")]
-    pub fn with_user_dir(mut self, dir: impl Into<std::path::PathBuf>) -> Self {
-        self.ctx.user_dir = Some(dir.into());
-        self
-    }
-
     /// Recursos que dependem do ambiente (diálogos, gráficos, som...).
     #[cfg(feature = "stdlib")]
     pub fn with_host(mut self, host: Box<dyn crate::host::Host>) -> Self {
@@ -478,11 +470,9 @@ impl<'a> Vm<'a> {
         self
     }
 
-    /// Desliga o acesso à rede (Internet e ServicosWeb falham como sem
-    /// conexão). Usado nos testes de regressão.
+    /// Desliga explicitamente o acesso à rede para `Internet.*`.
     #[cfg(feature = "stdlib")]
     pub fn offline(mut self) -> Self {
-        self.ctx.offline = true;
         #[cfg(not(target_arch = "wasm32"))]
         self.pors_runtime.set_network_enabled(false);
         self
