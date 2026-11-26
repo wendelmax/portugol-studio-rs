@@ -3,8 +3,7 @@ name = "portugol-bytecode"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Conjunto de instruções e compilador AST -> bytecode do Portugol 2.0"
+description = "Conjunto de instruções e compilador HIR -> bytecode do Portugol-RS"
 
 [dependencies]
-portugol-syntax = { path = "../portugol-syntax" }
 portugol-hir = { path = "../portugol-hir" }

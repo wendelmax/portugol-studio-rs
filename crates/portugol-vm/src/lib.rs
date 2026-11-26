@@ -1,14 +1,13 @@
-//! Máquina virtual do Portugol 2.0.
+//! Máquina virtual do Portugol-RS.
 //!
-//! Executa um [`portugol_bytecode::Module`] com a semântica do Java gerado
-//! pelo Portugol Studio original (`int` de 32 bits, `double`,
-//! `Double.toString`, divisão inteira por zero como erro etc.).
+//! Executa um [`portugol_bytecode::Module`] compilado a partir da HIR tipada
+//! com suporte a depuração, bibliotecas padrão, multimídia e UI declarativa MVU.
 //!
 //! ```no_run
 //! use portugol_vm::{BufferIo, run};
 //!
-//! let ast = portugol_syntax::parse("programa { funcao inicio() { escreva(1 + 1) } }").program;
-//! let module = portugol_bytecode::compile(&ast).unwrap();
+//! let hir = portugol_rs_frontend::lower("funcao inicio() { escreva(1 + 1); }").unwrap();
+//! let module = portugol_bytecode::compile_pors(&hir).unwrap();
 //! let mut io = BufferIo::default();
 //! run(&module, &mut io).unwrap();
 //! assert_eq!(io.output, "2");

@@ -2023,38 +2023,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
 
 [[package]]
-name = "logos"
-version = "0.16.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb2c55a318a87600ea870ff8c2012148b44bf18b74fad48d0f835c38c7d07c5f"
-dependencies = [
- "logos-derive",
-]
-
-[[package]]
-name = "logos-codegen"
-version = "0.16.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58b3ffaa284e1350d017a57d04ada118c4583cf260c8fb01e0fe28a2e9cf8970"
-dependencies = [
- "fnv",
- "proc-macro2",
- "quote",
- "regex-automata",
- "regex-syntax",
- "syn 2.0.119",
-]
-
-[[package]]
-name = "logos-derive"
-version = "0.16.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52d3a9855747c17eaf4383823f135220716ab49bea5fbea7dd42cc9a92f8aa31"
-dependencies = [
- "logos-codegen",
-]
-
-[[package]]
 name = "mach2"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2714,7 +2682,6 @@ name = "portugol-bytecode"
 version = "0.5.0"
 dependencies = [
  "portugol-hir",
- "portugol-syntax",
 ]
 
 [[package]]
@@ -2722,9 +2689,9 @@ name = "portugol-cli"
 version = "0.5.0"
 dependencies = [
  "portugol-bytecode",
+ "portugol-hir",
  "portugol-rs-frontend",
  "portugol-rust",
- "portugol-syntax",
  "portugol-vm",
 ]
 
@@ -2754,7 +2721,6 @@ name = "portugol-rs-frontend"
 version = "0.5.0"
 dependencies = [
  "portugol-hir",
- "portugol-syntax",
 ]
 
 [[package]]
@@ -2763,14 +2729,6 @@ version = "0.5.0"
 dependencies = [
  "portugol-hir",
  "portugol-rs-frontend",
- "portugol-syntax",
-]
-
-[[package]]
-name = "portugol-semantics"
-version = "0.5.0"
-dependencies = [
- "portugol-syntax",
 ]
 
 [[package]]
@@ -2782,18 +2740,10 @@ dependencies = [
  "portugol-hir",
  "portugol-rs-frontend",
  "portugol-rust",
- "portugol-syntax",
  "portugol-vm",
  "serde",
  "serde_json",
  "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "portugol-syntax"
-version = "0.5.0"
-dependencies = [
- "logos",
 ]
 
 [[package]]
@@ -2805,11 +2755,9 @@ dependencies = [
  "image",
  "libm",
  "portugol-bytecode",
+ "portugol-hir",
  "portugol-rs-frontend",
- "portugol-semantics",
- "portugol-syntax",
  "regex",
- "rodio",
  "roxmltree",
  "serde_json",
  "ttf-parser",
@@ -2821,8 +2769,8 @@ name = "portugol-wasm"
 version = "0.5.0"
 dependencies = [
  "portugol-bytecode",
+ "portugol-hir",
  "portugol-rs-frontend",
- "portugol-syntax",
  "portugol-vm",
 ]
 

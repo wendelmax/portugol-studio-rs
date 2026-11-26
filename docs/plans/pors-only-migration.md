@@ -129,19 +129,21 @@ progresso nasce de abrir conteúdo, executar sem aprovação ou conteúdo editor
 
 **Gate:** nenhum fluxo de produto interpreta silenciosamente `.por`/`.pex`.
 
-### Fase 6 — Remover legado e lançar
+### Fase 6 — Remover legado e lançar (✅ Concluída)
 
-- Confirmar todos os gates das Fases 1–5 e revisar a busca de referências.
-- Excluir comandos Tauri clássicos, analisador/parser/compiler sem consumidores,
-  CLI clássico, exercícios `.pex`, assets/corpus clássicos e associação `.por`.
-- Manter apenas estruturas da VM compartilhada requeridas por PORS/debugger.
-- Atualizar README curto para usuários, créditos, licença, PARIDADE histórica,
-  distribuição e notas de release. Avisar que `.por`/`.pex` não são abertos e
-  indicar o Portugol Studio original para esses arquivos.
+- ✅ Confirmados os gates das Fases 1–5 e revisadas todas as referências legadas.
+- ✅ Excluídos comandos Tauri clássicos, `portugol-syntax`, `portugol-semantics`,
+  compilador AST clássico (`portugol-bytecode/src/compiler.rs`), CLI clássico,
+  exercícios `.pex`, assets/corpus clássicos (`tests/corpus/`) e associações `.por`/`.pex`.
+- ✅ Spans e diagnósticos extraídos para `portugol-hir` sem dependências externas,
+  mantendo `portugol-vm --no-default-features` e `portugol-wasm` (`wasm32-unknown-unknown`).
+- ✅ Documentação (`README.md`, `docs/ARQUITETURA.md`, `docs/PARIDADE.md`,
+  `docs/UX.md`) atualizada informando que `.por`/`.pex` não são abertos e
+  orientando usuários legados ao Portugol Studio original.
 
-**Gate:** CI Linux/Windows/macOS, smoke Tauri no Linux/KDE, CLI offline, criação
-de PORS, execução/debug, exercícios, Rust standalone/Cargo e ausência de
-referências de suporte a `.por`/`.pex` em runtime/docs voltados ao usuário.
+**Gate:** ✅ CI Linux/Windows/macOS, smoke gráfico Tauri em `.pors`, CLI offline,
+criação/execução/debug PORS, exercícios `.pors.json`, Rust standalone/Cargo,
+WASM `wasm32-unknown-unknown` e ausência de suporte/fallback silencioso a `.por`/`.pex`.
 
 ## Políticas transversais
 

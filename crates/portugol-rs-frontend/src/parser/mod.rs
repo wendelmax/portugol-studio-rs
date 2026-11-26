@@ -7,7 +7,7 @@ mod stmt;
 use std::collections::HashMap;
 
 use portugol_hir as hir;
-use portugol_syntax::{Diagnostic, Span};
+use portugol_hir::{Diagnostic, Span};
 
 use crate::lexer::{Kind, Token};
 use constants::*;

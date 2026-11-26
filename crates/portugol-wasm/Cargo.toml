@@ -11,6 +11,6 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 portugol-bytecode = { path = "../portugol-bytecode" }
+portugol-hir = { path = "../portugol-hir" }
 portugol-rs-frontend = { path = "../portugol-rs-frontend" }
-portugol-syntax = { path = "../portugol-syntax" }
 portugol-vm = { path = "../portugol-vm", default-features = false }

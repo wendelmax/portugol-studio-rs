@@ -1,6 +1,6 @@
 //! Conversão de offsets em bytes (spans do núcleo) para posições do editor.
 
-use portugol_syntax::Span;
+use portugol_hir::Span;
 use serde::Serialize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]

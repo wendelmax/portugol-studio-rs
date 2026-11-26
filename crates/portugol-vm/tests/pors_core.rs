@@ -99,7 +99,7 @@ funcao inicio() {
 #[test]
 fn reports_unavailable_native_libraries_when_stdlib_feature_is_disabled() {
     use portugol_bytecode::{Function, NativeRef, Op, ValueType};
-    use portugol_syntax::Span;
+    use portugol_hir::Span;
 
     let span = Span::new(0, 1);
     let module = Module {

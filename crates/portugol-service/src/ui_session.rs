@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 
 use portugol_bytecode::ValueType;
-use portugol_syntax::Diagnostic;
+use portugol_hir::Diagnostic;
 use portugol_vm::ui::{UiBudget, UiError, UiEvent, UiSession};
 use portugol_vm::{Io, RuntimeLimitReason};
 use serde_json::{Value as JsonValue, json};

@@ -5,8 +5,7 @@
 //! Comentários no formato `[a, b] -> [c]` descrevem o topo da pilha antes e
 //! depois da instrução (o último elemento é o topo).
 
-use portugol_syntax::Span;
-use portugol_syntax::ast::Type;
+use portugol_hir::Span;
 
 /// Tipo primitivo, usado em conversões, valores padrão e `leia`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -17,19 +16,6 @@ pub enum ValueType {
     Cadeia,
     Caracter,
     Vazio,
-}
-
-impl From<Type> for ValueType {
-    fn from(ty: Type) -> Self {
-        match ty {
-            Type::Inteiro => ValueType::Inteiro,
-            Type::Real => ValueType::Real,
-            Type::Logico => ValueType::Logico,
-            Type::Cadeia => ValueType::Cadeia,
-            Type::Caracter => ValueType::Caracter,
-            Type::Vazio => ValueType::Vazio,
-        }
-    }
 }
 
 impl ValueType {
@@ -188,7 +174,7 @@ pub enum Op {
 pub struct LocalInfo {
     /// Vazio para temporários criados pelo compilador.
     pub name: String,
-    pub ty: Type,
+    pub ty: ValueType,
     pub dims: u8,
     pub by_ref: bool,
     /// Present for nominal PORS values so the debugger can expand their fields.
@@ -243,7 +229,7 @@ pub struct NativeRef {
 #[derive(Debug, Clone, PartialEq)]
 pub struct GlobalInfo {
     pub name: String,
-    pub ty: Type,
+    pub ty: ValueType,
     pub dims: u8,
 }
 

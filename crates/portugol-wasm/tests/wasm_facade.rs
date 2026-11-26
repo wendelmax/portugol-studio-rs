@@ -1,8 +1,7 @@
 use std::slice;
 
 use portugol_bytecode::{Function, LocalInfo, Module, NativeRef, Op, ValueType};
-use portugol_syntax::Span;
-use portugol_syntax::ast::Type;
+use portugol_hir::Span;
 use portugol_vm::ui::UiBudget;
 use portugol_wasm::{
     RunBudget, SessionStore, format_pors_json, pors_alloc, pors_dealloc, pors_format,
@@ -10,7 +9,7 @@ use portugol_wasm::{
     run_pors_json, validate_pors_json,
 };
 
-fn local(name: &str, ty: Type) -> LocalInfo {
+fn local(name: &str, ty: ValueType) -> LocalInfo {
     LocalInfo {
         name: name.into(),
         ty,
@@ -41,10 +40,10 @@ fn build_counter_ui_module() -> Module {
         arity: 4,
         return_type: ValueType::Inteiro,
         locals: vec![
-            local("estado", Type::Inteiro),
-            local("tipo", Type::Cadeia),
-            local("alvo", Type::Cadeia),
-            local("valor", Type::Cadeia),
+            local("estado", ValueType::Inteiro),
+            local("tipo", ValueType::Cadeia),
+            local("alvo", ValueType::Cadeia),
+            local("valor", ValueType::Cadeia),
         ],
         code: vec![
             // if alvo == "inc" (string 0) -> estado + 1
@@ -77,7 +76,7 @@ fn build_counter_ui_module() -> Module {
         name: "visualizar".into(),
         arity: 1,
         return_type: ValueType::Inteiro,
-        locals: vec![local("estado", Type::Inteiro)],
+        locals: vec![local("estado", ValueType::Inteiro)],
         code: vec![
             // UI.texto("Total: " + estado) -> native 0
             Op::PushStr(2),

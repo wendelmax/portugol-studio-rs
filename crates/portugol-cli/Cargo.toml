@@ -10,7 +10,7 @@ name = "portugol"
 path = "src/main.rs"
 
 [dependencies]
-portugol-syntax = { path = "../portugol-syntax" }
+portugol-hir = { path = "../portugol-hir" }
 portugol-rs-frontend = { path = "../portugol-rs-frontend" }
 portugol-rust = { path = "../portugol-rust" }
 portugol-bytecode = { path = "../portugol-bytecode" }

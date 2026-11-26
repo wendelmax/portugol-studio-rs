@@ -15,7 +15,7 @@ use std::time::Duration;
 use serde::Serialize;
 
 use portugol_bytecode::ValueType;
-use portugol_syntax::{Diagnostic, Span};
+use portugol_hir::{Diagnostic, Span};
 use portugol_vm::debug::{DebugCommand, DebugControl, PausedInfo};
 use portugol_vm::{FileFilter, Host, Io, Vm};
 

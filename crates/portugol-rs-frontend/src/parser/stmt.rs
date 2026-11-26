@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use portugol_hir as hir;
-use portugol_syntax::{Diagnostic, Span};
+use portugol_hir::{Diagnostic, Span};
 
 use super::constants::*;
 use super::{FunctionSignature, Parser, Symbol};
