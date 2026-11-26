@@ -18,6 +18,19 @@ test("web playground ships console and visual MVU .pors examples without innerHT
   }
 });
 
+test("web playground CSS keeps elements with hidden attribute out of layout", () => {
+  const css = readFileSync(new URL("../../web-playground/style.css", import.meta.url), "utf8");
+  // Painéis como .pg-ui-section definem `display: flex`, que vence a regra da UA
+  // para [hidden] sem uma declaração explícita com precedência.
+  assert.match(css, /\[hidden\][^{}]*\{[^}]*display:\s*none\s*!important\s*;/);
+});
+
+test("web playground does not overwrite the execution status when refreshing generated Rust", () => {
+  const app = readFileSync(new URL("../../web-playground/app.mjs", import.meta.url), "utf8");
+  assert.match(app, /function runExportRust\(announce = true\)/);
+  assert.match(app, /if \(rustWasOpen\) runExportRust\(false\)/);
+});
+
 test("playground runtime encodes/decodes UTF-8 across linear memory for validate/run/ui", () => {
   const memory = new WebAssembly.Memory({ initial: 1 });
   let nextPtr = 64;
