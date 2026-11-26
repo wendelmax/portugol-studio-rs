@@ -49,22 +49,16 @@ partir de um `.pors`.
 
 ## O que a IDE oferece
 
-- Editor com realce de sintaxe, autocompletar de palavras, funções e
-  bibliotecas, dicas ao passar o mouse, dobramento de código, busca e
-  formatação automática.
+- Interface desktop proprietária (Tauri v2 + CodeMirror 6) com barra superior de projeto/modo/execução, `ActivityRail`, `Explorer`, `Inspector` (`Aprender`, `Bibliotecas`/`Modelos` PORS, árvore estrutural e variáveis) e diálogo dedicado de `Configurações` (`Ctrl+,`) com restauração de layout.
+- Editor com realce de sintaxe, autocompletar de palavras, funções e módulos PORS, dicas ao passar o mouse, dobramento de código, busca, renomeação de símbolos e formatação automática.
 - Erros e avisos em português enquanto você digita, com indicação da linha.
 - Console com entrada de dados (`leia`) e parâmetros de execução.
-- Depurador com pontos de parada, execução passo a passo, pilha de chamadas e
-  inspeção de variáveis, vetores e matrizes.
-- Janela gráfica para programas que usam `Graficos`, `Teclado` e `Mouse`, e
-  reprodução de áudio com `Sons`.
-- Ajuda integrada sobre a linguagem e as bibliotecas, exemplos prontos (jogos,
-  algoritmos, bibliotecas) e exercícios com casos de teste.
-- Prévia do código Rust equivalente ao programa, com opção de copiar ou salvar
-  o `.rs`.
-- Execução de arquivos Rust avulsos e de projetos Cargo, para quem já está
-  praticando Rust.
-- Temas claro e escuro.
+- Depurador com pontos de parada, execução passo a passo, pilha de chamadas e inspeção de variáveis, vetores, registros e enums.
+- Janela gráfica para programas que usam `Graficos`, `Teclado` e `Mouse`, reprodução de áudio com `Sons` e prévia visual declarativa para apps `UI.*`.
+- Ajuda integrada 100% PORS, catálogo de 119+ exemplos `.pors`, 8 dicas ilustradas da IDE e 14 exercícios `.pors` com correção automática.
+- Ponte lado a lado Portugol-RS ↔ Rust com mapeamento de origem (`MappingGutter`), diff de traduções e desvinculação segura para editar `.rs` independente.
+- Execução de arquivos Rust avulsos e projetos Cargo (`cargo check` / `cargo test` / `cargo run`).
+- Temas padronizados com contraste WCAG AA (`>= 4,5:1`): `Sistema` automático (VS Code Light/Dark Modern), `IntelliJ Rust Dark/Light`, `GitHub`, `One Dark Pro`, `Dracula`, `Catppuccin Mocha`, `Night Owl`, `Alto contraste` e editor de temas personalizados.
 
 ### Atalhos do depurador
 
@@ -127,7 +121,9 @@ Mantém as palavras-chave em português e adota a estrutura do Rust:
 - `registro` e `enum` com `escolha` exaustivo;
 - `Opcao<T>` e `Resultado<T, E>` com o operador `?`;
 - vetores dinâmicos (`adicionar`, `remover`, `obter`, `tamanho`);
-- bibliotecas Matematica, Texto, Tipos, Util, Calendario, Arquivos e Json;
+- bibliotecas padrão e multimídia PORS: `Matematica`, `Texto`, `Tipos`, `Util`,
+  `Calendario`, `Arquivos`, `Json`, `Internet`, `UI`, `Graficos`, `Teclado`,
+  `Mouse` e `Sons`;
 - interfaces visuais declarativas com `UI.*` no modelo
   iniciar/atualizar/visualizar.
 
@@ -225,7 +221,9 @@ cargo test -p portugol-vm --test regressao   # corpus do original com host gráf
 
 cd apps/desktop
 npm ci
-npm test                                     # testes do frontend
+npm test                                     # testes do frontend (unitários, contrato e contraste AA)
+npm run build                                # compila TypeScript + bundle Vite
+npm run test:e2e                             # verificação E2E/visual em 1536×960 e 1280×800
 npm run tauri dev                            # abre a IDE em modo de desenvolvimento
 npm run tauri build                          # gera os instaladores locais
 ```

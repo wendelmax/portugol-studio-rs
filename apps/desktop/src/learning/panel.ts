@@ -100,9 +100,9 @@ export function mountLearningPanel(host: LearningPanelHost) {
     pinButton.setAttribute("aria-pressed", String(topicPinned));
     pinButton.textContent = topicPinned ? "Desafixar tópico" : "Fixar tópico";
     const practiceButton = $<HTMLButtonElement>("learning-practice-open");
-    practiceButton.hidden = concept.practiceExerciseId === undefined;
+    practiceButton.hidden = concept.practicePorsExerciseId === undefined;
     practiceButton.disabled = !tab || learningPracticeBusy;
-    practiceButton.dataset.exerciseId = concept.practiceExerciseId === undefined ? "" : String(concept.practiceExerciseId);
+    practiceButton.dataset.exerciseId = concept.practicePorsExerciseId ?? "";
     const active = host.activeTab();
     $("learning-mode-description").textContent = learningMode === "bridge"
       ? "Ponte didática: compare os conceitos de Portugol com exemplos Rust editoriais."
@@ -168,16 +168,16 @@ export function mountLearningPanel(host: LearningPanelHost) {
   $<HTMLButtonElement>("learning-practice-open").onclick = async (event) => {
     if (learningPracticeBusy) return;
     const button = event.currentTarget as HTMLButtonElement;
-    const exerciseId = Number(button.dataset.exerciseId);
-    if (!Number.isSafeInteger(exerciseId) || exerciseId < 1 || !host.activeTab()) return;
+    const exerciseId = button.dataset.exerciseId;
+    if (!exerciseId || !host.activeTab()) return;
 
     learningPracticeBusy = true;
     button.disabled = true;
     const status = $<HTMLElement>("learning-practice-status");
-    status.textContent = `Abrindo exercício ${exerciseId}…`;
+    status.textContent = "Abrindo exercício .pors…";
     try {
-      await host.openExercise(exerciseId);
-      status.textContent = `Exercício ${exerciseId} aberto no editor. A abertura não registra progresso.`;
+      await host.openPorsExercise(exerciseId);
+      status.textContent = "Exercício .pors aberto no editor. A abertura não registra progresso.";
     } catch {
       status.textContent = "Não foi possível abrir o exercício. Tente novamente ou use a lista de exercícios.";
     } finally {

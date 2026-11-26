@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "id": "pors-11-par-ou-impar",
+  "title": "Par ou ímpar",
+  "statement": "Leia um número inteiro e escreva verdadeiro se ele for par ou falso se for ímpar.",
+  "starter_code": "funcao inicio() {\n    seja mutavel numero: inteiro = 0;\n    leia(numero);\n    escreva(falso);\n}\n",
+  "hints": [
+    "Um inteiro é par quando o resto da divisão por 2 é igual a zero: numero % 2 == 0."
+  ],
+  "cases": [
+    { "name": "par positivo", "input": "4\n", "expected_output": "verdadeiro" },
+    { "name": "impar positivo", "input": "7\n", "expected_output": "falso" },
+    { "name": "zero", "input": "0\n", "expected_output": "verdadeiro" },
+    { "name": "par negativo", "input": "-6\n", "expected_output": "verdadeiro" }
+  ]
+}

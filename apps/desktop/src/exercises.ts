@@ -80,17 +80,9 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
   });
   async function loadCatalog() {
     if (catalogLoaded) return catalog;
-    pending ??= Promise.allSettled([listExercises(), listPorsExercises()]).then(([classicResult, porsResult]) => {
-      if (porsResult.status === "fulfilled") {
-        porsCatalog = porsResult.value;
-      }
-      if (classicResult.status === "fulfilled") {
-        return classicResult.value;
-      }
-      if (porsResult.status === "fulfilled") {
-        return [];
-      }
-      throw classicResult.reason;
+    pending ??= listPorsExercises().then((porsItems) => {
+      porsCatalog = porsItems;
+      return [];
     });
     try {
       catalog = await pending;
@@ -101,7 +93,7 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
     }
   }
 
-  const openById = createExerciseOpener(loadCatalog, openSource);
+  const openById = createExerciseOpener(listExercises, openSource);
   const openPorsById = createPorsExerciseOpener(async () => {
     await loadCatalog();
     return porsCatalog;
@@ -136,19 +128,6 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
         );
       }
       nodes.push(porsGroup);
-    }
-    if (catalog.length > 0) {
-      const classicGroup = document.createElement("optgroup");
-      classicGroup.label = "Portugol clássico (.por)";
-      for (const { id } of catalog) {
-        classicGroup.append(
-          new Option(
-            exerciseOptionLabel(`Exercício ${id}`, progress.hasPassed(`builtin:${id}`)),
-            String(id),
-          ),
-        );
-      }
-      nodes.push(classicGroup);
     }
     list.replaceChildren(...nodes);
     showExercise();

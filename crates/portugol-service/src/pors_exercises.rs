@@ -86,6 +86,10 @@ const BUILTIN_RAW: &[&str] = &[
     include_str!("../assets/exercicios-pors/08-dias-do-mes.pors.json"),
     include_str!("../assets/exercicios-pors/09-resumo-json.pors.json"),
     include_str!("../assets/exercicios-pors/10-somar-lista-json.pors.json"),
+    include_str!("../assets/exercicios-pors/11-par-ou-impar.pors.json"),
+    include_str!("../assets/exercicios-pors/12-saudacao-cadeia.pors.json"),
+    include_str!("../assets/exercicios-pors/13-registro-ponto.pors.json"),
+    include_str!("../assets/exercicios-pors/14-enum-semaforo.pors.json"),
 ];
 
 static BUILTIN_CATALOG: LazyLock<Vec<PorsExerciseDefinition>> = LazyLock::new(|| {
@@ -338,7 +342,7 @@ mod tests {
     #[test]
     fn evaluates_all_builtin_pors_exercises_with_passing_and_failing_solutions() {
         let catalog = pors_exercises();
-        assert_eq!(catalog.len(), 10);
+        assert_eq!(catalog.len(), 14);
         for summary in &catalog {
             assert_eq!(summary.schema_version, PORS_EXERCISE_SCHEMA_VERSION);
             assert!(portugol_rs_frontend::lower(&summary.starter_code).is_ok());
@@ -384,6 +388,22 @@ mod tests {
             (
                 "pors-10-somar-lista-json",
                 "funcao somar_json(texto: cadeia) -> Resultado<inteiro, cadeia> { seja lista: vetor<inteiro> = Json.obter_lista_inteiro(texto, \"valores\")?; seja mutavel total: inteiro = 0; para (seja mutavel i: inteiro = 0; i < tamanho(lista); i += 1) { total += lista[i]; } retorne Resultado::Ok(total); } funcao inicio() { seja mutavel linha: cadeia = \"\"; leia(linha); escolha somar_json(linha) { caso Resultado::Ok(s) => { escreva(s); } caso Resultado::Erro(_) => { escreva(\"invalido\"); } } }",
+            ),
+            (
+                "pors-11-par-ou-impar",
+                "funcao inicio() { seja mutavel numero: inteiro = 0; leia(numero); escreva(numero % 2 == 0); }",
+            ),
+            (
+                "pors-12-saudacao-cadeia",
+                "funcao inicio() { seja mutavel nome: cadeia = \"\"; leia(nome); escreva(\"Ola, \", nome); }",
+            ),
+            (
+                "pors-13-registro-ponto",
+                "registro Retangulo { largura: inteiro, altura: inteiro, } funcao area(r: Retangulo) -> inteiro { retorne r.largura * r.altura; } funcao inicio() { seja mutavel largura: inteiro = 0; seja mutavel altura: inteiro = 0; leia(largura); leia(altura); seja r: Retangulo = Retangulo { largura: largura, altura: altura }; escreva(area(r)); }",
+            ),
+            (
+                "pors-14-enum-semaforo",
+                "enum Sinal { Verde, Amarelo, Vermelho, } funcao classificar(codigo: inteiro) -> Sinal { se (codigo == 1) { retorne Sinal::Verde; } senao se (codigo == 2) { retorne Sinal::Amarelo; } retorne Sinal::Vermelho; } funcao inicio() { seja mutavel codigo: inteiro = 0; leia(codigo); escolha classificar(codigo) { caso Sinal::Verde => { escreva(\"siga\"); } caso Sinal::Amarelo => { escreva(\"atencao\"); } caso Sinal::Vermelho => { escreva(\"pare\"); } } }",
             ),
         ];
 

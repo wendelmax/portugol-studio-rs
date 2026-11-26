@@ -38,7 +38,9 @@ export const LEARNING_TRAIL: LearningTrailStage[] = [
     description: "Comece com entradas, variáveis e condições.",
     examplePaths: ["01-ola-variaveis.pors", "02-condicionais.pors"],
     exercises: [
+      { id: "pors-12-saudacao-cadeia", title: "Saudação com cadeia" },
       { id: "pors-01-dobro", title: "Dobro de um número" },
+      { id: "pors-11-par-ou-impar", title: "Par ou ímpar" },
       { id: "pors-02-maior-de-dois", title: "Maior de dois inteiros" },
     ],
   },
@@ -76,9 +78,11 @@ export const LEARNING_TRAIL: LearningTrailStage[] = [
   {
     id: "ownership",
     title: "Ownership e dados compostos",
-    description: "Aplique as regras de propriedade a valores e coleções maiores.",
+    description: "Aplique tipos compostos (registro/enum) e regras de propriedade a coleções.",
     examplePaths: ["06-registros-enums.pors", "10-vetores-dinamicos.pors"],
     exercises: [
+      { id: "pors-13-registro-ponto", title: "Área com registro Retangulo" },
+      { id: "pors-14-enum-semaforo", title: "Semáforo com enum e escolha" },
       { id: "pors-10-somar-lista-json", title: "Somar lista de inteiros em JSON" },
     ],
   },
