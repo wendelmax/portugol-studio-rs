@@ -148,6 +148,10 @@ jobs:
           releaseBody: |
             ${{ inputs.notas }}
 
+            ### Arquivos suportados
+
+            O Portugol Studio RS suporta programas **Portugol-RS (`.pors`)**, exercícios **`.pors.json`** e arquivos/projetos **Rust (`.rs` / Cargo)**. O suporte ao formato clássico `.por`/`.pex` foi retirado (ADR 0016); para projetos legados, utilize o [Portugol Studio original](https://github.com/UNIVALI-LITE/Portugol-Studio).
+
             ### Instalação
 
             Instaladores para Windows (`.exe` e `.msi`), Linux (`.deb`, `.rpm` e `.AppImage`)
