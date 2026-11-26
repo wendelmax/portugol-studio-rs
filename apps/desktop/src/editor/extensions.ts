@@ -14,6 +14,9 @@ export interface EditorExtensionDependencies {
   sourceLanguage: Compartment;
   portugolTools: Compartment;
   theme: Compartment;
+  /** Compartimento opcional para quebra de linha e recuo (preferências do usuário). */
+  preferences?: Compartment;
+  editorPreferences?: () => Extension;
   portugolExtensions: () => Extension[];
   rustExtensions: () => Extension[];
   portugolRsLanguage: () => Extension;
@@ -50,7 +53,9 @@ export function createEditorExtensionFactory(dependencies: EditorExtensionDepend
       highlightSelectionMatches(),
       dependencies.findDialog,
       EditorView.contentAttributes.of({ "aria-label": "Editor de código" }),
-      EditorState.tabSize.of(4),
+      dependencies.preferences && dependencies.editorPreferences
+        ? dependencies.preferences.of(dependencies.editorPreferences())
+        : EditorState.tabSize.of(4),
       dependencies.sourceLanguage.of(languageExtension),
       dependencies.portugolTools.of(tools),
       foldGutter({ markerDOM: (open) => {

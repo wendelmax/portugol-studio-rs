@@ -604,6 +604,24 @@
           <label class="font-size" for="editor-font">Tamanho da fonte do editor
             <input id="editor-font" type="number" min="10" max="50" value="12" />
           </label>
+          <label class="font-size" for="settings-console-font">Tamanho da fonte do console
+            <input id="settings-console-font" type="number" min="10" max="50" value="12" />
+          </label>
+          <label for="editor-tab-size">Tamanho da indentação
+            <select id="editor-tab-size">
+              <option value="2">2 espaços</option>
+              <option value="4" selected>4 espaços</option>
+              <option value="8">8 espaços</option>
+            </select>
+          </label>
+          <label class="settings-checkbox" for="editor-word-wrap">
+            <input id="editor-word-wrap" type="checkbox" />
+            Quebra automática de linha
+          </label>
+          <label class="settings-checkbox" for="settings-tips-startup">
+            <input id="settings-tips-startup" type="checkbox" />
+            Mostrar dicas ao iniciar
+          </label>
           <button id="editor-themes" type="button">Editar temas personalizados…</button>
         </section>
 

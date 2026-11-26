@@ -19,6 +19,10 @@ export interface LearningPanelHost {
   learningMode(): LearningMode;
   /** Abre exercício Portugol-RS pelo identificador do catálogo .pors. */
   openPorsExercise(id: string): Promise<void>;
+  /** Abre um exemplo .pors do catálogo pelo nome de arquivo (ex.: `01-ola-variaveis.pors`). */
+  openPorsExample?(fileName: string): Promise<void>;
+  /** Abre o Laboratório de Ownership em modo expandido no painel. */
+  openOwnershipLab?(): void;
   ownership?: OwnershipLabHost;
 }
 
@@ -28,6 +32,31 @@ export function mountLearningPanel(host: LearningPanelHost) {
   let selectedLearningConceptId = "variables";
   let learningConceptManuallySelected = false;
   let learningPracticeBusy = false;
+
+  async function openTrailExample(fileName: string) {
+    const message = $("learning-trail-message");
+    try {
+      await host.openPorsExample?.(fileName);
+      message.textContent = `Exemplo ${fileName} aberto em uma nova aba.`;
+    } catch {
+      message.textContent = `Não foi possível abrir o exemplo ${fileName}.`;
+    }
+  }
+
+  async function openTrailExercise(exerciseId: string) {
+    if (learningPracticeBusy) return;
+    learningPracticeBusy = true;
+    const message = $("learning-trail-message");
+    message.textContent = "Abrindo exercício…";
+    try {
+      await host.openPorsExercise(exerciseId);
+    } catch {
+      message.textContent = "Não foi possível abrir o exercício. Tente novamente pela lista de exercícios.";
+    } finally {
+      learningPracticeBusy = false;
+      renderLearningPanel();
+    }
+  }
 
   function renderLearningPanel() {
     const learningMode = host.learningMode();
@@ -70,11 +99,47 @@ export function mountLearningPanel(host: LearningPanelHost) {
       heading.append(title, status);
       const description = document.createElement("p");
       description.textContent = stage.description;
-      const examples = document.createElement("small");
-      examples.textContent = `Exemplos: ${stage.examplePaths.join(", ")}`;
-      const exercises = document.createElement("small");
-      exercises.textContent = `Exercícios: ${stage.exercises.map(({ title: name }) => name).join(" · ")}`;
+      const examples = document.createElement("div");
+      examples.className = "learning-trail-links";
+      const examplesLabel = document.createElement("small");
+      examplesLabel.textContent = "Exemplos:";
+      examples.append(examplesLabel);
+      for (const path of stage.examplePaths) {
+        const link = document.createElement("button");
+        link.type = "button";
+        link.className = "learning-trail-link";
+        link.textContent = path;
+        link.title = `Abrir o exemplo ${path} em uma nova aba`;
+        link.dataset.examplePath = path;
+        link.onclick = () => void openTrailExample(path);
+        examples.append(link);
+      }
+      const exercises = document.createElement("div");
+      exercises.className = "learning-trail-links";
+      const exercisesLabel = document.createElement("small");
+      exercisesLabel.textContent = "Exercícios:";
+      exercises.append(exercisesLabel);
+      for (const exercise of stage.exercises) {
+        const link = document.createElement("button");
+        link.type = "button";
+        link.className = "learning-trail-link";
+        const done = exerciseProgress.hasPassed(`pors:${exercise.id}`);
+        link.textContent = done ? `✓ ${exercise.title}` : exercise.title;
+        link.title = `Abrir o exercício “${exercise.title}”`;
+        link.dataset.exerciseId = exercise.id;
+        link.disabled = learningPracticeBusy;
+        link.onclick = () => void openTrailExercise(exercise.id);
+        exercises.append(link);
+      }
       item.append(heading, description, examples, exercises);
+      if (stage.id === "ownership" && host.openOwnershipLab) {
+        const lab = document.createElement("button");
+        lab.type = "button";
+        lab.className = "learning-trail-link learning-trail-lab";
+        lab.textContent = "Abrir Laboratório de Ownership";
+        lab.onclick = () => host.openOwnershipLab?.();
+        item.append(lab);
+      }
       return item;
     }));
     const nextButton = $<HTMLButtonElement>("learning-trail-next");

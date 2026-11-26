@@ -29,7 +29,7 @@ export interface EditorShellDependencies {
   update: Omit<EditorUpdateDependencies, "activeTab" | "currentEditorState" | "learningMode" | "centerActive">;
   navigation: Omit<EditorNavigationBindingsDependencies, "activeLanguage" | "selectionHead">;
   extensions: Omit<EditorExtensionDependencies,
-    "sourceLanguage" | "portugolTools" | "theme" | "editorColors" | "editorTheme" | "onEditorClick" | "onGoToDeclaration" | "onUpdate">;
+    "sourceLanguage" | "portugolTools" | "theme" | "preferences" | "editorColors" | "editorTheme" | "onEditorClick" | "onGoToDeclaration" | "onUpdate">;
   theme: Pick<EditorThemeControllerDependencies, "applyPageTheme" | "onSystemThemeChange">;
 }
 
@@ -69,6 +69,7 @@ export function createEditorShell(dependencies: EditorShellDependencies) {
     sourceLanguage: editorSetup.sourceLanguage,
     portugolTools: editorSetup.portugolTools,
     theme: editorSetup.theme,
+    preferences: editorSetup.preferences,
     editorColors,
     editorTheme,
     onEditorClick: editorNavigation.onEditorClick,
