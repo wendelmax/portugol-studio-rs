@@ -18,11 +18,11 @@
       </div>
       <div class="titlebar-drag" data-tauri-drag-region></div>
       <nav class="titlebar-actions" aria-label="Execução e visualizações">
-        <button id="btn-run" class="titlebar-run-btn" data-testid="run" title="Executar até o próximo ponto de parada (Shift+F6)" aria-label="Executar"><span data-icon="play"></span><span>Executar</span></button>
+        <button id="btn-run" class="titlebar-run-btn" data-testid="run" title="Executar na VM do Portugol-RS (Shift+F6)" aria-label="Executar"><span data-icon="play"></span><span>Executar</span></button>
         <button id="btn-debug" class="titlebar-action-btn" data-testid="debug" title="Executar passo a passo (Shift+F5)" aria-label="Depurar"><span data-icon="step-forward"></span><span>Depurar</span></button>
         <button id="btn-stop" class="titlebar-action-btn titlebar-stop-btn" data-testid="stop" title="Interromper a execução ou depuração (Shift+F7)" aria-label="Interromper" disabled><span data-icon="square"></span><span>Parar</span></button>
         <span class="titlebar-divider" aria-hidden="true"></span>
-        <button id="btn-rust" class="titlebar-pill-btn" title="Comparar e exportar este programa para Rust" aria-label="Ver tradução para Rust">Rust</button>
+        <button id="btn-rust" class="titlebar-pill-btn" title="Comparar e exportar este programa para Rust" aria-label="Ver tradução para Rust" aria-pressed="false">Rust</button>
         <button id="btn-ui-preview" class="titlebar-pill-btn" title="Abrir preview visual declarativo PORS (UI.*)" aria-label="Preview Visual PORS" aria-pressed="false">UI</button>
       </nav>
       <div class="window-controls" role="group" aria-label="Controles da janela">
@@ -59,6 +59,7 @@
             <button id="home-open" title="Abrir arquivo (Ctrl+O)"><span data-icon="folder-open"></span>Abrir Arquivo</button>
             <button id="home-open-folder" title="Abrir pasta de projeto"><span data-icon="folder"></span>Abrir Pasta</button>
             <button id="home-help" title="Ajuda (F1)"><span data-icon="book-open"></span>Ajuda</button>
+            <button id="home-return-editor" type="button" title="Voltar para a aba aberta no editor" hidden><span data-icon="file-code"></span>Voltar ao Editor</button>
           </div>
           <section id="recent" aria-labelledby="recent-title" hidden>
             <h2 id="recent-title">Arquivos recentes</h2>
@@ -97,7 +98,7 @@
 
     <main id="code" class="code" hidden>
       <aside class="activity-rail" aria-label="Atividades">
-        <nav class="activity-nav" aria-label="Atividades">
+        <nav class="activity-nav" aria-label="Painéis principais">
           <button type="button" data-activity="learn" aria-label="Aprender" aria-controls="utilities" title="Aprender"><span data-icon="graduation-cap"></span><span class="rail-label">Aprender</span></button>
           <button type="button" data-activity="examples" aria-label="Exemplos" title="Início e exemplos"><span data-icon="sparkles"></span><span class="rail-label">Exemplos</span></button>
           <button type="button" data-activity="debug" aria-label="Painel de depuração" aria-controls="bottom-panel" title="Painel de depuração"><span data-icon="bug"></span><span class="rail-label">Depurar</span></button>
@@ -358,7 +359,7 @@
       <div id="utilities-splitter" class="splitter" role="separator" aria-label="Redimensionar painel Utilitários" aria-controls="utilities" aria-orientation="vertical" aria-valuemin="210" aria-valuemax="600" aria-valuenow="280" aria-keyshortcuts="ArrowLeft ArrowRight Home End" title="Arraste ou use as setas; Home e End definem os limites" tabindex="0" hidden></div>
       <aside id="utilities" class="utilities" aria-labelledby="utilities-title" hidden>
         <header>
-          <h2 id="utilities-title">Inspector</h2>
+          <h2 id="utilities-title">Utilitários</h2>
           <button id="utilities-close" aria-label="Fechar painel Utilitários">×</button>
         </header>
         <div id="learning-inspector-slot"></div>
@@ -398,12 +399,22 @@
     </main>
 
     <main id="help" class="help" hidden>
-      <aside class="help-sidebar" aria-label="Tópicos de ajuda">
-        <input id="help-search" type="search" placeholder="Buscar na ajuda" aria-label="Buscar na ajuda" />
-        <nav id="help-topics" aria-label="Tópicos"></nav>
-        <p id="help-empty" role="status" hidden>Nenhum tópico encontrado.</p>
-      </aside>
-      <article id="help-article" class="help-article" tabindex="-1"></article>
+      <header class="help-header" aria-label="Navegação da ajuda">
+        <div class="help-header-actions">
+          <button id="help-back-editor" type="button" hidden>← Voltar ao editor</button>
+          <button id="help-go-home" type="button" title="Ir para a tela inicial (Alt+Home)">Início</button>
+        </div>
+        <span class="help-header-title">Ajuda — Portugol Studio RS</span>
+        <button id="help-close" type="button" aria-label="Fechar ajuda" title="Fechar ajuda (Ctrl+Q)">× Fechar</button>
+      </header>
+      <div class="help-body">
+        <aside class="help-sidebar" aria-label="Tópicos de ajuda">
+          <input id="help-search" type="search" placeholder="Buscar na ajuda" aria-label="Buscar na ajuda" />
+          <nav id="help-topics" aria-label="Tópicos"></nav>
+          <p id="help-empty" role="status" hidden>Nenhum tópico encontrado.</p>
+        </aside>
+        <article id="help-article" class="help-article" tabindex="-1"></article>
+      </div>
     </main>
 
     <dialog id="workspace-create-dialog" aria-labelledby="workspace-create-title">

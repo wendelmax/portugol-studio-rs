@@ -16,7 +16,7 @@ export function ctrlShortcut(key: string, shift: boolean, command: string, actio
   return {
     label: shift ? `Ctrl+Shift+${key}` : `Ctrl+${key}`,
     command,
-    matches: (e) => (e.ctrlKey || e.metaKey) && e.shiftKey === shift && e.key.toUpperCase() === key,
+    matches: (e) => (e.ctrlKey || e.metaKey) && !e.altKey && e.shiftKey === shift && e.key.toUpperCase() === key,
     action,
   };
 }

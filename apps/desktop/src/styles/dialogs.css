@@ -29,7 +29,7 @@ dialog h2 {
 .danger-action {
   border-color: var(--error);
   background: var(--error);
-  color: var(--accent-text);
+  color: var(--error-text);
 }
 
 /* Atalhos e paleta de comandos */
@@ -231,8 +231,8 @@ dialog h2 {
 #tips-badge {
   padding: 2px 9px;
   border-radius: var(--radius-pill);
-  background: var(--tab-active);
-  color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-text);
   font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.04em;

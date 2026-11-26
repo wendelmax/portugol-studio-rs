@@ -10,16 +10,29 @@ export interface ActivityBarDependencies {
   activateHome: () => void;
   showUtilities: (visible: boolean) => void;
   openSettings: () => void;
+  isLearningActive?: () => boolean;
 }
 
 /** Binds the activity rail to the current IDE views and keeps its pressed state in sync. */
 export function mountActivityBar(
   buttons: Iterable<ActivityBarButton>,
   dependencies: ActivityBarDependencies,
-): void {
+) {
   const activities = [...buttons];
+
+  function setPressed(activeActivity: string | null) {
+    for (const activity of activities) {
+      activity.setAttribute("aria-pressed", String(activeActivity !== null && activity.dataset.activity === activeActivity));
+    }
+  }
+
   for (const button of activities) {
     button.onclick = () => {
+      if (button.dataset.activity === "learn" && dependencies.isLearningActive?.()) {
+        setPressed(null);
+        dependencies.showUtilities(false);
+        return;
+      }
       for (const activity of activities) {
         activity.setAttribute("aria-pressed", String(activity === button));
       }
@@ -41,4 +54,6 @@ export function mountActivityBar(
       }
     };
   }
+
+  return { setPressed };
 }

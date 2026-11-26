@@ -116,15 +116,15 @@ function renderTipVisual(kind: string): SVGSVGElement {
       el("rect", { x: "106", y: "62", width: "348", height: "28", rx: "6", class: "tip-highlight" }),
       el("text", { x: "118", y: "80", class: "tip-code" }, "> Formatar código-fonte"),
       el("text", { x: "118", y: "112", class: "tip-code" }, "Executar programa                   Shift+F6"),
-      el("text", { x: "118", y: "136", class: "tip-code" }, "Ver tradução para Rust              Alt+R"),
-      el("text", { x: "118", y: "160", class: "tip-code" }, "Trocar tema da interface"),
+      el("text", { x: "118", y: "136", class: "tip-code" }, "Renomear símbolo                      Ctrl+R"),
+      el("text", { x: "118", y: "160", class: "tip-code" }, "Configurações                         Ctrl+,"),
     );
   } else if (kind === "themes") {
     svg.append(
       el("rect", { x: "28", y: "52", width: "156", height: "132", rx: "8", class: "tip-card" }),
       el("rect", { x: "202", y: "52", width: "156", height: "132", rx: "8", class: "tip-card" }),
       el("rect", { x: "376", y: "52", width: "156", height: "132", rx: "8", class: "tip-card" }),
-      el("text", { x: "42", y: "76", class: "tip-label-accent" }, "Studio Next"),
+      el("text", { x: "42", y: "76", class: "tip-label-accent" }, "IntelliJ Rust"),
       el("rect", { x: "42", y: "92", width: "128", height: "14", rx: "4", class: "tip-pill" }),
       el("rect", { x: "42", y: "114", width: "92", height: "10", rx: "3", class: "tip-highlight" }),
       el("text", { x: "216", y: "76", class: "tip-label" }, "GitHub / Dracula"),

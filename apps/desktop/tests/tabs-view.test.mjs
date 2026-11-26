@@ -88,15 +88,23 @@ test("tab strip routes navigation, closing, and new-file actions to the shell", 
 test("tab strip updates the document title for file, home, and help", () => {
   const { doc, view, setActiveId } = fixture();
   view.render();
-  assert.equal(doc.title, "aula.pors — Portugol Studio");
+  assert.equal(doc.title, "aula.pors — Portugol Studio RS");
 
   setActiveId(0);
   view.render();
-  assert.equal(doc.title, "Portugol Studio");
+  assert.equal(doc.title, "Portugol Studio RS");
 
   setActiveId(-1);
   view.render();
-  assert.equal(doc.title, "Ajuda — Portugol Studio");
+  assert.equal(doc.title, "Ajuda — Portugol Studio RS");
+});
+
+test("file tab close buttons include an accessible label naming the tab", () => {
+  const { container, view } = fixture();
+  view.render();
+
+  assert.equal(container.children[2].children[1].getAttribute("aria-label"), "Fechar aula.pors");
+  assert.equal(container.children[3].children[1].getAttribute("aria-label"), "Fechar exemplo.pors");
 });
 
 test("IDE delegates tab strip rendering to the tested view module", async () => {

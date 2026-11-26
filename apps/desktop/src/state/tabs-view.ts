@@ -63,6 +63,7 @@ export function createTabsView(dependencies: TabsViewDependencies) {
         close.className = "close";
         close.textContent = "×";
         close.title = "Fechar (Ctrl+Q)";
+        close.setAttribute("aria-label", `Fechar ${dependencies.tabName(tab)}`);
         close.onclick = (event) => {
           event.stopPropagation();
           void dependencies.closeTab(tab.id);
@@ -77,7 +78,7 @@ export function createTabsView(dependencies: TabsViewDependencies) {
     );
     const tab = dependencies.tabs().find(({ id }) => id === activeId);
     const title = tab ? dependencies.tabName(tab) : activeId === dependencies.helpId ? "Ajuda" : "";
-    document.title = title ? `${title} — Portugol Studio` : "Portugol Studio";
+    document.title = title ? `${title} — Portugol Studio RS` : "Portugol Studio RS";
   }
 
   return { render };

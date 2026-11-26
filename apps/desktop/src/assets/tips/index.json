@@ -13,7 +13,7 @@
     "title": "Compare seu código com Rust lado a lado",
     "shortcut": "Botão Rust",
     "visual": "rust-bridge",
-    "description": "Clique em Rust na barra lateral para ver a tradução gerada em tempo real. Clique nos marcadores da margem para navegar entre cada linha do Portugol-RS e o trecho correspondente em Rust, ou desvincule para editar um arquivo .rs independente."
+    "description": "Clique em Rust na barra superior para ver a tradução gerada em tempo real. Clique nos marcadores da margem para navegar entre cada linha do Portugol-RS e o trecho correspondente em Rust, ou desvincule para editar um arquivo .rs independente."
   },
   {
     "id": "depurador-vm",
@@ -21,7 +21,7 @@
     "title": "Depure passo a passo com inspeção real",
     "shortcut": "Shift+F5 · F10",
     "visual": "debugger",
-    "description": "Clique na margem esquerda do editor para criar pontos de parada. Execute com Shift+F5, avance linha a linha com F10 e acompanhe a pilha de chamadas e os valores reais de variáveis, vetores, registros e enums no Inspector."
+    "description": "Clique na margem esquerda do editor para criar pontos de parada. Execute com Shift+F5, avance linha a linha com F10 e acompanhe a pilha de chamadas e os valores reais de variáveis, vetores, registros e enums no painel Utilitários."
   },
   {
     "id": "trilha-exercicios",
@@ -51,15 +51,15 @@
     "id": "paleta-comandos",
     "badge": "Produtividade",
     "title": "Encontre qualquer ação na Paleta de comandos",
-    "shortcut": "Ctrl+K",
+    "shortcut": "Ctrl+Shift+P",
     "visual": "palette",
-    "description": "Pressione Ctrl+K (ou Ctrl+Shift+P) para buscar e acionar rapidamente execução, formatação, renomeação de símbolos, troca de modo de aprendizagem, temas e painéis sem tirar as mãos do teclado."
+    "description": "Pressione Ctrl+Shift+P para buscar e acionar rapidamente execução, depuração, formatação, renomeação de símbolos, projetos Cargo, configurações e layout sem tirar as mãos do teclado."
   },
   {
     "id": "temas-acessibilidade",
     "badge": "Personalização",
     "title": "Escolha seu tema e ajuste o conforto visual",
-    "shortcut": "Opções do editor",
+    "shortcut": "Ctrl+,",
     "visual": "themes",
     "description": "Use o tema automático do sistema (VS Code Light/Dark Modern) ou alterne entre IntelliJ Rust, GitHub, One Dark Pro, Dracula, Catppuccin, Night Owl, Alto contraste e paletas personalizadas no Editor de temas."
   }
