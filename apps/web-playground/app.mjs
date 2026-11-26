@@ -14,10 +14,14 @@ const outputEl = byId("pg-output");
 const diagnosticsEl = byId("pg-diagnostics");
 const uiContainerEl = byId("pg-ui-container");
 const uiSectionEl = byId("pg-ui-section");
+const rustSectionEl = byId("pg-rust-section");
+const rustCodeEl = byId("pg-rust-code");
+const btnCopyRust = byId("pg-copy-rust");
 const btnValidate = byId("pg-validate");
 const btnFormat = byId("pg-format");
 const btnRun = byId("pg-run");
 const btnUi = byId("pg-run-ui");
+const btnExportRust = byId("pg-export-rust");
 
 let runtime = null;
 let activeUiSession = null;
@@ -32,6 +36,7 @@ function setControlsEnabled(enabled) {
   btnFormat.disabled = !enabled;
   btnRun.disabled = !enabled;
   btnUi.disabled = !enabled;
+  btnExportRust.disabled = !enabled;
 }
 
 function renderDiagnostics(diagnostics) {
@@ -140,6 +145,22 @@ function runUiSession() {
   applyUiResult(runtime.startUi(editorEl.value));
 }
 
+function runExportRust() {
+  if (!runtime) return;
+  const result = runtime.exportRust(editorEl.value);
+  if (result.ok) {
+    renderDiagnostics([]);
+    rustCodeEl.textContent = result.code;
+    rustSectionEl.hidden = false;
+    setStatus("Código Rust gerado em WebAssembly.", "ok");
+  } else {
+    renderDiagnostics(result.diagnostics ?? []);
+    rustSectionEl.hidden = true;
+    rustCodeEl.textContent = "";
+    setStatus(result.error, "error");
+  }
+}
+
 for (const example of PLAYGROUND_EXAMPLES) {
   const option = document.createElement("option");
   option.value = example.id;
@@ -147,11 +168,25 @@ for (const example of PLAYGROUND_EXAMPLES) {
   exampleSelect.append(option);
 }
 
-exampleSelect.addEventListener("change", () => loadExample(exampleSelect.value));
+exampleSelect.addEventListener("change", () => {
+  const rustWasOpen = !rustSectionEl.hidden;
+  loadExample(exampleSelect.value);
+  if (rustWasOpen && runtime) runExportRust();
+});
 btnValidate.addEventListener("click", runValidate);
 btnFormat.addEventListener("click", runFormat);
 btnRun.addEventListener("click", runConsole);
 btnUi.addEventListener("click", runUiSession);
+btnExportRust.addEventListener("click", runExportRust);
+btnCopyRust.addEventListener("click", async () => {
+  if (!rustCodeEl.textContent) return;
+  try {
+    await navigator.clipboard.writeText(rustCodeEl.textContent);
+    setStatus("Código Rust copiado para a área de transferência.", "ok");
+  } catch {
+    setStatus("Não foi possível copiar automaticamente; selecione o código manualmente.", "error");
+  }
+});
 
 editorEl.addEventListener("keydown", (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
