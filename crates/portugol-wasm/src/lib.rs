@@ -210,6 +210,19 @@ pub fn format_pors_json(source: &str) -> String {
     }
 }
 
+/// Gera código Rust equivalente a um programa `.pors` e devolve JSON canônico.
+pub fn export_rust_pors_json(source: &str) -> String {
+    match portugol_rust::export_portugol_rs(source) {
+        Ok(code) => {
+            let mut out = String::from("{\"ok\":true,\"code\":");
+            write_json_string(&code, &mut out);
+            out.push_str(",\"diagnostics\":[]}");
+            out
+        }
+        Err(diagnostics) => diagnostics_error_json(&diagnostics),
+    }
+}
+
 /// Compila e executa um programa `.pors` na VM mínima com entrada e limites explícitos.
 pub fn run_pors_json(source: &str, input: &str, budget: RunBudget) -> String {
     let program = match portugol_rs_frontend::lower(source) {
@@ -571,6 +584,19 @@ pub unsafe extern "C" fn pors_validate(src_ptr: *const u8, src_len: usize) -> us
 pub unsafe extern "C" fn pors_format(src_ptr: *const u8, src_len: usize) -> usize {
     let json = match unsafe { read_utf8_arg(src_ptr, src_len) } {
         Ok(source) => format_pors_json(source),
+        Err(message) => simple_error_json(&message, Some("invalid_utf8"), None, None),
+    };
+    store_result(json)
+}
+
+/// Exporta um fonte `.pors` para código Rust e grava o resultado JSON no buffer de resposta.
+///
+/// # Safety
+/// `src_ptr` deve apontar para `src_len` bytes válidos na memória linear.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pors_export_rust(src_ptr: *const u8, src_len: usize) -> usize {
+    let json = match unsafe { read_utf8_arg(src_ptr, src_len) } {
+        Ok(source) => export_rust_pors_json(source),
         Err(message) => simple_error_json(&message, Some("invalid_utf8"), None, None),
     };
     store_result(json)

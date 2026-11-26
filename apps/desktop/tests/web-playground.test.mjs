@@ -55,6 +55,10 @@ test("playground runtime encodes/decodes UTF-8 across linear memory for validate
       const src = readUtf8(ptr, len);
       return writeResponse({ ok: true, changed: false, formatted: src });
     },
+    pors_export_rust(ptr, len) {
+      const src = readUtf8(ptr, len);
+      return writeResponse({ ok: true, code: `fn main() { /* ${src.length} */ }`, diagnostics: [] });
+    },
     pors_run(srcPtr, srcLen, inPtr, inLen) {
       const src = readUtf8(srcPtr, srcLen);
       const input = readUtf8(inPtr, inLen);
@@ -94,6 +98,7 @@ test("playground runtime encodes/decodes UTF-8 across linear memory for validate
 
   assert.equal(runtime.validate("funcao inicio() {}").ok, true);
   assert.equal(runtime.run("funcao inicio() {}", "Ada\n").stdout, "18:Ada");
+  assert.equal(runtime.exportRust("funcao inicio() {}").code, "fn main() { /* 18 */ }");
 
   const started = runtime.startUi("funcao iniciar() {}");
   assert.equal(started.ok, true);

@@ -191,6 +191,16 @@ export function createPlaygroundRuntime(rawExports) {
     format(source) {
       return withUtf8(source, (ptr, len) => readJson(rawExports.pors_format(ptr, len)));
     },
+    exportRust(source) {
+      if (typeof rawExports.pors_export_rust !== "function") {
+        return {
+          ok: false,
+          error: "A exportação para Rust não está disponível nesta versão do módulo WASM.",
+          diagnostics: [],
+        };
+      }
+      return withUtf8(source, (ptr, len) => readJson(rawExports.pors_export_rust(ptr, len)));
+    },
     run(source, input = "", budget = {}) {
       return withUtf8(source, (srcPtr, srcLen) =>
         withUtf8(input, (inPtr, inLen) =>

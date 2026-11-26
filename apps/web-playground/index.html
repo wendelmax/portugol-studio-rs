@@ -21,6 +21,7 @@
       <button id="pg-format" type="button">Formatar</button>
       <button id="pg-run" type="button" class="pg-primary">Executar</button>
       <button id="pg-run-ui" type="button">Prévia UI</button>
+      <button id="pg-export-rust" type="button">Ver Rust</button>
     </div>
   </header>
 
@@ -57,6 +58,14 @@
       <section id="pg-ui-section" class="pg-ui-section" aria-labelledby="pg-ui-heading" hidden>
         <h3 id="pg-ui-heading">Prévia Visual Declarativa (MVU)</h3>
         <div id="pg-ui-container" class="pg-ui-container"></div>
+      </section>
+
+      <section id="pg-rust-section" class="pg-rust-section" aria-labelledby="pg-rust-heading" hidden>
+        <header class="pg-rust-header">
+          <h3 id="pg-rust-heading">Rust gerado (<code>.rs</code>)</h3>
+          <button id="pg-copy-rust" type="button" aria-label="Copiar código Rust gerado">Copiar Rust</button>
+        </header>
+        <pre class="pg-rust-pre" aria-label="Código Rust gerado a partir do Portugol-RS"><code id="pg-rust-code"></code></pre>
       </section>
     </section>
   </main>

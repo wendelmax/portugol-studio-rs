@@ -4,9 +4,9 @@ use portugol_bytecode::{Function, LocalInfo, Module, NativeRef, Op, ValueType};
 use portugol_hir::Span;
 use portugol_vm::ui::UiBudget;
 use portugol_wasm::{
-    RunBudget, SessionStore, format_pors_json, pors_alloc, pors_dealloc, pors_format,
-    pors_result_len, pors_result_ptr, pors_run, pors_ui_close, pors_ui_start, pors_validate,
-    run_pors_json, validate_pors_json,
+    RunBudget, SessionStore, export_rust_pors_json, format_pors_json, pors_alloc, pors_dealloc,
+    pors_export_rust, pors_format, pors_result_len, pors_result_ptr, pors_run, pors_ui_close,
+    pors_ui_start, pors_validate, run_pors_json, validate_pors_json,
 };
 
 fn local(name: &str, ty: ValueType) -> LocalInfo {
@@ -452,4 +452,30 @@ funcao inicio() {
         json,
         "{\"ok\":true,\"stdout\":\"WASM_ERR\",\"diagnostics\":[]}"
     );
+}
+
+#[test]
+fn exports_pors_to_rust_through_wasm_facade_and_ffi() {
+    let source = "funcao inicio() { seja idade: inteiro = 18; escreva(idade); }";
+    let json = export_rust_pors_json(source);
+    assert!(json.starts_with("{\"ok\":true,\"code\":\""), "{json}");
+    assert!(json.contains("fn main()"), "{json}");
+    assert!(json.contains("pt_idade: i32 = 18_i32"), "{json}");
+
+    let invalid = export_rust_pors_json("funcao inicio() { seja idade: inteiro = ; }");
+    assert!(invalid.starts_with("{\"ok\":false,"), "{invalid}");
+    assert!(invalid.contains("\"code\":\"diagnostics\""), "{invalid}");
+
+    let bytes = source.as_bytes();
+    let ptr = pors_alloc(bytes.len());
+    assert!(!ptr.is_null());
+    unsafe {
+        std::ptr::copy_nonoverlapping(bytes.as_ptr(), ptr, bytes.len());
+        let len = pors_export_rust(ptr, bytes.len());
+        assert_eq!(len, pors_result_len());
+        let out = std::str::from_utf8(slice::from_raw_parts(pors_result_ptr(), len)).unwrap();
+        assert!(out.contains("\"ok\":true"), "{out}");
+        assert!(out.contains("fn main()"), "{out}");
+        pors_dealloc(ptr, bytes.len());
+    }
 }
