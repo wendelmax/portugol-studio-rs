@@ -145,19 +145,19 @@ function runUiSession() {
   applyUiResult(runtime.startUi(editorEl.value));
 }
 
-function runExportRust() {
+function runExportRust(announce = true) {
   if (!runtime) return;
   const result = runtime.exportRust(editorEl.value);
   if (result.ok) {
     renderDiagnostics([]);
     rustCodeEl.textContent = result.code;
     rustSectionEl.hidden = false;
-    setStatus("Código Rust gerado em WebAssembly.", "ok");
+    if (announce) setStatus("Código Rust gerado em WebAssembly.", "ok");
   } else {
     renderDiagnostics(result.diagnostics ?? []);
     rustSectionEl.hidden = true;
     rustCodeEl.textContent = "";
-    setStatus(result.error, "error");
+    if (announce) setStatus(result.error, "error");
   }
 }
 
@@ -169,15 +169,16 @@ for (const example of PLAYGROUND_EXAMPLES) {
 }
 
 exampleSelect.addEventListener("change", () => {
-  const rustWasOpen = !rustSectionEl.hidden;
+  const rustWasOpen = !rustSectionEl.hidden && runtime !== null;
   loadExample(exampleSelect.value);
-  if (rustWasOpen && runtime) runExportRust();
+  // A troca de exemplo já atualiza o status com a execução do novo código.
+  if (rustWasOpen) runExportRust(false);
 });
 btnValidate.addEventListener("click", runValidate);
 btnFormat.addEventListener("click", runFormat);
 btnRun.addEventListener("click", runConsole);
 btnUi.addEventListener("click", runUiSession);
-btnExportRust.addEventListener("click", runExportRust);
+btnExportRust.addEventListener("click", () => runExportRust());
 btnCopyRust.addEventListener("click", async () => {
   if (!rustCodeEl.textContent) return;
   try {
