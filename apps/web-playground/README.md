@@ -4,6 +4,9 @@ Playground estático, sem dependências JavaScript externas, movido pelo crate
 [`portugol-wasm`](../../crates/portugol-wasm) compilado para
 `wasm32-unknown-unknown`.
 
+Versão online publicada automaticamente via GitHub Pages:
+[wendelmax.github.io/portugol-studio-rs](https://wendelmax.github.io/portugol-studio-rs/).
+
 ## Recursos
 
 - Validação instantânea de código `.pors` com diagnósticos em português;
