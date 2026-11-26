@@ -1,0 +1,56 @@
+name: Publicar Web Playground (GitHub Pages)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web-playground/**'
+      - 'crates/portugol-hir/**'
+      - 'crates/portugol-rs-frontend/**'
+      - 'crates/portugol-bytecode/**'
+      - 'crates/portugol-vm/**'
+      - 'crates/portugol-rust/**'
+      - 'crates/portugol-wasm/**'
+      - 'scripts/build-web-playground.sh'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Compilar Web Playground (WASM)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - name: Montar bundle estático com portugol-wasm
+        run: ./scripts/build-web-playground.sh
+      - name: Configurar GitHub Pages
+        uses: actions/configure-pages@v6
+      - name: Enviar artefato do Pages
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: apps/web-playground/dist
+
+  deploy:
+    name: Publicar no GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publicar
+        id: deployment
+        uses: actions/deploy-pages@v5

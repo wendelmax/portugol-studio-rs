@@ -37,6 +37,11 @@ do pseudocódigo em português para uma linguagem usada profissionalmente.
 
 ## Instalação
 
+> **Experimente no navegador sem instalar:** acesse o
+> [**Portugol-RS Web Playground (WASM)**](https://wendelmax.github.io/portugol-studio-rs/)
+> para validar, formatar e executar programas `.pors` e apps visuais `UI.*`
+> diretamente no navegador.
+
 Baixe o instalador da sua plataforma na página de
 [Releases](https://github.com/wendelmax/portugol-studio-rs/releases):
 
