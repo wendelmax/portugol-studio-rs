@@ -88,3 +88,21 @@ test("background runtime errors do not move the active editor cursor", () => {
 
   assert.equal(events.some(([name]) => name === "runtimeError" || name === "goTo"), false);
 });
+
+test("runtime error preserves the caller frame (inicio) in the stack trace", () => {
+  const { controller, events } = fixture();
+
+  controller.handlers.finished(8, {
+    status: "error",
+    message: "divisão por zero",
+    start: { offset: 12, line: 2, column: 5 },
+    end: { offset: 18, line: 2, column: 11 },
+    trace: [
+      { function: "dividir", line: 2 },
+      { function: "inicio", line: 6 },
+    ],
+  });
+
+  const errorLog = events.find(([name, , kind]) => name === "console" && kind === "error")?.[1] ?? "";
+  assert.match(errorLog, /chamado em inicio \(linha 6\)/);
+});

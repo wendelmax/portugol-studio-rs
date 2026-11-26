@@ -398,7 +398,9 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
       $<HTMLDialogElement>("workspace-rename-dialog").close();
       $<HTMLFormElement>("workspace-rename-form").reset();
       workspaceRenameTarget = null;
-      host.recentFiles.remember(renamed.file.path);
+      if (!renamed.file.relativePath.toLowerCase().endsWith(".pors.json")) {
+        host.recentFiles.remember(renamed.file.path);
+      }
       setStatus(`Renomeado: ${newName}`, "ok");
       queueMicrotask(() => $("workspace-tree").querySelector<HTMLButtonElement>(`[data-path="${CSS.escape(renamed.file.relativePath)}"]`)?.focus());
     } catch (error) {

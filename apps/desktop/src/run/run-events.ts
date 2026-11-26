@@ -79,7 +79,7 @@ export function createRunEventsController(dependencies: RunEventsDependencies) {
     } else {
       const { start, message, trace } = outcome;
       let text = `\nErro na linha ${start.line}, coluna ${start.column}: ${message}\n`;
-      for (const frame of trace.slice(1, -1)) text += `  chamado em ${frame.function} (linha ${frame.line})\n`;
+      for (const frame of trace.slice(1)) text += `  chamado em ${frame.function} (linha ${frame.line})\n`;
       dependencies.appendConsole(text, "error");
       dependencies.setStatus(`Erro de execução na linha ${start.line}.`, "error");
       if (isRunTab) {

@@ -95,6 +95,7 @@ fn portugol_rs_bindings(source: &str) -> Result<PortugolRsBindings, String> {
         })
         .collect();
     collect_portugol_rs_statements(
+        source,
         &program.body,
         &program.bindings,
         PortugolRsBindingOwner::Entry,
@@ -102,6 +103,7 @@ fn portugol_rs_bindings(source: &str) -> Result<PortugolRsBindings, String> {
     );
     for function in &program.functions {
         collect_portugol_rs_statements(
+            source,
             &function.body,
             &function.bindings,
             PortugolRsBindingOwner::Function(function.id),
@@ -398,7 +400,65 @@ fn rename_pors_function(
     Ok(edits)
 }
 
+fn find_call_first_arg_span(
+    source: &str,
+    container: portugol_hir::Span,
+    name: &str,
+) -> Option<portugol_hir::Span> {
+    let slice = source.get(container.start as usize..container.end as usize)?;
+    let open = slice.find('(')?;
+    let bytes = slice.as_bytes();
+    let mut index = open + 1;
+    while index < bytes.len() {
+        if slice[index..].starts_with("//") {
+            index += slice[index..].find('\n')? + 1;
+        } else if slice[index..].starts_with("/*") {
+            let offset = slice[index + 2..].find("*/")?;
+            index += offset + 4;
+        } else if let Some(ch) = slice[index..].chars().next() {
+            if ch.is_whitespace() {
+                index += ch.len_utf8();
+            } else {
+                break;
+            }
+        } else {
+            break;
+        }
+    }
+    let rest = slice.get(index..)?;
+    if !rest.starts_with(name) {
+        return None;
+    }
+    if let Some(next) = rest[name.len()..].chars().next()
+        && (next.is_alphanumeric() || next == '_')
+    {
+        return None;
+    }
+    let start = container.start + index as u32;
+    Some(portugol_hir::Span::new(start, start + name.len() as u32))
+}
+
+fn push_call_binding_occurrence(
+    source: &str,
+    container: portugol_hir::Span,
+    binding: portugol_hir::BindingId,
+    declarations: &[portugol_hir::Binding],
+    owner: PortugolRsBindingOwner,
+    occurrences: &mut Vec<PortugolRsOccurrence>,
+) {
+    let Some(declaration) = declarations.get(binding.0 as usize) else {
+        return;
+    };
+    if let Some(span) = find_call_first_arg_span(source, container, &declaration.source_name) {
+        occurrences.push(PortugolRsOccurrence {
+            binding: PortugolRsBindingTarget { owner, id: binding },
+            span,
+        });
+    }
+}
+
 fn collect_portugol_rs_statements(
+    source: &str,
     statements: &[portugol_hir::Stmt],
     declarations: &[portugol_hir::Binding],
     owner: PortugolRsBindingOwner,
@@ -410,7 +470,13 @@ fn collect_portugol_rs_statements(
         match &statement.kind {
             StmtKind::Declare { initializer, .. } => {
                 if let Some(initializer) = initializer {
-                    collect_portugol_rs_expression(initializer, owner, occurrences);
+                    collect_portugol_rs_expression(
+                        source,
+                        initializer,
+                        declarations,
+                        owner,
+                        occurrences,
+                    );
                 }
             }
             StmtKind::Assign { binding, value, .. } => {
@@ -426,7 +492,7 @@ fn collect_portugol_rs_statements(
                         ),
                     });
                 }
-                collect_portugol_rs_expression(value, owner, occurrences);
+                collect_portugol_rs_expression(source, value, declarations, owner, occurrences);
             }
             StmtKind::IndexAssign {
                 binding,
@@ -445,8 +511,8 @@ fn collect_portugol_rs_statements(
                         ),
                     });
                 }
-                collect_portugol_rs_expression(index, owner, occurrences);
-                collect_portugol_rs_expression(value, owner, occurrences);
+                collect_portugol_rs_expression(source, index, declarations, owner, occurrences);
+                collect_portugol_rs_expression(source, value, declarations, owner, occurrences);
             }
             StmtKind::FieldAssign { binding, value, .. } => {
                 if let Some(declaration) = declarations.get(binding.0 as usize) {
@@ -461,21 +527,21 @@ fn collect_portugol_rs_statements(
                         ),
                     });
                 }
-                collect_portugol_rs_expression(value, owner, occurrences);
+                collect_portugol_rs_expression(source, value, declarations, owner, occurrences);
             }
             StmtKind::Write(values) => {
                 for value in values {
-                    collect_portugol_rs_expression(value, owner, occurrences);
+                    collect_portugol_rs_expression(source, value, declarations, owner, occurrences);
                 }
             }
             StmtKind::Call { arguments, .. } | StmtKind::HostCall { arguments, .. } => {
                 for value in arguments {
-                    collect_portugol_rs_expression(value, owner, occurrences);
+                    collect_portugol_rs_expression(source, value, declarations, owner, occurrences);
                 }
             }
             StmtKind::Return { value } => {
                 if let Some(value) = value {
-                    collect_portugol_rs_expression(value, owner, occurrences);
+                    collect_portugol_rs_expression(source, value, declarations, owner, occurrences);
                 }
             }
             StmtKind::Read { binding, name_span } => occurrences.push(PortugolRsOccurrence {
@@ -490,15 +556,27 @@ fn collect_portugol_rs_statements(
                 then_branch,
                 else_branch,
             } => {
-                collect_portugol_rs_expression(condition, owner, occurrences);
-                collect_portugol_rs_statements(then_branch, declarations, owner, occurrences);
+                collect_portugol_rs_expression(source, condition, declarations, owner, occurrences);
+                collect_portugol_rs_statements(
+                    source,
+                    then_branch,
+                    declarations,
+                    owner,
+                    occurrences,
+                );
                 if let Some(else_branch) = else_branch {
-                    collect_portugol_rs_statements(else_branch, declarations, owner, occurrences);
+                    collect_portugol_rs_statements(
+                        source,
+                        else_branch,
+                        declarations,
+                        owner,
+                        occurrences,
+                    );
                 }
             }
             StmtKind::While { condition, body } | StmtKind::DoWhile { body, condition } => {
-                collect_portugol_rs_expression(condition, owner, occurrences);
-                collect_portugol_rs_statements(body, declarations, owner, occurrences);
+                collect_portugol_rs_expression(source, condition, declarations, owner, occurrences);
+                collect_portugol_rs_statements(source, body, declarations, owner, occurrences);
             }
             StmtKind::For {
                 initializer,
@@ -507,36 +585,64 @@ fn collect_portugol_rs_statements(
                 body,
             } => {
                 collect_portugol_rs_statements(
+                    source,
                     std::slice::from_ref(initializer.as_ref()),
                     declarations,
                     owner,
                     occurrences,
                 );
-                collect_portugol_rs_expression(condition, owner, occurrences);
+                collect_portugol_rs_expression(source, condition, declarations, owner, occurrences);
                 collect_portugol_rs_statements(
+                    source,
                     std::slice::from_ref(step.as_ref()),
                     declarations,
                     owner,
                     occurrences,
                 );
-                collect_portugol_rs_statements(body, declarations, owner, occurrences);
+                collect_portugol_rs_statements(source, body, declarations, owner, occurrences);
             }
             StmtKind::Choose { value, arms } => {
-                collect_portugol_rs_expression(value, owner, occurrences);
+                collect_portugol_rs_expression(source, value, declarations, owner, occurrences);
                 for arm in arms {
-                    collect_portugol_rs_statements(&arm.body, declarations, owner, occurrences);
+                    collect_portugol_rs_statements(
+                        source,
+                        &arm.body,
+                        declarations,
+                        owner,
+                        occurrences,
+                    );
                 }
             }
-            StmtKind::VectorPush { value, .. } => {
-                collect_portugol_rs_expression(value, owner, occurrences);
+            StmtKind::VectorPush { binding, value } => {
+                push_call_binding_occurrence(
+                    source,
+                    statement.span,
+                    *binding,
+                    declarations,
+                    owner,
+                    occurrences,
+                );
+                collect_portugol_rs_expression(source, value, declarations, owner, occurrences);
             }
-            StmtKind::VectorPop { .. } | StmtKind::LoopControl { .. } => {}
+            StmtKind::VectorPop { binding } => {
+                push_call_binding_occurrence(
+                    source,
+                    statement.span,
+                    *binding,
+                    declarations,
+                    owner,
+                    occurrences,
+                );
+            }
+            StmtKind::LoopControl { .. } => {}
         }
     }
 }
 
 fn collect_portugol_rs_expression(
+    source: &str,
     expression: &portugol_hir::Expr,
+    declarations: &[portugol_hir::Binding],
     owner: PortugolRsBindingOwner,
     occurrences: &mut Vec<PortugolRsOccurrence>,
 ) {
@@ -553,55 +659,70 @@ fn collect_portugol_rs_expression(
         ExprKind::Parenthesized(inner)
         | ExprKind::Try { operand: inner }
         | ExprKind::Unary { operand: inner, .. } => {
-            collect_portugol_rs_expression(inner, owner, occurrences);
+            collect_portugol_rs_expression(source, inner, declarations, owner, occurrences);
         }
         ExprKind::Binary { left, right, .. } => {
-            collect_portugol_rs_expression(left, owner, occurrences);
-            collect_portugol_rs_expression(right, owner, occurrences);
+            collect_portugol_rs_expression(source, left, declarations, owner, occurrences);
+            collect_portugol_rs_expression(source, right, declarations, owner, occurrences);
         }
         ExprKind::Call { arguments, .. } | ExprKind::HostCall { arguments, .. } => {
             for argument in arguments {
-                collect_portugol_rs_expression(argument, owner, occurrences);
+                collect_portugol_rs_expression(source, argument, declarations, owner, occurrences);
             }
         }
         ExprKind::VectorLiteral(items) => {
             for item in items {
-                collect_portugol_rs_expression(item, owner, occurrences);
+                collect_portugol_rs_expression(source, item, declarations, owner, occurrences);
             }
         }
         ExprKind::RecordLiteral { fields, .. } => {
             for field in fields {
-                collect_portugol_rs_expression(field, owner, occurrences);
+                collect_portugol_rs_expression(source, field, declarations, owner, occurrences);
             }
         }
         ExprKind::EnumConstructor { payload, .. } => {
             for item in payload {
-                collect_portugol_rs_expression(item, owner, occurrences);
+                collect_portugol_rs_expression(source, item, declarations, owner, occurrences);
             }
         }
         ExprKind::Field { value, .. } => {
-            collect_portugol_rs_expression(value, owner, occurrences);
+            collect_portugol_rs_expression(source, value, declarations, owner, occurrences);
         }
         ExprKind::Index { binding, index } => {
-            occurrences.push(PortugolRsOccurrence {
-                binding: PortugolRsBindingTarget {
-                    owner,
-                    id: *binding,
-                },
-                span: expression.span,
-            });
-            collect_portugol_rs_expression(index, owner, occurrences);
+            if let Some(declaration) = declarations.get(binding.0 as usize) {
+                occurrences.push(PortugolRsOccurrence {
+                    binding: PortugolRsBindingTarget {
+                        owner,
+                        id: *binding,
+                    },
+                    span: portugol_hir::Span::new(
+                        expression.span.start,
+                        expression.span.start + declaration.source_name.len() as u32,
+                    ),
+                });
+            }
+            collect_portugol_rs_expression(source, index, declarations, owner, occurrences);
         }
-        ExprKind::Length { binding } => occurrences.push(PortugolRsOccurrence {
-            binding: PortugolRsBindingTarget {
+        ExprKind::Length { binding } | ExprKind::VectorPop { binding } => {
+            push_call_binding_occurrence(
+                source,
+                expression.span,
+                *binding,
+                declarations,
                 owner,
-                id: *binding,
-            },
-            span: expression.span,
-        }),
-        ExprKind::VectorPop { .. } => {}
-        ExprKind::VectorGet { index, .. } => {
-            collect_portugol_rs_expression(index, owner, occurrences);
+                occurrences,
+            );
+        }
+        ExprKind::VectorGet { binding, index } => {
+            push_call_binding_occurrence(
+                source,
+                expression.span,
+                *binding,
+                declarations,
+                owner,
+                occurrences,
+            );
+            collect_portugol_rs_expression(source, index, declarations, owner, occurrences);
         }
         ExprKind::Integer(_)
         | ExprKind::Real(_)
@@ -843,5 +964,55 @@ mod tests {
         assert_eq!(target.name, "total");
         assert_eq!(edits.len(), 3);
         assert_eq!(parameter_edits.len(), 3);
+    }
+
+    #[test]
+    fn portugol_rs_resolves_and_renames_vector_bindings_in_all_operations() {
+        let source = concat!(
+            "funcao inicio() {\n",
+            "    seja mutavel notas: vetor<inteiro> = [1, 2];\n",
+            "    adicionar(notas, 3);\n",
+            "    notas[0] = notas[1];\n",
+            "    seja qtd: inteiro = tamanho(notas);\n",
+            "    escolha obter(notas, 0) {\n",
+            "        caso Opcao::Algum(n) => { escreva(n); }\n",
+            "        caso Opcao::Nenhum => { escreva(qtd); }\n",
+            "    }\n",
+            "    seja ultimo: Opcao<inteiro> = remover(notas);\n",
+            "    remover(notas);\n",
+            "    escolha ultimo {\n",
+            "        caso Opcao::Algum(v) => { escreva(v); }\n",
+            "        caso Opcao::Nenhum => {}\n",
+            "    }\n",
+            "}\n",
+        );
+        let decl = source.find("notas:").unwrap() as u32;
+        let in_push = source.find("adicionar(notas").unwrap() as u32 + "adicionar(".len() as u32;
+        let in_len = source.find("tamanho(notas)").unwrap() as u32 + "tamanho(".len() as u32;
+        let in_get = source.find("obter(notas").unwrap() as u32 + "obter(".len() as u32;
+        let in_pop_stmt = source.rfind("remover(notas)").unwrap() as u32 + "remover(".len() as u32;
+
+        for cursor in [in_push, in_len, in_get, in_pop_stmt] {
+            let resolved = resolve_symbol_portugol_rs(source, cursor).unwrap();
+            assert_eq!(resolved.start.offset, decl);
+        }
+
+        let target = rename_target_portugol_rs(source, in_len).unwrap();
+        assert_eq!(target.name, "notas");
+        assert_eq!(target.occurrences, 8);
+
+        let edits = rename_symbol_portugol_rs(source, in_len, "valores").unwrap();
+        assert_eq!(edits.len(), 8);
+        let mut rewritten = source.to_owned();
+        for edit in edits.iter().rev() {
+            rewritten.replace_range(edit.from as usize..edit.to as usize, &edit.insert);
+        }
+        assert!(!rewritten.contains("notas"));
+        assert!(rewritten.contains("valores[0] = valores[1];"));
+        assert!(rewritten.contains("tamanho(valores)"));
+        assert!(rewritten.contains("adicionar(valores, 3)"));
+        assert!(rewritten.contains("obter(valores, 0)"));
+        assert!(rewritten.contains("remover(valores);"));
+        assert!(portugol_rs_frontend::lower(&rewritten).is_ok());
     }
 }

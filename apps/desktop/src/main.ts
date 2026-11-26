@@ -700,7 +700,7 @@ mountIdeCommandShell({
     runOrContinue,
     stepOrStart,
     stopProgram,
-    pauseDebug: () => { if (runState.runId !== null) void api.debugPause(runState.runId); },
+    pauseDebug: () => { if (runState.runId !== null && !runState.porsRunPending) void api.debugPause(runState.runId); },
     continueDebug: () => debugCommand(api.debugContinue),
     stepOver: () => debugCommand(api.debugStepOver),
     stepInto: () => debugCommand(api.debugStepInto),
