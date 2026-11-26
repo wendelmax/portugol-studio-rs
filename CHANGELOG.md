@@ -1,5 +1,34 @@
 # Histórico de versões
 
+## 0.6.0 (2026-11-26)
+
+### Novidades
+
+- verificação real com rustc no Laboratório de Ownership e Web Playground WASM (#239)
+- exercícios e LearningInspector 100% PORS, docs atualizadas e ícones proprietários do bundle Tauri (#233)
+- **desktop:** adapta Bibliotecas e Modelos do Inspector para PORS e integra E2E visual no CI (#232)
+- **desktop:** conclui shell Next (TitleBar, Configurações, reset de layout), LearningInspector PORS→Rust, polimento visual e E2E 1536x960/1280x800 (#231)
+- **desktop:** define Sistema (VS Code Modern) como tema padrão e remove preset de cor Portugol Studio Next (#230)
+- **desktop:** refaz menus da ajuda para PORS, organiza docs/next-ui e padroniza temas IntelliJ Rust e VS Code (#229)
+- **ide:** adota interface proprietária com barra superior, ícones SVG, tela inicial e dicas próprias (#228)
+
+### Documentação
+
+- **release:** atualizar notas de distribuição e aviso de retirada do .por/.pex (#240)
+
+### Manutenção
+
+- **desktop:** aplicar code-splitting no Vite, atualizar testes PORS e indexar docs/plans (#238)
+- **vm:** remover módulos clássicos mortos da stdlib e dependências ociosas (#237)
+- **core:** extrair diagnósticos para portugol-hir e remover crates e corpus legados (#236)
+- **core:** remover caminhos legados .por/.pex de cli, service e rust (#235)
+- **desktop:** remover suporte legado a .por e .pex da IDE e Tauri (#234)
+- Migrar todos os exemplos visíveis de .por para PORS (#226)
+- endurece backend, alinha docs e modulariza núcleo PORS (#227)
+- Unificar a linguagem visual do shell do editor (#224)
+
+Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v0.5.0...v0.6.0
+
 ## 0.5.0 (2026-11-25)
 
 ### Manutenção
