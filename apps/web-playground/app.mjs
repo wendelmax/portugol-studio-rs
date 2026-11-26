@@ -7,10 +7,15 @@ import {
 const byId = (id) => document.getElementById(id);
 
 const statusEl = byId("pg-status");
+const statusTextEl = byId("pg-status-text");
+const themeButton = byId("pg-theme");
 const exampleSelect = byId("pg-example");
 const editorEl = byId("pg-editor");
+const highlightEl = byId("pg-highlight");
 const stdinEl = byId("pg-stdin");
 const outputEl = byId("pg-output");
+const outputEmptyEl = byId("pg-output-empty");
+const outputBadgeEl = byId("pg-output-badge");
 const diagnosticsEl = byId("pg-diagnostics");
 const uiContainerEl = byId("pg-ui-container");
 const uiSectionEl = byId("pg-ui-section");
@@ -26,9 +31,67 @@ const btnExportRust = byId("pg-export-rust");
 let runtime = null;
 let activeUiSession = null;
 
+const THEME_STORAGE_KEY = "pg-theme";
+const TOKEN_NAMES = ["comment", "string", "number", "keyword", "type", "builtin"];
+const PORS_TOKEN_RE =
+  /(?<comment>\/\/[^\n]*|\/\*[\s\S]*?\*\/)|(?<string>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(?<number>\b\d+(?:\.\d+)?\b)|(?<keyword>\b(?:funcao|retorne|se|senao|senao_se|seja|mutavel|enquanto|faca_enquanto|para|escolha|caso|registro|enum|verdadeiro|falso|nulo|e|ou|nao)\b)|(?<type>\b(?:inteiro|real|logico|cadeia|caracter|vetor|Resultado|Opcao)\b)|(?<builtin>\b(?:UI|Matematica|Texto|Tipos|Util|Calendario|Arquivos|Json|Internet|Graficos|Teclado|Mouse|Sons|escreva|leia|adicionar|remover|obter|tamanho)\b)/g;
+
 function setStatus(message, tone = "info") {
-  statusEl.textContent = message;
+  statusTextEl.textContent = message;
   statusEl.dataset.tone = tone;
+}
+
+function applyTheme(theme, persist = true) {
+  const resolved = theme === "dark" ? "dark" : "light";
+  const usingDark = resolved === "dark";
+  document.documentElement.dataset.theme = resolved;
+  themeButton.textContent = usingDark ? "Tema: escuro" : "Tema: claro";
+  themeButton.setAttribute("aria-label", usingDark ? "Ativar tema claro" : "Ativar tema escuro");
+  themeButton.setAttribute("aria-pressed", String(usingDark));
+  if (persist) {
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, resolved);
+    } catch {
+      // Ambientes com armazenamento bloqueado continuam usando o tema da sessão.
+    }
+  }
+}
+
+function renderHighlight(source) {
+  const fragment = document.createDocumentFragment();
+  let cursor = 0;
+  for (const match of source.matchAll(PORS_TOKEN_RE)) {
+    if (match.index > cursor) {
+      fragment.append(document.createTextNode(source.slice(cursor, match.index)));
+    }
+    const token = TOKEN_NAMES.find((name) => match.groups?.[name]);
+    const span = document.createElement("span");
+    span.className = `pg-tok-${token}`;
+    span.textContent = match[0];
+    fragment.append(span);
+    cursor = match.index + match[0].length;
+  }
+  fragment.append(document.createTextNode(source.slice(cursor)));
+  // Uma linha extra mantém o alinhamento do pre com a última linha do textarea.
+  fragment.append(document.createTextNode("\n"));
+  highlightEl.replaceChildren(fragment);
+  syncHighlightScroll();
+}
+
+function syncHighlightScroll() {
+  highlightEl.scrollTop = editorEl.scrollTop;
+  highlightEl.scrollLeft = editorEl.scrollLeft;
+}
+
+function setEditorValue(value) {
+  editorEl.value = value;
+  renderHighlight(value);
+}
+
+function syncOutput(text) {
+  const value = text ?? "";
+  outputEl.textContent = value;
+  outputEmptyEl.hidden = value.length > 0;
 }
 
 function setControlsEnabled(enabled) {
@@ -41,7 +104,10 @@ function setControlsEnabled(enabled) {
 
 function renderDiagnostics(diagnostics) {
   diagnosticsEl.replaceChildren();
-  if (!diagnostics || diagnostics.length === 0) {
+  const count = diagnostics?.length ?? 0;
+  outputBadgeEl.textContent = count > 0 ? `${count} diagnóstico${count === 1 ? "" : "s"}` : "Console";
+  outputBadgeEl.dataset.tone = count > 0 ? "error" : "info";
+  if (count === 0) {
     diagnosticsEl.hidden = true;
     return;
   }
@@ -71,9 +137,9 @@ function loadExample(id) {
   const example = PLAYGROUND_EXAMPLES.find((item) => item.id === id) ?? PLAYGROUND_EXAMPLES[0];
   if (!example) return;
   closeActiveUi();
-  editorEl.value = example.source;
+  setEditorValue(example.source);
   stdinEl.value = example.input;
-  outputEl.textContent = "";
+  syncOutput("");
   renderDiagnostics([]);
   if (runtime) {
     if (example.mode === "ui") {
@@ -99,7 +165,7 @@ function runFormat() {
   if (!runtime) return;
   const result = runtime.format(editorEl.value);
   if (result.ok) {
-    editorEl.value = result.formatted;
+    setEditorValue(result.formatted);
     renderDiagnostics([]);
     setStatus(result.changed ? "Código formatado." : "O código já está formatado.", "ok");
   } else {
@@ -113,7 +179,7 @@ function runConsole() {
   closeActiveUi();
   const result = runtime.run(editorEl.value, stdinEl.value);
   renderDiagnostics(result.diagnostics ?? []);
-  outputEl.textContent = result.stdout ?? "";
+  syncOutput(result.stdout ?? "");
   if (result.ok) {
     setStatus("Execução concluída na VM WebAssembly.", "ok");
   } else {
@@ -124,13 +190,13 @@ function runConsole() {
 function applyUiResult(result) {
   if (!result.ok) {
     renderDiagnostics(result.diagnostics ?? []);
-    outputEl.textContent = result.stdout ?? "";
+    syncOutput(result.stdout ?? "");
     setStatus(result.error, "error");
     return;
   }
   activeUiSession = result.session;
   renderDiagnostics([]);
-  outputEl.textContent = result.stdout ?? "";
+  syncOutput(result.stdout ?? "");
   uiSectionEl.hidden = false;
   renderUiNodeTree(document, uiContainerEl, result.tree, (event) => {
     if (!runtime || activeUiSession === null) return;
@@ -168,6 +234,12 @@ for (const example of PLAYGROUND_EXAMPLES) {
   exampleSelect.append(option);
 }
 
+applyTheme(document.documentElement.dataset.theme === "dark" ? "dark" : "light", false);
+themeButton.addEventListener("click", () => {
+  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  applyTheme(next);
+});
+
 exampleSelect.addEventListener("change", () => {
   const rustWasOpen = !rustSectionEl.hidden && runtime !== null;
   loadExample(exampleSelect.value);
@@ -189,6 +261,8 @@ btnCopyRust.addEventListener("click", async () => {
   }
 });
 
+editorEl.addEventListener("input", () => renderHighlight(editorEl.value));
+editorEl.addEventListener("scroll", syncHighlightScroll);
 editorEl.addEventListener("keydown", (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
     event.preventDefault();
@@ -202,8 +276,9 @@ editorEl.addEventListener("keydown", (event) => {
 });
 
 setControlsEnabled(false);
-editorEl.value = PLAYGROUND_EXAMPLES[0].source;
+setEditorValue(PLAYGROUND_EXAMPLES[0].source);
 stdinEl.value = PLAYGROUND_EXAMPLES[0].input;
+syncOutput("");
 
 loadPlaygroundRuntime("./portugol_wasm.wasm")
   .then((loaded) => {
