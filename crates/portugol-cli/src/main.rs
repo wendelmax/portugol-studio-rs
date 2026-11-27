@@ -1,4 +1,5 @@
 mod debug;
+mod desktop;
 mod run;
 
 use std::env;
@@ -29,7 +30,10 @@ pub(crate) fn report_unsupported_extension(path: &Path) {
             path.display()
         );
     } else {
-        eprintln!("{}: extensão não suportada (use .pors)", path.display());
+        eprintln!(
+            "{}: extensão não suportada (use .pors, .design ou .porsproj)",
+            path.display()
+        );
     }
 }
 
@@ -63,7 +67,7 @@ fn main() -> ExitCode {
 
     let mut files = Vec::new();
     for path in paths {
-        if !path.is_dir() && !is_pors_file(&path) {
+        if !path.is_dir() && !is_pors_file(&path) && !desktop::is_markup_file(&path) {
             report_unsupported_extension(&path);
             return ExitCode::FAILURE;
         }
@@ -71,7 +75,7 @@ fn main() -> ExitCode {
     }
 
     if files.is_empty() {
-        eprintln!("nenhum arquivo .pors encontrado");
+        eprintln!("nenhum arquivo .pors, .design ou .porsproj encontrado");
         return ExitCode::FAILURE;
     }
 
@@ -92,9 +96,13 @@ fn main() -> ExitCode {
             }
         };
 
-        let diagnostics: Vec<Diagnostic> = match portugol_rs_frontend::lower(&source) {
-            Ok(_) => Vec::new(),
-            Err(diagnostics) => diagnostics,
+        let diagnostics: Vec<Diagnostic> = if desktop::is_markup_file(&file) {
+            desktop::diagnose(&file, &source)
+        } else {
+            match portugol_rs_frontend::lower(&source) {
+                Ok(_) => Vec::new(),
+                Err(diagnostics) => diagnostics,
+            }
         };
 
         let errors = diagnostics
@@ -137,8 +145,13 @@ fn main() -> ExitCode {
 }
 
 fn new_command(args: &[String]) -> ExitCode {
+    if args.first().is_some_and(|arg| arg == "--desktop") {
+        return desktop::new_project(&args[1..]);
+    }
     if args.len() != 1 || args[0] == "-h" || args[0] == "--help" {
-        eprintln!("uso: portugol novo <arquivo.pors>");
+        eprintln!(
+            "uso: portugol novo <arquivo.pors>\n     portugol novo --desktop <pasta> [--nome \"Nome do aplicativo\"]"
+        );
         return ExitCode::FAILURE;
     }
     let mut path = PathBuf::from(&args[0]);
@@ -189,10 +202,19 @@ fn format_command(args: &[String]) -> ExitCode {
         }
     }
     let Some(file) = file else {
-        eprintln!("uso: portugol formatar [--check] <arquivo.pors>");
+        eprintln!("uso: portugol formatar [--check] <arquivo.pors | .design | .porsproj>");
         return ExitCode::FAILURE;
     };
     let path = Path::new(file);
+    if desktop::is_markup_file(path) {
+        return match read_source(path) {
+            Ok(source) => desktop::format_markup(path, &source, check_only),
+            Err(error) => {
+                eprintln!("{file}: não foi possível ler: {error}");
+                ExitCode::FAILURE
+            }
+        };
+    }
     if !is_pors_file(path) {
         report_unsupported_extension(path);
         return ExitCode::FAILURE;
@@ -350,9 +372,10 @@ fn print_usage() {
         "portugol {}\n\
          \n\
          Uso:\n\
-           portugol [opções] <arquivo.pors | diretório>...       valida os arquivos\n\
+           portugol [opções] <arquivo | diretório>...            valida .pors, .design e .porsproj\n\
            portugol novo <arquivo.pors>                          cria um modelo .pors\n\
-           portugol formatar [--check] <arquivo.pors>            formata o código-fonte\n\
+           portugol novo --desktop <pasta> [--nome <nome>]       cria um projeto desktop PORS\n\
+           portugol formatar [--check] <arquivo>                 formata .pors, .design ou .porsproj\n\
            portugol exportar-rust <arquivo.pors>                 imprime o Rust gerado\n\
            portugol exportar-cargo <arquivo.pors> <pasta>        gera um projeto Cargo pronto\n\
            portugol executar [--bytecode] <arquivo.pors>         executa um programa na VM\n\
@@ -373,7 +396,7 @@ fn collect_files(path: &Path, files: &mut Vec<PathBuf>) {
         for entry in entries.flatten() {
             collect_files(&entry.path(), files);
         }
-    } else if is_pors_file(path) {
+    } else if is_pors_file(path) || desktop::is_markup_file(path) {
         files.push(path.to_path_buf());
     }
 }

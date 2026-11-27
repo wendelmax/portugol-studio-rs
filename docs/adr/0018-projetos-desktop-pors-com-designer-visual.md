@@ -72,19 +72,33 @@ reaproveitam WebView, não um binário desktop nativo.
 
 ### 1. Projeto desktop PORS
 
-Um novo modelo **Aplicativo Desktop PORS** em *Novo projeto* cria:
+Um novo modelo **Aplicativo Desktop PORS** em *Novo projeto* (ou
+`portugol novo --desktop <pasta>` no CLI) cria:
 
 ```
 MeuApp/
-  meuapp.porsproj        # manifesto: nome, versão, ícone, janela inicial
-  principal.pors         # ponto de entrada
+  meu-app.porsproj       # manifesto: nome, versão, janela inicial, ícone
   JanelaPrincipal.design # desenho da janela em pseudo-XAML, mantido pelo designer
-  JanelaPrincipal.pors   # code-behind: handlers de eventos
   recursos/              # imagens e ícones referenciados pelas telas
 ```
 
 O manifesto `.porsproj` é a raiz do projeto: a IDE o reconhece ao abrir a
-pasta, como já faz com `Cargo.toml`. Um projeto pode ter várias janelas.
+pasta, como já faz com `Cargo.toml`. Ele usa a mesma marcação do `.design`,
+como o `.csproj` do Visual Studio, para que o aluno veja uma única linguagem
+de marcação:
+
+```xml
+<Projeto Nome="Meu App" Versao="0.1.0" JanelaInicial="JanelaPrincipal" Formato="1" />
+```
+
+- `JanelaInicial` indica a tela aberta ao executar, como o formulário de
+  inicialização do Visual Studio. Por isso não há um `principal.pors` de
+  ponto de entrada.
+- O nome do arquivo do manifesto vem do nome do projeto, em minúsculas e sem
+  acento (`"Meu App"` → `meu-app.porsproj`).
+- O code-behind `JanelaPrincipal.pors` não vem no modelo: ele é criado no
+  primeiro duplo clique num controle, conforme as regras do par abaixo.
+- Um projeto pode ter várias janelas.
 
 **Uma tela é a junção de dois arquivos**, ligados pelo mesmo nome: o
 `.design`, que descreve como a janela é, e o `.pors`, que diz o que ela faz.
@@ -94,8 +108,7 @@ tela:
 
 ```
 MeuApp/
-├─ meuapp.porsproj
-├─ principal.pors
+├─ meu-app.porsproj
 ├─ JanelaPrincipal           ← nó de tela: abre o modo visual
 │   ├─ JanelaPrincipal.design  ← abre o pseudo-XAML
 │   └─ JanelaPrincipal.pors    ← abre o code-behind

@@ -17,7 +17,8 @@ pub fn format(document: &Document) -> String {
         write_comment(&mut out, 0, comment);
     }
     let mut root = document.root.clone();
-    if root.name.text == crate::schema::WINDOW.name && root.attribute("Formato").is_none() {
+    let versioned = [crate::schema::WINDOW.name, "Projeto"];
+    if versioned.contains(&root.name.text.as_str()) && root.attribute("Formato").is_none() {
         root.attributes.push(Attribute {
             name: crate::ast::Name {
                 text: "Formato".to_owned(),

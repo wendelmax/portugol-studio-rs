@@ -152,7 +152,14 @@ cargo run -p portugol-cli -- novo exercicio.pors                 # cria um arqui
 cargo run -p portugol-cli -- formatar programa.pors              # formata (--check só confere)
 cargo run -p portugol-cli -- exportar-rust programa.pors         # imprime o Rust gerado
 cargo run -p portugol-cli -- exportar-cargo programa.pors pasta  # gera um projeto Cargo
+cargo run -p portugol-cli -- novo --desktop "Meu App"            # cria um projeto desktop PORS
+cargo run -p portugol-cli -- "Meu App"                           # valida .pors, .design e .porsproj
 ```
+
+Projetos desktop PORS ([ADR 0018](docs/adr/0018-projetos-desktop-pors-com-designer-visual.md))
+têm um manifesto `.porsproj` e uma tela por par `Nome.design` (o desenho, em
+pseudo-XAML) + `Nome.pors` (o code-behind). `formatar` também aceita `.design`
+e `.porsproj`.
 
 `executar --bytecode` mostra as instruções geradas para a máquina virtual,
 útil para quem estuda compiladores. `--quiet` lista apenas os arquivos com erro.
@@ -170,6 +177,7 @@ cargo run -p portugol-cli -- exportar-cargo programa.pors pasta  # gera um proje
 | `crates/portugol-rust` | geração de código Rust, projetos Cargo e source maps |
 | `crates/portugol-wasm` | núcleo do Portugol-RS compilado para WebAssembly (`wasm32-unknown-unknown`) |
 | `crates/portugol-service` | camada usada pela IDE: verificar, executar, depurar, exemplos e exercícios `.pors.json` |
+| `crates/portugol-tela` | formato `.design` das telas desktop (pseudo-XAML) e manifesto `.porsproj`: parser, esquema, validação, formatação e modelo de projeto |
 | `crates/portugol-cli` | executável `portugol` |
 | `apps/desktop` | IDE em Tauri v2 com frontend TypeScript e CodeMirror 6 |
 | `apps/web-playground` | playground web estático sem dependências usando `portugol-wasm` (`scripts/build-web-playground.sh`) |

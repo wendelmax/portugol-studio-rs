@@ -227,3 +227,90 @@ fn debugs_pors_program_interactively_with_breakpoints_steps_and_variables() {
     assert!(stdout.contains("x=15"), "{stdout}");
     assert!(stdout.contains("execução finalizada"), "{stdout}");
 }
+
+#[test]
+fn creates_validates_and_formats_desktop_projects() {
+    let dir = TempDir::new();
+    let project = dir.0.join("Meu App");
+
+    let created = cli()
+        .args(["novo", "--desktop"])
+        .arg(&project)
+        .output()
+        .unwrap();
+    assert!(created.status.success(), "{created:?}");
+    let manifest = project.join("meu-app.porsproj");
+    let design = project.join("JanelaPrincipal.design");
+    assert!(manifest.is_file());
+    assert!(design.is_file());
+    assert!(project.join("recursos").is_dir());
+    assert!(
+        fs::read_to_string(&manifest)
+            .unwrap()
+            .contains("Nome=\"Meu App\"")
+    );
+
+    // Não cria por cima de uma pasta com arquivos.
+    let again = cli()
+        .args(["novo", "--desktop"])
+        .arg(&project)
+        .output()
+        .unwrap();
+    assert!(!again.status.success());
+
+    // O nome pode ser diferente do nome da pasta.
+    let named = dir.0.join("calc");
+    let created = cli()
+        .args(["novo", "--desktop"])
+        .arg(&named)
+        .args(["--nome", "Calculadora de Médias"])
+        .output()
+        .unwrap();
+    assert!(created.status.success(), "{created:?}");
+    assert!(named.join("calculadora-de-medias.porsproj").is_file());
+
+    // Valida a pasta inteira e cada arquivo.
+    let checked = cli().arg(&project).output().unwrap();
+    assert!(checked.status.success(), "{checked:?}");
+    assert!(String::from_utf8_lossy(&checked.stdout).contains("2 arquivo(s), 0 com erro(s)"));
+
+    for file in [&design, &manifest] {
+        let formatted = cli()
+            .args(["formatar", "--check"])
+            .arg(file)
+            .output()
+            .unwrap();
+        assert!(formatted.status.success(), "{formatted:?}");
+    }
+
+    // Erro no .design aparece com o código do diagnóstico.
+    fs::write(
+        &design,
+        "<Janela Nome=\"JanelaPrincipal\" Titulo=\"T\" Largura=\"1\" Altura=\"1\">\n    <Botoa />\n</Janela>\n",
+    )
+    .unwrap();
+    let broken = cli().arg(&design).output().unwrap();
+    assert!(!broken.status.success());
+    let stdout = String::from_utf8_lossy(&broken.stdout);
+    assert!(stdout.contains("design.unknown-element"), "{stdout}");
+    assert!(stdout.contains("<Botao>"), "{stdout}");
+
+    // Formatar reescreve o .design.
+    fs::write(
+        &design,
+        "<Janela Nome='JanelaPrincipal' Titulo=\"T\" Largura=\"1\" Altura=\"1\"></Janela>",
+    )
+    .unwrap();
+    let formatted = cli().args(["formatar"]).arg(&design).output().unwrap();
+    assert!(formatted.status.success(), "{formatted:?}");
+    assert_eq!(
+        fs::read_to_string(&design).unwrap(),
+        "<Janela Nome=\"JanelaPrincipal\" Titulo=\"T\" Largura=\"1\" Altura=\"1\" Formato=\"1\" />\n"
+    );
+
+    // Sem a janela inicial, o manifesto acusa.
+    fs::remove_file(&design).unwrap();
+    let missing = cli().arg(&manifest).output().unwrap();
+    assert!(!missing.status.success());
+    assert!(String::from_utf8_lossy(&missing.stdout).contains("projeto.missing-start-window"));
+}
