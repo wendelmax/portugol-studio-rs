@@ -1,6 +1,7 @@
 name: Release
 
-# Gera os instaladores e publica um release em rascunho. O caminho normal é o
+# Gera os instaladores agrupados por plataforma (Windows, Linux e macOS em
+# x86_64 e ARM64) e publica um release em rascunho. O caminho normal é o
 # workflow "Preparar release", que chama este com a tag e as notas da versão.
 # Também roda quando uma tag v* é enviada manualmente ou por disparo manual
 # (pré-lançamento de teste). Assinatura é opcional: veja docs/DISTRIBUICAO.md.
@@ -30,32 +31,77 @@ permissions:
   contents: write
 
 jobs:
-  instaladores:
-    # O release criado pela action cria a tag v* no repositório; sem este
-    # filtro, um disparo manual causaria outro disparo por push de tag.
+  # Cria (ou reaproveita) o rascunho antes dos builds paralelos para evitar
+  # condição de corrida entre os grupos Windows, Linux e macOS.
+  rascunho:
     if: github.actor != 'github-actions[bot]'
-    name: ${{ matrix.nome }}
+    name: Preparar rascunho do release
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      RELEASE_TAG: ${{ inputs.tag_release || (github.ref_type == 'tag' && github.ref_name) || github.event.inputs.tag || format('v{0}-dev', github.run_number) }}
+      PRERELEASE: ${{ github.ref_type != 'tag' && !inputs.tag_release }}
+      NOTAS: ${{ inputs.notas }}
+    steps:
+      - name: Criar rascunho do release se não existir
+        run: |
+          set -euo pipefail
+          existing_id="$(curl -fsSL \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases?per_page=30" \
+            | jq -r --arg tag "$RELEASE_TAG" '.[] | select(.tag_name == $tag) | .id' \
+            | head -n 1)"
+          if [[ -n "$existing_id" && "$existing_id" != "null" ]]; then
+            echo "Rascunho/release ${RELEASE_TAG} já existe (id ${existing_id})."
+            exit 0
+          fi
+
+          body="${NOTAS}
+
+          ### Arquivos suportados
+
+          O Portugol Studio RS suporta programas **Portugol-RS (\`.pors\`)**, exercícios **\`.pors.json\`** e arquivos/projetos **Rust (\`.rs\` / Cargo)**. O suporte ao formato clássico \`.por\`/\`.pex\` foi retirado (ADR 0016); para projetos legados, utilize o [Portugol Studio original](https://github.com/UNIVALI-LITE/Portugol-Studio).
+
+          ### Instalação
+
+          - **Windows (x86_64 e ARM64):** \`.exe\` (x64 e ARM64) e \`.msi\` (x64)
+          - **Linux (x86_64 e ARM64):** \`.deb\`, \`.rpm\`, \`.AppImage\` e \`.pkg.tar.zst\` (Arch Linux)
+          - **macOS (Apple Silicon ARM64 e Intel x86_64):** \`.dmg\` e \`.app.tar.gz\`
+
+          Veja o README para mais detalhes e requisitos."
+
+          payload="$(jq -n \
+            --arg tag "$RELEASE_TAG" \
+            --arg name "Portugol Studio RS ${RELEASE_TAG}" \
+            --arg body "$body" \
+            --argjson prerelease "$PRERELEASE" \
+            '{tag_name: $tag, name: $name, body: $body, draft: true, prerelease: $prerelease}')"
+
+          curl -fsSL -X POST \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -d "$payload" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases" >/dev/null
+          echo "Rascunho criado para ${RELEASE_TAG}."
+
+  # Grupo 1: Windows (x86_64 e ARM64)
+  windows:
+    if: github.actor != 'github-actions[bot]'
+    needs: [rascunho]
+    name: Windows — ${{ matrix.nome }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - nome: Windows x64
+          - nome: x86_64 (.exe, .msi)
             os: windows-latest
             args: ""
-          - nome: Linux x64
-            os: ubuntu-22.04
-            args: ""
-          - nome: macOS Apple Silicon
-            os: macos-latest
-            args: --target aarch64-apple-darwin
-          - nome: macOS Intel
-            os: macos-latest
-            args: --target x86_64-apple-darwin
+          - nome: ARM64 (.exe)
+            os: windows-11-arm
+            args: "--bundles nsis"
     runs-on: ${{ matrix.os }}
     env:
-      # Os secrets são lidos aqui e exportados com os nomes que o Tauri espera
-      # apenas quando não estão vazios. Exportar uma variável vazia faz o
-      # bundler tentar importar um certificado inexistente (e falhar).
       WINDOWS_CERTIFICATE_SECRET: ${{ secrets.WINDOWS_CERTIFICATE }}
       WINDOWS_CERTIFICATE_PASSWORD_SECRET: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
       AZURE_CLIENT_ID_SECRET: ${{ secrets.AZURE_CLIENT_ID }}
@@ -64,24 +110,11 @@ jobs:
       AZURE_SIGNING_ENDPOINT_SECRET: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
       AZURE_SIGNING_ACCOUNT_SECRET: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
       AZURE_CERTIFICATE_PROFILE_SECRET: ${{ secrets.AZURE_CERTIFICATE_PROFILE }}
-      APPLE_CERTIFICATE_SECRET: ${{ secrets.APPLE_CERTIFICATE }}
-      APPLE_CERTIFICATE_PASSWORD_SECRET: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-      APPLE_SIGNING_IDENTITY_SECRET: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-      APPLE_ID_SECRET: ${{ secrets.APPLE_ID }}
-      APPLE_PASSWORD_SECRET: ${{ secrets.APPLE_PASSWORD }}
-      APPLE_TEAM_ID_SECRET: ${{ secrets.APPLE_TEAM_ID }}
       RELEASE_TAG: ${{ inputs.tag_release || (github.ref_type == 'tag' && github.ref_name) || github.event.inputs.tag || format('v{0}-dev', github.run_number) }}
     steps:
       - uses: actions/checkout@v7
         with:
-          # Quando chamado pelo Preparar release, compila o commit da versão.
           ref: ${{ inputs.tag_release || '' }}
-
-      - name: Dependências do sistema (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libasound2-dev libappindicator3-dev librsvg2-dev patchelf
 
       - uses: actions/setup-node@v7
         with:
@@ -90,9 +123,6 @@ jobs:
           cache-dependency-path: apps/desktop/package-lock.json
 
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ runner.os == 'macOS' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
-
       - uses: Swatinem/rust-cache@v2
 
       - name: Dependências do frontend
@@ -101,7 +131,7 @@ jobs:
 
       # Opção 1: certificado .pfx (OV/EV) em base64 no secret WINDOWS_CERTIFICATE.
       - name: Assinatura Windows com certificado .pfx
-        if: runner.os == 'Windows' && env.WINDOWS_CERTIFICATE_SECRET != ''
+        if: env.WINDOWS_CERTIFICATE_SECRET != ''
         shell: pwsh
         run: |
           $pfx = Join-Path $env:RUNNER_TEMP "certificado.pfx"
@@ -115,7 +145,7 @@ jobs:
 
       # Opção 2: Azure Trusted Signing (assinatura na nuvem, sem arquivo .pfx).
       - name: Assinatura Windows com Azure Trusted Signing
-        if: runner.os == 'Windows' && env.WINDOWS_CERTIFICATE_SECRET == '' && env.AZURE_CLIENT_ID_SECRET != ''
+        if: env.WINDOWS_CERTIFICATE_SECRET == '' && env.AZURE_CLIENT_ID_SECRET != ''
         shell: pwsh
         run: |
           cargo install trusted-signing-cli --locked
@@ -124,20 +154,7 @@ jobs:
           Set-Content -Path apps/desktop/src-tauri/tauri.assinatura.json -Value $config
           "TAURI_SIGN_CONFIG=--config src-tauri/tauri.assinatura.json" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      # Sem certificado, nenhuma variável APPLE_* é definida e o Tauri gera um
-      # .dmg sem assinatura nem notarização (instalável após abrir com botão
-      # direito → Abrir no macOS).
-      - name: Assinatura macOS
-        if: runner.os == 'macOS' && env.APPLE_CERTIFICATE_SECRET != ''
-        run: |
-          echo "APPLE_CERTIFICATE=$APPLE_CERTIFICATE_SECRET" >> "$GITHUB_ENV"
-          echo "APPLE_CERTIFICATE_PASSWORD=$APPLE_CERTIFICATE_PASSWORD_SECRET" >> "$GITHUB_ENV"
-          echo "APPLE_SIGNING_IDENTITY=$APPLE_SIGNING_IDENTITY_SECRET" >> "$GITHUB_ENV"
-          echo "APPLE_ID=$APPLE_ID_SECRET" >> "$GITHUB_ENV"
-          echo "APPLE_PASSWORD=$APPLE_PASSWORD_SECRET" >> "$GITHUB_ENV"
-          echo "APPLE_TEAM_ID=$APPLE_TEAM_ID_SECRET" >> "$GITHUB_ENV"
-
-      - name: Gerar instaladores
+      - name: Gerar instaladores Windows
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -145,23 +162,12 @@ jobs:
           projectPath: apps/desktop
           tagName: ${{ env.RELEASE_TAG }}
           releaseName: Portugol Studio RS ${{ env.RELEASE_TAG }}
-          releaseBody: |
-            ${{ inputs.notas }}
-
-            ### Arquivos suportados
-
-            O Portugol Studio RS suporta programas **Portugol-RS (`.pors`)**, exercícios **`.pors.json`** e arquivos/projetos **Rust (`.rs` / Cargo)**. O suporte ao formato clássico `.por`/`.pex` foi retirado (ADR 0016); para projetos legados, utilize o [Portugol Studio original](https://github.com/UNIVALI-LITE/Portugol-Studio).
-
-            ### Instalação
-
-            Instaladores para Windows (`.exe` e `.msi`), Linux (`.deb`, `.rpm`, `.AppImage` e `.pkg.tar.zst` para Arch Linux)
-            e macOS (`.dmg` para Apple Silicon e Intel). Veja o README para os requisitos.
           releaseDraft: true
           prerelease: ${{ github.ref_type != 'tag' && !inputs.tag_release }}
           args: ${{ matrix.args }} ${{ env.TAURI_SIGN_CONFIG }}
 
       - name: Verificar assinatura (Windows)
-        if: runner.os == 'Windows' && (env.WINDOWS_CERTIFICATE_SECRET != '' || env.AZURE_CLIENT_ID_SECRET != '')
+        if: env.WINDOWS_CERTIFICATE_SECRET != '' || env.AZURE_CLIENT_ID_SECRET != ''
         shell: pwsh
         run: |
           $arquivos = Get-ChildItem -Recurse target/release/bundle -Include *.exe,*.msi
@@ -171,13 +177,81 @@ jobs:
             if ($s.Status -ne 'Valid') { throw "$($a.Name) não está assinado corretamente" }
           }
 
-  arch_linux:
-    name: Arch Linux x64
+  # Grupo 2a: Linux (.deb, .rpm, .AppImage em x86_64 e ARM64)
+  linux:
     if: github.actor != 'github-actions[bot]'
-    needs: [instaladores]
-    runs-on: ubuntu-latest
+    needs: [rascunho]
+    name: Linux — ${{ matrix.nome }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - nome: x86_64 (.deb, .rpm, .AppImage)
+            os: ubuntu-22.04
+            appindicator_pkg: libappindicator3-dev
+            args: ""
+          - nome: ARM64 (.deb, .rpm, .AppImage)
+            os: ubuntu-24.04-arm
+            appindicator_pkg: libayatana-appindicator3-dev
+            args: ""
+    runs-on: ${{ matrix.os }}
+    env:
+      RELEASE_TAG: ${{ inputs.tag_release || (github.ref_type == 'tag' && github.ref_name) || github.event.inputs.tag || format('v{0}-dev', github.run_number) }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag_release || '' }}
+
+      - name: Dependências do sistema (Linux)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libasound2-dev ${{ matrix.appindicator_pkg }} librsvg2-dev patchelf
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Dependências do frontend
+        working-directory: apps/desktop
+        run: npm ci
+
+      - name: Gerar instaladores Linux
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: apps/desktop
+          tagName: ${{ env.RELEASE_TAG }}
+          releaseName: Portugol Studio RS ${{ env.RELEASE_TAG }}
+          releaseDraft: true
+          prerelease: ${{ github.ref_type != 'tag' && !inputs.tag_release }}
+          args: ${{ matrix.args }}
+
+  # Grupo 2b: Linux — Arch Linux (.pkg.tar.zst em x86_64 e ARM64)
+  linux_arch:
+    if: github.actor != 'github-actions[bot]'
+    needs: [rascunho]
+    name: Linux — Arch ${{ matrix.nome }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - nome: x86_64 (.pkg.tar.zst)
+            os: ubuntu-latest
+            image: archlinux:latest
+            init_keys: "false"
+          - nome: ARM64 (.pkg.tar.zst)
+            os: ubuntu-24.04-arm
+            image: menci/archlinuxarm:latest
+            init_keys: "true"
+    runs-on: ${{ matrix.os }}
     container:
-      image: archlinux:latest
+      image: ${{ matrix.image }}
     env:
       RELEASE_TAG: ${{ inputs.tag_release || (github.ref_type == 'tag' && github.ref_name) || github.event.inputs.tag || format('v{0}-dev', github.run_number) }}
     steps:
@@ -186,7 +260,13 @@ jobs:
           ref: ${{ inputs.tag_release || '' }}
 
       - name: Dependências do sistema (Arch Linux)
+        env:
+          INIT_KEYS: ${{ matrix.init_keys }}
         run: |
+          if [[ "$INIT_KEYS" == "true" ]]; then
+            pacman-key --init
+            pacman-key --populate archlinuxarm
+          fi
           pacman -Syu --noconfirm --needed base-devel rust nodejs npm pkgconf webkit2gtk-4.1 gtk3 alsa-lib curl jq zstd
 
       - name: Gerar pacote Arch Linux (.pkg.tar.zst)
@@ -228,3 +308,73 @@ jobs:
             --data-binary "@${pkg_file}" \
             "https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets?name=${asset_name}" >/dev/null
           echo "Asset ${asset_name} enviado para o release ${RELEASE_TAG} (id ${release_id})."
+
+  # Grupo 3: macOS (Apple Silicon ARM64 e Intel x86_64)
+  macos:
+    if: github.actor != 'github-actions[bot]'
+    needs: [rascunho]
+    name: macOS — ${{ matrix.nome }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - nome: Apple Silicon ARM64 (.dmg)
+            target: aarch64-apple-darwin
+            args: --target aarch64-apple-darwin
+          - nome: Intel x86_64 (.dmg)
+            target: x86_64-apple-darwin
+            args: --target x86_64-apple-darwin
+    runs-on: macos-latest
+    env:
+      APPLE_CERTIFICATE_SECRET: ${{ secrets.APPLE_CERTIFICATE }}
+      APPLE_CERTIFICATE_PASSWORD_SECRET: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_SIGNING_IDENTITY_SECRET: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_ID_SECRET: ${{ secrets.APPLE_ID }}
+      APPLE_PASSWORD_SECRET: ${{ secrets.APPLE_PASSWORD }}
+      APPLE_TEAM_ID_SECRET: ${{ secrets.APPLE_TEAM_ID }}
+      RELEASE_TAG: ${{ inputs.tag_release || (github.ref_type == 'tag' && github.ref_name) || github.event.inputs.tag || format('v{0}-dev', github.run_number) }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag_release || '' }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Dependências do frontend
+        working-directory: apps/desktop
+        run: npm ci
+
+      # Sem certificado, nenhuma variável APPLE_* é definida e o Tauri gera um
+      # .dmg sem assinatura nem notarização (instalável após abrir com botão
+      # direito → Abrir no macOS).
+      - name: Assinatura macOS
+        if: env.APPLE_CERTIFICATE_SECRET != ''
+        run: |
+          echo "APPLE_CERTIFICATE=$APPLE_CERTIFICATE_SECRET" >> "$GITHUB_ENV"
+          echo "APPLE_CERTIFICATE_PASSWORD=$APPLE_CERTIFICATE_PASSWORD_SECRET" >> "$GITHUB_ENV"
+          echo "APPLE_SIGNING_IDENTITY=$APPLE_SIGNING_IDENTITY_SECRET" >> "$GITHUB_ENV"
+          echo "APPLE_ID=$APPLE_ID_SECRET" >> "$GITHUB_ENV"
+          echo "APPLE_PASSWORD=$APPLE_PASSWORD_SECRET" >> "$GITHUB_ENV"
+          echo "APPLE_TEAM_ID=$APPLE_TEAM_ID_SECRET" >> "$GITHUB_ENV"
+
+      - name: Gerar instaladores macOS
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: apps/desktop
+          tagName: ${{ env.RELEASE_TAG }}
+          releaseName: Portugol Studio RS ${{ env.RELEASE_TAG }}
+          releaseDraft: true
+          prerelease: ${{ github.ref_type != 'tag' && !inputs.tag_release }}
+          args: ${{ matrix.args }}
