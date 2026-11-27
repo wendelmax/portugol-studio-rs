@@ -25,11 +25,12 @@ function fakeElement() {
   };
 }
 
-function setup({ files = [], tab, tree = null, editDesign = async (source) => source, history = [] }) {
+function setup({ files = [], tab, tree = null, editDesign = async (source) => source, history = [], schema = { window: {}, elements: [] }, codeTexts = {} }) {
   const opened = [];
   const statuses = [];
   const edits = [];
   let source = "<Janela />";
+  let cursorAt = -1;
   let active = tab;
   const buttons = { design: fakeElement(), split: fakeElement(), text: fakeElement(), code: fakeElement(), undo: fakeElement(), redo: fakeElement() };
   const viewport = fakeElement();
@@ -48,12 +49,24 @@ function setup({ files = [], tab, tree = null, editDesign = async (source) => so
     cursorOffset: () => 0,
     selectInEditor: () => {},
     designTree: async () => tree,
-    designSchema: async () => ({ window: {}, elements: [] }),
+    designSchema: async () => schema,
     hasFile: (_workspace, path) => files.includes(path),
     openFile: async (_workspace, path) => {
       opened.push(path);
       if (path.endsWith(".design")) active = { id: 9, workspaceId: "w", workspacePath: path, path: `/p/${path}` };
+      else { active = { id: 10, workspaceId: "w", workspacePath: path, path: `/p/${path}` }; source = codeTexts[path] ?? ""; }
       return true;
+    },
+    createFile: async (_workspace, path) => {
+      opened.push(`criado:${path}`);
+      files.push(path);
+      active = { id: 11, workspaceId: "w", workspacePath: path, path: `/p/${path}` };
+      source = "";
+      return true;
+    },
+    editActive: (insert, cursor) => {
+      if (insert) source = source.slice(0, insert.from) + insert.insert + source.slice(insert.from);
+      cursorAt = cursor;
     },
     editDesign: async (current, requested) => {
       edits.push(requested);
@@ -67,7 +80,7 @@ function setup({ files = [], tab, tree = null, editDesign = async (source) => so
     setTimeout: () => 1,
     clearTimeout: () => {},
   });
-  return { shell, viewport, buttons, area, toolbar, surface, opened, statuses, edits, source: () => source, setActive: (next) => { active = next; } };
+  return { shell, viewport, buttons, area, toolbar, surface, opened, statuses, edits, source: () => source, cursor: () => cursorAt, setActive: (next) => { active = next; } };
 }
 
 const designTab = { id: 1, workspaceId: "w", workspacePath: "App/JanelaPrincipal.design", path: "/p/App/JanelaPrincipal.design" };
@@ -213,6 +226,55 @@ test("desfazer e refazer usam o histórico do editor, pelos botões e pelo tecla
   viewport.dispatch("keydown", key("Z", { shiftKey: true }));
   viewport.dispatch("keydown", key("z", { ctrlKey: false }));
   assert.deepEqual(history, ["undo", "redo", "undo", "redo", "redo"]);
+});
+
+const HANDLER_SCHEMA = {
+  window: { name: "Janela", label: "Janela", defaultEvent: "AoAbrir", attributes: [] },
+  elements: [
+    { name: "Botao", label: "Botão", defaultEvent: "AoClicar", defaultWidth: 100, defaultHeight: 32, attributes: [] },
+    { name: "Rotulo", label: "Rótulo", defaultEvent: null, defaultWidth: 100, defaultHeight: 24, attributes: [] },
+  ],
+};
+
+async function handlerSetup(options) {
+  const tree = treeNode("Janela", [], { Nome: "J", Dados: "Conta" }, [
+    treeNode("Botao", [0], { Nome: "btnOk" }),
+    treeNode("Rotulo", [1], { Nome: "lbl" }),
+  ]);
+  const env = setup({ tab: designTab, tree, schema: HANDLER_SCHEMA, ...options });
+  env.shell.screenOpened();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  return env;
+}
+
+test("duplo clique numa tela sem código liga o evento, cria o .fer com o modelo e a função", async () => {
+  const { shell, edits, opened, source, cursor } = await handlerSetup({ files: ["App/JanelaPrincipal.design"] });
+  assert.equal(await shell.createHandler("0"), true);
+  assert.deepEqual(edits[0], [{ kind: "setAttribute", path: [0], name: "AoClicar", value: "btnOk_clicar" }]);
+  assert.deepEqual(opened, ["criado:App/JanelaPrincipal.fer"]);
+  const code = source();
+  assert.match(code, /^\/\/ Código da tela J\./);
+  assert.match(code, /registro Conta \{/);
+  assert.match(code, /funcao btnOk_clicar\(tela: J\) -> J \{/);
+  assert.equal(code.slice(0, cursor()).endsWith("seja mutavel t: J = tela;\n    "), true);
+});
+
+test("duplo clique com a função já escrita só leva o cursor até ela", async () => {
+  const existing = "funcao btnOk_clicar(tela: J) -> J {\n    retorne tela;\n}\n";
+  const files = ["App/JanelaPrincipal.design", "App/JanelaPrincipal.fer"];
+  const { shell, edits, opened, source, cursor } = await handlerSetup({ files, codeTexts: { "App/JanelaPrincipal.fer": existing } });
+  assert.equal(await shell.createHandler("0"), true);
+  assert.equal(edits.length, 1, "liga o evento que ainda não estava na marcação");
+  assert.deepEqual(opened, ["App/JanelaPrincipal.fer"]);
+  assert.equal(source(), existing);
+  assert.equal(existing.slice(cursor()).startsWith("    retorne"), true);
+});
+
+test("controle sem evento padrão avisa e não muda nada", async () => {
+  const { shell, edits, statuses } = await handlerSetup({ files: ["App/JanelaPrincipal.design"] });
+  assert.equal(await shell.createHandler("1"), false);
+  assert.equal(edits.length, 0);
+  assert.match(statuses.at(-1), /Rótulo não tem evento padrão/);
 });
 
 test("a IDE monta as vistas da tela e o atalho F7", () => {

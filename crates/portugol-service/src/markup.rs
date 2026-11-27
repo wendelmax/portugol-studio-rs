@@ -25,10 +25,31 @@ impl MarkupKind {
     }
 }
 
+/// O code-behind de uma tela, quando se quer conferir as ligações de eventos
+/// do `.design`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CodeBehind<'a> {
+    /// Não conferir as ligações.
+    Unknown,
+    /// A tela ainda não tem `.fer`.
+    Missing,
+    Source(&'a str),
+}
+
 /// Diagnósticos e, no `.design`, a árvore de elementos para o painel de
 /// estrutura. A existência da janela inicial do manifesto não é conferida
 /// aqui, porque depende dos arquivos da pasta.
 pub fn inspect_markup(source: &str, kind: MarkupKind) -> Inspection {
+    inspect_markup_with_code(source, kind, CodeBehind::Unknown)
+}
+
+/// [`inspect_markup`] que, num `.design`, também aponta eventos ligados a
+/// funções que não existem no code-behind.
+pub fn inspect_markup_with_code(
+    source: &str,
+    kind: MarkupKind,
+    code: CodeBehind<'_>,
+) -> Inspection {
     let index = LineIndex::new(source);
     match kind {
         MarkupKind::Design => {
@@ -38,10 +59,18 @@ pub fn inspect_markup(source: &str, kind: MarkupKind) -> Inspection {
                 .as_ref()
                 .map(|document| vec![element_symbol(&index, &document.root)])
                 .unwrap_or_default();
+            let bindings = match code {
+                CodeBehind::Unknown => Vec::new(),
+                CodeBehind::Missing => crate::designer::check_screen(source, None).design,
+                CodeBehind::Source(code) => {
+                    crate::designer::check_screen(source, Some(code)).design
+                }
+            };
             Inspection {
                 diagnostics: analysis
                     .diagnostics
                     .iter()
+                    .chain(&bindings)
                     .map(|d| describe(&index, d))
                     .collect(),
                 symbols,
