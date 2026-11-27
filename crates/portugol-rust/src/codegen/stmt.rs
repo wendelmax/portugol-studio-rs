@@ -101,25 +101,32 @@ pub(super) fn render_statements(
             }
             StmtKind::FieldAssign {
                 binding,
-                field_index,
+                fields,
                 op,
                 value,
             } => {
                 let declaration = binding_info(program, *binding);
-                let name = rust_ident(&declaration.source_name);
-                let field = match declaration.ty {
-                    Type::Record(type_id) => program
-                        .record_types
-                        .iter()
-                        .find(|definition| definition.id == type_id)
-                        .and_then(|definition| definition.fields.get(*field_index)),
-                    _ => None,
-                };
-                let field_name = field
-                    .map(|field| rust_ident(&field.name))
-                    .unwrap_or_else(|| "__invalid_field".to_owned());
-                let field_ty = field.map(|field| field.ty).unwrap_or(Type::Unit);
-                let place = format!("{name}.{field_name}");
+                let mut place = rust_ident(&declaration.source_name);
+                let mut current = declaration.ty;
+                let mut field_ty = Type::Unit;
+                for field_index in fields {
+                    let field = match current {
+                        Type::Record(type_id) => program
+                            .record_types
+                            .iter()
+                            .find(|definition| definition.id == type_id)
+                            .and_then(|definition| definition.fields.get(*field_index)),
+                        _ => None,
+                    };
+                    place.push('.');
+                    place.push_str(
+                        &field
+                            .map(|field| rust_ident(&field.name))
+                            .unwrap_or_else(|| "__invalid_field".to_owned()),
+                    );
+                    field_ty = field.map(|field| field.ty).unwrap_or(Type::Unit);
+                    current = field_ty;
+                }
                 if field_ty == Type::Integer {
                     let method = match op {
                         AssignOp::Add => Some("wrapping_add"),

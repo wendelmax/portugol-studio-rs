@@ -1145,3 +1145,30 @@ fn paused_info_exposes_the_instruction_ip_and_its_hir_mapping() {
         *ip == read_ip && mapping.as_ref().is_some_and(|m| m.node == "Read")
     }));
 }
+
+#[test]
+fn nested_field_assignment_updates_only_the_copy() {
+    let source = r#"
+registro Conta { mensagem: cadeia, total: inteiro }
+registro Tela { titulo: cadeia, dados: Conta }
+
+funcao clicar(tela: Tela) -> Tela {
+    seja mutavel t: Tela = tela;
+    t.dados.mensagem = "pronto";
+    t.dados.total += 5;
+    t.titulo = "novo";
+    retorne t;
+}
+
+funcao inicio() {
+    seja antes: Tela = Tela { titulo: "velho", dados: Conta { mensagem: "", total: 1 } };
+    seja depois: Tela = clicar(antes);
+    escreva(antes.titulo, "|", antes.dados.mensagem, "|", antes.dados.total, "|");
+    escreva(depois.titulo, "|", depois.dados.mensagem, "|", depois.dados.total);
+}
+"#;
+    let module = compile_pors_source(source);
+    let mut io = BufferIo::default();
+    run(&module, &mut io).expect("execução PORS na VM mínima");
+    assert_eq!(io.output, "velho||1|novo|pronto|6");
+}

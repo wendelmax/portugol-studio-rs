@@ -12,6 +12,7 @@ impl Parser {
         self.cursor = 0;
         let mut next_id = 0;
         let mut diagnostics = Vec::new();
+        let deferred = self.register_external_records();
         while !matches!(self.current().kind, Kind::Eof) {
             let item_start = self.cursor;
             let result = (|| {
@@ -55,7 +56,8 @@ impl Parser {
                 self.invalid_items.push((item_start, end));
             }
         }
-        if !self.signatures.contains_key("inicio") && diagnostics.is_empty() {
+        append_unique(&mut diagnostics, self.resolve_external_fields(deferred));
+        if self.require_entry && !self.signatures.contains_key("inicio") && diagnostics.is_empty() {
             if self.has_mvu_entry_triple() {
                 if let Err(errors) = self.validate_mvu_entry_signatures() {
                     append_unique(&mut diagnostics, errors);
@@ -72,6 +74,83 @@ impl Parser {
             }
         }
         self.cursor = 0;
+        diagnostics
+    }
+
+    /// Registra os registros externos antes de ler o código, para que as
+    /// assinaturas possam citá-los. Campos que citam tipos do próprio arquivo
+    /// ficam para depois da primeira passada; devolve essas pendências
+    /// (registro, campo, nome do tipo).
+    fn register_external_records(&mut self) -> Vec<(usize, usize, String)> {
+        use crate::lower::ExternalType;
+        let mut deferred = Vec::new();
+        for record in std::mem::take(&mut self.external_records) {
+            let id = hir::TypeId(self.next_type_id);
+            self.next_type_id += 1;
+            let index = self.record_types.len();
+            let fields = record
+                .fields
+                .iter()
+                .enumerate()
+                .map(|(field_index, field)| {
+                    let ty = match &field.ty {
+                        ExternalType::Integer => hir::Type::Integer,
+                        ExternalType::Boolean => hir::Type::Boolean,
+                        ExternalType::String => hir::Type::String,
+                        ExternalType::VectorString => hir::Type::VectorString,
+                        ExternalType::Named(name) => match self.record_ids.get(name) {
+                            Some(id) => hir::Type::Record(*id),
+                            None => {
+                                deferred.push((index, field_index, name.clone()));
+                                hir::Type::Unit
+                            }
+                        },
+                    };
+                    hir::RecordField {
+                        name: field.name.clone(),
+                        ty,
+                        span: hir::Span::default(),
+                    }
+                })
+                .collect();
+            self.declared_types.insert(record.name.clone(), id);
+            self.record_ids.insert(record.name.clone(), id);
+            self.record_types.push(hir::RecordDef {
+                id,
+                name: record.name,
+                fields,
+                span: hir::Span::default(),
+            });
+        }
+        deferred
+    }
+
+    /// Resolve os campos externos que citam tipos declarados no arquivo.
+    fn resolve_external_fields(
+        &mut self,
+        deferred: Vec<(usize, usize, String)>,
+    ) -> Vec<Diagnostic> {
+        let mut diagnostics = Vec::new();
+        for (record, field, name) in deferred {
+            let ty = self
+                .record_ids
+                .get(&name)
+                .copied()
+                .map(hir::Type::Record)
+                .or_else(|| self.enum_ids.get(&name).copied().map(hir::Type::Enum));
+            match ty {
+                Some(ty) => self.record_types[record].fields[field].ty = ty,
+                None => diagnostics.push(Diagnostic::error(
+                    "pors.external-type-missing",
+                    format!(
+                        "O registro `{name}`, usado em `{}.{}`, não foi declarado neste arquivo",
+                        self.record_types[record].name,
+                        self.record_types[record].fields[field].name
+                    ),
+                    Span::new(0, 0),
+                )),
+            }
+        }
         diagnostics
     }
 

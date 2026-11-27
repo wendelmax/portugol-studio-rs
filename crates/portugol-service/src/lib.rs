@@ -160,8 +160,23 @@ fn editor_source_map(source: &str, generated: &GeneratedRust) -> Vec<SourceMapIn
 
 /// Analisa o dialeto Portugol-RS e expõe spans no formato UTF-16 do editor.
 pub fn inspect_portugol_rs(source: &str) -> Inspection {
+    inspect_portugol_rs_with(source, &portugol_rs_frontend::LowerOptions::default())
+}
+
+/// Analisa o code-behind de uma tela (`Nome.fer` ao lado de `Nome.design`):
+/// o registro da janela e os tipos dos controles vêm do `.design`, e o
+/// arquivo não precisa de `inicio` (ADR 0018, seção 4). Com erro de sintaxe
+/// no `.design`, os tipos da tela ficam de fora.
+pub fn inspect_code_behind(source: &str, design_source: &str) -> Inspection {
+    inspect_portugol_rs_with(source, &designer::code_behind_options(design_source))
+}
+
+fn inspect_portugol_rs_with(
+    source: &str,
+    options: &portugol_rs_frontend::LowerOptions,
+) -> Inspection {
     let index = position::LineIndex::new(source);
-    match portugol_rs_frontend::lower(source) {
+    match portugol_rs_frontend::lower_with(source, options) {
         Ok(program) => {
             let mut symbols: Vec<_> = program
                 .functions

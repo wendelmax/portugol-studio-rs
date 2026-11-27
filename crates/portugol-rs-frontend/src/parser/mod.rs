@@ -32,6 +32,8 @@ pub(super) struct Parser {
     builtin_enums: HashMap<hir::BuiltinEnum, hir::TypeId>,
     declared_types: HashMap<String, hir::TypeId>,
     next_type_id: u32,
+    external_records: Vec<crate::lower::ExternalRecord>,
+    require_entry: bool,
 }
 
 #[derive(Clone)]
@@ -79,7 +81,15 @@ impl Parser {
             builtin_enums: HashMap::new(),
             declared_types: HashMap::new(),
             next_type_id: 0,
+            external_records: Vec::new(),
+            require_entry: true,
         }
+    }
+
+    pub(super) fn with_options(mut self, options: &crate::lower::LowerOptions) -> Self {
+        self.external_records = options.records.clone();
+        self.require_entry = options.require_entry;
+        self
     }
 
     pub(super) fn program(mut self) -> Result<hir::Program, Vec<Diagnostic>> {
@@ -214,7 +224,7 @@ impl Parser {
         }
         let (bindings, body) = match (bindings, body) {
             (Some(bindings), Some(body)) => (bindings, body),
-            _ if self.has_mvu_entry_triple() => (Vec::new(), Vec::new()),
+            _ if self.has_mvu_entry_triple() || !self.require_entry => (Vec::new(), Vec::new()),
             _ => {
                 return Err(vec![Diagnostic::error(
                     "pors.entry-function",

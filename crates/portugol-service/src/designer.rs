@@ -12,6 +12,12 @@ use portugol_tela::{Element, Node};
 
 use crate::position::LineIndex;
 
+/// Opções para analisar o code-behind de uma tela (ver
+/// [`portugol_tela::codebehind::lower_options`]).
+pub fn code_behind_options(design_source: &str) -> portugol_rs_frontend::LowerOptions {
+    portugol_tela::codebehind::lower_options(design_source)
+}
+
 /// Um elemento do `.design` como o canvas o recebe.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -380,5 +386,51 @@ mod tests {
         let json = serde_json::to_value(&schema).unwrap();
         assert!(json["elements"][0]["attributes"][0]["type"].is_string());
         assert!(json["elements"][0]["defaultWidth"].is_number());
+    }
+}
+
+#[cfg(test)]
+mod code_behind_tests {
+    const DESIGN: &str = "<Janela Nome=\"JanelaPrincipal\" Titulo=\"Calculadora\" Largura=\"360\" Altura=\"240\" Dados=\"Conta\">\n    <Pilha>\n        <CaixaTexto Nome=\"txtA\" />\n        <Botao Nome=\"btnSomar\" Texto=\"Somar\" AoClicar=\"btnSomar_clicar\" />\n    </Pilha>\n</Janela>\n";
+    const CODE: &str = "registro Conta {\n    mensagem: cadeia\n}\n\nfuncao btnSomar_clicar(tela: JanelaPrincipal) -> JanelaPrincipal {\n    seja mutavel t: JanelaPrincipal = tela;\n    t.dados.mensagem = t.txtA.texto;\n    t.btnSomar.habilitado = falso;\n    retorne t;\n}\n";
+
+    #[test]
+    fn code_behind_sem_erros_e_com_o_handler_no_painel_de_estrutura() {
+        let inspection = crate::inspect_code_behind(CODE, DESIGN);
+        assert!(
+            inspection.diagnostics.is_empty(),
+            "{:?}",
+            inspection.diagnostics
+        );
+        assert!(
+            inspection
+                .symbols
+                .iter()
+                .any(|s| s.name == "btnSomar_clicar")
+        );
+    }
+
+    #[test]
+    fn campo_de_controle_inexistente_aponta_a_linha_no_fer() {
+        let code = CODE.replace("t.btnSomar.habilitado", "t.btnSubtrair.habilitado");
+        let inspection = crate::inspect_code_behind(&code, DESIGN);
+        let diagnostic = &inspection.diagnostics[0];
+        assert_eq!(diagnostic.code, "pors.unknown-field");
+        assert_eq!(diagnostic.start.line, 8);
+    }
+
+    #[test]
+    fn sem_o_design_o_tipo_da_janela_e_desconhecido() {
+        let inspection = crate::inspect_portugol_rs(CODE);
+        assert!(!inspection.diagnostics.is_empty());
+        let broken = crate::inspect_code_behind(CODE, "<Janela");
+        assert!(
+            broken
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "pors.unknown-type"),
+            "{:?}",
+            broken.diagnostics
+        );
     }
 }

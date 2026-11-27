@@ -325,21 +325,31 @@ impl<'a> Compiler<'a> {
             }
             S::FieldAssign {
                 binding,
-                field_index,
+                fields,
                 op,
                 value,
             } => {
+                // Registros são vetores na VM: desce até o registro que contém o
+                // último campo (as cargas intermediárias são referências, então
+                // a gravação altera o registro da variável).
+                let (last, parents) = fields.split_last().expect("caminho de campos não vazio");
                 if *op != hir::AssignOp::Set {
                     self.emit(Op::LoadLocal(binding.0), stmt.span);
-                    self.emit(Op::PushInt(*field_index as i32), stmt.span);
-                    self.emit(Op::LoadElem, stmt.span);
+                    for field in fields {
+                        self.emit(Op::PushInt(*field as i32), stmt.span);
+                        self.emit(Op::LoadElem, stmt.span);
+                    }
                 }
                 self.expr_for_value(value)?;
                 if let Some(opcode) = assign_op(*op) {
                     self.emit(opcode, stmt.span);
                 }
                 self.emit(Op::LoadLocal(binding.0), stmt.span);
-                self.emit(Op::PushInt(*field_index as i32), stmt.span);
+                for field in parents {
+                    self.emit(Op::PushInt(*field as i32), stmt.span);
+                    self.emit(Op::LoadElem, stmt.span);
+                }
+                self.emit(Op::PushInt(*last as i32), stmt.span);
                 self.emit(Op::StoreElem, stmt.span);
             }
             S::VectorPush { binding, value } => {
