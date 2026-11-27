@@ -4,6 +4,9 @@
 - **Data:** 2026-11-27
 - **Responsável:** mantenedor do produto
 - **Relacionados:** [ADR 0002](0002-hir-compartilhada-portugol-rs.md), [ADR 0016](0016-pors-como-linguagem-autoral-e-retirada-do-por.md), [design de evolução sintática inicial do PORS](../superpowers/specs/2026-11-26-pors-syntax-evolution-design.md)
+- **Revisada por:** [ADR 0020](0020-ajustes-pedagogicos-da-sintaxe-pors.md)
+
+> **Revisão (ADR 0020):** O item 2 foi revisado pelo ADR 0020: `leia()` converte a entrada para o tipo do destino declarado (inicializador anotado, atribuição, argumento e `retorne`), com as regras de `leia(variavel)`; sem destino tipado continua `cadeia`.
 
 ## Contexto
 

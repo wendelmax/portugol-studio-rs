@@ -3,6 +3,9 @@
 - **Data:** 2026-11-27
 - **Status:** Aceita
 - **Relacionados:** [ADR 0019](../../adr/0019-contrato-minimo-de-tipos-pors.md), [RFC 002](2026-11-27-rfc-002-leia-como-expressao.md), [RFC 003](2026-11-27-rfc-003-escreval.md), [design de evolução sintática inicial do PORS](2026-11-26-pors-syntax-evolution-design.md)
+- **Revisada por:** [ADR 0020](../../adr/0020-ajustes-pedagogicos-da-sintaxe-pors.md)
+
+> **Revisão (ADR 0020):** Revisada pelas decisões 1 e 2 do ADR 0020. A interpolação aceita também `inteiro`, `real` e `logico`, com o texto que `escreva` exibiria; `pors.interpolation-non-string` fica restrito a tipos não escalares. Um identificador ou acesso a campo não resolvido entre chaves continua literal, mas gera o aviso `pors.interpolation-unknown-name` com sugestão.
 
 ## Contexto
 

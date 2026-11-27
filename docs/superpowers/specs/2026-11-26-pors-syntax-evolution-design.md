@@ -3,6 +3,9 @@
 **Data:** 2026-11-26
 **Status: aprovado**
 **Relacionados:** [ADR 0001](../../adr/0001-webstudio-benchmark-e-ponte-progressiva-rust.md), [ADR 0002](../../adr/0002-hir-compartilhada-portugol-rs.md), [ADR 0016](../../adr/0016-pors-como-linguagem-autoral-e-retirada-do-por.md), [matriz de migração](../../research/PORS_MIGRATION_MATRIX.md)
+**Revisado por:** [ADR 0020](../../adr/0020-ajustes-pedagogicos-da-sintaxe-pors.md)
+
+> **Revisão (ADR 0020):** no material didático, o exemplo motivador usa `retorne "Olá, {nome}!";`; o retorno implícito fica na trilha de ponte para Rust. A interpolação passa a aceitar `inteiro`, `real` e `logico`, e `leia()` converte para o tipo de um destino declarado.
 
 ## Intenção
 
