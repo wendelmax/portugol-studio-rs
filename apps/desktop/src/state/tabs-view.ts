@@ -78,7 +78,7 @@ export function createTabsView(dependencies: TabsViewDependencies) {
     );
     const tab = dependencies.tabs().find(({ id }) => id === activeId);
     const title = tab ? dependencies.tabName(tab) : activeId === dependencies.helpId ? "Ajuda" : "";
-    document.title = title ? `${title} — Portugol Studio RS` : "Portugol Studio RS";
+    document.title = title ? `${title} — Ferro Studio` : "Ferro Studio";
   }
 
   return { render };

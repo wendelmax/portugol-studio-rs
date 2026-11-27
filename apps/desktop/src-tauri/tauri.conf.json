@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Portugol Studio RS",
+  "productName": "Ferro Studio",
   "version": "0.7.0",
   "identifier": "br.portugol.studio.rs",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Portugol Studio RS",
+        "title": "Ferro Studio",
         "width": 1200,
         "height": 800,
         "decorations": false,
@@ -35,11 +35,11 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "publisher": "Portugol Studio RS",
+    "publisher": "Ferro Studio",
     "copyright": "Baseado no Portugol Studio (UNIVALI). LGPL-3.0.",
     "category": "Education",
-    "shortDescription": "IDE educacional para Portugol-RS (.pors) e Rust (.rs)",
-    "longDescription": "Ambiente educacional proprietário em Rust para aprender lógica de programação em Portugol-RS (.pors) e evoluir para Rust real (.rs), com editor, análise, depurador, prévia visual e exercícios automáticos.",
+    "shortDescription": "Ferro Studio — Programe em português, crie apps e jogos e evolua para Rust",
+    "longDescription": "Ferro Studio: ambiente educacional em Rust para programar em português, criar apps desktop e jogos 2D e evoluir para Rust real (.rs), com editor, análise, depurador, designer visual e exercícios automáticos.",
     "licenseFile": "../../../LICENSE",
     "fileAssociations": [
       {

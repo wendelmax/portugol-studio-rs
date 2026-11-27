@@ -1,6 +1,6 @@
 # Distribuição e assinatura dos instaladores
 
-Os instaladores são gerados pelo workflow
+Os instaladores do **Ferro Studio** são gerados pelo workflow
 [`.github/workflows/release.yml`](../.github/workflows/release.yml) com o
 [`tauri-action`](https://github.com/tauri-apps/tauri-action):
 

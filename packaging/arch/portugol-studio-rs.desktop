@@ -1,6 +1,6 @@
 [Desktop Entry]
-Name=Portugol Studio RS
-Comment=IDE educacional para Portugol-RS (.pors) e Rust (.rs)
+Name=Ferro Studio
+Comment=Ferro Studio — Programe em português, crie apps e jogos e evolua para Rust
 Exec=/usr/bin/portugol-desktop %F
 Icon=portugol-studio-rs
 Terminal=false

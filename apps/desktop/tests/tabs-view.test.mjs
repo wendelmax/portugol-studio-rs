@@ -88,15 +88,15 @@ test("tab strip routes navigation, closing, and new-file actions to the shell", 
 test("tab strip updates the document title for file, home, and help", () => {
   const { doc, view, setActiveId } = fixture();
   view.render();
-  assert.equal(doc.title, "aula.pors — Portugol Studio RS");
+  assert.equal(doc.title, "aula.pors — Ferro Studio");
 
   setActiveId(0);
   view.render();
-  assert.equal(doc.title, "Portugol Studio RS");
+  assert.equal(doc.title, "Ferro Studio");
 
   setActiveId(-1);
   view.render();
-  assert.equal(doc.title, "Ajuda — Portugol Studio RS");
+  assert.equal(doc.title, "Ajuda — Ferro Studio");
 });
 
 test("file tab close buttons include an accessible label naming the tab", () => {

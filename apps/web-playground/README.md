@@ -1,4 +1,4 @@
-# Portugol-RS Web Playground (WASM)
+# Ferro Studio — Web Playground (WASM)
 
 Playground estático, sem dependências JavaScript externas, movido pelo crate
 [`portugol-wasm`](../../crates/portugol-wasm) compilado para

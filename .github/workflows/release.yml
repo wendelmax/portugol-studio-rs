@@ -61,7 +61,7 @@ jobs:
 
           ### Arquivos suportados
 
-          O Portugol Studio RS suporta programas **Portugol-RS (\`.pors\`)**, exercícios **\`.pors.json\`** e arquivos/projetos **Rust (\`.rs\` / Cargo)**. O suporte ao formato clássico \`.por\`/\`.pex\` foi retirado (ADR 0016); para projetos legados, utilize o [Portugol Studio original](https://github.com/UNIVALI-LITE/Portugol-Studio).
+          O Ferro Studio suporta programas **Portugol-RS (\`.pors\`)**, exercícios **\`.pors.json\`** e arquivos/projetos **Rust (\`.rs\` / Cargo)**. O suporte ao formato clássico \`.por\`/\`.pex\` foi retirado (ADR 0016); para projetos legados, utilize o [Portugol Studio original](https://github.com/UNIVALI-LITE/Portugol-Studio).
 
           ### Instalação
 
@@ -73,7 +73,7 @@ jobs:
 
           payload="$(jq -n \
             --arg tag "$RELEASE_TAG" \
-            --arg name "Portugol Studio RS ${RELEASE_TAG}" \
+            --arg name "Ferro Studio ${RELEASE_TAG}" \
             --arg body "$body" \
             --argjson prerelease "$PRERELEASE" \
             '{tag_name: $tag, name: $name, body: $body, draft: true, prerelease: $prerelease}')"
@@ -161,7 +161,7 @@ jobs:
         with:
           projectPath: apps/desktop
           tagName: ${{ env.RELEASE_TAG }}
-          releaseName: Portugol Studio RS ${{ env.RELEASE_TAG }}
+          releaseName: Ferro Studio ${{ env.RELEASE_TAG }}
           releaseDraft: true
           prerelease: ${{ github.ref_type != 'tag' && !inputs.tag_release }}
           args: ${{ matrix.args }} ${{ env.TAURI_SIGN_CONFIG }}
@@ -227,7 +227,7 @@ jobs:
         with:
           projectPath: apps/desktop
           tagName: ${{ env.RELEASE_TAG }}
-          releaseName: Portugol Studio RS ${{ env.RELEASE_TAG }}
+          releaseName: Ferro Studio ${{ env.RELEASE_TAG }}
           releaseDraft: true
           prerelease: ${{ github.ref_type != 'tag' && !inputs.tag_release }}
           args: ${{ matrix.args }}
@@ -377,7 +377,7 @@ jobs:
         with:
           projectPath: apps/desktop
           tagName: ${{ env.RELEASE_TAG }}
-          releaseName: Portugol Studio RS ${{ env.RELEASE_TAG }}
+          releaseName: Ferro Studio ${{ env.RELEASE_TAG }}
           releaseDraft: true
           prerelease: ${{ github.ref_type != 'tag' && !inputs.tag_release }}
           args: ${{ matrix.args }}

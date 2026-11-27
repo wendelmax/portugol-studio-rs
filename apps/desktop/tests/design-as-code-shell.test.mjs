@@ -11,8 +11,8 @@ const activityBar = readFileSync(new URL("../src/shell/activity-bar.ts", import.
 
 test("shell tem marca, contexto de projeto/modo, configurações dedicadas e tabs dentro do workspace", () => {
   assert.match(html, /class="app-brand"/);
-  assert.match(html, /<title>Portugol Studio RS<\/title>/);
-  assert.match(html, /class="app-brand-mark"[^>]*>RS<\/span>Portugol Studio RS/);
+  assert.match(html, /<title>Ferro Studio<\/title>/);
+  assert.match(html, /class="app-brand-mark"[^>]*>Fe<\/span>Ferro Studio/);
   assert.match(html, /id="titlebar-workspace"[^>]*data-testid="workspace-selector"/);
   assert.match(html, /id="titlebar-learning-mode"[^>]*data-testid="learning-mode-switcher"/);
   assert.match(html, /<dialog id="settings-dialog" data-testid="settings-view"/);
