@@ -52,15 +52,31 @@ impl Parser {
         Ok(())
     }
 
-    pub(super) fn block(&mut self, root: bool) -> Result<(Vec<hir::Stmt>, Span), Vec<Diagnostic>> {
+    pub(super) fn block(
+        &mut self,
+        root: bool,
+        allow_tail: bool,
+    ) -> Result<(Vec<hir::Stmt>, Option<hir::Expr>, Span), Vec<Diagnostic>> {
         let open = self.expect(Kind::LBrace, "Esperado `{` para iniciar bloco")?;
         if !root {
             self.scopes.push(HashMap::new());
         }
         let mut statements = Vec::new();
+        let mut tail = None;
         while !matches!(self.current().kind, Kind::RBrace | Kind::Eof)
             && !is_top_level_start(&self.current().kind)
         {
+            if let Some(expression) = self.try_tail()? {
+                if !allow_tail {
+                    return self.fail(
+                        "pors.implicit-return-without-type",
+                        "Expressão final sem `;` só é retorno no corpo de uma função",
+                        syntax_span(expression.span),
+                    );
+                }
+                tail = Some(expression);
+                break;
+            }
             let statement_start = self.cursor;
             let binding_count = self.bindings.len();
             let scopes = self.scopes.clone();
@@ -93,7 +109,36 @@ impl Parser {
         if !root {
             self.scopes.pop();
         }
-        Ok((statements, open.span.join(close.span)))
+        Ok((statements, tail, open.span.join(close.span)))
+    }
+
+    /// Reconhece uma expressão final sem `;`. Restaura a stream quando o trecho
+    /// não é uma cauda, para que o comando normal seja analisado em seguida.
+    fn try_tail(&mut self) -> Result<Option<hir::Expr>, Vec<Diagnostic>> {
+        if !can_start_expression(&self.current().kind) {
+            return Ok(None);
+        }
+        let cursor = self.cursor;
+        let binding_count = self.bindings.len();
+        let scopes = self.scopes.clone();
+        let parsed = self.expression(0);
+        match parsed {
+            Ok(expression) if matches!(self.current().kind, Kind::RBrace | Kind::Eof) => {
+                Ok(Some(expression))
+            }
+            Ok(_) => {
+                self.cursor = cursor;
+                self.bindings.truncate(binding_count);
+                self.scopes = scopes;
+                Ok(None)
+            }
+            Err(_) => {
+                self.cursor = cursor;
+                self.bindings.truncate(binding_count);
+                self.scopes = scopes;
+                Ok(None)
+            }
+        }
     }
 
     pub(super) fn synchronize_statement(&mut self, statement_start: usize) {
@@ -837,7 +882,7 @@ impl Parser {
                 }
                 self.expect(Kind::FatArrow, "Esperado `=>` após `_`")?;
                 self.scopes.push(HashMap::new());
-                let (body, arm_end) = self.block(true)?;
+                let (body, _, arm_end) = self.block(true, false)?;
                 self.scopes.pop();
                 has_wildcard = true;
                 arms.push(hir::ChooseArm {
@@ -936,7 +981,7 @@ impl Parser {
                 );
                 payload_bindings.push(id);
             }
-            let (body, arm_end) = self.block(true)?;
+            let (body, _, arm_end) = self.block(true, false)?;
             self.scopes.pop();
             arms.push(hir::ChooseArm {
                 variant_index: Some(variant_index),
@@ -977,14 +1022,14 @@ impl Parser {
                 syntax_span(condition.span),
             );
         }
-        let (then_branch, then_span) = self.block(false)?;
+        let (then_branch, _, then_span) = self.block(false, false)?;
         let (else_branch, end) = if self.eat_keyword("senao") {
             if self.is_keyword("se") {
                 let nested = self.conditional()?;
                 let end = Span::new(nested.span.start, nested.span.end);
                 (Some(vec![nested]), end)
             } else {
-                let (body, block_span) = self.block(false)?;
+                let (body, _, block_span) = self.block(false, false)?;
                 (Some(body), block_span)
             }
         } else {
@@ -1024,9 +1069,9 @@ impl Parser {
     pub(super) fn do_while_loop(&mut self) -> Result<hir::Stmt, Vec<Diagnostic>> {
         let start = self.advance().span;
         self.loop_depth += 1;
-        let body_result = self.block(false);
+        let body_result = self.block(false, false);
         self.loop_depth -= 1;
-        let (body, _) = body_result?;
+        let (body, _, _) = body_result?;
         self.keyword("enquanto")?;
         self.expect(Kind::LParen, "Esperado `(` após enquanto")?;
         let condition = self.expression(0)?;
@@ -1058,9 +1103,9 @@ impl Parser {
             );
         }
         self.loop_depth += 1;
-        let body_result = self.block(false);
+        let body_result = self.block(false, false);
         self.loop_depth -= 1;
-        let (body, end) = body_result?;
+        let (body, _, end) = body_result?;
         Ok(hir::Stmt {
             kind: hir::StmtKind::While { condition, body },
             span: to_hir_span(start.join(end)),
@@ -1114,9 +1159,9 @@ impl Parser {
         }
         self.expect(Kind::RParen, "Esperado `)` após atualização de para")?;
         self.loop_depth += 1;
-        let body_result = self.block(false);
+        let body_result = self.block(false, false);
         self.loop_depth -= 1;
-        let (body, end) = body_result?;
+        let (body, _, end) = body_result?;
         self.scopes.pop();
         Ok(hir::Stmt {
             kind: hir::StmtKind::For {

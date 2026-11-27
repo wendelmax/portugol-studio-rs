@@ -451,6 +451,22 @@ fn rejects_invalid_interpolation_content_at_the_inner_span() {
 }
 
 #[test]
+fn implicit_return_is_only_allowed_in_a_typed_function_body() {
+    assert!(
+        lower("funcao f() -> inteiro { se (verdadeiro) { 1 } retorne 2; }")
+            .unwrap_err()
+            .iter()
+            .any(|d| d.code == "pors.implicit-return-without-type")
+    );
+    assert!(
+        lower("funcao f() -> cadeia { 1 + 1 }")
+            .unwrap_err()
+            .iter()
+            .any(|d| d.code == "pors.return-type-mismatch")
+    );
+}
+
+#[test]
 fn rejects_trailing_expression_in_a_function_without_return_type() {
     let source = "funcao inicio() { 1 + 1 }";
     let errors = lower(source).unwrap_err();

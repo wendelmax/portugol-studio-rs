@@ -61,6 +61,7 @@ fn compile_program(program: &hir::Program) -> Result<Module, PorsCompileError> {
             &function.source_name,
             &function.bindings,
             &function.body,
+            function.tail_expression.as_ref(),
             function
                 .return_type
                 .map(value_type_hir)
@@ -86,6 +87,7 @@ fn compile_program(program: &hir::Program) -> Result<Module, PorsCompileError> {
         "inicio",
         &program.bindings,
         &program.body,
+        None,
         ValueType::Vazio,
         0,
         program.span,
@@ -166,6 +168,7 @@ impl<'a> Compiler<'a> {
         name: &str,
         bindings: &[hir::Binding],
         body: &[hir::Stmt],
+        tail_expression: Option<&hir::Expr>,
         return_type: ValueType,
         arity: u32,
         span: hir::Span,
@@ -187,8 +190,17 @@ impl<'a> Compiler<'a> {
         for stmt in body {
             self_.stmt(stmt)?;
         }
-        self_.emit(Op::PushVoid, span);
-        self_.emit(Op::Return, span);
+        match tail_expression {
+            Some(expression) => {
+                let span = expression.span;
+                self_.expr(expression)?;
+                self_.emit(Op::Return, span);
+            }
+            None => {
+                self_.emit(Op::PushVoid, span);
+                self_.emit(Op::Return, span);
+            }
+        }
         Ok((
             Function {
                 name: name.into(),

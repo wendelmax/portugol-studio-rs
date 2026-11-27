@@ -139,10 +139,14 @@ fn find_first_unsupported_host_call(
     program: &portugol_hir::Program,
 ) -> Option<(&str, &str, portugol_hir::Span)> {
     find_host_call_in_stmts(&program.body).or_else(|| {
-        program
-            .functions
-            .iter()
-            .find_map(|function| find_host_call_in_stmts(&function.body))
+        program.functions.iter().find_map(|function| {
+            find_host_call_in_stmts(&function.body).or_else(|| {
+                function
+                    .tail_expression
+                    .as_ref()
+                    .and_then(find_host_call_in_expr)
+            })
+        })
     })
 }
 

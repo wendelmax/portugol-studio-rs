@@ -1001,6 +1001,16 @@ fn executes_interpolated_string_through_bytecode_and_vm() {
 }
 
 #[test]
+fn executes_an_implicit_return_in_minimal_vm() {
+    let source =
+        "funcao dobro(x: inteiro) -> inteiro { x * 2 } funcao inicio() { escreva(dobro(21)); }";
+    let module = compile_pors_source(source);
+    let mut io = BufferIo::default();
+    run(&module, &mut io).expect("retorno implícito na VM");
+    assert_eq!(io.output, "42");
+}
+
+#[test]
 fn reads_a_string_expression_without_a_target_binding() {
     let source = "funcao inicio() { escreva(leia()); }";
     let module = compile_pors_source(source);

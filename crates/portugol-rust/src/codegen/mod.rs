@@ -9,6 +9,7 @@ use crate::{
     GeneratedRust, JAVA_DOUBLE_HELPER, SourceMapQuality, SourceMapSegment, SourceRange, rust_ident,
 };
 
+use expr::push_expr;
 use runtime::{
     PORS_ARQUIVOS_RUNTIME, PORS_CALENDARIO_RUNTIME, PORS_CLOCK_RUNTIME, PORS_INTERNET_RUNTIME,
     PORS_JSON_RUNTIME, PORS_MATEMATICA_RUNTIME, PORS_TEXTO_RUNTIME, PORS_TIPOS_RUNTIME,
@@ -16,8 +17,9 @@ use runtime::{
 };
 use stmt::render_statements;
 use types::{
-    binding_info, mvu_entry_update_arity, pors_clone_value, program_uses_host_module,
-    rust_enum_type_name, rust_enum_variant_path, rust_type, statements_have_read,
+    binding_info, expression_has_read, mvu_entry_update_arity, pors_clone_value,
+    program_uses_host_module, rust_enum_type_name, rust_enum_variant_path, rust_type,
+    statements_have_read,
 };
 
 pub(crate) fn render_pors_with_map(program: &Program) -> GeneratedRust {
@@ -26,10 +28,10 @@ pub(crate) fn render_pors_with_map(program: &Program) -> GeneratedRust {
 
 fn render(program: &Program, pors: bool) -> GeneratedRust {
     let has_read = statements_have_read(&program.body)
-        || program
-            .functions
-            .iter()
-            .any(|f| statements_have_read(&f.body));
+        || program.functions.iter().any(|f| {
+            statements_have_read(&f.body)
+                || f.tail_expression.as_ref().is_some_and(expression_has_read)
+        });
     let uses_ui = pors && program_uses_host_module(program, "UI");
     let uses_matematica = pors && program_uses_host_module(program, "Matematica");
     let uses_texto = pors && program_uses_host_module(program, "Texto");
@@ -227,6 +229,18 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
             pors,
             None,
         );
+        if let Some(tail) = &function.tail_expression {
+            output.push_str("    return ");
+            push_expr(
+                &mut output,
+                &mut mappings,
+                tail,
+                &function_program,
+                true,
+                pors,
+            );
+            output.push_str(";\n");
+        }
         output.push_str("}\n");
     }
     output.push_str("\nfn main() {\n");

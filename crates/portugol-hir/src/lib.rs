@@ -226,6 +226,8 @@ pub struct Function {
     pub bindings: Vec<Binding>,
     pub return_type: Option<Type>,
     pub body: Vec<Stmt>,
+    /// Expressão final sem `;`, interpretada como retorno da função.
+    pub tail_expression: Option<Expr>,
     pub span: Span,
 }
 

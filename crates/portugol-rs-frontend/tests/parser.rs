@@ -1081,6 +1081,20 @@ fn interpolation_parts_keep_their_own_spans_and_escaped_braces_are_literal() {
 }
 
 #[test]
+fn accepts_a_trailing_expression_as_an_implicit_return() {
+    let source = "funcao saudar(nome: cadeia) -> cadeia { \"Olá, {nome}!\" } funcao inicio() { escreva(saudar(\"Ada\")); }";
+    let program = lower(source).expect("retorno implícito");
+    let function = &program.functions[0];
+    assert!(function.tail_expression.is_some());
+    assert!(
+        function
+            .body
+            .iter()
+            .all(|s| !matches!(s.kind, StmtKind::Return { .. }))
+    );
+}
+
+#[test]
 fn json_braces_in_a_string_literal_are_not_interpolation() {
     let source = "funcao inicio() { escreva(\"{\\\"ok\\\":true}\"); }";
     let program = lower(source).expect("JSON literal deve compilar");

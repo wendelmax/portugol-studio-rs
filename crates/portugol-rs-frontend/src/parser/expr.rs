@@ -708,66 +708,66 @@ impl Parser {
                 cursor += 1 + escaped.len_utf8();
                 continue;
             }
-            if ch == '{' {
-                if let Some(close) = unescaped_closing_brace(raw, cursor + 1) {
-                    let content = &raw[cursor + 1..close];
-                    if !content.is_empty() {
-                        let start = (content_start + cursor + 1) as u32;
-                        let end = (content_start + close) as u32;
-                        let span = Span::new(start, end);
-                        let (tokens, lex_errors) = lex(content);
-                        if lex_errors.is_empty() {
-                            let shifted: Vec<_> = tokens
-                                .into_iter()
-                                .map(|mut token| {
-                                    token.span =
-                                        Span::new(token.span.start + start, token.span.end + start);
-                                    token
-                                })
-                                .collect();
-                            let outer_tokens = std::mem::replace(&mut self.tokens, shifted);
-                            let outer_cursor = self.cursor;
-                            self.cursor = 0;
-                            let parsed = self.expression(0);
-                            let complete = matches!(self.current().kind, Kind::Eof);
-                            let unresolved_name = parsed.as_ref().is_err_and(|errors| {
-                                errors.iter().all(|d| {
-                                    matches!(d.code, "pors.unknown-name" | "pors.unknown-function")
-                                })
-                            });
-                            self.tokens = outer_tokens;
-                            self.cursor = outer_cursor;
-                            if parsed.is_err() && !unresolved_name {
+            if ch == '{'
+                && let Some(close) = unescaped_closing_brace(raw, cursor + 1)
+            {
+                let content = &raw[cursor + 1..close];
+                if !content.is_empty() {
+                    let start = (content_start + cursor + 1) as u32;
+                    let end = (content_start + close) as u32;
+                    let span = Span::new(start, end);
+                    let (tokens, lex_errors) = lex(content);
+                    if lex_errors.is_empty() {
+                        let shifted: Vec<_> = tokens
+                            .into_iter()
+                            .map(|mut token| {
+                                token.span =
+                                    Span::new(token.span.start + start, token.span.end + start);
+                                token
+                            })
+                            .collect();
+                        let outer_tokens = std::mem::replace(&mut self.tokens, shifted);
+                        let outer_cursor = self.cursor;
+                        self.cursor = 0;
+                        let parsed = self.expression(0);
+                        let complete = matches!(self.current().kind, Kind::Eof);
+                        let unresolved_name = parsed.as_ref().is_err_and(|errors| {
+                            errors.iter().all(|d| {
+                                matches!(d.code, "pors.unknown-name" | "pors.unknown-function")
+                            })
+                        });
+                        self.tokens = outer_tokens;
+                        self.cursor = outer_cursor;
+                        if parsed.is_err() && !unresolved_name {
+                            return self.fail(
+                                "pors.interpolation-invalid",
+                                "Conteúdo inválido dentro da interpolação",
+                                span,
+                            );
+                        }
+                        if complete && !unresolved_name {
+                            let expr = parsed.expect("expressão de interpolação válida");
+                            if !matches!(expr.ty, hir::Type::String | hir::Type::Character) {
                                 return self.fail(
-                                    "pors.interpolation-invalid",
-                                    "Conteúdo inválido dentro da interpolação",
+                                    "pors.interpolation-non-string",
+                                    "A interpolação exige um valor `cadeia` ou `caracter`",
                                     span,
                                 );
                             }
-                            if complete && !unresolved_name {
-                                let expr = parsed.expect("expressão de interpolação válida");
-                                if !matches!(expr.ty, hir::Type::String | hir::Type::Character) {
-                                    return self.fail(
-                                        "pors.interpolation-non-string",
-                                        "A interpolação exige um valor `cadeia` ou `caracter`",
-                                        span,
-                                    );
-                                }
-                                flush_string_literal(
-                                    &mut parts,
-                                    &mut literal,
-                                    literal_start,
-                                    cursor,
-                                    content_start,
-                                );
-                                literal_start = None;
-                                parts.push(hir::StringPart::Expression(
-                                    expr,
-                                    Span::new(start - 1, end + 1),
-                                ));
-                                cursor = close + 1;
-                                continue;
-                            }
+                            flush_string_literal(
+                                &mut parts,
+                                &mut literal,
+                                literal_start,
+                                cursor,
+                                content_start,
+                            );
+                            literal_start = None;
+                            parts.push(hir::StringPart::Expression(
+                                expr,
+                                Span::new(start - 1, end + 1),
+                            ));
+                            cursor = close + 1;
+                            continue;
                         }
                     }
                 }

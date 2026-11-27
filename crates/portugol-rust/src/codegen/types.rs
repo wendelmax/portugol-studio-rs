@@ -88,7 +88,7 @@ fn statement_has_read(kind: &StmtKind) -> bool {
     }
 }
 
-fn expression_has_read(expr: &Expr) -> bool {
+pub(super) fn expression_has_read(expr: &Expr) -> bool {
     use ExprKind as E;
     match &expr.kind {
         E::Read => true,
@@ -377,10 +377,13 @@ pub(super) fn mvu_entry_update_arity(program: &Program) -> Option<usize> {
 
 pub(super) fn program_uses_host_module(program: &Program, target: &str) -> bool {
     stmts_use_host_module(&program.body, target)
-        || program
-            .functions
-            .iter()
-            .any(|function| stmts_use_host_module(&function.body, target))
+        || program.functions.iter().any(|function| {
+            stmts_use_host_module(&function.body, target)
+                || function
+                    .tail_expression
+                    .as_ref()
+                    .is_some_and(|expr| expr_uses_host_module(expr, target))
+        })
 }
 
 fn stmts_use_host_module(stmts: &[Stmt], target: &str) -> bool {
