@@ -38,6 +38,21 @@ export function createIdeShortcuts(actions: IdeShortcutActions): Shortcut[] {
     { label: "Ctrl+,", command: "Configurações", matches: (e) =>
       (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === "Comma", action: actions.openSettings },
     { label: "via paleta de comandos", command: "Restaurar layout padrão", matches: () => false, action: actions.resetLayout },
+    { label: "via paleta de comandos", command: "Abrir Laboratório de Ownership", matches: () => false, action: actions.openOwnershipLab },
+    { label: "via paleta de comandos", command: "Alternar prévia Rust", matches: () => false, action: actions.toggleRustPreview },
+    { label: "via paleta de comandos", command: "Alternar Preview Visual PORS", matches: () => false, action: actions.toggleUiPreview },
+    { label: "via paleta de comandos", command: "Abrir pasta de projeto", matches: () => false, action: actions.openFolder },
+    { label: "via paleta de comandos", command: "Novo arquivo Rust (.rs)", matches: () => false, action: actions.newRustFile },
+    { label: "via paleta de comandos", command: "Abrir Exercícios", matches: () => false, action: actions.openExercises },
+    { label: "via paleta de comandos", command: "Editor de temas", matches: () => false, action: actions.openThemeEditor },
+    { label: "via paleta de comandos", command: "Abrir painel Aprender", matches: () => false, action: actions.openLearningPanel },
+    { label: "via paleta de comandos", command: "Abrir Console", matches: () => false, action: actions.showConsolePanel },
+    { label: "via paleta de comandos", command: "Abrir Mensagens", matches: () => false, action: actions.showMessagesPanel },
+    { label: "via paleta de comandos", command: "Abrir Testes", matches: () => false, action: actions.showTestsPanel },
+    { label: "via paleta de comandos", command: "Abrir Depuração", matches: () => false, action: actions.showDebugPanel },
+    { label: "via paleta de comandos", command: "Limpar console", matches: () => false, action: actions.clearConsoleAction },
+    { label: "via paleta de comandos", command: "Copiar saída do console", matches: () => false, action: actions.copyConsoleAction },
+    { label: "via paleta de comandos", command: "Alternar quebra de linha", matches: () => false, action: actions.toggleWordWrap },
   ];
   const addFileShortcut = (key: string, shift: boolean, command: string, action: () => unknown) => {
     shortcuts.push(ctrlShortcut(key, shift, command, action));

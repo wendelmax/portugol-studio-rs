@@ -28,6 +28,7 @@ export interface EditorSetupDependencies {
 /** Monta o estado e as ferramentas compartilhadas pelos editores da IDE. */
 export function createEditorSetup(dependencies: EditorSetupDependencies) {
   const theme = new Compartment();
+  const preferences = new Compartment();
   const sourceLanguage = new Compartment();
   const portugolTools = new Compartment();
   const generatedRustTheme = new Compartment();
@@ -65,6 +66,7 @@ export function createEditorSetup(dependencies: EditorSetupDependencies) {
 
   return {
     theme,
+    preferences,
     sourceLanguage,
     portugolTools,
     generatedRustTheme,

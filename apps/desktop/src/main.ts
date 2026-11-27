@@ -64,6 +64,13 @@ import { appendConsole, appendProcessOutput, clearConsole, consoleText } from ".
 import { applyPageTheme, editorTheme, onSystemThemeChange, themeChoice } from "./editor/theme";
 import { createEditorShell } from "./editor/editor-shell";
 import { createEditorActionsShell } from "./editor/actions-shell";
+import {
+  editorPreferenceExtensions,
+  loadEditorPreferences,
+  normalizeTabSize,
+  saveEditorPreferences,
+  type EditorPreferences,
+} from "./editor/preferences";
 import { createUtilityInsertions } from "./editor/utility-insertions";
 import {
   breakpoints, debugLine, runtimeError, setDebugLine,
@@ -91,8 +98,11 @@ function renderCursor() {
 // ---------------------------------------------------------------------------
 
 
+let editorPreferences: EditorPreferences = loadEditorPreferences(localStorage);
+
 const {
   theme,
+  preferences,
   sourceLanguage,
   portugolTools,
   centerSource,
@@ -145,19 +155,18 @@ const {
       newTab(source, null, file);
       void runProgram(false, false);
     },
-    openOwnershipLab: () => {
-      if (!tabCollection.tabs().length) newTab();
-      else returnToEditor();
-      if (learningMode === "beginner") applyLearningMode("bridge");
-      showPanel("learning");
-      activityBarControls?.setPressed("learn");
-      learningPanel.selectConcept("ownership");
-      $("ownership-lab").scrollIntoView?.({ block: "start" });
-    },
+    openOwnershipLab: () => openOwnershipLabView(),
     isActive: () => tabCollection.activeId() === helpId,
   },
   learningPanel: {
     openPorsExercise: async (exerciseId) => { await exerciseWorkbench?.openPorsById(exerciseId); },
+    openPorsExample: async (fileName) => {
+      const examples = await api.listPorsExamples();
+      const example = examples.find((item) => item.file_name === fileName);
+      if (!example) throw new Error(`Exemplo ${fileName} não encontrado`);
+      newTab(example.source, null, example.file_name, undefined, undefined, "portugol-rs");
+    },
+    openOwnershipLab: () => openOwnershipLabView(),
     ownership: {
       isRustcAvailable: () => toolchainState.rustcAvailable() === true,
       checkRustSource: api.checkRustSource,
@@ -185,6 +194,7 @@ const {
   },
   navigation: { goToDeclarationAt },
   extensions: {
+    editorPreferences: () => editorPreferenceExtensions(editorPreferences),
     portugolExtensions: () => [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine],
     rustExtensions: () => [rustSourceLinter],
     portugolRsLanguage: () => portugolRs(),
@@ -497,6 +507,7 @@ const tabActivator = createTabActivationShell({
     setState: (tab) => view.setState(tab.state),
     configure: (tab) => view.dispatch({ effects: [
       theme.reconfigure(editorTheme()),
+      preferences.reconfigure(editorPreferenceExtensions(editorPreferences)),
       sourceLanguage.reconfigure(tab.language === "rust" ? rust() : portugolRs()),
       portugolTools.reconfigure(tab.language === "rust" ? [rustSourceLinter] : [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]),
       setDebugLine.of(tab.id === runState.runTabId ? runState.paused?.position.line ?? null : null),
@@ -653,6 +664,31 @@ function returnToEditor() {
   const target = openTabs.find(({ id }) => id === lastCodeTabId) ?? openTabs[0];
   activate(target.id);
 }
+function openOwnershipLabView() {
+  if (!tabCollection.tabs().length) newTab();
+  else returnToEditor();
+  if (learningMode === "beginner") applyLearningMode("bridge");
+  showPanel("learning");
+  activityBarControls?.setPressed("learn");
+  learningPanel.selectConcept("ownership");
+  $("ownership-lab").scrollIntoView?.({ block: "start" });
+}
+function applyEditorPreferences(next: EditorPreferences) {
+  editorPreferences = next;
+  saveEditorPreferences(localStorage, next);
+  $<HTMLInputElement>("editor-word-wrap").checked = next.wordWrap;
+  $<HTMLSelectElement>("editor-tab-size").value = String(next.tabSize);
+  const effect = preferences.reconfigure(editorPreferenceExtensions(next));
+  const current = activeTab();
+  if (current) {
+    view.dispatch({ effects: effect });
+    current.state = view.state;
+  }
+  for (const tab of tabCollection.tabs()) {
+    if (tab !== current) tab.state = tab.state.update({ effects: effect }).state;
+  }
+  renderStatusBar();
+}
 settingsDialog.addEventListener("close", () => {
   const learningOpen = panes.utilitiesVisible() && !$<HTMLElement>("learning-panel").hidden;
   activityBarControls?.setPressed(learningOpen ? "learn" : null);
@@ -779,6 +815,30 @@ mountIdeCommandShell({
     },
     openSettings: () => openSettings("theme"),
     resetLayout,
+    openOwnershipLab: openOwnershipLabView,
+    toggleRustPreview: () => $<HTMLButtonElement>("btn-rust").click(),
+    toggleUiPreview: () => $<HTMLButtonElement>("btn-ui-preview").click(),
+    openFolder: () => $<HTMLButtonElement>("home-open-folder").click(),
+    newRustFile: () => newTab("fn main() {\n    \n}\n", null, undefined, undefined, undefined, "rust"),
+    openExercises: () => $<HTMLButtonElement>("home-exercises").click(),
+    openThemeEditor: () => {
+      if (settingsDialog.open) settingsDialog.close();
+      themeEditor.open();
+    },
+    openLearningPanel: () => {
+      showPanel("learning");
+      activityBarControls?.setPressed("learn");
+    },
+    showConsolePanel: () => showPanel("console"),
+    showMessagesPanel: () => showPanel("messages"),
+    showTestsPanel: () => showPanel("tests"),
+    showDebugPanel: () => showPanel("debug"),
+    clearConsoleAction: () => $<HTMLButtonElement>("btn-clear").click(),
+    copyConsoleAction: () => $<HTMLButtonElement>("btn-copy").click(),
+    toggleWordWrap: () => {
+      applyEditorPreferences({ ...editorPreferences, wordWrap: !editorPreferences.wordWrap });
+      setStatus(editorPreferences.wordWrap ? "Quebra de linha ativada." : "Quebra de linha desativada.", "ok");
+    },
     utilities: toggleUtilities,
     searchOutline: () => {
       if (!activeTab()) return;
@@ -829,6 +889,27 @@ $("editor-themes").onclick = () => {
 };
 
 mountFontSizeControls(["editor-font", "console-font"]);
+{
+  const consoleFont = $<HTMLInputElement>("console-font");
+  const settingsConsoleFont = $<HTMLInputElement>("settings-console-font");
+  const syncConsoleFont = (source: HTMLInputElement, target: HTMLInputElement) => {
+    target.value = source.value;
+  };
+  syncConsoleFont(consoleFont, settingsConsoleFont);
+  consoleFont.addEventListener("change", () => syncConsoleFont(consoleFont, settingsConsoleFont));
+  settingsConsoleFont.onchange = () => {
+    consoleFont.value = settingsConsoleFont.value;
+    consoleFont.dispatchEvent(new Event("change"));
+    syncConsoleFont(consoleFont, settingsConsoleFont);
+  };
+
+  const wordWrapInput = $<HTMLInputElement>("editor-word-wrap");
+  const tabSizeSelect = $<HTMLSelectElement>("editor-tab-size");
+  wordWrapInput.checked = editorPreferences.wordWrap;
+  tabSizeSelect.value = String(editorPreferences.tabSize);
+  wordWrapInput.onchange = () => applyEditorPreferences({ ...editorPreferences, wordWrap: wordWrapInput.checked });
+  tabSizeSelect.onchange = () => applyEditorPreferences({ ...editorPreferences, tabSize: normalizeTabSize(tabSizeSelect.value) });
+}
 
 mountIcons();
 recentFilesView.render(recentFiles.list());
@@ -863,6 +944,16 @@ const tips = mountTips(() => {
   themeEditor.open();
 });
 $("home-tips").onclick = tips.open;
+{
+  const tipsStartup = $<HTMLInputElement>("tips-startup");
+  const settingsTipsStartup = $<HTMLInputElement>("settings-tips-startup");
+  settingsTipsStartup.checked = tipsStartup.checked;
+  tipsStartup.addEventListener("change", () => { settingsTipsStartup.checked = tipsStartup.checked; });
+  settingsTipsStartup.onchange = () => {
+    tipsStartup.checked = settingsTipsStartup.checked;
+    tipsStartup.dispatchEvent(new Event("change"));
+  };
+}
 
 
 mountSystemFilesShell({
