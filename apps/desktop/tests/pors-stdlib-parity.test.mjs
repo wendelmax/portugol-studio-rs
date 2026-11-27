@@ -87,7 +87,7 @@ test("pors-stdlib-catalog covers 100% of explicit stdlib constants defined in pa
 test("every stdlib module provides a valid .pors example and parseable member signatures", () => {
   for (const mod of PORS_STDLIB_CATALOG) {
     assert.ok(mod.example, `${mod.module} deve incluir um exemplo executável .pors`);
-    assert.ok(mod.example.fileName.endsWith(".pors"));
+    assert.ok(mod.example.fileName.endsWith(".fer"));
     assert.ok(!mod.example.source.includes("programa {"));
     assert.ok(!mod.example.source.includes("inclua biblioteca"));
 

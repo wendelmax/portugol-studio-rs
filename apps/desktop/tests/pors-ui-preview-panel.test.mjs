@@ -138,8 +138,8 @@ function flushMicrotasks() {
 
 test("catálogo visual expõe 2 exemplos .pors prontos e populados no seletor", () => {
   assert.equal(PORS_UI_EXAMPLES.length, 2);
-  assert.equal(findPorsUiExample("contador-visual")?.fileName, "contador-visual.pors");
-  assert.equal(findPorsUiExample("tarefas-visual")?.fileName, "tarefas-visual.pors");
+  assert.equal(findPorsUiExample("contador-visual")?.fileName, "contador-visual.fer");
+  assert.equal(findPorsUiExample("tarefas-visual")?.fileName, "tarefas-visual.fer");
 
   const { elements } = createPanelDom();
   const controller = mountPorsUiPreviewPanel({

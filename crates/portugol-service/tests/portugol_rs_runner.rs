@@ -647,7 +647,7 @@ fn returns_the_real_exit_code_and_stderr_from_a_rust_runtime_failure() {
 
 #[test]
 fn compiles_and_runs_canonical_syntax_evolution_program_with_real_rustc() {
-    let source = include_str!("../../../tests/fixtures/pors-syntax-evolution.pors");
+    let source = include_str!("../../../tests/fixtures/pors-syntax-evolution.fer");
     let cancel = AtomicBool::new(false);
     let mut requests = Vec::new();
     let result = run_portugol_rs_with_io(

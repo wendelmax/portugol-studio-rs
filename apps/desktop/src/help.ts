@@ -17,7 +17,7 @@ import {
 const html = import.meta.glob<string>("./help-assets/topicos/**/*.html", {
   eager: true, query: "?raw", import: "default",
 });
-const examples = import.meta.glob<string>("./help-assets/recursos/exemplos-pors/**/*.pors", {
+const examples = import.meta.glob<string>("./help-assets/recursos/exemplos-pors/**/*.fer", {
   eager: true, query: "?raw", import: "default",
 });
 const images = import.meta.glob<string>("./help-assets/recursos/imagens/**/*.png", {
@@ -242,7 +242,7 @@ export function mountHelp(optionsOrOpen: MountHelpOptions | ((source: string, fi
       return buildCodeBlock(
         node.getAttribute("data-title") || "Exemplo",
         source,
-        path.split("/").pop() ?? "exemplo.pors",
+        path.split("/").pop() ?? "exemplo.fer",
         node.getAttribute("data-type") === "exemplo",
       );
     }

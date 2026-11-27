@@ -12,7 +12,7 @@ export const PORS_UI_EXAMPLES: readonly PorsUiExample[] = [
   {
     id: "contador-visual",
     title: "Contador interativo",
-    fileName: "contador-visual.pors",
+    fileName: "contador-visual.fer",
     description: "Demonstra estado em registro/enum, escolha exaustiva, botões e entrada de texto.",
     source: `enum Humor {
     Neutro,
@@ -67,7 +67,7 @@ funcao visualizar(estado: Estado) -> inteiro {
   {
     id: "tarefas-visual",
     title: "Lista de tarefas",
-    fileName: "tarefas-visual.pors",
+    fileName: "tarefas-visual.fer",
     description: "Demonstra UI.lista, composição com funções auxiliares e atualização imutável de estado.",
     source: `registro Estado {
     rascunho: cadeia,

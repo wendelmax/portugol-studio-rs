@@ -34,7 +34,7 @@ export const PORS_HELP_TOPICS: readonly PorsHelpTopic[] = [
     ],
     example: {
       title: "Variáveis, funções e controle de fluxo",
-      fileName: "guia-pors-tipos.pors",
+      fileName: "guia-pors-tipos.fer",
       source: `funcao dobro(valor: inteiro) -> inteiro {\n    retorne valor * 2;\n}\n\nfuncao inicio() {\n    seja mutavel total = 0;\n    para (seja mutavel i = 1; i <= 3; i += 1) {\n        total += dobro(i);\n    }\n    escreva("Total: ", total);\n}\n`,
     },
   },
@@ -48,7 +48,7 @@ export const PORS_HELP_TOPICS: readonly PorsHelpTopic[] = [
     ],
     example: {
       title: "Classificação por nota",
-      fileName: "condicionais-encadeadas.pors",
+      fileName: "condicionais-encadeadas.fer",
       source: `funcao classificar(nota: inteiro) -> inteiro {\n    se (nota >= 9) {\n        retorne 1;\n    } senao se (nota >= 7) {\n        retorne 2;\n    } senao {\n        retorne 3;\n    }\n}\n\nfuncao inicio() {\n    escreva(classificar(8));\n}\n`,
     },
   },
@@ -62,7 +62,7 @@ export const PORS_HELP_TOPICS: readonly PorsHelpTopic[] = [
     ],
     example: {
       title: "Soma seletiva com para, continue e pare",
-      fileName: "guia-pors-lacos.pors",
+      fileName: "guia-pors-lacos.fer",
       source: `funcao inicio() {\n    seja mutavel soma = 0;\n    para (seja mutavel i = 1; i <= 10; i += 1) {\n        se (i % 2 == 0) {\n            continue;\n        }\n        se (i > 7) {\n            pare;\n        }\n        soma += i;\n    }\n    escreva("Soma dos ímpares até 7: ", soma);\n}\n`,
     },
   },
@@ -76,7 +76,7 @@ export const PORS_HELP_TOPICS: readonly PorsHelpTopic[] = [
     ],
     example: {
       title: "Fatorial recursivo tipado",
-      fileName: "guia-pors-funcoes.pors",
+      fileName: "guia-pors-funcoes.fer",
       source: `funcao fatorial(n: inteiro) -> inteiro {\n    se (n <= 1) {\n        retorne 1;\n    }\n    retorne n * fatorial(n - 1);\n}\n\nfuncao inicio() {\n    escreva("5! = ", fatorial(5));\n}\n`,
     },
   },
@@ -90,7 +90,7 @@ export const PORS_HELP_TOPICS: readonly PorsHelpTopic[] = [
     ],
     example: {
       title: "Divisão segura com Resultado e ?",
-      fileName: "guia-pors-resultado.pors",
+      fileName: "guia-pors-resultado.fer",
       source: `funcao dividir(a: inteiro, b: inteiro) -> Resultado<inteiro, cadeia> {\n    se (b == 0) {\n        retorne Resultado::Erro("divisão por zero");\n    }\n    retorne Resultado::Ok(a / b);\n}\n\nfuncao dobro_divisao(a: inteiro, b: inteiro) -> Resultado<inteiro, cadeia> {\n    seja q: inteiro = dividir(a, b)?;\n    retorne Resultado::Ok(q * 2);\n}\n\nfuncao inicio() {\n    escolha dobro_divisao(20, 4) {\n        caso Resultado::Ok(v) => { escreva(v); }\n        caso Resultado::Erro(e) => { escreva(e); }\n    }\n}\n`,
     },
   },
@@ -104,7 +104,7 @@ export const PORS_HELP_TOPICS: readonly PorsHelpTopic[] = [
     ],
     example: {
       title: "Vetor dinâmico com obter e remover",
-      fileName: "guia-pors-vetores.pors",
+      fileName: "guia-pors-vetores.fer",
       source: `funcao inicio() {\n    seja mutavel notas: vetor<inteiro> = [];\n    adicionar(notas, 8);\n    adicionar(notas, 10);\n    escolha obter(notas, 1) {\n        caso Opcao::Algum(n) => { escreva("Nota=", n, " Total=", tamanho(notas)); }\n        caso Opcao::Nenhum => { escreva("Sem nota"); }\n    }\n}\n`,
     },
   },
@@ -118,7 +118,7 @@ export const PORS_HELP_TOPICS: readonly PorsHelpTopic[] = [
     ],
     example: {
       title: "Contador MVU declarativo",
-      fileName: "guia-pors-ui.pors",
+      fileName: "guia-pors-ui.fer",
       source: `funcao iniciar() -> inteiro {\n    retorne 0;\n}\n\nfuncao atualizar(estado: inteiro, tipo: cadeia, alvo: cadeia) -> inteiro {\n    se (tipo == "clique" && alvo == "inc") {\n        retorne estado + 1;\n    }\n    retorne estado;\n}\n\nfuncao visualizar(estado: inteiro) -> inteiro {\n    retorne UI.coluna([\n        UI.texto("Contagem: ", estado),\n        UI.botao("inc", "+1")\n    ]);\n}\n`,
     },
   },
@@ -142,7 +142,7 @@ export const PORS_HELP_TOPICS: readonly PorsHelpTopic[] = [
     ],
     example: {
       title: "Registro + Resultado pronto para comparar em Rust",
-      fileName: "guia-ponte-rust.pors",
+      fileName: "guia-ponte-rust.fer",
       source: `registro Retangulo {\n    largura: inteiro,\n    altura: inteiro,\n}\n\nfuncao area(r: Retangulo) -> inteiro {\n    retorne r.largura * r.altura;\n}\n\nfuncao inicio() {\n    seja caixa: Retangulo = Retangulo { largura: 5, altura: 3 };\n    escreva("Área = ", area(caixa));\n}\n`,
     },
   },
