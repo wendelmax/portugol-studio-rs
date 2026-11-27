@@ -4,14 +4,14 @@
  * - *Design*: só a janela desenhada;
  * - *Dividido*: a janela em cima e o pseudo-XAML embaixo;
  * - *Marcação*: só o pseudo-XAML (é como o `.design` abre direto);
- * - *Código* (F7): abre o code-behind `.pors` da tela.
+ * - *Código* (F7): abre o code-behind da tela (`.fer`, ou `.pors` em telas antigas).
  *
  * Abrir o nó de tela no Explorador vai para *Design*. Nesta etapa o canvas só
  * desenha e seleciona; arrastar, redimensionar e o painel de propriedades vêm
  * nos próximos PRs.
  */
 import type { DesignNode, DesignSchema } from "../api.ts";
-import { fileExtension, fileKind, stripFileExtension } from "../file-formats.ts";
+import { acceptedExtensions, fileExtension, fileKind, stripFileExtension } from "../file-formats.ts";
 import type { Tab } from "../state/tab.ts";
 import { buildCanvasModel, nodeAt, pathAtOffset, pathFromKey, pathKey, type DefaultSizes } from "./canvas-model.ts";
 import { markSelection, renderCanvas } from "./canvas-dom.ts";
@@ -45,11 +45,20 @@ export function isDesignTab(tab: Tab | undefined): boolean {
   return Boolean(tab && fileKind(tab.workspacePath ?? tab.path ?? "") === "design");
 }
 
-/** Caminho do code-behind de um `.design`: `App/JanelaPrincipal.design` → `App/JanelaPrincipal.pors`. */
+/** Caminho canônico do code-behind de um `.design`: `App/JanelaPrincipal.design` → `App/JanelaPrincipal.fer`. */
 export function codeBehindPath(designPath: string): string {
+  return codeBehindCandidates(designPath)[0];
+}
+
+/**
+ * Onde o code-behind pode estar: a extensão canônica primeiro e depois as
+ * antigas ainda aceitas na transição (`.fer`, depois `.pors`).
+ */
+export function codeBehindCandidates(designPath: string): string[] {
   const slash = designPath.lastIndexOf("/");
   const folder = slash >= 0 ? designPath.slice(0, slash + 1) : "";
-  return `${folder}${stripFileExtension(designPath.slice(slash + 1))}.${fileExtension("source")}`;
+  const stem = stripFileExtension(designPath.slice(slash + 1));
+  return acceptedExtensions("source").map((extension) => `${folder}${stem}.${extension}`);
 }
 
 /** Caminho do `.design` de um code-behind, se o arquivo for código-fonte. */
@@ -79,6 +88,12 @@ export function mountDesignerShell(dependencies: DesignerShellDependencies) {
 
   const viewOf = (tab: Tab) => views.get(tab.id) ?? "text";
 
+  /** Code-behind que existe no workspace, em qualquer extensão aceita. */
+  function existingCodeBehind(tab: Tab): string | null {
+    if (!tab.workspaceId || !tab.workspacePath) return null;
+    return codeBehindCandidates(tab.workspacePath).find((path) => dependencies.hasFile(tab.workspaceId, path)) ?? null;
+  }
+
   function applyView(tab: Tab | undefined) {
     dependencies.toolbar.hidden = !tab || !isDesignTab(tab);
     if (!tab || !isDesignTab(tab)) {
@@ -94,10 +109,9 @@ export function mountDesignerShell(dependencies: DesignerShellDependencies) {
       if (name === "code") continue;
       button.setAttribute("aria-pressed", String(name === view));
     }
-    const code = codeBehindPath(tab.workspacePath ?? "");
-    const hasCode = Boolean(tab.workspaceId && dependencies.hasFile(tab.workspaceId, code));
-    dependencies.buttons.code.disabled = !hasCode;
-    dependencies.buttons.code.title = hasCode
+    const code = existingCodeBehind(tab);
+    dependencies.buttons.code.disabled = code === null;
+    dependencies.buttons.code.title = code !== null
       ? `Abrir o código da tela (${code.split("/").pop()}) — F7`
       : "Esta tela ainda não tem código: ele é criado quando você liga o primeiro evento";
   }
@@ -162,8 +176,8 @@ export function mountDesignerShell(dependencies: DesignerShellDependencies) {
     const tab = dependencies.activeTab();
     if (!tab?.workspaceId || !tab.workspacePath) return false;
     if (isDesignTab(tab)) {
-      const code = codeBehindPath(tab.workspacePath);
-      if (!dependencies.hasFile(tab.workspaceId, code)) {
+      const code = existingCodeBehind(tab);
+      if (code === null) {
         dependencies.setStatus("Esta tela ainda não tem código: ele é criado quando você liga o primeiro evento.");
         return true;
       }
