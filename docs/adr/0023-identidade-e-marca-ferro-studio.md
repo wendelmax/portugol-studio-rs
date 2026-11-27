@@ -3,7 +3,7 @@
 - **Status:** Aceita
 - **Data:** 2026-11-27
 - **Responsável:** mantenedor do produto
-- **Emendas:** Emenda 1 (2026-11-27)
+- **Emendas:** Emendas 1 e 2 (2026-11-27)
 - **Relacionados:** [ADR 0015](0015-evolucao-visual-orientada-a-aprendizagem.md), [ADR 0016](0016-pors-como-linguagem-autoral-e-retirada-do-por.md), [ADR 0018](0018-projetos-desktop-pors-com-designer-visual.md), [ADR 0021](0021-tela-como-forma-unica-de-interface-pors.md), [ADR 0022](0022-projetos-de-jogos-2d-pors-e-exportacao-macroquad.md)
 
 > **Emenda 1 (2026-11-27).** Revisa a seção 2 e a Fase 2 da seção 4: na
@@ -12,6 +12,12 @@
 > `.rs` e, futuramente, `.ferws`), usando anotações `@teste` no código em vez
 > de uma extensão separada e definindo `.licao` como equivalente oficial ao
 > `.pex` clássico (mantendo a retirada de `.por`/`.pex` do ADR 0016).
+
+> **Emenda 2 (2026-11-27).** Define *como* as extensões são absorvidas: uma
+> tabela única de formatos no núcleo, consultada por CLI, serviço, Tauri e IDE;
+> extensões antigas abertas normalmente, com aviso e renomeação em um clique;
+> `portugol migrar` para pastas inteiras; e a ordem dos PRs. Também registra as
+> decisões que ainda faltam antes de `.licao` e `@teste`. Ver a seção 5.
 
 ## Contexto
 
@@ -28,7 +34,7 @@ do Portugol Studio clássico:
    (ADR 0022), além da ponte progressiva para Rust real (`std`) e do Web
    Playground em WebAssembly.
 
-Manter o nome **"Portugol Studio RS"** passou a gerar três problemas de
+Manter o nome **"Portugol Studio RS"** passou a gerar quatro problemas de
 produto:
 
 - **Expectativa incorreta:** quem conhece o Portugol Studio da UNIVALI espera
@@ -133,6 +139,71 @@ Para não gerar conflitos com as entregas paralelas do designer `.design` (ADRs
     antigo `portugol-studio-rs` livre na conta do GitHub para preservar os
     redirecionamentos automáticos de clones, links e verificação de
     atualizações em instalações anteriores (como a `v0.7.0`).
+
+### 5. Como as extensões são absorvidas *(Emenda 2)*
+
+Hoje cada parte do código decide sozinha o que é cada arquivo: há listas de
+extensões repetidas em cerca de 90 lugares entre a IDE, o Tauri, o CLI e o
+serviço. Foi assim que o `.porsproj` se espalhou por 25 arquivos em um dia.
+Trocar extensões nesse cenário é caro e arriscado.
+
+#### 5.1 Tabela única de formatos
+
+- Um módulo do núcleo, sem dependências e compilável para
+  `wasm32-unknown-unknown`, lista cada formato: o tipo (código-fonte, tela,
+  manifesto, lição, Rust), a extensão canônica, as extensões antigas aceitas,
+  o rótulo mostrado ao aluno, o MIME e o que o formato permite (abrir, salvar,
+  executar, exportar, criar).
+- Uma função classifica um caminho e diz o tipo e se a extensão é antiga. CLI,
+  serviço, comandos Tauri e workspace passam a consultar essa função em vez de
+  comparar extensões.
+- A tabela é exportada para um JSON versionado que a IDE importa. Um teste
+  falha se o JSON e o Rust divergirem, então a lista não volta a ser
+  duplicada.
+
+#### 5.2 Extensões antigas durante a transição
+
+- **Abrir, executar e salvar** funcionam como antes; extensão antiga não é
+  erro.
+- A IDE mostra um aviso discreto: "Este arquivo usa a extensão antiga `.pors`.
+  Renomear para `.fer`?", com um botão que renomeia. Numa tela, o `.design` e o
+  code-behind são tratados juntos.
+- **Arquivos novos** já saem com a extensão canônica.
+- O Explorador agrupa `Nome.design` com o code-behind em qualquer das duas
+  extensões; se as duas existirem, avisa que há um arquivo duplicado.
+- **`portugol migrar <pasta>`** lista o que vai mudar e só renomeia depois da
+  confirmação (`--sim` para pular a pergunta).
+- Durante a transição, o instalador registra as duas extensões no sistema.
+- Os exemplos e exercícios do repositório são renomeados com `git mv` num PR
+  só, para não perder o histórico.
+- O fim da janela de transição (quando a extensão antiga deixa de abrir
+  direto e passa a abrir só pela migração) é decidido num PR de release,
+  depois de pelo menos uma versão lançada com o aviso.
+
+#### 5.3 Ordem dos PRs
+
+1. **Tabela única, sem mudar comportamento:** troca as checagens espalhadas
+   pela consulta à tabela.
+2. **`.fer` canônico, `.pors` aceito:** arquivos novos em `.fer`, aviso com
+   renomeação, `portugol migrar`, renomeação dos exemplos e associações no
+   sistema.
+3. **`.licao`:** depende da decisão do formato interno (5.4).
+4. **`@teste`:** depende de uma RFC de sintaxe (5.4).
+
+O `.ferproj` foi adotado antes desta ordem porque o `.porsproj` nunca saiu
+numa versão lançada.
+
+#### 5.4 Decisões pendentes
+
+- **Formato interno do `.licao`:** continuar em JSON, como o `.pors.json`, ou
+  usar a mesma marcação do `.design` e do `.ferproj`. Se mudar, a migração
+  precisa converter o conteúdo, e não só renomear.
+- **`@teste`:** é sintaxe nova da linguagem e precisa de RFC no processo dos
+  ADRs 0019 e 0020: onde a anotação pode aparecer, como o aluno escreve o
+  resultado esperado e como os testes se relacionam com os casos do
+  `.licao`.
+- **Nome visível da linguagem:** se "PORS" sai também de mensagens, ajuda e
+  ADRs quando a linguagem passa a se chamar Ferro.
 
 ## Alternativas consideradas
 
