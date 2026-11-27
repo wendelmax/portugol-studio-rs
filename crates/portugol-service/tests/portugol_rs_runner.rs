@@ -418,3 +418,25 @@ fn returns_the_real_exit_code_and_stderr_from_a_rust_runtime_failure() {
         other => panic!("falha em runtime não deve ser erro de compilação: {other:?}"),
     }
 }
+
+#[test]
+fn compiles_and_runs_canonical_syntax_evolution_program_with_real_rustc() {
+    let source = include_str!("../../../tests/fixtures/pors-syntax-evolution.pors");
+    let cancel = AtomicBool::new(false);
+    let mut requests = Vec::new();
+    let result = run_portugol_rs_with_io(
+        source,
+        &cancel,
+        |expected| {
+            requests.push(expected.to_owned());
+            Ok("Ada".to_owned())
+        },
+        |_| {},
+    )
+    .unwrap();
+    assert_eq!(requests, ["cadeia"]);
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { ref stdout, exit_code: Some(0), .. } if stdout == "Olá, Ada!\n"),
+        "{result:?}"
+    );
+}

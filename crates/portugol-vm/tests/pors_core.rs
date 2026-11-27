@@ -972,3 +972,12 @@ funcao inicio() {
         .expect_err("função multimídia direta sem stdlib deve falhar com mensagem clara");
     assert!(err.message.contains("stdlib"));
 }
+
+#[test]
+fn executes_canonical_syntax_evolution_program_in_minimal_vm() {
+    let source = include_str!("../../../tests/fixtures/pors-syntax-evolution.pors");
+    let module = compile_pors_source(source);
+    let mut io = BufferIo::new("Ada\n");
+    run(&module, &mut io).expect("execução do programa motivador na VM");
+    assert_eq!(io.output, "Olá, Ada!\n");
+}

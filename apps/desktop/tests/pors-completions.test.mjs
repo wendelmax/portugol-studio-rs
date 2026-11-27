@@ -147,3 +147,18 @@ test("porsHoverInfo resolves signatures and docs for stdlib, UI, enums and keywo
 
   assert.equal(porsHoverInfo("seja desconhecido: inteiro = 1;", 6), null);
 });
+
+test("PORS documents escreval and leia() as builtins", async () => {
+  const completions = await completeAt("escr");
+  const entry = completions.options.find((o) => o.label === "escreval");
+  assert.ok(entry);
+  assert.equal(entry.apply, "escreval(");
+  assert.match(entry.detail, /escreval\(/);
+
+  const hover = porsHoverInfo('escreval("Olá");', 3);
+  assert.equal(hover.title, "escreval");
+  assert.match(hover.description, /quebra de linha/);
+
+  const readHover = porsHoverInfo("leia();", 1);
+  assert.match(readHover.signature, /leia\(\)/);
+});
