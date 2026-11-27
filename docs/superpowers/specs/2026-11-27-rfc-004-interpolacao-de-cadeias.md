@@ -8,7 +8,7 @@
 
 O design aprovado pede `"Olá, {nome}!"` como cadeia com partes na HIR, e classifica como anti-objetivo substituir o texto antes de montar a HIR: isso perderia spans, formatação, rename e diagnósticos. Hoje o lexer devolve `String(String)` já com os escapes decodificados e trata `{`/`}` dentro de cadeia como literais, então `"{nome}"` imprime `{nome}`.
 
-O ADR 0019 congela `cadeia` e `caracter` como os únicos tipos que participam da concatenação de texto e mantém spans como offsets UTF-8 semiabertos em bytes. A regra vigente em `crates/portugol-rs-frontend/src/parser/constants.rs:318-323` aceita `Add` entre `String`/`String` e `Character`/`Character` com resultado `String`; o bytecode reusa `Op::Add` e o Rust gerado reusa `__pors_concat`, sem opcode novo. A RFC 002 dá tipo `cadeia` fixo a `leia()`, e a RFC 003 define `escreval` como açúcar de `escreva`, sem alterar a cadeia em si.
+O ADR 0019 congela `cadeia` e `caracter` como os únicos tipos que participam da concatenação de texto e mantém spans como offsets UTF-8 semiabertos em bytes. A regra vigente em `crates/portugol-rs-frontend/src/parser/constants.rs:318-323` aceita `Add` entre `String`/`String` e `Character`/`Character` com resultado `String`; o bytecode reusa `Op::Add` e o Rust gerado reusa `__pors_concat`, sem opcode novo. A RFC 002 faz `leia()` inferir o tipo do contexto (`cadeia` sem contexto tipado), e a RFC 003 define `escreval` como acréscimo de quebra final, sem alterar a cadeia em si.
 
 Esta RFC fixa o contrato observável da interpolação no frontend, na HIR, no bytecode/VM, no Rust gerado, no formatador e nos editores. Não define retorno implícito (RFC 005) nem o contrato completo de realce (RFC 006).
 
@@ -42,7 +42,7 @@ Esta RFC fixa o contrato observável da interpolação no frontend, na HIR, no b
 
 ### Tipos e diagnósticos
 
-1. Somente expressões do tipo `cadeia` ou `caracter` são aceitas como parte de texto. Antes da dobra, cada parte é convertida para `cadeia`: uma parte `cadeia` entra como ela mesma e uma parte `caracter` é materializada como cadeia de um caractere. Assim, toda `Op::Add` da dobra tem dois operandos `cadeia`, e nenhuma chamada a `__pors_concat` mistura tipos. A conversão não cria nó de HIR nem auxiliar: o `Expr` filho mantém seu `ty = caracter` e seu `Expr.span` interno, e a parte passa a ser tratada como `cadeia` no lowering. `leia()` satisfaz esta regra com o tipo `cadeia` fixo da RFC 002.
+1. Somente expressões do tipo `cadeia` ou `caracter` são aceitas como parte de texto. Antes da dobra, cada parte é convertida para `cadeia`: uma parte `cadeia` entra como ela mesma e uma parte `caracter` é materializada como cadeia de um caractere. Assim, toda `Op::Add` da dobra tem dois operandos `cadeia`, e nenhuma chamada a `__pors_concat` mistura tipos. A conversão não cria nó de HIR nem auxiliar: o `Expr` filho mantém seu `ty = caracter` e seu `Expr.span` interno, e a parte passa a ser tratada como `cadeia` no lowering. `leia()` satisfaz esta regra quando resulta em `cadeia` (sem contexto tipado) ou quando o contexto esperado é `caracter`, conforme RFC 002.
 2. Conteúdo que não parseia como expressão PORS completa gera `pors.interpolation-invalid` no span exato do conteúdo entre chaves, sem as chaves. Exemplo: `escreva("{1 +}");` aponta `[10, 13)`.
 3. Conteúdo que parseia, mas cujo tipo não é `cadeia` nem `caracter`, gera `pors.interpolation-non-string` no span da expressão interna, sem as chaves. Números inteiros e reais, lógicos, vetores, registros, enums e `vazio` usam todos esse código; não há `to_string` implícito nem conversão numérica nesta fatia. Exemplo: `escreva("{42}");` aponta `[10, 12)`.
 4. Um diagnóstico não transforma a parte em literal: a cadeia interpolada continua com `ty = cadeia`, e o erro é localizado na parte ofensiva.
@@ -73,7 +73,7 @@ Esta RFC fixa o contrato observável da interpolação no frontend, na HIR, no b
 
 - Especificadores de formato não são aceitos nesta fatia e nenhuma sintaxe é reservada para eles; aceitar algum formato exige revisar esta RFC.
 - A decisão sobre conversão de números para texto também fica adiada: até lá, números em interpolação geram `pors.interpolation-non-string`.
-- `leia<T>()`, conversão e validação tipada de entrada continuam em **P1**, conforme RFC 002 e ADR 0019.
+- `leia<T>()` e validação tipada explícita de entrada continuam em **P1**, conforme RFC 002 e ADR 0019; a conversão implícita acontece na própria leitura.
 - Retorno implícito é da RFC 005 e realce de sintaxe é da RFC 006; esta RFC não altera nenhum dos dois contratos.
 - Permanecem adiados pelo ADR 0019: novas larguras de inteiro e a decisão sobre overflow, aliases, `nunca`, Unicode além dos offsets de bytes dos spans e mudanças em heap/GC.
 - Não há nova crate, renomeação de produto, pasta `specs/` paralela ou API WASM. RFCs e design docs continuam em `docs/superpowers/specs/` e ADRs em `docs/adr/`.
@@ -97,13 +97,13 @@ funcao inicio() {
 ```pors
 funcao inicio() {
     seja letra: caracter = 'a';
-    escreva("letra: {letra}\n");
+    escreval("letra: {letra}");
     escreva("\{nome\} e {} ficam literais; { aberto também");
     escreval("Olá, {leia()}!");
 }
 ```
 
-O segundo `escreva` imprime `{nome} e {} ficam literais; { aberto também` — `\{`, `\}` e `{` sem fechamento são literais. A quebra em `escreva("letra: {letra}\n");` vem do `\n` escrito pelo programa; `escreval` acrescenta apenas a sua quebra, conforme RFC 003.
+O segundo `escreva` imprime `{nome} e {} ficam literais; { aberto também` — `\{`, `\}` e `{` sem fechamento são literais. A quebra depois de `letra: {letra}` vem do `escreval`, que acrescenta apenas a sua quebra final; o `escreva` da linha seguinte permanece sem quebra explícita, conforme RFC 003.
 
 ## Exemplos inválidos
 
@@ -116,5 +116,5 @@ O segundo `escreva` imprime `{nome} e {} ficam literais; { aberto também` — `
 ## Consequências
 
 - Os testes de aceite devem verificar a estrutura `StringPart`, `ty = cadeia`, os spans UTF-8 em bytes, os dois códigos de diagnóstico e a saída observável igual entre bytecode/VM e Rust gerado.
-- O programador motivador do design passa a imprimir a saudação interpolada sem concatenação manual, preservando `leia(variavel)`, `escreva` e a concatenação com `+` já publicados.
+- O programador motivador do design passa a imprimir a saudação interpolada sem concatenação manual, preferindo `leia()`; a forma com variável-alvo de `leia`, `escreva` e a concatenação com `+` continuam válidos por compatibilidade.
 - Qualquer mudança na gramática das chaves, nas partes da HIR, nos códigos de diagnóstico, na conversão permitida ou na preservação verbatim do conteúdo exige revisão desta RFC e do ADR 0019 antes de entrar em código.

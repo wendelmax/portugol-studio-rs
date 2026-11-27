@@ -96,7 +96,25 @@ Migração total mantendo `leia()` como `cadeia` e usando `Tipos.para_*` + `Resu
 5. **RFC 007 e RFC 008 corrigidas e sinalizadas.** Interpolações de números/enums são substituídas por argumentos de `escreval` compatíveis com a RFC 004; ambas recebem aviso explícito de que seus exemplos não executam no `main`.
 6. **Contradição do plano corrigida.** O plano do núcleo passa a descrever `escreval` como builtin não reservado, alinhado à implementação.
 7. **Exceções** à conversão literal são registradas neste design e em `docs/research/PORS_MIGRATION_MATRIX.md`; não é criada nova RFC.
-8. **Validação forte.** Teste de aceite compila os 211 `.pors`, varre fontes embutidos em busca de padrões legados e exige allowlist explícita para qualquer exceção.
+8. **Validação forte.** Teste de aceite compila os 172 programas `.pors` completos, varre padrões legados nos 211 arquivos e em todos os fontes embutidos, e exige allowlist explícita para qualquer exceção.
+
+## Exceções registradas
+
+Estas exceções cumprem a Decisão 7 e são espelhadas em
+`docs/research/PORS_MIGRATION_MATRIX.md`. Nenhuma delas cria nova RFC nem
+enfraquece a allowlist existente.
+
+| Item | Registro |
+|---|---|
+| Conversão de leitura | `leia(variavel)` converte ao tipo declarado da variável e `leia()` ao tipo esperado pelo contexto; sem contexto, `leia()` é `cadeia`. Entrada inválida é erro de execução, sem valor padrão silencioso. |
+| Preferência | Exemplos migrados preferem `leia()`. `leia(variavel)` fica restrito à compatibilidade e a laços com leitura repetida. |
+| `caracter`/`logico` | `caracter` exige exatamente um caractere; `logico` aceita espaços ao redor. A diferença em relação às antigas leituras tipadas é registrada na matriz. |
+| `UI.entrada` | Campo de texto bruto mantém `Tipos.para_*` + `Resultado` com `escolha` quando a validação explícita é o objetivo da lição. |
+| Rótulo divergente | `crates/portugol-rust/src/codegen/stmt.rs:216` usa `lógico` para leitura com variável, enquanto `crates/portugol-rust/src/codegen/types.rs:100` usa `logico` para leitura como expressão. Divergência pré-existente: `stmt.rs` não é alterado nesta fatia. |
+| Fronteira `1 + leia()` | O tipo esperado não é propagado ao operando direito de uma operação binária: ele é analisado com `target=None` (`cadeia`). `target=Some(Integer)` aparece em `seja n: inteiro = leia();`, argumento tipado, atribuição, retorno e campo; a soma com `leia()` não é usada nos exemplos. |
+| Cobertura do gate | 211 arquivos `.pors` são varridos por marcadores; 172 programas completos são compilados. Os outros 39 são fragmentos `data-type="sintaxe"` sem `funcao inicio()` e não compilam isoladamente. |
+| Quebra explícita | O marcador `escreva-com-quebra-explicita` só sinaliza `escreva(...)` com `\n` em cadeia; `escreva` sem quebra continua válido. A allowlist preserva 15 arquivos do catálogo e 1 exemplo de ajuda (16 entradas, 32 chamadas), porque `escreval` acrescentaria quebra final e mudaria o stdout. |
+| Laços e compatibilidade HTML | Quatro laços do catálogo e dois da ajuda com `leia(variavel)` e duas entradas HTML de compatibilidade (`entrada_saida/index.html` e `entrada_saida/leia.html`) permanecem na allowlist, sem alteração das entradas existentes. |
 
 ## Plano de implementação esperado
 

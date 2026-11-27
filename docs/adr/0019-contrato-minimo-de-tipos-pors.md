@@ -13,12 +13,14 @@ retorno implícito e realce de sintaxe. O exemplo motivador usa apenas
 `cadeia`, e a mudança acontece sobre a HIR, o bytecode/VM e o Rust gerado já
 existentes, sem nova VM, nova API WASM ou renomeação de crates e produto.
 
-O estado vigente, verificado no design doc aprovado, é: `inteiro` é `i32` com
-`wrapping` em HIR/VM/Rust gerado; `leia(variavel)` é comando e toda leitura sem
-argumento terá tipo `cadeia` fixa nesta fatia; os nomes `caracter`, `registro`,
-`enum`, `Opcao`, `Resultado` e `escolha` já estão publicados; spans são UTF-8 em
-bytes; `vazio` aparece apenas como tipo de retorno. `escreval(a, b);` é somente
-açúcar para `escreva(a, b, "\n")`, sem tipo ou opcode novo.
+O estado vigente, com a revisão registrada na Decisão 7, é: `inteiro` é `i32` com
+`wrapping` em HIR/VM/Rust gerado; a leitura com variável-alvo é comando e a forma
+`leia()` infere o tipo esperado pelo contexto, resultando em `cadeia` quando não
+há contexto tipado; entrada inválida gera erro de execução, sem valor padrão
+silencioso. Os nomes `caracter`, `registro`, `enum`, `Opcao`, `Resultado` e
+`escolha` já estão publicados; spans são UTF-8 em bytes; `vazio` aparece apenas
+como tipo de retorno. `escreval(a, b);` acrescenta uma quebra final à escrita de
+`escreva(a, b)`, sem tipo ou opcode novo.
 
 Larguras adicionais, regras de overflow, aliases, suporte a Unicode e modelo de
 memória são decisões maiores que não devem ser tomadas sob pressão do exemplo
@@ -28,10 +30,12 @@ motivador.
 
 1. `inteiro` continua `i32` com `wrapping` em HIR, bytecode/VM e Rust gerado
    até decisão posterior. Nenhuma largura nova é introduzida nesta fatia.
-2. `leia()` tem tipo `cadeia` fixa, sem `leia<T>()`: contexto de declaração,
-   parâmetro ou retorno nunca altera esse tipo, e usar `leia()` onde se espera
-   `inteiro` é erro de tipo com span na chamada. A forma legada
-   `leia(variavel)` mantém o tipo da variável.
+2. `leia()` infere o tipo do contexto — inicialização de `seja` com tipo
+   anotado, parâmetro, retorno, atribuição ou campo — e resulta em `cadeia`
+   sem contexto tipado; não há `leia<T>()`. A forma com variável-alvo converte
+   implicitamente ao tipo declarado da variável. Entrada que não converte gera
+   erro de execução com mensagem sobre o tipo esperado, sem valor padrão
+   silencioso.
 3. Os nomes atuais `caracter`, `registro`, `enum`, `Opcao`, `Resultado` e
    `escolha` permanecem. Nenhum deles é renomeado nesta fatia.
 4. Spans continuam sendo offsets UTF-8 em bytes, semiabertos. Índices por
@@ -42,6 +46,13 @@ motivador.
    overflow; aliases `caractere`, `estrutura`, `opcional` e `resultado`;
    `nunca`; Unicode além dos offsets de bytes dos spans; e heap/GC, mantido o
    modelo atual de `Rc<RefCell>` com orçamento.
+7. **Tipo de `leia()` dependente do contexto — aceita nesta fatia.** A opção
+   antes rejeitada foi adotada: `leia()` converte implicitamente ao tipo
+   esperado pelo contexto e a forma com variável-alvo converte ao tipo da
+   variável. O contrato mínimo anterior, que congelava `leia()` como `cadeia`
+   fixa, foi superado; sem contexto tipado a leitura continua resultando em
+   `cadeia`. Entrada inválida é erro de execução, não valor padrão nem erro
+   estático de tipo.
 
 ## Alternativas consideradas
 
@@ -53,9 +64,10 @@ contrato mínimo congela o que já existe e explicita o adiamento.
 
 ### Tipo de `leia()` dependente do contexto
 
-Rejeitada. Tornar `leia()` polimórfico por inferência tornaria ambíguo um
-`seja nome = leia();` sem contexto e exigiria `leia<T>()` ou conversão tipada
-de entrada, ambos adiados para P1.
+Não é mais rejeitada: foi aceita nesta fatia e registrada como Decisão 7. A
+justificativa anterior — ambiguidade em `seja nome = leia();` e necessidade de
+`leia<T>()` ou conversão tipada explícita — deixa de valer porque a leitura sem
+contexto continua `cadeia` e a conversão implícita resolve o contexto tipado.
 
 ### Renomear nomes publicados ou usar spans por caractere
 
@@ -66,9 +78,9 @@ para esta fatia.
 
 ### Novo tipo ou opcode para `escreval`
 
-Rejeitada. `escreval(a, b);` equivale a `escreva(a, b, "\n")`, preservando
-`StmtKind::Write`, `Op::Write` e a equivalência observável entre VM e Rust
-gerado.
+Rejeitada. `escreval(a, b);` escreve `a`, `b` e uma quebra final como `escreva`,
+preservando `StmtKind::Write`, `Op::Write` e a equivalência observável entre VM
+e Rust gerado.
 
 ## Consequências
 
@@ -77,3 +89,6 @@ gerado.
 - Qualquer mudança nos pontos congelados acima — inclusive larguras, overflow,
   aliases, `nunca`, Unicode e heap/GC — exige novo ADR antes de entrada em
   código.
+- A revisão do tipo de `leia()` é registrada também na RFC 002 e na
+  [matriz de migração](../research/PORS_MIGRATION_MATRIX.md), que documenta as
+  diferenças observadas em `caracter` e `logico` e as exceções da allowlist.

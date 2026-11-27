@@ -114,7 +114,10 @@ renderizador da prévia `UI.*`. Nenhum framework de UI Rust é embutido na IDE.
 
 A partir de cada `.tela`, o frontend PORS gera um `registro` com o nome da
 janela, que tem um campo por controle e as propriedades editáveis de cada um.
-Um handler recebe a janela e **devolve a janela atualizada**:
+Um handler recebe a janela e **devolve a janela atualizada**. O texto dos campos
+é lido como `cadeia` bruta; a conversão para `inteiro` continua explícita com
+`Tipos.para_*` e `Resultado`, conforme a exceção `UI.entrada` registrada na
+matriz de migração:
 
 ```pors
 funcao btnSomar_clicar(tela: JanelaPrincipal) -> JanelaPrincipal {

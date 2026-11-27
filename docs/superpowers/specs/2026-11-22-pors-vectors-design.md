@@ -16,8 +16,8 @@ funcao primeiro_dobro(valores: vetor<inteiro>) -> inteiro {
 funcao inicio() {
     seja mutavel notas: vetor<inteiro> = [7, 8, 9];
     notas[1] = 10;
-    escreva(primeiro_dobro(notas));
-    escreva(tamanho(notas));
+    escreval(primeiro_dobro(notas));
+    escreval(tamanho(notas));
 }
 ```
 
