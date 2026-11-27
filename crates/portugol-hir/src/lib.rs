@@ -387,6 +387,8 @@ pub enum ExprKind {
     Real(f64),
     Boolean(bool),
     String(String),
+    /// Leitura de uma cadeia da entrada, usada como expressão (`leia()`).
+    Read,
     InterpolatedString {
         parts: Vec<StringPart>,
     },

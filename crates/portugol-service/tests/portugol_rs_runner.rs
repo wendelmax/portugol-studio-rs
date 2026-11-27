@@ -168,6 +168,27 @@ fn pauses_at_leia_requests_typed_input_and_resumes_the_program() {
 }
 
 #[test]
+fn generated_rust_requests_a_string_when_read_is_an_expression() {
+    let cancel = AtomicBool::new(false);
+    let mut requests = Vec::new();
+    let result = run_portugol_rs_with_io(
+        "funcao inicio() { escreva(leia()); }",
+        &cancel,
+        |expected| {
+            requests.push(expected.to_owned());
+            Ok("Ada".to_owned())
+        },
+        |_| {},
+    )
+    .unwrap();
+    assert_eq!(requests, ["cadeia"]);
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { ref stdout, exit_code: Some(0), .. } if stdout == "Ada"),
+        "{result:?}"
+    );
+}
+
+#[test]
 fn parses_string_real_boolean_and_character_inputs() {
     for (ty, value) in [
         ("cadeia", "Olá, Rust"),

@@ -760,6 +760,9 @@ impl<'a> Compiler<'a> {
                 let index = self.intern_string(value);
                 self.emit(Op::PushStr(index), expr.span);
             }
+            E::Read => {
+                self.emit(Op::Read(ValueType::Cadeia), expr.span);
+            }
             E::InterpolatedString { parts } => {
                 if parts.is_empty() {
                     let index = self.intern_string("");

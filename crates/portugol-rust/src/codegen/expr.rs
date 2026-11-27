@@ -299,6 +299,14 @@ pub(super) fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedE
         } else {
             format!("String::from({value:?})")
         })],
+        ExprKind::Read => vec![ExpressionPart::Nested(compose_expression(
+            vec![ExpressionPart::Text(if pors {
+                "__pors_string(&__portugol_read_line(\"cadeia\"))".to_owned()
+            } else {
+                "__portugol_read_line(\"cadeia\")".to_owned()
+            })],
+            expr.span,
+        ))],
         ExprKind::InterpolatedString { parts } => {
             let mut accumulator = None;
             for part in parts {

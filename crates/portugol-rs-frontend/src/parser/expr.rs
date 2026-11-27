@@ -174,6 +174,36 @@ impl Parser {
             Kind::Ident(word) if word == "falso" => {
                 (hir::ExprKind::Boolean(false), hir::Type::Boolean)
             }
+            Kind::Ident(name) if name == "leia" && matches!(self.current().kind, Kind::LParen) => {
+                self.advance();
+                if !matches!(self.current().kind, Kind::RParen) {
+                    let start = self.current().span;
+                    let mut cursor = self.cursor;
+                    let mut depth = 0i32;
+                    while cursor < self.tokens.len() {
+                        match self.tokens[cursor].kind {
+                            Kind::LParen => depth += 1,
+                            Kind::RParen if depth == 0 => break,
+                            Kind::RParen => depth -= 1,
+                            Kind::Eof => break,
+                            _ => {}
+                        }
+                        cursor += 1;
+                    }
+                    let end = self.tokens[cursor.min(self.tokens.len() - 1)].span;
+                    return self.fail(
+                        "pors.read-arguments-unsupported",
+                        "`leia()` não aceita argumentos; use `leia(variavel)` como comando",
+                        start.join(end),
+                    );
+                }
+                let close = self.expect(Kind::RParen, "Esperado `)` após leia")?;
+                return Ok(hir::Expr {
+                    kind: hir::ExprKind::Read,
+                    ty: hir::Type::String,
+                    span: to_hir_span(span.join(close.span)),
+                });
+            }
             Kind::Ident(name) => {
                 if name == "UI"
                     && matches!(self.current().kind, Kind::Dot)

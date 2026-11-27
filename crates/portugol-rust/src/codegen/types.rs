@@ -47,22 +47,80 @@ pub(super) fn binding_info(program: &Program, id: BindingId) -> &portugol_hir::B
 }
 
 pub(super) fn statements_have_read(statements: &[Stmt]) -> bool {
-    statements.iter().any(|statement| match &statement.kind {
-        StmtKind::Read { .. } => true,
-        StmtKind::If {
+    statements
+        .iter()
+        .any(|statement| statement_has_read(&statement.kind))
+}
+
+fn statement_has_read(kind: &StmtKind) -> bool {
+    use StmtKind as S;
+    match kind {
+        S::Read { .. } => true,
+        S::Declare { initializer, .. } => initializer.as_ref().is_some_and(expression_has_read),
+        S::Assign { value, .. } | S::FieldAssign { value, .. } => expression_has_read(value),
+        S::Choose { value, arms } => {
+            expression_has_read(value) || arms.iter().any(|arm| statements_have_read(&arm.body))
+        }
+        S::Call { arguments, .. } | S::HostCall { arguments, .. } => {
+            arguments.iter().any(expression_has_read)
+        }
+        S::Write(arguments) => arguments.iter().any(expression_has_read),
+        S::If {
+            condition,
             then_branch,
             else_branch,
-            ..
         } => {
-            statements_have_read(then_branch)
+            expression_has_read(condition)
+                || statements_have_read(then_branch)
                 || else_branch.as_deref().is_some_and(statements_have_read)
         }
-        StmtKind::While { body, .. }
-        | StmtKind::DoWhile { body, .. }
-        | StmtKind::For { body, .. } => statements_have_read(body),
-        StmtKind::Choose { arms, .. } => arms.iter().any(|arm| statements_have_read(&arm.body)),
-        _ => false,
-    })
+        S::While { condition, body }
+        | S::DoWhile { condition, body }
+        | S::For {
+            condition, body, ..
+        } => expression_has_read(condition) || statements_have_read(body),
+        S::Return { value } => value.as_ref().is_some_and(expression_has_read),
+        S::IndexAssign { index, value, .. } => {
+            expression_has_read(index) || expression_has_read(value)
+        }
+        S::VectorPush { value, .. } => expression_has_read(value),
+        S::LoopControl { .. } | S::VectorPop { .. } => false,
+    }
+}
+
+fn expression_has_read(expr: &Expr) -> bool {
+    use ExprKind as E;
+    match &expr.kind {
+        E::Read => true,
+        E::Call { arguments, .. }
+        | E::HostCall { arguments, .. }
+        | E::VectorLiteral(arguments)
+        | E::RecordLiteral {
+            fields: arguments, ..
+        }
+        | E::EnumConstructor {
+            payload: arguments, ..
+        } => arguments.iter().any(expression_has_read),
+        E::Field { value, .. }
+        | E::Index { index: value, .. }
+        | E::VectorGet { index: value, .. }
+        | E::Parenthesized(value)
+        | E::Try { operand: value }
+        | E::Unary { operand: value, .. } => expression_has_read(value),
+        E::InterpolatedString { parts } => parts.iter().any(|part| match part {
+            portugol_hir::StringPart::Literal(_, _) => false,
+            portugol_hir::StringPart::Expression(value, _) => expression_has_read(value),
+        }),
+        E::Binary { left, right, .. } => expression_has_read(left) || expression_has_read(right),
+        E::Binding(_)
+        | E::Length { .. }
+        | E::VectorPop { .. }
+        | E::Integer(_)
+        | E::Real(_)
+        | E::Boolean(_)
+        | E::String(_)
+        | E::Character(_) => false,
+    }
 }
 
 pub(super) fn pors_clone_value(ty: Type, value: &str, program: &Program) -> String {
@@ -427,6 +485,7 @@ fn expr_uses_host_module(expr: &Expr, target: &str) -> bool {
         | ExprKind::Real(_)
         | ExprKind::Boolean(_)
         | ExprKind::String(_)
+        | ExprKind::Read
         | ExprKind::Character(_) => false,
     }
 }

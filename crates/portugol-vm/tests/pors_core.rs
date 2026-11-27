@@ -990,3 +990,21 @@ fn escreval_emits_one_newline_without_duplication() {
     run(&module, &mut io).expect("execução de escreval");
     assert_eq!(io.output, "a\n\n");
 }
+
+#[test]
+fn executes_interpolated_string_through_bytecode_and_vm() {
+    let source = "funcao inicio() { seja nome = \"Ada\"; escreva(\"Olá, {nome}!\"); }";
+    let module = compile_pors_source(source);
+    let mut io = BufferIo::default();
+    run(&module, &mut io).expect("execução de interpolação");
+    assert_eq!(io.output, "Olá, Ada!");
+}
+
+#[test]
+fn reads_a_string_expression_without_a_target_binding() {
+    let source = "funcao inicio() { escreva(leia()); }";
+    let module = compile_pors_source(source);
+    let mut io = BufferIo::new("Ada\n");
+    run(&module, &mut io).expect("leia() como expressão");
+    assert_eq!(io.output, "Ada");
+}

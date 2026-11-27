@@ -397,6 +397,17 @@ fn nested_counted_loops_keep_shadowed_control_bindings_separate() {
 }
 
 #[test]
+fn read_expression_rejects_arguments() {
+    let source = "funcao inicio() { escreva(leia(\"x\")); }";
+    assert!(
+        lower(source)
+            .unwrap_err()
+            .iter()
+            .any(|d| d.code == "pors.read-arguments-unsupported")
+    );
+}
+
+#[test]
 fn rejects_read_expression_in_an_integer_context_at_its_span() {
     let source = "funcao inicio() { seja idade: inteiro = leia(); }";
     let errors = lower(source).unwrap_err();
