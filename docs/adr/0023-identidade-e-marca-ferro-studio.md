@@ -93,11 +93,26 @@ Para não gerar conflitos com as entregas paralelas do designer `.design` (ADRs
 - **Fase 1 (imediata — este ADR):** publicação desta decisão e atualização dos
   ícones oficiais (`icon.svg`, PNGs, `icon.ico` e `icon.icns`) em
   `apps/desktop/src-tauri/icons/`.
-- **Fase 2 (após conclusão do fluxo `.design`):** atualização de `productName` e
-  títulos visíveis na IDE Desktop, redesenho do Web Playground (alinhado ao
-  ADR 0021), atualização do `README.md`, notas de release e planejamento da
-  transição de identificadores/pacotes (`br.ferro.studio` e pacote Arch
-  `ferro-studio` com `replaces`/`conflicts`).
+- **Fase 2 (após conclusão do fluxo `.design`):**
+  - atualização de `productName`, títulos visíveis na IDE Desktop, Ajuda, Sobre
+    e redesenho do Web Playground (alinhado ao ADR 0021);
+  - renomeação do repositório GitHub para **`wendelmax/ferro-studio`** (e
+    GitHub Pages para `https://wendelmax.github.io/ferro-studio/`), atualizando
+    em conjunto:
+    - **Runtime da IDE:** `apps/desktop/src-tauri/src/updates.rs`,
+      `alerts.rs`, `lib.rs`, `apps/desktop/src/shell/project-dialogs.ts` e
+      `apps/desktop/index.html`;
+    - **Build, release e empacotamento:** `Cargo.toml`, `scripts/release.sh`,
+      `.github/workflows/release.yml`, `packaging/arch/PKGBUILD`,
+      `packaging/arch/build-package.sh` e arquivo `.desktop`;
+    - **Web Playground e documentação:** `apps/web-playground/index.html`,
+      `apps/web-playground/README.md`, `README.md`, `CONTRIBUTING.md`,
+      `docs/DISTRIBUICAO.md` e `docs/UX.md`;
+  - planejamento da transição de identificadores/pacotes (`br.ferro.studio` e
+    pacote Arch `ferro-studio` com `replaces`/`conflicts`), mantendo o slug
+    antigo `portugol-studio-rs` livre na conta do GitHub para preservar os
+    redirecionamentos automáticos de clones, links e verificação de
+    atualizações em instalações anteriores (como a `v0.7.0`).
 
 ## Alternativas consideradas
 
@@ -125,6 +140,10 @@ continua distinguindo os dois projetos claramente.
 
 - Os ícones da IDE em `apps/desktop/src-tauri/icons/` passam a refletir a nova
   marca **Ferro Studio (`Fe 26`)** já na próxima compilação/release.
-- A Fase 2 (mudança de nome visível na interface, Web Playground, `README.md` e
-  empacotamento) será executada em PRs próprios após o fechamento das fases
-  principais do `.design` (ADR 0018/0021).
+- A Fase 2 (mudança de nome visível na interface, renomeação do repositório
+  para `wendelmax/ferro-studio`, Web Playground, `README.md` e empacotamento)
+  será executada em PRs próprios após o fechamento das fases principais do
+  `.design` (ADR 0018/0021).
+- Ao renomear o repositório no GitHub, o slug `portugol-studio-rs` deve
+  permanecer sem novo repositório na mesma conta para que os redirecionamentos
+  automáticos do GitHub continuem válidos para usuários existentes.
