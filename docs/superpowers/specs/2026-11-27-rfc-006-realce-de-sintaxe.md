@@ -42,9 +42,14 @@ apresentem os mesmos tokens para as mesmas regras sem divergir.
 
 1. Dentro de uma cadeia, o texto literal continua `string` e cada trecho `{...}` não escapado e não
    vazio é `interpolation`; o par `string`/`interpolation` fecha o contrato de realce.
-2. As regras de `{...}` são idênticas às da RFC 004: `\{` e `\}` são literais; `{}` e um `{` sem
-   fechamento permanecem `string`; o primeiro `}` não escapado fecha a parte; o conteúdo precisa ser
-   não vazio; o conteúdo pode conter espaços, que contam como conteúdo.
+2. As regras de `{...}` são idênticas às da RFC 004; a RFC 004 é normativa e esta RFC apenas consolida
+   o resumo do contrato de realce:
+   - `\{` e `\}` são literais; um `{` ou `}` é escapado quando precedido por número ímpar de `\` no
+     texto bruto, de modo que `\\{` é barra literal seguida de `{` não escapado.
+   - O primeiro `}` não escapado fecha a parte; quando houver mais de um `{` antes do primeiro `}`, o
+     primeiro par forma a parte e os demais permanecem literais.
+   - `{}` e um `{` sem fechamento permanecem `string`; o conteúdo precisa ser não vazio; o conteúdo pode
+     conter espaços, que contam como conteúdo.
 3. O realce **não valida** a expressão: a validade é decidida pelo parser, com os diagnósticos
    `pors.interpolation-invalid` e `pors.interpolation-non-string` (RFC 004). O scanner apenas emite
    o token `interpolation`.
