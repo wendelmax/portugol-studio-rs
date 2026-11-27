@@ -3,7 +3,15 @@
 - **Status:** Aceita
 - **Data:** 2026-11-27
 - **Responsável:** mantenedor do produto
+- **Emendas:** Emenda 1 (2026-11-27)
 - **Relacionados:** [ADR 0015](0015-evolucao-visual-orientada-a-aprendizagem.md), [ADR 0016](0016-pors-como-linguagem-autoral-e-retirada-do-por.md), [ADR 0018](0018-projetos-desktop-pors-com-designer-visual.md), [ADR 0021](0021-tela-como-forma-unica-de-interface-pors.md), [ADR 0022](0022-projetos-de-jogos-2d-pors-e-exportacao-macroquad.md)
+
+> **Emenda 1 (2026-11-27).** Revisa a seção 2 e a Fase 2 da seção 4: na
+> transição completa da Fase 2, a linguagem e o conjunto oficial de extensões
+> também adotam a identidade **Ferro** (`.fer`, `.design`, `.ferproj`, `.licao`,
+> `.rs` e, futuramente, `.ferws`), usando anotações `@teste` no código em vez
+> de uma extensão separada e definindo `.licao` como equivalente oficial ao
+> `.pex` clássico (mantendo a retirada de `.por`/`.pex` do ADR 0016).
 
 ## Contexto
 
@@ -47,17 +55,26 @@ base sólida e estruturada em português antes da transição para Rust real,
 evitando tanto a conotação negativa de "enferrujado/velho" quanto colisões com
 projetos humorísticos ou buscas não relacionadas.
 
-### 2. Separação entre marca do produto e formatos/crates técnicos
+### 2. Extensões oficiais do Ferro Studio e estabilidade de crates internos *(Emenda 1)*
 
-Mudar a marca do estúdio **não** exige quebrar extensões de arquivo nem nomes
-internos dos crates:
+Durante a conclusão das entregas do designer `.design` (Fase 1), as extensões
+atuais (`.pors`, `.porsproj`, `.pors.json`) permanecem intocadas. Na **Fase 2**,
+com janela de compatibilidade de leitura/aviso para arquivos `.pors` existentes,
+o Ferro Studio adota seu conjunto oficial de extensões:
 
-- as extensões **`.pors`** (código-fonte), **`.design`** (telas),
-  **`.porsproj`** (manifesto de projeto) e **`.pors.json`** (exercícios)
-  permanecem estáveis — assim como uma IDE autoral edita arquivos de uma
-  linguagem própria (PORS);
-- os nomes de crates internos (`crates/portugol-*`) e o identificador de
-  workspace permanecem estáveis durante as entregas dos ADRs 0018–0022.
+| Extensão | Finalidade | Exemplo | Observações |
+|---|---|---|---|
+| **`.fer`** | Código-fonte **Ferro** (incluindo testes com `@teste`) | `principal.fer` | Evita `.fe` por colisão com a linguagem *Fe* (`fe-lang`). Testes unitários usam anotação `@teste` dentro do `.fer` (mapeando 1:1 para `#[test]` em Rust), sem criar extensão `.teste` separada. |
+| **`.design`** | Layout visual de telas desktop (ADRs 0018 e 0021) | `JanelaPrincipal.design` | Mantida sem alteração, formando par com `.fer`. |
+| **`.ferproj`** | Manifesto de projeto (`Tipo="Desktop"` ou `Tipo="Jogo"`) | `escola.ferproj` | Evita colisão no SO com `.projeto` genérico; usa a mesma marcação pseudo-XAML do `.porsproj`. |
+| **`.licao`** | Aula / exercício interativo com correção automática | `variaveis.licao` | **Equivalente oficial ao `.pex` clássico** (substituindo `.pors.json`), em texto versionável no Git com enunciado, código inicial `.fer`, dicas progressivas, casos `entrada → saída`, testes `@teste` e, futuramente, validação de eventos em `.design`. |
+| **`.rs`** | Código-fonte Rust real | `main.rs` | Ponte direta para Rust / Cargo. |
+| *(Futuro)* **`.ferws`** | Workspace multi-projeto (turma) | `minha-turma.ferws` | Introduzida quando a IDE suportar múltiplos projetos abertos na mesma janela. |
+
+- **Retirada de `.por`/`.pex` mantida (ADR 0016):** o Ferro Studio não
+  reintroduz o compilador clássico `.por` nem pacotes legados `.pex`.
+- **Crates internos:** os nomes dos crates internos (`crates/portugol-*`)
+  permanecem estáveis durante as entregas dos ADRs 0018–0022.
 
 ### 3. Identidade visual oficial (`Fe` `26`)
 
@@ -94,6 +111,9 @@ Para não gerar conflitos com as entregas paralelas do designer `.design` (ADRs
   ícones oficiais (`icon.svg`, PNGs, `icon.ico` e `icon.icns`) em
   `apps/desktop/src-tauri/icons/`.
 - **Fase 2 (após conclusão do fluxo `.design`):**
+  - adoção das extensões oficiais `.fer`, `.ferproj` e `.licao` (com leitura de
+    transição para `.pors`, `.porsproj` e `.pors.json`), suporte à anotação
+    `@teste`, e atualização das associações MIME/desktop;
   - atualização de `productName`, títulos visíveis na IDE Desktop, Ajuda, Sobre
     e redesenho do Web Playground (alinhado ao ADR 0021);
   - renomeação do repositório GitHub para **`wendelmax/ferro-studio`** (e
