@@ -31,7 +31,7 @@ Público: quem aprende PORS pela IDE, pelo playground, pelos exercícios, pela a
 1. Migrar os 211 arquivos `.pors` versionados para a nova sintaxe sempre que a conversão preserve o significado.
 2. Migrar exemplos embutidos em TypeScript, JavaScript, JSON, HTML e Markdown em **todas** as superfícies: IDE, playground, ajuda, snippets/autocomplete, README, RFCs, ADRs e planos.
 3. Simplificar saída com `escreval`, declarações com inferência e texto com interpolação onde os tipos permitem.
-4. Implementar conversão implícita de `leia()` para o tipo esperado (`inteiro`, `real`, `caracter`, `logico`, `cadeia`), falhando em execução com mensagem clara quando a entrada não converte.
+4. Garantir conversão implícita nas duas formas de `leia`: `leia(variavel)` converte ao tipo declarado da variável (comportamento atual) e `leia()` converte ao tipo esperado pelo contexto (`inteiro`, `real`, `caracter`, `logico`, `cadeia`), falhando em execução com mensagem clara quando a entrada não converte.
 5. Corrigir o plano do núcleo que afirma que `escreval` é reservado.
 6. Corrigir os exemplos da RFC 007 e da RFC 008 que usam interpolação de tipos inválidos segundo a RFC 004, mantendo aviso explícito de que `tente`, `capture`, `lance` e os exemplos de orientação a objetos ainda não executam no `main`.
 7. Atualizar RFC 002, ADR 0019 e a matriz de migração para refletir a nova semântica de `leia()`.
@@ -53,10 +53,10 @@ Público: quem aprende PORS pela IDE, pelo playground, pelos exercícios, pela a
 
 ## Restrições
 
-1. `leia()` sem contexto tipado continua retornando `cadeia`. A conversão implícita ocorre quando o destino é conhecido: inicialização de `seja` com tipo anotado e argumento de função cujo parâmetro é tipado. Expressões sem tipo esperado não disparam conversão.
+1. Ambas as formas de `leia` convertem implicitamente ao destino: `leia(variavel)` ao tipo declarado da variável e `leia()` ao tipo esperado pelo contexto (inicialização de `seja` com tipo anotado, argumento de função tipado, atribuição, retorno e campos). `leia()` sem contexto tipado continua retornando `cadeia`. Não é exigido trocar `leia(variavel)` por `leia()` nos exemplos: as duas formas são aceitas.
 2. A conversão implícita usa as mesmas regras dos helpers `Tipos.para_*`: `caracter` exige exatamente um caractere e `logico` aceita espaços ao redor. Exemplos que dependiam de `leia(caracter)` pegando o primeiro caractere da linha ou de `leia(logico)` sem `trim` são ajustados e a diferença é registrada na matriz de migração.
 3. Entrada que não converte produz erro de execução com mensagem identificando o tipo esperado; não há valor padrão silencioso.
-4. O caminho explícito permanece: `Tipos.para_inteiro(...)`, `Tipos.para_real(...)` etc. retornam `Resultado`; `?` exige função que retorne `Resultado<_, E>`/`Opcao<_>`, então não serve em `inicio`.
+4. O caminho explícito permanece: `Tipos.para_inteiro(...)`, `Tipos.para_real(...)` etc. retornam `Resultado`; `?` exige função que retorne `Resultado<_, E>`/`Opcao<_>`, então não serve em `inicio`. Exemplos com campo de texto (`UI.entrada`) e validação de seu valor bruto **devem** usar esse caminho explícito com `escolha`/`Resultado`. Leituras `leia(...)` não devem ser reescritas como `leia(cadeia)` seguido de `Tipos.para_*`: a conversão é implícita na própria leitura.
 5. A RFC 004 aceita somente `cadeia` e `caracter` dentro de `{...}`. Números, lógicos, vetores, registros, enums e `vazio` continuam gerando `pors.interpolation-non-string`.
 6. `escreva`/`escreval` rejeitam valores de registro e enum diretamente; para esses casos, use campos, variantes ou mensagens fixas.
 7. Inferência se aplica a `seja nome = valor;`. `seja mutavel`, inicialização vazia, parâmetros, retornos e tipos de coleção continuam explícitos quando necessário.
@@ -90,8 +90,8 @@ Migração total mantendo `leia()` como `cadeia` e usando `Tipos.para_*` + `Resu
 ## Decisões tomadas
 
 1. **Abordagem B.**
-2. **Conversão implícita de `leia()`.** O tipo esperado pelo destino guia a conversão; falha é erro de execução. Sem tipo esperado, o resultado é `cadeia`.
-3. **Caminho explícito preservado.** `Tipos.para_*` com `Resultado` continua nos exemplos que ensinam erro/validação; não é imposto nas leituras comuns.
+2. **Conversão implícita nas duas formas de `leia`.** `leia(variavel)` converte ao tipo da variável; `leia()` converte ao tipo esperado pelo contexto; falha é erro de execução. Sem tipo esperado, `leia()` resulta em `cadeia`.
+3. **Caminho explícito preservado para `UI.entrada`.** `Tipos.para_*` com `Resultado` continua nos exemplos de campo de texto, onde ensinar tratamento do valor bruto é o objetivo. Nas duas formas de `leia`, a conversão é implícita; `leia(variavel)` e `leia()` são ambos aceitos nos exemplos.
 4. **Escopo documental ampliado.** Todos os Markdown com snippets PORS (RFCs 001–008, ADR 0019, planos, README), `apps/desktop/src/portugol.ts`, ajuda HTML, playground e exercises são migrados. Passagens que explicitamente documentam compatibilidade com a sintaxe legada podem ser mantidas e marcadas como tal.
 5. **RFC 007 e RFC 008 corrigidas e sinalizadas.** Interpolações de números/enums são substituídas por argumentos de `escreval` compatíveis com a RFC 004; ambas recebem aviso explícito de que seus exemplos não executam no `main`.
 6. **Contradição do plano corrigida.** O plano do núcleo passa a descrever `escreval` como builtin não reservado, alinhado à implementação.
