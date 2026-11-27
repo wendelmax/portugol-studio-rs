@@ -189,6 +189,47 @@ fn generated_rust_requests_a_string_when_read_is_an_expression() {
 }
 
 #[test]
+fn generated_rust_requests_typed_input_for_read_expression() {
+    let cancel = AtomicBool::new(false);
+    let mut requests = Vec::new();
+    let result = run_portugol_rs_with_io(
+        "funcao inicio() { seja n: inteiro = leia(); escreval(n); }",
+        &cancel,
+        |expected| {
+            requests.push(expected.to_owned());
+            Ok("36".to_owned())
+        },
+        |_| {},
+    )
+    .unwrap();
+    assert_eq!(requests, ["inteiro"]);
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { ref stdout, exit_code: Some(0), .. } if stdout == "36\n"),
+        "{result:?}"
+    );
+}
+
+#[test]
+fn generated_rust_reports_invalid_typed_expression_input() {
+    let cancel = AtomicBool::new(false);
+    let result = run_portugol_rs_with_io(
+        "funcao inicio() { seja n: inteiro = leia(); escreval(n); }",
+        &cancel,
+        |_| Ok("abc".to_owned()),
+        |_| {},
+    )
+    .unwrap();
+    assert!(
+        matches!(
+            result,
+            PortugolRsRunResult::Executed { ref stderr, exit_code: Some(code), .. }
+                if code != 0 && stderr.to_lowercase().contains("inteiro")
+        ),
+        "{result:?}"
+    );
+}
+
+#[test]
 fn generated_rust_declares_read_helper_for_leia_in_para_header() {
     let cancel = AtomicBool::new(false);
     let mut inputs = ["abc", "a"].into_iter();

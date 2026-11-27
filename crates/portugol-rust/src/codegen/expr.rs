@@ -3,8 +3,8 @@ use portugol_hir::{BinaryOp, Expr, ExprKind, Program, Span, Stmt, StringPart, Ty
 use crate::{SourceMapQuality, SourceMapSegment, SourceRange, format_real, rust_ident};
 
 use super::types::{
-    binary_operator, binding_info, integer_method, pors_clone_value, render_stdlib_host_call,
-    render_ui_host_call, rust_enum_variant_path, rust_type,
+    binary_operator, binding_info, integer_method, pors_clone_value, read_target_label,
+    render_stdlib_host_call, render_ui_host_call, rust_enum_variant_path, rust_type,
 };
 
 #[derive(Debug)]
@@ -299,14 +299,30 @@ pub(super) fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedE
         } else {
             format!("String::from({value:?})")
         })],
-        ExprKind::Read { .. } => vec![ExpressionPart::Nested(compose_expression(
-            vec![ExpressionPart::Text(if pors {
-                "__pors_string(&__portugol_read_line(\"cadeia\"))".to_owned()
-            } else {
-                "__portugol_read_line(\"cadeia\")".to_owned()
-            })],
-            expr.span,
-        ))],
+        ExprKind::Read { target } => {
+            let label = read_target_label(*target);
+            let line = format!("__portugol_read_line(\"{label}\")");
+            let code = match target {
+                Some(ty @ (Type::Integer | Type::Real | Type::Character)) => format!(
+                    "__portugol_parse::<{}>(&{line}, \"{label}\")",
+                    rust_type(*ty, program)
+                ),
+                Some(Type::Boolean) => format!(
+                    "match {line}.trim() {{ \"verdadeiro\" => true, \"falso\" => false, _ => {{ eprintln!(\"Entrada inválida: esperado {label}.\"); std::process::exit(1); }} }}"
+                ),
+                _ => {
+                    if pors {
+                        format!("__pors_string(&{line})")
+                    } else {
+                        line
+                    }
+                }
+            };
+            vec![ExpressionPart::Nested(compose_expression(
+                vec![ExpressionPart::Text(code)],
+                expr.span,
+            ))]
+        }
         ExprKind::InterpolatedString { parts } => {
             let mut accumulator = None;
             for part in parts {
