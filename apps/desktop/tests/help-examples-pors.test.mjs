@@ -25,7 +25,7 @@ function walk(dir, ext) {
 }
 
 test("help-assets ships all 77 ported .pors examples without classic .por boilerplate", () => {
-  const porsFiles = walk(exemplosPorsDir, ".pors");
+  const porsFiles = walk(exemplosPorsDir, ".fer");
   assert.equal(porsFiles.length, 77, `esperava 77 arquivos .pors, encontrou ${porsFiles.length}`);
 
   for (const file of porsFiles) {
@@ -64,7 +64,7 @@ test("all 48 HTML help topics and help.ts reference .pors examples with zero bro
 
       const resolved = decodeURI(new URL(fileMatch[1], "https://ajuda.invalid/" + relHtml).pathname.slice(1));
       assert.ok(resolved.startsWith("recursos/exemplos-pors/"), `${relHtml}: caminho inesperado ${resolved}`);
-      assert.ok(resolved.endsWith(".pors"), `${relHtml}: extensao inesperada ${resolved}`);
+      assert.ok(resolved.endsWith(".fer"), `${relHtml}: extensao inesperada ${resolved}`);
 
       const absTarget = path.join(helpAssetsDir, resolved);
       assert.ok(fs.existsSync(absTarget), `${relHtml}: arquivo ausente ${resolved}`);
@@ -85,7 +85,7 @@ test("all 48 HTML help topics and help.ts reference .pors examples with zero bro
   assert.equal(sintaxeCount, 39);
 
   const helpTs = fs.readFileSync(helpTsPath, "utf8");
-  assert.ok(helpTs.includes("./help-assets/recursos/exemplos-pors/**/*.pors"));
+  assert.ok(helpTs.includes("./help-assets/recursos/exemplos-pors/**/*.fer"));
   assert.ok(!helpTs.includes("tests/corpus/ajuda/recursos/exemplos"));
   assert.ok(!helpTs.includes('"exemplo.por"'));
 });

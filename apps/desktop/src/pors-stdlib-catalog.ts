@@ -138,7 +138,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
     description: "Constantes (`PI`, `E`) e 16 funções matemáticas tipadas sem coerção implícita (VM mínima, WASM e Rust).",
     example: {
       title: "Cálculo de hipotenusa e arredondamento",
-      fileName: "exemplo-matematica.pors",
+      fileName: "exemplo-matematica.fer",
       source: `funcao inicio() {\n    seja a = 3.0;\n    seja b = 4.0;\n    seja hipotenusa: real = Matematica.raiz_quadrada(Matematica.potencia(a, 2.0) + Matematica.potencia(b, 2.0));\n    escreval("Hipotenusa: ", Matematica.arredondar(hipotenusa, 2));\n    escreva("PI ≈ ", Matematica.arredondar(Matematica.PI, 4));\n}\n`,
     },
     items: [
@@ -170,7 +170,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
     description: "13 operações Unicode-safe indexadas por `char`, com busca via `Opcao<T>`, fatiamento via `Resultado` e orçamento de memória.",
     example: {
       title: "Normalização e divisão de texto",
-      fileName: "exemplo-texto.pors",
+      fileName: "exemplo-texto.fer",
       source: `funcao inicio() {\n    seja frase = Texto.aparar("  Portugol-RS e Rust  ");\n    seja partes: vetor<cadeia> = Texto.dividir(frase, " ");\n    escreval("Maiúsculas: ", Texto.caixa_alta(frase));\n    escreval("Palavras: ", tamanho(partes));\n}\n`,
     },
     items: [
@@ -197,7 +197,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
     description: "19 conversões explícitas e predicados de validação com `Resultado<T, cadeia>` para parses falíveis.",
     example: {
       title: "Conversão segura de texto para inteiro",
-      fileName: "exemplo-tipos.pors",
+      fileName: "exemplo-tipos.fer",
       source: `funcao inicio() {\n    escolha Tipos.para_inteiro("42") {\n        caso Resultado::Ok(n) => { escreva("Número: ", n, ", real: ", Tipos.inteiro_para_real(n)); }\n        caso Resultado::Erro(e) => { escreva("Erro: ", e); }\n    }\n}\n`,
     },
     items: [
@@ -230,7 +230,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
     description: "4 utilitários determinísticos e canceláveis (VM mínima, WASM e Rust).",
     example: {
       title: "Sorteio determinístico com semente fixa",
-      fileName: "exemplo-util.pors",
+      fileName: "exemplo-util.fer",
       source: `funcao inicio() {\n    Util.definir_semente(42);\n    escolha Util.sorteia(1, 6) {\n        caso Resultado::Ok(dado) => { escreva("Dado sorteado: ", dado); }\n        caso Resultado::Erro(e) => { escreva("Erro: ", e); }\n    }\n}\n`,
     },
     items: [
@@ -248,7 +248,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
     description: "Contrato UTC gregoriano determinístico com 19 constantes (`DIA_*`, `MES_*`) e 15 funções.",
     example: {
       title: "Data UTC atual e verificação de ano bissexto",
-      fileName: "exemplo-calendario.pors",
+      fileName: "exemplo-calendario.fer",
       source: `funcao inicio() {\n    seja ano = Calendario.ano_atual();\n    escreval("Data UTC: ", Calendario.data_iso_atual());\n    escreva("Ano ", ano, " é bissexto? ", Calendario.eh_bissexto(ano));\n}\n`,
     },
     items: [
@@ -296,7 +296,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
     description: "7 operações de leitura e escrita UTF-8 confinadas ao workspace (bloqueia caminhos absolutos, `..` e symlinks; limite de 2 MiB).",
     example: {
       title: "Verificando existência de arquivo no workspace",
-      fileName: "exemplo-arquivos.pors",
+      fileName: "exemplo-arquivos.fer",
       source: `funcao inicio() {\n    escolha Arquivos.existe("notas.txt") {\n        caso Resultado::Ok(achou) => { escreva("Arquivo existe? ", achou); }\n        caso Resultado::Erro(e) => { escreva("Erro: ", e); }\n    }\n}\n`,
     },
     items: [
@@ -317,7 +317,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
     description: "19 operações JSON (RFC 8259) puras e zero-dependência para validar, consultar, construir e formatar objetos JSON (VM mínima, WASM e Rust).",
     example: {
       title: "Construindo e consultando um objeto JSON",
-      fileName: "exemplo-json.pors",
+      fileName: "exemplo-json.fer",
       source: `funcao demo() -> Resultado<cadeia, cadeia> {\n    seja base: cadeia = Json.definir_cadeia("{}", "linguagem", "Portugol-RS")?;\n    seja completo: cadeia = Json.definir_inteiro(base, "versao", 1)?;\n    retorne Json.formatar(completo);\n}\n\nfuncao inicio() {\n    escolha demo() {\n        caso Resultado::Ok(saida) => { escreva(saida); }\n        caso Resultado::Erro(e) => { escreva("Erro: ", e); }\n    }\n}\n`,
     },
     items: [
@@ -350,7 +350,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
     description: "4 operações HTTP/HTTPS com consentimento explícito (negado por padrão), timeout (100..30000 ms), cancelamento no debugger e limite de 1 MiB.",
     example: {
       title: "Ajustando timeout e testando um endereço",
-      fileName: "exemplo-internet.pors",
+      fileName: "exemplo-internet.fer",
       source: `funcao inicio() {\n    Internet.definir_tempo_limite(3000);\n    escolha Internet.endereco_disponivel("https://example.com") {\n        caso Resultado::Ok(ok) => { escreva("Disponível: ", ok); }\n        caso Resultado::Erro(e) => { escreva("Bloqueado ou indisponível: ", e); }\n    }\n}\n`,
     },
     items: [
@@ -368,7 +368,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
     description: "6 componentes declarativos MVU (`iniciar`, `atualizar`, `visualizar`) para interfaces gráficas interativas na IDE, WASM e Rust.",
     example: {
       title: "Contador interativo com UI.*",
-      fileName: "exemplo-ui.pors",
+      fileName: "exemplo-ui.fer",
       source: `funcao iniciar() -> inteiro {\n    retorne 0;\n}\n\nfuncao atualizar(estado: inteiro, tipo: cadeia, alvo: cadeia) -> inteiro {\n    se (tipo == "clique" && alvo == "inc") {\n        retorne estado + 1;\n    }\n    retorne estado;\n}\n\nfuncao visualizar(estado: inteiro) -> inteiro {\n    retorne UI.coluna([\n        UI.texto("Contagem: ", estado),\n        UI.botao("inc", "+1")\n    ]);\n}\n`,
     },
     items: [
@@ -388,7 +388,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
     description: "17 constantes (`COR_*`, `GRADIENTE_*`, `CANAL_*`) e 54 funções para janela gráfica 2D, cores, formas, texto, imagens e GIFs na VM.",
     example: {
       title: "Desenhando formas básicas na janela gráfica",
-      fileName: "exemplo-graficos.pors",
+      fileName: "exemplo-graficos.fer",
       source: `funcao inicio() {\n    Graficos.iniciar_modo_grafico(verdadeiro);\n    Graficos.definir_dimensoes_janela(400, 260);\n    Graficos.definir_titulo_janela("Portugol-RS Gráficos");\n    Graficos.definir_cor(Graficos.COR_PRETO);\n    Graficos.limpar();\n    Graficos.definir_cor(Graficos.COR_AMARELO);\n    Graficos.desenhar_elipse(150, 80, 100, 100, verdadeiro);\n    Graficos.renderizar();\n    Util.aguarde(2000);\n    Graficos.encerrar_modo_grafico();\n}\n`,
     },
     items: [
@@ -473,7 +473,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
     description: "4 funções de leitura e estado de teclas na janela gráfica + constantes `TECLA_*` (também aceita `TECLA_A`..`TECLA_Z`, `TECLA_0`..`TECLA_9`, `TECLA_F1`..`TECLA_F24` e `TECLA_0_NUM`..`TECLA_9_NUM`).",
     example: {
       title: "Aguardando a tecla ESC na janela gráfica",
-      fileName: "exemplo-teclado.pors",
+      fileName: "exemplo-teclado.fer",
       source: `funcao inicio() {\n    Graficos.iniciar_modo_grafico(verdadeiro);\n    Graficos.definir_titulo_janela("Pressione ESC para sair");\n    enquanto (!Teclado.tecla_pressionada(Teclado.TECLA_ESC)) {\n        Graficos.definir_cor(Graficos.COR_PRETO);\n        Graficos.limpar();\n        Graficos.definir_cor(Graficos.COR_BRANCO);\n        Graficos.desenhar_texto(20, 40, "Pressione ESC para encerrar");\n        Graficos.renderizar();\n        Util.aguarde(16);\n    }\n    Graficos.encerrar_modo_grafico();\n}\n`,
     },
     items: [
@@ -492,7 +492,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
     description: "3 constantes (`BOTAO_*`) e 7 funções para posição, clique e cursor do mouse na janela gráfica.",
     example: {
       title: "Acompanhando a posição do mouse",
-      fileName: "exemplo-mouse.pors",
+      fileName: "exemplo-mouse.fer",
       source: `funcao inicio() {\n    Graficos.iniciar_modo_grafico(verdadeiro);\n    Graficos.definir_dimensoes_janela(400, 260);\n    enquanto (!Teclado.tecla_pressionada(Teclado.TECLA_ESC)) {\n        Graficos.definir_cor(Graficos.COR_PRETO);\n        Graficos.limpar();\n        Graficos.definir_cor(Graficos.COR_VERDE);\n        Graficos.desenhar_elipse(Mouse.posicao_x() - 10, Mouse.posicao_y() - 10, 20, 20, verdadeiro);\n        Graficos.renderizar();\n        Util.aguarde(16);\n    }\n    Graficos.encerrar_modo_grafico();\n}\n`,
     },
     items: [
@@ -516,7 +516,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
     description: "12 funções de carregamento de áudio confinado ao workspace, reprodução em loop, busca temporal e volume na VM.",
     example: {
       title: "Ajustando o volume mestre de áudio",
-      fileName: "exemplo-sons.pors",
+      fileName: "exemplo-sons.fer",
       source: `funcao inicio() {\n    Sons.definir_volume(80);\n    escreva("Volume atual: ", Sons.obter_volume(), "%");\n}\n`,
     },
     items: [

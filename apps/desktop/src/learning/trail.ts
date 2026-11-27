@@ -36,7 +36,7 @@ export const LEARNING_TRAIL: LearningTrailStage[] = [
     id: "logica",
     title: "Lógica e decisões",
     description: "Comece com entradas, variáveis e condições.",
-    examplePaths: ["01-ola-variaveis.pors", "02-condicionais.pors"],
+    examplePaths: ["01-ola-variaveis.fer", "02-condicionais.fer"],
     exercises: [
       { id: "pors-12-saudacao-cadeia", title: "Saudação com cadeia" },
       { id: "pors-01-dobro", title: "Dobro de um número" },
@@ -48,7 +48,7 @@ export const LEARNING_TRAIL: LearningTrailStage[] = [
     id: "tipos-funcoes",
     title: "Tipos e funções",
     description: "Organize o algoritmo em funções e trabalhe com tipos explícitos.",
-    examplePaths: ["04-funcoes-recursao.pors", "07-entrada-tipada.pors"],
+    examplePaths: ["04-funcoes-recursao.fer", "07-entrada-tipada.fer"],
     exercises: [
       { id: "pors-03-soma-ate-n", title: "Soma de 1 até N" },
       { id: "pors-04-funcao-fatorial", title: "Fatorial com função" },
@@ -59,7 +59,7 @@ export const LEARNING_TRAIL: LearningTrailStage[] = [
     id: "estruturas",
     title: "Estruturas e coleções",
     description: "Repita operações e processe sequências de valores.",
-    examplePaths: ["03-lacos.pors", "05-vetores.pors", "10-vetores-dinamicos.pors"],
+    examplePaths: ["03-lacos.fer", "05-vetores.fer", "10-vetores-dinamicos.fer"],
     exercises: [
       { id: "pors-06-filtrar-positivos", title: "Filtrar positivos em vetor dinâmico" },
       { id: "pors-07-normalizar-csv", title: "Normalizar lista CSV com Texto" },
@@ -69,7 +69,7 @@ export const LEARNING_TRAIL: LearningTrailStage[] = [
     id: "opcao-resultado",
     title: "Erros com Opcao e Resultado",
     description: "Represente resultados ausentes ou inválidos sem esconder falhas.",
-    examplePaths: ["09-opcao-resultado.pors", "11-matematica-texto-tipos.pors"],
+    examplePaths: ["09-opcao-resultado.fer", "11-matematica-texto-tipos.fer"],
     exercises: [
       { id: "pors-05-divisao-segura", title: "Divisão segura com Resultado" },
       { id: "pors-09-resumo-json", title: "Extrair e atualizar JSON" },
@@ -79,7 +79,7 @@ export const LEARNING_TRAIL: LearningTrailStage[] = [
     id: "ownership",
     title: "Ownership e dados compostos",
     description: "Aplique tipos compostos (registro/enum) e regras de propriedade a coleções.",
-    examplePaths: ["06-registros-enums.pors", "10-vetores-dinamicos.pors"],
+    examplePaths: ["06-registros-enums.fer", "10-vetores-dinamicos.fer"],
     exercises: [
       { id: "pors-13-registro-ponto", title: "Área com registro Retangulo" },
       { id: "pors-14-enum-semaforo", title: "Semáforo com enum e escolha" },

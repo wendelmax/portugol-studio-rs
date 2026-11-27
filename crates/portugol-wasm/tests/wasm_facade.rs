@@ -485,7 +485,7 @@ fn exports_pors_to_rust_through_wasm_facade_and_ffi() {
 
 #[test]
 fn executes_canonical_syntax_evolution_program_through_wasm_facade() {
-    let source = include_str!("../../../tests/fixtures/pors-syntax-evolution.pors");
+    let source = include_str!("../../../tests/fixtures/pors-syntax-evolution.fer");
     let json = run_pors_json(source, "Ada\n", RunBudget::default());
     assert_eq!(
         json,

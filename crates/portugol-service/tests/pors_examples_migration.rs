@@ -36,10 +36,7 @@ fn collect_pors(dir: &Path, out: &mut Vec<PathBuf>) {
         let path = entry.path();
         if path.is_dir() {
             collect_pors(&path, out);
-        } else if path
-            .extension()
-            .is_some_and(|extension| extension == "pors")
-        {
+        } else if path.extension().is_some_and(|extension| extension == "fer") {
             out.push(path);
         }
     }

@@ -1014,7 +1014,7 @@ funcao inicio() {
 
 #[test]
 fn accepts_the_canonical_syntax_evolution_program() {
-    let source = include_str!("../../../tests/fixtures/pors-syntax-evolution.pors");
+    let source = include_str!("../../../tests/fixtures/pors-syntax-evolution.fer");
     let program = lower(source).expect("programa motivador deve compilar no frontend");
     assert_eq!(program.functions.len(), 1);
 }

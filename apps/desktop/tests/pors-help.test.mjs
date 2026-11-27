@@ -63,7 +63,7 @@ test("help.ts organizes navigation around PORS without classic library menu", ()
 test("PORS help examples use .pors syntax without classic Portugol keywords", () => {
   for (const topic of PORS_HELP_TOPICS) {
     if (!topic.example) continue;
-    assert.ok(topic.example.fileName.endsWith(".pors"));
+    assert.ok(topic.example.fileName.endsWith(".fer"));
     assert.ok(!topic.example.source.includes("programa {"));
     assert.ok(!topic.example.source.includes("inclua biblioteca"));
   }
