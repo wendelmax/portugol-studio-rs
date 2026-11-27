@@ -1,22 +1,25 @@
-# Portugol Studio RS
+# Ferro Studio
 
-Ambiente para aprender programação em português, construído em Rust a partir da
-inspiração do [Portugol Studio](https://github.com/UNIVALI-LITE/Portugol-Studio)
-da UNIVALI.
+Ambiente educacional para programar em português, criar apps desktop e jogos 2D
+e evoluir para Rust real, construído em Rust a partir da inspiração do
+[Portugol Studio](https://github.com/UNIVALI-LITE/Portugol-Studio) da UNIVALI
+(repositório `portugol-studio-rs`, conforme o
+[ADR 0023](docs/adr/0023-identidade-e-marca-ferro-studio.md)).
 
-O programa reúne editor, console, depurador, ajuda, exemplos e exercícios
-corrigidos automaticamente com foco em **Portugol-RS (`.pors`)** — um dialeto
-didático em português com tipos explícitos, imutabilidade por padrão, registros,
-enumerações e tratamento de erros inspirados em Rust — além de suporte direto a
-arquivos **Rust (`.rs`)** e projetos Cargo. O código `.pors` pode ser visualizado
-lado a lado em Rust e exportado como projeto Cargo, permitindo ao aluno avançar
-do pseudocódigo em português para uma linguagem usada profissionalmente.
+O programa reúne editor, console, depurador, designer visual, ajuda, exemplos e
+exercícios corrigidos automaticamente com foco em **Portugol-RS (`.pors`)** — um
+dialeto didático em português com tipos explícitos, imutabilidade por padrão,
+registros, enumerações e tratamento de erros inspirados em Rust — além de suporte
+direto a arquivos **Rust (`.rs`)** e projetos Cargo. O código `.pors` pode ser
+visualizado lado a lado em Rust e exportado como projeto Cargo, permitindo ao
+aluno avançar do pseudocódigo em português para uma linguagem usada
+profissionalmente.
 
 > **Arquivos `.por` e `.pex` legados:** conforme o
 > [ADR 0016](docs/adr/0016-pors-como-linguagem-autoral-e-retirada-do-por.md), o
-> suporte ao Portugol clássico (`.por`/`.pex`) foi retirado. O Portugol Studio
-> RS não abre nem converte arquivos `.por`/`.pex` automaticamente; para projetos
-> e exercícios nesse formato legado, utilize o
+> suporte ao Portugol clássico (`.por`/`.pex`) foi retirado. O Ferro Studio não
+> abre nem converte arquivos `.por`/`.pex` automaticamente; para projetos e
+> exercícios nesse formato legado, utilize o
 > [Portugol Studio original](https://github.com/UNIVALI-LITE/Portugol-Studio).
 
 ## Para quem é
@@ -38,7 +41,7 @@ do pseudocódigo em português para uma linguagem usada profissionalmente.
 ## Instalação
 
 > **Experimente no navegador sem instalar:** acesse o
-> [**Portugol-RS Web Playground (WASM)**](https://wendelmax.github.io/portugol-studio-rs/)
+> [**Ferro Studio Web Playground (WASM)**](https://wendelmax.github.io/portugol-studio-rs/)
 > para validar, formatar e executar programas `.pors` e apps visuais `UI.*`
 > diretamente no navegador.
 

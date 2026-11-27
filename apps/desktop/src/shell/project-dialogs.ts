@@ -37,7 +37,7 @@ export function mountProjectDialogs(info: { version: string; license: string }) 
         updateNotes.hidden = !result.notes;
         updateDownload.textContent = "Baixar atualização";
       } else if (result.status === "current") {
-        updateStatus.textContent = `O Portugol Studio RS ${result.current} está atualizado.`;
+        updateStatus.textContent = `O Ferro Studio ${result.current} está atualizado.`;
       } else {
         updateStatus.textContent = "Ainda não há uma versão estável publicada no GitHub.";
       }

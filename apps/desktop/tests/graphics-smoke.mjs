@@ -101,7 +101,7 @@ function windowByTitle(title) {
 }
 
 function mainWindow() {
-  const named = windowByTitle("^Portugol Studio");
+  const named = windowByTitle("^(Ferro Studio|Portugol Studio)");
   if (named) return named;
   // O título exposto pelo GTK pode variar com o gerenciador de janelas.
   // O Xvfb é exclusivo do teste e a IDE é sua única janela grande.

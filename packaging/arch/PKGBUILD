@@ -1,8 +1,8 @@
-# Maintainer: Portugol Studio RS Contributors <https://github.com/wendelmax/portugol-studio-rs>
+# Maintainer: Ferro Studio Contributors <https://github.com/wendelmax/portugol-studio-rs>
 pkgname=portugol-studio-rs
 pkgver=0.7.0
 pkgrel=1
-pkgdesc="IDE educacional para Portugol-RS (.pors) e Rust (.rs)"
+pkgdesc="Ferro Studio — IDE educacional em português com ponte para Rust"
 arch=('x86_64' 'aarch64')
 url="https://github.com/wendelmax/portugol-studio-rs"
 license=('LGPL-3.0-only')
