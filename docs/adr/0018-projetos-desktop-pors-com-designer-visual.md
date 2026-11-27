@@ -4,9 +4,9 @@
 - **Data:** 2026-11-27
 - **Responsável:** mantenedor do produto
 - **Relacionados:** [ADR 0015](0015-evolucao-visual-orientada-a-aprendizagem.md), [ADR 0016](0016-pors-como-linguagem-autoral-e-retirada-do-por.md), [ADR 0017](0017-modelo-execucao-e-estado-ui-visual-pors.md), [ADR 0020](0020-ajustes-pedagogicos-da-sintaxe-pors.md), [ADR 0021](0021-tela-como-forma-unica-de-interface-pors.md)
-- **Emendas:** Emenda 1 (2026-11-27)
+- **Emendas:** Emenda 1 e Emenda 2 (2026-11-27)
 
-> **Emenda 1 (2026-11-27).** O `.tela` passa a usar uma marcação de tags no
+> **Emenda 1 (2026-11-27).** O formato da tela passa a usar uma marcação de tags no
 > estilo XAML (pseudo-XAML) em vez da sintaxe de chaves da versão inicial. O
 > designer segue um caminho híbrido em três níveis: posição livre como no
 > Windows Forms, layout com `Pilha` e `Grade` como no WPF, e vinculação de
@@ -16,6 +16,13 @@
 > 2, 3, 4, 6 e 7, as alternativas e as consequências foram reescritas; as
 > decisões de handler puro, execução em janela própria e exportação Slint não
 > mudaram.
+
+> **Emenda 2 (2026-11-27).** Uma tela é a junção de dois arquivos com o mesmo
+> nome: `JanelaPrincipal.design` (o pseudo-XAML) e `JanelaPrincipal.pors` (o
+> code-behind). Não existe arquivo `.tela` em disco: "tela" é o nome do
+> conceito e do nó que agrupa os dois arquivos no Explorador. Abrir o nó abre o
+> modo visual; abrir o `.design` mostra o pseudo-XAML; abrir o `.pors` mostra o
+> código. O modo visual ganha as vistas *Design*, *Dividido* e *Código*.
 
 ## Contexto
 
@@ -61,16 +68,44 @@ Um novo modelo **Aplicativo Desktop PORS** em *Novo projeto* cria:
 MeuApp/
   meuapp.porsproj        # manifesto: nome, versão, ícone, janela inicial
   principal.pors         # ponto de entrada
-  JanelaPrincipal.tela   # layout da janela, mantido pelo designer
+  JanelaPrincipal.design # desenho da janela em pseudo-XAML, mantido pelo designer
   JanelaPrincipal.pors   # code-behind: handlers de eventos
   recursos/              # imagens e ícones referenciados pelas telas
 ```
 
 O manifesto `.porsproj` é a raiz do projeto: a IDE o reconhece ao abrir a
-pasta, como já faz com `Cargo.toml`. Um projeto pode ter várias janelas; cada
-uma é um par `.tela` + `.pors` com o mesmo nome.
+pasta, como já faz com `Cargo.toml`. Um projeto pode ter várias janelas.
 
-### 2. Formato `.tela`: pseudo-XAML, fonte de verdade do layout
+**Uma tela é a junção de dois arquivos**, ligados pelo mesmo nome: o
+`.design`, que descreve como a janela é, e o `.pors`, que diz o que ela faz.
+Não há arquivo `.tela` em disco. O compilador junta os dois pelo nome na
+análise e na execução, e o Explorador da IDE os mostra agrupados num nó de
+tela:
+
+```
+MeuApp/
+├─ meuapp.porsproj
+├─ principal.pors
+├─ JanelaPrincipal           ← nó de tela: abre o modo visual
+│   ├─ JanelaPrincipal.design  ← abre o pseudo-XAML
+│   └─ JanelaPrincipal.pors    ← abre o code-behind
+└─ recursos/
+```
+
+- Um `.design` sem `.pors` do mesmo nome é uma tela sem comportamento: abre e
+  executa, e o primeiro duplo clique num controle cria o `.pors`.
+- Um `.pors` só pertence a uma tela quando existe o `.design` do mesmo nome;
+  sem ele, é um arquivo PORS comum.
+- Renomear o nó de tela renomeia os dois arquivos juntos, e o nome da janela
+  dentro do `.design`.
+- Fora da IDE, como no CLI ou num gerenciador de arquivos, aparecem só os dois
+  arquivos, o que deixa a separação explícita também ali.
+
+Separar os arquivos deixa visível para o aluno que a tela é desenho mais
+lógica, como no Visual Studio, em que o formulário do Windows Forms aparece
+como um nó com o código e o arquivo do designer dentro.
+
+### 2. Formato `.design`: pseudo-XAML, fonte de verdade do layout
 
 O layout é descrito numa marcação de tags **própria do Portugol Studio RS**,
 inspirada no XAML do WPF: o aluno reconhece a estrutura de HTML e XAML, e o que
@@ -152,8 +187,20 @@ O aluno sobe de nível sem trocar de ferramenta nem de formato:
 
 ### 3. Designer visual na IDE
 
-A IDE ganha um editor de design para arquivos `.tela`, com as abas
-*Design* e *Código*:
+Abrir um nó de tela no Explorador abre o **modo visual**, com três vistas:
+
+| Vista | O que mostra |
+|---|---|
+| *Design* | Só a janela, com arrastar e soltar |
+| *Dividido* | A janela em cima e o `.design` embaixo. Arrastar um controle muda o pseudo-XAML na hora, e editar o texto move o controle |
+| *Código* (F7, como no Visual Studio) | O `.pors` da tela |
+
+A vista *Dividido* é a que mais ensina: o aluno vê que o designer apenas
+escreve o `.design` por ele. Abrir o arquivo `.design` diretamente mostra o
+pseudo-XAML no editor de texto, com validação e autocompletar, e um botão para
+ir ao modo visual.
+
+O modo visual oferece:
 
 - **Caixa de ferramentas** com os controles e contêineres da seção 2,
   arrastáveis para a janela, para um `Painel` ou para dentro de uma `Pilha` ou
@@ -174,7 +221,7 @@ IDE.
 
 ### 4. Code-behind com handlers puros
 
-A partir de cada `.tela`, o frontend PORS gera um `registro` com o nome da
+A partir de cada `.design`, o frontend PORS gera um `registro` com o nome da
 janela, que tem um campo por controle nomeado e as propriedades editáveis de
 cada um, além do campo `dados`. Os atributos em PascalCase viram campos em
 minúsculas com `_` (`Texto` → `texto`, `TextoVazio` → `texto_vazio`). Um
@@ -233,10 +280,10 @@ funcao btnSomar_clicar(tela: JanelaPrincipal) -> JanelaPrincipal {
   inspeção de estado e o histórico (*time-travel*) no depurador.
 - A ligação entre `AoClicar="btnSomar_clicar"` e a função é verificada em
   tempo de análise: um handler ausente, com assinatura errada ou de outra
-  janela gera diagnóstico em português com posição no `.tela` e no `.pors`.
+  janela gera diagnóstico em português com posição no `.design` e no `.pors`.
   O mesmo vale para vínculos com campo inexistente ou de tipo errado.
 - O registro gerado não é escrito em disco. Ele é sintetizado na HIR a partir
-  do `.tela`, aparece no autocompletar e nas dicas, e é regenerado a cada
+  do `.design`, aparece no autocompletar e nas dicas, e é regenerado a cada
   mudança do layout.
 - O ciclo de vida segue o ADR 0017, com orçamento por evento (tempo ativo do
   handler, memória de cadeias, número de controles) e cancelamento pelo host.
@@ -246,7 +293,7 @@ funcao btnSomar_clicar(tela: JanelaPrincipal) -> JanelaPrincipal {
 - **Prévia** no designer: renderizador DOM, sem executar handlers, ou com
   execução opcional na própria aba.
 - **Executar**: abre uma **janela Tauri separada**, com título, tamanho e
-  ícone do `.porsproj`/`.tela`, e a VM PORS conduzindo os eventos. Fechar a
+  ícone do `.porsproj`/`.design`, e a VM PORS conduzindo os eventos. Fechar a
   janela encerra a execução.
 - Serviços do SO entram como módulos nativos da VM (`Op::CallNative`), com
   permissões explícitas no manifesto: `Dialogo` (abrir, salvar, mensagem,
@@ -259,7 +306,7 @@ funcao btnSomar_clicar(tela: JanelaPrincipal) -> JanelaPrincipal {
 A exportação Cargo de um projeto desktop usa o **[Slint](https://slint.dev)**
 como framework de UI do binário gerado:
 
-- cada `.tela` é traduzido para um componente `.slint`. Posição livre vira
+- cada `.design` é traduzido para um componente `.slint`. Posição livre vira
   `x`/`y`, `Pilha` vira `VerticalLayout`/`HorizontalLayout`, `Grade` vira
   `GridLayout`, e vínculos `{dados.campo}` viram *bindings* de propriedade do
   Slint; propriedades e *callbacks* mapeiam quase um para um;
@@ -275,7 +322,7 @@ como framework de UI do binário gerado:
 
 Slint foi escolhido porque: (a) a descrição de tela em marcação, com posição
 absoluta, layouts e *bindings*, corresponde diretamente aos três níveis do
-`.tela`; (b) é estável e
+`.design`; (b) é estável e
 mantido há anos; (c) gera executáveis de poucos megabytes; (d) roda em
 Windows, macOS, Linux e na Web; (e) possui um interpretador
 (`slint-interpreter`) que pode, no futuro, servir de prévia nativa sem
@@ -291,7 +338,8 @@ exportação.
 
 ### 7. Relação com `UI.*`
 
-O `.tela` com code-behind é a **única** forma de criar interfaces em PORS. O
+A tela (`.design` com code-behind `.pors`) é a **única** forma de criar
+interfaces em PORS. O
 `UI.*` do ADR 0017 é aposentado em etapas, conforme o
 [ADR 0021](0021-tela-como-forma-unica-de-interface-pors.md). Do ADR 0017
 permanecem o modelo de estado puro, o orçamento por evento, o histórico e a VM
@@ -327,7 +375,7 @@ afastaria o binário exportado do que o designer mostra.
 ### FerroUI (XAML compilado, estilo WPF/Avalonia)
 Adiada. É o mais parecido com WPF, mas está em 0.x com API instável, tem um
 único mantenedor, gera binários grandes e usa outra pilha WASM. Pode virar um
-segundo alvo de exportação, porque o `.tela` não depende de framework.
+segundo alvo de exportação, porque o `.design` não depende de framework.
 
 ### Usar o `.slint` diretamente como formato do designer
 Rejeitada. Prenderia o formato do projeto, os diagnósticos e a prévia Web à
@@ -346,31 +394,33 @@ Rust do produto. Pode ser oferecida depois como "empacotar sem compilar".
 ## Consequências
 
 - **Fase 1 (formato e projeto):** crate de parser, validação e formatação do
-  `.tela` em pseudo-XAML; manifesto `.porsproj`; modelo *Aplicativo Desktop
-  PORS*; reconhecimento do projeto no Explorador.
-- **Fase 2 (designer, níveis 1 e 2):** canvas, caixa de ferramentas, árvore de
+  `.design` em pseudo-XAML; manifesto `.porsproj`; modelo *Aplicativo Desktop
+  PORS*; reconhecimento do projeto e dos nós de tela no Explorador.
+- **Fase 2 (designer, níveis 1 e 2):** modo visual com as vistas *Design*,
+  *Dividido* e *Código*, canvas, caixa de ferramentas, árvore de
   elementos, seleção, movimentação, redimensionamento, painel de propriedades,
   desfazer/refazer e sincronização com o texto; `Janela`/`Painel` livres,
   `Pilha` e `Grade`.
 - **Fase 3 (code-behind e execução):** síntese do registro da janela na HIR,
   verificação das ligações de eventos, criação do handler por duplo clique,
   execução em janela Tauri separada e snapshots no depurador; prévia visual da
-  IDE e playground passam a usar o `.tela` (ADR 0021).
+  IDE e playground passam a usar telas (ADR 0021).
 - **Fase 4 (vinculação, nível 3):** `{dados.campo}` em atributos, verificação
   de tipos e propriedades vinculadas somente leitura.
 - **Fase 5 (serviços do SO):** `Dialogo`, `Arquivos`, `AreaTransferencia`,
   `Notificacao` e `Temporizador`, com permissões no manifesto.
-- **Fase 6 (exportação Slint):** `.tela` → `.slint`, adaptadores de
+- **Fase 6 (exportação Slint):** `.design` → `.slint`, adaptadores de
   *callbacks* e testes de paridade entre a VM e o binário exportado.
 - **Depois:** ligação nos dois sentidos, estilos e temas, células que ocupam
   várias linhas ou colunas e modelos de itens.
 - A HIR passa a aceitar tipos sintetizados de fora do código-fonte `.pors`,
-  com *source maps* que apontam para o `.tela`.
+  com *source maps* que apontam para o `.design`.
 - Testes de paridade passam a cobrir a sequência de eventos → estado da janela
   na VM e no binário Slint, documentando diferenças inevitáveis de host
   (fontes, métricas de texto, aparência nativa).
 - A exportação passa a depender de uma biblioteca externa (Slint). Atualizações
   de versão do Slint precisam de testes de regressão do gerador.
 - O crate `portugol-tela` do PR #256, escrito com a sintaxe de chaves, é
-  convertido para a marcação de tags antes da mesclagem. Esquema, validação e
-  diagnósticos são mantidos.
+  convertido para a marcação de tags e para a extensão `.design` antes da
+  mesclagem. Esquema, validação e diagnósticos são mantidos; o nome do crate
+  continua, porque ele trata do conceito de tela.

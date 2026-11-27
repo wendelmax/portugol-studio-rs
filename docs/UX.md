@@ -168,5 +168,5 @@ As decisões de produto relacionadas são os ADRs
 [0021](adr/0021-tela-como-forma-unica-de-interface-pors.md). Eles definem,
 respectivamente, a direção visual, a evolução de `.por` para PORS, o modelo
 para programas visuais PORS, os projetos desktop com designer visual, o
-contrato mínimo de tipos, os ajustes pedagógicos da sintaxe e o `.tela` como
-forma única de interface.
+contrato mínimo de tipos, os ajustes pedagógicos da sintaxe e as telas
+(`.design` + `.pors`) como forma única de interface.
