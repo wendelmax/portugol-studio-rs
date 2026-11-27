@@ -334,3 +334,129 @@
   background: var(--design-control-bg);
   font-size: 12px;
 }
+
+.design-toolbar-separator {
+  width: 1px;
+  align-self: stretch;
+  margin: 2px 4px;
+  background: var(--border);
+}
+
+.design-side {
+  flex: 0 0 248px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  border-left: 1px solid var(--border);
+  background: var(--bg);
+  font-size: var(--font-size-sm);
+}
+
+.design-side-title {
+  margin: 0 0 6px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.design-structure,
+.design-properties {
+  padding: 8px;
+}
+
+.design-structure {
+  border-bottom: 1px solid var(--border);
+}
+
+.design-tree {
+  display: flex;
+  flex-direction: column;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.design-tree-item {
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 24px;
+  border-color: transparent;
+  background: transparent;
+  text-align: start;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.design-tree-item[aria-selected="true"] {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.design-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  color: var(--muted);
+}
+
+.design-side-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 6px;
+}
+
+.design-side-tabs [aria-selected="true"] {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+.design-property-list {
+  display: grid;
+  grid-template-columns: minmax(72px, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 6px;
+}
+
+.design-property-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.design-property-list input,
+.design-property-list select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.design-anchors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+}
+
+.design-anchors label {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.design-event-line {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+}
+
+.design-side-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+}
