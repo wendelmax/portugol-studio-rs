@@ -1,6 +1,5 @@
 mod debug;
 mod desktop;
-mod migrate;
 mod run;
 
 use std::env;
@@ -45,7 +44,6 @@ fn main() -> ExitCode {
         Some("executar") => return run::main(&args[1..]),
         Some("depurar") => return debug::main(&args[1..]),
         Some("formatar") => return format_command(&args[1..]),
-        Some("migrar") => return migrate::main(&args[1..]),
         Some("novo") => return new_command(&args[1..]),
         Some("exportar-rust") => return export_rust_command(&args[1..]),
         Some("exportar-cargo") => return export_cargo_command(&args[1..]),
@@ -383,11 +381,10 @@ fn print_usage() {
         "portugol {}\n\
          \n\
          Uso:\n\
-           portugol [opções] <arquivo | diretório>...            valida .fer, .design e .ferproj (aceita .pors)\n\
+           portugol [opções] <arquivo | diretório>...            valida .fer, .design e .ferproj\n\
            portugol novo <arquivo.fer>                           cria um modelo .fer\n\
            portugol novo --desktop <pasta> [--nome <nome>]       cria um projeto desktop\n\
            portugol formatar [--check] <arquivo>                 formata .fer, .design ou .ferproj\n\
-           portugol migrar [--sim] <pasta | arquivo>...          renomeia .pors para .fer\n\
            portugol exportar-rust <arquivo.fer>                  imprime o Rust gerado\n\
            portugol exportar-cargo <arquivo.fer> <pasta>         gera um projeto Cargo pronto\n\
            portugol executar [--bytecode] <arquivo.fer>          executa um programa na VM\n\

@@ -7,10 +7,10 @@ e evoluir para Rust real, construído em Rust a partir da inspiração do
 [ADR 0023](docs/adr/0023-identidade-e-marca-ferro-studio.md)).
 
 O programa reúne editor, console, depurador, designer visual, ajuda, exemplos e
-exercícios corrigidos automaticamente com foco em **Portugol-RS (`.pors`)** — um
+exercícios corrigidos automaticamente com foco em **Portugol-RS (`.fer`)** — um
 dialeto didático em português com tipos explícitos, imutabilidade por padrão,
 registros, enumerações e tratamento de erros inspirados em Rust — além de suporte
-direto a arquivos **Rust (`.rs`)** e projetos Cargo. O código `.pors` pode ser
+direto a arquivos **Rust (`.rs`)** e projetos Cargo. O código `.fer` pode ser
 visualizado lado a lado em Rust e exportado como projeto Cargo, permitindo ao
 aluno avançar do pseudocódigo em português para uma linguagem usada
 profissionalmente.
@@ -22,14 +22,18 @@ profissionalmente.
 > exercícios nesse formato legado, utilize o
 > [Portugol Studio original](https://github.com/UNIVALI-LITE/Portugol-Studio).
 
+> **Extensões antigas do Ferro:** `.pors` e `.pors.json` não são mais abertas
+> como código ou lições. Renomeie manualmente arquivos de código para `.fer` e
+> lições JSON para `.licao`; o conteúdo das lições não precisa ser convertido.
+
 ## Para quem é
 
 - **Estudantes** que estão começando em lógica de programação e querem escrever
   código em português, ver erros enquanto digitam e acompanhar a execução passo
   a passo.
 - **Professores** que buscam uma trilha progressiva de lógica até Rust, com
-  ajuda integrada, catálogo de 119+ exemplos `.pors`, janela gráfica/áudio,
-  interfaces declarativas (`UI.*`) e exercícios `.pors.json` com correção
+  ajuda integrada, catálogo de 119+ exemplos `.fer`, janela gráfica/áudio,
+  interfaces declarativas (`UI.*`) e exercícios `.licao` com correção
   automática.
 - **Quem quer chegar ao Rust**: o Portugol-RS ensina conceitos essenciais do
   Rust (variáveis imutáveis por padrão, `Opcao`, `Resultado`, `escolha`
@@ -42,7 +46,7 @@ profissionalmente.
 
 > **Experimente no navegador sem instalar:** acesse o
 > [**Ferro Studio Web Playground (WASM)**](https://wendelmax.github.io/portugol-studio-rs/)
-> para validar, formatar e executar programas `.pors` e apps visuais `UI.*`
+> para validar, formatar e executar programas `.fer` e apps visuais `UI.*`
 > diretamente no navegador.
 
 Baixe o instalador da sua plataforma na página de
@@ -61,21 +65,21 @@ Os instaladores ainda não são assinados. No Windows, o SmartScreen pode exibir
 em **Executar assim mesmo**. No macOS, abra o aplicativo pela primeira vez com
 o botão direito e escolha **Abrir**.
 
-Programas `.pors` executam e depuram diretamente na máquina virtual da IDE, sem
+Programas `.fer` executam e depuram diretamente na máquina virtual da IDE, sem
 precisar instalar nada além do instalador. O Rust ([rustup.rs](https://rustup.rs))
 só é necessário para executar arquivos `.rs`, projetos Cargo e a opção
 **Executar como Rust** da paleta de comandos, que compila o Rust gerado a
-partir de um `.pors`.
+partir de um `.fer`.
 
 ## O que a IDE oferece
 
 - Interface desktop proprietária (Tauri v2 + CodeMirror 6) com barra superior de projeto/modo/execução, `ActivityRail`, `Explorer`, `Inspector` (`Aprender`, `Bibliotecas`/`Modelos` PORS, árvore estrutural e variáveis) e diálogo dedicado de `Configurações` (`Ctrl+,`) com restauração de layout.
-- Editor com realce de sintaxe para Portugol-RS (`.pors`) e Rust (`.rs`), autocompletar de palavras, funções e módulos PORS, dicas ao passar o mouse, dobramento de código, busca, renomeação de símbolos e formatação automática.
+- Editor com realce de sintaxe para Portugol-RS (`.fer`) e Rust (`.rs`), autocompletar de palavras, funções e módulos PORS, dicas ao passar o mouse, dobramento de código, busca, renomeação de símbolos e formatação automática.
 - Erros e avisos em português enquanto você digita, com indicação da linha.
 - Console com entrada de dados (`leia`) e parâmetros de execução.
 - Depurador com pontos de parada, execução passo a passo, pilha de chamadas e inspeção de variáveis, vetores, registros e enums.
 - Janela gráfica para programas que usam `Graficos`, `Teclado` e `Mouse`, reprodução de áudio com `Sons` e prévia visual declarativa para apps `UI.*`.
-- Ajuda integrada 100% PORS, catálogo de 119+ exemplos `.pors`, 8 dicas ilustradas da IDE e 14 exercícios `.pors.json` com correção automática.
+- Ajuda integrada 100% PORS, catálogo de 119+ exemplos `.fer`, 8 dicas ilustradas da IDE e 14 exercícios `.licao` com correção automática.
 - Ponte lado a lado Portugol-RS ↔ Rust com mapeamento de origem (`MappingGutter`), diff de traduções e desvinculação segura para editar `.rs` independente.
 - Execução de arquivos Rust avulsos e projetos Cargo (`cargo check` / `cargo test` / `cargo run`).
 - Temas padronizados com contraste WCAG AA (`>= 4,5:1`): `Sistema` automático (VS Code Light/Dark Modern), `IntelliJ Rust Dark/Light`, `GitHub`, `One Dark Pro`, `Dracula`, `Catppuccin Mocha`, `Night Owl`, `Alto contraste` e editor de temas personalizados.
@@ -98,7 +102,7 @@ Clique na margem esquerda do editor para criar ou remover um ponto de parada.
 | Ajuda | `F1` |
 | Lista de atalhos | `F11` |
 
-## Portugol-RS (`.pors`) e Rust (`.rs`)
+## Portugol-RS (`.fer`) e Rust (`.rs`)
 
 O **Portugol-RS** é o dialeto autoral deste projeto para ensinar lógica de
 programação com palavras-chave em português e transição natural para Rust:
@@ -139,7 +143,7 @@ funcao inicio() {
 }
 ```
 
-Programas `.pors` podem ser exportados como um arquivo Rust ou como um projeto
+Programas `.fer` podem ser exportados como um arquivo Rust ou como um projeto
 Cargo completo. Os exemplos comentados ficam em
 [`crates/portugol-service/assets/exemplos-pors`](crates/portugol-service/assets/exemplos-pors)
 e aparecem no menu de exemplos da IDE. Detalhes sobre a exportação e a execução
@@ -148,23 +152,23 @@ de Rust estão em [`docs/PORTUGOL-RUST.md`](docs/PORTUGOL-RUST.md).
 ## Linha de comando
 
 O executável `portugol` valida, formata, executa, depura e exporta programas
-`.pors` sem abrir a IDE. Com o repositório clonado:
+`.fer` sem abrir a IDE. Com o repositório clonado:
 
 ```bash
-cargo run -p portugol-cli -- programa.pors                       # valida (também aceita pastas)
-cargo run -p portugol-cli -- executar programa.pors              # executa na máquina virtual
-cargo run -p portugol-cli -- depurar programa.pors               # depurador interativo no terminal
-cargo run -p portugol-cli -- novo exercicio.pors                 # cria um arquivo inicial
-cargo run -p portugol-cli -- formatar programa.pors              # formata (--check só confere)
-cargo run -p portugol-cli -- exportar-rust programa.pors         # imprime o Rust gerado
-cargo run -p portugol-cli -- exportar-cargo programa.pors pasta  # gera um projeto Cargo
+cargo run -p portugol-cli -- programa.fer                       # valida (também aceita pastas)
+cargo run -p portugol-cli -- executar programa.fer              # executa na máquina virtual
+cargo run -p portugol-cli -- depurar programa.fer               # depurador interativo no terminal
+cargo run -p portugol-cli -- novo exercicio.fer                 # cria um arquivo inicial
+cargo run -p portugol-cli -- formatar programa.fer              # formata (--check só confere)
+cargo run -p portugol-cli -- exportar-rust programa.fer         # imprime o Rust gerado
+cargo run -p portugol-cli -- exportar-cargo programa.fer pasta  # gera um projeto Cargo
 cargo run -p portugol-cli -- novo --desktop "Meu App"            # cria um projeto desktop PORS
-cargo run -p portugol-cli -- "Meu App"                           # valida .pors, .design e .ferproj
+cargo run -p portugol-cli -- "Meu App"                           # valida .fer, .design e .ferproj
 ```
 
 Projetos desktop PORS ([ADR 0018](docs/adr/0018-projetos-desktop-pors-com-designer-visual.md))
 têm um manifesto `.ferproj` e uma tela por par `Nome.design` (o desenho, em
-pseudo-XAML) + `Nome.pors` (o code-behind). `formatar` também aceita `.design`
+pseudo-XAML) + `Nome.fer` (o code-behind). `formatar` também aceita `.design`
 e `.ferproj`.
 
 `executar --bytecode` mostra as instruções geradas para a máquina virtual,
@@ -177,12 +181,12 @@ e `.ferproj`.
 | Caminho | Conteúdo |
 |---|---|
 | `crates/portugol-hir` | representação intermediária tipada, spans e diagnósticos compartilhados |
-| `crates/portugol-rs-frontend` | lexer, parser, formatador e verificação de tipos do Portugol-RS (`.pors`) |
+| `crates/portugol-rs-frontend` | lexer, parser, formatador e verificação de tipos do Portugol-RS (`.fer`) |
 | `crates/portugol-bytecode` | conjunto de instruções e compilador HIR → bytecode |
 | `crates/portugol-vm` | máquina virtual, bibliotecas padrão/multimídia, protocolo gráfico, UI MVU e depurador |
 | `crates/portugol-rust` | geração de código Rust, projetos Cargo e source maps |
 | `crates/portugol-wasm` | núcleo do Portugol-RS compilado para WebAssembly (`wasm32-unknown-unknown`) |
-| `crates/portugol-service` | camada usada pela IDE: verificar, executar, depurar, exemplos e exercícios `.pors.json` |
+| `crates/portugol-service` | camada usada pela IDE: verificar, executar, depurar, exemplos e exercícios `.licao` |
 | `crates/portugol-tela` | formato `.design` das telas desktop (pseudo-XAML) e manifesto `.ferproj`: parser, esquema, validação, formatação e modelo de projeto |
 | `crates/portugol-cli` | executável `portugol` |
 | `apps/desktop` | IDE em Tauri v2 com frontend TypeScript e CodeMirror 6 |
@@ -245,7 +249,7 @@ diretamente.
 
 ## Segurança
 
-Programas `.pors` rodam na máquina virtual da IDE, com limites de tempo e de
+Programas `.fer` rodam na máquina virtual da IDE, com limites de tempo e de
 memória; `Arquivos.*` fica restrito à pasta do programa e `Internet.*` vem
 desligado por padrão. Já os arquivos `.rs`, os projetos Cargo e a opção
 **Executar como Rust** são compilados para código nativo e rodam com as

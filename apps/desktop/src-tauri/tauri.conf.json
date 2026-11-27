@@ -43,11 +43,18 @@
     "licenseFile": "../../../LICENSE",
     "fileAssociations": [
       {
-        "ext": ["fer", "pors"],
+        "ext": ["fer"],
         "name": "Programa Ferro",
-        "description": "Programa Ferro (.fer / .pors)",
+        "description": "Programa Ferro (.fer)",
         "role": "Editor",
         "mimeType": "text/x-ferro"
+      },
+      {
+        "ext": ["licao"],
+        "name": "Lição Ferro",
+        "description": "Lição interativa Ferro (.licao)",
+        "role": "Editor",
+        "mimeType": "application/x-ferro-licao"
       },
       {
         "ext": ["rs"],

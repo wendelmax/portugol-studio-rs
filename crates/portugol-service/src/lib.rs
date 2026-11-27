@@ -93,7 +93,7 @@ pub struct TextEdit {
     insert: String,
 }
 
-/// Formata código Portugol-RS (`.pors`) preservando comentários e literais.
+/// Formata código Ferro (`.fer`) preservando comentários e literais.
 pub fn format_portugol_rs(source: &str) -> Option<Vec<TextEdit>> {
     portugol_rs_frontend::format(source).map(|edits| {
         edits

@@ -17,9 +17,9 @@ export interface LearningPanelHost {
   sourceView: EditorView;
   activeTab(): Tab | undefined;
   learningMode(): LearningMode;
-  /** Abre exercício Portugol-RS pelo identificador do catálogo .pors. */
+  /** Abre exercício Portugol-RS pelo identificador do catálogo .fer. */
   openPorsExercise(id: string): Promise<void>;
-  /** Abre um exemplo .pors do catálogo pelo nome de arquivo (ex.: `01-ola-variaveis.pors`). */
+  /** Abre um exemplo .fer do catálogo pelo nome de arquivo (ex.: `01-ola-variaveis.fer`). */
   openPorsExample?(fileName: string): Promise<void>;
   /** Abre o Laboratório de Ownership em modo expandido no painel. */
   openOwnershipLab?(): void;
@@ -238,10 +238,10 @@ export function mountLearningPanel(host: LearningPanelHost) {
     learningPracticeBusy = true;
     button.disabled = true;
     const status = $<HTMLElement>("learning-practice-status");
-    status.textContent = "Abrindo exercício .pors…";
+      status.textContent = "Abrindo exercício…";
     try {
       await host.openPorsExercise(exerciseId);
-      status.textContent = "Exercício .pors aberto no editor. A abertura não registra progresso.";
+      status.textContent = "Exercício aberto no editor. A abertura não registra progresso.";
     } catch {
       status.textContent = "Não foi possível abrir o exercício. Tente novamente ou use a lista de exercícios.";
     } finally {

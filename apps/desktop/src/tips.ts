@@ -42,7 +42,7 @@ function renderTipVisual(kind: string): SVGSVGElement {
     svg.append(
       el("rect", { x: "28", y: "52", width: "244", height: "132", rx: "8", class: "tip-card" }),
       el("rect", { x: "288", y: "52", width: "244", height: "132", rx: "8", class: "tip-card" }),
-      el("text", { x: "42", y: "74", class: "tip-label" }, "programa.pors"),
+      el("text", { x: "42", y: "74", class: "tip-label" }, "programa.fer"),
       el("text", { x: "302", y: "74", class: "tip-label-accent" }, "Rust gerado (.rs)"),
       el("text", { x: "42", y: "102", class: "tip-code" }, "seja nota = 10;"),
       el("text", { x: "42", y: "124", class: "tip-code" }, "escreva(\"Nota: \", nota);"),
@@ -72,7 +72,7 @@ function renderTipVisual(kind: string): SVGSVGElement {
       el("rect", { x: "282", y: "52", width: "250", height: "132", rx: "8", class: "tip-card" }),
       el("text", { x: "42", y: "74", class: "tip-label-accent" }, "Trilha de aprendizagem"),
       el("circle", { cx: "48", cy: "100", r: "6", class: "tip-dot-ok" }),
-      el("text", { x: "64", y: "104", class: "tip-code" }, "1. Fundamentos (.pors)"),
+      el("text", { x: "64", y: "104", class: "tip-code" }, "1. Fundamentos (.fer)"),
       el("circle", { cx: "48", cy: "128", r: "6", class: "tip-dot-ok" }),
       el("text", { x: "64", y: "132", class: "tip-code" }, "2. Funções e vetores"),
       el("circle", { cx: "48", cy: "156", r: "6", class: "tip-dot-accent" }),
@@ -102,7 +102,7 @@ function renderTipVisual(kind: string): SVGSVGElement {
       el("rect", { x: "222", y: "52", width: "310", height: "132", rx: "8", class: "tip-card" }),
       el("text", { x: "42", y: "74", class: "tip-label-accent" }, "Explorador"),
       el("text", { x: "42", y: "100", class: "tip-code" }, "meu-projeto/"),
-      el("text", { x: "54", y: "122", class: "tip-code" }, "main.pors"),
+      el("text", { x: "54", y: "122", class: "tip-code" }, "main.fer"),
       el("text", { x: "54", y: "144", class: "tip-code" }, "Cargo.toml"),
       el("text", { x: "54", y: "166", class: "tip-code" }, "src/main.rs"),
       el("text", { x: "238", y: "74", class: "tip-label" }, "Cargo & Rust nativo"),
@@ -138,7 +138,7 @@ function renderTipVisual(kind: string): SVGSVGElement {
     // Default: "pors"
     svg.append(
       el("rect", { x: "28", y: "52", width: "504", height: "132", rx: "8", class: "tip-card" }),
-      el("text", { x: "44", y: "76", class: "tip-label-accent" }, "ola.pors — Portugol-RS"),
+      el("text", { x: "44", y: "76", class: "tip-label-accent" }, "ola.fer — Portugol-RS"),
       el("text", { x: "44", y: "104", class: "tip-code" }, "funcao inicio() {"),
       el("text", { x: "60", y: "126", class: "tip-code" }, "seja nome = \"Portugol-RS\";"),
       el("text", { x: "60", y: "148", class: "tip-code" }, "escreva(\"Olá, \", nome, \"!\");"),

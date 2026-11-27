@@ -48,11 +48,13 @@ test("collects all workspace files recursively in tree order", () => {
   assert.deepEqual(collectWorkspaceFiles([]), []);
 });
 
-test("classifies Portugol-RS, Rust, and PORS exercise files case-insensitively and ignores legacy .por/.pex", () => {
+test("classifies Ferro, Rust, and Ferro lesson files case-insensitively and ignores legacy .por/.pex/.pors", () => {
   assert.equal(workspaceFileKind("aula.POR"), null);
-  assert.equal(workspaceFileKind("ponte.PORS"), "portugol-rs");
+  assert.equal(workspaceFileKind("ponte.PORS"), null);
+  assert.equal(workspaceFileKind("ponte.FER"), "portugol-rs");
   assert.equal(workspaceFileKind("main.RS"), "rust");
-  assert.equal(workspaceFileKind("listas.PORS.JSON"), "exercise");
+  assert.equal(workspaceFileKind("listas.LICAO"), "exercise");
+  assert.equal(workspaceFileKind("listas.PORS.JSON"), null);
   assert.equal(workspaceFileKind("listas.PEX"), null);
   assert.equal(workspaceFileKind("leia-me.md"), null);
 });
@@ -60,12 +62,11 @@ test("classifies Portugol-RS, Rust, and PORS exercise files case-insensitively a
 test("validates Rust workspace source filenames", () => {
   assert.equal(workspaceSourceFileName("main", "rust"), "main.rs");
   assert.equal(workspaceSourceFileName("main.RS", "rust"), "main.RS");
-  assert.throws(() => workspaceSourceFileName("main.pors", "rust"), /extensão/);
+  assert.throws(() => workspaceSourceFileName("main.fer", "rust"), /extensão/);
 });
 
 test("builds new Ferro and Rust filenames from the selected language", () => {
   assert.equal(workspaceSourceFileName("ola", "source"), "ola.fer");
-  assert.equal(workspaceSourceFileName("ponte.pors", "source"), "ponte.pors");
   assert.equal(workspaceSourceFileName("ponte.fer", "source"), "ponte.fer");
   assert.equal(workspaceSourceFileName("main", "rust"), "main.rs");
   assert.equal(workspaceSourceFileName("moderno.FER", "source"), "moderno.FER");
@@ -78,21 +79,19 @@ test("rejects empty names, path separators, and extensions that conflict with th
   assert.throws(() => workspaceSourceFileName("programa.por", "source"), /extensão/i);
 });
 
-test("renames a workspace file while preserving its original extension or migrating to canonical", () => {
+test("renames a workspace file while preserving its original extension", () => {
   assert.equal(workspaceRenameFileName("novo", "antigo.fer"), "novo.fer");
-  assert.equal(workspaceRenameFileName("novo", "antigo.pors"), "novo.pors");
-  assert.equal(workspaceRenameFileName("antigo.fer", "antigo.pors"), "antigo.fer");
-  assert.equal(workspaceRenameFileName("ponte.pors", "classico.pors"), "ponte.pors");
+  assert.equal(workspaceRenameFileName("ponte.fer", "classico.fer"), "ponte.fer");
   assert.equal(workspaceRenameFileName("crates.rs", "main.rs"), "crates.rs");
-  assert.equal(workspaceRenameFileName("atividade", "exercicio.pors.json"), "atividade.pors.json");
-  assert.equal(workspaceRenameFileName("atividade.pors.json", "exercicio.pors.json"), "atividade.pors.json");
-  assert.equal(workspaceRenameFileName(" nome.pors ", " nome.pors "), " nome.pors ");
+  assert.equal(workspaceRenameFileName("atividade", "exercicio.licao"), "atividade.licao");
+  assert.equal(workspaceRenameFileName("atividade.licao", "exercicio.licao"), "atividade.licao");
+  assert.equal(workspaceRenameFileName(" nome.fer ", " nome.fer "), " nome.fer ");
 });
 
 test("rejects unsafe rename names and extension changes", () => {
-  assert.throws(() => workspaceRenameFileName("", "antigo.pors"), /nome/i);
-  assert.throws(() => workspaceRenameFileName("../fora", "antigo.pors"), /nome/i);
-  assert.throws(() => workspaceRenameFileName("novo.rs", "antigo.pors"), /extensão/i);
+  assert.throws(() => workspaceRenameFileName("", "antigo.fer"), /nome/i);
+  assert.throws(() => workspaceRenameFileName("../fora", "antigo.fer"), /nome/i);
+  assert.throws(() => workspaceRenameFileName("novo.rs", "antigo.fer"), /extensão/i);
   assert.throws(() => workspaceRenameFileName("novo", "notas.txt"), /extensão/i);
   assert.throws(() => workspaceRenameFileName("novo", "antigo.por"), /extensão/i);
 });
@@ -110,10 +109,10 @@ test("home start page defaults new file to Portugol-RS and groups alternate lang
   const main = ideSource();
   const css = ideStyles();
 
-  assert.match(html, /<button id="home-new"[^>]*Portugol-RS \(\.pors\)[^>]*>[^<]*<span[^>]*>[^<]*<\/span>Novo Arquivo<\/button>/);
+  assert.match(html, /<button id="home-new"[^>]*Portugol-RS \(\.fer\)[^>]*>[^<]*<span[^>]*>[^<]*<\/span>Novo Arquivo<\/button>/);
   assert.match(html, /<details id="home-new-menu"[^>]*data-testid="home-new-menu"/);
   assert.match(html, /<summary[^>]*aria-label="Criar arquivo em outra linguagem"/);
-  assert.match(html, /id="home-new-pors"[^>]*data-home-new-language="portugol-rs"[^>]*>Novo Portugol-RS \(\.pors\)<\/button>/);
+  assert.match(html, /id="home-new-pors"[^>]*data-home-new-language="portugol-rs"[^>]*>Novo Portugol-RS \(\.fer\)<\/button>/);
   assert.match(html, /id="home-new-rust"[^>]*data-home-new-language="rust"[^>]*>Novo Rust \(\.rs\)<\/button>/);
   assert.doesNotMatch(html, /id="home-new-por"/);
   assert.match(main, /\$\("home-new"\)\.onclick = \(\) => newTab\(\);/);
@@ -129,12 +128,12 @@ test("home start page defaults new file to Portugol-RS and groups alternate lang
   assert.match(css, /\.home-new-menu > summary:focus-visible,[\s\S]*?outline: 2px solid var\(--accent\)/);
 });
 
-test("workspace create dialog exposes the .pors (default) and .rs choices and an error status", () => {
+test("workspace create dialog exposes the .fer (default) and .rs choices and an error status", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   assert.match(html, /id="workspace-new-file"/);
   assert.match(html, /id="workspace-create-dialog"[^>]*aria-labelledby="workspace-create-title"/);
   assert.match(html, /id="workspace-create-name"[^>]*aria-describedby="workspace-create-error"/);
-  assert.match(html, /<option value="source" selected>[^<]*\.pors\)<\/option>/);
+  assert.match(html, /<option value="source" selected>[^<]*\.fer\)<\/option>/);
   assert.match(html, /<option value="rust">[^<]*\.rs\)<\/option>/);
   assert.doesNotMatch(html, /<option value="por">/);
   assert.match(html, /id="workspace-create-error"[^>]*role="status"/);
@@ -223,22 +222,18 @@ test("classifies desktop project markup and gives each file a marker", async () 
   assert.equal(workspaceFileMarker("App/JanelaPrincipal.design"), "TL");
   assert.equal(workspaceFileMarker("App/meu-app.ferproj"), "PJ");
   assert.equal(workspaceFileMarker("ponte.fer"), "Fe");
-  assert.equal(workspaceFileMarker("ponte.pors"), "Fe");
   assert.equal(workspaceFileMarker("main.rs"), "R");
-  assert.equal(workspaceFileMarker("lista.pors.json"), "EX");
+  assert.equal(workspaceFileMarker("lista.licao"), "EX");
 });
 
-test("groups each .design with .fer/.pors of the same name and flags duplicate code-behind", async () => {
+test("groups each .design with .fer of the same name into a screen node", async () => {
   const { groupScreens, screensContaining, SCREEN_PATH_SUFFIX } = await import("../src/workspace-explorer.ts");
   const file = (path) => ({ kind: "file", name: path.split("/").pop(), path });
   const entries = [
     { kind: "folder", name: "App", path: "App", entries: [
       file("App/Cadastro.design"),
       file("App/JanelaPrincipal.DESIGN"),
-      file("App/JanelaPrincipal.pors"),
-      file("App/Duplicada.design"),
-      file("App/Duplicada.pors"),
-      file("App/Duplicada.fer"),
+      file("App/JanelaPrincipal.fer"),
       file("App/meu-app.ferproj"),
       file("App/util.fer"),
     ] },
@@ -251,27 +246,19 @@ test("groups each .design with .fer/.pors of the same name and flags duplicate c
   assert.deepEqual(app.entries.map((entry) => [entry.kind, entry.name]), [
     ["screen", "Cadastro"],
     ["screen", "JanelaPrincipal"],
-    ["screen", "Duplicada"],
     ["file", "meu-app.ferproj"],
     ["file", "util.fer"],
   ]);
-  const [cadastro, principal, duplicada] = app.entries;
+  const [cadastro, principal] = app.entries;
   assert.equal(cadastro.code, null);
   assert.equal(cadastro.duplicateCode, false);
   assert.deepEqual(cadastro.entries.map((f) => f.path), ["App/Cadastro.design"]);
   assert.equal(principal.path, `App/JanelaPrincipal.DESIGN${SCREEN_PATH_SUFFIX}`);
   assert.equal(principal.duplicateCode, false);
-  assert.deepEqual(principal.entries.map((f) => f.path), ["App/JanelaPrincipal.DESIGN", "App/JanelaPrincipal.pors"]);
-  assert.equal(duplicada.duplicateCode, true);
-  assert.equal(duplicada.code?.path, "App/Duplicada.fer");
-  assert.deepEqual(duplicada.entries.map((f) => f.path), [
-    "App/Duplicada.design",
-    "App/Duplicada.fer",
-    "App/Duplicada.pors",
-  ]);
+  assert.deepEqual(principal.entries.map((f) => f.path), ["App/JanelaPrincipal.DESIGN", "App/JanelaPrincipal.fer"]);
   assert.deepEqual(grouped[1], file("solto.fer"));
 
-  assert.deepEqual(screensContaining(grouped, "App/JanelaPrincipal.pors"), [principal.path]);
+  assert.deepEqual(screensContaining(grouped, "App/JanelaPrincipal.fer"), [principal.path]);
   assert.deepEqual(screensContaining(grouped, "App/util.fer"), []);
 
   const rows = flattenWorkspaceEntries(grouped, new Set(["App", principal.path]));
@@ -280,8 +267,7 @@ test("groups each .design with .fer/.pors of the same name and flags duplicate c
     ["Cadastro", 1],
     ["JanelaPrincipal", 1],
     ["JanelaPrincipal.DESIGN", 2],
-    ["JanelaPrincipal.pors", 2],
-    ["Duplicada", 1],
+    ["JanelaPrincipal.fer", 2],
     ["meu-app.ferproj", 1],
     ["util.fer", 1],
     ["solto.fer", 0],

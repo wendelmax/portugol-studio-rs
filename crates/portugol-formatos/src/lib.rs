@@ -1,10 +1,8 @@
 //! Tabela única dos formatos de arquivo do Ferro Studio (ADR 0023, Emenda 2).
 //!
 //! CLI, serviço, Tauri e IDE perguntam aqui o que é cada arquivo, em vez de
-//! comparar extensões por conta própria. Trocar uma extensão (por exemplo,
-//! `.pors` → `.fer`) passa a ser mudar uma linha desta tabela: a extensão
-//! canônica vira a nova, e a antiga entra em `legacy`, que continua sendo
-//! aceita durante a transição.
+//! comparar extensões por conta própria. `.fer` e `.licao` são as extensões
+//! canônicas; `.pors` e `.pors.json` não são reconhecidas.
 //!
 //! A IDE recebe a mesma tabela no arquivo gerado
 //! `apps/desktop/src/file-formats.generated.ts`. O teste `ts_table_is_current`
@@ -59,7 +57,7 @@ impl Kind {
 pub struct Format {
     pub kind: Kind,
     /// Extensão canônica, sem o ponto inicial. Pode ter mais de uma parte
-    /// (`pors.json`).
+    /// (`licao`).
     pub extension: &'static str,
     /// Extensões antigas ainda aceitas durante a transição.
     pub legacy: &'static [&'static str],
@@ -73,7 +71,7 @@ pub const FORMATS: &[Format] = &[
     Format {
         kind: Kind::Source,
         extension: "fer",
-        legacy: &["pors"],
+        legacy: &[],
         label: "Ferro",
         mime: "text/x-ferro",
     },
@@ -86,9 +84,9 @@ pub const FORMATS: &[Format] = &[
     },
     Format {
         kind: Kind::Lesson,
-        extension: "pors.json",
+        extension: "licao",
         legacy: &[],
-        label: "Exercício Portugol-RS",
+        label: "Lição Ferro",
         mime: "application/json",
     },
     Format {
@@ -102,7 +100,7 @@ pub const FORMATS: &[Format] = &[
         kind: Kind::Manifest,
         extension: "ferproj",
         legacy: &[],
-        label: "Projeto desktop PORS",
+        label: "Projeto Ferro",
         mime: "application/xml",
     },
 ];
@@ -164,8 +162,8 @@ fn file_name(path: &str) -> &str {
 }
 
 /// Formato de um arquivo pelo nome ou caminho. Extensões mais longas ganham
-/// (`exercicio.pors.json` é lição, não JSON qualquer). Um nome que é só a
-/// extensão (`.pors`) não conta.
+/// (`exercicio.licao` é lição, não JSON qualquer). Um nome que é só a extensão
+/// (`.fer`) não conta.
 pub fn classify(path: &str) -> Option<Match> {
     classify_in(FORMATS, path)
 }
@@ -234,12 +232,12 @@ pub fn is_retired_path(path: &Path) -> bool {
 }
 
 /// Lista as extensões canônicas dos tipos para mensagens:
-/// `".pors, .rs e .pors.json"`.
+/// `".fer, .rs e .licao"`.
 pub fn describe(kinds: &[Kind]) -> String {
     join(kinds, "e")
 }
 
-/// Como [`describe`], para alternativas: `".pors, .rs ou .pors.json"`.
+/// Como [`describe`], para alternativas: `".fer, .rs ou .licao"`.
 pub fn describe_alternatives(kinds: &[Kind]) -> String {
     join(kinds, "ou")
 }
@@ -309,19 +307,18 @@ mod tests {
     fn classifica_pela_extensao_ignorando_maiusculas() {
         let kind = |path| classify(path).map(|m| m.kind());
         assert_eq!(kind("principal.fer"), Some(Kind::Source));
-        assert_eq!(kind("principal.pors"), Some(Kind::Source));
+        assert_eq!(kind("principal.pors"), None);
         assert_eq!(kind("C:\\aulas\\Main.RS"), Some(Kind::Rust));
-        assert_eq!(kind("aulas/01-dobro.pors.json"), Some(Kind::Lesson));
+        assert_eq!(kind("aulas/01-dobro.licao"), Some(Kind::Lesson));
+        assert_eq!(kind("aulas/01-dobro.pors.json"), None);
         assert_eq!(kind("App/JanelaPrincipal.design"), Some(Kind::Design));
         assert_eq!(kind("meu-app.FERPROJ"), Some(Kind::Manifest));
         assert_eq!(classify("dados.json"), None);
         assert_eq!(classify("sem-extensao"), None);
         assert_eq!(classify(".fer"), None);
-        assert_eq!(classify(".pors"), None);
-        assert_eq!(classify("pasta.pors/arquivo"), None);
+        assert_eq!(classify(".licao"), None);
+        assert_eq!(classify("pasta.fer/arquivo"), None);
         assert_eq!(classify("programa.por"), None);
-        let legacy = classify("ação.pors").unwrap();
-        assert_eq!((legacy.extension, legacy.legacy), ("pors", true));
         let canonical = classify("ação.FER").unwrap();
         assert_eq!((canonical.extension, canonical.legacy), ("fer", false));
     }
@@ -358,7 +355,7 @@ mod tests {
         assert_eq!(describe(&[Kind::Rust, Kind::Source]), ".fer e .rs");
         assert_eq!(
             describe(&all_kinds()),
-            ".fer, .rs, .pors.json, .design e .ferproj"
+            ".fer, .rs, .licao, .design e .ferproj"
         );
         assert_eq!(
             describe_alternatives(&[Kind::Source, Kind::Design]),
@@ -367,14 +364,9 @@ mod tests {
     }
 
     #[test]
-    fn caminho_canonico_substitui_apenas_extensao_antiga() {
-        assert_eq!(canonical_name("aula.pors").as_deref(), Some("aula.fer"));
-        assert_eq!(canonical_name("AULA.PORS").as_deref(), Some("AULA.fer"));
+    fn caminho_canonico_retorna_none_sem_extensoes_legadas() {
         assert_eq!(canonical_name("aula.fer"), None);
-        assert_eq!(
-            canonical_path(Path::new("pasta/app.pors")),
-            Some(std::path::PathBuf::from("pasta/app.fer"))
-        );
+        assert_eq!(canonical_name("aula.pors"), None);
         assert_eq!(canonical_path(Path::new("pasta/app.fer")), None);
     }
 

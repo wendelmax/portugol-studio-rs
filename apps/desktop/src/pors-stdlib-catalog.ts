@@ -1,4 +1,4 @@
-// Fonte única de verdade da biblioteca padrão Portugol-RS (.pors) para
+// Fonte única de verdade da biblioteca padrão Portugol-RS (.fer) para
 // autocompletar, hover do editor e documentação da Ajuda.
 // Validada por apps/desktop/tests/pors-stdlib-parity.test.mjs contra
 // crates/portugol-rs-frontend/src/parser/stdlib.rs e constants.rs.

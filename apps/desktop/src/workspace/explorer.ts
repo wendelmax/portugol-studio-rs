@@ -134,7 +134,7 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
       ));
       button.style.paddingInlineStart = "8px";
       if (entry.kind === "screen") {
-        // Nó de tela: abre o desenho e mostra o .design e o .pors dentro dele.
+        // Nó de tela: abre o desenho e mostra o .design e o .fer dentro dele.
         const screen = entry;
         button.setAttribute("aria-expanded", String(isExpanded));
         button.setAttribute("aria-label", `${screen.name}, tela${screen.code ? " com código" : " sem código"}${isExpanded ? ", expandida" : ", recolhida"}`);

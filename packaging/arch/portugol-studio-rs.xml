@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
   <mime-type type="text/x-ferro">
-    <alias type="text/x-portugol-rs"/>
     <comment>Ferro source code</comment>
     <comment xml:lang="pt_BR">Código-fonte Ferro</comment>
     <sub-class-of type="text/plain"/>
     <glob pattern="*.fer"/>
-    <glob pattern="*.pors"/>
+  </mime-type>
+  <mime-type type="application/x-ferro-licao">
+    <comment>Ferro lesson</comment>
+    <comment xml:lang="pt_BR">Lição interativa Ferro</comment>
+    <sub-class-of type="application/json"/>
+    <glob pattern="*.licao"/>
   </mime-type>
 </mime-info>

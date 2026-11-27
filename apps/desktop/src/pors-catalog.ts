@@ -1,4 +1,4 @@
-// Adaptadores puros para integrar exemplos e exercícios Portugol-RS (.pors)
+// Adaptadores puros para integrar exemplos e exercícios Portugol-RS (.fer)
 // à tela inicial e ao avaliador da IDE desktop.
 
 import type {
@@ -54,7 +54,7 @@ export function buildPorsExampleCatalog(
   return rootEntries;
 }
 
-/** Constrói a pasta de catálogo `Portugol-RS (.pors)` agrupada por categoria. */
+/** Constrói a pasta de catálogo `Portugol-RS (.fer)` agrupada por categoria. */
 export function buildPorsExampleCatalogFolder(
   examples: readonly PorsExampleInfo[],
 ): CatalogEntry | null {
@@ -63,7 +63,7 @@ export function buildPorsExampleCatalogFolder(
 
   return {
     kind: "folder",
-    name: "Portugol-RS (.pors)",
+    name: "Portugol-RS (.fer)",
     entries: folders,
   };
 }
@@ -78,7 +78,7 @@ export function parsePorsExerciseOptionValue(value: string): string | null {
     : null;
 }
 
-/** Converte o resultado detalhado do avaliador `.pors` para o contrato do painel de exercícios. */
+/** Converte o resultado detalhado do avaliador `.fer` para o contrato do painel de exercícios. */
 export function formatPorsExerciseOutcome(
   evaluation: PorsExerciseEvaluation,
 ): ExerciseCheckResult {
@@ -88,7 +88,7 @@ export function formatPorsExerciseOutcome(
     if (evaluation.diagnostics.length > 0) {
       failures.push(...evaluation.diagnostics);
     } else {
-      failures.push("O código .pors possui erros de compilação.");
+      failures.push("O código .fer possui erros de compilação.");
     }
   } else {
     for (const item of evaluation.cases) {

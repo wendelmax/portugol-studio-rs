@@ -57,10 +57,10 @@ test("help.ts organizes navigation around PORS without classic library menu", ()
   assert.ok(helpSource.includes("Primeiros passos (PORS)"));
   assert.ok(helpSource.includes("Bibliotecas padrão (PORS)"));
   assert.ok(helpSource.includes("UI e Multimídia (PORS)"));
-  assert.ok(helpSource.includes("Referência da sintaxe (.pors)"));
+  assert.ok(helpSource.includes("Referência da sintaxe (.fer)"));
 });
 
-test("PORS help examples use .pors syntax without classic Portugol keywords", () => {
+test("Ferro help examples use .fer syntax without classic Portugol keywords", () => {
   for (const topic of PORS_HELP_TOPICS) {
     if (!topic.example) continue;
     assert.ok(topic.example.fileName.endsWith(".fer"));

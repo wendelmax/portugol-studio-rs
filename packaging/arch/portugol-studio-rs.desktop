@@ -6,5 +6,5 @@ Icon=portugol-studio-rs
 Terminal=false
 Type=Application
 Categories=Development;Education;IDE;
-MimeType=text/x-ferro;text/x-portugol-rs;text/x-rust;
+MimeType=text/x-ferro;application/x-ferro-licao;text/x-rust;
 StartupWMClass=portugol-desktop

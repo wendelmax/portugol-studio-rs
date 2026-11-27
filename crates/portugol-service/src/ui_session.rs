@@ -405,7 +405,7 @@ fn diagnostics_error_json(diagnostics: &[Diagnostic]) -> String {
     let first = diagnostics
         .first()
         .map(|d| d.message.as_str())
-        .unwrap_or("Erro de sintaxe ou semântica no código .pors.");
+        .unwrap_or("Erro de sintaxe ou semântica no código .fer.");
     let list: Vec<JsonValue> = diagnostics
         .iter()
         .map(|d| {

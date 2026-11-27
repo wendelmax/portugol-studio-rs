@@ -56,40 +56,43 @@ mod tests {
     use super::*;
 
     #[test]
-    fn keeps_existing_pors_rust_and_pors_exercise_files_from_arguments() {
+    fn keeps_existing_fer_rust_and_lesson_files_from_arguments() {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../..");
-        let pors_exercise =
-            std::env::temp_dir().join(format!("exercicio-{}.pors.json", std::process::id()));
-        let pors = std::env::temp_dir().join(format!("Portugol á {}.PORS", std::process::id()));
-        let rust = std::env::temp_dir().join(format!("Portugol {}.RS", std::process::id()));
+        let lesson = std::env::temp_dir().join(format!("licao-{}.licao", std::process::id()));
+        let ferro = std::env::temp_dir().join(format!("Ferro á {}.FER", std::process::id()));
+        let rust = std::env::temp_dir().join(format!("Ferro {}.RS", std::process::id()));
+        let old_pors = std::env::temp_dir().join(format!("antigo-{}.pors", std::process::id()));
         let legacy_por = std::env::temp_dir().join(format!("legado-{}.por", std::process::id()));
         let legacy_pex = std::env::temp_dir().join(format!("legado-{}.pex", std::process::id()));
-        std::fs::write(&pors_exercise, "{}").unwrap();
-        std::fs::write(&pors, "funcao inicio() {}").unwrap();
+        std::fs::write(&lesson, "{}").unwrap();
+        std::fs::write(&ferro, "funcao inicio() {}").unwrap();
         std::fs::write(&rust, "fn main() {}").unwrap();
+        std::fs::write(&old_pors, "funcao inicio() {}").unwrap();
         std::fs::write(&legacy_por, "programa { funcao inicio() {} }").unwrap();
         std::fs::write(&legacy_pex, "{}").unwrap();
         let not_source = root.join("Cargo.toml");
         let paths = file_paths([
-            pors_exercise.clone(),
+            lesson.clone(),
             not_source,
+            old_pors.clone(),
             legacy_por.clone(),
             legacy_pex.clone(),
-            pors.clone(),
+            ferro.clone(),
             rust.clone(),
-            root.join("missing.pors.json"),
+            root.join("missing.licao"),
         ]);
         assert_eq!(
             paths,
             [
-                pors_exercise.to_str().unwrap(),
-                pors.to_str().unwrap(),
+                lesson.to_str().unwrap(),
+                ferro.to_str().unwrap(),
                 rust.to_str().unwrap()
             ]
         );
-        std::fs::remove_file(pors_exercise).unwrap();
-        std::fs::remove_file(pors).unwrap();
+        std::fs::remove_file(lesson).unwrap();
+        std::fs::remove_file(ferro).unwrap();
         std::fs::remove_file(rust).unwrap();
+        std::fs::remove_file(old_pors).unwrap();
         std::fs::remove_file(legacy_por).unwrap();
         std::fs::remove_file(legacy_pex).unwrap();
     }

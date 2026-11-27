@@ -788,7 +788,7 @@ fn validate_standalone_file_path<'a>(
     let path = std::path::Path::new(raw_path);
     if portugol_formatos::is_retired_path(path) {
         return Err(format!(
-            "Arquivos legados .por e .pex não são suportados no Portugol Studio RS. Use o Portugol Studio original para abri-los ou utilize arquivos {}.",
+            "Arquivos legados .por e .pex não são suportados no Ferro Studio. Use o Portugol Studio original para abri-los ou utilize arquivos {}.",
             portugol_formatos::describe(&[
                 portugol_formatos::Kind::Source,
                 portugol_formatos::Kind::Rust,
@@ -1086,7 +1086,7 @@ mod rust_source_run_tests {
         ));
         std::fs::create_dir_all(&dir).unwrap();
 
-        let pors = dir.join("exemplo.pors");
+        let ferro = dir.join("exemplo.fer");
         let legacy_por = dir.join("legado.por");
         let legacy_pex = dir.join("legado.pex");
         let secret = dir.join("segredo.env");
@@ -1097,9 +1097,9 @@ mod rust_source_run_tests {
         std::fs::write(&secret, "SECRET=1").unwrap();
         std::fs::write(&exercise, "{}").unwrap();
 
-        super::write_file(pors.display().to_string(), "funcao inicio() {}".into()).unwrap();
+        super::write_file(ferro.display().to_string(), "funcao inicio() {}".into()).unwrap();
         assert_eq!(
-            super::read_file(pors.display().to_string()).unwrap(),
+            super::read_file(ferro.display().to_string()).unwrap(),
             "funcao inicio() {}"
         );
         assert_eq!(

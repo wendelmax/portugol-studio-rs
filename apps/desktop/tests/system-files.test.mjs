@@ -14,13 +14,13 @@ function fixture(overrides = {}) {
   return { openIncomingFiles: createIncomingFileOpener(dependencies), dependencies, events };
 }
 
-test("opens supported exercise and source files in input order and ignores legacy .por/.pex", async () => {
+test("opens supported lesson and source files in input order and ignores legacy .por/.pex/.pors", async () => {
   const { openIncomingFiles, events } = fixture();
 
-  await openIncomingFiles(["a.pors.json", "b.POR", "c.fer", "d.pors", "e.rs", "f.pex"], true);
+  await openIncomingFiles(["a.licao", "b.POR", "c.fer", "d.pors", "e.rs", "f.pex"], true);
 
   assert.deepEqual(events, [
-    ["exercise", "a.pors.json"], ["file", "c.fer"], ["file", "d.pors"], ["file", "e.rs"],
+    ["exercise", "a.licao"], ["file", "c.fer"], ["file", "e.rs"],
   ]);
 });
 
@@ -33,8 +33,8 @@ test("warns when requested and no incoming path has a supported extension", asyn
   await openIncomingFiles(["programa.fer"], true);
 
   assert.deepEqual(events, [
-    ["status", "Escolha um arquivo .fer, .rs ou .pors.json.", "error"],
-    ["status", "Arquivos legados .por e .pex não são suportados no Portugol Studio RS. Use o Portugol Studio original para abri-los, ou escolha um arquivo .fer, .rs ou .pors.json.", "error"],
+    ["status", "Escolha um arquivo .fer, .rs ou .licao.", "error"],
+    ["status", "Arquivos legados .por e .pex não são suportados no Ferro Studio. Use o Portugol Studio original para abri-los, ou escolha um arquivo .fer, .rs ou .licao.", "error"],
     ["file", "programa.fer"],
   ]);
 });
@@ -47,7 +47,7 @@ test("reports a failed path and continues opening remaining files", async () => 
     },
   });
 
-  await openIncomingFiles(["falha.rs", "ok.pors"]);
+  await openIncomingFiles(["falha.rs", "ok.fer"]);
 
-  assert.deepEqual(events, [["status", "falha ao abrir", "error"], ["file", "ok.pors"]]);
+  assert.deepEqual(events, [["status", "falha ao abrir", "error"], ["file", "ok.fer"]]);
 });

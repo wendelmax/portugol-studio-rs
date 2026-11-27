@@ -29,7 +29,7 @@ export const PORS_HELP_TOPICS: readonly PorsHelpTopic[] = [
     title: "Portugol-RS: Visão geral e tipos",
     summary: "Sintaxe tipada com imutabilidade padrão e compilação direta para VM, WASM e Rust.",
     paragraphs: [
-      "Portugol-RS (`.pors`) é o dialeto autoral em português projetado como ponte direta para Rust. Todo binding começa imutável com `seja` e exige `seja mutavel` para reatribuição ou mutação.",
+      "Portugol-RS (`.fer`) é o dialeto autoral em português projetado como ponte direta para Rust. Todo binding começa imutável com `seja` e exige `seja mutavel` para reatribuição ou mutação.",
       "Os tipos escalares disponíveis são `inteiro` (`i32`), `real` (`f64`), `logico` (`bool`), `cadeia` (`String` UTF-8 com orçamento de memória) e `caracter` (`char` Unicode), sem coerções implícitas entre tipos.",
     ],
     example: {
@@ -125,7 +125,7 @@ export const PORS_HELP_TOPICS: readonly PorsHelpTopic[] = [
   {
     id: "pors:ponte-rust",
     title: "Ponte Portugol-RS ↔ Rust",
-    summary: "Equivalência direta de conceitos entre `.pors` e `.rs`, do código didático ao Rust nativo.",
+    summary: "Equivalência direta de conceitos entre `.fer` e `.rs`, do código didático ao Rust nativo.",
     paragraphs: [
       "Cada construção de Portugol-RS foi desenhada para espelhar Rust real com o mínimo de atrito. Ative o botão `Rust` na barra superior para inspecionar o código Rust gerado lado a lado com source maps interativos.",
       "Quando quiser ir além da semântica de cópia por valor do Portugol-RS e estudar ownership, movimento e empréstimos (`&T` / `&mut T`), use o painel `Aprender` no modo Ponte ou Rust para abrir o Laboratório de Ownership.",

@@ -55,7 +55,7 @@ export function exerciseTestStatus(
   state: ExerciseTestPanelState,
   language?: "portugol-rs",
 ): string {
-  const tag = language === "portugol-rs" ? " (.pors)" : "";
+  const tag = language === "portugol-rs" ? " (.fer)" : "";
   switch (state.kind) {
     case "empty": return "Nenhum teste configurado para este arquivo.";
     case "no-cases": return "Este exercício não possui casos de execução configurados.";

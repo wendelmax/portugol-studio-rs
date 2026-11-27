@@ -35,7 +35,7 @@ test("conceitos apontam para exercícios .pors existentes e Rust-only não apont
 
 test("cada prompt de prática combina com o enunciado real do exercício .pors associado", async () => {
   const { conceptsForMode } = await import(moduleUrl.href);
-  const exercisesDir = new URL("../../../crates/portugol-service/assets/exercicios-pors/", import.meta.url);
+  const exercisesDir = new URL("../../../crates/portugol-service/assets/exercicios/", import.meta.url);
   const expectedTerms = new Map([
     ["variables", /nome/i],
     ["conditionals", /par|ímpar/i],
@@ -48,7 +48,7 @@ test("cada prompt de prática combina com o enunciado real do exercício .pors a
 
   for (const concept of conceptsForMode("bridge")) {
     if (!concept.practicePorsExerciseId) continue;
-    const file = `${concept.practicePorsExerciseId.slice("pors-".length)}.pors.json`;
+    const file = `${concept.practicePorsExerciseId.slice("pors-".length)}.licao`;
     const definition = JSON.parse(readFileSync(new URL(file, exercisesDir), "utf8"));
     assert.equal(definition.id, concept.practicePorsExerciseId);
     const term = expectedTerms.get(concept.id);

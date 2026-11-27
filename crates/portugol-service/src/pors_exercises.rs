@@ -1,5 +1,5 @@
 //! Formato versionado (`schema_version = 1`) e avaliador executável para
-//! exercícios em Portugol-RS (`.pors`), preservando o avaliador clássico `.pex`.
+//! lições Ferro (`.licao`), preservando o avaliador clássico `.pex`.
 
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -76,46 +76,46 @@ pub struct PorsExerciseEvaluation {
 }
 
 const BUILTIN_RAW: &[&str] = &[
-    include_str!("../assets/exercicios-pors/01-dobro.pors.json"),
-    include_str!("../assets/exercicios-pors/02-maior-de-dois.pors.json"),
-    include_str!("../assets/exercicios-pors/03-soma-ate-n.pors.json"),
-    include_str!("../assets/exercicios-pors/04-funcao-fatorial.pors.json"),
-    include_str!("../assets/exercicios-pors/05-divisao-segura.pors.json"),
-    include_str!("../assets/exercicios-pors/06-filtrar-positivos.pors.json"),
-    include_str!("../assets/exercicios-pors/07-normalizar-csv.pors.json"),
-    include_str!("../assets/exercicios-pors/08-dias-do-mes.pors.json"),
-    include_str!("../assets/exercicios-pors/09-resumo-json.pors.json"),
-    include_str!("../assets/exercicios-pors/10-somar-lista-json.pors.json"),
-    include_str!("../assets/exercicios-pors/11-par-ou-impar.pors.json"),
-    include_str!("../assets/exercicios-pors/12-saudacao-cadeia.pors.json"),
-    include_str!("../assets/exercicios-pors/13-registro-ponto.pors.json"),
-    include_str!("../assets/exercicios-pors/14-enum-semaforo.pors.json"),
+    include_str!("../assets/exercicios/01-dobro.licao"),
+    include_str!("../assets/exercicios/02-maior-de-dois.licao"),
+    include_str!("../assets/exercicios/03-soma-ate-n.licao"),
+    include_str!("../assets/exercicios/04-funcao-fatorial.licao"),
+    include_str!("../assets/exercicios/05-divisao-segura.licao"),
+    include_str!("../assets/exercicios/06-filtrar-positivos.licao"),
+    include_str!("../assets/exercicios/07-normalizar-csv.licao"),
+    include_str!("../assets/exercicios/08-dias-do-mes.licao"),
+    include_str!("../assets/exercicios/09-resumo-json.licao"),
+    include_str!("../assets/exercicios/10-somar-lista-json.licao"),
+    include_str!("../assets/exercicios/11-par-ou-impar.licao"),
+    include_str!("../assets/exercicios/12-saudacao-cadeia.licao"),
+    include_str!("../assets/exercicios/13-registro-ponto.licao"),
+    include_str!("../assets/exercicios/14-enum-semaforo.licao"),
 ];
 
 static BUILTIN_CATALOG: LazyLock<Vec<PorsExerciseDefinition>> = LazyLock::new(|| {
     BUILTIN_RAW
         .iter()
-        .map(|raw| parse_pors_exercise_json(raw).expect("exercício PORS embutido deve ser válido"))
+        .map(|raw| parse_pors_exercise_json(raw).expect("lição Ferro embutida deve ser válida"))
         .collect()
 });
 
 pub fn parse_pors_exercise_json(raw: &str) -> Result<PorsExerciseDefinition, String> {
     let definition: PorsExerciseDefinition = serde_json::from_str(raw)
-        .map_err(|error| format!("JSON de exercício .pors inválido: {error}"))?;
+        .map_err(|error| format!("JSON de lição Ferro inválido: {error}"))?;
     if definition.schema_version != PORS_EXERCISE_SCHEMA_VERSION {
         return Err(format!(
-            "Versão de esquema de exercício .pors não suportada ({}); esperado {}.",
+            "Versão de esquema de lição Ferro não suportada ({}); esperado {}.",
             definition.schema_version, PORS_EXERCISE_SCHEMA_VERSION
         ));
     }
     if definition.id.trim().is_empty() {
-        return Err("O exercício .pors precisa de um identificador `id`.".into());
+        return Err("A lição Ferro precisa de um identificador `id`.".into());
     }
     if definition.title.trim().is_empty() || definition.statement.trim().is_empty() {
-        return Err("O exercício .pors precisa de título e enunciado.".into());
+        return Err("A lição Ferro precisa de título e enunciado.".into());
     }
     if definition.cases.is_empty() {
-        return Err("O exercício .pors precisa definir ao menos um caso de teste.".into());
+        return Err("A lição Ferro precisa definir ao menos um caso de teste.".into());
     }
     Ok(definition)
 }
@@ -172,7 +172,7 @@ pub fn evaluate_pors_exercise(
                 cases: Vec::new(),
                 diagnostics: diagnostics
                     .into_iter()
-                    .map(|d| d.render(source, "exercicio.pors"))
+                    .map(|d| d.render(source, "exercicio.fer"))
                     .collect(),
                 hints: Vec::new(),
             };

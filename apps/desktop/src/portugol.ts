@@ -1,4 +1,4 @@
-// Linguagem Portugol-RS (.pors) para o CodeMirror: realce (StreamLanguage),
+// Linguagem Portugol-RS (.fer) para o CodeMirror: realce (StreamLanguage),
 // snippets, autocompletar e documentação de hover.
 
 import {

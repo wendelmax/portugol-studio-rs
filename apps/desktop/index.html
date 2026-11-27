@@ -47,11 +47,11 @@
           </div>
           <div class="home-actions">
             <div class="home-new-file-group">
-              <button id="home-new" title="Novo arquivo Portugol-RS (.pors) (Ctrl+N)"><span data-icon="file-plus"></span>Novo Arquivo</button>
+              <button id="home-new" title="Novo arquivo Portugol-RS (.fer) (Ctrl+N)"><span data-icon="file-plus"></span>Novo Arquivo</button>
               <details id="home-new-menu" class="home-new-menu" data-testid="home-new-menu">
                 <summary id="home-new-menu-toggle" aria-label="Criar arquivo em outra linguagem" aria-controls="home-new-menu-items" title="Criar arquivo em outra linguagem"><span aria-hidden="true">▾</span></summary>
                 <div id="home-new-menu-items" class="home-new-menu-items" aria-label="Outras linguagens">
-                  <button id="home-new-pors" type="button" data-home-new-language="portugol-rs" title="Novo arquivo Portugol-RS (.pors)">Novo Portugol-RS (.pors)</button>
+                  <button id="home-new-pors" type="button" data-home-new-language="portugol-rs" title="Novo arquivo Portugol-RS (.fer)">Novo Portugol-RS (.fer)</button>
                   <button id="home-new-rust" type="button" data-home-new-language="rust" title="Novo arquivo Rust (.rs)">Novo Rust (.rs)</button>
                 </div>
               </details>
@@ -81,7 +81,7 @@
       <section class="home-examples">
         <div class="home-example-list">
           <h2><span data-icon="sparkles"></span>Exemplos</h2>
-          <input id="example-search" type="search" disabled placeholder="Buscar exemplos (.pors)" aria-label="Buscar exemplos" />
+          <input id="example-search" type="search" disabled placeholder="Buscar exemplos (.fer)" aria-label="Buscar exemplos" />
           <div id="examples"></div>
           <p id="examples-empty" role="status" hidden>Nenhum exemplo encontrado.</p>
         </div>
@@ -122,7 +122,7 @@
           <div class="workspace-explorer-actions">
             <button id="workspace-refresh" title="Atualizar lista de arquivos do projeto" aria-label="Atualizar projeto" disabled>↻</button>
             <button id="workspace-export" title="Exportar arquivos do projeto localmente" aria-label="Exportar projeto" disabled>⇧</button>
-            <button id="workspace-new-file" title="Novo arquivo .pors ou .rs" aria-label="Novo arquivo" disabled>＋</button>
+            <button id="workspace-new-file" title="Novo arquivo .fer ou .rs" aria-label="Novo arquivo" disabled>＋</button>
             <button id="workspace-open-folder" title="Abrir outra pasta" aria-label="Abrir outra pasta"><span data-icon="folder"></span></button>
           </div>
         </header>
@@ -192,7 +192,7 @@
               <select id="pors-ui-example-select"></select>
               <button id="pors-ui-load-example" type="button">Carregar exemplo</button>
             </div>
-            <p id="pors-ui-status" role="status" aria-live="polite">Abra um programa .pors visual ou carregue um exemplo.</p>
+            <p id="pors-ui-status" role="status" aria-live="polite">Abra um programa .fer visual ou carregue um exemplo.</p>
             <div id="pors-ui-canvas" class="pors-ui-canvas"></div>
           </aside>
           <aside class="error-strip" aria-label="Diagnósticos por linha"><div id="error-strip"></div></aside>
@@ -455,7 +455,7 @@
         <input id="workspace-create-folder" type="text" maxlength="180" autocomplete="off" spellcheck="false" placeholder="ex.: aulas/modulo1" aria-describedby="workspace-create-error" />
         <label for="workspace-create-language">Linguagem</label>
         <select id="workspace-create-language">
-          <option value="source" selected>Portugol-RS (.pors)</option>
+          <option value="source" selected>Portugol-RS (.fer)</option>
           <option value="rust">Rust (.rs)</option>
         </select>
         <p id="workspace-create-error" role="status" aria-live="polite" hidden></p>
@@ -699,7 +699,7 @@
           <label>Base <select id="theme-base"><option value="light">Claro</option><option value="dark">Escuro</option></select></label>
         </div>
         <div id="theme-preview" class="theme-palette">
-          <pre><span class="theme-comment">// Prévia do editor (.pors)</span>
+          <pre><span class="theme-comment">// Prévia do editor (.fer)</span>
 <span class="theme-keyword">funcao</span> inicio() {
   <span class="theme-keyword">seja</span> numero <span class="theme-operator">=</span> <span class="theme-number">42</span>;
   escreva(<span class="theme-string">"Olá, Portugol-RS! "</span>, numero);

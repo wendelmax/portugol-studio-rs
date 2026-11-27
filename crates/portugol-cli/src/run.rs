@@ -1,5 +1,5 @@
 //! Subcomando `executar`: análise completa, compilação e execução na VM
-//! para programas Portugol-RS (`.pors`).
+//! para programas Ferro (`.fer`).
 
 use std::path::Path;
 use std::process::ExitCode;
@@ -38,7 +38,7 @@ pub fn main(args: &[String]) -> ExitCode {
     }
     if !program_args.is_empty() {
         eprintln!(
-            "{file}: parâmetros de linha de comando ainda não são suportados em funcao inicio() de .pors"
+            "{file}: parâmetros de linha de comando ainda não são suportados em funcao inicio() de .fer"
         );
         return ExitCode::FAILURE;
     }

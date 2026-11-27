@@ -27,10 +27,10 @@ export interface LearningTrailProgress {
   message: string;
 }
 
-/** Versão do roteiro didático; mantenha-a alinhada aos catálogos .pors do serviço. */
+/** Versão do roteiro didático; mantenha-a alinhada aos catálogos .fer do serviço. */
 export const LEARNING_TRAIL_VERSION = 1;
 
-/** Catálogo de etapas e vínculos para exemplos e exercícios .pors incluídos no projeto. */
+/** Catálogo de etapas e vínculos para exemplos e exercícios .fer incluídos no projeto. */
 export const LEARNING_TRAIL: LearningTrailStage[] = [
   {
     id: "logica",

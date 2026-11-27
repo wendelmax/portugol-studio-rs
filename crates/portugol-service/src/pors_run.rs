@@ -358,7 +358,7 @@ fn run_portugol_rs_internal(
     }
     if !rust_toolchain_available() {
         return Err(
-            "Rustc não foi encontrado. Instale a toolchain Rust para executar `.pors`.".into(),
+            "Rustc não foi encontrado. Instale a toolchain Rust para executar `.fer`.".into(),
         );
     }
     let generated = portugol_rust::export_portugol_rs_with_map(source).map_err(|diagnostics| {

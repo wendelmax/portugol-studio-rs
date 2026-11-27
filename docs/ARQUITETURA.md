@@ -44,12 +44,12 @@ dados densos (como o Sniffnet), não para um editor de código completo.
 ```
 crates/
   portugol-hir/          # representação intermediária tipada, spans e diagnósticos compartilhados
-  portugol-rs-frontend/  # lexer, parser, formatador e checagem do Portugol-RS (.pors)
+  portugol-rs-frontend/  # lexer, parser, formatador e checagem do Portugol-RS (.fer)
   portugol-bytecode/     # instruções e compilador HIR -> bytecode
   portugol-vm/           # VM, depurador, protocolo gráfico, UI MVU, stdlib e bibliotecas PORS
   portugol-rust/         # geração de código Rust, projetos Cargo e source maps
   portugol-wasm/         # núcleo PORS sem dependências externas para WebAssembly
-  portugol-service/      # fachada da IDE (análise, execução, depuração, exemplos e exercícios .pors.json)
+  portugol-service/      # fachada da IDE (análise, execução, depuração, exemplos e exercícios .licao)
   portugol-cli/          # executável `portugol`
 apps/
   desktop/
@@ -208,7 +208,7 @@ Tauri traduz isso em comandos `debug_*` e no evento `run:paused`.
 
 - **Vite + TypeScript** (sem framework pesado; estado e painéis organizados em módulos/shells).
 - **CodeMirror 6**:
-  - destaque de sintaxe para Portugol clássico, Portugol-RS (`.pors`) e Rust (`@codemirror/lang-rust`);
+  - destaque de sintaxe para Portugol clássico, Portugol-RS (`.fer`) e Rust (`@codemirror/lang-rust`);
   - `@codemirror/lint` para diagnósticos do backend;
   - autocomplete via catálogo/serviço;
   - busca, dobramento e multi-cursor nativos.

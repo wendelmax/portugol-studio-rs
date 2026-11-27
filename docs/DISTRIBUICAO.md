@@ -147,7 +147,7 @@ checksum de cada arquivo aparece na página do release.
 
 ## Toolchain Rust e arquivos suportados
 
-Programas **Portugol-RS (`.pors`)** e exercícios **`.pors.json`** executam e
+Programas **Portugol-RS (`.fer`)** e exercícios **`.licao`** executam e
 depuram diretamente na máquina virtual embutida na IDE, sem precisar instalar
 nada além do instalador.
 

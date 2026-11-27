@@ -33,7 +33,7 @@ export function createTabFactory(dependencies: {
       explicitLanguage,
       workspaceFile,
     } = options;
-    const language = explicitLanguage ?? detectSourceLanguage(path ?? exampleName ?? "programa.pors");
+    const language = explicitLanguage ?? detectSourceLanguage(path ?? exampleName ?? "programa.fer");
     const tab: Tab = {
       id: nextId++,
       path,

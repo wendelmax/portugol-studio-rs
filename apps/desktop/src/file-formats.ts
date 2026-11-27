@@ -27,7 +27,7 @@ function hasSuffix(name: string, extension: string): boolean {
 
 /**
  * Formato de um arquivo pelo nome ou caminho. Extensões mais longas ganham
- * (`exercicio.pors.json` é exercício); um nome que é só a extensão não conta.
+ * (`exercicio.licao` é exercício); um nome que é só a extensão não conta.
  */
 export function classifyFile(path: string, table: readonly FileFormat[] = FILE_FORMATS): FileMatch | null {
   const name = fileName(path);
@@ -93,7 +93,7 @@ export function canonicalFileName(path: string): string | null {
   return `${stripFileExtension(fileName(path))}.${match.format.extension}`;
 }
 
-/** Extensões canônicas dos tipos para mensagens: `".pors, .rs e .pors.json"`. */
+/** Extensões canônicas dos tipos para mensagens: `".fer, .rs e .licao"`. */
 export function describeExtensions(kinds: readonly FileKind[], conjunction: "e" | "ou" = "e"): string {
   const names = FILE_FORMATS.filter((format) => kinds.includes(format.kind)).map((format) => `.${format.extension}`);
   if (names.length <= 1) return names.join("");

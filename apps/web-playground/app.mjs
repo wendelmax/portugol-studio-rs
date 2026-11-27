@@ -197,7 +197,7 @@ function runValidate() {
   const result = runtime.validate(editorEl.value);
   renderDiagnostics(result.diagnostics);
   if (result.ok) {
-    setStatus("Código .pors válido sem diagnósticos.", "ok");
+    setStatus("Código .fer válido sem diagnósticos.", "ok");
   } else {
     setStatus(`Encontrados ${result.diagnostics.length} diagnóstico(s).`, "error");
   }

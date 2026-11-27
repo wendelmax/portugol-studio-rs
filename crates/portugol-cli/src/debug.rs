@@ -1,5 +1,5 @@
 //! Subcomando `depurar`: depurador interativo de linha de comando para
-//! programas Portugol-RS (`.pors`), com breakpoints, passo a passo e inspeção
+//! programas Ferro (`.fer`), com breakpoints, passo a passo e inspeção
 //! de variáveis/pilha na VM.
 
 use std::collections::BTreeSet;

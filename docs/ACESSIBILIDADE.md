@@ -5,7 +5,7 @@ de uma versão que altere o shell, os temas ou os controles do editor.
 
 ## Fluxo sem mouse
 
-1. Na tela inicial, pressione `Ctrl+O`, escolha um arquivo `.pors` no seletor
+1. Na tela inicial, pressione `Ctrl+O`, escolha um arquivo `.fer` no seletor
    de arquivos usando apenas teclado e confirme com `Enter`.
 2. Navegue até o editor com `Tab` ou `Shift+Tab`. O leitor de tela deve anunciar
    “Editor de código”; digite uma alteração pequena.

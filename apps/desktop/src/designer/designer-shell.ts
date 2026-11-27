@@ -4,7 +4,7 @@
  * - *Design*: só a janela desenhada;
  * - *Dividido*: a janela em cima e o pseudo-XAML embaixo;
  * - *Marcação*: só o pseudo-XAML (é como o `.design` abre direto);
- * - *Código* (F7): abre o code-behind da tela (`.fer`, ou `.pors` em telas antigas).
+ * - *Código* (F7): abre o code-behind `.fer` da tela.
  *
  * Abrir o nó de tela no Explorador vai para *Design*. Nesta etapa o canvas só
  * desenha e seleciona; arrastar, redimensionar e o painel de propriedades vêm
@@ -82,8 +82,7 @@ export function codeBehindPath(designPath: string): string {
 }
 
 /**
- * Onde o code-behind pode estar: a extensão canônica primeiro e depois as
- * antigas ainda aceitas na transição (`.fer`, depois `.pors`).
+ * Candidatos de code-behind baseados nas extensões aceitas para código-fonte.
  */
 export function codeBehindCandidates(designPath: string): string[] {
   const slash = designPath.lastIndexOf("/");

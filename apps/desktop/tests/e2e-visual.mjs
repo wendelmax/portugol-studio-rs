@@ -246,7 +246,7 @@ function e2eHarnessScript(scenario, width, height, runId) {
         helpHeadings.includes("Primeiros passos (PORS)") &&
         helpHeadings.includes("Bibliotecas padrão (PORS)") &&
         helpHeadings.includes("UI e Multimídia (PORS)") &&
-        helpHeadings.includes("Referência da sintaxe (.pors)") &&
+        helpHeadings.includes("Referência da sintaxe (.fer)") &&
         !helpHeadings.includes("Bibliotecas clássicas"),
         helpHeadings.join(" | "));
       // Voltar para o editor no modo escuro IntelliJ Rust para eventual screenshot

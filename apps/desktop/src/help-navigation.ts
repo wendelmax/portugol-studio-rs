@@ -224,7 +224,7 @@ const MODULE_MEMBERS_SET = new Map<string, ReadonlySet<string>>(
   PORS_STDLIB_CATALOG.map((lib) => [lib.module, new Set(lib.items.map((item) => item.name))]),
 );
 
-/** Resolve o ID do tópico da Ajuda correspondente ao símbolo sob o cursor no editor `.pors`. */
+/** Resolve o ID do tópico da Ajuda correspondente ao símbolo sob o cursor no editor `.fer`. */
 export function resolveHelpTopicForEditor(doc: string, pos: number): string | null {
   const isIdent = (ch: string | undefined) => !!ch && /[A-Za-z0-9_]/.test(ch);
   let start = pos;
