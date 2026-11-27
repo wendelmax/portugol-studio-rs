@@ -154,7 +154,7 @@ jobs:
 
             ### Instalação
 
-            Instaladores para Windows (`.exe` e `.msi`), Linux (`.deb`, `.rpm` e `.AppImage`)
+            Instaladores para Windows (`.exe` e `.msi`), Linux (`.deb`, `.rpm`, `.AppImage` e `.pkg.tar.zst` para Arch Linux)
             e macOS (`.dmg` para Apple Silicon e Intel). Veja o README para os requisitos.
           releaseDraft: true
           prerelease: ${{ github.ref_type != 'tag' && !inputs.tag_release }}
@@ -170,3 +170,61 @@ jobs:
             Write-Host "$($a.Name): $($s.Status)"
             if ($s.Status -ne 'Valid') { throw "$($a.Name) não está assinado corretamente" }
           }
+
+  arch_linux:
+    name: Arch Linux x64
+    if: github.actor != 'github-actions[bot]'
+    needs: [instaladores]
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+    env:
+      RELEASE_TAG: ${{ inputs.tag_release || (github.ref_type == 'tag' && github.ref_name) || github.event.inputs.tag || format('v{0}-dev', github.run_number) }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag_release || '' }}
+
+      - name: Dependências do sistema (Arch Linux)
+        run: |
+          pacman -Syu --noconfirm --needed base-devel rust nodejs npm pkgconf webkit2gtk-4.1 gtk3 alsa-lib curl jq zstd
+
+      - name: Gerar pacote Arch Linux (.pkg.tar.zst)
+        run: bash packaging/arch/build-package.sh "$RELEASE_TAG" "$GITHUB_WORKSPACE/dist-arch"
+
+      - name: Anexar pacote Arch Linux ao release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          pkg_file="$(ls "$GITHUB_WORKSPACE"/dist-arch/portugol-studio-rs-*.pkg.tar.zst | head -n 1)"
+          asset_name="$(basename "$pkg_file")"
+          release_id="$(curl -fsSL \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases?per_page=30" \
+            | jq -r --arg tag "$RELEASE_TAG" '.[] | select(.tag_name == $tag) | .id' \
+            | head -n 1)"
+          if [[ -z "$release_id" || "$release_id" == "null" ]]; then
+            echo "Release não encontrado para a tag $RELEASE_TAG" >&2
+            exit 1
+          fi
+          existing_asset_id="$(curl -fsSL \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets" \
+            | jq -r --arg name "$asset_name" '.[] | select(.name == $name) | .id' \
+            | head -n 1)"
+          if [[ -n "$existing_asset_id" && "$existing_asset_id" != "null" ]]; then
+            curl -fsSL -X DELETE \
+              -H "Authorization: Bearer $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/${existing_asset_id}"
+          fi
+          curl -fsSL -X POST \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "Content-Type: application/zstd" \
+            --data-binary "@${pkg_file}" \
+            "https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets?name=${asset_name}" >/dev/null
+          echo "Asset ${asset_name} enviado para o release ${RELEASE_TAG} (id ${release_id})."

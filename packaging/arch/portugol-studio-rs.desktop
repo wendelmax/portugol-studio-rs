@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Portugol Studio RS
+Comment=IDE educacional para Portugol-RS (.pors) e Rust (.rs)
+Exec=/usr/bin/portugol-desktop %F
+Icon=portugol-studio-rs
+Terminal=false
+Type=Application
+Categories=Development;Education;IDE;
+MimeType=text/x-portugol-rs;text/x-rust;
+StartupWMClass=portugol-desktop

@@ -24,6 +24,7 @@ jobs:
     outputs:
       nucleo: ${{ steps.filtro.outputs.nucleo }}
       ide: ${{ steps.filtro.outputs.ide }}
+      arch_pkg: ${{ steps.filtro.outputs.arch_pkg }}
     steps:
       - uses: actions/checkout@v7
       - uses: dorny/paths-filter@v3
@@ -46,6 +47,10 @@ jobs:
               - 'rust-toolchain*'
               - '.cargo/**'
               - '.github/workflows/ci.yml'
+            arch_pkg:
+              - 'packaging/arch/**'
+              - '.github/workflows/release.yml'
+              - 'scripts/release.sh'
 
   nucleo:
     name: Núcleo (${{ matrix.os }})
@@ -158,13 +163,28 @@ jobs:
           CARGO_PROFILE_DEV_DEBUG: "0"
         run: cargo test -p portugol-desktop --lib --features tauri/custom-protocol
 
+  arch_pkg:
+    name: Pacote Arch Linux (.pkg.tar.zst)
+    needs: mudancas
+    if: needs.mudancas.outputs.arch_pkg == 'true'
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Dependências do sistema (Arch Linux)
+        run: |
+          pacman -Syu --noconfirm --needed base-devel rust nodejs npm pkgconf webkit2gtk-4.1 gtk3 alsa-lib zstd
+      - name: Construir e validar pacote Arch Linux
+        run: bash packaging/arch/build-package.sh "" "$GITHUB_WORKSPACE/dist-arch"
+
   # Resultado único do CI: passa quando os jobs necessários passaram ou foram
   # pulados por não haver mudança relevante. Use este job como verificação
   # obrigatória na proteção da branch.
   concluido:
     name: CI concluído
     if: always()
-    needs: [mudancas, nucleo, ide, ide_multiplataforma]
+    needs: [mudancas, nucleo, ide, ide_multiplataforma, arch_pkg]
     runs-on: ubuntu-latest
     steps:
       - name: Conferir resultados
