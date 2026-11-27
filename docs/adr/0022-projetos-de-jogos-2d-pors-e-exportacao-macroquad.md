@@ -3,7 +3,14 @@
 - **Status:** Proposta
 - **Data:** 2026-11-27
 - **Responsável:** mantenedor do produto
+- **Emendas:** Emenda 1 (2026-11-27)
 - **Relacionados:** [ADR 0015](0015-evolucao-visual-orientada-a-aprendizagem.md), [ADR 0016](0016-pors-como-linguagem-autoral-e-retirada-do-por.md), [ADR 0017](0017-modelo-execucao-e-estado-ui-visual-pors.md), [ADR 0018](0018-projetos-desktop-pors-com-designer-visual.md), [ADR 0019](0019-contrato-minimo-de-tipos-pors.md), [ADR 0020](0020-ajustes-pedagogicos-da-sintaxe-pors.md), [ADR 0021](0021-tela-como-forma-unica-de-interface-pors.md)
+
+> **Emenda 1 (2026-11-27).** O manifesto `.porsproj` usa a mesma marcação do
+> `.design`, como definido na seção 1 do ADR 0018 e implementado no crate
+> `portugol-tela` (PR #259), e não TOML. O exemplo da seção 1 foi reescrito
+> nessa marcação: o tipo do projeto é o atributo `Tipo="Jogo"` e os parâmetros
+> da janela ficam no elemento filho `<Janela>`. As demais decisões não mudam.
 
 ## Contexto
 
@@ -40,12 +47,12 @@ framework Rust simples, rápido de compilar e compatível com Desktop e Web
 
 ### 1. Projeto de Jogo 2D PORS (`.porsproj` unificado)
 
-O mesmo formato de manifesto `.porsproj` do ADR 0018 ganha `tipo = "jogo"` no
+O mesmo formato de manifesto `.porsproj` do ADR 0018 ganha `Tipo="Jogo"` no
 modelo **Jogo 2D PORS** em *Novo projeto*:
 
 ```
 MeuJogo/
-  meujogo.porsproj       # manifesto: tipo = "jogo", janela, fps alvo, ícone
+  meujogo.porsproj       # manifesto: Tipo="Jogo", janela, fps alvo, ícone
   principal.pors         # ciclo iniciar / atualizar / desenhar
   cenas/                 # módulos ou estados de cena opcionais (.pors)
   recursos/
@@ -57,25 +64,28 @@ MeuJogo/
 O manifesto declara os parâmetros iniciais da janela e recursos usados pelo
 runtime da IDE e pelo exportador Cargo:
 
-```toml
-tipo = "jogo"
-nome = "MeuJogo"
-versao = "0.1.0"
-entrada = "principal.pors"
-
-[janela]
-titulo = "Meu Primeiro Jogo"
-largura = 800
-altura = 600
-fps = 60
+```xml
+<Projeto Tipo="Jogo" Nome="MeuJogo" Versao="0.1.0" Entrada="principal.pors" Formato="1">
+    <Janela Titulo="Meu Primeiro Jogo" Largura="800" Altura="600" Fps="60" />
+</Projeto>
 ```
+
+- O manifesto é lido pelo mesmo parser e validador do ADR 0018, com as mesmas
+  mensagens em português. Os nomes seguem o PascalCase da marcação.
+- `Tipo` vale `Desktop` (o padrão, quando o atributo é omitido) ou `Jogo`.
+- Em projetos `Desktop`, `JanelaInicial` indica a tela de partida e não há
+  `<Janela>` no manifesto, porque cada tela tem o próprio `.design`.
+- Em projetos `Jogo`, `Entrada` indica o `.pors` com o ciclo do jogo, e o
+  filho `<Janela>` traz `Titulo`, `Largura`, `Altura` e `Fps`. `JanelaInicial`
+  não se aplica.
+- `Icone` vale para os dois tipos.
 
 - Os modelos iniciais em *Novo projeto → Jogo 2D PORS* incluem: **Jogo mínimo**
   (jogador controlável + placar), **Pong / Arcade** e **Desvio de obstáculos**.
 
 ### 2. Ciclo de jogo estruturado em PORS
 
-Para projetos `tipo = "jogo"`, o padrão recomendado adota três funções claras —
+Para projetos `Tipo="Jogo"`, o padrão recomendado adota três funções claras —
 seguindo o mesmo princípio de estado explícito dos ADRs 0017, 0018 e 0021, e já
 alinhado à sintaxe dos ADRs 0019 e 0020:
 
@@ -142,7 +152,7 @@ A IDE **não** embute um motor de jogos nativo: ela executa o jogo na VM PORS
 com a janela gráfica (`graphics.rs`) e o sistema de áudio (`rodio`) já
 existentes, adicionando ferramentas próprias de desenvolvimento de jogos:
 
-- **Explorador de projeto de jogo:** reconhece `.porsproj` (`tipo = "jogo"`) e
+- **Explorador de projeto de jogo:** reconhece `.porsproj` (`Tipo="Jogo"`) e
   exibe a pasta `recursos/` com prévia em miniatura de imagens e botão de
   reprodução rápida para arquivos de áudio, além de inserção rápida do caminho
   relativo no editor.
@@ -165,13 +175,13 @@ existentes, adicionando ferramentas próprias de desenvolvimento de jogos:
 
 ### 4. Exportação para Rust com Macroquad (Desktop e Web)
 
-A exportação Cargo de projetos `tipo = "jogo"` (e, progressivamente, de
+A exportação Cargo de projetos `Tipo="Jogo"` (e, progressivamente, de
 programas `.pors` que usam `Graficos`/`Teclado`/`Mouse`/`Sons`) usa o
 **[Macroquad](https://macroquad.rs)** (`macroquad = "0.4"`) como padrão oficial:
 
 | Conceito PORS | Mapeamento Macroquad gerado |
 |---|---|
-| `[janela]` do `.porsproj` | `fn window_conf() -> Conf` + `#[macroquad::main(window_conf)]` |
+| `<Janela>` do `.porsproj` | `fn window_conf() -> Conf` + `#[macroquad::main(window_conf)]` |
 | `iniciar` / `atualizar` / `desenhar` | `let mut jogo = iniciar(); loop { let dt = get_frame_time().min(0.05); jogo = atualizar(jogo, dt); desenhar(&jogo); next_frame().await; }` |
 | `Graficos.limpar`, formas, texto e imagens | `clear_background`, `draw_rectangle`, `draw_circle`, `draw_line`, `draw_text`, `load_texture` / `draw_texture` |
 | `Teclado` / `Mouse` | `is_key_down`, `is_key_pressed`, `mouse_position`, `is_mouse_button_down` |
@@ -239,7 +249,7 @@ Slint e Macroquad.
 
 ## Consequências
 
-- **Fase 1 (manifesto e ciclo de jogo):** suporte a `tipo = "jogo"` no
+- **Fase 1 (manifesto e ciclo de jogo):** suporte a `Tipo="Jogo"` no
   `.porsproj` (compartilhando o parser com o ADR 0018), execução do ciclo
   `iniciar`/`atualizar`/`desenhar` na VM com `dt` limitado e orçamento por
   quadro.
@@ -255,5 +265,5 @@ Slint e Macroquad.
   jogos 2D na janela *Novo projeto*.
 - O `portugol-rust` passa a possuir dois backends opcionais de projeto Cargo
   além de `std`: **Slint** (projetos `.design`, ADRs 0018 e 0021) e **Macroquad**
-  (projetos `tipo = "jogo"`, este ADR), sem adicionar nenhuma dependência ao
+  (projetos `Tipo="Jogo"`, este ADR), sem adicionar nenhuma dependência ao
   núcleo `portugol-vm --no-default-features` nem ao `portugol-wasm`.
