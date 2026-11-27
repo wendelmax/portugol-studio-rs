@@ -79,11 +79,11 @@ const PORS_TOP_LEVEL_DOCS: Record<string, PorsDocEntry> = {
   adicionar: { label: "adicionar", kind: "function", signature: "adicionar(v: mutavel vetor<T>, valor: T)", description: "Insere `valor` ao final de um vetor mutável (equivale a `Vec::push` em Rust)." },
   remover: { label: "remover", kind: "function", signature: "remover(v: mutavel vetor<T>) -> Opcao<T>", description: "Remove e retorna o último elemento de um vetor mutável como `Opcao<T>` (equivale a `Vec::pop`)." },
   obter: { label: "obter", kind: "function", signature: "obter(v: vetor<T>, indice: inteiro) -> Opcao<T>", description: "Lê um elemento do vetor com segurança retornando `Opcao<T>` sem encerrar o programa fora dos limites." },
-  escreva: { label: "escreva", kind: "function", signature: "escreva(valor, ...)", description: "Escreve um ou mais valores escalares na saída padrão sem quebra de linha automática." },
-  escreval: { label: "escreval", kind: "function", signature: "escreval(valor, ...)", description: "Escreve os valores na saída padrão com quebra de linha ao final; equivale a `escreva(valor, ..., \"\\n\")`." },
-  leia: { label: "leia", kind: "function", signature: "leia() | leia(variavel_mutavel)", description: "Sem argumentos, lê uma linha e devolve uma `cadeia`. Com uma variável declarada com `seja mutavel`, lê um valor tipado da entrada padrão para essa variável." },
-  seja: { label: "seja", kind: "keyword", signature: "seja [mutavel] nome: Tipo = valor;", description: "Declara um binding imutável por padrão (ou mutável com `seja mutavel`), equivalente a `let` / `let mut` em Rust." },
-  mutavel: { label: "mutavel", kind: "keyword", signature: "seja mutavel nome: Tipo = valor;", description: "Permite reatribuição e mutação de campos ou índices do binding." },
+  escreva: { label: "escreva", kind: "function", signature: "escreva(valor, ...)", description: "Função embutida que escreve um ou mais valores escalares na saída padrão sem quebra automática; continua válido para prompts e saídas sem quebra final. Para acrescentar a quebra, use `escreval`." },
+  escreval: { label: "escreval", kind: "function", signature: "escreval(valor, ...)", description: "Função embutida (nunca palavra reservada) que escreve os valores na saída padrão com quebra de linha ao final; equivale a `escreva(valor, ..., \"\\n\")`." },
+  leia: { label: "leia", kind: "function", signature: "leia() | leia(variavel_mutavel)", description: "`leia()` é uma expressão: lê uma linha e converte implicitamente ao tipo esperado pelo contexto (`seja n: inteiro = leia();`, `n = leia();`); sem contexto tipado devolve `cadeia`. `leia(variavel_mutavel)` continua válido e converte ao tipo da variável, sendo útil em laços com leitura repetida." },
+  seja: { label: "seja", kind: "keyword", signature: "seja [mutavel] nome[: Tipo] = valor;", description: "Declara um binding imutável por padrão (ou mutável com `seja mutavel`), equivalente a `let` / `let mut` em Rust. O tipo é inferido do valor inicial quando omitido; mantenha a anotação quando necessário." },
+  mutavel: { label: "mutavel", kind: "keyword", signature: "seja mutavel nome[: Tipo] = valor;", description: "Permite reatribuição e mutação de campos ou índices do binding." },
   registro: { label: "registro", kind: "keyword", signature: "registro Nome { campo: Tipo }", description: "Declara um tipo composto nominal com campos tipados (equivale a `struct` em Rust)." },
   enum: { label: "enum", kind: "keyword", signature: "enum Nome { Variante, ComPayload(Tipo) }", description: "Declara uma enumeração nominal com variantes simples ou com payload tipado (equivale a `enum` em Rust)." },
   escolha: { label: "escolha", kind: "keyword", signature: "escolha valor { caso Tipo::Variante => { ... } }", description: "Despacho exaustivo sobre variantes de um `enum`, `Opcao<T>` ou `Resultado<T, E>` (equivale a `match` em Rust)." },
@@ -108,14 +108,14 @@ export const PORS_SNIPPETS: Completion[] = [
     detail: "declaração de função PORS",
     type: "keyword",
   }),
-  snippetCompletion("seja ${nome}: ${inteiro} = ${0};", {
+  snippetCompletion("seja ${nome} = ${0};", {
     label: "seja",
-    detail: "binding imutável",
+    detail: "binding imutável com inferência",
     type: "keyword",
   }),
-  snippetCompletion("seja mutavel ${nome}: ${inteiro} = ${0};", {
+  snippetCompletion("seja mutavel ${nome} = ${0};", {
     label: "seja mutavel",
-    detail: "binding mutável",
+    detail: "binding mutável com inferência",
     type: "keyword",
   }),
   snippetCompletion("se (${condicao}) {\n    ${}\n}", {
@@ -138,7 +138,7 @@ export const PORS_SNIPPETS: Completion[] = [
     detail: "laço enquanto",
     type: "keyword",
   }),
-  snippetCompletion("para (seja mutavel ${i}: inteiro = 0; ${i} < ${n}; ${i} += 1) {\n    ${}\n}", {
+  snippetCompletion("para (seja mutavel ${i} = 0; ${i} < ${n}; ${i} += 1) {\n    ${}\n}", {
     label: "para",
     detail: "laço contado PORS",
     type: "keyword",
