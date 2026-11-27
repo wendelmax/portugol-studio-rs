@@ -19,6 +19,7 @@
 pub mod ast;
 mod format;
 mod parser;
+pub mod project;
 pub mod schema;
 mod validate;
 pub mod value;
