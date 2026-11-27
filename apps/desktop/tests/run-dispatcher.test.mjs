@@ -72,3 +72,11 @@ test("delegates stop to the existing debugger controller", async () => {
   await f.dispatcher.stopProgram();
   assert.deepEqual(f.calls, [["stop"]]);
 });
+
+test("markup tabs never start a PORS or Rust run", async () => {
+  const f = fixture();
+  f.setTab({ language: "markup" });
+  await f.dispatcher.runProgram();
+  await f.dispatcher.runProgram(true);
+  assert.deepEqual(f.calls, []);
+});

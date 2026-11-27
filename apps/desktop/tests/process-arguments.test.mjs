@@ -32,7 +32,7 @@ test("encaminha argv como lista tipada do editor ao processo Rust, sem shell", (
   assert.match(api, /runRustSource = \(id: number, source: string, args: string\[\]/);
   assert.match(api, /invoke<RustSourceRunResult>\("run_rust_source", \{ id, source, args \}\)/);
   assert.match(main, /args\.disabled = controls\.arguments\.disabled/);
-  assert.match(languageCapabilities, /disabled: pors/);
+  assert.match(languageCapabilities, /disabled: !rustFile/);
   assert.match(main, /parseArguments: parseProcessArguments/);
   assert.match(rustExecution, /dependencies\.parseArguments\(dependencies\.argumentsText\(\)\)[\s\S]*dependencies\.runRustSource\(id, source, rustArgs\)/);
   assert.match(html, /placeholder='ex\.: 42 "João Silva"'/);

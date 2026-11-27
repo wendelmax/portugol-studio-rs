@@ -28,13 +28,23 @@ export function flattenWorkspaceEntries(
   return rows;
 }
 
-export function workspaceFileKind(path: string): "portugol-rs" | "rust" | "exercise" | null {
+export function workspaceFileKind(path: string): "portugol-rs" | "rust" | "exercise" | "markup" | null {
   const fileName = path.split(/[\\/]/).pop()?.toLowerCase() ?? "";
   if (fileName.endsWith(".pors.json")) return "exercise";
   const extension = fileName.split(".").pop();
   if (extension === "pors") return "portugol-rs";
   if (extension === "rs") return "rust";
+  if (extension === "design" || extension === "porsproj") return "markup";
   return null;
+}
+
+/** Marcador curto do tipo de arquivo no Explorador. */
+export function workspaceFileMarker(path: string): string {
+  const kind = workspaceFileKind(path);
+  if (kind === "rust") return "R";
+  if (kind === "exercise") return "EX";
+  if (kind === "markup") return /\.porsproj$/i.test(path) ? "PJ" : "TL";
+  return "RS";
 }
 
 export function workspaceSourceFileName(name: string, language: "pors" | "rs"): string {

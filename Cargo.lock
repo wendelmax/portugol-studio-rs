@@ -2736,6 +2736,7 @@ dependencies = [
  "portugol-hir",
  "portugol-rs-frontend",
  "portugol-rust",
+ "portugol-tela",
  "portugol-vm",
  "serde",
  "serde_json",

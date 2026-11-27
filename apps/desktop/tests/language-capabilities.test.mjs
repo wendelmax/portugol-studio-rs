@@ -90,3 +90,19 @@ test("IDE applies derived language controls through the tested state module", as
   assert.match(view, /deriveLanguageControls\(tab/);
   assert.match(view, /controls\.buttons\[id\]/);
 });
+
+test("desktop markup only formats: no run, debug, arguments, PORS modules or symbol actions", () => {
+  const controls = fixture({ tab: { language: "markup" } });
+
+  assert.equal(controls.buttons["btn-run"].disabled, true);
+  assert.equal(controls.buttons["btn-debug"].disabled, true);
+  assert.equal(
+    controls.buttons["btn-run"].description,
+    "Arquivos de marcação descrevem a tela; ela executa pelo projeto desktop.",
+  );
+  assert.equal(controls.arguments.disabled, true);
+  assert.equal(controls.libraries.Texto.disabled, true);
+  assert.equal(controls.libraries.Texto.title, "Módulos PORS não se aplicam a arquivos de marcação.");
+  assert.equal(controls.symbolActions.disabled, true);
+  assert.equal(controls.format.disabled, false);
+});

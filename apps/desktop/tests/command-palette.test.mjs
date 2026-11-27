@@ -134,3 +134,12 @@ test("Executar como Rust needs rustc for the active Portugol-RS file and no run 
   assert.equal(isPaletteCommandAvailable("Executar como Rust", { ...ready, runActive: true }), false);
   assert.equal(isPaletteCommandAvailable("Executar como Rust", { ...ready, language: null }), false);
 });
+
+test("markup tabs hide run, debug and PORS symbol commands but keep formatting", () => {
+  const context = { language: "markup", cargoProject: false, cargoAvailable: false, canRunAsRust: false, runActive: false, paused: false, porsRunPending: false };
+  for (const command of ["Executar", "Depurar", "Renomear símbolo", "Alternar prévia Rust", "Parâmetros de execução"]) {
+    assert.equal(isPaletteCommandAvailable(command, context), false, command);
+  }
+  assert.equal(isPaletteCommandAvailable("Formatar código-fonte", context), true);
+  assert.equal(isPaletteCommandAvailable("Executar como Rust", context), false);
+});

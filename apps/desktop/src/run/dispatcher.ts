@@ -24,6 +24,8 @@ export function createRunDispatcher(dependencies: RunDispatcherDependencies) {
     if (dependencies.isBusy()) return;
     const tab = dependencies.activeTab();
     if (!tab) return;
+    // Marcação (.design, .porsproj) não executa; a tela roda pelo projeto (ADR 0018, Fase 3).
+    if (tab.language === "markup") return;
     if (tab.language === "rust") {
       await dependencies.rustExecution.run(pauseOnStart);
       return;

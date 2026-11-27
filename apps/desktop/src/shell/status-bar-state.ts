@@ -28,6 +28,7 @@ export interface StatusBarState {
 const languages: Record<SourceLanguage, string> = {
   "portugol-rs": "Portugol-RS",
   rust: "Rust",
+  markup: "Marcação (pseudo-XAML)",
 };
 
 const modes: Record<LearningMode, string> = {
