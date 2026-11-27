@@ -1,0 +1,238 @@
+/* Modo visual das telas .design (ADR 0018, Fase 2) */
+
+.design-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.design-toolbar[hidden] {
+  display: none;
+}
+
+.design-toolbar button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+.design-status {
+  margin-inline-start: 8px;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+
+.design-surface {
+  flex: 1;
+  min-height: 80px;
+  min-width: 0;
+  overflow: auto;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.design-surface[hidden] {
+  display: none;
+}
+
+.design-surface.is-stale .design-frame {
+  opacity: 0.55;
+}
+
+.editor-area[data-design-view] > #rust-preview,
+.editor-area[data-design-view] > #pors-ui-preview,
+.editor-area[data-design-view] > #rust-mapping-gutter,
+.editor-area[data-design-view] > #rust-comparison-splitter {
+  display: none;
+}
+
+.editor-area[data-design-view="design"] > #editor,
+.editor-area[data-design-view="design"] > .error-strip {
+  display: none;
+}
+
+.editor-area[data-design-view="split"] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(120px, 3fr) minmax(80px, 2fr);
+}
+
+.editor-area[data-design-view="split"] > #design-surface {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+
+.editor-area[data-design-view="split"] > #editor {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.editor-area[data-design-view="split"] > .error-strip {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.design-frame {
+  display: inline-flex;
+  flex-direction: column;
+  border: 1px solid var(--design-border);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: var(--shadow-popover);
+  color: var(--design-window-text);
+  font: 13px var(--font-sans);
+}
+
+.design-title-bar {
+  padding: 6px 10px;
+  background: var(--design-title-bg);
+  border-bottom: 1px solid var(--design-border);
+  font-weight: 600;
+  cursor: default;
+}
+
+.design-window {
+  box-sizing: border-box;
+  background: var(--design-window-bg);
+  overflow: hidden;
+}
+
+.design-el {
+  box-sizing: border-box;
+  min-width: 0;
+  cursor: default;
+}
+
+.design-el[data-path]:hover {
+  outline: 1px dashed var(--design-selection);
+  outline-offset: 1px;
+}
+
+.design-el.is-selected,
+.design-window.is-selected {
+  outline: 2px solid var(--design-selection);
+  outline-offset: 1px;
+}
+
+.design-el.is-disabled {
+  opacity: 0.5;
+}
+
+.design-label {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.design-button,
+.design-textbox,
+.design-combo,
+.design-list,
+.design-image {
+  border: 1px solid var(--design-border);
+  border-radius: 4px;
+  background: var(--design-control-bg);
+  overflow: hidden;
+}
+
+.design-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--design-button-bg);
+  white-space: nowrap;
+}
+
+.design-textbox,
+.design-combo {
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  white-space: nowrap;
+}
+
+.design-combo {
+  justify-content: space-between;
+}
+
+.design-checkbox,
+.design-radio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.design-list-item {
+  padding: 2px 6px;
+}
+
+.design-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--design-muted);
+  border-style: dashed;
+  font-size: 12px;
+}
+
+.design-panel {
+  border-radius: 4px;
+}
+
+.design-panel-title {
+  position: absolute;
+  top: -9px;
+  left: 8px;
+  padding: 0 4px;
+  background: var(--design-window-bg);
+  font-size: 12px;
+}
+
+.design-stack,
+.design-grid,
+.design-dock {
+  outline: 1px dotted color-mix(in srgb, var(--design-border) 70%, transparent);
+}
+
+.design-placeholder,
+.design-combo-arrow {
+  color: var(--design-muted);
+}
+
+.design-text {
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.design-access-key {
+  text-decoration: underline;
+}
+
+.design-binding {
+  color: var(--design-binding);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.design-components {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 8px;
+  border-top: 1px solid var(--design-border);
+  background: var(--design-title-bg);
+}
+
+.design-component {
+  padding: 2px 8px;
+  border: 1px solid var(--design-border);
+  border-radius: var(--radius-pill);
+  background: var(--design-control-bg);
+  font-size: 12px;
+}

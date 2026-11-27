@@ -8,6 +8,7 @@ const EXPECTED_MODULES = [
   "styles/base.css",
   "styles/shell.css",
   "styles/editor.css",
+  "styles/designer.css",
   "styles/panels.css",
   "styles/dialogs.css",
   "styles/home.css",

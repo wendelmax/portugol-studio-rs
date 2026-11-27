@@ -237,3 +237,18 @@
     color-scheme: light dark;
   }
 }
+
+/* Designer de telas (ADR 0018): a janela desenhada imita uma janela comum do
+   sistema, com cores próprias que não mudam com o tema da IDE — é o
+   aplicativo do aluno, não a IDE. */
+:root {
+  --design-window-bg: #f3f4f6;
+  --design-window-text: #111827;
+  --design-control-bg: #ffffff;
+  --design-button-bg: linear-gradient(#ffffff, #e5e7eb);
+  --design-border: #9ca3af;
+  --design-title-bg: #e5e7eb;
+  --design-muted: #6b7280;
+  --design-binding: #1d4ed8;
+  --design-selection: var(--accent);
+}

@@ -24,6 +24,8 @@ export interface EditorUpdateDependencies {
   renderMappingGutter: () => void;
   centerActive: () => boolean;
   centerSelection: () => void;
+  /** Modo visual das telas: redesenha e segue o cursor numa aba `.design`. */
+  designerChanged?: (docChanged: boolean, selectionSet: boolean) => void;
 }
 
 /** Atualiza as visualizações derivadas após alterações e seleções no editor. */
@@ -57,6 +59,7 @@ export function createEditorUpdateController(dependencies: EditorUpdateDependenc
     }
     if (update.selectionSet || update.docChanged) dependencies.renderCursor();
     if (update.selectionSet || update.docChanged) dependencies.renderMappingGutter();
+    if (update.selectionSet || update.docChanged) dependencies.designerChanged?.(update.docChanged, update.selectionSet);
     if (dependencies.centerActive() && update.selectionSet) {
       queueMicrotask(() => {
         if (dependencies.centerActive() && dependencies.currentEditorState() === update.state) {
