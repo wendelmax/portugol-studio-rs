@@ -205,12 +205,12 @@ fn inspect_portugol_rs(source: String) -> portugol_service::Inspection {
     portugol_service::inspect_portugol_rs(&source)
 }
 
-/// Diagnósticos e estrutura de um `.design` ou `.porsproj`; o tipo vem da
+/// Diagnósticos e estrutura de um `.design` ou `.ferproj`; o tipo vem da
 /// extensão de `path`.
 #[tauri::command]
 fn inspect_markup(source: String, path: String) -> Result<portugol_service::Inspection, String> {
     let kind = portugol_service::MarkupKind::from_path(&path)
-        .ok_or_else(|| "O arquivo não é um .design nem um .porsproj.".to_string())?;
+        .ok_or_else(|| "O arquivo não é um .design nem um .ferproj.".to_string())?;
     Ok(portugol_service::inspect_markup(&source, kind))
 }
 

@@ -15,7 +15,7 @@ export interface EditorFormatterDependencies {
   view: Pick<EditorViewType, "state" | "dispatch" | "focus">;
   formatRust: (source: string) => Promise<string>;
   formatPortugolRs: (source: string) => Promise<FormatChange[] | null>;
-  /** Formatação de .design e .porsproj; opcional para quem não abre marcação. */
+  /** Formatação de .design e .ferproj; opcional para quem não abre marcação. */
   formatMarkup?: (source: string) => Promise<FormatChange[] | null>;
   setStatus: (message: string, kind?: "error" | "ok") => void;
 }

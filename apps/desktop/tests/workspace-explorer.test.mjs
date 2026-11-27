@@ -216,9 +216,9 @@ test("workspace refresh, subfolder creation, and Cargo scaffold export expose ac
 test("classifies desktop project markup and gives each file a marker", async () => {
   const { workspaceFileMarker } = await import("../src/workspace-explorer.ts");
   assert.equal(workspaceFileKind("App/JanelaPrincipal.DESIGN"), "markup");
-  assert.equal(workspaceFileKind("App/meu-app.porsproj"), "markup");
+  assert.equal(workspaceFileKind("App/meu-app.ferproj"), "markup");
   assert.equal(workspaceFileMarker("App/JanelaPrincipal.design"), "TL");
-  assert.equal(workspaceFileMarker("App/meu-app.porsproj"), "PJ");
+  assert.equal(workspaceFileMarker("App/meu-app.ferproj"), "PJ");
   assert.equal(workspaceFileMarker("ponte.pors"), "RS");
   assert.equal(workspaceFileMarker("main.rs"), "R");
   assert.equal(workspaceFileMarker("lista.pors.json"), "EX");
@@ -232,7 +232,7 @@ test("groups each .design with the .pors of the same name into a screen node", a
       file("App/Cadastro.design"),
       file("App/JanelaPrincipal.DESIGN"),
       file("App/JanelaPrincipal.pors"),
-      file("App/meu-app.porsproj"),
+      file("App/meu-app.ferproj"),
       file("App/util.pors"),
     ] },
     file("solto.pors"),
@@ -244,7 +244,7 @@ test("groups each .design with the .pors of the same name into a screen node", a
   assert.deepEqual(app.entries.map((entry) => [entry.kind, entry.name]), [
     ["screen", "Cadastro"],
     ["screen", "JanelaPrincipal"],
-    ["file", "meu-app.porsproj"],
+    ["file", "meu-app.ferproj"],
     ["file", "util.pors"],
   ]);
   const [cadastro, principal] = app.entries;
@@ -264,7 +264,7 @@ test("groups each .design with the .pors of the same name into a screen node", a
     ["JanelaPrincipal", 1],
     ["JanelaPrincipal.DESIGN", 2],
     ["JanelaPrincipal.pors", 2],
-    ["meu-app.porsproj", 1],
+    ["meu-app.ferproj", 1],
     ["util.pors", 1],
     ["solto.pors", 0],
   ]);

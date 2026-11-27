@@ -1,5 +1,5 @@
 //! Análise e formatação dos arquivos de marcação de projetos desktop PORS
-//! (ADR 0018): o desenho da tela (`.design`) e o manifesto (`.porsproj`).
+//! (ADR 0018): o desenho da tela (`.design`) e o manifesto (`.ferproj`).
 
 use portugol_tela::{Element, project, schema};
 
@@ -94,7 +94,7 @@ fn element_symbol(index: &LineIndex, element: &Element) -> SymbolInfo {
     }
 }
 
-/// Formata um `.design` ou `.porsproj`. Devolve uma única edição que troca o
+/// Formata um `.design` ou `.ferproj`. Devolve uma única edição que troca o
 /// documento inteiro (offsets em UTF-16, como os do editor), nenhuma edição
 /// se já estiver formatado e `None` se houver erro de sintaxe.
 pub fn format_markup(source: &str) -> Option<Vec<TextEdit>> {
@@ -121,7 +121,7 @@ mod tests {
             Some(MarkupKind::Design)
         );
         assert_eq!(
-            MarkupKind::from_path("meu-app.PORSPROJ"),
+            MarkupKind::from_path("meu-app.FERPROJ"),
             Some(MarkupKind::Manifest)
         );
         assert_eq!(MarkupKind::from_path("programa.pors"), None);

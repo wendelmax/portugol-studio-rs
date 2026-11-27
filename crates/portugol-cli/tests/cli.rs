@@ -239,7 +239,7 @@ fn creates_validates_and_formats_desktop_projects() {
         .output()
         .unwrap();
     assert!(created.status.success(), "{created:?}");
-    let manifest = project.join("meu-app.porsproj");
+    let manifest = project.join("meu-app.ferproj");
     let design = project.join("JanelaPrincipal.design");
     assert!(manifest.is_file());
     assert!(design.is_file());
@@ -267,7 +267,7 @@ fn creates_validates_and_formats_desktop_projects() {
         .output()
         .unwrap();
     assert!(created.status.success(), "{created:?}");
-    assert!(named.join("calculadora-de-medias.porsproj").is_file());
+    assert!(named.join("calculadora-de-medias.ferproj").is_file());
 
     // Valida a pasta inteira e cada arquivo.
     let checked = cli().arg(&project).output().unwrap();

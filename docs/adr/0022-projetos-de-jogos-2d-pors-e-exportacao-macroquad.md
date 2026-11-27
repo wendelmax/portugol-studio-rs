@@ -6,11 +6,14 @@
 - **Emendas:** Emenda 1 (2026-11-27)
 - **Relacionados:** [ADR 0015](0015-evolucao-visual-orientada-a-aprendizagem.md), [ADR 0016](0016-pors-como-linguagem-autoral-e-retirada-do-por.md), [ADR 0017](0017-modelo-execucao-e-estado-ui-visual-pors.md), [ADR 0018](0018-projetos-desktop-pors-com-designer-visual.md), [ADR 0019](0019-contrato-minimo-de-tipos-pors.md), [ADR 0020](0020-ajustes-pedagogicos-da-sintaxe-pors.md), [ADR 0021](0021-tela-como-forma-unica-de-interface-pors.md)
 
-> **Emenda 1 (2026-11-27).** O manifesto `.porsproj` usa a mesma marcação do
+> **Emenda 1 (2026-11-27).** O manifesto `.ferproj` usa a mesma marcação do
 > `.design`, como definido na seção 1 do ADR 0018 e implementado no crate
 > `portugol-tela` (PR #259), e não TOML. O exemplo da seção 1 foi reescrito
 > nessa marcação: o tipo do projeto é o atributo `Tipo="Jogo"` e os parâmetros
 > da janela ficam no elemento filho `<Janela>`. As demais decisões não mudam.
+
+> **Nota (2026-11-27).** A extensão do manifesto passou a ser `.ferproj`
+> ([ADR 0023](0023-identidade-e-marca-ferro-studio.md), Emenda 1).
 
 ## Contexto
 
@@ -45,14 +48,14 @@ framework Rust simples, rápido de compilar e compatível com Desktop e Web
 
 ## Decisão
 
-### 1. Projeto de Jogo 2D PORS (`.porsproj` unificado)
+### 1. Projeto de Jogo 2D PORS (`.ferproj` unificado)
 
-O mesmo formato de manifesto `.porsproj` do ADR 0018 ganha `Tipo="Jogo"` no
+O mesmo formato de manifesto `.ferproj` do ADR 0018 ganha `Tipo="Jogo"` no
 modelo **Jogo 2D PORS** em *Novo projeto*:
 
 ```
 MeuJogo/
-  meujogo.porsproj       # manifesto: Tipo="Jogo", janela, fps alvo, ícone
+  meujogo.ferproj       # manifesto: Tipo="Jogo", janela, fps alvo, ícone
   principal.pors         # ciclo iniciar / atualizar / desenhar
   cenas/                 # módulos ou estados de cena opcionais (.pors)
   recursos/
@@ -152,7 +155,7 @@ A IDE **não** embute um motor de jogos nativo: ela executa o jogo na VM PORS
 com a janela gráfica (`graphics.rs`) e o sistema de áudio (`rodio`) já
 existentes, adicionando ferramentas próprias de desenvolvimento de jogos:
 
-- **Explorador de projeto de jogo:** reconhece `.porsproj` (`Tipo="Jogo"`) e
+- **Explorador de projeto de jogo:** reconhece `.ferproj` (`Tipo="Jogo"`) e
   exibe a pasta `recursos/` com prévia em miniatura de imagens e botão de
   reprodução rápida para arquivos de áudio, além de inserção rápida do caminho
   relativo no editor.
@@ -181,7 +184,7 @@ programas `.pors` que usam `Graficos`/`Teclado`/`Mouse`/`Sons`) usa o
 
 | Conceito PORS | Mapeamento Macroquad gerado |
 |---|---|
-| `<Janela>` do `.porsproj` | `fn window_conf() -> Conf` + `#[macroquad::main(window_conf)]` |
+| `<Janela>` do `.ferproj` | `fn window_conf() -> Conf` + `#[macroquad::main(window_conf)]` |
 | `iniciar` / `atualizar` / `desenhar` | `let mut jogo = iniciar(); loop { let dt = get_frame_time().min(0.05); jogo = atualizar(jogo, dt); desenhar(&jogo); next_frame().await; }` |
 | `Graficos.limpar`, formas, texto e imagens | `clear_background`, `draw_rectangle`, `draw_circle`, `draw_line`, `draw_text`, `load_texture` / `draw_texture` |
 | `Teclado` / `Mouse` | `is_key_down`, `is_key_pressed`, `mouse_position`, `is_mouse_button_down` |
@@ -250,7 +253,7 @@ Slint e Macroquad.
 ## Consequências
 
 - **Fase 1 (manifesto e ciclo de jogo):** suporte a `Tipo="Jogo"` no
-  `.porsproj` (compartilhando o parser com o ADR 0018), execução do ciclo
+  `.ferproj` (compartilhando o parser com o ADR 0018), execução do ciclo
   `iniciar`/`atualizar`/`desenhar` na VM com `dt` limitado e orçamento por
   quadro.
 - **Fase 2 (IDE para jogos):** reconhecimento de `recursos/` no Explorador com

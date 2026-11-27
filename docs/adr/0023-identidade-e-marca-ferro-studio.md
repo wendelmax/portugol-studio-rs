@@ -71,6 +71,10 @@ o Ferro Studio adota seu conjunto oficial de extensões:
 | **`.rs`** | Código-fonte Rust real | `main.rs` | Ponte direta para Rust / Cargo. |
 | *(Futuro)* **`.ferws`** | Workspace multi-projeto (turma) | `minha-turma.ferws` | Introduzida quando a IDE suportar múltiplos projetos abertos na mesma janela. |
 
+- **Adoção antecipada de `.ferproj` (2026-11-27):** o manifesto `.porsproj`
+  nunca saiu numa versão lançada (não está na `v0.7.0`), então foi trocado
+  por `.ferproj` sem janela de transição. `.pors` e `.pors.json` continuam
+  com a transição descrita acima.
 - **Retirada de `.por`/`.pex` mantida (ADR 0016):** o Ferro Studio não
   reintroduz o compilador clássico `.por` nem pacotes legados `.pex`.
 - **Crates internos:** os nomes dos crates internos (`crates/portugol-*`)

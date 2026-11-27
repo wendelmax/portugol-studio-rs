@@ -1,4 +1,4 @@
-//! Projeto desktop PORS: o manifesto `.porsproj` e o modelo *Aplicativo
+//! Projeto desktop PORS: o manifesto `.ferproj` e o modelo *Aplicativo
 //! Desktop PORS* (ADR 0018, seção 1).
 //!
 //! O manifesto usa a mesma marcação do `.design`, como o `.csproj` do Visual
@@ -16,7 +16,7 @@ use crate::ast::{Attribute, Document};
 use crate::value;
 
 /// Extensão do manifesto, sem o ponto.
-pub const MANIFEST_EXTENSION: &str = "porsproj";
+pub const MANIFEST_EXTENSION: &str = "ferproj";
 /// Pasta das imagens e ícones do projeto.
 pub const RESOURCES_DIR: &str = "recursos";
 /// Nome da janela criada pelo modelo.
@@ -26,7 +26,7 @@ pub const MAX_NAME_CHARS: usize = 64;
 
 const ATTRIBUTES: &[&str] = &["Nome", "Versao", "JanelaInicial", "Icone", "Formato"];
 
-/// Conteúdo de um `.porsproj` válido.
+/// Conteúdo de um `.ferproj` válido.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Manifest {
     pub name: String,
@@ -43,7 +43,7 @@ pub struct ManifestAnalysis {
     pub diagnostics: Vec<Diagnostic>,
 }
 
-/// Lê e valida um `.porsproj`. Erros de sintaxe e de estrutura impedem o
+/// Lê e valida um `.ferproj`. Erros de sintaxe e de estrutura impedem o
 /// manifesto; avisos não.
 pub fn analyze_manifest(source: &str) -> ManifestAnalysis {
     let document = match crate::parse(source) {
@@ -72,7 +72,7 @@ fn manifest(document: &Document, diagnostics: &mut Vec<Diagnostic>) -> Option<Ma
         diagnostics.push(Diagnostic::error(
             "projeto.expected-project",
             format!(
-                "O elemento raiz de um .porsproj é `<Projeto>`, mas encontrei `<{}>`",
+                "O elemento raiz de um .ferproj é `<Projeto>`, mas encontrei `<{}>`",
                 root.name.text
             ),
             root.name.span,

@@ -25,8 +25,8 @@ test("adds the active language extension without changing an explicit source suf
 
 test("detects desktop project markup and keeps its extension", () => {
   assert.equal(detectSourceLanguage("/tmp/App/JanelaPrincipal.design"), "markup");
-  assert.equal(detectSourceLanguage("/tmp/App/meu-app.PORSPROJ"), "markup");
+  assert.equal(detectSourceLanguage("/tmp/App/meu-app.FERPROJ"), "markup");
   assert.equal(ensureSourceExtension("/tmp/App/Tela", "markup"), "/tmp/App/Tela.design");
-  assert.equal(ensureSourceExtension("/tmp/App/meu-app.porsproj", "markup"), "/tmp/App/meu-app.porsproj");
+  assert.equal(ensureSourceExtension("/tmp/App/meu-app.ferproj", "markup"), "/tmp/App/meu-app.ferproj");
   assert.equal(ensureSourceExtension("/tmp/App/Tela.design", "portugol-rs"), "/tmp/App/Tela.design");
 });

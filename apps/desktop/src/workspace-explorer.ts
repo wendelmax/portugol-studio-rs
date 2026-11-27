@@ -106,7 +106,7 @@ export function workspaceFileKind(path: string): "portugol-rs" | "rust" | "exerc
   const extension = fileName.split(".").pop();
   if (extension === "pors") return "portugol-rs";
   if (extension === "rs") return "rust";
-  if (extension === "design" || extension === "porsproj") return "markup";
+  if (extension === "design" || extension === "ferproj") return "markup";
   return null;
 }
 
@@ -115,7 +115,7 @@ export function workspaceFileMarker(path: string): string {
   const kind = workspaceFileKind(path);
   if (kind === "rust") return "R";
   if (kind === "exercise") return "EX";
-  if (kind === "markup") return /\.porsproj$/i.test(path) ? "PJ" : "TL";
+  if (kind === "markup") return /\.ferproj$/i.test(path) ? "PJ" : "TL";
   return "RS";
 }
 
