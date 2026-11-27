@@ -1,0 +1,171 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { PORS_STDLIB_CATALOG } from "../src/pors-stdlib-catalog.ts";
+import { PORS_HELP_LIBRARIES, PORS_HELP_TOPICS } from "../src/pors-help.ts";
+import { PORS_UI_EXAMPLES } from "../src/pors-ui-examples.ts";
+import { PORS_TEMPLATE } from "../src/state/tabs.ts";
+import { PLAYGROUND_EXAMPLES } from "../../web-playground/playground-core.mjs";
+
+const repoRoot = new URL("../../../", import.meta.url);
+const allowlistUrl = new URL("tests/fixtures/pors-migration-allowlist.json", repoRoot);
+
+// `leia()` é a forma preferida; o marcador versa sobre `leia(variavel)`.
+const READ_WITH_ARGUMENT = /leia\(\s*[^\s)]/;
+// Alvo: `+ "\n"` em .pors/Markdown e `+ "\\n"` dentro de strings TypeScript/JavaScript.
+const NEWLINE_CONCAT = /\+\s*"\\{1,2}n"/;
+
+const MARKERS = [
+  "escreva(",
+  "leia(",
+  ": inteiro = 0;",
+  '+ "\\n"',
+  "Tipos.para_inteiro(leia())",
+];
+
+const DOC_FILES = [
+  "README.md",
+  "apps/desktop/index.html",
+  "apps/desktop/src/help-assets/topicos/linguagem_portugol/entrada_saida/escreva.html",
+  "apps/desktop/src/help-assets/topicos/linguagem_portugol/entrada_saida/index.html",
+  "apps/desktop/src/help-assets/topicos/linguagem_portugol/entrada_saida/leia.html",
+  "docs/adr/0018-projetos-desktop-pors-com-designer-visual.md",
+  "docs/adr/0019-contrato-minimo-de-tipos-pors.md",
+  "docs/next-ui/product/LANGUAGE_SEMANTICS_CONTRACT.md",
+  "docs/research/PORS_MIGRATION_MATRIX.md",
+  "docs/superpowers/plans/2026-11-27-pors-contratos-e-testes-de-aceite.md",
+  "docs/superpowers/plans/2026-11-27-pors-nucleo-sintaxe.md",
+  "docs/superpowers/specs/2026-11-22-pors-records-enums-design.md",
+  "docs/superpowers/specs/2026-11-22-pors-vectors-design.md",
+  "docs/superpowers/specs/2026-11-26-pors-syntax-evolution-design.md",
+  "docs/superpowers/specs/2026-11-27-rfc-001-inferencia-em-seja.md",
+  "docs/superpowers/specs/2026-11-27-rfc-002-leia-como-expressao.md",
+  "docs/superpowers/specs/2026-11-27-rfc-003-escreval.md",
+  "docs/superpowers/specs/2026-11-27-rfc-004-interpolacao-de-cadeias.md",
+  "docs/superpowers/specs/2026-11-27-rfc-005-retorno-implicito.md",
+  "docs/superpowers/specs/2026-11-27-rfc-007-tratamento-de-erros.md",
+  "docs/superpowers/specs/2026-11-27-rfc-008-coalescencia-e-navegacao-segura.md",
+];
+
+function readText(relativePath) {
+  return readFileSync(new URL(relativePath, repoRoot), "utf8");
+}
+
+function readAllowlist() {
+  const entries = JSON.parse(readFileSync(allowlistUrl, "utf8"));
+  assert.ok(Array.isArray(entries), "a allowlist deve ser um array");
+  for (const [index, entry] of entries.entries()) {
+    assert.ok(entry && typeof entry === "object", `entrada ${index} deve ser um objeto`);
+    assert.ok(typeof entry.path === "string" && entry.path.length > 0, `entrada ${index} sem path`);
+    assert.ok(Array.isArray(entry.markers), `entrada ${index} sem markers`);
+    for (const marker of entry.markers) {
+      assert.ok(MARKERS.includes(marker), `marcador desconhecido em ${entry.path}: ${marker}`);
+    }
+    assert.ok(
+      typeof entry.reason === "string" && entry.reason.trim().length > 0,
+      `entrada ${index} sem reason`,
+    );
+  }
+  return entries;
+}
+
+function markerPresent(source, marker) {
+  if (marker === "leia(") return READ_WITH_ARGUMENT.test(source);
+  if (marker === '+ "\\n"') return NEWLINE_CONCAT.test(source);
+  return source.includes(marker);
+}
+
+function checkSources(sources, allowlist, label) {
+  assert.ok(sources.length > 0, `${label}: nenhuma fonte coletada`);
+  const exceptions = new Set(
+    allowlist.flatMap((entry) => entry.markers.map((marker) => `${entry.path}\u0000${marker}`)),
+  );
+  const failures = [];
+  for (const { path, source } of sources) {
+    assert.ok(typeof source === "string" && source.length > 0, `${path}: fonte vazia`);
+    for (const marker of MARKERS) {
+      if (markerPresent(source, marker) && !exceptions.has(`${path}\u0000${marker}`)) {
+        failures.push(`${path}: marcador legado ${JSON.stringify(marker)}`);
+      }
+    }
+  }
+  assert.equal(failures.length, 0, `${label}:\n${failures.join("\n")}`);
+}
+
+function embeddedSources() {
+  return [
+    { path: "apps/desktop/src/state/tabs.ts#PORS_TEMPLATE", source: PORS_TEMPLATE },
+    ...PORS_STDLIB_CATALOG.map((module) => ({
+      path: `apps/desktop/src/pors-stdlib-catalog.ts#${module.module}.example`,
+      source: module.example.source,
+    })),
+    // PORS_HELP_LIBRARIES é alias de PORS_STDLIB_CATALOG; não varrer os mesmos
+    // 13 exemplos duas vezes sob caminhos sintéticos diferentes.
+    ...PORS_HELP_LIBRARIES.filter((library) => !PORS_STDLIB_CATALOG.includes(library)).map(
+      (library) => ({
+        path: `apps/desktop/src/pors-help.ts#biblioteca:${library.module}.example`,
+        source: library.example.source,
+      }),
+    ),
+    ...PORS_HELP_TOPICS.filter((topic) => topic.example).map((topic) => ({
+      path: `apps/desktop/src/pors-help.ts#${topic.id}.example`,
+      source: topic.example.source,
+    })),
+    ...PORS_UI_EXAMPLES.map((example) => ({
+      path: `apps/desktop/src/pors-ui-examples.ts#${example.id}.example`,
+      source: example.source,
+    })),
+    ...PLAYGROUND_EXAMPLES.map((example) => ({
+      path: `apps/web-playground/playground-core.mjs#${example.id}.example`,
+      source: example.source,
+    })),
+  ];
+}
+
+test("embedded PORS examples avoid legacy syntax outside the allowlist", () => {
+  checkSources(embeddedSources(), readAllowlist(), "exemplos embutidos");
+});
+
+test("documented PORS snippets avoid legacy syntax outside the allowlist", () => {
+  const sources = DOC_FILES.map((path) => ({ path, source: readText(path) }));
+  checkSources(sources, readAllowlist(), "documentação");
+});
+
+test("RFC 007 and RFC 008 warn about main and avoid invalid interpolation", () => {
+  for (const name of [
+    "2026-11-27-rfc-007-tratamento-de-erros",
+    "2026-11-27-rfc-008-coalescencia-e-navegacao-segura",
+  ]) {
+    const source = readText(`docs/superpowers/specs/${name}.md`);
+    assert.ok(source.includes("não executam no `main`"), `${name}: falta aviso de não execução no main`);
+    for (const placeholder of ["{valor}", "{numero}", "{erro}"]) {
+      assert.ok(!source.includes(placeholder), `${name}: interpolação inválida ${placeholder}`);
+    }
+  }
+});
+
+test("core syntax plan does not describe escreval as reserved", () => {
+  const relative = "docs/superpowers/plans/2026-11-27-pors-nucleo-sintaxe.md";
+  const source = readText(relative);
+  const forbidden = [
+    {
+      label: "escreval descrito como reservado",
+      // Markdown permite crases e "é" entre o nome e o adjetivo.
+      pattern: /escreval\s*`?\s*(?:é\s+)?reservad/i,
+    },
+    {
+      label: "pedido para adicionar escreval às reservadas",
+      pattern: (line) => line.includes("Adicionar `escreval` à lista de reservadas"),
+    },
+  ];
+
+  const failures = [];
+  source.split(/\r?\n/).forEach((line, index) => {
+    for (const rule of forbidden) {
+      const matched =
+        typeof rule.pattern === "function" ? rule.pattern(line) : rule.pattern.test(line);
+      if (matched) failures.push(`${relative}:${index + 1}: ${rule.label}: ${line.trim()}`);
+    }
+  });
+  assert.equal(failures.length, 0, failures.join("\n"));
+});
