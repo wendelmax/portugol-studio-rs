@@ -142,12 +142,16 @@
           <button id="design-view-split" type="button" aria-pressed="false" title="A janela em cima e a marcação embaixo">Dividido</button>
           <button id="design-view-text" type="button" aria-pressed="true" title="Só a marcação (pseudo-XAML)">Marcação</button>
           <button id="design-view-code" type="button" disabled>Código</button>
+          <span class="design-toolbar-separator" aria-hidden="true"></span>
+          <button id="design-undo" type="button" title="Desfazer (Ctrl+Z)">Desfazer</button>
+          <button id="design-redo" type="button" title="Refazer (Ctrl+Y)">Refazer</button>
           <span id="design-status" class="design-status" role="status" aria-live="polite"></span>
         </div>
         <div class="editor-area">
           <section id="design-surface" class="design-surface" aria-label="Designer da tela" hidden>
             <aside id="design-toolbox" class="design-toolbox" aria-label="Caixa de ferramentas"></aside>
-            <div id="design-viewport" class="design-viewport" tabindex="0" aria-label="Desenho da tela: clique num controle para selecioná-lo; setas movem, Delete apaga, Esc seleciona o contêiner"></div>
+            <div id="design-viewport" class="design-viewport" tabindex="0" aria-label="Desenho da tela: clique num controle para selecioná-lo; setas movem, Delete apaga, Esc seleciona o contêiner, Ctrl+Z desfaz"></div>
+            <aside id="design-side" class="design-side" aria-label="Estrutura e propriedades"></aside>
           </section>
           <section id="editor" data-testid="code-editor" class="editor"></section>
           <nav id="rust-mapping-gutter" class="rust-mapping-gutter" aria-label="Mapeamento Portugol para Rust" hidden>

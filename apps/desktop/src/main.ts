@@ -1,3 +1,4 @@
+import { redo, undo } from "@codemirror/commands";
 import { mountTips } from "./tips";
 import { mountThemeEditor } from "./themes";
 // IDE: abas de arquivos, editor CodeMirror, console e execução.
@@ -66,6 +67,7 @@ import { applyPageTheme, editorTheme, onSystemThemeChange, themeChoice } from ".
 import { createEditorShell } from "./editor/editor-shell";
 import { mountDesignerShell, textChange } from "./designer/designer-shell";
 import { mountCanvasInteractions } from "./designer/interactions";
+import { mountSidePanel } from "./designer/side-panel";
 import { renderToolbox } from "./designer/toolbox";
 import { createEditorActionsShell } from "./editor/actions-shell";
 import {
@@ -376,6 +378,8 @@ designer = mountDesignerShell({
     split: $<HTMLButtonElement>("design-view-split"),
     text: $<HTMLButtonElement>("design-view-text"),
     code: $<HTMLButtonElement>("design-view-code"),
+    undo: $<HTMLButtonElement>("design-undo"),
+    redo: $<HTMLButtonElement>("design-redo"),
   },
   activeTab,
   source: () => view.state.doc.toString(),
@@ -391,7 +395,18 @@ designer = mountDesignerShell({
     const change = textChange(view.state.doc.toString(), source);
     if (change) view.dispatch({ changes: change });
   },
-  mountInteractions: mountCanvasInteractions,
+  mountInteractions: (host) => {
+    const canvas = mountCanvasInteractions(host);
+    const side = mountSidePanel($("design-side"), host);
+    return {
+      refresh() {
+        canvas.refresh();
+        side.refresh();
+      },
+    };
+  },
+  undo: () => undo(view),
+  redo: () => redo(view),
   hasFile: (workspaceId, path) => workspaceExplorer.hasFile(workspaceId, path),
   openFile: (workspaceId, path) => workspaceExplorer.openFile(workspaceId, path),
   setStatus,

@@ -21,16 +21,18 @@ function fakeElement() {
     replaceChildren(...children) { this.children = children; this.firstElementChild = children[0] ?? null; },
     querySelector() { return null; },
     click() { listeners.click?.({ target: null }); },
+    dispatch(type, event) { listeners[type]?.(event); },
   };
 }
 
-function setup({ files = [], tab, tree = null, editDesign = async (source) => source }) {
+function setup({ files = [], tab, tree = null, editDesign = async (source) => source, history = [] }) {
   const opened = [];
   const statuses = [];
   const edits = [];
   let source = "<Janela />";
   let active = tab;
-  const buttons = { design: fakeElement(), split: fakeElement(), text: fakeElement(), code: fakeElement() };
+  const buttons = { design: fakeElement(), split: fakeElement(), text: fakeElement(), code: fakeElement(), undo: fakeElement(), redo: fakeElement() };
+  const viewport = fakeElement();
   const area = fakeElement();
   const toolbar = fakeElement();
   const surface = fakeElement();
@@ -38,7 +40,7 @@ function setup({ files = [], tab, tree = null, editDesign = async (source) => so
     area,
     toolbar,
     surface,
-    viewport: fakeElement(),
+    viewport,
     status: fakeElement(),
     buttons,
     activeTab: () => active,
@@ -59,11 +61,13 @@ function setup({ files = [], tab, tree = null, editDesign = async (source) => so
     },
     replaceSource: (next) => { source = next; },
     canvas: { paint() {}, highlight() {} },
+    undo: () => { history.push("undo"); return true; },
+    redo: () => { history.push("redo"); return true; },
     setStatus: (message) => statuses.push(message),
     setTimeout: () => 1,
     clearTimeout: () => {},
   });
-  return { shell, buttons, area, toolbar, surface, opened, statuses, edits, source: () => source, setActive: (next) => { active = next; } };
+  return { shell, viewport, buttons, area, toolbar, surface, opened, statuses, edits, source: () => source, setActive: (next) => { active = next; } };
 }
 
 const designTab = { id: 1, workspaceId: "w", workspacePath: "App/JanelaPrincipal.design", path: "/p/App/JanelaPrincipal.design" };
@@ -198,9 +202,22 @@ test("edição recusada pelo núcleo vira mensagem e não troca o texto", async 
   assert.equal(source(), "<Janela />");
 });
 
+test("desfazer e refazer usam o histórico do editor, pelos botões e pelo teclado do canvas", () => {
+  const history = [];
+  const { viewport, buttons } = setup({ tab: designTab, history });
+  buttons.undo.click();
+  buttons.redo.click();
+  const key = (key, extra = {}) => ({ key, ctrlKey: true, metaKey: false, altKey: false, shiftKey: false, preventDefault() {}, ...extra });
+  viewport.dispatch("keydown", key("z"));
+  viewport.dispatch("keydown", key("y"));
+  viewport.dispatch("keydown", key("Z", { shiftKey: true }));
+  viewport.dispatch("keydown", key("z", { ctrlKey: false }));
+  assert.deepEqual(history, ["undo", "redo", "undo", "redo", "redo"]);
+});
+
 test("a IDE monta as vistas da tela e o atalho F7", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
-  for (const id of ["design-toolbar", "design-view-design", "design-view-split", "design-view-text", "design-view-code", "design-surface", "design-toolbox", "design-viewport"]) {
+  for (const id of ["design-toolbar", "design-view-design", "design-view-split", "design-view-text", "design-view-code", "design-surface", "design-toolbox", "design-viewport", "design-side", "design-undo", "design-redo"]) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
   const shortcuts = readFileSync(new URL("../src/commands/ide-shortcuts.ts", import.meta.url), "utf8");

@@ -20,6 +20,12 @@ import { insertPlan, keyboardTarget } from "./interactions.ts";
 
 export type DesignView = "design" | "split" | "text";
 
+/** O que o canvas e o painel lateral recebem do shell. */
+export type DesignerHost = CanvasInteractionHost & {
+  schema: () => DesignSchema | null;
+  sizes: () => DefaultSizes;
+};
+
 export interface DesignerShellDependencies {
   area: HTMLElement;
   toolbar: HTMLElement;
@@ -27,7 +33,7 @@ export interface DesignerShellDependencies {
   /** Onde a janela desenhada é montada, ao lado da caixa de ferramentas. */
   viewport: HTMLElement;
   status: HTMLElement;
-  buttons: Record<DesignView | "code", HTMLButtonElement>;
+  buttons: Record<DesignView | "code", HTMLButtonElement> & { undo?: HTMLButtonElement; redo?: HTMLButtonElement };
   activeTab: () => Tab | undefined;
   source: () => string;
   cursorOffset: () => number;
@@ -39,7 +45,10 @@ export interface DesignerShellDependencies {
   /** Troca o texto do editor pelo novo `.design`. */
   replaceSource: (source: string) => void;
   /** Arrastar, redimensionar e teclado no canvas; opcional para testes sem DOM. */
-  mountInteractions?: (host: CanvasInteractionHost) => { refresh: () => void };
+  mountInteractions?: (host: DesignerHost) => { refresh: () => void };
+  /** Desfazer e refazer do editor: o designer só muda o texto, então o histórico é um só. */
+  undo?: () => boolean;
+  redo?: () => boolean;
   /** Desenho do canvas; o padrão monta o DOM com `canvas-dom.ts`. Substituível em testes sem DOM. */
   canvas?: {
     paint: (tree: DesignNode, sizes: DefaultSizes, selected: string | null) => void;
@@ -110,6 +119,7 @@ export function mountDesignerShell(dependencies: DesignerShellDependencies) {
   const selections = new Map<number, string | null>();
   let tree: DesignNode | null = null;
   let sizes: DefaultSizes = {};
+  let schema: DesignSchema | null = null;
   let timer: unknown = null;
   let renderGeneration = 0;
   let interactions: { refresh: () => void } | null = null;
@@ -126,9 +136,10 @@ export function mountDesignerShell(dependencies: DesignerShellDependencies) {
     },
   };
 
-  void dependencies.designSchema().then((schema) => {
+  void dependencies.designSchema().then((loaded) => {
+    schema = loaded;
     sizes = Object.fromEntries(
-      schema.elements.map((element) => [element.name, [element.defaultWidth, element.defaultHeight] as const]),
+      loaded.elements.map((element) => [element.name, [element.defaultWidth, element.defaultHeight] as const]),
     );
     refresh();
   }).catch(() => undefined);
@@ -285,7 +296,27 @@ export function mountDesignerShell(dependencies: DesignerShellDependencies) {
     select: (path, moveCursor) => select(path, moveCursor),
     apply,
     setStatus: dependencies.setStatus,
+    schema: () => schema,
+    sizes: () => sizes,
   }) ?? null;
+
+  function history(direction: "undo" | "redo") {
+    const run = direction === "undo" ? dependencies.undo : dependencies.redo;
+    if (run?.()) refresh();
+  }
+  dependencies.buttons.undo?.addEventListener("click", () => history("undo"));
+  dependencies.buttons.redo?.addEventListener("click", () => history("redo"));
+  dependencies.viewport.addEventListener("keydown", (event) => {
+    if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+    const key = event.key.toLowerCase();
+    if (key === "z" && !event.shiftKey) {
+      event.preventDefault();
+      history("undo");
+    } else if (key === "y" || (key === "z" && event.shiftKey)) {
+      event.preventDefault();
+      history("redo");
+    }
+  });
 
   dependencies.viewport.addEventListener("click", (event) => {
     const target = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-path]");
