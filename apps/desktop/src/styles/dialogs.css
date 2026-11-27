@@ -105,18 +105,21 @@ dialog h2 {
 
 /* Diálogos de workspace e Cargo */
 #workspace-create-dialog,
-#workspace-rename-dialog {
+#workspace-rename-dialog,
+#desktop-project-dialog {
   width: min(360px, calc(100% - 24px));
 }
 
 #workspace-create-form,
-#workspace-rename-form {
+#workspace-rename-form,
+#desktop-project-form {
   display: grid;
   gap: var(--space-2);
 }
 
 #workspace-create-error,
-#workspace-rename-error {
+#workspace-rename-error,
+#desktop-project-error {
   margin: 0;
   color: var(--error);
 }

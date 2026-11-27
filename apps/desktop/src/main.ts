@@ -839,6 +839,7 @@ mountIdeCommandShell({
     toggleRustPreview: () => $<HTMLButtonElement>("btn-rust").click(),
     toggleUiPreview: () => $<HTMLButtonElement>("btn-ui-preview").click(),
     openFolder: () => $<HTMLButtonElement>("home-open-folder").click(),
+    newDesktopProject: () => $<HTMLButtonElement>("home-new-project").click(),
     newRustFile: () => newTab("fn main() {\n    \n}\n", null, undefined, undefined, undefined, "rust"),
     openExercises: () => $<HTMLButtonElement>("home-exercises").click(),
     openThemeEditor: () => {

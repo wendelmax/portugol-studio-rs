@@ -950,6 +950,7 @@ pub fn run_app() {
             open_files::pending_files,
             write_file,
             workspace::workspace_open,
+            workspace::workspace_create_desktop_project,
             workspace::workspace_refresh,
             workspace::workspace_cargo_project_available,
             workspace::workspace_read_file,

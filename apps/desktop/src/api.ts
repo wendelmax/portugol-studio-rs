@@ -317,6 +317,15 @@ export interface CargoScaffoldExportResult {
 }
 
 export const openWorkspace = () => invoke<WorkspaceListing | null>("workspace_open");
+/** Projeto desktop PORS criado pelo modelo e já aberto como workspace (ADR 0018). */
+export interface DesktopProjectCreated {
+  listing: WorkspaceListing;
+  /** Tela inicial, relativa à pasta do projeto. */
+  designPath: string;
+}
+/** Pede o local ao usuário e cria o projeto; `null` se a escolha for cancelada. */
+export const createDesktopProject = (name: string) =>
+  invoke<DesktopProjectCreated | null>("workspace_create_desktop_project", { name });
 export const refreshWorkspace = (workspaceId: string) =>
   invoke<WorkspaceListing>("workspace_refresh", { workspaceId });
 export const restoreWorkspace = () => invoke<WorkspaceListing | null>("workspace_restore");

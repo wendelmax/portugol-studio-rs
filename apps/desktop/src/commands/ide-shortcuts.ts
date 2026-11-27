@@ -42,6 +42,7 @@ export function createIdeShortcuts(actions: IdeShortcutActions): Shortcut[] {
     { label: "via paleta de comandos", command: "Alternar prévia Rust", matches: () => false, action: actions.toggleRustPreview },
     { label: "via paleta de comandos", command: "Alternar Preview Visual PORS", matches: () => false, action: actions.toggleUiPreview },
     { label: "via paleta de comandos", command: "Abrir pasta de projeto", matches: () => false, action: actions.openFolder },
+    { label: "via paleta de comandos", command: "Novo projeto desktop", matches: () => false, action: actions.newDesktopProject },
     { label: "via paleta de comandos", command: "Novo arquivo Rust (.rs)", matches: () => false, action: actions.newRustFile },
     { label: "via paleta de comandos", command: "Abrir Exercícios", matches: () => false, action: actions.openExercises },
     { label: "via paleta de comandos", command: "Editor de temas", matches: () => false, action: actions.openThemeEditor },

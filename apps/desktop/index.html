@@ -56,6 +56,7 @@
                 </div>
               </details>
             </div>
+            <button id="home-new-project" type="button" title="Novo projeto desktop PORS: uma janela que você monta arrastando controles"><span data-icon="file-plus"></span>Novo Projeto</button>
             <button id="home-open" title="Abrir arquivo (Ctrl+O)"><span data-icon="folder-open"></span>Abrir Arquivo</button>
             <button id="home-open-folder" title="Abrir pasta de projeto"><span data-icon="folder"></span>Abrir Pasta</button>
             <button id="home-help" title="Ajuda (F1)"><span data-icon="book-open"></span>Ajuda</button>
@@ -444,6 +445,20 @@
         <div class="dialog-actions">
           <button id="workspace-create-submit" type="submit">Criar e abrir</button>
           <button id="workspace-create-cancel" type="button">Cancelar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="desktop-project-dialog" aria-labelledby="desktop-project-title" aria-describedby="desktop-project-description">
+      <h2 id="desktop-project-title">Novo projeto desktop</h2>
+      <p id="desktop-project-description">Cria uma pasta com o projeto, a janela principal e a pasta de recursos. Depois de dar o nome, escolha onde a pasta será criada.</p>
+      <form id="desktop-project-form">
+        <label for="desktop-project-name">Nome do projeto</label>
+        <input id="desktop-project-name" type="text" required maxlength="64" autocomplete="off" spellcheck="false" placeholder="ex.: Calculadora" aria-describedby="desktop-project-error" />
+        <p id="desktop-project-error" role="status" aria-live="polite" hidden></p>
+        <div class="dialog-actions">
+          <button id="desktop-project-submit" type="submit">Escolher local e criar</button>
+          <button id="desktop-project-cancel" type="button">Cancelar</button>
         </div>
       </form>
     </dialog>
