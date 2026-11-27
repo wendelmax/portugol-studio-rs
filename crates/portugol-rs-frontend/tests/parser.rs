@@ -1032,6 +1032,14 @@ fn escreval_appends_a_newline_expression_to_write() {
 }
 
 #[test]
+fn escreval_can_still_be_used_as_an_identifier() {
+    let source =
+        "funcao escreval() -> cadeia { retorne \"Ada\"; } funcao inicio() { escreva(escreval()); }";
+    let program = lower(source).expect("escreval não é palavra reservada");
+    assert_eq!(program.functions[0].source_name, "escreval");
+}
+
+#[test]
 fn infers_binding_type_from_the_initializer_without_a_colon() {
     let source = "funcao inicio() { seja nome = \"Ada\"; seja idade = 42; }";
     let program = lower(source).expect("declarações sem tipo devem compilar");
