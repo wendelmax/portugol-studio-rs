@@ -19,5 +19,5 @@
  */
 
 funcao inicio() {
-    escreva("Olá Mundo!\n");
+    escreval("Olá Mundo!");
 }

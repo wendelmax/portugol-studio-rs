@@ -193,8 +193,8 @@ funcao inicio() {
     seja mutavel rot: real = 0.0;
     seja mutavel horario: logico = verdadeiro;
     seja mutavel tempo_inicio_fps: inteiro = Util.tempo_decorrido();
-    seja mutavel frames: inteiro = 0;
-    seja mutavel fps: inteiro = 0;
+    seja mutavel frames = 0;
+    seja mutavel fps = 0;
 
     enquanto (!Teclado.tecla_pressionada(Teclado.TECLA_ESC)) {
         seja cosr: real = Matematica.cosseno(rot);
@@ -210,7 +210,7 @@ funcao inicio() {
         );
         Graficos.desenhar_retangulo(0, 0, largura_tela, altura_tela, falso, verdadeiro);
 
-        para (seja mutavel count: inteiro = 0; count < faces; count += 1) {
+        para (seja mutavel count = 0; count < faces; count += 1) {
             seja f: inteiro = count * 3;
             seja v0: inteiro = tris[f + 0] - 1;
             seja v1: inteiro = tris[f + 1] - 1;

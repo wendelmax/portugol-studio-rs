@@ -19,7 +19,7 @@ funcao gerar_hash_robo() -> Resultado < cadeia, cadeia > {
     seja qtd: inteiro = Util.sorteia(3, 10)?;
     seja mutavel hash: cadeia = "";
 
-    para (seja mutavel i: inteiro = 0; i < qtd; i += 1) {
+    para (seja mutavel i = 0; i < qtd; i += 1) {
         seja indice: inteiro = Util.sorteia(0, 25)?;
         escolha Texto.obter_caracter(letras, indice) {
             caso Opcao::Algum(letra) => {
@@ -38,19 +38,19 @@ funcao inicio() {
     escolha gerar_hash_robo() {
         caso Resultado::Ok(hash) => {
             seja url_robo: cadeia = "https://robohash.org/" + hash + ".png";
-            escreva("Robô gerado: ", hash, "\n");
-            escreva("Endereço do avatar: ", url_robo, "\n\n");
+            escreval("Robô gerado: ", hash);
+            escreval("Endereço do avatar: ", url_robo, "\n");
 
             escolha Internet.endereco_disponivel(url_robo) {
                 caso Resultado::Ok(disponivel) => {
                     se (disponivel) {
-                        escreva("Serviço disponível para o robô \"", hash, "\".\n");
+                        escreval("Serviço disponível para o robô \"", hash, "\".");
                     } senao {
-                        escreva("O endereço respondeu como indisponível.\n");
+                        escreval("O endereço respondeu como indisponível.");
                     }
                 }
                 caso Resultado::Erro(erro) => {
-                    escreva("Consulta de disponibilidade não concluída: ", erro, "\n");
+                    escreval("Consulta de disponibilidade não concluída: ", erro);
                 }
             }
 
@@ -58,15 +58,15 @@ funcao inicio() {
             seja corpo_json: cadeia = "{\"robo\":\"" + hash + "\"}";
             escolha Internet.enviar_json("https://httpbin.org/post", corpo_json) {
                 caso Resultado::Ok(resposta) => {
-                    escreva("Resposta JSON recebida (", Texto.numero_caracteres(resposta), " caracteres).\n");
+                    escreval("Resposta JSON recebida (", Texto.numero_caracteres(resposta), " caracteres).");
                 }
                 caso Resultado::Erro(erro) => {
-                    escreva("Envio JSON não concluído: ", erro, "\n");
+                    escreval("Envio JSON não concluído: ", erro);
                 }
             }
         }
         caso Resultado::Erro(erro) => {
-            escreva("Erro ao gerar identificador do robô: ", erro, "\n");
+            escreval("Erro ao gerar identificador do robô: ", erro);
         }
     }
 }

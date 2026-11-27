@@ -24,14 +24,11 @@
  */
 
 funcao inicio() {
-    seja mutavel a: real = 0.0;
-    seja mutavel b: real = 0.0;
-
     escreva("Digite o primeiro número: ");
-    leia(a);
+    seja mutavel a: real = leia();
 
     escreva("Digite o segundo número: ");
-    leia(b);
+    seja mutavel b: real = leia();
 
     // Realiza as quatro operações aritméticas básicas
     seja soma: real = a + b;
@@ -42,5 +39,5 @@ funcao inicio() {
     escreva("\nA soma dos números é igual a: ", soma);
     escreva("\nA subtração dos números é igual a: ", sub);
     escreva("\nA multiplicação dos números é igual a: ", mult);
-    escreva("\nA divisão dos números é igual a: ", div, "\n");
+    escreval("\nA divisão dos números é igual a: ", div);
 }

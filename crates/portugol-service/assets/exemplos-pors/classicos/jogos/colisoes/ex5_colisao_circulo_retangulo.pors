@@ -203,7 +203,7 @@ funcao desenhar(cena: CenaCirculoRetangulo) {
         // Pontos trigonométricos na borda do círculo
         seja inc: real = (Matematica.PI * 2.0) / Tipos.inteiro_para_real(cena.pontos_guia);
         Graficos.definir_cor(cor_rgb(153, 0, 153));
-        para (seja mutavel i: inteiro = 0; i < cena.pontos_guia; i += 1) {
+        para (seja mutavel i = 0; i < cena.pontos_guia; i += 1) {
             seja ang: real = inc * Tipos.inteiro_para_real(i);
             seja gx: inteiro = cena.cx + Tipos.real_para_inteiro(Matematica.cosseno(ang) * Tipos.inteiro_para_real(cena.raio));
             seja gy: inteiro = cena.cy + Tipos.real_para_inteiro(Matematica.seno(ang) * Tipos.inteiro_para_real(cena.raio));

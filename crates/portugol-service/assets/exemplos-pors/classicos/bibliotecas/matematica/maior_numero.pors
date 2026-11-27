@@ -19,16 +19,13 @@
  */
 
 funcao inicio() {
-    seja mutavel numero1: real = 0.0;
-    seja mutavel numero2: real = 0.0;
-
     escreva("Informe o primeiro número: ");
-    leia(numero1);
+    seja mutavel numero1: real = leia();
 
     escreva("Informe o segundo número: ");
-    leia(numero2);
+    seja mutavel numero2: real = leia();
 
     // Obtém o maior dos dois números
     seja maior: real = Matematica.maior_numero(numero1, numero2);
-    escreva("\nO maior número é: ", maior, "\n");
+    escreval("\nO maior número é: ", maior);
 }

@@ -28,10 +28,10 @@ funcao inicio() {
 
     seja elementos: inteiro = tamanho(vet);
 
-    escreva("O vetor possui ", elementos, " elementos:\n\n");
+    escreval("O vetor possui ", elementos, " elementos:\n");
 
     // Utiliza o tamanho obtido para percorrer o vetor e exibir seus valores
-    para (seja mutavel elemento: inteiro = 0; elemento < elementos; elemento += 1) {
+    para (seja mutavel elemento = 0; elemento < elementos; elemento += 1) {
         se (elemento == 0) {
             escreva("{ ");
         }
@@ -47,5 +47,5 @@ funcao inicio() {
         }
     }
 
-    escreva("\n");
+    escreval();
 }

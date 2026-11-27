@@ -45,16 +45,16 @@ funcao inicio() {
 
     seja dados: vetor < inteiro > = mat.dados;
 
-    escreva("A matriz possui ", mat.linhas, " linhas\n");
-    escreva("A matriz possui ", mat.colunas, " colunas\n");
-    escreva("Total de elementos: ", tamanho(dados), "\n\n");
+    escreval("A matriz possui ", mat.linhas, " linhas");
+    escreval("A matriz possui ", mat.colunas, " colunas");
+    escreval("Total de elementos: ", tamanho(dados), "\n");
 
     // Percorre todas as linhas e colunas usando o índice (linha * colunas + coluna)
-    para (seja mutavel linha: inteiro = 0; linha < mat.linhas; linha += 1) {
-        para (seja mutavel coluna: inteiro = 0; coluna < mat.colunas; coluna += 1) {
+    para (seja mutavel linha = 0; linha < mat.linhas; linha += 1) {
+        para (seja mutavel coluna = 0; coluna < mat.colunas; coluna += 1) {
             seja indice: inteiro = linha * mat.colunas + coluna;
             escreva("[", dados[indice], "]");
         }
-        escreva("\n");
+        escreval();
     }
 }

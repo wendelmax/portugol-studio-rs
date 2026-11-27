@@ -22,7 +22,7 @@ funcao listar_arquivos_txt() -> Resultado < vetor < cadeia >, cadeia > {
     seja todos: vetor < cadeia > = Arquivos.listar(".")?;
     seja mutavel filtrados: vetor < cadeia > = [];
 
-    para (seja mutavel i: inteiro = 0; i < tamanho(todos); i += 1) {
+    para (seja mutavel i = 0; i < tamanho(todos); i += 1) {
         seja nome: cadeia = todos[i];
         se (Texto.termina_com(nome, ".txt") || Texto.termina_com(nome, ".pors")) {
             adicionar(filtrados, nome);
@@ -36,27 +36,26 @@ funcao inicio() {
     escolha listar_arquivos_txt() {
         caso Resultado::Ok(arquivos) => {
             se (tamanho(arquivos) == 0) {
-                escreva("Nenhum arquivo .txt ou .pors encontrado no workspace.\n");
+                escreval("Nenhum arquivo .txt ou .pors encontrado no workspace.");
             } senao {
-                escreva("Selecione um arquivo pelo número:\n");
-                para (seja mutavel i: inteiro = 0; i < tamanho(arquivos); i += 1) {
-                    escreva("  ", i + 1, " - ", arquivos[i], "\n");
+                escreval("Selecione um arquivo pelo número:");
+                para (seja mutavel i = 0; i < tamanho(arquivos); i += 1) {
+                    escreval("  ", i + 1, " - ", arquivos[i]);
                 }
 
-                seja mutavel escolha_usuario: inteiro = 0;
                 escreva("\nNúmero do arquivo (0 para cancelar): ");
-                leia(escolha_usuario);
+                seja mutavel escolha_usuario: inteiro = leia();
 
                 se (escolha_usuario >= 1 && escolha_usuario <= tamanho(arquivos)) {
                     seja selecionado: cadeia = arquivos[escolha_usuario - 1];
-                    escreva("Arquivo selecionado: ", selecionado, "\n");
+                    escreval("Arquivo selecionado: ", selecionado);
                 } senao {
-                    escreva("Nenhum arquivo foi selecionado.\n");
+                    escreval("Nenhum arquivo foi selecionado.");
                 }
             }
         }
         caso Resultado::Erro(erro) => {
-            escreva("Erro ao listar arquivos: ", erro, "\n");
+            escreval("Erro ao listar arquivos: ", erro);
         }
     }
 }

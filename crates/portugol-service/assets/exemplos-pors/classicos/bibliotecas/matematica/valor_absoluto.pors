@@ -29,12 +29,10 @@
  */
 
 funcao inicio() {
-    seja mutavel numero: real = 0.0;
-
     escreva("Informe um número positivo ou negativo: ");
-    leia(numero);
+    seja mutavel numero: real = leia();
 
     // Calcula o valor absoluto do número informado
     seja absoluto: real = Matematica.valor_absoluto(numero);
-    escreva("O valor absoluto de ", numero, " é: ", absoluto, "\n");
+    escreval("O valor absoluto de ", numero, " é: ", absoluto);
 }

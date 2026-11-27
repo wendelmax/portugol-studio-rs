@@ -14,9 +14,12 @@ const allowlistUrl = new URL("tests/fixtures/pors-migration-allowlist.json", rep
 const READ_WITH_ARGUMENT = /leia\(\s*[^\s)]/;
 // Alvo: `+ "\n"` em .pors/Markdown e `+ "\\n"` dentro de strings TypeScript/JavaScript.
 const NEWLINE_CONCAT = /\+\s*"\\{1,2}n"/;
+// `escreva(...)` sem "\n" é sintaxe válida: escreval só acrescenta a quebra
+// (RFC 003). Só a chamada que ainda passa "\n" explicitamente é legada.
+const EXPLICIT_NEWLINE_WRITE = "escreva-com-quebra-explicita";
 
 const MARKERS = [
-  "escreva(",
+  EXPLICIT_NEWLINE_WRITE,
   "leia(",
   ": inteiro = 0;",
   '+ "\\n"',
@@ -69,7 +72,61 @@ function readAllowlist() {
   return entries;
 }
 
+function quotedLiteralHasNewline(inner) {
+  for (let at = 0; at < inner.length; at += 1) {
+    const delimiter = inner[at];
+    if (delimiter !== '"' && delimiter !== "'") continue;
+    at += 1;
+    while (at < inner.length) {
+      if (inner[at] === "\\") {
+        let slashes = 0;
+        while (at < inner.length && inner[at] === "\\") {
+          slashes += 1;
+          at += 1;
+        }
+        if (inner[at] === "n" && slashes >= 1 && slashes <= 2) return true;
+        if (at < inner.length) at += 1;
+        continue;
+      }
+      if (inner[at] === delimiter) break;
+      at += 1;
+    }
+  }
+  return false;
+}
+
+function hasExplicitNewlineWrite(source) {
+  let from = 0;
+  while (true) {
+    const at = source.indexOf("escreva(", from);
+    if (at < 0) return false;
+    let depth = 0;
+    let delimiter = null;
+    let close = at + "escreva".length;
+    for (; close < source.length; close += 1) {
+      const char = source[close];
+      if (delimiter) {
+        if (char === "\\") {
+          close += 1;
+          continue;
+        }
+        if (char === delimiter) delimiter = null;
+      } else if (char === '"' || char === "'") {
+        delimiter = char;
+      } else if (char === "(") {
+        depth += 1;
+      } else if (char === ")") {
+        depth -= 1;
+        if (depth === 0) break;
+      }
+    }
+    if (quotedLiteralHasNewline(source.slice(at + "escreva(".length, close))) return true;
+    from = close + 1;
+  }
+}
+
 function markerPresent(source, marker) {
+  if (marker === EXPLICIT_NEWLINE_WRITE) return hasExplicitNewlineWrite(source);
   if (marker === "leia(") return READ_WITH_ARGUMENT.test(source);
   if (marker === '+ "\\n"') return NEWLINE_CONCAT.test(source);
   return source.includes(marker);

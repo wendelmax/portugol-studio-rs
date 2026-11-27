@@ -22,41 +22,41 @@
 funcao inicio() {
     seja caminho_som: cadeia = "audio/exemplo.mp3";
 
-    escreva("=== Biblioteca Sons: Reproduzir Um Som ===\n");
-    escreva("Tentando carregar o arquivo: ", caminho_som, "\n");
+    escreval("=== Biblioteca Sons: Reproduzir Um Som ===");
+    escreval("Tentando carregar o arquivo: ", caminho_som);
 
     escolha Sons.carregar_som(caminho_som) {
         caso Resultado::Ok(som) => {
             Sons.definir_volume(80);
-            escreva("Volume global configurado para: ", Sons.obter_volume(), "%\n");
+            escreval("Volume global configurado para: ", Sons.obter_volume(), "%");
 
             escolha Sons.reproduzir_som(som, falso) {
                 caso Resultado::Ok(reproducao) => {
                     seja duracao: inteiro = Sons.obter_tamanho_musica(som);
-                    escreva("Reprodução iniciada (ID: ", reproducao, ").\n");
-                    escreva("Duração total estimada: ", duracao, " ms\n");
+                    escreval("Reprodução iniciada (ID: ", reproducao, ").");
+                    escreval("Duração total estimada: ", duracao, " ms");
 
                     Util.aguarde(1500);
                     seja posicao: inteiro = Sons.obter_posicao_atual_musica(reproducao);
-                    escreva("Posição atual após 1,5s: ", posicao, " ms\n");
+                    escreval("Posição atual após 1,5s: ", posicao, " ms");
 
                     Sons.interromper_som(reproducao);
-                    escreva("Reprodução finalizada.\n");
+                    escreval("Reprodução finalizada.");
                 }
                 caso Resultado::Erro(erro_rep) => {
-                    escreva("Não foi possível reproduzir o som: ", erro_rep, "\n");
+                    escreval("Não foi possível reproduzir o som: ", erro_rep);
                 }
             }
 
             Sons.liberar_som(som);
-            escreva("Recurso de áudio liberado da memória.\n");
+            escreval("Recurso de áudio liberado da memória.");
         }
         caso Resultado::Erro(erro) => {
-            escreva("Arquivo de áudio não encontrado ou indisponível: ", erro, "\n");
-            escreva(
+            escreval("Arquivo de áudio não encontrado ou indisponível: ", erro);
+            escreval(
             "Dica: coloque um arquivo MP3/WAV em '",
             caminho_som,
-            "' para ouvir a reprodução.\n"
+            "' para ouvir a reprodução."
             );
         }
     }

@@ -56,7 +56,7 @@ funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
 
 funcao criar_mapa_inicial() -> vetor < inteiro > {
     seja mutavel m: vetor < inteiro > = [];
-    para (seja mutavel i: inteiro = 0; i < 8 * 10; i += 1) {
+    para (seja mutavel i = 0; i < 8 * 10; i += 1) {
         adicionar(m, 0);
     }
     m[6 * 10 + 1] = 4; // Início do personagem
@@ -67,8 +67,8 @@ funcao criar_mapa_inicial() -> vetor < inteiro > {
 }
 
 funcao contar_elemento(mapa: vetor < inteiro >, codigo: inteiro) -> inteiro {
-    seja mutavel total: inteiro = 0;
-    para (seja mutavel i: inteiro = 0; i < 80; i += 1) {
+    seja mutavel total = 0;
+    para (seja mutavel i = 0; i < 80; i += 1) {
         se (mapa[i] == codigo) {
             total += 1;
         }
@@ -78,7 +78,7 @@ funcao contar_elemento(mapa: vetor < inteiro >, codigo: inteiro) -> inteiro {
 
 funcao limpar_elemento_unico(mapa: vetor < inteiro >, codigo: inteiro) -> vetor < inteiro > {
     seja mutavel m: vetor < inteiro > = mapa;
-    para (seja mutavel i: inteiro = 0; i < 80; i += 1) {
+    para (seja mutavel i = 0; i < 80; i += 1) {
         se (m[i] == codigo) {
             m[i] = 0;
         }
@@ -91,16 +91,16 @@ funcao salvar_fase(e: EditorPrograme) -> cadeia {
         retorne "Aviso: coloque 1 Inicio e 1 Saida antes de salvar!";
     }
 
-    seja mutavel texto: cadeia = Tipos.inteiro_para_cadeia(e.max_comandos) + "," + Tipos.inteiro_para_cadeia(e.max_loops) + "\n";
+    seja mutavel texto: cadeia = "{Tipos.inteiro_para_cadeia(e.max_comandos)},{Tipos.inteiro_para_cadeia(e.max_loops)}\n";
     seja mapa: vetor < inteiro > = e.mapa;
-    para (seja mutavel l: inteiro = 0; l < 8; l += 1) {
-        para (seja mutavel c: inteiro = 0; c < 10; c += 1) {
+    para (seja mutavel l = 0; l < 8; l += 1) {
+        para (seja mutavel c = 0; c < 10; c += 1) {
             texto = texto + Tipos.inteiro_para_cadeia(mapa[l * 10 + c]);
             se (c < 9) {
                 texto = texto + ",";
             }
         }
-        texto = texto + "\n";
+        texto = "{texto}\n";
     }
 
     escolha Arquivos.escrever_texto("fase_programe.txt", texto) {
@@ -138,14 +138,14 @@ funcao carregar_fase_arquivo(e: EditorPrograme) -> EditorPrograme {
             }
 
             seja mutavel m: vetor < inteiro > = [];
-            para (seja mutavel i: inteiro = 0; i < 80; i += 1) {
+            para (seja mutavel i = 0; i < 80; i += 1) {
                 adicionar(m, 0);
             }
             seja max_l: inteiro = Matematica.menor_inteiro(8, tamanho(linhas) - 1);
-            para (seja mutavel l: inteiro = 0; l < max_l; l += 1) {
+            para (seja mutavel l = 0; l < max_l; l += 1) {
                 seja cols: vetor < cadeia > = Texto.dividir(Texto.aparar(linhas[l + 1]), ",");
                 seja max_c: inteiro = Matematica.menor_inteiro(10, tamanho(cols));
-                para (seja mutavel c: inteiro = 0; c < max_c; c += 1) {
+                para (seja mutavel c = 0; c < max_c; c += 1) {
                     escolha Tipos.para_inteiro(Texto.aparar(cols[c])) {
                         caso Resultado::Ok(v) => {
                             m[l * 10 + c] = v;
@@ -229,7 +229,7 @@ funcao atualizar(editor: EditorPrograme) -> EditorPrograme {
 
     // Cliques únicos nos controles do painel direito
     se (esq && !e.mouse_esq_estava) {
-        para (seja mutavel f: inteiro = 0; f <= 4; f += 1) {
+        para (seja mutavel f = 0; f <= 4; f += 1) {
             seja fy: inteiro = 98 + f * 42;
             se (ponto_no_ret(mx, my, 544, fy, 230, 36)) {
                 e.ferramenta = f;
@@ -297,8 +297,8 @@ funcao desenhar(e: EditorPrograme) {
 
     // Grade 10x8
     seja mapa: vetor < inteiro > = e.mapa;
-    para (seja mutavel l: inteiro = 0; l < 8; l += 1) {
-        para (seja mutavel c: inteiro = 0; c < 10; c += 1) {
+    para (seja mutavel l = 0; l < 8; l += 1) {
+        para (seja mutavel c = 0; c < 10; c += 1) {
             seja x: inteiro = 24 + c * 48;
             seja y: inteiro = 72 + l * 48;
             se ((l + c) % 2 == 0) {
@@ -345,7 +345,7 @@ funcao desenhar(e: EditorPrograme) {
     Graficos.definir_tamanho_texto(13.0);
     Graficos.desenhar_texto(544, 78, "ELEMENTOS DO MAPA:");
 
-    para (seja mutavel f: inteiro = 0; f <= 4; f += 1) {
+    para (seja mutavel f = 0; f <= 4; f += 1) {
         seja fy: inteiro = 98 + f * 42;
         se (f == e.ferramenta) {
             Graficos.definir_cor(cor_rgb(66, 92, 138));

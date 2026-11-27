@@ -35,34 +35,33 @@ funcao ler_arquivo_escolhido(caminho: cadeia) -> Resultado < vetor < cadeia >, c
 funcao inicio() {
     escolha listar_workspace() {
         caso Resultado::Ok(entradas) => {
-            escreva("Arquivos disponíveis no workspace:\n");
-            para (seja mutavel i: inteiro = 0; i < tamanho(entradas); i += 1) {
-                escreva(" - ", entradas[i], "\n");
+            escreval("Arquivos disponíveis no workspace:");
+            para (seja mutavel i = 0; i < tamanho(entradas); i += 1) {
+                escreval(" - ", entradas[i]);
             }
 
-            seja mutavel arquivo_selecionado: cadeia = "";
             escreva("\nDigite o nome do arquivo para ler (ou deixe vazio para cancelar): ");
-            leia(arquivo_selecionado);
+            seja mutavel arquivo_selecionado = leia();
             arquivo_selecionado = Texto.aparar(arquivo_selecionado);
 
             se (arquivo_selecionado != "") {
                 escolha ler_arquivo_escolhido(arquivo_selecionado) {
                     caso Resultado::Ok(linhas) => {
-                        escreva("\n");
-                        para (seja mutavel i: inteiro = 0; i < tamanho(linhas); i += 1) {
-                            escreva("Linha ", i + 1, ": ", linhas[i], "\n");
+                        escreval();
+                        para (seja mutavel i = 0; i < tamanho(linhas); i += 1) {
+                            escreval("Linha ", i + 1, ": ", linhas[i]);
                         }
                     }
                     caso Resultado::Erro(erro) => {
-                        escreva("Erro: ", erro, "\n");
+                        escreval("Erro: ", erro);
                     }
                 }
             } senao {
-                escreva("O usuário não selecionou nenhum arquivo\n");
+                escreval("O usuário não selecionou nenhum arquivo");
             }
         }
         caso Resultado::Erro(erro) => {
-            escreva("Erro ao listar workspace: ", erro, "\n");
+            escreval("Erro ao listar workspace: ", erro);
         }
     }
 }

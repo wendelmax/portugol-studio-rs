@@ -35,33 +35,33 @@ funcao inicio() {
 
     // Substitui "PA" por "RA" para formar "RATO"
     substituicao = Texto.substituir(texto, "PA", "RA");
-    escreva(texto, " --> ", substituicao, "\n");
+    escreval(texto, " --> ", substituicao);
 
     // Substitui "PA" por "GA" para formar "GATO"
     substituicao = Texto.substituir(texto, "PA", "GA");
-    escreva(texto, " --> ", substituicao, "\n");
+    escreval(texto, " --> ", substituicao);
 
     // Substitui "A" por "AR" para formar "PARTO"
     substituicao = Texto.substituir(texto, "A", "AR");
-    escreva(texto, " --> ", substituicao, "\n");
+    escreval(texto, " --> ", substituicao);
 
     // Substitui "AT" por "ELICAN" para formar "PELICANO"
     substituicao = Texto.substituir(texto, "AT", "ELICAN");
-    escreva(texto, " --> ", substituicao, "\n");
+    escreval(texto, " --> ", substituicao);
 
     // Substitui "TO" por "MONHA" para formar "PAMONHA"
     substituicao = Texto.substituir(texto, "TO", "MONHA");
-    escreva(texto, " --> ", substituicao, "\n");
+    escreval(texto, " --> ", substituicao);
 
     // Como informamos "to" em letras minúsculas, a substituição não ocorre
     substituicao = Texto.substituir(texto, "to", "MONHA");
-    escreva(texto, " --> ", substituicao, "\n");
+    escreval(texto, " --> ", substituicao);
 
     // Como informamos "LI" (que não existe no texto), a substituição não ocorre
     substituicao = Texto.substituir(texto, "LI", "MA");
-    escreva(texto, " --> ", substituicao, "\n");
+    escreval(texto, " --> ", substituicao);
 
     // Realiza uma substituição e atribui o valor retornado à variável "texto"
     texto = Texto.substituir(texto, "PA", "LAGAR");
-    escreva(texto, " --> ", substituicao, "\n");
+    escreval(texto, " --> ", substituicao);
 }

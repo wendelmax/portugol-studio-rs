@@ -8,20 +8,16 @@
  */
 
 funcao inicio() {
-    seja mutavel entrada_nome: cadeia = "";
-    seja mutavel entrada_idade: cadeia = "";
-    seja mutavel entrada_altura: cadeia = "";
-
     escreva("Informe seu nome: ");
-    leia(entrada_nome);
+    seja mutavel entrada_nome = leia();
     escreva("Informe sua idade (inteiro): ");
-    leia(entrada_idade);
+    seja mutavel entrada_idade = leia();
     escreva("Informe sua altura em metros (ex.: 1.76): ");
-    leia(entrada_altura);
+    seja mutavel entrada_altura = leia();
 
     seja mutavel id_valida: logico = falso;
     seja mutavel alt_valida: logico = falso;
-    seja mutavel idade: inteiro = 0;
+    seja mutavel idade = 0;
     seja mutavel altura: real = 0.0;
 
     seja mutavel nome: cadeia = Texto.caixa_alta(entrada_nome);
@@ -33,11 +29,11 @@ funcao inicio() {
                 id_valida = verdadeiro;
             }
             caso Resultado::Erro(_) => {
-                escreva("O segundo dado deve ser do tipo inteiro.\n");
+                escreval("O segundo dado deve ser do tipo inteiro.");
             }
         }
     } senao {
-        escreva("O segundo dado deve ser do tipo inteiro.\n");
+        escreval("O segundo dado deve ser do tipo inteiro.");
     }
 
     se (Tipos.cadeia_e_real(entrada_altura)) {
@@ -47,11 +43,11 @@ funcao inicio() {
                 alt_valida = verdadeiro;
             }
             caso Resultado::Erro(_) => {
-                escreva("O terceiro dado deve ser do tipo real.\n");
+                escreval("O terceiro dado deve ser do tipo real.");
             }
         }
     } senao {
-        escreva("O terceiro dado deve ser do tipo real.\n");
+        escreval("O terceiro dado deve ser do tipo real.");
     }
 
     se (id_valida && alt_valida) {
@@ -83,7 +79,7 @@ funcao inicio() {
         }
 
         seja intervalo: inteiro = 1000;
-        escreva("\nPor favor, aguarde ", intervalo / 1000, " segundo(s)...\n");
+        escreval("\nPor favor, aguarde ", intervalo / 1000, " segundo(s)...");
         Util.aguarde(intervalo);
 
         seja mutavel resposta: cadeia = "";
@@ -95,13 +91,13 @@ funcao inicio() {
             seja normalizada: cadeia = Texto.caixa_alta(Texto.aparar(resposta));
 
             se (normalizada == "S" || normalizada == "SIM") {
-                escreva("Oba! Ficamos felizes por isso!\n");
+                escreval("Oba! Ficamos felizes por isso!");
                 resposta_valida = verdadeiro;
             } senao se (normalizada == "N" || normalizada == "NAO" || normalizada == "NÃO") {
-                escreva("Ahh! Que pena, vamos tentar melhorar!\n");
+                escreval("Ahh! Que pena, vamos tentar melhorar!");
                 resposta_valida = verdadeiro;
             } senao {
-                escreva("Resposta inválida. Digite S ou N.\n");
+                escreval("Resposta inválida. Digite S ou N.");
             }
         } enquanto (!resposta_valida);
     }

@@ -23,7 +23,7 @@ funcao extrair_links_fieldset(html: cadeia) -> vetor < cadeia > {
                 caso Opcao::Algum(pos_fim) => {
                     escolha Texto.extrair_subtexto(html, pos_inicio, pos_fim) {
                         caso Resultado::Ok(bloco) => {
-                            seja mutavel cursor: inteiro = 0;
+                            seja mutavel cursor = 0;
                             seja mutavel continuar: logico = verdadeiro;
 
                             enquanto (continuar) {
@@ -74,9 +74,8 @@ funcao consultar_gerador(url: cadeia) -> Resultado < vetor < cadeia >, cadeia > 
 }
 
 funcao inicio() {
-    seja mutavel palavra: cadeia = "";
     escreva("Digite uma frase ou palavra (Enter usa PORTUGOL STUDIO): ");
-    leia(palavra);
+    seja mutavel palavra = leia();
     palavra = Texto.aparar(palavra);
 
     se (palavra == "") {
@@ -85,18 +84,18 @@ funcao inicio() {
 
     seja slug: cadeia = Texto.substituir(palavra, " ", "-");
     seja url: cadeia = "http://metaatem.net/words/" + slug;
-    escreva("\nConsultando: ", url, "\n");
+    escreval("\nConsultando: ", url);
 
     escolha consultar_gerador(url) {
         caso Resultado::Ok(links) => {
-            escreva("Links encontrados: ", tamanho(links), "\n");
-            para (seja mutavel i: inteiro = 0; i < tamanho(links); i += 1) {
-                escreva(" ", i + 1, ". ", links[i], "\n");
+            escreval("Links encontrados: ", tamanho(links));
+            para (seja mutavel i = 0; i < tamanho(links); i += 1) {
+                escreval(" ", i + 1, ". ", links[i]);
             }
         }
         caso Resultado::Erro(erro) => {
-            escreva("Não foi possível consultar o servidor: ", erro, "\n");
-            escreva("Verifique sua conexão ou o consentimento de rede nas configurações.\n");
+            escreval("Não foi possível consultar o servidor: ", erro);
+            escreval("Verifique sua conexão ou o consentimento de rede nas configurações.");
         }
     }
 }

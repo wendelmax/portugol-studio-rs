@@ -19,11 +19,10 @@
  */
 
 funcao inicio() {
-    seja mutavel raio: real = 0.0;
     seja mutavel area: real = 0.0;
 
     escreva("Informe o raio da circunferência em cm: ");
-    leia(raio);
+    seja mutavel raio: real = leia();
 
     // Calcula a área da circunferência utilizando a constante PI da biblioteca
     area = Matematica.PI * Matematica.potencia(raio, 2.0);
@@ -32,5 +31,5 @@ funcao inicio() {
     area = Matematica.arredondar(area, 2);
 
     escreva("\nO valor de PI é: ", Matematica.PI);
-    escreva("\nA área da circunferência é: ", area, " cm²\n");
+    escreval("\nA área da circunferência é: ", area, " cm²");
 }

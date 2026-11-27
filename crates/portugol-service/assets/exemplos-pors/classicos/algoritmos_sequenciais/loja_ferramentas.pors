@@ -26,22 +26,18 @@ funcao inicio() {
     seja PRECO_ARRUELA: real = 2.00;
     seja PRECO_PORCA: real = 2.50;
 
-    seja mutavel nome: cadeia = "";
-    seja mutavel quantidade_parafusos: inteiro = 0;
-    seja mutavel quantidade_arruelas: inteiro = 0;
-    seja mutavel quantidade_porcas: inteiro = 0;
 
     escreva("Digite seu nome: ");
-    leia(nome);
+    seja mutavel nome = leia();
 
     escreva("\nDigite a quantidade de parafusos que deseja comprar: ");
-    leia(quantidade_parafusos);
+    seja mutavel quantidade_parafusos: inteiro = leia();
 
     escreva("Digite a quantidade de arruelas que deseja comprar: ");
-    leia(quantidade_arruelas);
+    seja mutavel quantidade_arruelas: inteiro = leia();
 
     escreva("Digite a quantidade de porcas que deseja comprar: ");
-    leia(quantidade_porcas);
+    seja mutavel quantidade_porcas: inteiro = leia();
 
     /*
      * Cálculo dos valores a serem pagos. O cálculo é feito multiplicando
@@ -53,12 +49,12 @@ funcao inicio() {
 
     seja total_pagar: real = total_parafusos + total_porcas + total_arruelas;
 
-    escreva("\n");
-    escreva("Cliente: ", nome, "\n");
-    escreva("===============================\n");
-    escreva("Parafusos: ", quantidade_parafusos, "\n");
-    escreva("Arruelas: ", quantidade_arruelas, "\n");
-    escreva("Porcas: ", quantidade_porcas, "\n");
-    escreva("===============================\n");
-    escreva("Total a pagar: R$ ", total_pagar, "\n");
+    escreval();
+    escreval("Cliente: ", nome);
+    escreval("===============================");
+    escreval("Parafusos: ", quantidade_parafusos);
+    escreval("Arruelas: ", quantidade_arruelas);
+    escreval("Porcas: ", quantidade_porcas);
+    escreval("===============================");
+    escreval("Total a pagar: R$ ", total_pagar);
 }

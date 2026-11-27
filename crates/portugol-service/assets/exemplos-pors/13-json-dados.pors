@@ -9,8 +9,8 @@ funcao montar_resumo() -> Resultado<cadeia, cadeia> {
 
     seja nome: cadeia = Json.obter_cadeia(doc, "linguagem")?;
     seja itens: vetor<inteiro> = Json.obter_lista_inteiro(doc, "itens")?;
-    seja mutavel soma: inteiro = 0;
-    para (seja mutavel i: inteiro = 0; i < tamanho(itens); i += 1) {
+    seja mutavel soma = 0;
+    para (seja mutavel i = 0; i < tamanho(itens); i += 1) {
         soma += itens[i];
     }
     retorne Resultado::Ok(nome + " soma=" + Tipos.inteiro_para_cadeia(soma));

@@ -20,18 +20,16 @@
  */
 
 funcao inicio() {
-    seja mutavel letra: caracter = ' ';
-
     escreva("Digite uma letra: ");
-    leia(letra);
+    seja mutavel letra: caracter = leia();
 
     // O Portugol-RS diferencia caracteres minúsculos e maiúsculos,
     // portanto é preciso verificar ambos os casos.
     se (
     letra == 'A' || letra == 'E' || letra == 'I' || letra == 'O' || letra == 'U' || letra == 'a' || letra == 'e' || letra == 'i' || letra == 'o' || letra == 'u'
     ) {
-        escreva("\nA letra '", letra, "' é uma vogal\n");
+        escreval("\nA letra '", letra, "' é uma vogal");
     } senao {
-        escreva("\nA letra '", letra, "' é uma consoante\n");
+        escreval("\nA letra '", letra, "' é uma consoante");
     }
 }

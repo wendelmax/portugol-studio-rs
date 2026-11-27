@@ -28,11 +28,11 @@ funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
 }
 
 funcao gf_multiplicar(a: inteiro, b: inteiro) -> inteiro {
-    seja mutavel resultado: inteiro = 0;
+    seja mutavel resultado = 0;
     seja mutavel x: inteiro = a;
     seja mutavel y: inteiro = b;
 
-    para (seja mutavel i: inteiro = 0; i < 8; i += 1) {
+    para (seja mutavel i = 0; i < 8; i += 1) {
         se ((y & 1) != 0) {
             resultado = resultado ^ x;
         }
@@ -52,14 +52,14 @@ funcao calcular_reed_solomon_v1l(dados: vetor < inteiro >) -> vetor < inteiro > 
     seja gerador: vetor < inteiro > = [1, 127, 122, 154, 164, 11, 68, 117];
     seja mutavel resto: vetor < inteiro > = [0, 0, 0, 0, 0, 0, 0];
 
-    para (seja mutavel i: inteiro = 0; i < tamanho(dados); i += 1) {
+    para (seja mutavel i = 0; i < tamanho(dados); i += 1) {
         seja fator: inteiro = dados[i] ^ resto[0];
-        para (seja mutavel j: inteiro = 0; j < 6; j += 1) {
+        para (seja mutavel j = 0; j < 6; j += 1) {
             resto[j] = resto[j + 1];
         }
         resto[6] = 0;
 
-        para (seja mutavel j: inteiro = 0; j < 7; j += 1) {
+        para (seja mutavel j = 0; j < 7; j += 1) {
             resto[j] = resto[j] ^ gf_multiplicar(gerador[j + 1], fator);
         }
     }
@@ -96,7 +96,7 @@ funcao codificar_mensagem_bits(texto: cadeia) -> vetor < inteiro > {
     bits = adicionar_bits(bits, 4, 4);
     bits = adicionar_bits(bits, n, 8);
 
-    para (seja mutavel i: inteiro = 0; i < n; i += 1) {
+    para (seja mutavel i = 0; i < n; i += 1) {
         escolha Texto.obter_caracter(texto, i) {
             caso Opcao::Algum(ch) => {
                 bits = adicionar_bits(bits, codigo_ascii_caracter(ch), 8);
@@ -107,7 +107,7 @@ funcao codificar_mensagem_bits(texto: cadeia) -> vetor < inteiro > {
 
     // Terminador (até 4 zeros) e alinhamento em múltiplos de 8 bits
     seja limite_bits: inteiro = 152;
-    seja mutavel term: inteiro = 0;
+    seja mutavel term = 0;
     enquanto (term < 4 && tamanho(bits) < limite_bits) {
         adicionar(bits, 0);
         term += 1;
@@ -118,15 +118,15 @@ funcao codificar_mensagem_bits(texto: cadeia) -> vetor < inteiro > {
     // Converte bits para 19 codewords de dados com padding alternado (236, 17)
     seja mutavel codewords: vetor < inteiro > = [];
     seja total_bytes: inteiro = tamanho(bits) / 8;
-    para (seja mutavel b: inteiro = 0; b < total_bytes; b += 1) {
-        seja mutavel valor: inteiro = 0;
-        para (seja mutavel k: inteiro = 0; k < 8; k += 1) {
+    para (seja mutavel b = 0; b < total_bytes; b += 1) {
+        seja mutavel valor = 0;
+        para (seja mutavel k = 0; k < 8; k += 1) {
             valor = (valor << 1) | bits[(b * 8) + k];
         }
         adicionar(codewords, valor);
     }
 
-    seja mutavel pad_indice: inteiro = 0;
+    seja mutavel pad_indice = 0;
     enquanto (tamanho(codewords) < 19) {
         se ((pad_indice % 2) == 0) {
             adicionar(codewords, 236);
@@ -140,10 +140,10 @@ funcao codificar_mensagem_bits(texto: cadeia) -> vetor < inteiro > {
     seja ec: vetor < inteiro > = calcular_reed_solomon_v1l(codewords);
     seja mutavel fluxo_final: vetor < inteiro > = [];
 
-    para (seja mutavel i: inteiro = 0; i < tamanho(codewords); i += 1) {
+    para (seja mutavel i = 0; i < tamanho(codewords); i += 1) {
         fluxo_final = adicionar_bits(fluxo_final, codewords[i], 8);
     }
-    para (seja mutavel i: inteiro = 0; i < tamanho(ec); i += 1) {
+    para (seja mutavel i = 0; i < tamanho(ec); i += 1) {
         fluxo_final = adicionar_bits(fluxo_final, ec[i], 8);
     }
 
@@ -223,7 +223,7 @@ funcao aplicar_formato(mutavel matriz: vetor < inteiro >, lado: inteiro, mascara
     seja linhas_b: vetor < inteiro > = [20, 19, 18, 17, 16, 15, 14, 8, 8, 8, 8, 8, 8, 8, 8];
     seja cols_b: vetor < inteiro > = [8, 8, 8, 8, 8, 8, 8, 13, 14, 15, 16, 17, 18, 19, 20];
 
-    para (seja mutavel i: inteiro = 0; i < 15; i += 1) {
+    para (seja mutavel i = 0; i < 15; i += 1) {
         seja bit: inteiro = (fmt >> (14 - i)) & 1;
         seja valor: inteiro = 2 + bit;
         matriz[(linhas_a[i] * lado) + cols_a[i]] = valor;
@@ -237,7 +237,7 @@ funcao gerar_matriz_qrcode(texto: cadeia, mascara: inteiro) -> vetor < inteiro >
     seja lado: inteiro = 21;
     seja mutavel matriz: vetor < inteiro > = [];
 
-    para (seja mutavel i: inteiro = 0; i < (lado * lado); i += 1) {
+    para (seja mutavel i = 0; i < (lado * lado); i += 1) {
         adicionar(matriz, -1);
     }
 
@@ -261,7 +261,7 @@ funcao gerar_matriz_qrcode(texto: cadeia, mascara: inteiro) -> vetor < inteiro >
 
     // 5. Insere os bits de dados + Reed-Solomon em zigue-zague com máscara
     seja bits: vetor < inteiro > = codificar_mensagem_bits(texto);
-    seja mutavel idx_bit: inteiro = 0;
+    seja mutavel idx_bit = 0;
     seja mutavel subindo: logico = verdadeiro;
     seja mutavel col: inteiro = lado - 1;
 
@@ -270,16 +270,16 @@ funcao gerar_matriz_qrcode(texto: cadeia, mascara: inteiro) -> vetor < inteiro >
             col -= 1;
         }
 
-        para (seja mutavel passo: inteiro = 0; passo < lado; passo += 1) {
+        para (seja mutavel passo = 0; passo < lado; passo += 1) {
             seja mutavel r: inteiro = passo;
             se (subindo) {
                 r = (lado - 1) - passo;
             }
 
-            para (seja mutavel dx: inteiro = 0; dx < 2; dx += 1) {
+            para (seja mutavel dx = 0; dx < 2; dx += 1) {
                 seja c: inteiro = col - dx;
                 se (matriz[(r * lado) + c] == -1) {
-                    seja mutavel bit: inteiro = 0;
+                    seja mutavel bit = 0;
                     se (idx_bit < tamanho(bits)) {
                         bit = bits[idx_bit];
                         idx_bit += 1;
@@ -326,8 +326,8 @@ exibir_grade: logico
     verdadeiro
     );
 
-    para (seja mutavel r: inteiro = 0; r < lado; r += 1) {
-        para (seja mutavel c: inteiro = 0; c < lado; c += 1) {
+    para (seja mutavel r = 0; r < lado; r += 1) {
+        para (seja mutavel c = 0; c < lado; c += 1) {
             seja celula: inteiro = matriz[(r * lado) + c];
             seja escuro: logico = (celula % 2) == 1;
             seja px: inteiro = origem_x + (c * tamanho_modulo);
@@ -450,7 +450,7 @@ funcao inicio() {
     Graficos.definir_titulo_janela("Gerador de QR Code");
 
     seja mutavel executando: logico = verdadeiro;
-    seja mutavel mascara: inteiro = 0;
+    seja mutavel mascara = 0;
     seja mutavel exibir_grade: logico = falso;
 
     enquanto (executando) {

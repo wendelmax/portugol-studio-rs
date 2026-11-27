@@ -63,7 +63,7 @@ funcao criar_prancha_ordenada() -> vetor < inteiro > {
 }
 
 funcao esta_ordenada(prancha: vetor < inteiro >) -> logico {
-    para (seja mutavel i: inteiro = 0; i < 8; i += 1) {
+    para (seja mutavel i = 0; i < 8; i += 1) {
         se (prancha[i] != i + 1) {
             retorne falso;
         }
@@ -72,7 +72,7 @@ funcao esta_ordenada(prancha: vetor < inteiro >) -> logico {
 }
 
 funcao indice_vazio(prancha: vetor < inteiro >) -> inteiro {
-    para (seja mutavel i: inteiro = 0; i < 9; i += 1) {
+    para (seja mutavel i = 0; i < 9; i += 1) {
         se (prancha[i] == 0) {
             retorne i;
         }
@@ -100,7 +100,7 @@ funcao tentar_mover_celula(prancha: vetor < inteiro >, linha: inteiro, coluna: i
 
 funcao embaralhar_soluvel() -> vetor < inteiro > {
     seja mutavel p: vetor < inteiro > = criar_prancha_ordenada();
-    para (seja mutavel passo: inteiro = 0; passo < 100; passo += 1) {
+    para (seja mutavel passo = 0; passo < 100; passo += 1) {
         seja pos_vazio: inteiro = indice_vazio(p);
         seja lv: inteiro = pos_vazio / 3;
         seja cv: inteiro = pos_vazio % 3;
@@ -264,8 +264,8 @@ funcao desenhar(jogo: JogoSlidePainel) {
     Graficos.desenhar_retangulo(18, 24, 552, 552, verdadeiro, verdadeiro);
 
     seja p: vetor < inteiro > = jogo.prancha;
-    para (seja mutavel lin: inteiro = 0; lin < 3; lin += 1) {
-        para (seja mutavel col: inteiro = 0; col < 3; col += 1) {
+    para (seja mutavel lin = 0; lin < 3; lin += 1) {
+        para (seja mutavel col = 0; col < 3; col += 1) {
             seja valor: inteiro = p[lin * 3 + col];
             seja x: inteiro = 24 + col * 180;
             seja y: inteiro = 30 + lin * 180;
@@ -297,8 +297,8 @@ funcao desenhar(jogo: JogoSlidePainel) {
     Graficos.definir_tamanho_texto(12.0);
     Graficos.desenhar_texto(654, 78, "GABARITO");
 
-    para (seja mutavel ml: inteiro = 0; ml < 3; ml += 1) {
-        para (seja mutavel mc: inteiro = 0; mc < 3; mc += 1) {
+    para (seja mutavel ml = 0; ml < 3; ml += 1) {
+        para (seja mutavel mc = 0; mc < 3; mc += 1) {
             seja mv: inteiro = ml * 3 + mc + 1;
             seja mx: inteiro = 626 + mc * 46;
             seja my: inteiro = 100 + ml * 46;

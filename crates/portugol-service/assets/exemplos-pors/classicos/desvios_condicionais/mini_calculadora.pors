@@ -21,21 +21,18 @@
  */
 
 funcao inicio() {
-    seja mutavel operador: caracter = ' ';
     seja mutavel resultado: real = 0.0;
-    seja mutavel operando1: real = 0.0;
-    seja mutavel operando2: real = 0.0;
 
     escreva("Digite o primeiro número: ");
-    leia(operando1);
+    seja mutavel operando1: real = leia();
 
     escreva("Digite o segundo número: ");
-    leia(operando2);
+    seja mutavel operando2: real = leia();
 
-    escreva("\n");
+    escreval();
 
     escreva("Agora digite uma das operações ( + - * / ): ");
-    leia(operador);
+    seja mutavel operador: caracter = leia();
 
     // Verifica qual foi a operação selecionada
     se (operador == '+') {
@@ -44,17 +41,17 @@ funcao inicio() {
         resultado = operando1 - operando2;
     } senao se (operador == '/') {
         se (operando2 == 0.0) {
-            escreva("\nErro: não é possível dividir por zero!\n");
+            escreval("\nErro: não é possível dividir por zero!");
             retorne;
         }
         resultado = operando1 / operando2;
     } senao se (operador == '*') {
         resultado = operando1 * operando2;
     } senao {
-        escreva("\nOperação inválida!\n");
+        escreval("\nOperação inválida!");
         retorne;
     }
 
-    escreva("\nResultado:\n\n");
-    escreva(operando1, " ", operador, " ", operando2, " = ", resultado, "\n");
+    escreval("\nResultado:\n");
+    escreval(operando1, " ", operador, " ", operando2, " = ", resultado);
 }

@@ -133,7 +133,7 @@ funcao inicio() {
         y: sortear_real()
     }
     ;
-    seja mutavel ultima_porcentagem: inteiro = 0;
+    seja mutavel ultima_porcentagem = 0;
 
     para (seja mutavel ponto: inteiro = 1; ponto <= numero_pontos; ponto += 1) {
         estado = iterar_ponto(estado, numero_iteracoes);

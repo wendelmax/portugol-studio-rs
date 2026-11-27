@@ -29,9 +29,9 @@ funcao inicio() {
     seja alturas: vetor < real > = [1.71, 1.78, 1.75, 1.87, 1.71];
 
     // Cria o cabeçalho da tabela
-    escreva("--------------------\n");
-    escreva("       TABELA       \n");
-    escreva("--------------------\n");
+    escreval("--------------------");
+    escreval("       TABELA       ");
+    escreval("--------------------");
 
     /*
      * Percorre os vetores exibindo as informações. Note que as informações
@@ -40,8 +40,8 @@ funcao inicio() {
      * mais um vetor do tipo inteiro e a idade de Andre seria armazenada na
      * posição 0, a de Thiago na posição 1, a de Bruno na posição 2, e assim por diante.
      */
-    para (seja mutavel posicao: inteiro = 0; posicao < tamanho(nomes); posicao += 1) {
+    para (seja mutavel posicao = 0; posicao < tamanho(nomes); posicao += 1) {
         // O caracter especial \t serve para escrever uma tabulação
-        escreva(nomes[posicao], "\t\t", alturas[posicao], "\n");
+        escreval(nomes[posicao], "\t\t", alturas[posicao]);
     }
 }

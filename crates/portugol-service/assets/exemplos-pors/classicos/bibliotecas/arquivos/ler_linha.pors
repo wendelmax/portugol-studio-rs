@@ -40,10 +40,10 @@ funcao exibir_linha(linhas: vetor < cadeia >, indice: inteiro) {
     // Usa "obter" para acessar o índice com segurança por meio de Opcao<cadeia>
     escolha obter(linhas, indice) {
         caso Opcao::Algum(texto) => {
-            escreva("Linha ", indice + 1, ": ", texto, "\n");
+            escreval("Linha ", indice + 1, ": ", texto);
         }
         caso Opcao::Nenhum => {
-            escreva("Linha ", indice + 1, ": (inexistente)\n");
+            escreval("Linha ", indice + 1, ": (inexistente)");
         }
     }
 }
@@ -58,7 +58,7 @@ funcao inicio() {
             exibir_linha(linhas, 2);
         }
         caso Resultado::Erro(erro) => {
-            escreva("Erro ao ler arquivo: ", erro, "\n");
+            escreval("Erro ao ler arquivo: ", erro);
         }
     }
 }

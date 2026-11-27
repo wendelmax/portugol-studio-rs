@@ -20,17 +20,14 @@
  */
 
 funcao inicio() {
-    seja mutavel a: inteiro = 0;
-    seja mutavel b: inteiro = 0;
-
     escreva("Informe um valor para a variável A: ");
-    leia(a);
+    seja mutavel a: inteiro = leia();
 
     escreva("Informe um valor para a variável B: ");
-    leia(b);
+    seja mutavel b: inteiro = leia();
 
-    escreva("\nVariáveis antes da troca:\n");
-    escreva("A = ", a, "; B = ", b, "\n");
+    escreval("\nVariáveis antes da troca:");
+    escreval("A = ", a, "; B = ", b);
 
     /*
      * Realiza a troca dos valores contidos nas variáveis. É necessário utilizar
@@ -41,6 +38,6 @@ funcao inicio() {
     a = b;
     b = aux;
 
-    escreva("\nVariáveis após a troca:\n");
-    escreva("A = ", a, "; B = ", b, "\n");
+    escreval("\nVariáveis após a troca:");
+    escreval("A = ", a, "; B = ", b);
 }

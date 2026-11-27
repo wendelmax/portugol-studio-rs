@@ -59,8 +59,8 @@ funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
 funcao criar_blocos() -> vetor < inteiro > {
     // 5 linhas x 10 colunas; valor indica resistência/cor (1..5)
     seja mutavel grade: vetor < inteiro > = [];
-    para (seja mutavel linha: inteiro = 0; linha < 5; linha += 1) {
-        para (seja mutavel col: inteiro = 0; col < 10; col += 1) {
+    para (seja mutavel linha = 0; linha < 5; linha += 1) {
+        para (seja mutavel col = 0; col < 10; col += 1) {
             adicionar(grade, 5 - linha);
         }
     }
@@ -209,8 +209,8 @@ funcao atualizar(jogo: JogoArkanoid) -> JogoArkanoid {
     seja bloco_a: inteiro = 24;
     seja espaco: inteiro = 4;
 
-    para (seja mutavel linha: inteiro = 0; linha < 5; linha += 1) {
-        para (seja mutavel col: inteiro = 0; col < 10; col += 1) {
+    para (seja mutavel linha = 0; linha < 5; linha += 1) {
+        para (seja mutavel col = 0; col < 10; col += 1) {
             seja idx: inteiro = linha * 10 + col;
             se (!atingiu_bloco && blocos[idx] > 0) {
                 seja bx: real = Tipos.inteiro_para_real(margem_x + col * (bloco_l + espaco));
@@ -277,8 +277,8 @@ funcao desenhar(jogo: JogoArkanoid) {
     seja bloco_a: inteiro = 24;
     seja espaco: inteiro = 4;
 
-    para (seja mutavel linha: inteiro = 0; linha < 5; linha += 1) {
-        para (seja mutavel col: inteiro = 0; col < 10; col += 1) {
+    para (seja mutavel linha = 0; linha < 5; linha += 1) {
+        para (seja mutavel col = 0; col < 10; col += 1) {
             seja nivel: inteiro = blocos[linha * 10 + col];
             se (nivel > 0) {
                 seja bx: inteiro = margem_x + col * (bloco_l + espaco);

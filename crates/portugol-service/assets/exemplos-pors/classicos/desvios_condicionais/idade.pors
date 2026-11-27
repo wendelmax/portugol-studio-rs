@@ -19,10 +19,8 @@
  */
 
 funcao inicio() {
-    seja mutavel idade: inteiro = 0;
-
     escreva("Informe sua idade: ");
-    leia(idade);
+    seja mutavel idade: inteiro = leia();
 
     se (idade < 18) {
         escreva("Você é menor de idade");
@@ -30,5 +28,5 @@ funcao inicio() {
         escreva("Você é maior de idade");
     }
 
-    escreva("\n");
+    escreval();
 }

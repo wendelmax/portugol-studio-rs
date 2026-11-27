@@ -19,15 +19,13 @@
  */
 
 funcao inicio() {
-    seja mutavel numero: inteiro = 0;
-
     escreva("Informe um número para ver sua tabuada: ");
-    leia(numero);
+    seja mutavel numero: inteiro = leia();
 
-    escreva("\n");
+    escreval();
 
     para (seja mutavel contador: inteiro = 1; contador <= 10; contador += 1) {
         seja resultado: inteiro = numero * contador;
-        escreva(numero, " X ", contador, " = ", resultado, "\n");
+        escreval(numero, " X ", contador, " = ", resultado);
     }
 }

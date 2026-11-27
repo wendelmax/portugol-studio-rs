@@ -1,5 +1,5 @@
 funcao inicio() {
-    seja mutavel soma: inteiro = 0;
+    seja mutavel soma = 0;
     para (seja mutavel i: inteiro = 1; i <= 10; i += 1) {
         se (i == 5) {
             continue;

@@ -42,7 +42,7 @@ funcao executar_substituicao(caminho: cadeia) -> Resultado < logico, cadeia > {
 
     // Lê e exibe o texto original
     seja original: cadeia = Arquivos.ler_texto(caminho)?;
-    escreva("\nTexto original:\n");
+    escreval("\nTexto original:");
     escreva(original);
 
     // Substitui todas as ocorrências de "portugol" por "Portugol Studio"
@@ -56,7 +56,7 @@ funcao executar_substituicao(caminho: cadeia) -> Resultado < logico, cadeia > {
 
     // Lê novamente e exibe o resultado final
     seja final_lido: cadeia = Arquivos.ler_texto(caminho)?;
-    escreva("\nTexto modificado:\n");
+    escreval("\nTexto modificado:");
     escreva(final_lido);
 
     retorne Resultado::Ok(verdadeiro);
@@ -66,7 +66,7 @@ funcao inicio() {
     escolha executar_substituicao("dummyText.txt") {
         caso Resultado::Ok(_) => {}
         caso Resultado::Erro(erro) => {
-            escreva("Erro ao processar arquivo: ", erro, "\n");
+            escreval("Erro ao processar arquivo: ", erro);
         }
     }
 }

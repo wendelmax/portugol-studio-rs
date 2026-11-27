@@ -37,13 +37,13 @@ funcao inicio() {
     // Representa a matriz TAMANHO x TAMANHO como um vetor linear
     seja mutavel matriz: vetor < inteiro > = [];
 
-    para (seja mutavel linha: inteiro = 0; linha < TAMANHO; linha += 1) {
-        para (seja mutavel coluna: inteiro = 0; coluna < TAMANHO; coluna += 1) {
+    para (seja mutavel linha = 0; linha < TAMANHO; linha += 1) {
+        para (seja mutavel coluna = 0; coluna < TAMANHO; coluna += 1) {
             // Atribui um valor aleatório à posição da matriz
             adicionar(matriz, sortear(1, 9));
             // Exibe o valor contido na posição (linha, coluna)
             escreva("[", matriz[linha * TAMANHO + coluna], "]");
         }
-        escreva("\n");
+        escreval();
     }
 }

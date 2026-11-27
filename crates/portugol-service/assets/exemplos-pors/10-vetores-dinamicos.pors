@@ -1,7 +1,7 @@
 funcao inicio() {
     seja mutavel tarefas: vetor<cadeia> = [];
     seja itens: vetor<cadeia> = Texto.dividir("ler,codificar,testar", ",");
-    para (seja mutavel i: inteiro = 0; i < tamanho(itens); i += 1) {
+    para (seja mutavel i = 0; i < tamanho(itens); i += 1) {
         adicionar(tarefas, Texto.caixa_alta(itens[i]));
     }
     escolha remover(tarefas) {

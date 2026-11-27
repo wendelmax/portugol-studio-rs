@@ -146,7 +146,7 @@ funcao desenhar_painel_pintura() {
 
 funcao desenhar_borda_painel_pintura() {
     Graficos.definir_cor(Graficos.COR_PRETO);
-    para (seja mutavel i: inteiro = 0; i < 4; i += 1) {
+    para (seja mutavel i = 0; i < 4; i += 1) {
         Graficos.desenhar_retangulo(
         10 + i,
         10 + i,
@@ -180,8 +180,8 @@ funcao desenhar_paleta_cores(paleta: vetor < inteiro >) {
     Graficos.definir_cor(Graficos.COR_PRETO);
     Graficos.desenhar_retangulo(x_paleta, y_paleta, largura_paleta, altura_paleta, falso, verdadeiro);
 
-    para (seja mutavel linha: inteiro = 0; linha < linhas; linha += 1) {
-        para (seja mutavel coluna: inteiro = 0; coluna < colunas; coluna += 1) {
+    para (seja mutavel linha = 0; linha < linhas; linha += 1) {
+        para (seja mutavel coluna = 0; coluna < colunas; coluna += 1) {
             seja x_cor: inteiro = x_paleta + borda + (coluna * (largura_cor + borda));
             seja y_cor: inteiro = y_paleta + borda + (linha * (altura_cor + borda));
             seja cor: inteiro = paleta[(linha * colunas) + coluna];
@@ -331,7 +331,7 @@ funcao desenhar_painel_ferramentas(estado: EstadoPaint) {
     seja altura: inteiro = 41;
     seja selecionada: inteiro = indice_ferramenta(estado.ferramenta);
 
-    para (seja mutavel i: inteiro = 0; i < 3; i += 1) {
+    para (seja mutavel i = 0; i < 3; i += 1) {
         Graficos.definir_cor(Graficos.COR_PRETO);
         Graficos.desenhar_retangulo(x, y, largura, altura, falso, verdadeiro);
 
@@ -417,7 +417,7 @@ funcao atualizar(mutavel estado: EstadoPaint, paleta: vetor < inteiro >) -> Esta
 
     // Seleção de ferramentas
     seja mutavel x_ferr: inteiro = 400;
-    para (seja mutavel i: inteiro = 0; i < 3; i += 1) {
+    para (seja mutavel i = 0; i < 3; i += 1) {
         se (mouse_sobre_area(x_ferr, 430, 40, 41) && botao_esquerdo_exclusivo()) {
             estado.ferramenta = ferramenta_por_indice(i);
         }

@@ -103,7 +103,7 @@ funcao liberar_som_opcional(som: Opcao < inteiro >) {
 
 funcao criar_batida_padrao() -> vetor < logico > {
     seja mutavel notas: vetor < logico > = [];
-    para (seja mutavel i: inteiro = 0; i < 48; i += 1) {
+    para (seja mutavel i = 0; i < 48; i += 1) {
         adicionar(notas, falso);
     }
 
@@ -118,7 +118,7 @@ funcao criar_batida_padrao() -> vetor < logico > {
     notas[16 + 12] = verdadeiro;
 
     // Linha 2: Chimbal (a cada dois tempos)
-    para (seja mutavel c: inteiro = 0; c < 16; c += 2) {
+    para (seja mutavel c = 0; c < 16; c += 2) {
         notas[32 + c] = verdadeiro;
     }
 
@@ -127,7 +127,7 @@ funcao criar_batida_padrao() -> vetor < logico > {
 
 funcao criar_batida_vazia() -> vetor < logico > {
     seja mutavel notas: vetor < logico > = [];
-    para (seja mutavel i: inteiro = 0; i < 48; i += 1) {
+    para (seja mutavel i = 0; i < 48; i += 1) {
         adicionar(notas, falso);
     }
     retorne notas;
@@ -277,8 +277,8 @@ funcao processar_entrada(estado: EstadoBateria) -> EstadoBateria {
         seja passo_y: inteiro = 46;
 
         seja mutavel notas: vetor < logico > = novo.notas;
-        para (seja mutavel linha: inteiro = 0; linha < 3; linha += 1) {
-            para (seja mutavel coluna: inteiro = 0; coluna < 16; coluna += 1) {
+        para (seja mutavel linha = 0; linha < 3; linha += 1) {
+            para (seja mutavel coluna = 0; coluna < 16; coluna += 1) {
                 seja bx: inteiro = margem_esq + coluna * passo_x;
                 seja by: inteiro = margem_sup + linha * passo_y;
                 se (ponto_no_retangulo(mx, my, bx, by, 30, 30)) {
@@ -290,7 +290,7 @@ funcao processar_entrada(estado: EstadoBateria) -> EstadoBateria {
         novo.notas = notas;
 
         // Botões de volume individual (-) e (+)
-        para (seja mutavel peca: inteiro = 0; peca < 3; peca += 1) {
+        para (seja mutavel peca = 0; peca < 3; peca += 1) {
             seja by: inteiro = margem_sup + peca * passo_y + 3;
             se (ponto_no_retangulo(mx, my, 730, by, 24, 24)) {
                 se (peca == 0) {
@@ -383,7 +383,7 @@ funcao desenhar_botao(x: inteiro, y: inteiro, largura: inteiro, altura: inteiro,
 
 funcao desenhar_barras_volume(x: inteiro, y: inteiro, volume: inteiro) {
     seja barras_cheias: inteiro = volume / 20;
-    para (seja mutavel i: inteiro = 0; i < 5; i += 1) {
+    para (seja mutavel i = 0; i < 5; i += 1) {
         seja bx: inteiro = x + i * 11;
         se (i < barras_cheias) {
             Graficos.definir_cor(cor_rgb(255, 194, 0));
@@ -421,7 +421,7 @@ funcao desenhar(estado: EstadoBateria) {
     // Lâmpadas dos 16 tempos musicais
     seja margem_esq: inteiro = 140;
     seja passo_x: inteiro = 36;
-    para (seja mutavel c: inteiro = 0; c < 16; c += 1) {
+    para (seja mutavel c = 0; c < 16; c += 1) {
         seja lx: inteiro = margem_esq + c * passo_x + 9;
         se (c == estado.tempo_atual && estado.executando) {
             Graficos.definir_cor(cor_destaque);
@@ -441,7 +441,7 @@ funcao desenhar(estado: EstadoBateria) {
     seja margem_sup: inteiro = 126;
     seja passo_y: inteiro = 46;
 
-    para (seja mutavel linha: inteiro = 0; linha < 3; linha += 1) {
+    para (seja mutavel linha = 0; linha < 3; linha += 1) {
         seja ry: inteiro = margem_sup + linha * passo_y;
 
         // Indicador luminoso da peça
@@ -459,7 +459,7 @@ funcao desenhar(estado: EstadoBateria) {
 
         // 16 botões da faixa
         seja notas: vetor < logico > = estado.notas;
-        para (seja mutavel coluna: inteiro = 0; coluna < 16; coluna += 1) {
+        para (seja mutavel coluna = 0; coluna < 16; coluna += 1) {
             seja bx: inteiro = margem_esq + coluna * passo_x;
             seja ativa: logico = notas[linha * 16 + coluna];
             seja atual: logico = coluna == estado.tempo_atual && estado.executando;
@@ -536,7 +536,7 @@ funcao inicio() {
     Graficos.definir_titulo_janela("Bateria Eletronica - Portugol-RS");
 
     seja mutavel estado: EstadoBateria = criar_estado_inicial();
-    seja mutavel acumulador_ms: inteiro = 0;
+    seja mutavel acumulador_ms = 0;
     seja mutavel ultimo_tempo: inteiro = Util.tempo_decorrido();
 
     enquanto (!Teclado.tecla_pressionada(Teclado.TECLA_ESC)) {

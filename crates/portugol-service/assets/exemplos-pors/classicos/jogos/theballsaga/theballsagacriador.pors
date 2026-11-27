@@ -61,14 +61,14 @@ funcao desenhar_poligono_seguro(xs: vetor < inteiro >, ys: vetor < inteiro >, pr
 
 funcao criar_mapa_base() -> vetor < inteiro > {
     seja mutavel m: vetor < inteiro > = [];
-    para (seja mutavel i: inteiro = 0; i < 15 * 25; i += 1) {
+    para (seja mutavel i = 0; i < 15 * 25; i += 1) {
         adicionar(m, 0);
     }
-    para (seja mutavel c: inteiro = 0; c < 25; c += 1) {
+    para (seja mutavel c = 0; c < 25; c += 1) {
         m[c] = 1;
         m[14 * 25 + c] = 1;
     }
-    para (seja mutavel l: inteiro = 0; l < 15; l += 1) {
+    para (seja mutavel l = 0; l < 15; l += 1) {
         m[l * 25] = 1;
         m[l * 25 + 24] = 1;
     }
@@ -85,14 +85,14 @@ funcao criar_mapa_base() -> vetor < inteiro > {
 
 funcao serializar_mapa(mapa: vetor < inteiro >) -> cadeia {
     seja mutavel texto: cadeia = "";
-    para (seja mutavel l: inteiro = 0; l < 15; l += 1) {
-        para (seja mutavel c: inteiro = 0; c < 25; c += 1) {
+    para (seja mutavel l = 0; l < 15; l += 1) {
+        para (seja mutavel c = 0; c < 25; c += 1) {
             texto = texto + Tipos.inteiro_para_cadeia(mapa[l * 25 + c]);
             se (c < 24) {
                 texto = texto + ",";
             }
         }
-        texto = texto + "\n";
+        texto = "{texto}\n";
     }
     retorne texto;
 }
@@ -113,14 +113,14 @@ funcao carregar_mapa_arquivo(mapa_atual: vetor < inteiro >) -> EditorBallSaga {
     escolha Arquivos.ler_linhas("fase_ballsaga.txt") {
         caso Resultado::Ok(linhas) => {
             seja mutavel novo_mapa: vetor < inteiro > = [];
-            para (seja mutavel i: inteiro = 0; i < 15 * 25; i += 1) {
+            para (seja mutavel i = 0; i < 15 * 25; i += 1) {
                 adicionar(novo_mapa, 0);
             }
             seja total_l: inteiro = Matematica.menor_inteiro(15, tamanho(linhas));
-            para (seja mutavel l: inteiro = 0; l < total_l; l += 1) {
+            para (seja mutavel l = 0; l < total_l; l += 1) {
                 seja partes: vetor < cadeia > = Texto.dividir(Texto.aparar(linhas[l]), ",");
                 seja total_c: inteiro = Matematica.menor_inteiro(25, tamanho(partes));
-                para (seja mutavel c: inteiro = 0; c < total_c; c += 1) {
+                para (seja mutavel c = 0; c < total_c; c += 1) {
                     escolha Tipos.para_inteiro(Texto.aparar(partes[c])) {
                         caso Resultado::Ok(v) => {
                             novo_mapa[l * 25 + c] = v;
@@ -293,7 +293,7 @@ funcao atualizar(editor: EditorBallSaga) -> EditorBallSaga {
 
     // Cliques únicos na paleta lateral e nos botões inferiores
     se (esq && !e.mouse_esq_estava) {
-        para (seja mutavel b: inteiro = 0; b <= 10; b += 1) {
+        para (seja mutavel b = 0; b <= 10; b += 1) {
             seja by: inteiro = 70 + b * 37;
             se (mx >= 734 && mx <= 944 && my >= by && my <= by + 32) {
                 e.bloco_selecionado = b;
@@ -340,8 +340,8 @@ funcao desenhar(e: EditorBallSaga) {
     Graficos.desenhar_retangulo(16, 64, 700, 420, falso, verdadeiro);
 
     seja mapa: vetor < inteiro > = e.mapa;
-    para (seja mutavel l: inteiro = 0; l < 15; l += 1) {
-        para (seja mutavel c: inteiro = 0; c < 25; c += 1) {
+    para (seja mutavel l = 0; l < 15; l += 1) {
+        para (seja mutavel c = 0; c < 25; c += 1) {
             seja x: inteiro = 16 + c * 28;
             seja y: inteiro = 64 + l * 28;
             seja v: inteiro = mapa[l * 25 + c];
@@ -356,7 +356,7 @@ funcao desenhar(e: EditorBallSaga) {
     // Paleta lateral
     Graficos.definir_cor(cor_rgb(28, 34, 48));
     Graficos.desenhar_retangulo(726, 62, 224, 484, verdadeiro, verdadeiro);
-    para (seja mutavel b: inteiro = 0; b <= 10; b += 1) {
+    para (seja mutavel b = 0; b <= 10; b += 1) {
         seja by: inteiro = 70 + b * 37;
         se (b == e.bloco_selecionado) {
             Graficos.definir_cor(cor_rgb(66, 86, 128));

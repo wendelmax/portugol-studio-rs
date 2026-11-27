@@ -1,1 +1,129 @@
-[]
+[
+  {
+    "path": "crates/portugol-service/assets/exemplos-pors/classicos/algoritmos_sequenciais/loja_ferramentas.pors",
+    "markers": [
+      "escreva-com-quebra-explicita"
+    ],
+    "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
+  },
+  {
+    "path": "crates/portugol-service/assets/exemplos-pors/classicos/bibliotecas/arquivos/ler_selecionado.pors",
+    "markers": [
+      "escreva-com-quebra-explicita"
+    ],
+    "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
+  },
+  {
+    "path": "crates/portugol-service/assets/exemplos-pors/classicos/bibliotecas/arquivos/selecionar_arquivo.pors",
+    "markers": [
+      "escreva-com-quebra-explicita"
+    ],
+    "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
+  },
+  {
+    "path": "crates/portugol-service/assets/exemplos-pors/classicos/bibliotecas/graficos/varios.pors",
+    "markers": [
+      "escreva-com-quebra-explicita",
+      "leia("
+    ],
+    "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout | laço faca...enquanto com leitura repetida de resposta; leia(variavel) preserva o tipo cadeia declarado"
+  },
+  {
+    "path": "crates/portugol-service/assets/exemplos-pors/classicos/bibliotecas/matematica/area_circunferencia.pors",
+    "markers": [
+      "escreva-com-quebra-explicita"
+    ],
+    "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
+  },
+  {
+    "path": "crates/portugol-service/assets/exemplos-pors/classicos/bibliotecas/matematica/funcoes_trigonometricas.pors",
+    "markers": [
+      "escreva-com-quebra-explicita"
+    ],
+    "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
+  },
+  {
+    "path": "crates/portugol-service/assets/exemplos-pors/classicos/bibliotecas/matematica/potencia.pors",
+    "markers": [
+      "escreva-com-quebra-explicita"
+    ],
+    "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
+  },
+  {
+    "path": "crates/portugol-service/assets/exemplos-pors/classicos/bibliotecas/texto/preencher.pors",
+    "markers": [
+      "escreva-com-quebra-explicita"
+    ],
+    "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
+  },
+  {
+    "path": "crates/portugol-service/assets/exemplos-pors/classicos/bibliotecas/tipos/inteiro.pors",
+    "markers": [
+      "escreva-com-quebra-explicita"
+    ],
+    "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
+  },
+  {
+    "path": "crates/portugol-service/assets/exemplos-pors/classicos/bibliotecas/util/sorteio.pors",
+    "markers": [
+      "escreva-com-quebra-explicita"
+    ],
+    "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
+  },
+  {
+    "path": "crates/portugol-service/assets/exemplos-pors/classicos/desvios_condicionais/media_final.pors",
+    "markers": [
+      "escreva-com-quebra-explicita"
+    ],
+    "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
+  },
+  {
+    "path": "crates/portugol-service/assets/exemplos-pors/classicos/desvios_condicionais/numeros_iguais.pors",
+    "markers": [
+      "escreva-com-quebra-explicita"
+    ],
+    "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
+  },
+  {
+    "path": "crates/portugol-service/assets/exemplos-pors/classicos/lacos_repeticao/consistencia.pors",
+    "markers": [
+      "leia("
+    ],
+    "reason": "laço faca...enquanto com leitura repetida de idade; leia(variavel) preserva o tipo inteiro declarado"
+  },
+  {
+    "path": "crates/portugol-service/assets/exemplos-pors/classicos/lacos_repeticao/eleicao.pors",
+    "markers": [
+      "leia("
+    ],
+    "reason": "laço faca...enquanto com leitura repetida de codigo_voto; leia(variavel) preserva o tipo inteiro declarado"
+  },
+  {
+    "path": "crates/portugol-service/assets/exemplos-pors/classicos/lacos_repeticao/media_dez_numeros.pors",
+    "markers": [
+      "leia("
+    ],
+    "reason": "laço enquanto com leitura repetida de numero; leia(variavel) preserva o tipo real declarado"
+  },
+  {
+    "path": "crates/portugol-service/assets/exemplos-pors/classicos/operacoes_aritmeticas/divisoes_inteiras.pors",
+    "markers": [
+      "escreva-com-quebra-explicita"
+    ],
+    "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
+  },
+  {
+    "path": "crates/portugol-service/assets/exemplos-pors/classicos/operacoes_aritmeticas/operacoes_simples.pors",
+    "markers": [
+      "escreva-com-quebra-explicita"
+    ],
+    "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
+  },
+  {
+    "path": "crates/portugol-service/assets/exemplos-pors/classicos/operacoes_aritmeticas/prioridades.pors",
+    "markers": [
+      "escreva-com-quebra-explicita"
+    ],
+    "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
+  }
+]

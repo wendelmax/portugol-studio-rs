@@ -19,7 +19,7 @@
  */
 
 funcao inicio() {
-    seja mutavel idade: inteiro = 0;
+    seja mutavel idade = 0;
 
     faca {
         escreva("Informe sua idade (valores aceitos de 5 a 150): ");
@@ -28,5 +28,5 @@ funcao inicio() {
 
     // A partir deste ponto do código é garantido que a idade
     // terá um valor válido e não causará erros inesperados.
-    escreva("\nCorreto!\n");
+    escreval("\nCorreto!");
 }

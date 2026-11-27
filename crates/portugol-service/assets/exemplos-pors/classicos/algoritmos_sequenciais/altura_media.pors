@@ -19,20 +19,16 @@
  */
 
 funcao inicio() {
-    seja mutavel altura1: real = 0.0;
-    seja mutavel altura2: real = 0.0;
-    seja mutavel altura3: real = 0.0;
-
     escreva("Digite a altura da primeira pessoa: ");
-    leia(altura1);
+    seja mutavel altura1: real = leia();
 
     escreva("Digite a altura da segunda pessoa: ");
-    leia(altura2);
+    seja mutavel altura2: real = leia();
 
     escreva("Digite a altura da terceira pessoa: ");
-    leia(altura3);
+    seja mutavel altura3: real = leia();
 
     seja media_altura: real = (altura1 + altura2 + altura3) / 3.0;
 
-    escreva("\nA média das alturas é: ", Matematica.arredondar(media_altura, 2), " metros\n");
+    escreval("\nA média das alturas é: ", Matematica.arredondar(media_altura, 2), " metros");
 }

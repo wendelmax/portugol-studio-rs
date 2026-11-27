@@ -36,11 +36,11 @@ funcao inicio() {
 
     escolha gravar_e_acrescentar(caminho) {
         caso Resultado::Ok(conteudo) => {
-            escreva("Arquivo \"", caminho, "\" gravado com sucesso:\n\n");
+            escreval("Arquivo \"", caminho, "\" gravado com sucesso:\n");
             escreva(conteudo);
         }
         caso Resultado::Erro(erro) => {
-            escreva("Erro ao gravar arquivo: ", erro, "\n");
+            escreval("Erro ao gravar arquivo: ", erro);
         }
     }
 }

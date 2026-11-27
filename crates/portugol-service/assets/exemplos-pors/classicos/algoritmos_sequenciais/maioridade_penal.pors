@@ -21,17 +21,16 @@
 
 funcao inicio() {
     seja MAIORIDADE: inteiro = 18;
-    seja mutavel idade: inteiro = 0;
 
     escreva("Digite sua idade: ");
-    leia(idade);
+    seja mutavel idade: inteiro = leia();
 
     // Calcula quantos anos faltam para atingir a maioridade
     seja anos: inteiro = MAIORIDADE - idade;
 
     se (anos > 0) {
-        escreva("Falta(m) ", anos, " ano(s) para você atingir a maioridade\n");
+        escreval("Falta(m) ", anos, " ano(s) para você atingir a maioridade");
     } senao {
-        escreva("Você já atingiu a maioridade\n");
+        escreval("Você já atingiu a maioridade");
     }
 }

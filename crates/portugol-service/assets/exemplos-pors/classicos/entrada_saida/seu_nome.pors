@@ -20,10 +20,8 @@
  */
 
 funcao inicio() {
-    seja mutavel nome: cadeia = "";
-
     escreva("Digite seu nome: ");
-    leia(nome);
+    seja mutavel nome = leia();
 
-    escreva("O nome digitado foi: ", nome, "\n");
+    escreval("O nome digitado foi: ", nome);
 }

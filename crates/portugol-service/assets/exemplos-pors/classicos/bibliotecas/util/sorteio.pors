@@ -21,18 +21,14 @@
  */
 
 funcao inicio() {
-    seja mutavel valor_inicial: inteiro = 0;
-    seja mutavel valor_final: inteiro = 0;
-    seja mutavel sorteios: inteiro = 0;
-
     escreva("Informe um valor inicial: ");
-    leia(valor_inicial);
+    seja mutavel valor_inicial: inteiro = leia();
 
     escreva("Informe um valor final: ");
-    leia(valor_final);
+    seja mutavel valor_final: inteiro = leia();
 
     escreva("Informe quantos valores deseja sortear: ");
-    leia(sorteios);
+    seja mutavel sorteios: inteiro = leia();
 
     para (seja mutavel i: inteiro = 1; i <= sorteios; i += 1) {
         // Sorteia um número entre os valores informados, incluindo os extremos
@@ -41,11 +37,11 @@ funcao inicio() {
                 escreva("\nSorteio nº ", i, ": ", valor_sorteado);
             }
             caso Resultado::Erro(erro) => {
-                escreva("\nErro ao sortear: ", erro, "\n");
+                escreval("\nErro ao sortear: ", erro);
                 pare;
             }
         }
     }
 
-    escreva("\n");
+    escreval();
 }

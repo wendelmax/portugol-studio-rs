@@ -23,10 +23,10 @@ funcao mostrar_busca(busca: cadeia, texto: cadeia, inicio_busca: inteiro) {
     // Opcao::Algum(indice) quando encontra ou Opcao::Nenhum quando não existe
     escolha Texto.posicao_texto(busca, texto, inicio_busca) {
         caso Opcao::Algum(posicao) => {
-            escreva("A posição do texto \"", busca, "\" na palavra \"", texto, "\" é: ", posicao, "\n");
+            escreval("A posição do texto \"", busca, "\" na palavra \"", texto, "\" é: ", posicao);
         }
         caso Opcao::Nenhum => {
-            escreva("O texto \"", busca, "\" não foi encontrado na palavra \"", texto, "\"\n");
+            escreval("O texto \"", busca, "\" não foi encontrado na palavra \"", texto, "\"");
         }
     }
 }
@@ -50,11 +50,11 @@ funcao inicio() {
     mostrar_busca("CA", "macaca", 0);
 
     seja frase: cadeia = "MACACO GOSTA DE BANANA";
-    escreva("\nA frase \"", frase, "\" possui a letra 'A' nas seguintes posições:\n");
+    escreval("\nA frase \"", frase, "\" possui a letra 'A' nas seguintes posições:");
 
     // Descobre a posição de todas as letras 'A' dentro da frase,
     // avançando o ponto inicial para (posicao + 1) a cada ocorrência encontrada
-    seja mutavel proximo_inicio: inteiro = 0;
+    seja mutavel proximo_inicio = 0;
     seja mutavel encontrou: logico = verdadeiro;
 
     enquanto (encontrou) {
@@ -69,5 +69,5 @@ funcao inicio() {
         }
     }
 
-    escreva("\n");
+    escreval();
 }

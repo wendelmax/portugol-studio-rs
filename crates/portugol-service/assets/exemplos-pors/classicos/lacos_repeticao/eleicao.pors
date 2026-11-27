@@ -42,24 +42,24 @@ funcao classificar_voto(codigo: inteiro) -> Voto {
 }
 
 funcao inicio() {
-    seja mutavel candidato_a: inteiro = 0;
-    seja mutavel candidato_b: inteiro = 0;
-    seja mutavel brancos: inteiro = 0;
-    seja mutavel nulos: inteiro = 0;
-    seja mutavel codigo_voto: inteiro = 0;
+    seja mutavel candidato_a = 0;
+    seja mutavel candidato_b = 0;
+    seja mutavel brancos = 0;
+    seja mutavel nulos = 0;
+    seja mutavel codigo_voto = 0;
 
     faca {
-        escreva("\nEscolha seu candidato ou tecle zero para encerrar\n\n");
-        escreva("  1 -> Candidato A\n");
-        escreva("  2 -> Candidato B\n");
-        escreva("  3 -> Branco\n");
-        escreva("\nQualquer número diferente de 0, 1, 2 e 3 anulará o seu voto\n");
+        escreval("\nEscolha seu candidato ou tecle zero para encerrar\n");
+        escreval("  1 -> Candidato A");
+        escreval("  2 -> Candidato B");
+        escreval("  3 -> Branco");
+        escreval("\nQualquer número diferente de 0, 1, 2 e 3 anulará o seu voto");
         escreva("Digite seu voto: ");
         leia(codigo_voto);
 
         escolha classificar_voto(codigo_voto) {
             caso Voto::Encerrar => {
-                escreva("Votação encerrada!\n");
+                escreval("Votação encerrada!");
             }
             caso Voto::CandidatoA => {
                 // Soma um voto para o candidato A
@@ -91,11 +91,11 @@ funcao inicio() {
         seja porcentagem_brancos: real = (Tipos.inteiro_para_real(brancos) * 100.0) / total_real;
         seja porcentagem_nulos: real = (Tipos.inteiro_para_real(nulos) * 100.0) / total_real;
 
-        escreva("\n");
-        escreva("Total de votos: ", total_votos, "\n\n");
-        escreva("Candidato A: ", candidato_a, " voto(s). ", porcentagem_candidato_a, " % do total\n");
-        escreva("Candidato B: ", candidato_b, " voto(s). ", porcentagem_candidato_b, " % do total\n");
-        escreva("Brancos: ", brancos, " voto(s). ", porcentagem_brancos, " % do total\n");
-        escreva("Nulos: ", nulos, " voto(s). ", porcentagem_nulos, " % do total\n");
+        escreval();
+        escreval("Total de votos: ", total_votos, "\n");
+        escreval("Candidato A: ", candidato_a, " voto(s). ", porcentagem_candidato_a, " % do total");
+        escreval("Candidato B: ", candidato_b, " voto(s). ", porcentagem_candidato_b, " % do total");
+        escreval("Brancos: ", brancos, " voto(s). ", porcentagem_brancos, " % do total");
+        escreval("Nulos: ", nulos, " voto(s). ", porcentagem_nulos, " % do total");
     }
 }

@@ -52,11 +52,11 @@ funcao inicio() {
     // Atualiza a variável recebendo o valor retornado pela função preencher()
     seja valor: inteiro = preencher();
 
-    escreva("Variável antes:\n");
+    escreval("Variável antes:");
     exibe(valor);
 
-    escreva("\n\nVariável após:\n");
+    escreval("\n\nVariável após:");
     exibe(valor);
 
-    escreva("\n");
+    escreval();
 }

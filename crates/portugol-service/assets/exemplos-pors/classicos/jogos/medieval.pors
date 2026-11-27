@@ -123,7 +123,7 @@ funcao atualizar(estado: CavaleiroEstado) -> CavaleiroEstado {
 
     seja esq: logico = Teclado.tecla_pressionada(Teclado.TECLA_SETA_ESQUERDA);
     seja dir: logico = Teclado.tecla_pressionada(Teclado.TECLA_SETA_DIREITA);
-    seja mutavel delta: inteiro = 0;
+    seja mutavel delta = 0;
     se (esq && !e.esq_estava) {
         delta = -1;
     } senao se (dir && !e.dir_estava) {
@@ -185,7 +185,7 @@ funcao desenhar_cenario(cenario: inteiro) {
         Graficos.definir_cor(cor_rgb(38, 72, 68));
         Graficos.desenhar_retangulo(20, 74, 440, 460, verdadeiro, verdadeiro);
         // Árvores
-        para (seja mutavel i: inteiro = 0; i < 4; i += 1) {
+        para (seja mutavel i = 0; i < 4; i += 1) {
             seja ax: inteiro = 65 + i * 110;
             Graficos.definir_cor(cor_rgb(92, 62, 40));
             Graficos.desenhar_retangulo(ax + 18, 340, 18, 100, falso, verdadeiro);
@@ -372,7 +372,7 @@ funcao desenhar(e: CavaleiroEstado) {
     nome_cenario(e.cenario)
     ];
 
-    para (seja mutavel i: inteiro = 0; i < 5; i += 1) {
+    para (seja mutavel i = 0; i < 5; i += 1) {
         seja py: inteiro = 92 + i * 62;
         se (i == e.categoria) {
             Graficos.definir_cor(cor_rgb(70, 62, 42));

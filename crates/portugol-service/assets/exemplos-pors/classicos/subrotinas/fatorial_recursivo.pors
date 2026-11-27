@@ -41,10 +41,8 @@ funcao fatorial(numero: inteiro) -> inteiro {
 }
 
 funcao inicio() {
-    seja mutavel numero: inteiro = 0;
-
     escreva("Digite um número: ");
-    leia(numero);
+    seja mutavel numero: inteiro = leia();
 
-    escreva("\nO fatorial de ", numero, " é: ", fatorial(numero), "\n");
+    escreval("\nO fatorial de ", numero, " é: ", fatorial(numero));
 }

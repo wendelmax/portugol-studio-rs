@@ -29,10 +29,10 @@ funcao inicio() {
     seja mutavel numero: real = 32.0;
     seja mutavel expoente: real = Matematica.logaritmo(numero, base);
 
-    escreva("O logaritmo de ", numero, " na base ", base, " é igual a: ", expoente, "\n");
+    escreval("O logaritmo de ", numero, " na base ", base, " é igual a: ", expoente);
 
     base = 25.0;
     numero = 625.0;
     expoente = Matematica.logaritmo(numero, base);
-    escreva("O logaritmo de ", numero, " na base ", base, " é igual a: ", expoente, "\n");
+    escreval("O logaritmo de ", numero, " na base ", base, " é igual a: ", expoente);
 }

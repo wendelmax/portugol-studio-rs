@@ -1,6 +1,6 @@
 funcao somar_vetor(itens: vetor<inteiro>) -> inteiro {
-    seja mutavel total: inteiro = 0;
-    para (seja mutavel i: inteiro = 0; i < tamanho(itens); i += 1) {
+    seja mutavel total = 0;
+    para (seja mutavel i = 0; i < tamanho(itens); i += 1) {
         total += itens[i];
     }
     retorne total;

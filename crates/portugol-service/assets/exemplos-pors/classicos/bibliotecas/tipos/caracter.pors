@@ -24,22 +24,22 @@ funcao inicio() {
 
     // A função "cadeia_e_caracter" verifica se uma cadeia possui exatamente 1 caracter
     se (Tipos.cadeia_e_caracter(cad1)) {
-        escreva("A cadeia \"", cad1, "\" representa um caracter\n");
+        escreval("A cadeia \"", cad1, "\" representa um caracter");
     } senao {
-        escreva("A cadeia \"", cad1, "\" não representa um único caracter\n");
+        escreval("A cadeia \"", cad1, "\" não representa um único caracter");
     }
 
     se (Tipos.cadeia_e_caracter(cad2)) {
-        escreva("A cadeia \"", cad2, "\" representa um caracter\n");
+        escreval("A cadeia \"", cad2, "\" representa um caracter");
 
         // Converte a cadeia para caracter com segurança usando Resultado<caracter, cadeia>
         escolha Tipos.para_caracter(cad2) {
             caso Resultado::Ok(car) => {
-                escreva("Caracter convertido: '", car, "'\n");
-                escreva("Convertido de volta para cadeia: \"", Tipos.caracter_para_cadeia(car), "\"\n");
+                escreval("Caracter convertido: '", car, "'");
+                escreval("Convertido de volta para cadeia: \"", Tipos.caracter_para_cadeia(car), "\"");
             }
             caso Resultado::Erro(erro) => {
-                escreva("Erro ao converter para caracter: ", erro, "\n");
+                escreval("Erro ao converter para caracter: ", erro);
             }
         }
     }
@@ -48,20 +48,20 @@ funcao inicio() {
     seja digito: caracter = '7';
     escolha Tipos.caracter_para_inteiro(digito) {
         caso Resultado::Ok(valor) => {
-            escreva("\nCaracter '", digito, "' convertido para inteiro: ", valor, "\n");
+            escreval("\nCaracter '", digito, "' convertido para inteiro: ", valor);
         }
         caso Resultado::Erro(erro) => {
-            escreva("Erro ao converter caracter para inteiro: ", erro, "\n");
+            escreval("Erro ao converter caracter para inteiro: ", erro);
         }
     }
 
     // Conversão de inteiro (0..9) para caracter
     escolha Tipos.inteiro_para_caracter(5) {
         caso Resultado::Ok(c) => {
-            escreva("Inteiro 5 convertido para caracter: '", c, "'\n");
+            escreval("Inteiro 5 convertido para caracter: '", c, "'");
         }
         caso Resultado::Erro(erro) => {
-            escreva("Erro ao converter inteiro para caracter: ", erro, "\n");
+            escreval("Erro ao converter inteiro para caracter: ", erro);
         }
     }
 }

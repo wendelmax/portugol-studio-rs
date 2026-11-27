@@ -10,8 +10,12 @@ const SERVICE_ASSETS: &str = "crates/portugol-service/assets/exemplos-pors";
 const FIXTURES: &str = "tests/fixtures";
 const ALLOWLIST: &str = "tests/fixtures/pors-migration-allowlist.json";
 
+// `escreva(...)` sem quebra explícita continua válido: escreval é apenas
+// açúcar para acrescentar "\n" (RFC 003), então converter calls sem "\n"
+// mudaria stdout. Só o argumento de quebra explícito é marcador legado.
+const EXPLICIT_NEWLINE_WRITE: &str = "escreva-com-quebra-explicita";
 const LEGACY_MARKERS: [&str; 5] = [
-    "escreva(",
+    EXPLICIT_NEWLINE_WRITE,
     // `leia()` é a forma preferida; o marcador versa sobre `leia(variavel)`.
     "leia(",
     ": inteiro = 0;",
@@ -92,8 +96,80 @@ fn has_newline_concat(source: &str) -> bool {
     false
 }
 
+fn literal_has_newline(inner: &str) -> bool {
+    let bytes = inner.as_bytes();
+    let mut at = 0;
+    let mut quote = None;
+    while at < bytes.len() {
+        match quote {
+            None => {
+                if matches!(bytes[at], b'"' | b'\'') {
+                    quote = Some(bytes[at]);
+                }
+                at += 1;
+            }
+            Some(delimiter) => {
+                if bytes[at] == b'\\' {
+                    if at + 1 < bytes.len() && bytes[at + 1] == b'n' {
+                        return true;
+                    }
+                    at += 2;
+                } else {
+                    if bytes[at] == delimiter {
+                        quote = None;
+                    }
+                    at += 1;
+                }
+            }
+        }
+    }
+    false
+}
+
+fn has_explicit_newline_write(source: &str) -> bool {
+    let bytes = source.as_bytes();
+    let mut from = 0;
+    while let Some(relative) = source[from..].find("escreva(") {
+        let open = from + relative + "escreva".len();
+        let mut depth = 0usize;
+        let mut quote = None;
+        let mut close = open;
+        while close < bytes.len() {
+            match quote {
+                Some(delimiter) => {
+                    if bytes[close] == b'\\' {
+                        close += 2;
+                        continue;
+                    }
+                    if bytes[close] == delimiter {
+                        quote = None;
+                    }
+                }
+                None => match bytes[close] {
+                    b'"' | b'\'' => quote = Some(bytes[close]),
+                    b'(' => depth += 1,
+                    b')' => {
+                        depth -= 1;
+                        if depth == 0 {
+                            break;
+                        }
+                    }
+                    _ => {}
+                },
+            }
+            close += 1;
+        }
+        if literal_has_newline(&source[open + 1..close]) {
+            return true;
+        }
+        from = close + 1;
+    }
+    false
+}
+
 fn has_marker(source: &str, marker: &str) -> bool {
     match marker {
+        EXPLICIT_NEWLINE_WRITE => has_explicit_newline_write(source),
         "leia(" => has_read_with_argument(source),
         "+ \"\\n\"" => has_newline_concat(source),
         other => source.contains(other),

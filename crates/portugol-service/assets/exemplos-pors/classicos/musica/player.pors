@@ -405,7 +405,7 @@ funcao processar_entrada(estado: EstadoPlayer) -> EstadoPlayer {
         se (novo.mostrar_playlist) {
             seja faixas_lista: vetor < Faixa > = novo.faixas;
             seja total_faixas: inteiro = tamanho(faixas_lista);
-            para (seja mutavel i: inteiro = 0; i < total_faixas; i += 1) {
+            para (seja mutavel i = 0; i < total_faixas; i += 1) {
                 seja iy: inteiro = 112 + i * 58;
                 se (ponto_no_retangulo(mx, my, 536, iy, 244, 50)) {
                     novo.indice_atual = i;
@@ -502,7 +502,7 @@ funcao desenhar(estado: EstadoPlayer) {
     // Visualizador de barras espectrais
     seja num_barras: inteiro = 24;
     seja inicio_eq: inteiro = cx - (num_barras * 14) / 2;
-    para (seja mutavel b: inteiro = 0; b < num_barras; b += 1) {
+    para (seja mutavel b = 0; b < num_barras; b += 1) {
         seja mutavel altura_barra: inteiro = 8;
         se (estado.tocando) {
             seja fase: real = Tipos.inteiro_para_real(estado.quadro) * 0.16 + Tipos.inteiro_para_real(b) * 0.45;
@@ -531,7 +531,7 @@ funcao desenhar(estado: EstadoPlayer) {
         Graficos.desenhar_texto(544, 94, "PLAYLIST");
 
         seja total_faixas: inteiro = tamanho(faixas);
-        para (seja mutavel i: inteiro = 0; i < total_faixas; i += 1) {
+        para (seja mutavel i = 0; i < total_faixas; i += 1) {
             seja item: Faixa = faixas[i];
             seja iy: inteiro = 118 + i * 58;
             se (i == estado.indice_atual) {
@@ -570,7 +570,7 @@ funcao desenhar(estado: EstadoPlayer) {
     // Barra de progresso
     Graficos.definir_cor(cor_rgb(66, 70, 84));
     Graficos.desenhar_retangulo(220, 526, 300, 8, verdadeiro, verdadeiro);
-    seja mutavel progresso: inteiro = 0;
+    seja mutavel progresso = 0;
     se (faixa.duracao_ms > 0) {
         progresso = (estado.posicao_ms * 300) / faixa.duracao_ms;
     }

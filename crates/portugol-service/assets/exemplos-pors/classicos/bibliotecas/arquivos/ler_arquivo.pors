@@ -49,12 +49,12 @@ funcao inicio() {
 
     escolha ler_placar(caminho_do_arquivo) {
         caso Resultado::Ok(linhas) => {
-            para (seja mutavel i: inteiro = 0; i < tamanho(linhas); i += 1) {
-                escreva("Linha ", i + 1, ": ", linhas[i], "\n");
+            para (seja mutavel i = 0; i < tamanho(linhas); i += 1) {
+                escreval("Linha ", i + 1, ": ", linhas[i]);
             }
         }
         caso Resultado::Erro(erro) => {
-            escreva("Erro ao ler arquivo: ", erro, "\n");
+            escreval("Erro ao ler arquivo: ", erro);
         }
     }
 }

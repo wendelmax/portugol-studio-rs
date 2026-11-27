@@ -35,9 +35,9 @@ funcao inicio() {
     Graficos.definir_dimensoes_janela(600, 440);
     Graficos.definir_titulo_janela("Mouse - botao_pressionado");
 
-    seja mutavel cliques_esq: inteiro = 0;
-    seja mutavel cliques_meio: inteiro = 0;
-    seja mutavel cliques_dir: inteiro = 0;
+    seja mutavel cliques_esq = 0;
+    seja mutavel cliques_meio = 0;
+    seja mutavel cliques_dir = 0;
 
     seja mutavel esq_ant: logico = falso;
     seja mutavel meio_ant: logico = falso;

@@ -22,10 +22,10 @@ funcao testar_base(texto: cadeia, base: inteiro, rotulo: cadeia) {
     // Em Portugol-RS, para_inteiro_base valida e converte em um único passo seguro
     escolha Tipos.para_inteiro_base(texto, base) {
         caso Resultado::Ok(num_inteiro) => {
-            escreva("Este valor é o número ", rotulo, ": ", num_inteiro, "\n");
+            escreval("Este valor é o número ", rotulo, ": ", num_inteiro);
         }
         caso Resultado::Erro(erro) => {
-            escreva("Não foi possível converter na base ", base, ": ", erro, "\n");
+            escreval("Não foi possível converter na base ", base, ": ", erro);
         }
     }
 }
@@ -33,10 +33,10 @@ funcao testar_base(texto: cadeia, base: inteiro, rotulo: cadeia) {
 funcao mostrar_em_base(valor: inteiro, base: inteiro, rotulo: cadeia) {
     escolha Tipos.inteiro_para_cadeia_base(valor, base) {
         caso Resultado::Ok(texto) => {
-            escreva("Valor convertido para cadeia em ", rotulo, ": ", texto, "\n");
+            escreval("Valor convertido para cadeia em ", rotulo, ": ", texto);
         }
         caso Resultado::Erro(erro) => {
-            escreva("Erro ao formatar na base ", base, ": ", erro, "\n");
+            escreval("Erro ao formatar na base ", base, ": ", erro);
         }
     }
 }
@@ -62,15 +62,15 @@ funcao inicio() {
 
             // Também podemos converter um inteiro para real usando "inteiro_para_real"
             seja metade_real: real = Tipos.inteiro_para_real(valor_original) / 2.0;
-            escreva("\nNúmero convertido em real (dividido por 2.0): ", metade_real, "\n\n");
+            escreval("\nNúmero convertido em real (dividido por 2.0): ", metade_real, "\n");
 
             // Por último, convertemos o número inteiro em cadeia em diferentes bases
             mostrar_em_base(valor_original, 2, "binário");
-            escreva("Valor convertido para cadeia em decimal: ", Tipos.inteiro_para_cadeia(valor_original), "\n");
+            escreval("Valor convertido para cadeia em decimal: ", Tipos.inteiro_para_cadeia(valor_original));
             mostrar_em_base(valor_original, 16, "hexadecimal");
         }
         caso Resultado::Erro(erro) => {
-            escreva("Erro na conversão: ", erro, "\n");
+            escreval("Erro na conversão: ", erro);
         }
     }
 }
