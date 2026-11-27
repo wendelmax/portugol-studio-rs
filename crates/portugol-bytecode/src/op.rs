@@ -207,6 +207,14 @@ pub struct PorsDebugVariant {
     pub payload: Vec<PorsDebugField>,
 }
 
+/// Nó HIR que originou uma instrução, para o debugger relacionar pausa e fonte.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct InstructionMapping {
+    pub node: &'static str,
+    pub start: u32,
+    pub end: u32,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Function {
     pub name: String,
@@ -217,6 +225,8 @@ pub struct Function {
     pub code: Vec<Op>,
     /// Mapa de fonte: `spans[i]` é o trecho que gerou `code[i]`.
     pub spans: Vec<Span>,
+    /// Rótulo HIR paralelo a `code[i]`; `None` para instruções sintéticas.
+    pub nodes: Vec<Option<InstructionMapping>>,
     pub span: Span,
 }
 

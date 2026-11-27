@@ -319,3 +319,142 @@ test("Prévia UI loads a visual example when the editor holds a console program"
     }
   }
 });
+
+class FakeElement {
+  children = [];
+  dataset = {};
+  className = "";
+  _text = null;
+  value = "";
+  hidden = false;
+  disabled = false;
+  scrollTop = 0;
+  scrollLeft = 0;
+  attributes = new Map();
+  listeners = new Map();
+  constructor(tag) {
+    this.tag = tag;
+  }
+  append(...nodes) {
+    this.children.push(...nodes);
+  }
+  replaceChildren(...nodes) {
+    this.children = [];
+    for (const node of nodes) {
+      if (node && node.isFragment) {
+        this.children.push(...node.children);
+      } else {
+        this.children.push(node);
+      }
+    }
+  }
+  setAttribute(key, value) {
+    this.attributes.set(key, String(value));
+  }
+  addEventListener(type, fn) {
+    this.listeners.set(type, fn);
+  }
+  get textContent() {
+    if (this._text === null) {
+      return this.children.map((child) => child.textContent).join("");
+    }
+    return this._text;
+  }
+  set textContent(text) {
+    this._text = String(text);
+  }
+}
+
+function collectTokenClasses(root) {
+  const classes = [];
+  const visit = (node) => {
+    const className = typeof node.className === "string" ? node.className : "";
+    if (className.startsWith("pg-tok-")) classes.push(className);
+    for (const child of node.children ?? []) visit(child);
+  };
+  visit(root);
+  return classes;
+}
+
+function collectTokenTexts(root, className) {
+  const texts = [];
+  const visit = (node) => {
+    if (node.className === className) texts.push(node.textContent);
+    for (const child of node.children ?? []) visit(child);
+  };
+  visit(root);
+  return texts;
+}
+
+test("web playground highlights interpolated strings and escreval builtins", async () => {
+  const elementsById = new Map();
+  const fakeDocument = {
+    documentElement: new FakeElement("html"),
+    createElement: (tag) => new FakeElement(tag),
+    createDocumentFragment: () => {
+      const fragment = new FakeElement("#document-fragment");
+      fragment.isFragment = true;
+      return fragment;
+    },
+    createTextNode: (text) => {
+      const node = new FakeElement("#text");
+      node.textContent = text;
+      return node;
+    },
+    getElementById: (id) => {
+      if (!elementsById.has(id)) elementsById.set(id, new FakeElement("div"));
+      return elementsById.get(id);
+    },
+  };
+  const previousDocument = globalThis.document;
+  globalThis.document = fakeDocument;
+  try {
+    await import("../../web-playground/app.mjs?highlight-contract");
+
+    const editorEl = fakeDocument.getElementById("pg-editor");
+    const highlightEl = fakeDocument.getElementById("pg-highlight");
+
+    const render = (source) => {
+      editorEl.value = source;
+      const listener = editorEl.listeners.get("input");
+      if (typeof listener === "function") listener();
+    };
+
+    render('escreval("Olá, {nome}!");');
+    const classes = collectTokenClasses(highlightEl);
+    assert.ok(
+      classes.includes("pg-tok-interpolation"),
+      `esperava pg-tok-interpolation no realce: ${classes}`,
+    );
+    assert.ok(
+      classes.includes("pg-tok-builtin"),
+      `esperava pg-tok-builtin no realce: ${classes}`,
+    );
+
+    for (const doc of ['escreval("\\{nome}");', 'escreval("{}");', 'escreval("abri {");']) {
+      render(doc);
+      const docClasses = collectTokenClasses(highlightEl);
+      assert.ok(
+        !docClasses.includes("pg-tok-interpolation"),
+        `${doc} não deve produzir pg-tok-interpolation`,
+      );
+    }
+
+    render('escreval("Olá, {nome}!");');
+    assert.equal(highlightEl.textContent, editorEl.value);
+
+    for (const [doc, expected] of [
+      ['escreval("{a{b}");', "{a{b}"],
+      ['escreval("{\n nome \n}");', "{\n nome \n}"],
+    ]) {
+      render(doc);
+      assert.deepEqual(collectTokenTexts(highlightEl, "pg-tok-interpolation"), [expected], doc);
+      assert.equal(highlightEl.textContent, editorEl.value);
+    }
+
+    const appSource = readFileSync(new URL("../../web-playground/app.mjs", import.meta.url), "utf8");
+    assert.ok(!appSource.includes(".innerHTML"));
+  } finally {
+    globalThis.document = previousDocument;
+  }
+});

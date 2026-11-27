@@ -474,6 +474,55 @@ fn pors_debugger_reuses_typed_input_channel_without_repeating_pause() {
 }
 
 #[test]
+fn pors_debugger_pause_reports_hir_node_and_bytecode_offset() {
+    let (tx, rx) = mpsc::channel();
+    let observer = Arc::new(Recorder(Mutex::new(tx)));
+    let handle = start_portugol_rs(
+        "funcao inicio() { escreva(leia()); }",
+        RunOptions {
+            breakpoints: vec![1],
+            ..RunOptions::default()
+        },
+        observer,
+    )
+    .expect("iniciar debugger com breakpoint no leia");
+
+    let Event::Paused(info) = rx
+        .recv_timeout(Duration::from_secs(5))
+        .expect("pausa no leia")
+    else {
+        panic!("esperava pausa no leia")
+    };
+    let mapping = info.mapping.expect("pausa deve trazer o mapeamento");
+    assert_eq!(mapping.hir_node, "Read");
+    assert!(mapping.bytecode_offset < u32::MAX);
+    assert_eq!(mapping.hir_start.line, mapping.hir_end.line);
+
+    handle.continue_run();
+    assert_eq!(
+        rx.recv_timeout(Duration::from_secs(5))
+            .expect("pedido de entrada"),
+        Event::Input("cadeia")
+    );
+    handle.send_input("Ada".into());
+    let mut output = String::new();
+    loop {
+        match rx
+            .recv_timeout(Duration::from_secs(5))
+            .expect("evento final")
+        {
+            Event::Output(text) => output.push_str(&text),
+            Event::Finished(RunOutcome::Finished) => break,
+            Event::Finished(other) => panic!("resultado inesperado: {other:?}"),
+            Event::Paused(_) => panic!("não deve repetir a pausa ao aguardar leia"),
+            Event::Input(_) => panic!("não deve repetir a solicitação de entrada"),
+        }
+    }
+    assert_eq!(output, "Ada");
+    handle.join();
+}
+
+#[test]
 fn pors_debugger_applies_string_memory_limit_to_chain_input() {
     const STRING_LIMIT: usize = 16 * 1024 * 1024;
     let (tx, rx) = mpsc::channel();

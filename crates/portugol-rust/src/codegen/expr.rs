@@ -1,4 +1,4 @@
-use portugol_hir::{BinaryOp, Expr, ExprKind, Program, Span, Stmt, Type, UnaryOp};
+use portugol_hir::{BinaryOp, Expr, ExprKind, Program, Span, Stmt, StringPart, Type, UnaryOp};
 
 use crate::{SourceMapQuality, SourceMapSegment, SourceRange, format_real, rust_ident};
 
@@ -299,6 +299,73 @@ pub(super) fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedE
         } else {
             format!("String::from({value:?})")
         })],
+        ExprKind::Read => vec![ExpressionPart::Nested(compose_expression(
+            vec![ExpressionPart::Text(if pors {
+                "__pors_string(&__portugol_read_line(\"cadeia\"))".to_owned()
+            } else {
+                "__portugol_read_line(\"cadeia\")".to_owned()
+            })],
+            expr.span,
+        ))],
+        ExprKind::InterpolatedString { parts } => {
+            let mut accumulator = None;
+            for part in parts {
+                let (piece, span) = match part {
+                    StringPart::Literal(text, span) => {
+                        let code = if pors {
+                            format!("__pors_string({text:?})")
+                        } else {
+                            format!("String::from({text:?})")
+                        };
+                        (
+                            compose_expression(vec![ExpressionPart::Text(code)], *span),
+                            *span,
+                        )
+                    }
+                    StringPart::Expression(value, span) => {
+                        let ty = value.ty;
+                        let rendered = render_expr(value, program, pors);
+                        let owned = if pors {
+                            compose_expression(
+                                vec![
+                                    ExpressionPart::Text("__pors_string(".to_owned()),
+                                    ExpressionPart::Nested(pors_string_view(rendered, ty)),
+                                    ExpressionPart::Text(")".to_owned()),
+                                ],
+                                Span::default(),
+                            )
+                        } else {
+                            compose_expression(
+                                vec![
+                                    ExpressionPart::Text("format!(\"{}\", ".to_owned()),
+                                    ExpressionPart::Nested(rendered),
+                                    ExpressionPart::Text(")".to_owned()),
+                                ],
+                                Span::default(),
+                            )
+                        };
+                        (
+                            compose_expression(vec![ExpressionPart::Nested(owned)], *span),
+                            *span,
+                        )
+                    }
+                };
+                accumulator = Some(match accumulator {
+                    None => piece,
+                    Some(left) => concat_string_expressions(left, piece, span, pors),
+                });
+            }
+            vec![ExpressionPart::Nested(accumulator.unwrap_or_else(|| {
+                compose_expression(
+                    vec![ExpressionPart::Text(if pors {
+                        "__pors_string(\"\")".to_owned()
+                    } else {
+                        "String::new()".to_owned()
+                    })],
+                    expr.span,
+                )
+            }))]
+        }
         ExprKind::Character(value) => vec![ExpressionPart::Text(format!("{value:?}"))],
         ExprKind::Parenthesized(inner) => vec![
             ExpressionPart::Text("(".to_owned()),
@@ -403,6 +470,37 @@ fn pors_string_view(value: MappedExpression, ty: Type) -> MappedExpression {
         ],
         Span::default(),
     )
+}
+
+fn concat_string_expressions(
+    left: MappedExpression,
+    right: MappedExpression,
+    span: Span,
+    pors: bool,
+) -> MappedExpression {
+    if pors {
+        compose_expression(
+            vec![
+                ExpressionPart::Text("__pors_concat(".to_owned()),
+                ExpressionPart::Nested(pors_string_view(left, Type::String)),
+                ExpressionPart::Text(", ".to_owned()),
+                ExpressionPart::Nested(pors_string_view(right, Type::String)),
+                ExpressionPart::Text(")".to_owned()),
+            ],
+            span,
+        )
+    } else {
+        compose_expression(
+            vec![
+                ExpressionPart::Text("format!(\"{}{}\", ".to_owned()),
+                ExpressionPart::Nested(left),
+                ExpressionPart::Text(", ".to_owned()),
+                ExpressionPart::Nested(right),
+                ExpressionPart::Text(")".to_owned()),
+            ],
+            span,
+        )
+    }
 }
 
 fn wrap_expression(expression: MappedExpression, prefix: &str, suffix: &str) -> MappedExpression {

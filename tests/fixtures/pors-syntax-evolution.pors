@@ -1,0 +1,8 @@
+funcao saudar(nome: cadeia) -> cadeia {
+    "Olá, {nome}!"
+}
+
+funcao inicio() {
+    seja nome = leia();
+    escreval(saudar(nome));
+}

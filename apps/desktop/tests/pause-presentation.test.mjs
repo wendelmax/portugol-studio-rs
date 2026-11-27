@@ -4,6 +4,14 @@ import { createPausePresentation } from "../src/run/pause-presentation.ts";
 
 const info = { position: { offset: 12, line: 4, column: 2 }, stack: [], variables: [] };
 const frame = { function: "helper", position: { offset: 20, line: 7, column: 3 } };
+const sourceMap = [{
+  generatedStart: { offset: 300, line: 9, column: 1 },
+  generatedEnd: { offset: 310, line: 9, column: 11 },
+  sourceStart: { offset: 20, line: 2, column: 3 },
+  sourceEnd: { offset: 26, line: 2, column: 9 },
+  quality: "exact",
+}];
+
 function fixture() {
   const calls = [];
   let activeId = 1;
@@ -19,7 +27,8 @@ function fixture() {
     runTab: () => tabs.find(({ id }) => id === runTabId),
     setDebugLine: (line) => calls.push(["debugLine", line]),
     setRunning: (value) => calls.push(["running", value]),
-    renderDebugInfo: (value, select) => calls.push(["render", value, select]),
+    renderDebugInfo: (value, select, links) => calls.push(["render", value, select, links]),
+    rustSourceMap: () => sourceMap,
     activate: (id) => { calls.push(["activate", id]); activeId = id; },
     goTo: (offset) => calls.push(["goTo", offset]),
     showUtilities: (visible) => calls.push(["utilities", visible]),
@@ -77,4 +86,11 @@ test("does not set an editor debug line when the paused run is on another tab", 
   f.setActiveId(2);
   f.present.setPaused(info);
   assert.equal(f.calls.filter(([name]) => name === "debugLine").length, 0);
+});
+
+test("passes the loaded Rust source map to the debug panel", () => {
+  const f = fixture();
+  f.present.setPaused(info);
+  const render = f.calls.find(([name]) => name === "render");
+  assert.deepEqual(render[3], sourceMap);
 });

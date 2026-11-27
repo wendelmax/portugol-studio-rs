@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use portugol_bytecode::Module;
@@ -115,6 +116,7 @@ fn reports_unavailable_native_libraries_when_stdlib_feature_is_disabled() {
                 Op::Return,
             ],
             spans: vec![span; 4],
+            nodes: vec![None; 4],
             span,
         }],
         entry: 0,
@@ -971,4 +973,95 @@ funcao inicio() {
     let err = run(&void_module, &mut void_io)
         .expect_err("função multimídia direta sem stdlib deve falhar com mensagem clara");
     assert!(err.message.contains("stdlib"));
+}
+
+#[test]
+fn executes_canonical_syntax_evolution_program_in_minimal_vm() {
+    let source = include_str!("../../../tests/fixtures/pors-syntax-evolution.pors");
+    let module = compile_pors_source(source);
+    let mut io = BufferIo::new("Ada\n");
+    run(&module, &mut io).expect("execução do programa motivador na VM");
+    assert_eq!(io.output, "Olá, Ada!\n");
+}
+
+#[test]
+fn escreval_emits_one_newline_without_duplication() {
+    let source = "funcao inicio() { escreval(\"a\"); escreval(); }";
+    let module = compile_pors_source(source);
+    let mut io = BufferIo::default();
+    run(&module, &mut io).expect("execução de escreval");
+    assert_eq!(io.output, "a\n\n");
+}
+
+#[test]
+fn executes_interpolated_string_through_bytecode_and_vm() {
+    let source = "funcao inicio() { seja nome = \"Ada\"; escreva(\"Olá, {nome}!\"); }";
+    let module = compile_pors_source(source);
+    let mut io = BufferIo::default();
+    run(&module, &mut io).expect("execução de interpolação");
+    assert_eq!(io.output, "Olá, Ada!");
+}
+
+#[test]
+fn executes_an_implicit_return_in_minimal_vm() {
+    let source =
+        "funcao dobro(x: inteiro) -> inteiro { x * 2 } funcao inicio() { escreva(dobro(21)); }";
+    let module = compile_pors_source(source);
+    let mut io = BufferIo::default();
+    run(&module, &mut io).expect("retorno implícito na VM");
+    assert_eq!(io.output, "42");
+}
+
+#[test]
+fn reads_a_string_expression_without_a_target_binding() {
+    let source = "funcao inicio() { escreva(leia()); }";
+    let module = compile_pors_source(source);
+    let mut io = BufferIo::new("Ada\n");
+    run(&module, &mut io).expect("leia() como expressão");
+    assert_eq!(io.output, "Ada");
+}
+
+#[test]
+fn paused_info_exposes_the_instruction_ip_and_its_hir_mapping() {
+    use std::sync::mpsc;
+
+    use portugol_vm::debug::{DebugCommand, DebugControl};
+
+    let source = "funcao inicio() { escreva(leia()); }";
+    let module = compile_pors_source(source);
+    let entry = &module.functions[module.entry as usize];
+    let read_ip = entry
+        .nodes
+        .iter()
+        .position(|n| n.is_some_and(|n| n.node == "Read"))
+        .expect("instrução Read rotulada");
+    let breakpoint = entry.spans[read_ip];
+
+    let captured = Arc::new(Mutex::new(Vec::new()));
+    let sink = Arc::clone(&captured);
+    let (tx, rx) = mpsc::channel();
+    let debug = DebugControl::new(move |info| {
+        sink.lock()
+            .expect("mutex da pausa")
+            .push((info.ip, info.mapping));
+        tx.send(()).expect("canal da pausa");
+    });
+    debug.set_breakpoints(vec![breakpoint]);
+    let cont = debug.clone();
+    let worker = std::thread::spawn(move || {
+        rx.recv().expect("pausa no Read");
+        cont.command(DebugCommand::Continue);
+    });
+
+    let mut io = BufferIo::new("Ada\n");
+    Vm::new(&module, &mut io)
+        .with_debug(debug)
+        .run()
+        .expect("execução com pausa");
+    worker.join().expect("thread de continue");
+
+    let found = captured.lock().expect("mutex da pausa").clone();
+    assert!(found.iter().any(|(ip, mapping)| {
+        *ip == read_ip && mapping.as_ref().is_some_and(|m| m.node == "Read")
+    }));
 }

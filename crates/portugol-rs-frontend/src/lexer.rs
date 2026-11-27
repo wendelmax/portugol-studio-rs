@@ -5,7 +5,7 @@ pub(super) enum Kind {
     Ident(String),
     Integer(i64),
     Real(f64),
-    String(String),
+    String { decoded: String, raw: String },
     Character(char),
     LParen,
     RParen,
@@ -234,14 +234,18 @@ impl Lexer<'_> {
 
     fn quoted(&mut self, start: usize, quote: char) {
         self.bump();
+        let raw_start = self.offset;
+        let mut raw_end = raw_start;
         let mut value = String::new();
         let mut closed = false;
         while let Some(ch) = self.peek() {
-            self.bump();
             if ch == quote {
+                raw_end = self.offset;
+                self.bump();
                 closed = true;
                 break;
             }
+            self.bump();
             if ch == '\\' {
                 let Some(escaped) = self.peek() else {
                     break;
@@ -283,7 +287,13 @@ impl Lexer<'_> {
                 );
             }
         } else {
-            self.push(start, Kind::String(value));
+            self.push(
+                start,
+                Kind::String {
+                    decoded: value,
+                    raw: self.source[raw_start..raw_end].to_owned(),
+                },
+            );
         }
     }
 

@@ -30,6 +30,7 @@ fn build_counter_ui_module() -> Module {
         locals: vec![],
         code: vec![Op::PushInt(0), Op::Return],
         spans: vec![span; 2],
+        nodes: vec![None; 2],
         span,
     };
 
@@ -67,6 +68,7 @@ fn build_counter_ui_module() -> Module {
             Op::Return,
         ],
         spans: vec![span; 16],
+        nodes: vec![None; 16],
         span,
     };
 
@@ -98,6 +100,7 @@ fn build_counter_ui_module() -> Module {
             Op::Return,
         ],
         spans: vec![span; 14],
+        nodes: vec![None; 14],
         span,
     };
 
@@ -478,4 +481,14 @@ fn exports_pors_to_rust_through_wasm_facade_and_ffi() {
         assert!(out.contains("fn main()"), "{out}");
         pors_dealloc(ptr, bytes.len());
     }
+}
+
+#[test]
+fn executes_canonical_syntax_evolution_program_through_wasm_facade() {
+    let source = include_str!("../../../tests/fixtures/pors-syntax-evolution.pors");
+    let json = run_pors_json(source, "Ada\n", RunBudget::default());
+    assert_eq!(
+        json,
+        "{\"ok\":true,\"stdout\":\"Olá, Ada!\\n\",\"diagnostics\":[]}"
+    );
 }

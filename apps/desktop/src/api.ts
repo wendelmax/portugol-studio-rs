@@ -46,10 +46,19 @@ export interface DebugFrame {
   position: Position;
 }
 
+export interface DebugMapping {
+  hirNode: string;
+  hirStart: Position;
+  hirEnd: Position;
+  bytecodeOffset: number;
+}
+
 export interface DebugInfo {
   position: Position;
   stack: DebugFrame[];
   variables: DebugVar[];
+  /** Ausente em eventos antigos; opcional para compatibilidade. */
+  mapping?: DebugMapping | null;
 }
 
 export type SymbolKind = "library" | "function" | "constant" | "variable" | "parameter" | "array" | "matrix";

@@ -15,5 +15,7 @@
             <p>O quebra-linha é utilizado para inserir uma nova linha aos textos digitados. Sem ele, os textos seriam exibidos um ao lado do outro. Para utilizar este comando, basta inserir "\n". O comando de tabulação é utilizado para inserir espaços maiores entre os textos digitados. Para utilizar este comando, basta inserir "\t".</p>
             <p>O exemplo a seguir ilustra em portugol o mesmo algoritmo do fluxograma acima, bem como a utilização do quebra-linha e da tabulação.</p>
             <div class="codigo-portugol" data-type='exemplo' data-title="Exemplo" data-file="../../../recursos/exemplos-pors/entrada_saida/escreva/exemplo2.pors"></div>
+            <p>No PORS atual, <code>escreval(valor, ...)</code> é um atalho para <code>escreva(valor, ..., "\n")</code>: escreve os valores e termina com uma quebra de linha. A forma tradicional <code>escreva(...)</code> continua válida.</p>
+            <p>Uma cadeia também pode interpolar expressões entre chaves: <code>escreval("Olá, {nome}!")</code> inclui o valor de <code>nome</code> no texto. Use <code>\{</code> e <code>\}</code> quando a chave deve aparecer literalmente; chaves vazias ou sem fechamento permanecem texto comum.</p>
         </div>
 </body>

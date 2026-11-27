@@ -1,4 +1,4 @@
-import type { DebugFrame, DebugInfo } from "../api";
+import type { DebugFrame, DebugInfo, SourceMapInfo } from "../api";
 import type { Tab } from "../state/tab";
 
 export interface PausePresentationDependencies {
@@ -9,7 +9,8 @@ export interface PausePresentationDependencies {
   runTab: () => Tab | undefined;
   setDebugLine: (line: number | null) => void;
   setRunning: (running: boolean) => void;
-  renderDebugInfo: (info: DebugInfo, onSelectFrame: (frame: DebugFrame) => void) => void;
+  renderDebugInfo: (info: DebugInfo, onSelectFrame: (frame: DebugFrame) => void, links: SourceMapInfo[]) => void;
+  rustSourceMap?: () => SourceMapInfo[];
   activate: (id: number) => void;
   goTo: (offset: number) => void;
   showUtilities: (visible: boolean) => void;
@@ -30,7 +31,7 @@ export function createPausePresentation(dependencies: PausePresentationDependenc
       if (runTabId === null || !dependencies.runTab()) return;
       if (dependencies.activeTabId() !== runTabId) dependencies.activate(runTabId);
       dependencies.goTo(frame.position.offset);
-    });
+    }, dependencies.rustSourceMap?.() ?? []);
     dependencies.showUtilities(true);
     dependencies.showDebugPanel();
     if (dependencies.activeTabId() === runTabId) dependencies.goTo(info.position.offset);

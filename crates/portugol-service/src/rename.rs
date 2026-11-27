@@ -292,7 +292,15 @@ fn collect_pors_function_calls_in_expr(
             collect_pors_function_calls_in_expr(left, functions);
             collect_pors_function_calls_in_expr(right, functions);
         }
+        ExprKind::InterpolatedString { parts } => {
+            for part in parts {
+                if let portugol_hir::StringPart::Expression(value, _) = part {
+                    collect_pors_function_calls_in_expr(value, functions);
+                }
+            }
+        }
         ExprKind::Binding(_)
+        | ExprKind::Read
         | ExprKind::Integer(_)
         | ExprKind::Real(_)
         | ExprKind::Boolean(_)
@@ -724,7 +732,15 @@ fn collect_portugol_rs_expression(
             );
             collect_portugol_rs_expression(source, index, declarations, owner, occurrences);
         }
-        ExprKind::Integer(_)
+        ExprKind::InterpolatedString { parts } => {
+            for part in parts {
+                if let portugol_hir::StringPart::Expression(value, _) = part {
+                    collect_portugol_rs_expression(source, value, declarations, owner, occurrences);
+                }
+            }
+        }
+        ExprKind::Read
+        | ExprKind::Integer(_)
         | ExprKind::Real(_)
         | ExprKind::Boolean(_)
         | ExprKind::String(_)

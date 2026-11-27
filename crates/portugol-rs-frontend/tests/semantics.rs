@@ -395,3 +395,100 @@ fn nested_counted_loops_keep_shadowed_control_bindings_separate() {
     assert_eq!(program.bindings.len(), 2);
     assert_ne!(program.bindings[0].id, program.bindings[1].id);
 }
+
+#[test]
+fn read_expression_rejects_arguments() {
+    let source = "funcao inicio() { escreva(leia(\"x\")); }";
+    assert!(
+        lower(source)
+            .unwrap_err()
+            .iter()
+            .any(|d| d.code == "pors.read-arguments-unsupported")
+    );
+}
+
+#[test]
+fn rejects_read_expression_in_an_integer_context_at_its_span() {
+    let source = "funcao inicio() { seja idade: inteiro = leia(); }";
+    let errors = lower(source).unwrap_err();
+    let error = errors
+        .iter()
+        .find(|d| d.code == "pors.type-mismatch")
+        .unwrap();
+    assert_eq!(
+        &source[error.span.start as usize..error.span.end as usize],
+        "leia()"
+    );
+}
+
+#[test]
+fn rejects_invalid_interpolation_content_at_the_inner_span() {
+    let source = "funcao inicio() { escreva(\"{1 +}\"); }";
+    let errors = lower(source).unwrap_err();
+    let error = errors
+        .iter()
+        .find(|d| d.code == "pors.interpolation-invalid")
+        .unwrap();
+    assert_eq!(
+        &source[error.span.start as usize..error.span.end as usize],
+        "1 +"
+    );
+
+    let number = "funcao inicio() { escreva(\"{42}\"); }";
+    assert!(
+        lower(number)
+            .unwrap_err()
+            .iter()
+            .any(|d| d.code == "pors.interpolation-non-string")
+    );
+
+    for literal in [
+        "funcao inicio() { escreva(\"{}\"); }",
+        "funcao inicio() { escreva(\"abri {\"); }",
+    ] {
+        assert!(lower(literal).is_ok(), "{literal}");
+    }
+}
+
+#[test]
+fn implicit_return_is_only_allowed_in_a_typed_function_body() {
+    assert!(
+        lower("funcao f() -> inteiro { se (verdadeiro) { 1 } retorne 2; }")
+            .unwrap_err()
+            .iter()
+            .any(|d| d.code == "pors.implicit-return-without-type")
+    );
+    assert!(
+        lower("funcao f() -> cadeia { 1 + 1 }")
+            .unwrap_err()
+            .iter()
+            .any(|d| d.code == "pors.return-type-mismatch")
+    );
+}
+
+#[test]
+fn rejects_trailing_expression_in_a_function_without_return_type() {
+    let source = "funcao inicio() { 1 + 1 }";
+    let errors = lower(source).unwrap_err();
+    assert!(
+        errors
+            .iter()
+            .any(|d| d.code == "pors.implicit-return-without-type")
+    );
+}
+
+#[test]
+fn still_requires_an_initializer_and_an_explicit_type_for_an_empty_vector() {
+    assert!(
+        lower("funcao inicio() { seja x: inteiro; }")
+            .unwrap_err()
+            .iter()
+            .any(|d| d.code == "pors.unexpected-token")
+    );
+    assert!(
+        lower("funcao inicio() { seja x = []; }")
+            .unwrap_err()
+            .iter()
+            .any(|d| d.code == "pors.empty-vector-type-inference")
+    );
+}

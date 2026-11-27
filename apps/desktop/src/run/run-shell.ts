@@ -13,6 +13,7 @@ export interface RunShellDependencies {
   tabs: () => Tab[];
   activeTabId: () => number;
   view: EditorView;
+  rustSourceMap?: () => api.SourceMapInfo[];
   activate: (id: number) => void;
   goTo: (offset: number) => void;
   rustcAvailable: () => boolean | null;
@@ -52,6 +53,7 @@ export function createRunShell(dependencies: RunShellDependencies) {
     rustcAvailable: dependencies.rustcAvailable,
     cargoAvailable: dependencies.cargoAvailable,
     view: dependencies.view,
+    rustSourceMap: dependencies.rustSourceMap,
     activate: dependencies.activate,
     goTo: dependencies.goTo,
     setStatus: dependencies.setStatus,

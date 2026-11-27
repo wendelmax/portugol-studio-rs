@@ -34,6 +34,7 @@
   --syntax-type: #126378;
   --syntax-number: #066e47;
   --syntax-string: #a31515;
+  --syntax-interpolation: #126378;
   --syntax-comment: #006c00;
   --syntax-operator: #1f1f1f;
 
@@ -131,6 +132,7 @@
     --syntax-type: #6ad9c3;
     --syntax-number: #b5cea8;
     --syntax-string: #e0a58d;
+    --syntax-interpolation: #6ad9c3;
     --syntax-comment: #9cc986;
     --syntax-operator: #d4d4d4;
     color-scheme: dark;
@@ -170,6 +172,7 @@
   --syntax-type: #6ad9c3;
   --syntax-number: #b5cea8;
   --syntax-string: #e0a58d;
+  --syntax-interpolation: #6ad9c3;
   --syntax-comment: #9cc986;
   --syntax-operator: #d4d4d4;
   color-scheme: dark;
@@ -209,6 +212,7 @@
     --syntax-logical: LinkText !important;
     --syntax-number: CanvasText !important;
     --syntax-string: CanvasText !important;
+    --syntax-interpolation: LinkText !important;
     --syntax-comment: CanvasText !important;
     --syntax-operator: CanvasText !important;
     --error-text: MarkText !important;

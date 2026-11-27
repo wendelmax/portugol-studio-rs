@@ -32,6 +32,7 @@ const fields = {
   "--syntax-logical": "Valores lógicos",
   "--syntax-number": "Números",
   "--syntax-string": "Cadeias e caracteres",
+  "--syntax-interpolation": "Interpolação em cadeias",
   "--syntax-comment": "Comentários",
   "--syntax-operator": "Operadores",
 } as const;

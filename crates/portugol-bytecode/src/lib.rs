@@ -5,7 +5,7 @@ pub mod op;
 pub mod pors;
 
 pub use op::{
-    Function, GlobalInfo, LocalInfo, Module, NativeRef, Op, PorsDebugField, PorsDebugShape,
-    PorsDebugType, PorsDebugVariant, ValueType,
+    Function, GlobalInfo, InstructionMapping, LocalInfo, Module, NativeRef, Op, PorsDebugField,
+    PorsDebugShape, PorsDebugType, PorsDebugVariant, ValueType,
 };
 pub use pors::{PorsCompileError, compile_pors};

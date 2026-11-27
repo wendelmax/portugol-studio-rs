@@ -205,6 +205,7 @@ const CONTEXTUAL_TOPIC_MAP: Readonly<Record<string, string>> = {
   remover: "pors:colecoes-tipos-compostos",
   obter: "pors:colecoes-tipos-compostos",
   escreva: "topicos/linguagem_portugol/entrada_saida/escreva.html",
+  escreval: "topicos/linguagem_portugol/entrada_saida/escreva.html",
   leia: "topicos/linguagem_portugol/entrada_saida/leia.html",
   inteiro: "topicos/linguagem_portugol/tipos/inteiro.html",
   real: "topicos/linguagem_portugol/tipos/real.html",

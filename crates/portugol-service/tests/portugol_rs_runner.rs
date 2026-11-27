@@ -168,6 +168,56 @@ fn pauses_at_leia_requests_typed_input_and_resumes_the_program() {
 }
 
 #[test]
+fn generated_rust_requests_a_string_when_read_is_an_expression() {
+    let cancel = AtomicBool::new(false);
+    let mut requests = Vec::new();
+    let result = run_portugol_rs_with_io(
+        "funcao inicio() { escreva(leia()); }",
+        &cancel,
+        |expected| {
+            requests.push(expected.to_owned());
+            Ok("Ada".to_owned())
+        },
+        |_| {},
+    )
+    .unwrap();
+    assert_eq!(requests, ["cadeia"]);
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { ref stdout, exit_code: Some(0), .. } if stdout == "Ada"),
+        "{result:?}"
+    );
+}
+
+#[test]
+fn generated_rust_declares_read_helper_for_leia_in_para_header() {
+    let cancel = AtomicBool::new(false);
+    let mut inputs = ["abc", "a"].into_iter();
+    let mut streamed = Vec::new();
+    let result = run_portugol_rs_with_io(
+        "funcao inicio() { para (seja mutavel i: inteiro = Texto.numero_caracteres(leia()); i < 4; i += 1) { escreva(i); } para (seja mutavel j: inteiro = 0; j < 1; j += Texto.numero_caracteres(leia())) { escreva(j); } }",
+        &cancel,
+        |expected| {
+            assert_eq!(expected, "cadeia");
+            Ok(inputs.next().expect("duas entradas").to_owned())
+        },
+        |text| streamed.push(text.to_owned()),
+    )
+    .unwrap();
+    assert!(
+        matches!(
+            result,
+            PortugolRsRunResult::Executed {
+                exit_code: Some(0),
+                ..
+            }
+        ),
+        "{result:?}"
+    );
+    assert_eq!(streamed.concat(), "30");
+    assert_eq!(inputs.len(), 0);
+}
+
+#[test]
 fn parses_string_real_boolean_and_character_inputs() {
     for (ty, value) in [
         ("cadeia", "Olá, Rust"),
@@ -417,4 +467,26 @@ fn returns_the_real_exit_code_and_stderr_from_a_rust_runtime_failure() {
         }
         other => panic!("falha em runtime não deve ser erro de compilação: {other:?}"),
     }
+}
+
+#[test]
+fn compiles_and_runs_canonical_syntax_evolution_program_with_real_rustc() {
+    let source = include_str!("../../../tests/fixtures/pors-syntax-evolution.pors");
+    let cancel = AtomicBool::new(false);
+    let mut requests = Vec::new();
+    let result = run_portugol_rs_with_io(
+        source,
+        &cancel,
+        |expected| {
+            requests.push(expected.to_owned());
+            Ok("Ada".to_owned())
+        },
+        |_| {},
+    )
+    .unwrap();
+    assert_eq!(requests, ["cadeia"]);
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { ref stdout, exit_code: Some(0), .. } if stdout == "Olá, Ada!\n"),
+        "{result:?}"
+    );
 }

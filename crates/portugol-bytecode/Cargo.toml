@@ -7,3 +7,6 @@ description = "Conjunto de instruções e compilador HIR -> bytecode do Portugol
 
 [dependencies]
 portugol-hir = { path = "../portugol-hir" }
+
+[dev-dependencies]
+portugol-rs-frontend = { path = "../portugol-rs-frontend" }

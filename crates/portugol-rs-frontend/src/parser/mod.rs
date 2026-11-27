@@ -14,6 +14,7 @@ use constants::*;
 
 pub(super) struct Parser {
     tokens: Vec<Token>,
+    source: String,
     cursor: usize,
     invalid_items: Vec<(usize, usize)>,
     diagnostics: Vec<Diagnostic>,
@@ -57,9 +58,10 @@ struct Symbol {
 }
 
 impl Parser {
-    pub(super) fn new(tokens: Vec<Token>) -> Self {
+    pub(super) fn new(tokens: Vec<Token>, source: String) -> Self {
         Self {
             tokens,
+            source,
             cursor: 0,
             invalid_items: Vec::new(),
             diagnostics: Vec::new(),
@@ -136,7 +138,7 @@ impl Parser {
                 self.synchronize_top_level(item_start);
                 continue;
             }
-            let (function_body, body_span) = match self.block(true) {
+            let (function_body, tail_expression, body_span) = match self.block(true, true) {
                 Ok(block) => block,
                 Err(errors) => {
                     append_unique(&mut diagnostics, errors);
@@ -145,7 +147,32 @@ impl Parser {
                     continue;
                 }
             };
-            if !self.function_has_syntax_error
+            if let Some(tail) = &tail_expression {
+                if signature.return_type.is_none() {
+                    append_unique(
+                        &mut diagnostics,
+                        vec![Diagnostic::error(
+                            "pors.implicit-return-without-type",
+                            "Função sem tipo de retorno não pode terminar em expressão",
+                            syntax_span(tail.span),
+                        )],
+                    );
+                    self.reset_function_state();
+                    continue;
+                }
+                if Some(tail.ty) != signature.return_type {
+                    append_unique(
+                        &mut diagnostics,
+                        vec![Diagnostic::error(
+                            "pors.return-type-mismatch",
+                            "A expressão final não corresponde ao tipo de retorno declarado",
+                            syntax_span(tail.span),
+                        )],
+                    );
+                    self.reset_function_state();
+                    continue;
+                }
+            } else if !self.function_has_syntax_error
                 && signature.return_type.is_some()
                 && !guarantees_return(&function_body)
             {
@@ -175,6 +202,7 @@ impl Parser {
                     bindings: local_bindings,
                     return_type: signature.return_type,
                     body: function_body,
+                    tail_expression,
                     span: to_hir_span(function_span),
                 });
             }

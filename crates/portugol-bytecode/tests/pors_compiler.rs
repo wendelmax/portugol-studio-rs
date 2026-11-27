@@ -264,3 +264,15 @@ fn compiles_string_concatenation_and_continue_with_mapped_source_spans() {
             .any(|mapped| mapped.start == span.start)
     );
 }
+
+#[test]
+fn maps_interpolation_parts_and_read_expression_to_hir_nodes() {
+    let source = "funcao inicio() { escreva(\"Olá, {leia()}!\"); }";
+    let program = portugol_rs_frontend::lower(source).expect("fonte válida");
+    let module = portugol_bytecode::compile_pors(&program).expect("bytecode válido");
+    let entry = &module.functions[module.entry as usize];
+    let labels: Vec<_> = entry.nodes.iter().flatten().map(|n| n.node).collect();
+    assert!(labels.contains(&"InterpolatedString.Literal"));
+    assert!(labels.contains(&"InterpolatedString.Expression"));
+    assert!(labels.contains(&"Read"));
+}

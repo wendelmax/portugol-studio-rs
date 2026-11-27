@@ -7,6 +7,23 @@ pub(super) fn is_top_level_start(kind: &Kind) -> bool {
     matches!(kind, Kind::Ident(keyword) if matches!(keyword.as_str(), "funcao" | "registro" | "enum"))
 }
 
+pub(super) fn can_start_expression(kind: &Kind) -> bool {
+    matches!(
+        kind,
+        Kind::Ident(_)
+            | Kind::Integer(_)
+            | Kind::Real(_)
+            | Kind::String { .. }
+            | Kind::Character(_)
+            | Kind::LParen
+            | Kind::LBracket
+            | Kind::Bang
+            | Kind::Tilde
+            | Kind::Minus
+            | Kind::Plus
+    )
+}
+
 pub(super) fn is_recoverable_syntax(code: &str) -> bool {
     matches!(
         code,

@@ -6,6 +6,7 @@ import {
   LanguageSupport,
   indentUnit,
   type StreamParser,
+  type StringStream,
 } from "@codemirror/language";
 import {
   type Completion,
@@ -43,7 +44,7 @@ const PORS_TYPES = [
   "inteiro", "real", "logico", "cadeia", "caracter", "vetor", "Opcao", "Resultado",
 ] as const;
 
-const PORS_BUILTINS = ["escreva", "leia", "tamanho", "adicionar", "remover", "obter"] as const;
+const PORS_BUILTINS = ["escreva", "escreval", "leia", "tamanho", "adicionar", "remover", "obter"] as const;
 
 export const PORS_MODULES = PORS_STDLIB_MODULES;
 
@@ -79,7 +80,8 @@ const PORS_TOP_LEVEL_DOCS: Record<string, PorsDocEntry> = {
   remover: { label: "remover", kind: "function", signature: "remover(v: mutavel vetor<T>) -> Opcao<T>", description: "Remove e retorna o último elemento de um vetor mutável como `Opcao<T>` (equivale a `Vec::pop`)." },
   obter: { label: "obter", kind: "function", signature: "obter(v: vetor<T>, indice: inteiro) -> Opcao<T>", description: "Lê um elemento do vetor com segurança retornando `Opcao<T>` sem encerrar o programa fora dos limites." },
   escreva: { label: "escreva", kind: "function", signature: "escreva(valor, ...)", description: "Escreve um ou mais valores escalares na saída padrão sem quebra de linha automática." },
-  leia: { label: "leia", kind: "function", signature: "leia(variavel_mutavel)", description: "Lê um valor tipado da entrada padrão para uma variável declarada com `seja mutavel`." },
+  escreval: { label: "escreval", kind: "function", signature: "escreval(valor, ...)", description: "Escreve os valores na saída padrão com quebra de linha ao final; equivale a `escreva(valor, ..., \"\\n\")`." },
+  leia: { label: "leia", kind: "function", signature: "leia() | leia(variavel_mutavel)", description: "Sem argumentos, lê uma linha e devolve uma `cadeia`. Com uma variável declarada com `seja mutavel`, lê um valor tipado da entrada padrão para essa variável." },
   seja: { label: "seja", kind: "keyword", signature: "seja [mutavel] nome: Tipo = valor;", description: "Declara um binding imutável por padrão (ou mutável com `seja mutavel`), equivalente a `let` / `let mut` em Rust." },
   mutavel: { label: "mutavel", kind: "keyword", signature: "seja mutavel nome: Tipo = valor;", description: "Permite reatribuição e mutação de campos ou índices do binding." },
   registro: { label: "registro", kind: "keyword", signature: "registro Nome { campo: Tipo }", description: "Declara um tipo composto nominal com campos tipados (equivale a `struct` em Rust)." },
@@ -202,12 +204,151 @@ interface PorsState {
   inComment: boolean;
   afterDot: boolean;
   afterColonColon: boolean;
+  inString: boolean;
+  inInterpolation: boolean;
+  inNestedString: boolean;
+}
+
+/** Índice do `}` que fecha uma interpolação, ou -1 se o trecho for literal. */
+function interpolationEnd(line: string, from: number): number {
+  for (let i = from; i < line.length; i += 1) {
+    const ch = line[i];
+    if (ch === "\\") {
+      i += 1;
+      continue;
+    }
+    if (ch === "}") return i > from ? i : -1;
+  }
+  return -1;
+}
+
+/** Verdadeiro quando um `{` pode fechar em uma linha seguinte da mesma cadeia. */
+function interpolationContinuesOnNextLine(line: string, from: number): boolean {
+  for (let i = from; i < line.length; i += 1) {
+    const ch = line[i];
+    if (ch === "\\") {
+      i += 1;
+      continue;
+    }
+    if (ch === '"' || ch === "}") return false;
+  }
+  return true;
+}
+
+function classifyPorsToken(stream: StringStream, state: PorsState): string | null {
+  if (stream.match(/^\d+(?:\.\d+)?/)) return "number";
+  const word = stream.match(/^[A-Za-z_][A-Za-z0-9_]*/) as RegExpMatchArray | null;
+  if (word) {
+    const text = word[0];
+    if (state.afterDot || state.afterColonColon) return "propertyName";
+    if (text === "verdadeiro" || text === "falso") return "bool";
+    if (porsTypes.has(text)) return "typeName";
+    if (porsKeywords.has(text)) return "keyword";
+    if (porsBuiltins.has(text)) return "builtin";
+    if (porsModules.has(text)) return "namespace";
+    if (stream.match(/^\s*\(/, false)) return "function";
+    return "variableName";
+  }
+  if (stream.match("::")) {
+    state.afterColonColon = true;
+    return "punctuation";
+  }
+  if (stream.eat(".")) {
+    state.afterDot = true;
+    return "punctuation";
+  }
+  if (stream.match("->") || stream.match("=>")) return "operator";
+  if (stream.match(/^[+\-*/%=<>!&|^?]+/)) return "operator";
+  return null;
+}
+
+function scanPorsString(stream: StringStream, state: PorsState): string | null {
+  let consumed = false;
+  while (!stream.eol()) {
+    const ch = stream.peek();
+    if (state.inNestedString) {
+      if (ch === "\\") {
+        stream.next();
+        if (!stream.eol()) stream.next();
+        consumed = true;
+        continue;
+      }
+      if (ch === '"') {
+        if (consumed) return "string";
+        stream.next();
+        state.inNestedString = false;
+        return "string";
+      }
+      stream.next();
+      consumed = true;
+      continue;
+    }
+    if (state.inInterpolation && ch === '"') {
+      if (consumed) return "string";
+      stream.next();
+      state.inNestedString = true;
+      return "string";
+    }
+    if (state.inInterpolation && ch === "}") {
+      if (consumed) return "string";
+      stream.next();
+      state.inInterpolation = false;
+      return "interpolation";
+    }
+    if (state.inInterpolation) {
+      if (stream.eatSpace()) return null;
+      if (!consumed) {
+        const token = classifyPorsToken(stream, state);
+        if (token) {
+          if (token !== "punctuation") {
+            state.afterDot = false;
+            state.afterColonColon = false;
+          }
+          return token;
+        }
+      }
+    }
+    if (ch === '"') {
+      if (consumed) return "string";
+      stream.next();
+      state.inString = false;
+      return "string";
+    }
+    if (
+      !state.inInterpolation &&
+      ch === "{" &&
+      (interpolationEnd(stream.string, stream.pos + 1) >= 0 ||
+        interpolationContinuesOnNextLine(stream.string, stream.pos + 1))
+    ) {
+      if (consumed) return "string";
+      stream.next();
+      state.inInterpolation = true;
+      return "interpolation";
+    }
+    if (ch === "\\") {
+      stream.next();
+      if (!stream.eol()) stream.next();
+      consumed = true;
+      continue;
+    }
+    stream.next();
+    consumed = true;
+  }
+  return consumed ? "string" : null;
 }
 
 const porsParser: StreamParser<PorsState> = {
   name: "portugol-rs",
-  startState: () => ({ inComment: false, afterDot: false, afterColonColon: false }),
+  startState: () => ({
+    inComment: false,
+    afterDot: false,
+    afterColonColon: false,
+    inString: false,
+    inInterpolation: false,
+    inNestedString: false,
+  }),
   token(stream, state) {
+    if (state.inString) return scanPorsString(stream, state);
     if (state.inComment) {
       if (stream.skipTo("*/")) {
         stream.next();
@@ -228,36 +369,18 @@ const porsParser: StreamParser<PorsState> = {
       return "comment";
     }
 
-    const afterDot = state.afterDot;
-    const afterColonColon = state.afterColonColon;
-    state.afterDot = false;
-    state.afterColonColon = false;
-
-    if (stream.match(/^"(?:\\.|[^"\\])*"?/)) return "string";
+    if (stream.peek() === '"') {
+      stream.next();
+      state.inString = true;
+      return scanPorsString(stream, state);
+    }
     if (stream.match(/^'(?:\\.|[^'\\])*'?/)) return "string";
-    if (stream.match(/^\d+(?:\.\d+)?/)) return "number";
-    const word = stream.match(/^[A-Za-z_][A-Za-z0-9_]*/) as RegExpMatchArray | null;
-    if (word) {
-      const text = word[0];
-      if (afterDot || afterColonColon) return "propertyName";
-      if (text === "verdadeiro" || text === "falso") return "bool";
-      if (porsTypes.has(text)) return "typeName";
-      if (porsKeywords.has(text)) return "keyword";
-      if (porsBuiltins.has(text)) return "builtin";
-      if (porsModules.has(text)) return "namespace";
-      if (stream.match(/^\s*\(/, false)) return "function";
-      return "variableName";
+    const token = classifyPorsToken(stream, state);
+    if (token !== "punctuation") {
+      state.afterDot = false;
+      state.afterColonColon = false;
     }
-    if (stream.match("::")) {
-      state.afterColonColon = true;
-      return "punctuation";
-    }
-    if (stream.eat(".")) {
-      state.afterDot = true;
-      return "punctuation";
-    }
-    if (stream.match("->") || stream.match("=>")) return "operator";
-    if (stream.match(/^[+\-*/%=<>!&|^?]+/)) return "operator";
+    if (token) return token;
     stream.next();
     return null;
   },
@@ -270,6 +393,7 @@ const porsParser: StreamParser<PorsState> = {
     builtin: tags.standard(tags.function(tags.variableName)),
     namespace: tags.namespace,
     function: tags.function(tags.variableName),
+    interpolation: tags.special(tags.string),
     punctuation: tags.punctuation,
   },
 };

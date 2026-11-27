@@ -51,8 +51,8 @@ pub use rename::{
     resolve_symbol_portugol_rs,
 };
 pub use run::{
-    DebugFrameInfo, DebugInfo, DebugVarInfo, RunHandle, RunLimitReason, RunObserver, RunOptions,
-    RunOutcome, start_portugol_rs, start_portugol_rs_with_host,
+    DebugFrameInfo, DebugInfo, DebugMappingInfo, DebugVarInfo, RunHandle, RunLimitReason,
+    RunObserver, RunOptions, RunOutcome, start_portugol_rs, start_portugol_rs_with_host,
 };
 pub use ui_session::{PorsUiBudgetRequest, PorsUiService};
 

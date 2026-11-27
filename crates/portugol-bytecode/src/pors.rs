@@ -4,8 +4,8 @@ use portugol_hir as hir;
 use portugol_hir::Span;
 
 use crate::op::{
-    Function, LocalInfo, Module, NativeRef, Op, PorsDebugField, PorsDebugShape, PorsDebugType,
-    PorsDebugVariant, ValueType,
+    Function, InstructionMapping, LocalInfo, Module, NativeRef, Op, PorsDebugField, PorsDebugShape,
+    PorsDebugType, PorsDebugVariant, ValueType,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -28,6 +28,7 @@ struct LoopFrame {
 struct Compiler<'a> {
     code: Vec<Op>,
     spans: Vec<Span>,
+    nodes: Vec<Option<InstructionMapping>>,
     locals: Vec<LocalInfo>,
     strings: Vec<String>,
     natives: &'a mut Vec<NativeRef>,
@@ -61,6 +62,7 @@ fn compile_program(program: &hir::Program) -> Result<Module, PorsCompileError> {
             &function.source_name,
             &function.bindings,
             &function.body,
+            function.tail_expression.as_ref(),
             function
                 .return_type
                 .map(value_type_hir)
@@ -86,6 +88,7 @@ fn compile_program(program: &hir::Program) -> Result<Module, PorsCompileError> {
         "inicio",
         &program.bindings,
         &program.body,
+        None,
         ValueType::Vazio,
         0,
         program.span,
@@ -135,6 +138,7 @@ impl<'a> Compiler<'a> {
         Self {
             code: Vec::new(),
             spans: Vec::new(),
+            nodes: Vec::new(),
             locals,
             strings: Vec::new(),
             natives,
@@ -166,6 +170,7 @@ impl<'a> Compiler<'a> {
         name: &str,
         bindings: &[hir::Binding],
         body: &[hir::Stmt],
+        tail_expression: Option<&hir::Expr>,
         return_type: ValueType,
         arity: u32,
         span: hir::Span,
@@ -187,8 +192,20 @@ impl<'a> Compiler<'a> {
         for stmt in body {
             self_.stmt(stmt)?;
         }
-        self_.emit(Op::PushVoid, span);
-        self_.emit(Op::Return, span);
+        match tail_expression {
+            Some(expression) => {
+                self_.expr(expression)?;
+                self_.emit_node(
+                    Op::Return,
+                    expression.span,
+                    mapping("Return.tail", expression.span),
+                );
+            }
+            None => {
+                self_.emit(Op::PushVoid, span);
+                self_.emit(Op::Return, span);
+            }
+        }
         Ok((
             Function {
                 name: name.into(),
@@ -197,6 +214,7 @@ impl<'a> Compiler<'a> {
                 locals: self_.locals,
                 code: self_.code,
                 spans: self_.spans,
+                nodes: self_.nodes,
                 span: convert_span(span),
             },
             self_.strings,
@@ -206,7 +224,22 @@ impl<'a> Compiler<'a> {
     fn emit(&mut self, op: Op, span: hir::Span) -> usize {
         self.code.push(op);
         self.spans.push(convert_span(span));
+        self.nodes.push(None);
         self.code.len() - 1
+    }
+
+    fn emit_node(&mut self, op: Op, span: hir::Span, node: InstructionMapping) -> usize {
+        let ip = self.emit(op, span);
+        self.nodes[ip] = Some(node);
+        ip
+    }
+
+    fn intern_string(&mut self, value: &str) -> u32 {
+        if let Some(index) = self.strings.iter().position(|item| item == value) {
+            return index as u32;
+        }
+        self.strings.push(value.to_owned());
+        (self.strings.len() - 1) as u32
     }
 
     fn patch(&mut self, at: usize, target: u32) {
@@ -749,15 +782,55 @@ impl<'a> Compiler<'a> {
                 self.emit(Op::PushChar(*value), expr.span);
             }
             E::String(value) => {
-                let index = self
-                    .strings
-                    .iter()
-                    .position(|item| item == value)
-                    .unwrap_or_else(|| {
-                        self.strings.push(value.clone());
-                        self.strings.len() - 1
-                    });
-                self.emit(Op::PushStr(index as u32), expr.span);
+                let index = self.intern_string(value);
+                self.emit(Op::PushStr(index), expr.span);
+            }
+            E::Read => {
+                self.emit_node(
+                    Op::Read(ValueType::Cadeia),
+                    expr.span,
+                    mapping("Read", expr.span),
+                );
+            }
+            E::InterpolatedString { parts } => {
+                if parts.is_empty() {
+                    let index = self.intern_string("");
+                    self.emit(Op::PushStr(index), expr.span);
+                }
+                let mut started = false;
+                for part in parts {
+                    match part {
+                        hir::StringPart::Literal(text, span) => {
+                            let index = self.intern_string(text);
+                            self.emit_node(
+                                Op::PushStr(index),
+                                *span,
+                                mapping("InterpolatedString.Literal", *span),
+                            );
+                            if started {
+                                self.emit_node(
+                                    Op::Add,
+                                    *span,
+                                    mapping("InterpolatedString.Literal", *span),
+                                );
+                            }
+                            started = true;
+                        }
+                        hir::StringPart::Expression(value, span) => {
+                            if !started {
+                                let index = self.intern_string("");
+                                self.emit(Op::PushStr(index), *span);
+                                started = true;
+                            }
+                            self.expr(value)?;
+                            self.emit_node(
+                                Op::Add,
+                                *span,
+                                mapping("InterpolatedString.Expression", *span),
+                            );
+                        }
+                    }
+                }
             }
             E::Parenthesized(inner) => self.expr(inner)?,
             E::Try { operand } => {
@@ -992,6 +1065,13 @@ fn value_type(ty: ValueType) -> ValueType {
 }
 fn convert_span(span: hir::Span) -> Span {
     span
+}
+fn mapping(node: &'static str, span: hir::Span) -> InstructionMapping {
+    InstructionMapping {
+        node,
+        start: span.start,
+        end: span.end,
+    }
 }
 fn assign_op(op: hir::AssignOp) -> Option<Op> {
     match op {
