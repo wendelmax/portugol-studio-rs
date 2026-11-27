@@ -53,7 +53,7 @@ Público: quem aprende PORS pela IDE, pelo playground, pelos exercícios, pela a
 
 ## Restrições
 
-1. Ambas as formas de `leia` convertem implicitamente ao destino: `leia(variavel)` ao tipo declarado da variável e `leia()` ao tipo esperado pelo contexto (inicialização de `seja` com tipo anotado, argumento de função tipado, atribuição, retorno e campos). `leia()` sem contexto tipado continua retornando `cadeia`. Não é exigido trocar `leia(variavel)` por `leia()` nos exemplos: as duas formas são aceitas.
+1. Ambas as formas de `leia` convertem implicitamente ao destino: `leia(variavel)` ao tipo declarado da variável e `leia()` ao tipo esperado pelo contexto (inicialização de `seja` com tipo anotado, argumento de função tipado, atribuição, retorno e campos). `leia()` sem contexto tipado continua retornando `cadeia`. Nos exemplos migrados, prefere-se `leia()` — `seja x: tipo = leia();` ou `x = leia();`. `leia(variavel)` permanece válido e é usado apenas em testes de compatibilidade e em laços com leitura repetida.
 2. A conversão implícita usa as mesmas regras dos helpers `Tipos.para_*`: `caracter` exige exatamente um caractere e `logico` aceita espaços ao redor. Exemplos que dependiam de `leia(caracter)` pegando o primeiro caractere da linha ou de `leia(logico)` sem `trim` são ajustados e a diferença é registrada na matriz de migração.
 3. Entrada que não converte produz erro de execução com mensagem identificando o tipo esperado; não há valor padrão silencioso.
 4. O caminho explícito permanece: `Tipos.para_inteiro(...)`, `Tipos.para_real(...)` etc. retornam `Resultado`; `?` exige função que retorne `Resultado<_, E>`/`Opcao<_>`, então não serve em `inicio`. Exemplos com campo de texto (`UI.entrada`) e validação de seu valor bruto **devem** usar esse caminho explícito com `escolha`/`Resultado`. Leituras `leia(...)` não devem ser reescritas como `leia(cadeia)` seguido de `Tipos.para_*`: a conversão é implícita na própria leitura.
@@ -91,7 +91,7 @@ Migração total mantendo `leia()` como `cadeia` e usando `Tipos.para_*` + `Resu
 
 1. **Abordagem B.**
 2. **Conversão implícita nas duas formas de `leia`.** `leia(variavel)` converte ao tipo da variável; `leia()` converte ao tipo esperado pelo contexto; falha é erro de execução. Sem tipo esperado, `leia()` resulta em `cadeia`.
-3. **Caminho explícito preservado para `UI.entrada`.** `Tipos.para_*` com `Resultado` continua nos exemplos de campo de texto, onde ensinar tratamento do valor bruto é o objetivo. Nas duas formas de `leia`, a conversão é implícita; `leia(variavel)` e `leia()` são ambos aceitos nos exemplos.
+3. **Caminho explícito preservado para `UI.entrada`.** `Tipos.para_*` com `Resultado` continua nos exemplos de campo de texto, onde ensinar tratamento do valor bruto é o objetivo. Nas duas formas de `leia`, a conversão é implícita; os exemplos migrados preferem `leia()`, e `leia(variavel)` fica reservado à compatibilidade e a laços com leitura repetida.
 4. **Escopo documental ampliado.** Todos os Markdown com snippets PORS (RFCs 001–008, ADR 0019, planos, README), `apps/desktop/src/portugol.ts`, ajuda HTML, playground e exercises são migrados. Passagens que explicitamente documentam compatibilidade com a sintaxe legada podem ser mantidas e marcadas como tal.
 5. **RFC 007 e RFC 008 corrigidas e sinalizadas.** Interpolações de números/enums são substituídas por argumentos de `escreval` compatíveis com a RFC 004; ambas recebem aviso explícito de que seus exemplos não executam no `main`.
 6. **Contradição do plano corrigida.** O plano do núcleo passa a descrever `escreval` como builtin não reservado, alinhado à implementação.
@@ -101,7 +101,7 @@ Migração total mantendo `leia()` como `cadeia` e usando `Tipos.para_*` + `Resu
 ## Plano de implementação esperado
 
 1. Implementar a conversão implícita de `leia()` no frontend/HIR/bytecode/VM, com testes para cada tipo e para erro em entrada inválida; ajustar o teste que hoje exige erro de tipo em `seja idade: inteiro = leia();` e o teste de argumentos de `leia()`.
-2. Adicionar teste de aceite que percorre os 211 `.pors` e os fontes embutidos, falhando quando restarem padrões legados fora da allowlist.
+2. Adicionar teste de aceite que percorre os 211 `.pors` e os fontes embutidos, falhando quando restarem padrões legados fora da allowlist; `leia(variavel)` só é permitido fora de testes de compatibilidade mediante allowlist explícita para laços com leitura repetida.
 3. Migrar os exemplos em lotes: catálogo de serviços, ajuda da IDE, fontes embutidos, exercícios, README/RFCs/ADRs/planos e matriz de migração.
 4. Validar que todos os `.pors` continuam compilando e que os exemplos com saída esperada mantêm stdout idêntico.
 5. Rodar a suíte completa e abrir um único PR contra `main`, sem `apps/desktop/package-lock.json`.
