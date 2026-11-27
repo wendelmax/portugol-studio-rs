@@ -3,7 +3,7 @@ name = "portugol-tela"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Formato .tela de janelas desktop PORS: parser sem perdas, esquema de controles, validação e formatação canônica"
+description = "Formato .design das telas desktop PORS (pseudo-XAML): parser, esquema de controles, validação e formatação canônica"
 
 [dependencies]
 portugol-hir = { path = "../portugol-hir" }

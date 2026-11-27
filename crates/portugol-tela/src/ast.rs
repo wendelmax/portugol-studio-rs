@@ -1,22 +1,20 @@
-//! Árvore sintática do formato `.tela`.
+//! Árvore do formato `.design`.
 //!
-//! A árvore guarda os comentários junto do item que eles acompanham, para que
-//! a formatação canônica não perca nada do que o aluno escreveu.
+//! A árvore é genérica (elementos, atributos, comentários e texto) e guarda a
+//! ordem do arquivo, os comentários e as linhas em branco entre irmãos, para
+//! que a formatação canônica não perca nada do que o aluno escreveu. O
+//! significado de cada elemento vem do [`crate::schema`].
 
 use portugol_hir::Span;
 
-/// Um arquivo `.tela`: o cabeçalho de versão e uma janela.
+/// Um arquivo `.design`: comentários soltos e a `<Janela>` raiz.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Screen {
-    /// Versão do esquema declarada em `versao N`. Sem a linha, vale
-    /// [`crate::CURRENT_VERSION`].
-    pub version: u32,
-    pub version_span: Option<Span>,
-    /// Comentários antes de `versao` (ou da janela, sem a linha de versão).
-    pub leading_comments: Vec<String>,
-    pub window: Window,
-    /// Comentários depois da janela.
-    pub trailing_comments: Vec<String>,
+pub struct Document {
+    /// Comentários antes de `<Janela>`.
+    pub leading: Vec<Comment>,
+    pub root: Element,
+    /// Comentários depois de `</Janela>`.
+    pub trailing: Vec<Comment>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -26,94 +24,96 @@ pub struct Name {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Window {
-    pub keyword_span: Span,
+pub struct Element {
     pub name: Name,
-    /// Comentários entre `versao` e `janela`.
-    pub comments: Vec<String>,
-    pub body: Body,
-}
-
-/// Conteúdo entre chaves de uma janela ou de um controle.
-#[derive(Debug, Clone, PartialEq, Default)]
-pub struct Body {
-    pub properties: Vec<Property>,
-    pub controls: Vec<Control>,
-    /// Comentários soltos antes do `}`.
-    pub closing_comments: Vec<String>,
-    /// Span das chaves, incluindo `{` e `}`.
+    pub attributes: Vec<Attribute>,
+    pub children: Vec<Node>,
+    /// Do `<` de abertura até o `>` de fechamento.
     pub span: Span,
+    /// Havia uma linha em branco antes deste elemento.
+    pub blank_line_before: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Control {
-    /// Tipo do controle (`botao`, `rotulo`, ...), validado contra o esquema.
-    pub kind: Name,
+pub struct Attribute {
     pub name: Name,
-    /// Comentários nas linhas acima do controle.
-    pub comments: Vec<String>,
-    /// Comentário na mesma linha do `}` que fecha o controle.
-    pub trailing_comment: Option<String>,
-    pub body: Body,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Property {
-    pub name: Name,
-    pub value: Value,
+    /// Valor com as entidades (`&amp;`, ...) já decodificadas.
+    pub value: String,
+    /// Valor como está no arquivo, entre as aspas.
+    pub raw: String,
+    /// Span do valor sem as aspas.
     pub value_span: Span,
-    /// Comentários nas linhas acima da propriedade.
-    pub comments: Vec<String>,
-    /// Comentário na mesma linha, depois do valor.
-    pub trailing_comment: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Value {
-    Integer(i64),
-    Text(String),
-    Bool(bool),
-    /// Um nome sem aspas: handler de evento, nome de registro ou opção.
-    Name(String),
-    List(Vec<ListItem>),
+pub enum Node {
+    Element(Element),
+    Comment(Comment),
+    Text(Text),
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct ListItem {
-    pub value: Value,
+pub struct Comment {
+    /// Conteúdo entre `<!--` e `-->`, sem alteração.
+    pub text: String,
     pub span: Span,
+    pub blank_line_before: bool,
 }
 
-impl Value {
-    /// Descrição do tipo, usada em mensagens de erro.
-    pub fn kind_label(&self) -> &'static str {
-        match self {
-            Value::Integer(_) => "inteiro",
-            Value::Text(_) => "cadeia",
-            Value::Bool(_) => "lógico",
-            Value::Name(_) => "nome",
-            Value::List(_) => "lista",
-        }
+/// Texto entre tags. Só `<Item>` aceita texto; nos demais elementos o texto é
+/// diagnóstico. Espaços e quebras de linha soltos não viram nós.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Text {
+    /// Texto decodificado e sem espaços nas pontas.
+    pub text: String,
+    pub span: Span,
+    pub blank_line_before: bool,
+}
+
+impl Element {
+    pub fn attribute(&self, name: &str) -> Option<&Attribute> {
+        self.attributes.iter().find(|a| a.name.text == name)
+    }
+
+    /// Valor de `Nome`, quando o elemento tem um.
+    pub fn control_name(&self) -> Option<&Attribute> {
+        self.attribute("Nome")
+    }
+
+    pub fn elements(&self) -> impl Iterator<Item = &Element> {
+        self.children.iter().filter_map(|node| match node {
+            Node::Element(element) => Some(element),
+            _ => None,
+        })
+    }
+
+    pub fn texts(&self) -> impl Iterator<Item = &Text> {
+        self.children.iter().filter_map(|node| match node {
+            Node::Text(text) => Some(text),
+            _ => None,
+        })
     }
 }
 
-impl Body {
-    pub fn property(&self, name: &str) -> Option<&Property> {
-        self.properties.iter().find(|p| p.name.text == name)
-    }
-}
-
-impl Screen {
-    /// Todos os controles da janela, em profundidade e na ordem do arquivo.
-    pub fn all_controls(&self) -> Vec<&Control> {
-        fn walk<'a>(controls: &'a [Control], out: &mut Vec<&'a Control>) {
-            for control in controls {
-                out.push(control);
-                walk(&control.body.controls, out);
+impl Document {
+    /// Todos os elementos abaixo da raiz, em profundidade e na ordem do
+    /// arquivo.
+    pub fn descendants(&self) -> Vec<&Element> {
+        fn walk<'a>(element: &'a Element, out: &mut Vec<&'a Element>) {
+            for child in element.elements() {
+                out.push(child);
+                walk(child, out);
             }
         }
         let mut out = Vec::new();
-        walk(&self.window.body.controls, &mut out);
+        walk(&self.root, &mut out);
         out
+    }
+
+    /// Elemento cujo `Nome` é `name`.
+    pub fn find(&self, name: &str) -> Option<&Element> {
+        self.descendants()
+            .into_iter()
+            .find(|e| e.control_name().is_some_and(|n| n.value == name))
     }
 }

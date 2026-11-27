@@ -1,18 +1,15 @@
-//! Formato `.tela`: a descrição de uma janela de um projeto desktop PORS
-//! (ADR 0018).
+//! Formato `.design`: o desenho de uma tela de um projeto desktop PORS, em
+//! pseudo-XAML (ADR 0018). Uma tela é a junção de `Nome.design` com o
+//! code-behind `Nome.pors`; este crate cuida só do `.design`.
 //!
-//! ```text
-//! versao 1
-//!
-//! janela JanelaPrincipal {
-//!     titulo: "Calculadora"
-//!     largura: 360
-//!     altura: 240
-//!
-//!     caixa_texto txtA { x: 16  y: 16  largura: 120 }
-//!     botao btnSomar { x: 16  y: 92  texto: "Somar"  ao_clicar: btnSomar_clicar }
-//!     rotulo lblResultado { x: 16  y: 132  texto: "Resultado: -" }
-//! }
+//! ```xml
+//! <Janela Nome="JanelaPrincipal" Titulo="Calculadora" Largura="360" Altura="240" Dados="Conta">
+//!     <Pilha Margem="16" Espaco="8">
+//!         <CaixaTexto Nome="txtA" TextoVazio="Primeiro número" />
+//!         <Botao Nome="btnSomar" Texto="Somar" AoClicar="btnSomar_clicar" />
+//!         <Rotulo Nome="lblResultado" Texto="{dados.mensagem}" />
+//!     </Pilha>
+//! </Janela>
 //! ```
 //!
 //! O crate não depende de UI nem do sistema operacional e compila para
@@ -21,25 +18,28 @@
 
 pub mod ast;
 mod format;
-mod lexer;
 mod parser;
 pub mod schema;
 mod validate;
+pub mod value;
 
-pub use ast::{Body, Control, ListItem, Name, Property, Screen, Value, Window};
+pub use ast::{Attribute, Comment, Document, Element, Name, Node, Text};
 pub use format::format;
 pub use parser::parse;
 pub use portugol_hir::{Diagnostic, Severity, Span};
-pub use validate::{MAX_CONTROLS, MAX_DEPTH, validate};
+pub use validate::{MAX_DEPTH, MAX_ELEMENTS, validate};
 
-/// Versão do esquema que este crate lê e escreve.
+/// Versão do formato que este crate lê e escreve (`Formato="1"`).
 pub const CURRENT_VERSION: u32 = 1;
+
+/// Extensão dos arquivos de desenho, sem o ponto.
+pub const FILE_EXTENSION: &str = "design";
 
 /// Resultado de [`analyze`]: a árvore, quando o arquivo é sintaticamente
 /// válido, e todos os diagnósticos encontrados.
 #[derive(Debug, Clone)]
 pub struct Analysis {
-    pub screen: Option<Screen>,
+    pub document: Option<Document>,
     pub diagnostics: Vec<Diagnostic>,
 }
 
@@ -51,18 +51,18 @@ impl Analysis {
     }
 }
 
-/// Lê e valida um arquivo `.tela`.
+/// Lê e valida um arquivo `.design`.
 pub fn analyze(source: &str) -> Analysis {
     match parse(source) {
-        Ok(screen) => {
-            let diagnostics = validate(&screen);
+        Ok(document) => {
+            let diagnostics = validate(&document);
             Analysis {
-                screen: Some(screen),
+                document: Some(document),
                 diagnostics,
             }
         }
         Err(diagnostic) => Analysis {
-            screen: None,
+            document: None,
             diagnostics: vec![diagnostic],
         },
     }
@@ -71,5 +71,5 @@ pub fn analyze(source: &str) -> Analysis {
 /// Reescreve o texto na forma canônica. Erros de validação não impedem a
 /// formatação; erros de sintaxe, sim.
 pub fn format_source(source: &str) -> Result<String, Diagnostic> {
-    parse(source).map(|screen| format(&screen))
+    parse(source).map(|document| format(&document))
 }

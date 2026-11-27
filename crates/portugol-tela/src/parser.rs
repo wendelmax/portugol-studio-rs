@@ -1,321 +1,413 @@
-//! Parser do formato `.tela`.
+//! Parser do pseudo-XAML dos arquivos `.design`.
 //!
-//! ```text
-//! arquivo     := comentario* ("versao" INTEIRO)? comentario* janela comentario* EOF
-//! janela      := "janela" NOME corpo
-//! corpo       := "{" (propriedade | controle | comentario)* "}"
-//! propriedade := NOME ":" valor
-//! controle    := NOME NOME corpo
-//! valor       := INTEIRO | CADEIA | NOME | "[" (valor ("," valor)* ","?)? "]"
-//! ```
-//!
-//! `verdadeiro` e `falso` sem aspas são valores lógicos.
+//! É XML simples: elementos, atributos entre aspas, comentários `<!-- -->`,
+//! texto e as cinco entidades predefinidas. Não há declaração `<?xml?>`,
+//! DOCTYPE, CDATA, namespaces nem referências numéricas; cada um desses casos
+//! gera um diagnóstico que explica o que fazer.
 
-use portugol_hir::{Diagnostic, Span};
+use portugol_hir::{Diagnostic, Span, line_col};
 
-use crate::ast::{Body, Control, ListItem, Name, Property, Screen, Value, Window};
-use crate::lexer::{Kind, Token, lex};
+use crate::ast::{Attribute, Comment, Document, Element, Name, Node, Text};
 
-pub fn parse(source: &str) -> Result<Screen, Diagnostic> {
-    let tokens = lex(source)?;
-    Parser { tokens, index: 0 }.screen()
+pub fn parse(source: &str) -> Result<Document, Diagnostic> {
+    let mut parser = Parser { source, pos: 0 };
+    parser.document()
 }
 
-struct Parser {
-    tokens: Vec<Token>,
-    index: usize,
+struct Parser<'a> {
+    source: &'a str,
+    pos: usize,
 }
 
-impl Parser {
-    fn screen(&mut self) -> Result<Screen, Diagnostic> {
-        let leading_comments = self.own_line_comments();
-        let mut window_comments = Vec::new();
-
-        let mut version = crate::CURRENT_VERSION;
-        let mut version_span = None;
-        if self.at_ident("versao") {
-            let keyword = self.advance();
-            let token = self.advance();
-            match token.kind {
-                Kind::Integer(value) if (0..=i64::from(u32::MAX)).contains(&value) => {
-                    version = value as u32;
-                    version_span = Some(keyword.span.join(token.span));
-                }
-                _ => {
-                    return Err(Diagnostic::error(
-                        "tela.expected-version",
-                        "Esperado o número da versão depois de `versao`",
-                        token.span,
-                    ));
-                }
-            }
-            window_comments.extend(self.same_line_comment());
-            window_comments.extend(self.own_line_comments());
-        }
-
-        if !self.at_ident("janela") {
-            return Err(Diagnostic::error(
-                "tela.expected-window",
-                "Esperado `janela` seguido do nome da janela",
-                self.current().span,
-            )
-            .with_help("Um arquivo .tela começa com `janela NomeDaJanela { ... }`."));
-        }
-        let keyword_span = self.advance().span;
-        let name = self.name("Esperado o nome da janela")?;
-        let (body, _) = self.body()?;
-
-        let trailing_comments = self.all_comments();
-        if !matches!(self.current().kind, Kind::Eof) {
-            return Err(Diagnostic::error(
-                "tela.unexpected-token",
-                "Um arquivo .tela descreve uma única janela; nada pode vir depois dela",
-                self.current().span,
+impl Parser<'_> {
+    fn document(&mut self) -> Result<Document, Diagnostic> {
+        let leading = self.loose_comments()?;
+        self.reject_prolog()?;
+        if !self.at("<") || self.at("</") {
+            return Err(self.error_here(
+                "design.expected-window",
+                "Um arquivo .design começa com `<Janela ...>`",
             ));
         }
-
-        Ok(Screen {
-            version,
-            version_span,
-            leading_comments,
-            window: Window {
-                keyword_span,
-                name,
-                comments: window_comments,
-                body,
-            },
-            trailing_comments,
+        let root = self.element()?;
+        let trailing = self.loose_comments()?;
+        if self.pos < self.source.len() {
+            let start = self.pos;
+            let end = self.source[start..]
+                .find(['\n', '\r'])
+                .map_or(self.source.len(), |offset| start + offset);
+            return Err(Diagnostic::error(
+                "design.content-after-window",
+                "Um arquivo .design descreve uma única janela; nada pode vir depois de `</Janela>`",
+                span(start, end),
+            ));
+        }
+        Ok(Document {
+            leading,
+            root,
+            trailing,
         })
     }
 
-    /// Lê `{ ... }`. Devolve o corpo e o comentário na mesma linha do `}`.
-    fn body(&mut self) -> Result<(Body, Option<String>), Diagnostic> {
-        let open = self.current().span;
-        if !matches!(self.current().kind, Kind::LBrace) {
-            return Err(Diagnostic::error(
-                "tela.expected-brace",
-                "Esperado `{`",
-                open,
-            ));
-        }
-        self.advance();
-        // Um comentário logo depois de `{` vai para o primeiro item.
-        let mut pending = self.all_comments();
-        let mut body = Body::default();
-
+    /// Comentários e espaços fora da raiz.
+    fn loose_comments(&mut self) -> Result<Vec<Comment>, Diagnostic> {
+        let mut comments = Vec::new();
         loop {
-            match self.current().kind.clone() {
-                Kind::RBrace => {
-                    let close = self.advance().span;
-                    body.closing_comments = pending;
-                    body.span = open.join(close);
-                    let trailing = self.same_line_comment();
-                    return Ok((body, trailing));
-                }
-                Kind::Eof => {
-                    return Err(Diagnostic::error(
-                        "tela.unclosed-brace",
-                        "Falta `}` para fechar este bloco",
-                        open,
-                    ));
-                }
-                Kind::Ident(_) => {
-                    let first = self.advance();
-                    let Kind::Ident(text) = first.kind else {
-                        unreachable!()
-                    };
-                    let first = Name {
-                        text,
-                        span: first.span,
-                    };
-                    match self.current().kind {
-                        Kind::Colon => {
-                            self.advance();
-                            let (value, value_span) = self.value()?;
-                            let trailing_comment = self.same_line_comment();
-                            body.properties.push(Property {
-                                name: first,
-                                value,
-                                value_span,
-                                comments: std::mem::take(&mut pending),
-                                trailing_comment,
-                            });
-                        }
-                        Kind::Ident(_) => {
-                            let name = self.name("Esperado o nome do controle")?;
-                            let comments = std::mem::take(&mut pending);
-                            let (control_body, trailing_comment) = self.body()?;
-                            body.controls.push(Control {
-                                kind: first,
-                                name,
-                                comments,
-                                trailing_comment,
-                                body: control_body,
-                            });
-                        }
-                        _ => {
-                            return Err(Diagnostic::error(
-                                "tela.unexpected-token",
-                                format!(
-                                    "Esperado `:` depois da propriedade `{}` ou o nome de um controle `{} nome {{ ... }}`",
-                                    first.text, first.text
-                                ),
-                                self.current().span,
-                            ));
-                        }
-                    }
-                    pending.extend(self.all_comments());
-                }
-                _ => {
-                    return Err(Diagnostic::error(
-                        "tela.unexpected-token",
-                        "Esperado uma propriedade (`nome: valor`), um controle ou `}`",
-                        self.current().span,
-                    ));
-                }
+            let blank = self.skip_whitespace();
+            if self.at("<!--") {
+                comments.push(self.comment(blank)?);
+            } else {
+                return Ok(comments);
             }
         }
     }
 
-    fn value(&mut self) -> Result<(Value, Span), Diagnostic> {
-        let token = self.advance();
-        let value = match token.kind {
-            Kind::Integer(value) => Value::Integer(value),
-            Kind::String(value) => Value::Text(value),
-            Kind::Ident(name) if name == "verdadeiro" => Value::Bool(true),
-            Kind::Ident(name) if name == "falso" => Value::Bool(false),
-            Kind::Ident(name) => Value::Name(name),
-            Kind::LBracket => return self.list(token.span),
-            _ => {
-                return Err(Diagnostic::error(
-                    "tela.expected-value",
-                    "Esperado um valor: número, \"cadeia\", verdadeiro/falso, nome ou [lista]",
-                    token.span,
-                ));
-            }
-        };
-        Ok((value, token.span))
-    }
-
-    fn list(&mut self, open: Span) -> Result<(Value, Span), Diagnostic> {
-        let mut items = Vec::new();
-        loop {
-            self.reject_comment_in_list()?;
-            if matches!(self.current().kind, Kind::RBracket) {
-                let close = self.advance().span;
-                return Ok((Value::List(items), open.join(close)));
-            }
-            if matches!(self.current().kind, Kind::Eof) {
-                return Err(Diagnostic::error(
-                    "tela.unclosed-bracket",
-                    "Falta `]` para fechar esta lista",
-                    open,
-                ));
-            }
-            let (value, span) = self.value()?;
-            if matches!(value, Value::List(_)) {
-                return Err(Diagnostic::error(
-                    "tela.nested-list",
-                    "Listas não podem conter outras listas",
-                    span,
-                ));
-            }
-            items.push(ListItem { value, span });
-            self.reject_comment_in_list()?;
-            match self.current().kind {
-                Kind::Comma => {
-                    self.advance();
-                }
-                Kind::RBracket => {}
-                _ => {
-                    return Err(Diagnostic::error(
-                        "tela.expected-comma",
-                        "Esperado `,` ou `]` na lista",
-                        self.current().span,
-                    ));
-                }
-            }
-        }
-    }
-
-    fn name(&mut self, message: &str) -> Result<Name, Diagnostic> {
-        let token = self.advance();
-        match token.kind {
-            Kind::Ident(text) => Ok(Name {
-                text,
-                span: token.span,
-            }),
-            _ => Err(Diagnostic::error(
-                "tela.expected-name",
-                message.to_owned(),
-                token.span,
-            )),
-        }
-    }
-
-    /// Comentário na mesma linha do token anterior, se houver.
-    fn same_line_comment(&mut self) -> Option<String> {
-        if let Kind::Comment {
-            text,
-            own_line: false,
-        } = &self.current().kind
-        {
-            let text = text.clone();
-            self.advance();
-            return Some(text);
-        }
-        None
-    }
-
-    fn own_line_comments(&mut self) -> Vec<String> {
-        let mut out = Vec::new();
-        while let Kind::Comment {
-            text,
-            own_line: true,
-        } = &self.current().kind
-        {
-            out.push(text.clone());
-            self.advance();
-        }
-        out
-    }
-
-    fn all_comments(&mut self) -> Vec<String> {
-        let mut out = Vec::new();
-        while let Kind::Comment { text, .. } = &self.current().kind {
-            out.push(text.clone());
-            self.advance();
-        }
-        out
-    }
-
-    /// Comentários dentro de listas seriam perdidos na formatação; por isso
-    /// são recusados em vez de descartados.
-    fn reject_comment_in_list(&self) -> Result<(), Diagnostic> {
-        if matches!(self.current().kind, Kind::Comment { .. }) {
+    fn reject_prolog(&mut self) -> Result<(), Diagnostic> {
+        if self.at("<?") {
+            let end = self.find_from("?>").map_or(self.source.len(), |e| e + 2);
             return Err(Diagnostic::error(
-                "tela.comment-in-list",
-                "Comentários não são permitidos dentro de listas",
-                self.current().span,
+                "design.xml-declaration",
+                "A declaração `<?xml ...?>` não é usada em arquivos .design",
+                span(self.pos, end),
             )
-            .with_help("Escreva o comentário na linha acima da propriedade."));
+            .with_help("Remova a linha; o arquivo começa direto em `<Janela>`."));
+        }
+        if self.at("<!") && !self.at("<!--") {
+            let end = self.find_from(">").map_or(self.source.len(), |e| e + 1);
+            return Err(Diagnostic::error(
+                "design.doctype",
+                "Declarações `<!DOCTYPE ...>` não são usadas em arquivos .design",
+                span(self.pos, end),
+            )
+            .with_help("Remova a declaração."));
         }
         Ok(())
     }
 
-    fn at_ident(&self, word: &str) -> bool {
-        matches!(&self.current().kind, Kind::Ident(name) if name == word)
-    }
+    fn element(&mut self) -> Result<Element, Diagnostic> {
+        let start = self.pos;
+        self.pos += 1; // `<`
+        let name = self.name("Esperado o nome do elemento depois de `<`")?;
+        let mut attributes: Vec<Attribute> = Vec::new();
 
-    fn current(&self) -> &Token {
-        &self.tokens[self.index]
-    }
-
-    fn advance(&mut self) -> Token {
-        let token = self.tokens[self.index].clone();
-        if self.index + 1 < self.tokens.len() {
-            self.index += 1;
+        loop {
+            let had_space = self.skip_whitespace_any();
+            if self.at("/>") {
+                self.pos += 2;
+                return Ok(Element {
+                    name,
+                    attributes,
+                    children: Vec::new(),
+                    span: span(start, self.pos),
+                    blank_line_before: false,
+                });
+            }
+            if self.at(">") {
+                self.pos += 1;
+                break;
+            }
+            if self.pos >= self.source.len() {
+                return Err(Diagnostic::error(
+                    "design.unclosed-tag",
+                    format!("Falta `>` para terminar a tag `<{}`", name.text),
+                    name.span,
+                ));
+            }
+            if !had_space && !attributes.is_empty() {
+                return Err(
+                    self.error_here("design.expected-space", "Separe os atributos com um espaço")
+                );
+            }
+            attributes.push(self.attribute(&name)?);
         }
-        token
+
+        let children = self.content(&name)?;
+        Ok(Element {
+            name,
+            attributes,
+            children,
+            span: span(start, self.pos),
+            blank_line_before: false,
+        })
     }
+
+    fn attribute(&mut self, element: &Name) -> Result<Attribute, Diagnostic> {
+        let name = self.name(&format!(
+            "Esperado o nome de um atributo, `>` ou `/>` na tag `<{}>`",
+            element.text
+        ))?;
+        self.skip_whitespace_any();
+        if !self.at("=") {
+            return Err(self
+                .error_here(
+                    "design.expected-equals",
+                    format!("Esperado `=` depois do atributo `{}`", name.text),
+                )
+                .with_help(format!("Escreva `{}=\"valor\"`.", name.text)));
+        }
+        self.pos += 1;
+        self.skip_whitespace_any();
+        let quote = match self.peek() {
+            Some(q @ ('"' | '\'')) => q,
+            _ => {
+                return Err(self
+                    .error_here(
+                        "design.expected-quote",
+                        format!("O valor de `{}` deve ficar entre aspas", name.text),
+                    )
+                    .with_help(format!("Escreva `{}=\"valor\"`.", name.text)));
+            }
+        };
+        self.pos += 1;
+        let value_start = self.pos;
+        let Some(offset) = self.source[value_start..].find(quote) else {
+            return Err(Diagnostic::error(
+                "design.unterminated-value",
+                format!("O valor de `{}` não fecha as aspas", name.text),
+                span(value_start - 1, value_start),
+            ));
+        };
+        let value_end = value_start + offset;
+        let raw = &self.source[value_start..value_end];
+        if let Some(lt) = raw.find('<') {
+            return Err(Diagnostic::error(
+                "design.unescaped-less-than",
+                "`<` não pode aparecer dentro de um valor",
+                span(value_start + lt, value_start + lt + 1),
+            )
+            .with_help("Escreva `&lt;` no lugar de `<`."));
+        }
+        let value = decode(raw, value_start)?;
+        self.pos = value_end + 1;
+        Ok(Attribute {
+            name,
+            value,
+            raw: raw.to_owned(),
+            value_span: span(value_start, value_end),
+        })
+    }
+
+    fn content(&mut self, parent: &Name) -> Result<Vec<Node>, Diagnostic> {
+        let mut children = Vec::new();
+        loop {
+            let blank = self.skip_whitespace();
+            if self.pos >= self.source.len() {
+                let (line, _) = line_col(self.source, parent.span.start);
+                return Err(Diagnostic::error(
+                    "design.unclosed-element",
+                    format!("Falta fechar `<{}>` aberta na linha {line}", parent.text),
+                    parent.span,
+                )
+                .with_help(format!("Escreva `</{}>` no fim do conteúdo.", parent.text)));
+            }
+            if self.at("</") {
+                let start = self.pos;
+                self.pos += 2;
+                let closing = self.name("Esperado o nome do elemento depois de `</`")?;
+                self.skip_whitespace_any();
+                if !self.at(">") {
+                    return Err(self.error_here(
+                        "design.unclosed-tag",
+                        format!("Falta `>` para terminar `</{}`", closing.text),
+                    ));
+                }
+                self.pos += 1;
+                if closing.text != parent.text {
+                    let (line, _) = line_col(self.source, parent.span.start);
+                    return Err(Diagnostic::error(
+                        "design.mismatched-tag",
+                        format!(
+                            "Esperado `</{}>` para fechar `<{}>` aberta na linha {line}, mas encontrei `</{}>`",
+                            parent.text, parent.text, closing.text
+                        ),
+                        span(start, self.pos),
+                    ));
+                }
+                return Ok(children);
+            }
+            if self.at("<!--") {
+                children.push(Node::Comment(self.comment(blank)?));
+                continue;
+            }
+            if self.at("<![CDATA[") {
+                return Err(self
+                    .error_here(
+                        "design.cdata",
+                        "Blocos CDATA não são usados em arquivos .design",
+                    )
+                    .with_help(
+                        "Escreva o texto direto, trocando `<` por `&lt;` e `&` por `&amp;`.",
+                    ));
+            }
+            if self.at("<?") || self.at("<!") {
+                return Err(self.error_here(
+                    "design.unexpected-markup",
+                    "Instruções `<?...?>` e `<!...>` não são usadas em arquivos .design",
+                ));
+            }
+            if self.at("<") {
+                let mut element = self.element()?;
+                element.blank_line_before = blank;
+                children.push(Node::Element(element));
+                continue;
+            }
+            let start = self.pos;
+            let end = self.source[start..]
+                .find('<')
+                .map_or(self.source.len(), |offset| start + offset);
+            let raw = &self.source[start..end];
+            let trimmed_start = start + (raw.len() - raw.trim_start().len());
+            let trimmed = raw.trim();
+            let text = decode(trimmed, trimmed_start)?;
+            children.push(Node::Text(Text {
+                text,
+                span: span(trimmed_start, trimmed_start + trimmed.len()),
+                blank_line_before: blank,
+            }));
+            self.pos = end;
+        }
+    }
+
+    fn comment(&mut self, blank_line_before: bool) -> Result<Comment, Diagnostic> {
+        let start = self.pos;
+        let body_start = start + 4;
+        let Some(offset) = self.source[body_start..].find("-->") else {
+            return Err(Diagnostic::error(
+                "design.unclosed-comment",
+                "Comentário sem `-->` de fechamento",
+                span(start, body_start),
+            ));
+        };
+        let body_end = body_start + offset;
+        self.pos = body_end + 3;
+        Ok(Comment {
+            text: self.source[body_start..body_end].to_owned(),
+            span: span(start, self.pos),
+            blank_line_before,
+        })
+    }
+
+    fn name(&mut self, message: &str) -> Result<Name, Diagnostic> {
+        let start = self.pos;
+        let mut end = start;
+        for (index, c) in self.source[start..].char_indices() {
+            let valid = if index == 0 {
+                c.is_alphabetic() || c == '_'
+            } else {
+                c.is_alphanumeric() || c == '_' || c == '-' || c == '.' || c == ':'
+            };
+            if !valid {
+                break;
+            }
+            end = start + index + c.len_utf8();
+        }
+        if end == start {
+            return Err(self.error_here("design.expected-name", message.to_owned()));
+        }
+        self.pos = end;
+        let text = &self.source[start..end];
+        if text.contains(':') {
+            return Err(Diagnostic::error(
+                "design.namespace",
+                format!("Prefixos de namespace como `{text}` não são usados em arquivos .design"),
+                span(start, end),
+            )
+            .with_help(
+                "Use só o nome, sem `x:` ou `d:`; por exemplo, `Nome` no lugar de `x:Name`.",
+            ));
+        }
+        Ok(Name {
+            text: text.to_owned(),
+            span: span(start, end),
+        })
+    }
+
+    /// Pula espaços e devolve se havia uma linha em branco (duas quebras).
+    fn skip_whitespace(&mut self) -> bool {
+        let mut newlines = 0;
+        while let Some(c) = self.peek() {
+            if !c.is_whitespace() {
+                break;
+            }
+            if c == '\n' {
+                newlines += 1;
+            }
+            self.pos += c.len_utf8();
+        }
+        newlines >= 2
+    }
+
+    fn skip_whitespace_any(&mut self) -> bool {
+        let before = self.pos;
+        self.skip_whitespace();
+        self.pos > before
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.source[self.pos..].chars().next()
+    }
+
+    fn at(&self, text: &str) -> bool {
+        self.source[self.pos..].starts_with(text)
+    }
+
+    fn find_from(&self, text: &str) -> Option<usize> {
+        self.source[self.pos..].find(text).map(|o| self.pos + o)
+    }
+
+    fn error_here(&self, code: &'static str, message: impl Into<String>) -> Diagnostic {
+        let end = self.peek().map_or(self.pos, |c| self.pos + c.len_utf8());
+        Diagnostic::error(code, message, span(self.pos, end))
+    }
+}
+
+/// Decodifica as entidades predefinidas. `offset` é a posição de `raw` no
+/// arquivo, para o span dos diagnósticos.
+pub(crate) fn decode(raw: &str, offset: usize) -> Result<String, Diagnostic> {
+    if !raw.contains('&') {
+        return Ok(raw.to_owned());
+    }
+    let mut out = String::with_capacity(raw.len());
+    let mut rest = raw;
+    let mut position = offset;
+    while let Some(amp) = rest.find('&') {
+        out.push_str(&rest[..amp]);
+        position += amp;
+        rest = &rest[amp..];
+        let Some(semicolon) = rest.find(';').filter(|&s| s <= 10) else {
+            return Err(Diagnostic::error(
+                "design.bare-ampersand",
+                "`&` sozinho não é permitido",
+                span(position, position + 1),
+            )
+            .with_help("Escreva `&amp;` no lugar de `&`."));
+        };
+        let entity = &rest[1..semicolon];
+        let decoded = match entity {
+            "lt" => '<',
+            "gt" => '>',
+            "amp" => '&',
+            "quot" => '"',
+            "apos" => '\'',
+            _ => {
+                return Err(Diagnostic::error(
+                    "design.unknown-entity",
+                    format!("Entidade desconhecida: `&{entity};`"),
+                    span(position, position + semicolon + 1),
+                )
+                .with_help(
+                    "Use só &lt;, &gt;, &amp;, &quot; e &apos;; os demais caracteres podem ser digitados direto.",
+                ));
+            }
+        };
+        out.push(decoded);
+        position += semicolon + 1;
+        rest = &rest[semicolon + 1..];
+    }
+    out.push_str(rest);
+    Ok(out)
+}
+
+fn span(start: usize, end: usize) -> Span {
+    Span::new(start as u32, end as u32)
 }

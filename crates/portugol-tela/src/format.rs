@@ -1,175 +1,148 @@
-//! Formatação canônica de arquivos `.tela`.
+//! Formatação canônica de arquivos `.design`.
 //!
 //! O designer da IDE reescreve o arquivo com esta função, então a saída é
-//! determinística: mesma árvore, mesmo texto. Comentários, a ordem das
-//! propriedades e a ordem dos controles são preservados.
+//! determinística: mesma árvore, mesmo texto. Comentários, a ordem dos
+//! elementos e dos atributos e as linhas em branco entre irmãos são
+//! preservados.
 
-use std::fmt::Write as _;
-
-use crate::ast::{Body, Control, Property, Screen, Value};
+use crate::ast::{Attribute, Comment, Document, Element, Node};
 
 const INDENT: &str = "    ";
-/// Controles sem filhos nem comentários ficam numa linha quando cabem nesta
-/// largura.
-const MAX_INLINE_WIDTH: usize = 100;
+/// Tags que passam desta largura ficam com um atributo por linha.
+const MAX_WIDTH: usize = 100;
 
-pub fn format(screen: &Screen) -> String {
+pub fn format(document: &Document) -> String {
     let mut out = String::new();
-    for comment in &screen.leading_comments {
+    for comment in &document.leading {
         write_comment(&mut out, 0, comment);
     }
-    let _ = writeln!(out, "versao {}", screen.version);
-    out.push('\n');
-
-    for comment in &screen.window.comments {
-        write_comment(&mut out, 0, comment);
+    let mut root = document.root.clone();
+    if root.name.text == crate::schema::WINDOW.name && root.attribute("Formato").is_none() {
+        root.attributes.push(Attribute {
+            name: crate::ast::Name {
+                text: "Formato".to_owned(),
+                span: Default::default(),
+            },
+            value: crate::CURRENT_VERSION.to_string(),
+            raw: crate::CURRENT_VERSION.to_string(),
+            value_span: Default::default(),
+        });
     }
-    let _ = write!(out, "janela {} ", screen.window.name.text);
-    write_body(&mut out, 0, &screen.window.body);
-    out.push('\n');
-
-    for comment in &screen.trailing_comments {
+    write_element(&mut out, 0, &root);
+    for comment in &document.trailing {
         write_comment(&mut out, 0, comment);
     }
     out
 }
 
-fn write_body(out: &mut String, level: usize, body: &Body) {
-    out.push_str("{\n");
-    let inner = level + 1;
+fn write_element(out: &mut String, level: usize, element: &Element) {
+    let name = &element.name.text;
+    let attributes: Vec<String> = element.attributes.iter().map(attribute).collect();
 
-    for property in &body.properties {
-        for comment in &property.comments {
-            write_comment(out, inner, comment);
-        }
-        indent(out, inner);
-        write_property(out, property);
-        write_trailing(out, property.trailing_comment.as_deref());
-        out.push('\n');
-    }
-
-    let mut previous_multiline = false;
-    for (index, control) in body.controls.iter().enumerate() {
-        let inline = inline_control(inner, control);
-        let separate = index == 0 && !body.properties.is_empty()
-            || index > 0
-                && (previous_multiline || inline.is_none() || !control.comments.is_empty());
-        if separate {
-            out.push('\n');
-        }
-        for comment in &control.comments {
-            write_comment(out, inner, comment);
-        }
-        indent(out, inner);
-        match &inline {
-            Some(line) => out.push_str(line),
-            None => {
-                let _ = write!(out, "{} {} ", control.kind.text, control.name.text);
-                write_body(out, inner, &control.body);
-            }
-        }
-        write_trailing(out, control.trailing_comment.as_deref());
-        out.push('\n');
-        previous_multiline = inline.is_none();
-    }
-
-    if !body.closing_comments.is_empty() {
-        if !body.properties.is_empty() || !body.controls.is_empty() {
-            out.push('\n');
-        }
-        for comment in &body.closing_comments {
-            write_comment(out, inner, comment);
-        }
+    if let [Node::Text(text)] = element.children.as_slice() {
+        indent(out, level);
+        write_open(out, level, name, &attributes, ">");
+        out.push_str(&escape_text(&text.text));
+        out.push_str("</");
+        out.push_str(name);
+        out.push_str(">\n");
+        return;
     }
 
     indent(out, level);
-    out.push('}');
-}
-
-/// Forma de uma linha do controle, quando ela é possível.
-fn inline_control(level: usize, control: &Control) -> Option<String> {
-    let body = &control.body;
-    let has_comments = !body.closing_comments.is_empty()
-        || body
-            .properties
-            .iter()
-            .any(|p| !p.comments.is_empty() || p.trailing_comment.is_some());
-    if !body.controls.is_empty() || has_comments {
-        return None;
+    if element.children.is_empty() {
+        write_open(out, level, name, &attributes, " />");
+        out.push('\n');
+        return;
     }
 
-    let mut line = format!("{} {} {{", control.kind.text, control.name.text);
-    if body.properties.is_empty() {
-        line.push('}');
-    } else {
-        for (index, property) in body.properties.iter().enumerate() {
-            line.push_str(if index == 0 { " " } else { "  " });
-            write_property(&mut line, property);
+    write_open(out, level, name, &attributes, ">");
+    out.push('\n');
+    for (index, child) in element.children.iter().enumerate() {
+        let blank = match child {
+            Node::Element(e) => e.blank_line_before,
+            Node::Comment(c) => c.blank_line_before,
+            Node::Text(t) => t.blank_line_before,
+        };
+        if blank && index > 0 {
+            out.push('\n');
         }
-        line.push_str(" }");
-    }
-
-    let width = level * INDENT.len() + line.chars().count();
-    (width <= MAX_INLINE_WIDTH).then_some(line)
-}
-
-fn write_property(out: &mut String, property: &Property) {
-    out.push_str(&property.name.text);
-    out.push_str(": ");
-    write_value(out, &property.value);
-}
-
-fn write_value(out: &mut String, value: &Value) {
-    match value {
-        Value::Integer(value) => {
-            let _ = write!(out, "{value}");
-        }
-        Value::Text(text) => {
-            out.push('"');
-            for c in text.chars() {
-                match c {
-                    '"' => out.push_str("\\\""),
-                    '\\' => out.push_str("\\\\"),
-                    '\n' => out.push_str("\\n"),
-                    '\t' => out.push_str("\\t"),
-                    other => out.push(other),
-                }
+        match child {
+            Node::Element(e) => write_element(out, level + 1, e),
+            Node::Comment(c) => write_comment(out, level + 1, c),
+            Node::Text(t) => {
+                indent(out, level + 1);
+                out.push_str(&escape_text(&t.text));
+                out.push('\n');
             }
-            out.push('"');
-        }
-        Value::Bool(true) => out.push_str("verdadeiro"),
-        Value::Bool(false) => out.push_str("falso"),
-        Value::Name(name) => out.push_str(name),
-        Value::List(items) => {
-            out.push('[');
-            for (index, item) in items.iter().enumerate() {
-                if index > 0 {
-                    out.push_str(", ");
-                }
-                write_value(out, &item.value);
-            }
-            out.push(']');
         }
     }
-}
-
-fn write_comment(out: &mut String, level: usize, comment: &str) {
     indent(out, level);
-    if comment.is_empty() {
-        out.push_str("//\n");
-    } else {
-        let _ = writeln!(out, "// {comment}");
-    }
+    out.push_str("</");
+    out.push_str(name);
+    out.push_str(">\n");
 }
 
-fn write_trailing(out: &mut String, comment: Option<&str>) {
-    if let Some(comment) = comment {
-        if comment.is_empty() {
-            out.push_str(" //");
-        } else {
-            let _ = write!(out, " // {comment}");
+/// Escreve `<Nome atributos` seguido de `end`, numa linha quando cabe e com um
+/// atributo por linha quando não cabe.
+fn write_open(out: &mut String, level: usize, name: &str, attributes: &[String], end: &str) {
+    let inline: usize = attributes.iter().map(|a| a.chars().count() + 1).sum();
+    let width = level * INDENT.len() + 1 + name.chars().count() + inline + end.len();
+    out.push('<');
+    out.push_str(name);
+    if width <= MAX_WIDTH || attributes.len() <= 1 {
+        for attribute in attributes {
+            out.push(' ');
+            out.push_str(attribute);
+        }
+    } else {
+        for attribute in attributes {
+            out.push('\n');
+            indent(out, level + 1);
+            out.push_str(attribute);
         }
     }
+    out.push_str(end);
+}
+
+fn attribute(attribute: &Attribute) -> String {
+    format!(
+        "{}=\"{}\"",
+        attribute.name.text,
+        escape_attribute(&attribute.value)
+    )
+}
+
+fn write_comment(out: &mut String, level: usize, comment: &Comment) {
+    indent(out, level);
+    out.push_str("<!--");
+    out.push_str(&comment.text);
+    out.push_str("-->\n");
+}
+
+fn escape_attribute(value: &str) -> String {
+    let mut out = String::with_capacity(value.len());
+    for c in value.chars() {
+        match c {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '"' => out.push_str("&quot;"),
+            other => out.push(other),
+        }
+    }
+    out
+}
+
+fn escape_text(value: &str) -> String {
+    let mut out = String::with_capacity(value.len());
+    for c in value.chars() {
+        match c {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            other => out.push(other),
+        }
+    }
+    out
 }
 
 fn indent(out: &mut String, level: usize) {
