@@ -4,7 +4,7 @@
 - **Data:** 2026-11-27
 - **Responsável:** mantenedor do produto
 - **Relacionados:** [ADR 0015](0015-evolucao-visual-orientada-a-aprendizagem.md), [ADR 0016](0016-pors-como-linguagem-autoral-e-retirada-do-por.md), [ADR 0017](0017-modelo-execucao-e-estado-ui-visual-pors.md), [ADR 0020](0020-ajustes-pedagogicos-da-sintaxe-pors.md), [ADR 0021](0021-tela-como-forma-unica-de-interface-pors.md)
-- **Emendas:** Emenda 1 e Emenda 2 (2026-11-27)
+- **Emendas:** Emendas 1, 2 e 3 (2026-11-27)
 
 > **Emenda 1 (2026-11-27).** O formato da tela passa a usar uma marcação de tags no
 > estilo XAML (pseudo-XAML) em vez da sintaxe de chaves da versão inicial. O
@@ -23,6 +23,16 @@
 > conceito e do nó que agrupa os dois arquivos no Explorador. Abrir o nó abre o
 > modo visual; abrir o `.design` mostra o pseudo-XAML; abrir o `.pors` mostra o
 > código. O modo visual ganha as vistas *Design*, *Dividido* e *Código*.
+
+> **Emenda 3 (2026-11-27).** Registra quais conceitos do WPF o formato
+> aproveita, em versão simplificada, e quais ficam de fora. Entram já: o
+> contêiner `Encaixe`, os atributos `Preenchimento` e `Alinhamento`, a ordem de
+> tabulação, as teclas de acesso e a `Descricao` para leitores de tela (Fase 2);
+> a vinculação de mão dupla em controles de entrada, `Habilitado` vinculado e
+> dados de exemplo no designer (Fase 4). Modelos de itens, estilos, validação
+> junto do campo e diálogos entre telas ficam para depois. Eventos roteados,
+> *templates* de controle, *triggers*, animações, conversores e `ICommand` não
+> serão adotados. Ver a seção 8.
 
 ## Contexto
 
@@ -149,7 +159,22 @@ nenhum framework, o que mantém o alvo de exportação trocável.
 Controles: `Rotulo`, `Botao`, `CaixaTexto`, `CaixaSelecao`, `BotaoOpcao`,
 `Lista`, `Combo` e `Imagem`. Componentes não visuais: `Temporizador` e
 `DialogoArquivo`, que ficam direto na `<Janela>`. Contêineres: `Painel`,
-`Pilha` e `Grade`, descritos abaixo.
+`Pilha`, `Grade` e `Encaixe`, descritos abaixo.
+
+Atributos comuns a todos os controles visuais, além de posição e tamanho:
+
+- `Margem` (espaço por fora) e, nos contêineres e em `Botao`, `Preenchimento`
+  (espaço por dentro), com um, dois ou quatro números (`"8"`, `"8,4"`,
+  `"8,4,8,4"`);
+- `Alinhamento` e `AlinhamentoVertical` (`Inicio`, `Centro`, `Fim`,
+  `Esticar`), usados dentro de `Pilha`, `Grade` e `Encaixe`;
+- `Descricao`, o texto lido por leitores de tela quando o controle não tem
+  texto visível próprio (uma `Imagem`, por exemplo).
+
+Acessibilidade de teclado sem atributos extras: a **ordem de tabulação** é a
+ordem dos elementos no `.design`, e um `_` no texto define a **tecla de
+acesso** (`Texto="_Salvar"` mostra "Salvar" com o S sublinhado e responde a
+Alt+S; `__` escreve um `_` literal).
 
 #### Três níveis: do Windows Forms ao WPF
 
@@ -167,6 +192,23 @@ O aluno sobe de nível sem trocar de ferramenta nem de formato:
    `Grade` que é o único filho de `Janela` ou `Painel` ocupa todo o espaço; caso
    contrário, é posicionada por `X`/`Y` como qualquer controle. O designer
    continua arrastando controles para dentro deles.
+
+   `Encaixe` monta o layout clássico de aplicativo: cada filho declara
+   `Encaixar="Cima"`, `"Baixo"`, `"Esquerda"` ou `"Direita"` e ocupa aquela
+   borda, na ordem do arquivo; o último filho sem `Encaixar` preenche o espaço
+   que sobra.
+
+   ```xml
+   <Encaixe>
+       <Rotulo Encaixar="Cima" Texto="Cadastro de alunos" />
+       <Pilha Encaixar="Esquerda" Largura="160"> ... </Pilha>
+       <Grade> ... </Grade>
+   </Encaixe>
+   ```
+
+   Os atributos que o filho declara para o contêiner ler (`Linha`, `Coluna`,
+   `Encaixar`) são o equivalente às propriedades anexadas do WPF; a ajuda os
+   apresenta como "propriedades que o pai usa para posicionar o filho".
 3. **Vinculação de exibição (WPF simplificado).** Um atributo pode mostrar o
    estado do programa com `{dados.campo}`, a mesma sintaxe da interpolação de
    cadeias (ADR 0020):
@@ -182,8 +224,27 @@ O aluno sobe de nível sem trocar de ferramenta nem de formato:
      escalares do ADR 0020. Em atributos de outro tipo, o valor deve ser
      exatamente um vínculo `{...}` do tipo do atributo.
    - `\{` e `\}` escrevem chaves literais, como nas cadeias PORS.
-   - A vinculação é de mão única (estado → tela). Depois de cada handler, os
-     vínculos são reavaliados. Ligação nos dois sentidos fica para depois.
+   - Nos atributos de exibição, a vinculação é de mão única (estado → tela).
+     Depois de cada handler, os vínculos são reavaliados.
+   - Nos controles de entrada, a vinculação é de **mão dupla**: em
+     `<CaixaTexto Texto="{dados.nome}" />`, digitar atualiza `dados.nome`, e
+     uma mudança em `dados.nome` atualiza o campo. Vale para `Texto` de
+     `CaixaTexto`, `Marcado` de `CaixaSelecao` e `BotaoOpcao` e `Selecionado`
+     de `Lista` e `Combo`. O valor vinculado deve ser exatamente um caminho
+     `{dados.campo}` do tipo do atributo. Com isso, um formulário funciona sem
+     um handler por campo; o handler `AoAlterar` continua disponível para
+     reagir à mudança.
+   - Uma regra de negócio decide se uma ação está disponível com
+     `Habilitado="{dados.pode_salvar}"`, no lugar dos comandos com
+     `CanExecute` do WPF.
+   - O designer mostra os vínculos com **dados de exemplo**: o aluno define
+     valores de exemplo para os campos de `Dados` no painel de propriedades, e
+     o modo visual exibe "Resultado: 42" em vez de `{dados.resultado}`. Os
+     exemplos ficam no `.design` (`<DadosExemplo resultado="42" />`, filho da
+     `<Janela>`), são ignorados na execução e na exportação, e só aceitam
+     campos e tipos que existem no registro. É o único elemento cujos
+     atributos não seguem o PascalCase: eles são os nomes dos campos do
+     registro, como escritos no `.pors`.
 
 ### 3. Designer visual na IDE
 
@@ -272,7 +333,12 @@ funcao btnSomar_clicar(tela: JanelaPrincipal) -> JanelaPrincipal {
   no caminho crítico.
 - Uma propriedade vinculada na marcação é somente leitura no code-behind:
   atribuir `t.lblResultado.texto` quando `Texto` usa `{dados...}` é
-  diagnóstico, para que a tela tenha uma única fonte de verdade.
+  diagnóstico, para que a tela tenha uma única fonte de verdade. Na
+  vinculação de mão dupla, o valor digitado é lido e alterado em `t.dados`, e
+  não no campo do controle.
+- `dados` e os handlers puros fazem o papel do *view model* do MVVM, sem a
+  cerimônia: como o estado é recalculado a cada evento, não há notificação de
+  mudança (`INotifyPropertyChanged`) para o aluno implementar.
 - O registro de `Dados` começa com os valores padrão de cada campo (`0`, `""`,
   `falso`, vetor vazio). O handler opcional `AoAbrir` da janela ajusta o
   estado inicial.
@@ -308,7 +374,8 @@ como framework de UI do binário gerado:
 
 - cada `.design` é traduzido para um componente `.slint`. Posição livre vira
   `x`/`y`, `Pilha` vira `VerticalLayout`/`HorizontalLayout`, `Grade` vira
-  `GridLayout`, e vínculos `{dados.campo}` viram *bindings* de propriedade do
+  `GridLayout`, `Encaixe` vira uma combinação desses layouts (o Slint não tem
+  um equivalente direto), e vínculos `{dados.campo}` viram *bindings* de propriedade do
   Slint; propriedades e *callbacks* mapeiam quase um para um;
 - o code-behind é traduzido pelo `portugol-rust`: o registro da janela vira uma
   `struct` Rust; cada handler vira uma função `fn(JanelaPrincipal) ->
@@ -345,6 +412,38 @@ interfaces em PORS. O
 permanecem o modelo de estado puro, o orçamento por evento, o histórico e a VM
 em WASM para a prévia. Nada aqui antecipa os gates de retirada de `.por`/`.pex`
 do ADR 0016.
+
+### 8. Conceitos do WPF: o que entra e o que fica de fora
+
+O critério é o que ajuda a pensar em estrutura de interface; o que existe para
+construir frameworks ou interfaces muito elaboradas fica de fora.
+
+| Conceito do WPF | No PORS | Quando |
+|---|---|---|
+| Separação XAML + code-behind | `.design` + `.pors` | Fase 1 |
+| Árvore lógica | Aninhamento das tags e árvore de elementos do designer | Fase 2 |
+| `StackPanel`, `Grid`, `DockPanel`, `Canvas` | `Pilha`, `Grade`, `Encaixe`, posição livre em `Janela`/`Painel` | Fase 2 |
+| `Margin`, `Padding`, alinhamentos | `Margem`, `Preenchimento`, `Alinhamento`, `AlinhamentoVertical` | Fase 2 |
+| Propriedades anexadas | `Linha`, `Coluna`, `Encaixar` | Fase 2 |
+| `TabIndex`, teclas de acesso, `AutomationProperties.Name` | Ordem das tags, `_` no texto, `Descricao` | Fase 2 |
+| Unidades independentes de resolução | Pixels lógicos | Fase 2 |
+| Data binding de mão única e dupla | `{dados.campo}` | Fase 4 |
+| `CanExecute` de comandos | `Habilitado="{dados...}"` | Fase 4 |
+| Dados de tempo de design (`d:DataContext`) | `<DadosExemplo>` | Fase 4 |
+| MVVM | `dados` + handlers puros, sem notificação de mudança | Fase 4 |
+| `DataTemplate` | `<Lista Itens="{dados.alunos}">` com `<ModeloItem>` para cada `registro` | Depois |
+| `Style`, `ResourceDictionary`, temas | `<Estilo Para="Botao" ... />` na janela ou no projeto, temas claro e escuro | Depois |
+| Validação (`IDataErrorInfo`) | `Erro="{dados.erro_idade}"` junto do campo, ligado a `Resultado` e `Tipos.para_*` | Depois |
+| Várias janelas e diálogos (`ShowDialog`) | Abrir outra tela como diálogo, com resultado em `Resultado` | Depois |
+
+Não serão adotados: eventos roteados (*bubbling*/*tunneling*), dependency
+properties declaradas pelo aluno, `ControlTemplate`, *triggers* e
+`VisualStateManager`, *storyboards* e animações, conversores
+(`IValueConverter`, substituídos pela interpolação e pela formatação do
+`escreva`), `ICommand` (substituído por handler + `Habilitado`) e o modelo de
+conteúdo arbitrário (o máximo previsto é um `Botao` com `Icone`). Cada um é um
+conceito a mais antes de o primeiro programa funcionar, sem ganho
+proporcional no aprendizado.
 
 ## Alternativas consideradas
 
@@ -400,19 +499,23 @@ Rust do produto. Pode ser oferecida depois como "empacotar sem compilar".
   *Dividido* e *Código*, canvas, caixa de ferramentas, árvore de
   elementos, seleção, movimentação, redimensionamento, painel de propriedades,
   desfazer/refazer e sincronização com o texto; `Janela`/`Painel` livres,
-  `Pilha` e `Grade`.
+  `Pilha`, `Grade` e `Encaixe`; `Margem`, `Preenchimento`, alinhamentos,
+  ordem de tabulação, teclas de acesso e `Descricao`.
 - **Fase 3 (code-behind e execução):** síntese do registro da janela na HIR,
   verificação das ligações de eventos, criação do handler por duplo clique,
   execução em janela Tauri separada e snapshots no depurador; prévia visual da
   IDE e playground passam a usar telas (ADR 0021).
-- **Fase 4 (vinculação, nível 3):** `{dados.campo}` em atributos, verificação
-  de tipos e propriedades vinculadas somente leitura.
+- **Fase 4 (vinculação, nível 3):** `{dados.campo}` em atributos, de mão única
+  na exibição e de mão dupla nos controles de entrada; `Habilitado`
+  vinculado; `<DadosExemplo>` no designer; verificação de tipos e
+  propriedades vinculadas somente leitura.
 - **Fase 5 (serviços do SO):** `Dialogo`, `Arquivos`, `AreaTransferencia`,
   `Notificacao` e `Temporizador`, com permissões no manifesto.
 - **Fase 6 (exportação Slint):** `.design` → `.slint`, adaptadores de
   *callbacks* e testes de paridade entre a VM e o binário exportado.
-- **Depois:** ligação nos dois sentidos, estilos e temas, células que ocupam
-  várias linhas ou colunas e modelos de itens.
+- **Depois:** modelos de itens (`<ModeloItem>`), estilos e temas, validação
+  junto do campo, diálogos entre telas e células que ocupam várias linhas ou
+  colunas.
 - A HIR passa a aceitar tipos sintetizados de fora do código-fonte `.pors`,
   com *source maps* que apontam para o `.design`.
 - Testes de paridade passam a cobrir a sequência de eventos → estado da janela
