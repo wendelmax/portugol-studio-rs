@@ -12,7 +12,8 @@ interface EditorAtCoordinates {
 export function createEditorNavigationBindings(dependencies: EditorNavigationBindingsDependencies) {
   function onEditorClick(event: Event, editor: EditorAtCoordinates): boolean {
     const mouse = event as MouseEvent;
-    if (dependencies.activeLanguage() === "rust") return false;
+    const language = dependencies.activeLanguage();
+    if (language === "rust" || language === "markup") return false;
     if (mouse.button !== 0 || (!mouse.ctrlKey && !mouse.metaKey)) return false;
     const offset = editor.posAtCoords({ x: mouse.clientX, y: mouse.clientY });
     if (offset === null) return false;

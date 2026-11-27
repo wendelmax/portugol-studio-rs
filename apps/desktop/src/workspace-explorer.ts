@@ -13,28 +13,110 @@ export function collectWorkspaceFiles(entries: readonly WorkspaceEntry[]): Works
   return files;
 }
 
+/**
+ * Nó de tela do Explorador (ADR 0018, Emenda 2): agrupa `Nome.design` com o
+ * code-behind `Nome.pors` da mesma pasta. Não existe arquivo `.tela` em disco;
+ * o caminho do nó é o do `.design` com o sufixo {@link SCREEN_PATH_SUFFIX}.
+ */
+export type ScreenEntry = {
+  kind: "screen";
+  name: string;
+  path: string;
+  design: WorkspaceFileEntry;
+  code: WorkspaceFileEntry | null;
+  entries: WorkspaceFileEntry[];
+};
+
+/** Entrada exibida no Explorador: a listagem do backend com os nós de tela. */
+export type ExplorerEntry =
+  | { kind: "folder"; name: string; path: string; entries: ExplorerEntry[] }
+  | WorkspaceFileEntry
+  | ScreenEntry;
+
+export const SCREEN_PATH_SUFFIX = "#tela";
+
+function splitExtension(name: string): [string, string] {
+  const dot = name.lastIndexOf(".");
+  return dot <= 0 ? [name, ""] : [name.slice(0, dot), name.slice(dot + 1).toLowerCase()];
+}
+
+/** Agrupa cada `Nome.design` com o `Nome.pors` da mesma pasta num nó de tela. */
+export function groupScreens(entries: readonly WorkspaceEntry[]): ExplorerEntry[] {
+  const designs = new Set<string>();
+  const codes = new Map<string, WorkspaceFileEntry>();
+  for (const entry of entries) {
+    if (entry.kind !== "file") continue;
+    const [stem, extension] = splitExtension(entry.name);
+    if (extension === "design") designs.add(stem);
+    else if (extension === "pors") codes.set(stem, entry);
+  }
+  const grouped: ExplorerEntry[] = [];
+  for (const entry of entries) {
+    if (entry.kind === "folder") {
+      grouped.push({ ...entry, entries: groupScreens(entry.entries) });
+      continue;
+    }
+    const [stem, extension] = splitExtension(entry.name);
+    if (extension === "pors" && designs.has(stem)) continue;
+    if (extension === "design") {
+      const code = codes.get(stem) ?? null;
+      grouped.push({
+        kind: "screen",
+        name: stem,
+        path: `${entry.path}${SCREEN_PATH_SUFFIX}`,
+        design: entry,
+        code,
+        entries: code ? [entry, code] : [entry],
+      });
+      continue;
+    }
+    grouped.push(entry);
+  }
+  return grouped;
+}
+
+/** Nós de tela que contêm o arquivo de `path`, para expandi-los ao abrir o arquivo. */
+export function screensContaining(entries: readonly ExplorerEntry[], path: string): string[] {
+  const found: string[] = [];
+  for (const entry of entries) {
+    if (entry.kind === "folder") found.push(...screensContaining(entry.entries, path));
+    else if (entry.kind === "screen" && entry.entries.some((file) => file.path === path)) found.push(entry.path);
+  }
+  return found;
+}
+
 export function flattenWorkspaceEntries(
-  entries: WorkspaceEntry[],
+  entries: ExplorerEntry[],
   expanded: ReadonlySet<string> = new Set(),
-): { entry: WorkspaceEntry; depth: number; position: number; setSize: number }[] {
-  const rows: { entry: WorkspaceEntry; depth: number; position: number; setSize: number }[] = [];
-  const visit = (children: WorkspaceEntry[], depth: number) => {
+): { entry: ExplorerEntry; depth: number; position: number; setSize: number }[] {
+  const rows: { entry: ExplorerEntry; depth: number; position: number; setSize: number }[] = [];
+  const visit = (children: ExplorerEntry[], depth: number) => {
     children.forEach((entry, index) => {
       rows.push({ entry, depth, position: index + 1, setSize: children.length });
-      if (entry.kind === "folder" && expanded.has(entry.path)) visit(entry.entries, depth + 1);
+      if (entry.kind !== "file" && expanded.has(entry.path)) visit(entry.entries, depth + 1);
     });
   };
   visit(entries, 0);
   return rows;
 }
 
-export function workspaceFileKind(path: string): "portugol-rs" | "rust" | "exercise" | null {
+export function workspaceFileKind(path: string): "portugol-rs" | "rust" | "exercise" | "markup" | null {
   const fileName = path.split(/[\\/]/).pop()?.toLowerCase() ?? "";
   if (fileName.endsWith(".pors.json")) return "exercise";
   const extension = fileName.split(".").pop();
   if (extension === "pors") return "portugol-rs";
   if (extension === "rs") return "rust";
+  if (extension === "design" || extension === "porsproj") return "markup";
   return null;
+}
+
+/** Marcador curto do tipo de arquivo no Explorador. */
+export function workspaceFileMarker(path: string): string {
+  const kind = workspaceFileKind(path);
+  if (kind === "rust") return "R";
+  if (kind === "exercise") return "EX";
+  if (kind === "markup") return /\.porsproj$/i.test(path) ? "PJ" : "TL";
+  return "RS";
 }
 
 export function workspaceSourceFileName(name: string, language: "pors" | "rs"): string {

@@ -25,3 +25,10 @@ test("independent Rust files require rustc and remain non-debuggable", () => {
   assert.equal(canFormatSource("rust", false), false);
   assert.equal(canFormatSource("rust", true), true);
 });
+
+test("desktop markup is formatted but never run, debugged or exported to Rust", () => {
+  assert.equal(canRunSource("markup", true), false);
+  assert.equal(canRunAsRust("markup", true), false);
+  assert.equal(canDebugSource("markup"), false);
+  assert.equal(canFormatSource("markup", null), true);
+});

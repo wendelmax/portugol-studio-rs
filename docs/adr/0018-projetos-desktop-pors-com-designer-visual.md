@@ -91,6 +91,9 @@ de marcação:
 <Projeto Nome="Meu App" Versao="0.1.0" JanelaInicial="JanelaPrincipal" Formato="1" />
 ```
 
+- `Tipo` diz que tipo de projeto é: `Desktop` (o padrão, quando o atributo é
+  omitido) ou `Jogo`, do [ADR 0022](0022-projetos-de-jogos-2d-pors-e-exportacao-macroquad.md).
+  Os dois tipos compartilham o formato, o parser e a validação.
 - `JanelaInicial` indica a tela aberta ao executar, como o formulário de
   inicialização do Visual Studio. Por isso não há um `principal.pors` de
   ponto de entrada.

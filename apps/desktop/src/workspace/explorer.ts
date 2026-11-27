@@ -12,7 +12,10 @@ import { applyWorkspaceRenameToTabs, deleteWorkspaceFileFlow, prepareWorkspaceRe
 import {
   collectWorkspaceFiles,
   flattenWorkspaceEntries,
+  groupScreens,
+  screensContaining,
   workspaceFileKind,
+  workspaceFileMarker,
   workspaceParentFolders,
   workspaceRenameFileName,
   workspaceSourceFileName,
@@ -95,32 +98,59 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
         : "Abrir pasta de projeto ou alternar o Explorador (Ctrl+Shift+E)";
     }
 
-    const rows = flattenWorkspaceEntries(workspaceState?.entries ?? [], expandedWorkspaceFolders);
+    const explorerEntries = groupScreens(workspaceState?.entries ?? []);
+    if (selectedWorkspacePath) {
+      for (const screen of screensContaining(explorerEntries, selectedWorkspacePath)) expandedWorkspaceFolders.add(screen);
+    }
+    const rows = flattenWorkspaceEntries(explorerEntries, expandedWorkspaceFolders);
     tree.setAttribute("aria-label", workspaceState ? `Arquivos em ${workspaceState.name}` : "Arquivos do projeto");
     const items = rows.map(({ entry, depth, position, setSize }) => {
       const item = document.createElement("li");
       item.setAttribute("role", "none");
       const button = document.createElement("button");
-      const isFolder = entry.kind === "folder";
+      const isScreen = entry.kind === "screen";
+      const isFolder = entry.kind !== "file";
       const isExpanded = isFolder && expandedWorkspaceFolders.has(entry.path);
       const marker = document.createElement("span");
       marker.className = "workspace-tree-marker";
       marker.setAttribute("aria-hidden", "true");
-      marker.textContent = isFolder ? (isExpanded ? "▾" : "▸") : workspaceFileKind(entry.path) === "rust" ? "R" : workspaceFileKind(entry.path) === "exercise" ? "EX" : "RS";
+      marker.textContent = isFolder ? (isExpanded ? "▾" : "▸") : workspaceFileMarker(entry.path);
       const label = document.createElement("span");
       label.className = "workspace-tree-label";
       label.textContent = entry.name;
       button.type = "button";
-      button.className = `workspace-tree-item${isFolder ? " is-folder" : " is-file"}`;
+      button.className = `workspace-tree-item${isFolder ? " is-folder" : " is-file"}${isScreen ? " is-screen" : ""}`;
       button.dataset.path = entry.path;
       button.dataset.depth = String(depth);
       button.setAttribute("role", "treeitem");
       button.setAttribute("aria-level", String(depth + 1));
       button.setAttribute("aria-posinset", String(position));
       button.setAttribute("aria-setsize", String(setSize));
-      button.setAttribute("aria-selected", String(!isFolder && selectedWorkspacePath === entry.path));
+      button.setAttribute("aria-selected", String(
+        isScreen ? selectedWorkspacePath === entry.design.path : !isFolder && selectedWorkspacePath === entry.path,
+      ));
       button.style.paddingInlineStart = "8px";
-      if (isFolder) {
+      if (entry.kind === "screen") {
+        // Nó de tela: abre o desenho e mostra o .design e o .pors dentro dele.
+        const screen = entry;
+        button.setAttribute("aria-expanded", String(isExpanded));
+        button.setAttribute("aria-label", `${screen.name}, tela${screen.code ? " com código" : " sem código"}${isExpanded ? ", expandida" : ", recolhida"}`);
+        button.title = screen.code
+          ? `Tela ${screen.name}: ${screen.design.name} (desenho) e ${screen.code.name} (código)`
+          : `Tela ${screen.name}: ${screen.design.name} (desenho); o código é criado no primeiro evento`;
+        button.onclick = () => {
+          selectedWorkspacePath = screen.design.path;
+          const parents = workspaceParentFolders(screen.design.path);
+          selectedWorkspaceFolder = parents.length ? parents[parents.length - 1] : null;
+          expandedWorkspaceFolders.add(screen.path);
+          renderWorkspaceExplorer();
+          void openWorkspaceFile(screen.design).catch((error) => {
+            workspaceError = String(error);
+            renderWorkspaceExplorer();
+            setStatus(String(error), "error");
+          });
+        };
+      } else if (isFolder) {
         button.setAttribute("aria-expanded", String(isExpanded));
         button.setAttribute("aria-label", `${entry.name}, pasta${isExpanded ? ", expandida" : ", recolhida"}`);
         button.onclick = () => {
@@ -145,11 +175,18 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
         };
       }
       button.append(marker, label);
+      if (isScreen) {
+        const badge = document.createElement("span");
+        badge.className = "workspace-tree-badge";
+        badge.textContent = "tela";
+        badge.setAttribute("aria-hidden", "true");
+        button.append(badge);
+      }
       const row = document.createElement("div");
       row.className = "workspace-tree-row";
       row.style.paddingInlineStart = `${depth * 16}px`;
       row.append(button);
-      if (!isFolder) {
+      if (entry.kind === "file") {
         const actions = document.createElement("div");
         actions.className = "workspace-file-actions";
         const renameButton = document.createElement("button");
@@ -193,7 +230,7 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
       message.textContent = "Abra uma pasta para navegar pelos arquivos do projeto.";
       message.hidden = false;
     } else if (rows.length === 0) {
-      message.textContent = "Esta pasta não contém arquivos .pors, .rs ou .pors.json.";
+      message.textContent = "Esta pasta não contém arquivos .pors, .rs, .pors.json, .design ou .porsproj.";
       message.hidden = false;
     } else {
       message.textContent = "";

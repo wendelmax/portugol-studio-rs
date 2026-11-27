@@ -42,7 +42,7 @@ export interface SymbolRenamerDependencies {
 export function createSymbolRenamer(dependencies: SymbolRenamerDependencies) {
   async function openAt(offset: number) {
     const tab = dependencies.activeTab();
-    if (!tab || tab.language === "rust" || dependencies.isRunning(tab)) return;
+    if (!tab || tab.language !== "portugol-rs" || dependencies.isRunning(tab)) return;
     const doc = dependencies.currentDocument();
     const language = dependencies.semanticSymbolLanguage(tab.language);
     if (!language) return;

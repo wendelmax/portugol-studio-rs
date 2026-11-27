@@ -18,6 +18,8 @@ export interface EditorSetupDependencies {
   bugIcon: () => HTMLElement;
   activeTab: () => Tab | undefined;
   inspectPortugolRs: (source: string) => Promise<Inspection>;
+  /** Inspeção de .design e .porsproj; o tipo vem da extensão do caminho. */
+  inspectMarkup: (source: string, path: string) => Promise<Inspection>;
   renderMessages: () => void;
   showOutline: (symbols: SymbolInfo[]) => void;
   updateLibraryButtons: (symbols: SymbolInfo[]) => void;
@@ -55,6 +57,17 @@ export function createEditorSetup(dependencies: EditorSetupDependencies) {
     toCodeMirror,
   }), { delay: 350 });
 
+  const markupLinter = linter(createPortugolLintSourceCheck({
+    activeTab: dependencies.activeTab,
+    language: "markup",
+    inspectPortugolRs: (source, tab) =>
+      dependencies.inspectMarkup(source, tab?.workspacePath ?? tab?.path ?? "tela.design"),
+    renderMessages: dependencies.renderMessages,
+    showOutline: dependencies.showOutline,
+    updateLibraryButtons: dependencies.updateLibraryButtons,
+    toCodeMirror,
+  }), { delay: 350 });
+
   const latestRustSourceCheck = createLatestOnlyRustSourceChecker(dependencies.checkRustSource);
   const rustSourceLinter = linter(createRustLintSourceCheck({
     activeTab: dependencies.activeTab,
@@ -73,6 +86,7 @@ export function createEditorSetup(dependencies: EditorSetupDependencies) {
     centerSource,
     breakpointGutter,
     portugolLinter,
+    markupLinter,
     rustSourceLinter,
   };
 }

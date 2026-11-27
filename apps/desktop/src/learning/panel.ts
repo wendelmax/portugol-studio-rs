@@ -64,7 +64,7 @@ export function mountLearningPanel(host: LearningPanelHost) {
     const tab = host.activeTab();
     const pinnedConceptId = learningPinForMode(tab?.learningPins, learningMode, concepts.map(({ id }) => id));
     const source = host.sourceView.state.doc.toString();
-    const context = !pinnedConceptId && learningMode === "bridge" && !learningConceptManuallySelected && tab?.language !== "rust"
+    const context = !pinnedConceptId && learningMode === "bridge" && !learningConceptManuallySelected && tab?.language === "portugol-rs"
       ? learningContextAtSelection({
         source,
         selectionFrom: host.sourceView.state.selection.main.from,
