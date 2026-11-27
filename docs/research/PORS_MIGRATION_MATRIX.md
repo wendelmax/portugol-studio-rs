@@ -26,7 +26,7 @@ não apenas suporte ao Portugol clássico.
 | Concorrência Rust | ⬜ | Introduzir threads e compartilhamento seguro (`Arc`/`Send`/`Sync`), depois `Mutex<T>` para estado composto e `Atomic*` para operações simples em valores compatíveis; explicar `Ordering` só após sincronização básica |
 | Diagnósticos | 🟡 códigos e spans localizados em subset, incluindo `pors.interpolation-invalid`, `pors.interpolation-non-string`, `pors.read-arguments-unsupported`, `pors.implicit-return-without-type` e `pors.return-type-mismatch` (spans do trecho ofensor) | Cobertura de cada sintaxe/semântica; português, ajuda contextual e source maps; nomes não resolvidos em interpolação permanecem literais por compatibilidade |
 | Execução normal | 🟡 gera Rust subset e executa `rustc` | Igualdade observável entre todas as construções publicadas e casos diferenciados |
-| Debugger | 🟡 HIR → bytecode → VM; breakpoints, stepping, escopos, input, limites; PORS mostra campos de registros e variante/payload de enum | Cobrir a gramática que for expandida; documentar diferenças inevitáveis de backend |
+| Debugger | 🟡 HIR → bytecode → VM; breakpoints, stepping, escopos, input, limites; PORS mostra campos de registros e variante/payload de enum; a pausa passa a exibir nó HIR, offset de bytecode e linha do Rust gerado para as novas construções (`escreval`, interpolação, `leia()`, retorno implícito) | Cobrir a gramática que for expandida; documentar diferenças inevitáveis de backend; WASM não expõe source map e a equivalência conceitual resumida continua fora desta fatia |
 | Segurança/limites | ✅ supervisor de Rust gerado e limites do debugger PORS | Manter saída/tempo/memória/cancelamento e consentimento em todo recurso novo |
 
 ## Bibliotecas do inventário clássico
