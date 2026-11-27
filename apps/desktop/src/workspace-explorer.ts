@@ -26,6 +26,7 @@ export type ScreenEntry = {
   path: string;
   design: WorkspaceFileEntry;
   code: WorkspaceFileEntry | null;
+  duplicateCode: boolean;
   entries: WorkspaceFileEntry[];
 };
 
@@ -37,15 +38,20 @@ export type ExplorerEntry =
 
 export const SCREEN_PATH_SUFFIX = "#tela";
 
-/** Agrupa cada `Nome.design` com o code-behind `Nome.pors` da mesma pasta num nó de tela. */
+/** Agrupa cada `Nome.design` com o code-behind `.fer`/`.pors` da mesma pasta num nó de tela. */
 export function groupScreens(entries: readonly WorkspaceEntry[]): ExplorerEntry[] {
   const designs = new Set<string>();
-  const codes = new Map<string, WorkspaceFileEntry>();
+  const codes = new Map<string, WorkspaceFileEntry[]>();
   for (const entry of entries) {
     if (entry.kind !== "file") continue;
     const kind = classifyFile(entry.name)?.kind;
-    if (kind === "design") designs.add(stripFileExtension(entry.name));
-    else if (kind === "source") codes.set(stripFileExtension(entry.name), entry);
+    const stem = stripFileExtension(entry.name);
+    if (kind === "design") designs.add(stem);
+    else if (kind === "source") {
+      const list = codes.get(stem) ?? [];
+      list.push(entry);
+      codes.set(stem, list);
+    }
   }
   const grouped: ExplorerEntry[] = [];
   for (const entry of entries) {
@@ -57,14 +63,20 @@ export function groupScreens(entries: readonly WorkspaceEntry[]): ExplorerEntry[
     const stem = stripFileExtension(entry.name);
     if (kind === "source" && designs.has(stem)) continue;
     if (kind === "design") {
-      const code = codes.get(stem) ?? null;
+      const matchingCodes = [...(codes.get(stem) ?? [])].sort((a, b) => {
+        const aLegacy = classifyFile(a.name)?.legacy ? 1 : 0;
+        const bLegacy = classifyFile(b.name)?.legacy ? 1 : 0;
+        return aLegacy - bLegacy;
+      });
+      const code = matchingCodes[0] ?? null;
       grouped.push({
         kind: "screen",
         name: stem,
         path: `${entry.path}${SCREEN_PATH_SUFFIX}`,
         design: entry,
         code,
-        entries: code ? [entry, code] : [entry],
+        duplicateCode: matchingCodes.length > 1,
+        entries: [entry, ...matchingCodes],
       });
       continue;
     }
@@ -114,7 +126,7 @@ export function workspaceFileMarker(path: string): string {
   if (kind === "lesson") return "EX";
   if (kind === "manifest") return "PJ";
   if (kind === "design") return "TL";
-  return "RS";
+  return "Fe";
 }
 
 export function workspaceSourceFileName(name: string, kind: "source" | "rust"): string {

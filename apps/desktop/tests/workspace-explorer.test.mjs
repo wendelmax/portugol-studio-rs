@@ -63,11 +63,12 @@ test("validates Rust workspace source filenames", () => {
   assert.throws(() => workspaceSourceFileName("main.pors", "rust"), /extensão/);
 });
 
-test("builds new Portugol-RS and Rust filenames from the selected language", () => {
-  assert.equal(workspaceSourceFileName("ola", "source"), "ola.pors");
+test("builds new Ferro and Rust filenames from the selected language", () => {
+  assert.equal(workspaceSourceFileName("ola", "source"), "ola.fer");
   assert.equal(workspaceSourceFileName("ponte.pors", "source"), "ponte.pors");
+  assert.equal(workspaceSourceFileName("ponte.fer", "source"), "ponte.fer");
   assert.equal(workspaceSourceFileName("main", "rust"), "main.rs");
-  assert.equal(workspaceSourceFileName("moderno.PORS", "source"), "moderno.PORS");
+  assert.equal(workspaceSourceFileName("moderno.FER", "source"), "moderno.FER");
 });
 
 test("rejects empty names, path separators, and extensions that conflict with the language", () => {
@@ -77,8 +78,10 @@ test("rejects empty names, path separators, and extensions that conflict with th
   assert.throws(() => workspaceSourceFileName("programa.por", "source"), /extensão/i);
 });
 
-test("renames a workspace file while preserving its original extension", () => {
+test("renames a workspace file while preserving its original extension or migrating to canonical", () => {
+  assert.equal(workspaceRenameFileName("novo", "antigo.fer"), "novo.fer");
   assert.equal(workspaceRenameFileName("novo", "antigo.pors"), "novo.pors");
+  assert.equal(workspaceRenameFileName("antigo.fer", "antigo.pors"), "antigo.fer");
   assert.equal(workspaceRenameFileName("ponte.pors", "classico.pors"), "ponte.pors");
   assert.equal(workspaceRenameFileName("crates.rs", "main.rs"), "crates.rs");
   assert.equal(workspaceRenameFileName("atividade", "exercicio.pors.json"), "atividade.pors.json");
@@ -219,12 +222,13 @@ test("classifies desktop project markup and gives each file a marker", async () 
   assert.equal(workspaceFileKind("App/meu-app.ferproj"), "markup");
   assert.equal(workspaceFileMarker("App/JanelaPrincipal.design"), "TL");
   assert.equal(workspaceFileMarker("App/meu-app.ferproj"), "PJ");
-  assert.equal(workspaceFileMarker("ponte.pors"), "RS");
+  assert.equal(workspaceFileMarker("ponte.fer"), "Fe");
+  assert.equal(workspaceFileMarker("ponte.pors"), "Fe");
   assert.equal(workspaceFileMarker("main.rs"), "R");
   assert.equal(workspaceFileMarker("lista.pors.json"), "EX");
 });
 
-test("groups each .design with the .pors of the same name into a screen node", async () => {
+test("groups each .design with .fer/.pors of the same name and flags duplicate code-behind", async () => {
   const { groupScreens, screensContaining, SCREEN_PATH_SUFFIX } = await import("../src/workspace-explorer.ts");
   const file = (path) => ({ kind: "file", name: path.split("/").pop(), path });
   const entries = [
@@ -232,10 +236,13 @@ test("groups each .design with the .pors of the same name into a screen node", a
       file("App/Cadastro.design"),
       file("App/JanelaPrincipal.DESIGN"),
       file("App/JanelaPrincipal.pors"),
+      file("App/Duplicada.design"),
+      file("App/Duplicada.pors"),
+      file("App/Duplicada.fer"),
       file("App/meu-app.ferproj"),
-      file("App/util.pors"),
+      file("App/util.fer"),
     ] },
-    file("solto.pors"),
+    file("solto.fer"),
   ];
 
   const grouped = groupScreens(entries);
@@ -244,18 +251,28 @@ test("groups each .design with the .pors of the same name into a screen node", a
   assert.deepEqual(app.entries.map((entry) => [entry.kind, entry.name]), [
     ["screen", "Cadastro"],
     ["screen", "JanelaPrincipal"],
+    ["screen", "Duplicada"],
     ["file", "meu-app.ferproj"],
-    ["file", "util.pors"],
+    ["file", "util.fer"],
   ]);
-  const [cadastro, principal] = app.entries;
+  const [cadastro, principal, duplicada] = app.entries;
   assert.equal(cadastro.code, null);
+  assert.equal(cadastro.duplicateCode, false);
   assert.deepEqual(cadastro.entries.map((f) => f.path), ["App/Cadastro.design"]);
   assert.equal(principal.path, `App/JanelaPrincipal.DESIGN${SCREEN_PATH_SUFFIX}`);
+  assert.equal(principal.duplicateCode, false);
   assert.deepEqual(principal.entries.map((f) => f.path), ["App/JanelaPrincipal.DESIGN", "App/JanelaPrincipal.pors"]);
-  assert.deepEqual(grouped[1], file("solto.pors"));
+  assert.equal(duplicada.duplicateCode, true);
+  assert.equal(duplicada.code?.path, "App/Duplicada.fer");
+  assert.deepEqual(duplicada.entries.map((f) => f.path), [
+    "App/Duplicada.design",
+    "App/Duplicada.fer",
+    "App/Duplicada.pors",
+  ]);
+  assert.deepEqual(grouped[1], file("solto.fer"));
 
   assert.deepEqual(screensContaining(grouped, "App/JanelaPrincipal.pors"), [principal.path]);
-  assert.deepEqual(screensContaining(grouped, "App/util.pors"), []);
+  assert.deepEqual(screensContaining(grouped, "App/util.fer"), []);
 
   const rows = flattenWorkspaceEntries(grouped, new Set(["App", principal.path]));
   assert.deepEqual(rows.map((row) => [row.entry.name, row.depth]), [
@@ -264,8 +281,9 @@ test("groups each .design with the .pors of the same name into a screen node", a
     ["JanelaPrincipal", 1],
     ["JanelaPrincipal.DESIGN", 2],
     ["JanelaPrincipal.pors", 2],
+    ["Duplicada", 1],
     ["meu-app.ferproj", 1],
-    ["util.pors", 1],
-    ["solto.pors", 0],
+    ["util.fer", 1],
+    ["solto.fer", 0],
   ]);
 });

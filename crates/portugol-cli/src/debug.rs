@@ -23,7 +23,7 @@ enum Event {
 
 pub fn main(args: &[String]) -> ExitCode {
     if args.is_empty() || args.iter().any(|arg| arg == "-h" || arg == "--help") {
-        eprintln!("uso: portugol depurar [--ponto <linha>]... <arquivo.pors>");
+        eprintln!("uso: portugol depurar [--ponto <linha>]... <arquivo.fer>");
         return ExitCode::SUCCESS;
     }
 
@@ -60,7 +60,7 @@ pub fn main(args: &[String]) -> ExitCode {
     }
 
     let Some(file) = file else {
-        eprintln!("uso: portugol depurar [--ponto <linha>]... <arquivo.pors>");
+        eprintln!("uso: portugol depurar [--ponto <linha>]... <arquivo.fer>");
         return ExitCode::FAILURE;
     };
 

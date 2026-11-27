@@ -86,6 +86,13 @@ export function stripFileExtension(name: string): string {
   return match ? name.slice(0, name.length - match.extension.length - 1) : name;
 }
 
+/** Se o caminho usar uma extensão antiga, devolve o nome com a extensão canônica. */
+export function canonicalFileName(path: string): string | null {
+  const match = classifyFile(path);
+  if (!match?.legacy) return null;
+  return `${stripFileExtension(fileName(path))}.${match.format.extension}`;
+}
+
 /** Extensões canônicas dos tipos para mensagens: `".pors, .rs e .pors.json"`. */
 export function describeExtensions(kinds: readonly FileKind[], conjunction: "e" | "ou" = "e"): string {
   const names = FILE_FORMATS.filter((format) => kinds.includes(format.kind)).map((format) => `.${format.extension}`);

@@ -72,10 +72,10 @@ pub struct Format {
 pub const FORMATS: &[Format] = &[
     Format {
         kind: Kind::Source,
-        extension: "pors",
-        legacy: &[],
-        label: "Portugol-RS",
-        mime: "text/x-portugol-rs",
+        extension: "fer",
+        legacy: &["pors"],
+        label: "Ferro",
+        mime: "text/x-ferro",
     },
     Format {
         kind: Kind::Rust,
@@ -203,6 +203,24 @@ pub fn kind_of(path: &Path, kinds: &[Kind]) -> Option<Kind> {
         .filter(|kind| kinds.contains(kind))
 }
 
+/// Se `name` usar uma extensão antiga, devolve o nome com a extensão canônica.
+pub fn canonical_name(name: &str) -> Option<String> {
+    let matched = classify(name).filter(|m| m.legacy)?;
+    let base_len = name.len() - matched.extension.len() - 1;
+    Some(format!(
+        "{}.{}",
+        &name[..base_len],
+        matched.format.extension
+    ))
+}
+
+/// Se `path` usar uma extensão antiga, devolve o caminho com a extensão canônica.
+pub fn canonical_path(path: &Path) -> Option<std::path::PathBuf> {
+    let name = path.file_name()?.to_str()?;
+    let new_name = canonical_name(name)?;
+    Some(path.with_file_name(new_name))
+}
+
 /// Extensão do Portugol Studio clássico (`.por`, `.pex`).
 pub fn is_retired(path: &str) -> bool {
     let name = file_name(path);
@@ -290,6 +308,7 @@ mod tests {
     #[test]
     fn classifica_pela_extensao_ignorando_maiusculas() {
         let kind = |path| classify(path).map(|m| m.kind());
+        assert_eq!(kind("principal.fer"), Some(Kind::Source));
         assert_eq!(kind("principal.pors"), Some(Kind::Source));
         assert_eq!(kind("C:\\aulas\\Main.RS"), Some(Kind::Rust));
         assert_eq!(kind("aulas/01-dobro.pors.json"), Some(Kind::Lesson));
@@ -297,10 +316,14 @@ mod tests {
         assert_eq!(kind("meu-app.FERPROJ"), Some(Kind::Manifest));
         assert_eq!(classify("dados.json"), None);
         assert_eq!(classify("sem-extensao"), None);
+        assert_eq!(classify(".fer"), None);
         assert_eq!(classify(".pors"), None);
         assert_eq!(classify("pasta.pors/arquivo"), None);
         assert_eq!(classify("programa.por"), None);
-        assert_eq!(classify("ação.pors").unwrap().extension, "pors");
+        let legacy = classify("ação.pors").unwrap();
+        assert_eq!((legacy.extension, legacy.legacy), ("pors", true));
+        let canonical = classify("ação.FER").unwrap();
+        assert_eq!((canonical.extension, canonical.legacy), ("fer", false));
     }
 
     #[test]
@@ -331,16 +354,28 @@ mod tests {
 
     #[test]
     fn descreve_para_mensagens() {
-        assert_eq!(describe(&[Kind::Source]), ".pors");
-        assert_eq!(describe(&[Kind::Rust, Kind::Source]), ".pors e .rs");
+        assert_eq!(describe(&[Kind::Source]), ".fer");
+        assert_eq!(describe(&[Kind::Rust, Kind::Source]), ".fer e .rs");
         assert_eq!(
             describe(&all_kinds()),
-            ".pors, .rs, .pors.json, .design e .ferproj"
+            ".fer, .rs, .pors.json, .design e .ferproj"
         );
         assert_eq!(
             describe_alternatives(&[Kind::Source, Kind::Design]),
-            ".pors ou .design"
+            ".fer ou .design"
         );
+    }
+
+    #[test]
+    fn caminho_canonico_substitui_apenas_extensao_antiga() {
+        assert_eq!(canonical_name("aula.pors").as_deref(), Some("aula.fer"));
+        assert_eq!(canonical_name("AULA.PORS").as_deref(), Some("AULA.fer"));
+        assert_eq!(canonical_name("aula.fer"), None);
+        assert_eq!(
+            canonical_path(Path::new("pasta/app.pors")),
+            Some(std::path::PathBuf::from("pasta/app.fer"))
+        );
+        assert_eq!(canonical_path(Path::new("pasta/app.fer")), None);
     }
 
     #[test]

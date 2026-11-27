@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
-  <mime-type type="text/x-portugol-rs">
-    <comment>Portugol-RS source code</comment>
-    <comment xml:lang="pt_BR">Código-fonte Portugol-RS</comment>
+  <mime-type type="text/x-ferro">
+    <alias type="text/x-portugol-rs"/>
+    <comment>Ferro source code</comment>
+    <comment xml:lang="pt_BR">Código-fonte Ferro</comment>
     <sub-class-of type="text/plain"/>
+    <glob pattern="*.fer"/>
     <glob pattern="*.pors"/>
   </mime-type>
 </mime-info>

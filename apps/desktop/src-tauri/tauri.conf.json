@@ -43,11 +43,11 @@
     "licenseFile": "../../../LICENSE",
     "fileAssociations": [
       {
-        "ext": ["pors"],
-        "name": "Programa Portugol-RS",
-        "description": "Programa Portugol-RS",
+        "ext": ["fer", "pors"],
+        "name": "Programa Ferro",
+        "description": "Programa Ferro (.fer / .pors)",
         "role": "Editor",
-        "mimeType": "text/x-portugol-rs"
+        "mimeType": "text/x-ferro"
       },
       {
         "ext": ["rs"],
