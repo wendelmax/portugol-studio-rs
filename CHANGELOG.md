@@ -1,5 +1,29 @@
 # Histórico de versões
 
+## 0.7.0 (2026-11-27)
+
+### Novidades
+
+- **ide:** exportar projeto Cargo e suportar subpastas e atualização no Explorador (#250)
+- **ide:** trilha interativa, paleta expandida e preferências de editor em Ajustes (#249)
+- **help:** nova Ajuda interativa PORS + Rust com árvore, histórico, F1 contextual e 100% da stdlib (#247)
+- **web:** redesinar playground com temas e editor destacado (#246)
+- **wasm:** expor exportação Rust no portugol-wasm e no Web Playground (#242)
+
+### Correções
+
+- **web:** carregar exemplo visual ao abrir prévia UI (#248)
+- **ui:** corrigir navegação da ajuda, atalhos, contraste WCAG, CSS e textos legados (#245)
+- **web:** corrigir painéis ocultos e status da troca de exemplo (#244)
+- **core:** corrigir rename em vetores, stack trace e controles de execução (#243)
+
+### Manutenção
+
+- **arch:** adicionar empacotamento PKGBUILD e job no CI/Release (#251)
+- publicar Web Playground WASM no GitHub Pages e atualizar actions para v7 (#241)
+
+Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v0.6.0...v0.7.0
+
 ## 0.6.0 (2026-11-26)
 
 ### Novidades

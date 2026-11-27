@@ -1,6 +1,6 @@
 # Maintainer: Portugol Studio RS Contributors <https://github.com/wendelmax/portugol-studio-rs>
 pkgname=portugol-studio-rs
-pkgver=0.6.0
+pkgver=0.7.0
 pkgrel=1
 pkgdesc="IDE educacional para Portugol-RS (.pors) e Rust (.rs)"
 arch=('x86_64')

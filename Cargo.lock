@@ -2673,14 +2673,14 @@ dependencies = [
 
 [[package]]
 name = "portugol-bytecode"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "portugol-hir",
 ]
 
 [[package]]
 name = "portugol-cli"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "portugol-bytecode",
  "portugol-hir",
@@ -2691,7 +2691,7 @@ dependencies = [
 
 [[package]]
 name = "portugol-desktop"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "cap-std",
  "portugol-service",
@@ -2708,18 +2708,18 @@ dependencies = [
 
 [[package]]
 name = "portugol-hir"
-version = "0.6.0"
+version = "0.7.0"
 
 [[package]]
 name = "portugol-rs-frontend"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "portugol-hir",
 ]
 
 [[package]]
 name = "portugol-rust"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "portugol-hir",
  "portugol-rs-frontend",
@@ -2727,7 +2727,7 @@ dependencies = [
 
 [[package]]
 name = "portugol-service"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "libc",
  "portugol-bytecode",
@@ -2742,7 +2742,7 @@ dependencies = [
 
 [[package]]
 name = "portugol-vm"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "ab_glyph",
  "image",
@@ -2755,7 +2755,7 @@ dependencies = [
 
 [[package]]
 name = "portugol-wasm"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "portugol-bytecode",
  "portugol-hir",
