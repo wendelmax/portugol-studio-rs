@@ -164,16 +164,37 @@ jobs:
         run: cargo test -p portugol-desktop --lib --features tauri/custom-protocol
 
   arch_pkg:
-    name: Pacote Arch Linux (.pkg.tar.zst)
+    name: Pacote Arch Linux (${{ matrix.nome }})
     needs: mudancas
     if: needs.mudancas.outputs.arch_pkg == 'true'
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - nome: x86_64
+            os: ubuntu-latest
+            image: archlinux:latest
+            init_keys: "false"
+          - nome: ARM64
+            os: ubuntu-24.04-arm
+            image: menci/archlinuxarm:latest
+            init_keys: "true"
+    runs-on: ${{ matrix.os }}
     container:
-      image: archlinux:latest
+      image: ${{ matrix.image }}
     steps:
       - uses: actions/checkout@v7
       - name: Dependências do sistema (Arch Linux)
+        env:
+          INIT_KEYS: ${{ matrix.init_keys }}
         run: |
+          if [[ "$INIT_KEYS" == "true" ]]; then
+            pacman-key --init
+            pacman-key --populate archlinuxarm
+          fi
+          if ! grep -qE '^[[:space:]]*DisableSandbox' /etc/pacman.conf; then
+            sed -i '/^\[options\]/a DisableSandbox' /etc/pacman.conf
+          fi
           pacman -Syu --noconfirm --needed base-devel rust nodejs npm pkgconf webkit2gtk-4.1 gtk3 alsa-lib zstd
       - name: Construir e validar pacote Arch Linux
         run: bash packaging/arch/build-package.sh "" "$GITHUB_WORKSPACE/dist-arch"

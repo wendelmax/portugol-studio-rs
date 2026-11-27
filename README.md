@@ -47,9 +47,9 @@ Baixe o instalador da sua plataforma na página de
 
 | Sistema | Arquivo |
 |---|---|
-| Windows x64 | `.exe` (instala sem pedir administrador) ou `.msi` |
-| Linux x64 | `.deb`, `.rpm`, `.AppImage` ou `.pkg.tar.zst` (Arch Linux) |
-| macOS (Apple Silicon e Intel) | `.dmg` |
+| Windows (x86_64 e ARM64) | `.exe` (instala sem pedir administrador; x64 e ARM64) ou `.msi` (x64) |
+| Linux (x86_64 e ARM64) | `.deb`, `.rpm`, `.AppImage` ou `.pkg.tar.zst` (Arch Linux) |
+| macOS (Apple Silicon ARM64 e Intel x86_64) | `.dmg` |
 
 No **Arch Linux**, você pode instalar o pacote `.pkg.tar.zst` da página de Releases com `sudo pacman -U portugol-studio-rs-*.pkg.tar.zst` ou compilar localmente a partir do repositório com `bash packaging/arch/build-package.sh`.
 
