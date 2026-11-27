@@ -137,7 +137,15 @@
           <button id="rust-comparison-source-tab" type="button" role="tab" aria-selected="true" aria-controls="editor">Portugol-RS</button>
           <button id="rust-comparison-generated-tab" type="button" role="tab" aria-selected="false" aria-controls="rust-preview">Rust gerado</button>
         </nav>
+        <div id="design-toolbar" class="design-toolbar" role="toolbar" aria-label="Vistas da tela" hidden>
+          <button id="design-view-design" type="button" aria-pressed="false" title="Só a janela desenhada">Design</button>
+          <button id="design-view-split" type="button" aria-pressed="false" title="A janela em cima e a marcação embaixo">Dividido</button>
+          <button id="design-view-text" type="button" aria-pressed="true" title="Só a marcação (pseudo-XAML)">Marcação</button>
+          <button id="design-view-code" type="button" disabled>Código</button>
+          <span id="design-status" class="design-status" role="status" aria-live="polite"></span>
+        </div>
         <div class="editor-area">
+          <section id="design-surface" class="design-surface" aria-label="Desenho da tela; clique num controle para selecioná-lo" hidden></section>
           <section id="editor" data-testid="code-editor" class="editor"></section>
           <nav id="rust-mapping-gutter" class="rust-mapping-gutter" aria-label="Mapeamento Portugol para Rust" hidden>
             <p id="rust-mapping-status" role="status" aria-live="polite">Aguardando source maps…</p>

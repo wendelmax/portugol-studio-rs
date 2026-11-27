@@ -3,6 +3,7 @@
 @import "./styles/base.css";
 @import "./styles/shell.css";
 @import "./styles/editor.css";
+@import "./styles/designer.css";
 @import "./styles/panels.css";
 @import "./styles/dialogs.css";
 @import "./styles/home.css";

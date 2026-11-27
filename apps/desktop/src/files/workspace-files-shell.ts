@@ -12,7 +12,7 @@ type FileStateDependencies = Pick<FileIODependencies,
 };
 
 type WorkspaceDependencies = Pick<WorkspaceExplorerHost,
-  "activeId" | "homeId" | "openWorkspaceSource" | "renderTabs" | "setExplorerVisible" | "cargoProjectDetected"> & {
+  "activeId" | "homeId" | "openWorkspaceSource" | "renderTabs" | "setExplorerVisible" | "cargoProjectDetected" | "screenOpened"> & {
   openExercise: (document: ExerciseDocument, workspaceExercise?: WorkspaceExerciseRef) => void;
 };
 
@@ -66,6 +66,7 @@ export function createWorkspaceFilesShell(dependencies: WorkspaceFilesShellDepen
     renderTabs: dependencies.workspace.renderTabs,
     setExplorerVisible: dependencies.workspace.setExplorerVisible,
     cargoProjectDetected: dependencies.workspace.cargoProjectDetected,
+    screenOpened: () => dependencies.workspace.screenOpened?.(),
     recentFiles: {
       remember: (path) => recentFiles.remember(path),
       rename: (oldPath, newPath) => recentFiles.rename(oldPath, newPath),

@@ -42,6 +42,8 @@ export interface WorkspaceExplorerHost {
   save(): Promise<boolean>;
   renderTabs(): void;
   setExplorerVisible(visible: boolean): void;
+  /** O nó de uma tela foi aberto: a aba ativa é o `.design` dela e deve ir para o modo visual. */
+  screenOpened?(): void;
   /** Detecção de Cargo.toml terminada para uma aba Rust (`checked` é falso se ela falhou). */
   cargoProjectDetected(tab: Tab, checked: boolean): void;
   recentFiles: {
@@ -145,7 +147,7 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
           selectedWorkspaceFolder = parents.length ? parents[parents.length - 1] : null;
           expandedWorkspaceFolders.add(screen.path);
           renderWorkspaceExplorer();
-          void openWorkspaceFile(screen.design).catch((error) => {
+          void openWorkspaceFile(screen.design).then(() => host.screenOpened?.()).catch((error) => {
             workspaceError = String(error);
             renderWorkspaceExplorer();
             setStatus(String(error), "error");
@@ -926,6 +928,19 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
     restore: restoreWorkspaceOnStartup,
     openFolder: openWorkspaceFolder,
     toggleExplorer,
+    /** Se o arquivo existe no workspace aberto. */
+    hasFile(workspaceId: string | undefined, path: string): boolean {
+      return workspaceId === workspaceState?.id
+        && collectWorkspaceFiles(workspaceState?.entries ?? []).some((file) => file.path === path);
+    },
+    /** Abre um arquivo do workspace aberto pelo caminho relativo; falso se ele não existir. */
+    async openFile(workspaceId: string | undefined, path: string): Promise<boolean> {
+      if (workspaceId !== workspaceState?.id) return false;
+      const entry = collectWorkspaceFiles(workspaceState?.entries ?? []).find((file) => file.path === path);
+      if (!entry) return false;
+      await openWorkspaceFile(entry);
+      return true;
+    },
     /** Marca o arquivo como selecionado na árvore, se pertencer ao workspace aberto. */
     select(workspaceId: string | undefined, path: string | undefined) {
       if (workspaceId === workspaceState?.id && path) {

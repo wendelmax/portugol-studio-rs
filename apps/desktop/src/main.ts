@@ -64,6 +64,7 @@ import { mountFontSizeControls } from "./shell/font-size";
 import { appendConsole, appendProcessOutput, clearConsole, consoleText } from "./run/console";
 import { applyPageTheme, editorTheme, onSystemThemeChange, themeChoice } from "./editor/theme";
 import { createEditorShell } from "./editor/editor-shell";
+import { mountDesignerShell } from "./designer/designer-shell";
 import { createEditorActionsShell } from "./editor/actions-shell";
 import {
   editorPreferenceExtensions,
@@ -85,6 +86,8 @@ function isDirty(tab: Tab) { return tabsShell.isDirty(tab); }
 function newTab(...args: Parameters<typeof tabsShell.newTab>) { return tabsShell.newTab(...args); }
 function closeTab(id: number) { return tabsShell.closeTab(id); }
 let renderStatusBar: () => void = () => {};
+/** Modo visual das telas `.design` (ADR 0018); montado depois do Explorador. */
+let designer: ReturnType<typeof mountDesignerShell> | null = null;
 function renderTabs() {
   tabsShell.renderTabs();
   renderStatusBar();
@@ -194,6 +197,7 @@ const {
     renderCursor,
     renderMappingGutter: () => rustPreview.renderMappingGutter(),
     centerSelection,
+    designerChanged: (docChanged, selectionSet) => designer?.editorChanged(docChanged, selectionSet),
   },
   navigation: { goToDeclarationAt },
   extensions: {
@@ -235,7 +239,11 @@ let learningMode: LearningMode = loadLearningMode();
 let exerciseWorkbench: ReturnType<typeof createExerciseWorkbenchShell> | null = null;
 function activate(id: number) {
   if (id > 0) lastCodeTabId = id;
-  return tabActivator.activate(id);
+  try {
+    return tabActivator.activate(id);
+  } finally {
+    designer?.sync();
+  }
 }
 
 tabsShell = createTabsShell({
@@ -303,6 +311,7 @@ const workspaceFilesShell = createWorkspaceFilesShell({
       syncLanguageControls(tab);
       if (checked) forceLinting(view);
     },
+    screenOpened: () => designer?.screenOpened(),
   },
   files: {
     readFile: api.readFile,
@@ -353,6 +362,31 @@ const workspaceFilesShell = createWorkspaceFilesShell({
   },
 });
 const { fileIO, recentFiles, recentFilesView, workspaceExplorer } = workspaceFilesShell;
+
+designer = mountDesignerShell({
+  area: document.querySelector<HTMLElement>(".editor-area")!,
+  toolbar: $("design-toolbar"),
+  surface: $("design-surface"),
+  status: $("design-status"),
+  buttons: {
+    design: $<HTMLButtonElement>("design-view-design"),
+    split: $<HTMLButtonElement>("design-view-split"),
+    text: $<HTMLButtonElement>("design-view-text"),
+    code: $<HTMLButtonElement>("design-view-code"),
+  },
+  activeTab,
+  source: () => view.state.doc.toString(),
+  cursorOffset: () => view.state.selection.main.head,
+  selectInEditor: (from) => {
+    const anchor = Math.min(from, view.state.doc.length);
+    view.dispatch({ selection: { anchor }, scrollIntoView: true });
+  },
+  designTree: api.designTree,
+  designSchema: api.designSchema,
+  hasFile: (workspaceId, path) => workspaceExplorer.hasFile(workspaceId, path),
+  openFile: (workspaceId, path) => workspaceExplorer.openFile(workspaceId, path),
+  setStatus,
+});
 
 // ---------------------------------------------------------------------------
 // Execução e console
@@ -840,6 +874,7 @@ mountIdeCommandShell({
     toggleUiPreview: () => $<HTMLButtonElement>("btn-ui-preview").click(),
     openFolder: () => $<HTMLButtonElement>("home-open-folder").click(),
     newDesktopProject: () => $<HTMLButtonElement>("home-new-project").click(),
+    toggleScreenCode: () => designer?.toggleCode(),
     newRustFile: () => newTab("fn main() {\n    \n}\n", null, undefined, undefined, undefined, "rust"),
     openExercises: () => $<HTMLButtonElement>("home-exercises").click(),
     openThemeEditor: () => {
