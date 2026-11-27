@@ -22,6 +22,7 @@ export function deriveLanguageControls(
 ) {
   const pors = tab.language === "portugol-rs";
   const rustFile = tab.language === "rust";
+  const markupFile = tab.language === "markup";
   const buttons = Object.fromEntries(LANGUAGE_BUTTON_IDS.map((id) => {
     const isRun = id === "btn-run";
     const cargoDetectionPending = rustFile && Boolean(tab.workspaceId && tab.workspacePath) && tab.cargoProject === undefined;
@@ -33,7 +34,9 @@ export function deriveLanguageControls(
       : id === "btn-run" || id === "btn-debug"
         ? state.busy && state.paused === null
         : state.paused === null;
-    const unavailableReason = cargoDetectionPending
+    const unavailableReason = markupFile
+      ? "Arquivos de marcação descrevem a tela; ela executa pelo projeto desktop."
+      : cargoDetectionPending
       ? "Verificando se este arquivo pertence a um projeto Cargo."
       : rustFile && state.rustcAvailable !== true
         ? "Instale a toolchain Rust para executar arquivos .rs."
@@ -51,8 +54,10 @@ export function deriveLanguageControls(
     return [id, { disabled: runtimeUnavailable || stateDisabled, title, description: unavailableReason }];
   }));
   const argumentsControl = {
-    disabled: pors,
-    title: pors
+    disabled: !rustFile,
+    title: markupFile
+      ? "Parâmetros de execução não se aplicam a arquivos de marcação."
+      : pors
       ? "Parâmetros ainda não são suportados em Portugol-RS."
       : rustFile
         ? "Espaços separam itens; aspas duplas agrupam. O programa recebe argv, sem shell."
@@ -75,14 +80,20 @@ const PORS_LIBRARY_NAMES: ReadonlySet<string> = new Set([
       disabled: rustFile || !porsAvailable,
       title: rustFile
         ? "Módulos PORS não se aplicam a Rust."
+        : markupFile
+        ? "Módulos PORS não se aplicam a arquivos de marcação."
         : porsAvailable
           ? `Inserir módulo PORS ${name}.`
           : "Módulo indisponível em Portugol-RS.",
     }];
   }));
   const symbolActions = {
-    disabled: rustFile,
-    description: rustFile ? "Navegação e renomeação de símbolos Rust ainda não estão implementadas." : "",
+    disabled: !pors,
+    description: rustFile
+      ? "Navegação e renomeação de símbolos Rust ainda não estão implementadas."
+      : markupFile
+        ? "Navegação e renomeação de símbolos não se aplicam a arquivos de marcação."
+        : "",
   };
 
   return { buttons, arguments: argumentsControl, format, libraries, symbolActions };

@@ -17,8 +17,12 @@ export function createSymbolNavigator(dependencies: SymbolNavigationDependencies
   async function goToDeclarationAt(offset: number, quiet = false): Promise<void> {
     const tab = dependencies.activeTab();
     if (!tab) return;
-    if (tab.language === "rust") {
-      if (!quiet) dependencies.setStatus("Navegação de símbolos Rust ainda não está configurada.");
+    if (tab.language !== "portugol-rs") {
+      if (!quiet) {
+        dependencies.setStatus(tab.language === "rust"
+          ? "Navegação de símbolos Rust ainda não está configurada."
+          : "Ir à declaração não se aplica a arquivos de marcação.");
+      }
       return;
     }
     const doc = dependencies.view.state.doc;

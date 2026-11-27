@@ -13,6 +13,7 @@ import {
   collectWorkspaceFiles,
   flattenWorkspaceEntries,
   workspaceFileKind,
+  workspaceFileMarker,
   workspaceParentFolders,
   workspaceRenameFileName,
   workspaceSourceFileName,
@@ -106,7 +107,7 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
       const marker = document.createElement("span");
       marker.className = "workspace-tree-marker";
       marker.setAttribute("aria-hidden", "true");
-      marker.textContent = isFolder ? (isExpanded ? "▾" : "▸") : workspaceFileKind(entry.path) === "rust" ? "R" : workspaceFileKind(entry.path) === "exercise" ? "EX" : "RS";
+      marker.textContent = isFolder ? (isExpanded ? "▾" : "▸") : workspaceFileMarker(entry.path);
       const label = document.createElement("span");
       label.className = "workspace-tree-label";
       label.textContent = entry.name;
@@ -193,7 +194,7 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
       message.textContent = "Abra uma pasta para navegar pelos arquivos do projeto.";
       message.hidden = false;
     } else if (rows.length === 0) {
-      message.textContent = "Esta pasta não contém arquivos .pors, .rs ou .pors.json.";
+      message.textContent = "Esta pasta não contém arquivos .pors, .rs, .pors.json, .design ou .porsproj.";
       message.hidden = false;
     } else {
       message.textContent = "";

@@ -43,7 +43,8 @@ export function createEditorUpdateController(dependencies: EditorUpdateDependenc
       }
       dependencies.renderTabs();
     }
-    if (update.docChanged && dependencies.activeTab()?.language !== "rust") {
+    const language = dependencies.activeTab()?.language;
+    if (update.docChanged && language !== "rust" && language !== "markup") {
       const tab = dependencies.activeTab();
       if (tab?.rustPreview) {
         tab.rustPreview = dependencies.markPreviewStale(tab.rustPreview, update.state.doc.toString());

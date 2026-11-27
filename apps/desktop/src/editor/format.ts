@@ -15,6 +15,8 @@ export interface EditorFormatterDependencies {
   view: Pick<EditorViewType, "state" | "dispatch" | "focus">;
   formatRust: (source: string) => Promise<string>;
   formatPortugolRs: (source: string) => Promise<FormatChange[] | null>;
+  /** Formatação de .design e .porsproj; opcional para quem não abre marcação. */
+  formatMarkup?: (source: string) => Promise<FormatChange[] | null>;
   setStatus: (message: string, kind?: "error" | "ok") => void;
 }
 
@@ -34,12 +36,16 @@ export function createEditorFormatter(dependencies: EditorFormatterDependencies)
       if (tab.language === "rust") {
         const formatted = await dependencies.formatRust(source);
         changes = formatted === source ? [] : [{ from: 0, to: doc.length, insert: formatted }];
+      } else if (tab.language === "markup") {
+        changes = dependencies.formatMarkup ? await dependencies.formatMarkup(source) : null;
       } else {
         changes = await dependencies.formatPortugolRs(source);
       }
       if (dependencies.activeTab() !== tab || dependencies.view.state.doc !== doc) return;
       if (!changes) {
-        dependencies.setStatus("Não foi possível formatar. Confira a sintaxe do programa.", "error");
+        dependencies.setStatus(tab.language === "markup"
+          ? "Não foi possível formatar. Confira a marcação: tags e aspas precisam estar fechadas."
+          : "Não foi possível formatar. Confira a sintaxe do programa.", "error");
         return;
       }
       if (changes.length) {

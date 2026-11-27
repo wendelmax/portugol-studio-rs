@@ -27,8 +27,9 @@ import { icon, mountIcons } from "./icons";
 import { mountOutline } from "./outline";
 import { panelContentId, panelNameForKey, type PanelName } from "./panel-tabs";
 import { PORS_MODULES, PORS_SNIPPETS, portugolRs } from "./portugol";
+import { markup } from "./editor/markup-language";
 import { resolveHelpTopicForEditor } from "./help-navigation";
-import { detectSourceLanguage, ensureSourceExtension } from "./document-language";
+import { detectSourceLanguage, ensureSourceExtension, type SourceLanguage } from "./document-language";
 import { canRunAsRust } from "./runtime-capabilities";
 import { isExecutionBusy } from "./run/execution-state";
 import { createRunShell } from "./run/run-shell";
@@ -108,6 +109,7 @@ const {
   centerSource,
   breakpointGutter,
   portugolLinter,
+  markupLinter,
   rustSourceLinter,
   view,
   rustPreview,
@@ -126,6 +128,7 @@ const {
     bugIcon: () => icon("bug"),
     activeTab,
     inspectPortugolRs: api.inspectPortugolRs,
+    inspectMarkup: api.inspectMarkup,
     renderMessages,
     showOutline: (symbols) => outline.show(symbols),
     updateLibraryButtons,
@@ -197,13 +200,29 @@ const {
     editorPreferences: () => editorPreferenceExtensions(editorPreferences),
     portugolExtensions: () => [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine],
     rustExtensions: () => [rustSourceLinter],
+    markupExtensions: () => [markupLinter],
     portugolRsLanguage: () => portugolRs(),
     rustLanguage: () => rust(),
+    markupLanguage: () => markup(),
     findDialog,
     editorSearchKeys,
   },
   theme: { applyPageTheme, onSystemThemeChange },
 });
+
+/** Linguagem CodeMirror de cada tipo de documento. */
+function languageSupportFor(language: SourceLanguage) {
+  if (language === "rust") return rust();
+  if (language === "markup") return markup();
+  return portugolRs();
+}
+
+/** Linter e ferramentas de cada tipo de documento; marcação não tem depuração. */
+function languageToolsFor(language: SourceLanguage) {
+  if (language === "rust") return [rustSourceLinter];
+  if (language === "markup") return [markupLinter];
+  return [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine];
+}
 
 // ---------------------------------------------------------------------------
 // Abas
@@ -303,15 +322,15 @@ const workspaceFilesShell = createWorkspaceFilesShell({
       if (languageChanged) tab.diagnosticsAnalysis = undefined;
       if (tab.id === tabCollection.activeId()) {
         view.dispatch({ effects: [
-          sourceLanguage.reconfigure(tab.language === "rust" ? rust() : portugolRs()),
-          portugolTools.reconfigure(tab.language === "rust" ? [rustSourceLinter] : [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]),
+          sourceLanguage.reconfigure(languageSupportFor(tab.language)),
+          portugolTools.reconfigure(languageToolsFor(tab.language)),
         ] });
         syncLanguageControls(tab);
         if (languageChanged) {
           rustPreview.cancel();
-          $<HTMLElement>("rust-preview").hidden = learningMode !== "bridge" || tab.language === "rust";
+          $<HTMLElement>("rust-preview").hidden = learningMode !== "bridge" || tab.language !== "portugol-rs";
           rustPreview.render(tab);
-          if (learningMode === "bridge" && tab.language !== "rust") rustPreview.schedule();
+          if (learningMode === "bridge" && tab.language === "portugol-rs") rustPreview.schedule();
           else rustPreview.renderMappingGutter();
         }
         renderStatusBar();
@@ -509,8 +528,8 @@ const tabActivator = createTabActivationShell({
     configure: (tab) => view.dispatch({ effects: [
       theme.reconfigure(editorTheme()),
       preferences.reconfigure(editorPreferenceExtensions(editorPreferences)),
-      sourceLanguage.reconfigure(tab.language === "rust" ? rust() : portugolRs()),
-      portugolTools.reconfigure(tab.language === "rust" ? [rustSourceLinter] : [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine]),
+      sourceLanguage.reconfigure(languageSupportFor(tab.language)),
+      portugolTools.reconfigure(languageToolsFor(tab.language)),
       setDebugLine.of(tab.id === runState.runTabId ? runState.paused?.position.line ?? null : null),
     ] }),
     clearRustDiagnostics: () => view.dispatch(setDiagnostics(view.state, [])),

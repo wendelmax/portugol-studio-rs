@@ -65,6 +65,16 @@ export const RUST_UNSUPPORTED_COMMANDS: ReadonlySet<string> = new Set([
   "Filtrar tipo real", "Filtrar tipo cadeia", "Filtrar tipo logico", "Filtrar tipo vazio",
 ]);
 
+/** Comandos de programa que não se aplicam à marcação (.design e .porsproj). */
+export const MARKUP_UNSUPPORTED_COMMANDS: ReadonlySet<string> = new Set([
+  "Executar", "Depurar", "Interromper", "Pausar", "Continuar", "Próxima instrução",
+  "Entrar na função", "Sair da função", "Renomear símbolo", "Parâmetros de execução",
+  "Alternar prévia Rust", "Alternar Preview Visual PORS",
+  "Filtrar variável", "Filtrar vetor", "Filtrar matriz", "Filtrar função",
+  "Filtrar constante", "Mostrar todos os tipos", "Filtrar tipo inteiro", "Filtrar tipo caracter",
+  "Filtrar tipo real", "Filtrar tipo cadeia", "Filtrar tipo logico", "Filtrar tipo vazio",
+]);
+
 export const DEBUG_COMMANDS: ReadonlySet<string> = new Set([
   "Depurar", "Interromper", "Pausar", "Continuar", "Próxima instrução", "Entrar na função", "Sair da função",
 ]);
@@ -120,6 +130,7 @@ export function isPaletteCommandAvailable(command: string, context: PaletteConte
   }
   if (command === "Parâmetros de execução" && context.language === "portugol-rs") return false;
   if (context.language === "rust" && RUST_UNSUPPORTED_COMMANDS.has(command)) return false;
+  if (context.language === "markup" && MARKUP_UNSUPPORTED_COMMANDS.has(command)) return false;
   if (DEBUG_COMMANDS.has(command) && !isDebugCommandAvailable(command, context.language, context.runActive, context.paused)) {
     return false;
   }

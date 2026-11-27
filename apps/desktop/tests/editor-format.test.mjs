@@ -79,3 +79,20 @@ test("ignores formatting results after the active document changes", async () =>
 
   assert.deepEqual(events, []);
 });
+
+test("formats desktop markup with its own formatter and explains syntax errors", async () => {
+  const calls = [];
+  const { formatter, view, events } = fixture("markup", {
+    formatMarkup: async (source) => { calls.push(source); return [{ from: 0, to: 6, insert: "<Janela />" }]; },
+    formatPortugolRs: async () => { throw new Error("não deve formatar como PORS"); },
+  });
+  await formatter.formatCode();
+  assert.deepEqual(calls, ["codigo"]);
+  assert.equal(view.state.doc.toString(), "<Janela />");
+  assert.ok(events.some(([kind, message]) => kind === "status" && message === "Código formatado."));
+
+  const broken = fixture("markup", { formatMarkup: async () => null });
+  await broken.formatter.formatCode();
+  assert.ok(broken.events.some(([kind, message]) =>
+    kind === "status" && message.startsWith("Não foi possível formatar. Confira a marcação")));
+});

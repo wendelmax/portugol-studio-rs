@@ -75,3 +75,39 @@ test("does not update UI for an inspection result from a replaced document", asy
   assert.deepEqual(f.tab.diagnostics, []);
   assert.deepEqual(result.map(({ item }) => item.code), ["old"]);
 });
+
+test("a markup linter inspects only markup tabs and receives the tab for its path", async () => {
+  const markupTab = { language: "markup", workspacePath: "App/JanelaPrincipal.design", diagnostics: [], symbols: [], runtimeCompileDiagnostics: [] };
+  const porsTab = { language: "portugol-rs", diagnostics: [], symbols: [], runtimeCompileDiagnostics: [] };
+  let active = markupTab;
+  const seen = [];
+  const check = createPortugolLintSourceCheck({
+    activeTab: () => active,
+    language: "markup",
+    inspectPortugolRs: async (source, tab) => {
+      seen.push([source, tab.workspacePath]);
+      return { diagnostics: [diagnostic("design.unknown-element")], symbols: [] };
+    },
+    renderMessages: () => {},
+    showOutline: () => {},
+    updateLibraryButtons: () => {},
+    toCodeMirror: (item, length) => ({ item, length }),
+  });
+
+  assert.equal((await check(editor("<Janela />")))[0].item.code, "design.unknown-element");
+  assert.deepEqual(seen, [["<Janela />", "App/JanelaPrincipal.design"]]);
+
+  active = porsTab;
+  assert.deepEqual(await check(editor("funcao inicio() {}")), []);
+  assert.equal(seen.length, 1);
+});
+
+test("the PORS linter leaves markup tabs alone", async () => {
+  const f = fixture();
+  const markupTab = { language: "markup", diagnostics: [], symbols: [], runtimeCompileDiagnostics: [] };
+  f.setActive(markupTab);
+  let called = false;
+  f.setInspectPortugolRs(async () => { called = true; return { diagnostics: [], symbols: [] }; });
+  assert.deepEqual(await f.createCheck()(editor("<Janela />")), []);
+  assert.equal(called, false);
+});

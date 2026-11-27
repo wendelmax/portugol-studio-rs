@@ -183,7 +183,7 @@ test("Rust editor keeps the per-tab artifact marked stale until current translat
   assert.doesNotMatch(updateListener, /renderRustPreview\(tab\)|rustPreview\.render\(/);
   assert.match(fileIO, /const languageChanged = tab\.language !== previousLanguage/);
   assert.match(main, /if \(languageChanged && tab\.rustPreview\?\.artifact\)/);
-  assert.match(main, /if \(learningMode === "bridge" && tab\.language !== "rust"\) rustPreview\.schedule\(\)/);
+  assert.match(main, /if \(learningMode === "bridge" && tab\.language === "portugol-rs"\) rustPreview\.schedule\(\)/);
   const save = fileIO.match(/async function save\(as = false\): Promise<boolean> \{([\s\S]*?)\n  \}/)?.[1] ?? "";
   assert.match(save, /await dependencies\.writeFile\(path, text\)[\s\S]*const previousLanguage = tab\.language[\s\S]*tab\.language = dependencies\.detectSourceLanguage\(path\)/);
   const schedule = main.match(/\n( *)function scheduleRustExport\(\) \{([\s\S]*?)\n\1\}\n\n\1function renderRustPreview/)?.[2] ?? "";

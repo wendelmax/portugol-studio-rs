@@ -5,19 +5,22 @@ import type { Tab } from "../state/tab";
 
 export interface PortugolLintDependencies {
   activeTab: () => Tab | undefined;
-  inspectPortugolRs: (source: string) => Promise<Inspection>;
+  /** Inspeção do documento; recebe a aba para quem precisa do caminho (marcação). */
+  inspectPortugolRs: (source: string, tab: Tab | undefined) => Promise<Inspection>;
+  /** Linguagem atendida por este linter; abas de outra linguagem ficam sem diagnósticos dele. */
+  language?: "portugol-rs" | "markup";
   renderMessages: () => void;
   showOutline: (symbols: SymbolInfo[]) => void;
   updateLibraryButtons: (symbols: SymbolInfo[]) => void;
   toCodeMirror: (diagnostic: DiagnosticInfo, length: number) => CodeMirrorDiagnostic;
 }
 
-/** Inspects Portugol-RS source and synchronizes its diagnostics and symbols. */
+/** Inspects Portugol-RS (or desktop markup) source and synchronizes its diagnostics and symbols. */
 export function createPortugolLintSourceCheck(dependencies: PortugolLintDependencies) {
   return async (view: EditorView): Promise<CodeMirrorDiagnostic[]> => {
     const doc = view.state.doc;
     const tab = dependencies.activeTab();
-    if (tab?.language === "rust") {
+    if (tab && tab.language !== (dependencies.language ?? "portugol-rs")) {
       tab.diagnostics = [];
       tab.diagnosticsAnalysis = { source: doc.toString(), status: "unavailable" };
       tab.symbols = [];
@@ -29,7 +32,7 @@ export function createPortugolLintSourceCheck(dependencies: PortugolLintDependen
 
     let inspection: Inspection;
     try {
-      inspection = await dependencies.inspectPortugolRs(doc.toString());
+      inspection = await dependencies.inspectPortugolRs(doc.toString(), tab);
     } catch {
       if (tab && tab === dependencies.activeTab() && view.state.doc === doc) {
         tab.diagnosticsAnalysis = { source: doc.toString(), status: "unavailable" };
