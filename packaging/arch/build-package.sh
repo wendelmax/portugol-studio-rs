@@ -45,9 +45,9 @@ if [[ "$(id -u)" -eq 0 ]]; then
     useradd -m builder
   fi
   chown -R builder:builder "$build_dir"
-  su - builder -c "cd '$build_dir' && makepkg --noconfirm"
+  su - builder -c "cd '$build_dir' && PKGEXT='.pkg.tar.zst' makepkg --noconfirm"
 else
-  (cd "$build_dir" && makepkg --noconfirm)
+  (cd "$build_dir" && PKGEXT='.pkg.tar.zst' makepkg --noconfirm)
 fi
 
 shopt -s nullglob
