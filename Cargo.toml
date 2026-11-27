@@ -10,6 +10,7 @@ members = [
     "crates/portugol-service",
     "crates/portugol-cli",
     "crates/portugol-tela",
+    "crates/portugol-formatos",
     "apps/desktop/src-tauri",
 ]
 # A IDE depende de webkit2gtk/Tauri; fica fora do `cargo build`/`cargo test`
@@ -24,6 +25,7 @@ default-members = [
     "crates/portugol-service",
     "crates/portugol-cli",
     "crates/portugol-tela",
+    "crates/portugol-formatos",
 ]
 
 [workspace.package]

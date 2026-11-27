@@ -1,3 +1,5 @@
+import { classifyFile, describeExtensions, fileExtension, isMarkupKind, stripFileExtension } from "./file-formats.ts";
+
 export type WorkspaceEntry =
   | { kind: "folder"; name: string; path: string; entries: WorkspaceEntry[] }
   | { kind: "file"; name: string; path: string };
@@ -35,20 +37,15 @@ export type ExplorerEntry =
 
 export const SCREEN_PATH_SUFFIX = "#tela";
 
-function splitExtension(name: string): [string, string] {
-  const dot = name.lastIndexOf(".");
-  return dot <= 0 ? [name, ""] : [name.slice(0, dot), name.slice(dot + 1).toLowerCase()];
-}
-
-/** Agrupa cada `Nome.design` com o `Nome.pors` da mesma pasta num nó de tela. */
+/** Agrupa cada `Nome.design` com o code-behind `Nome.pors` da mesma pasta num nó de tela. */
 export function groupScreens(entries: readonly WorkspaceEntry[]): ExplorerEntry[] {
   const designs = new Set<string>();
   const codes = new Map<string, WorkspaceFileEntry>();
   for (const entry of entries) {
     if (entry.kind !== "file") continue;
-    const [stem, extension] = splitExtension(entry.name);
-    if (extension === "design") designs.add(stem);
-    else if (extension === "pors") codes.set(stem, entry);
+    const kind = classifyFile(entry.name)?.kind;
+    if (kind === "design") designs.add(stripFileExtension(entry.name));
+    else if (kind === "source") codes.set(stripFileExtension(entry.name), entry);
   }
   const grouped: ExplorerEntry[] = [];
   for (const entry of entries) {
@@ -56,9 +53,10 @@ export function groupScreens(entries: readonly WorkspaceEntry[]): ExplorerEntry[
       grouped.push({ ...entry, entries: groupScreens(entry.entries) });
       continue;
     }
-    const [stem, extension] = splitExtension(entry.name);
-    if (extension === "pors" && designs.has(stem)) continue;
-    if (extension === "design") {
+    const kind = classifyFile(entry.name)?.kind;
+    const stem = stripFileExtension(entry.name);
+    if (kind === "source" && designs.has(stem)) continue;
+    if (kind === "design") {
       const code = codes.get(stem) ?? null;
       grouped.push({
         kind: "screen",
@@ -101,25 +99,25 @@ export function flattenWorkspaceEntries(
 }
 
 export function workspaceFileKind(path: string): "portugol-rs" | "rust" | "exercise" | "markup" | null {
-  const fileName = path.split(/[\\/]/).pop()?.toLowerCase() ?? "";
-  if (fileName.endsWith(".pors.json")) return "exercise";
-  const extension = fileName.split(".").pop();
-  if (extension === "pors") return "portugol-rs";
-  if (extension === "rs") return "rust";
-  if (extension === "design" || extension === "ferproj") return "markup";
+  const kind = classifyFile(path)?.kind ?? null;
+  if (kind === "lesson") return "exercise";
+  if (kind === "source") return "portugol-rs";
+  if (kind === "rust") return "rust";
+  if (isMarkupKind(kind)) return "markup";
   return null;
 }
 
 /** Marcador curto do tipo de arquivo no Explorador. */
 export function workspaceFileMarker(path: string): string {
-  const kind = workspaceFileKind(path);
+  const kind = classifyFile(path)?.kind;
   if (kind === "rust") return "R";
-  if (kind === "exercise") return "EX";
-  if (kind === "markup") return /\.ferproj$/i.test(path) ? "PJ" : "TL";
+  if (kind === "lesson") return "EX";
+  if (kind === "manifest") return "PJ";
+  if (kind === "design") return "TL";
   return "RS";
 }
 
-export function workspaceSourceFileName(name: string, language: "pors" | "rs"): string {
+export function workspaceSourceFileName(name: string, kind: "source" | "rust"): string {
   const trimmed = name.trim();
   if (!trimmed || trimmed === "." || trimmed === ".." || /[\\/]/.test(trimmed)) {
     throw new Error("Informe um nome de arquivo sem pastas.");
@@ -128,15 +126,10 @@ export function workspaceSourceFileName(name: string, language: "pors" | "rs"): 
     throw new Error("O nome do arquivo não pode terminar com ponto.");
   }
 
-  const dot = trimmed.lastIndexOf(".");
-  if (dot >= 0) {
-    const extension = trimmed.slice(dot + 1).toLowerCase();
-    if (extension !== language) {
-      throw new Error(`A extensão do nome deve ser .${language}.`);
-    }
-    return trimmed;
+  if (trimmed.includes(".") && classifyFile(trimmed)?.kind !== kind) {
+    throw new Error(`A extensão do nome deve ser ${describeExtensions([kind])}.`);
   }
-  return `${trimmed}.${language}`;
+  return trimmed.includes(".") ? trimmed : `${trimmed}.${fileExtension(kind)}`;
 }
 
 export function workspaceSubfolderPath(raw: string): string {
@@ -181,33 +174,15 @@ export function workspaceRenameFileName(name: string, currentPath: string): stri
     throw new Error("O nome do arquivo não pode terminar com ponto.");
   }
 
-  const lowerCurrent = currentName.toLowerCase();
-  const extension = lowerCurrent.endsWith(".pors.json")
-    ? "pors.json"
-    : lowerCurrent.endsWith(".pors")
-      ? "pors"
-      : lowerCurrent.endsWith(".rs")
-        ? "rs"
-        : "";
-  if (!extension) {
+  // Só programas e exercícios são renomeados aqui; a marcação muda de nome
+  // junto com a tela.
+  const current = classifyFile(currentName);
+  if (!current || isMarkupKind(current.kind)) {
     throw new Error("A extensão deste arquivo não pode ser alterada no Explorador.");
   }
-
-  const lowerTrimmed = trimmed.toLowerCase();
-  if (extension === "pors.json") {
-    if (lowerTrimmed.endsWith(".pors.json")) return trimmed;
-    if (trimmed.includes(".")) {
-      throw new Error("A extensão deve continuar sendo .pors.json.");
-    }
-    return `${trimmed}.pors.json`;
+  if (classifyFile(trimmed)?.kind === current.kind) return trimmed;
+  if (trimmed.includes(".")) {
+    throw new Error(`A extensão deve continuar sendo .${current.extension}.`);
   }
-
-  const dot = trimmed.lastIndexOf(".");
-  if (dot >= 0) {
-    if (trimmed.slice(dot + 1).toLowerCase() !== extension) {
-      throw new Error(`A extensão deve continuar sendo .${extension}.`);
-    }
-    return trimmed;
-  }
-  return `${trimmed}.${extension}`;
+  return `${trimmed}.${current.extension}`;
 }

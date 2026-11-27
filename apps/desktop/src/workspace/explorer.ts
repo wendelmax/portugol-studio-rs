@@ -3,6 +3,7 @@
 
 import { ask } from "@tauri-apps/plugin-dialog";
 import * as api from "../api";
+import { ALL_FILE_KINDS, describeExtensions, fileKind } from "../file-formats.ts";
 import { $ } from "../dom";
 import { porsExerciseDocument } from "../exercise-opening";
 import type { ExerciseDocument } from "../exercises";
@@ -230,7 +231,7 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
       message.textContent = "Abra uma pasta para navegar pelos arquivos do projeto.";
       message.hidden = false;
     } else if (rows.length === 0) {
-      message.textContent = "Esta pasta não contém arquivos .pors, .rs, .pors.json, .design ou .ferproj.";
+      message.textContent = `Esta pasta não contém arquivos ${describeExtensions(ALL_FILE_KINDS, "ou")}.`;
       message.hidden = false;
     } else {
       message.textContent = "";
@@ -524,7 +525,7 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
       $<HTMLDialogElement>("workspace-rename-dialog").close();
       $<HTMLFormElement>("workspace-rename-form").reset();
       workspaceRenameTarget = null;
-      if (!renamed.file.relativePath.toLowerCase().endsWith(".pors.json")) {
+      if (fileKind(renamed.file.relativePath) !== "lesson") {
         host.recentFiles.remember(renamed.file.path);
       }
       setStatus(`Renomeado: ${newName}`, "ok");
@@ -758,7 +759,7 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
 
     const name = $<HTMLInputElement>("workspace-create-name");
     const folderInput = $<HTMLInputElement>("workspace-create-folder");
-    const language = $<HTMLSelectElement>("workspace-create-language").value as "pors" | "rs";
+    const language = $<HTMLSelectElement>("workspace-create-language").value as "source" | "rust";
     let fileName: string;
     let folder: string;
     try {

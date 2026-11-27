@@ -1,3 +1,4 @@
+import { describeExtensions, fileFormat, isRetiredFile } from "./file-formats.ts";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import {
   checkPorsExercise,
@@ -37,8 +38,8 @@ export interface ExerciseGrade {
 }
 
 export async function readExercise(path: string): Promise<ExerciseDocument> {
-  if (/\.pex$/i.test(path)) {
-    throw "Arquivos legados .pex não são suportados no Portugol Studio RS. Use o Portugol Studio original para abri-los ou importe um exercício .pors.json.";
+  if (isRetiredFile(path)) {
+    throw `Arquivos legados .pex não são suportados no Portugol Studio RS. Use o Portugol Studio original para abri-los ou importe um exercício ${describeExtensions(["lesson"])}.`;
   }
   const contents = await readFile(path);
   const fileName = path.split(/[\\/]/).pop() ?? "Exercício";
@@ -127,7 +128,7 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
     try {
       const path = await openDialog({
         filters: [
-          { name: "Exercício Portugol-RS (.pors.json)", extensions: ["json"] },
+          { name: `${fileFormat("lesson").label} (${describeExtensions(["lesson"])})`, extensions: ["json"] },
         ],
       });
       if (typeof path !== "string" || !chooser.open) return;

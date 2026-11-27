@@ -7,3 +7,4 @@ description = "Formato .design das telas desktop PORS (pseudo-XAML): parser, esq
 
 [dependencies]
 portugol-hir = { path = "../portugol-hir" }
+portugol-formatos = { path = "../portugol-formatos" }

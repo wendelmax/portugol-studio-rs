@@ -5,22 +5,17 @@ use tauri::{AppHandle, RunEvent, State};
 
 pub(crate) struct PendingFiles(Mutex<Vec<String>>);
 
-fn is_pors_exercise(path: &std::path::Path) -> bool {
-    path.file_name()
-        .and_then(|name| name.to_str())
-        .is_some_and(|name| name.to_ascii_lowercase().ends_with(".pors.json"))
+/// Arquivos que a IDE abre quando o sistema os entrega (duplo clique,
+/// "Abrir com"): programas e exercícios.
+fn opens_from_system(path: &std::path::Path) -> bool {
+    portugol_formatos::classify_path(path)
+        .is_some_and(|m| m.kind().is_program() || m.kind() == portugol_formatos::Kind::Lesson)
 }
 
 fn file_paths(paths: impl IntoIterator<Item = PathBuf>) -> Vec<String> {
     paths
         .into_iter()
-        .filter(|path| {
-            (is_pors_exercise(path)
-                || path.extension().is_some_and(|extension| {
-                    extension.eq_ignore_ascii_case("pors") || extension.eq_ignore_ascii_case("rs")
-                }))
-                && path.is_file()
-        })
+        .filter(|path| opens_from_system(path) && path.is_file())
         .filter_map(|path| path.into_os_string().into_string().ok())
         .collect()
 }

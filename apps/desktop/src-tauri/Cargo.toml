@@ -16,6 +16,7 @@ tauri-build = { version = "2", features = [] }
 cap-std = "4"
 portugol-service = { path = "../../../crates/portugol-service" }
 portugol-tela = { path = "../../../crates/portugol-tela" }
+portugol-formatos = { path = "../../../crates/portugol-formatos" }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }

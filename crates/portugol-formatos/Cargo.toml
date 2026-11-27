@@ -1,0 +1,8 @@
+[package]
+name = "portugol-formatos"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Tabela única dos formatos de arquivo do Ferro Studio: extensões canônicas, antigas e retiradas"
+
+[dependencies]

@@ -78,7 +78,7 @@ jobs:
         run: |
           cargo test -p portugol-vm --no-default-features --all-targets
           cargo clippy -p portugol-vm --no-default-features --all-targets -- -D warnings
-          cargo check --target wasm32-unknown-unknown -p portugol-hir -p portugol-rs-frontend -p portugol-bytecode -p portugol-vm -p portugol-tela --no-default-features
+          cargo check --target wasm32-unknown-unknown -p portugol-hir -p portugol-rs-frontend -p portugol-bytecode -p portugol-vm -p portugol-tela -p portugol-formatos --no-default-features
           cargo build --target wasm32-unknown-unknown -p portugol-wasm
       - name: Testes do núcleo
         run: cargo test

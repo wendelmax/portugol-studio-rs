@@ -17,13 +17,10 @@ pub enum MarkupKind {
 impl MarkupKind {
     /// Tipo pelo caminho ou nome do arquivo; `None` se não for marcação.
     pub fn from_path(path: &str) -> Option<Self> {
-        let extension = path.rsplit_once('.')?.1.to_ascii_lowercase();
-        if extension == portugol_tela::FILE_EXTENSION {
-            Some(Self::Design)
-        } else if extension == project::MANIFEST_EXTENSION {
-            Some(Self::Manifest)
-        } else {
-            None
+        match portugol_formatos::classify(path)?.kind() {
+            portugol_formatos::Kind::Design => Some(Self::Design),
+            portugol_formatos::Kind::Manifest => Some(Self::Manifest),
+            _ => None,
         }
     }
 }

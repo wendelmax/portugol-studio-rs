@@ -1,5 +1,6 @@
 import type { SourceLanguage } from "../document-language";
 import type { Tab } from "../state/tab";
+import { acceptedExtensions, classifyFile, fileExtension, fileFormat, stripFileExtension, type FileKind } from "../file-formats.ts";
 
 export interface FileDialogFilter {
   name: string;
@@ -7,9 +8,12 @@ export interface FileDialogFilter {
 }
 
 export const FILE_FILTERS: FileDialogFilter[] = [
-  { name: "Portugol-RS e Rust", extensions: ["pors", "rs"] },
-  { name: "Portugol-RS", extensions: ["pors"] },
-  { name: "Rust", extensions: ["rs"] },
+  {
+    name: `${fileFormat("source").label} e ${fileFormat("rust").label}`,
+    extensions: [...acceptedExtensions("source"), ...acceptedExtensions("rust")],
+  },
+  { name: fileFormat("source").label, extensions: acceptedExtensions("source") },
+  { name: fileFormat("rust").label, extensions: acceptedExtensions("rust") },
 ];
 
 export interface FileIODependencies {
@@ -69,17 +73,16 @@ export function createFileIO(dependencies: FileIODependencies) {
     let path = tab.path;
     let workspaceFile = Boolean(tab.workspaceId && tab.workspacePath);
     if (!path || as) {
-      const extension = tab.language === "rust" ? "rs" : tab.language === "markup"
-        ? tab.path?.match(/\.(design|ferproj)$/i)?.[1]?.toLowerCase() ?? "design"
-        : "pors";
+      const kind: FileKind = tab.language === "rust" ? "rust" : tab.language === "markup"
+        ? classifyFile(tab.path ?? "")?.kind === "manifest" ? "manifest" : "design"
+        : "source";
+      const extension = fileExtension(kind);
       const exerciseName = tab.exercise
-        ? `${tab.exercise.name.replace(/\.(pors\.json|json)$/i, "")}.${extension}`
+        ? `${stripFileExtension(tab.exercise.name).replace(/\.json$/i, "")}.${extension}`
         : undefined;
-      const filters = tab.language === "rust"
-        ? [{ name: "Rust", extensions: ["rs"] }]
-        : tab.language === "markup"
-          ? [{ name: extension === "ferproj" ? "Projeto desktop PORS" : "Tela (pseudo-XAML)", extensions: [extension] }]
-          : [{ name: "Portugol-RS", extensions: ["pors"] }, ...FILE_FILTERS];
+      const filters = kind === "source"
+        ? [{ name: fileFormat(kind).label, extensions: acceptedExtensions(kind) }, ...FILE_FILTERS]
+        : [{ name: fileFormat(kind).label, extensions: acceptedExtensions(kind) }];
       path = await dependencies.saveDialog({
         filters,
         defaultPath: tab.path ?? exerciseName ?? tab.exampleName ?? `programa.${extension}`,
