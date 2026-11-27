@@ -2,7 +2,7 @@
 
 - **Data:** 2026-11-27
 - **Status:** Proposta (aguardando aprovação)
-- **Relacionados:** [ADR 0019](../../adr/0019-contrato-minimo-de-tipos-pors.md), [RFC 001](2026-11-27-rfc-001-inferencia-em-seja.md), [RFC 002](2026-11-27-rfc-002-leia-como-expressao.md), [RFC 003](2026-11-27-rfc-003-escreval.md), [RFC 004](2026-11-27-rfc-004-interpolacao-de-cadeias.md), [RFC 005](2026-11-27-rfc-005-retorno-implicito.md), [RFC 007](2026-11-27-rfc-007-tratamento-de-erros.md), [RFC 008](2026-11-27-rfc-008-programacao-orientada-a-objetos.md), [matriz de migração](../../research/PORS_MIGRATION_MATRIX.md)
+- **Relacionados:** [ADR 0019](../../adr/0019-contrato-minimo-de-tipos-pors.md), [RFC 001](2026-11-27-rfc-001-inferencia-em-seja.md), [RFC 002](2026-11-27-rfc-002-leia-como-expressao.md), [RFC 003](2026-11-27-rfc-003-escreval.md), [RFC 004](2026-11-27-rfc-004-interpolacao-de-cadeias.md), [RFC 005](2026-11-27-rfc-005-retorno-implicito.md), [RFC 007](2026-11-27-rfc-007-tratamento-de-erros.md), [RFC 008](2026-11-27-rfc-008-coalescencia-e-navegacao-segura.md), [matriz de migração](../../research/PORS_MIGRATION_MATRIX.md)
 
 ## Intenção
 
@@ -33,7 +33,7 @@ Público: quem aprende PORS pela IDE, pelo playground, pelos exercícios, pela a
 3. Simplificar saída com `escreval`, declarações com inferência e texto com interpolação onde os tipos permitem.
 4. Garantir conversão implícita nas duas formas de `leia`: `leia(variavel)` converte ao tipo declarado da variável (comportamento atual) e `leia()` converte ao tipo esperado pelo contexto (`inteiro`, `real`, `caracter`, `logico`, `cadeia`), falhando em execução com mensagem clara quando a entrada não converte.
 5. Corrigir o plano do núcleo que afirma que `escreval` é reservado.
-6. Corrigir os exemplos da RFC 007 e da RFC 008 que usam interpolação de tipos inválidos segundo a RFC 004, mantendo aviso explícito de que `tente`, `capture`, `lance` e os exemplos de orientação a objetos ainda não executam no `main`.
+6. Corrigir os exemplos da RFC 007 e da RFC 008 que usam interpolação de tipos inválidos segundo a RFC 004, mantendo aviso explícito de que `tente`, `capture`, `lance` e os exemplos de coalescência/navegação segura ainda não executam no `main`.
 7. Atualizar RFC 002, ADR 0019 e a matriz de migração para refletir a nova semântica de `leia()`.
 8. Preservar a saída esperada de exemplos usados por testes e exercícios.
 
