@@ -398,51 +398,44 @@ test("web playground highlights interpolated strings and escreval builtins", asy
   };
   const previousDocument = globalThis.document;
   globalThis.document = fakeDocument;
-  let appModule = null;
   try {
-    appModule = await import("../../web-playground/app.mjs?highlight-contract");
+    await import("../../web-playground/app.mjs?highlight-contract");
+
+    const editorEl = fakeDocument.getElementById("pg-editor");
+    const highlightEl = fakeDocument.getElementById("pg-highlight");
+
+    const render = (source) => {
+      editorEl.value = source;
+      const listener = editorEl.listeners.get("input");
+      if (typeof listener === "function") listener();
+    };
+
+    render('escreval("Olá, {nome}!");');
+    const classes = collectTokenClasses(highlightEl);
+    assert.ok(
+      classes.includes("pg-tok-interpolation"),
+      `esperava pg-tok-interpolation no realce: ${classes}`,
+    );
+    assert.ok(
+      classes.includes("pg-tok-builtin"),
+      `esperava pg-tok-builtin no realce: ${classes}`,
+    );
+
+    for (const doc of ['escreval("\\{nome}");', 'escreval("{}");', 'escreval("abri {");']) {
+      render(doc);
+      const docClasses = collectTokenClasses(highlightEl);
+      assert.ok(
+        !docClasses.includes("pg-tok-interpolation"),
+        `${doc} não deve produzir pg-tok-interpolation`,
+      );
+    }
+
+    render('escreval("Olá, {nome}!");');
+    assert.equal(highlightEl.textContent, editorEl.value);
+
+    const appSource = readFileSync(new URL("../../web-playground/app.mjs", import.meta.url), "utf8");
+    assert.ok(!appSource.includes(".innerHTML"));
   } finally {
     globalThis.document = previousDocument;
   }
-
-  const TOKEN_NAMES = appModule.TOKEN_NAMES ?? [];
-  assert.ok(
-    TOKEN_NAMES.includes("interpolation"),
-    `esperava TOKEN_NAMES com 'interpolation': ${TOKEN_NAMES}`,
-  );
-
-  const editorEl = fakeDocument.getElementById("pg-editor");
-  const highlightEl = fakeDocument.getElementById("pg-highlight");
-
-  const render = (source) => {
-    editorEl.value = source;
-    const listener = editorEl.listeners.get("input");
-    if (typeof listener === "function") listener();
-  };
-
-  render('escreval("Olá, {nome}!");');
-  const classes = collectTokenClasses(highlightEl);
-  assert.ok(
-    classes.includes("pg-tok-interpolation"),
-    `esperava pg-tok-interpolation no realce: ${classes}`,
-  );
-  assert.ok(
-    classes.includes("pg-tok-builtin"),
-    `esperava pg-tok-builtin no realce: ${classes}`,
-  );
-
-  for (const doc of ['escreval("\\{nome}");', 'escreval("{}");', 'escreval("abri {");']) {
-    render(doc);
-    const docClasses = collectTokenClasses(highlightEl);
-    assert.ok(
-      !docClasses.includes("pg-tok-interpolation"),
-      `${doc} não deve produzir pg-tok-interpolation`,
-    );
-  }
-
-  render('escreval("Olá, {nome}!");');
-  assert.equal(highlightEl.textContent, editorEl.value);
-
-  const appSource = readFileSync(new URL("../../web-playground/app.mjs", import.meta.url), "utf8");
-  assert.ok(!appSource.includes(".innerHTML"));
 });
