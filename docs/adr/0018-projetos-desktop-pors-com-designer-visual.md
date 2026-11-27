@@ -34,6 +34,12 @@
 > *templates* de controle, *triggers*, animações, conversores e `ICommand` não
 > serão adotados. Ver a seção 8.
 
+> **Nota (2026-11-27, [ADR 0023](0023-identidade-e-marca-ferro-studio.md)
+> Emenda 1).** O manifesto passa a usar a extensão `.ferproj`. Como o
+> `.porsproj` nunca saiu numa versão lançada, a troca foi feita direto, sem
+> leitura de transição. O code-behind continua `.pors` até a migração para
+> `.fer`.
+
 ## Contexto
 
 O ADR 0017 introduziu programas visuais em PORS no modelo MVU
@@ -77,12 +83,12 @@ Um novo modelo **Aplicativo Desktop PORS** em *Novo projeto* (ou
 
 ```
 MeuApp/
-  meu-app.porsproj       # manifesto: nome, versão, janela inicial, ícone
+  meu-app.ferproj       # manifesto: nome, versão, janela inicial, ícone
   JanelaPrincipal.design # desenho da janela em pseudo-XAML, mantido pelo designer
   recursos/              # imagens e ícones referenciados pelas telas
 ```
 
-O manifesto `.porsproj` é a raiz do projeto: a IDE o reconhece ao abrir a
+O manifesto `.ferproj` é a raiz do projeto: a IDE o reconhece ao abrir a
 pasta, como já faz com `Cargo.toml`. Ele usa a mesma marcação do `.design`,
 como o `.csproj` do Visual Studio, para que o aluno veja uma única linguagem
 de marcação:
@@ -98,7 +104,7 @@ de marcação:
   inicialização do Visual Studio. Por isso não há um `principal.pors` de
   ponto de entrada.
 - O nome do arquivo do manifesto vem do nome do projeto, em minúsculas e sem
-  acento (`"Meu App"` → `meu-app.porsproj`).
+  acento (`"Meu App"` → `meu-app.ferproj`).
 - O code-behind `JanelaPrincipal.pors` não vem no modelo: ele é criado no
   primeiro duplo clique num controle, conforme as regras do par abaixo.
 - Um projeto pode ter várias janelas.
@@ -111,7 +117,7 @@ tela:
 
 ```
 MeuApp/
-├─ meu-app.porsproj
+├─ meu-app.ferproj
 ├─ JanelaPrincipal           ← nó de tela: abre o modo visual
 │   ├─ JanelaPrincipal.design  ← abre o pseudo-XAML
 │   └─ JanelaPrincipal.pors    ← abre o code-behind
@@ -379,7 +385,7 @@ funcao btnSomar_clicar(tela: JanelaPrincipal) -> JanelaPrincipal {
 - **Prévia** no designer: renderizador DOM, sem executar handlers, ou com
   execução opcional na própria aba.
 - **Executar**: abre uma **janela Tauri separada**, com título, tamanho e
-  ícone do `.porsproj`/`.design`, e a VM PORS conduzindo os eventos. Fechar a
+  ícone do `.ferproj`/`.design`, e a VM PORS conduzindo os eventos. Fechar a
   janela encerra a execução.
 - Serviços do SO entram como módulos nativos da VM (`Op::CallNative`), com
   permissões explícitas no manifesto: `Dialogo` (abrir, salvar, mensagem,
@@ -513,7 +519,7 @@ Rust do produto. Pode ser oferecida depois como "empacotar sem compilar".
 ## Consequências
 
 - **Fase 1 (formato e projeto):** crate de parser, validação e formatação do
-  `.design` em pseudo-XAML; manifesto `.porsproj`; modelo *Aplicativo Desktop
+  `.design` em pseudo-XAML; manifesto `.ferproj`; modelo *Aplicativo Desktop
   PORS*; reconhecimento do projeto e dos nós de tela no Explorador.
 - **Fase 2 (designer, níveis 1 e 2):** modo visual com as vistas *Design*,
   *Dividido* e *Código*, canvas, caixa de ferramentas, árvore de

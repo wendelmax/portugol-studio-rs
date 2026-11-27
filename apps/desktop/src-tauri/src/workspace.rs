@@ -92,14 +92,14 @@ mod tests {
         let temp = TempDir::new();
         let folder = super::create_desktop_project_in(&temp.0, "  Meu App  ").unwrap();
         assert!(folder.ends_with("Meu App"));
-        assert!(folder.join("meu-app.porsproj").is_file());
+        assert!(folder.join("meu-app.ferproj").is_file());
         assert!(folder.join("JanelaPrincipal.design").is_file());
         assert!(folder.join("recursos").is_dir());
         let entries = list_entries(&folder).unwrap();
         let mut paths = Vec::new();
         file_paths(&entries, &mut paths);
         paths.sort();
-        assert_eq!(paths, ["JanelaPrincipal.design", "meu-app.porsproj"]);
+        assert_eq!(paths, ["JanelaPrincipal.design", "meu-app.ferproj"]);
 
         let again = super::create_desktop_project_in(&temp.0, "Meu App").unwrap_err();
         assert!(again.contains("Já existe uma pasta"), "{again}");
@@ -117,7 +117,7 @@ mod tests {
     fn handles_desktop_project_markup_like_other_sources() {
         let temp = TempDir::new();
         fs::create_dir_all(temp.0.join("App/recursos")).unwrap();
-        fs::write(temp.0.join("App/meu-app.porsproj"), "<Projeto />").unwrap();
+        fs::write(temp.0.join("App/meu-app.ferproj"), "<Projeto />").unwrap();
         fs::write(temp.0.join("App/JanelaPrincipal.design"), "<Janela />").unwrap();
         fs::write(temp.0.join("App/recursos/logo.png"), "png").unwrap();
 
@@ -125,10 +125,7 @@ mod tests {
         let mut paths = Vec::new();
         file_paths(&entries, &mut paths);
         paths.sort();
-        assert_eq!(
-            paths,
-            ["App/JanelaPrincipal.design", "App/meu-app.porsproj"]
-        );
+        assert_eq!(paths, ["App/JanelaPrincipal.design", "App/meu-app.ferproj"]);
 
         let design = Path::new("App/JanelaPrincipal.design");
         assert_eq!(read_relative_file(&temp.0, design).unwrap(), "<Janela />");
@@ -143,7 +140,7 @@ mod tests {
         let renamed = rename_relative_file(&temp.0, design, "Outra.design").unwrap();
         assert!(renamed.ends_with("App/Outra.design"));
 
-        let manifest = Path::new("App/meu-app.porsproj");
+        let manifest = Path::new("App/meu-app.ferproj");
         delete_relative_file(&temp.0, manifest).unwrap();
         assert!(!temp.0.join(manifest).exists());
 
@@ -1488,7 +1485,7 @@ fn open_selected_file_with_hook(
                     || supported_markup(relative_path))
             {
                 return Err(
-                    "O explorador só exporta arquivos .pors, .rs, .pors.json, .design e .porsproj."
+                    "O explorador só exporta arquivos .pors, .rs, .pors.json, .design e .ferproj."
                         .into(),
                 );
             }
@@ -1754,7 +1751,7 @@ fn source_extension_label(path: &Path) -> Option<&'static str> {
         return Some("pors.json");
     }
     let ext = path.extension().and_then(|extension| extension.to_str())?;
-    ["pors", "rs", "design", "porsproj"]
+    ["pors", "rs", "design", "ferproj"]
         .into_iter()
         .find(|label| ext.eq_ignore_ascii_case(label))
 }
@@ -1764,12 +1761,12 @@ fn supported_source(path: &Path) -> bool {
 }
 
 /// Marcação de projetos desktop PORS (ADR 0018): o desenho de uma tela
-/// (`.design`) e o manifesto (`.porsproj`).
+/// (`.design`) e o manifesto (`.ferproj`).
 fn supported_markup(path: &Path) -> bool {
     path.extension()
         .and_then(|extension| extension.to_str())
         .is_some_and(|extension| {
-            extension.eq_ignore_ascii_case("design") || extension.eq_ignore_ascii_case("porsproj")
+            extension.eq_ignore_ascii_case("design") || extension.eq_ignore_ascii_case("ferproj")
         })
 }
 
@@ -1894,7 +1891,7 @@ fn checked_file(root: &Path, relative: &Path, allow_exercise: bool) -> Result<Pa
             );
         }
         return Err(
-            "O explorador só abre arquivos .pors, .rs, .pors.json, .design e .porsproj.".into(),
+            "O explorador só abre arquivos .pors, .rs, .pors.json, .design e .ferproj.".into(),
         );
     }
     let canonical = fs::canonicalize(&candidate)
@@ -1970,7 +1967,7 @@ fn read_relative_file(root: &Path, relative: &Path) -> Result<String, String> {
 fn write_relative_file(root: &Path, relative: &Path, source: &str) -> Result<(), String> {
     if !supported_program(relative) && !supported_markup(relative) {
         return Err(
-            "Apenas arquivos .pors, .rs, .design e .porsproj podem ser salvos pelo explorador."
+            "Apenas arquivos .pors, .rs, .design e .ferproj podem ser salvos pelo explorador."
                 .into(),
         );
     }
@@ -2202,7 +2199,7 @@ fn rename_relative_file(root: &Path, relative: &Path, new_name: &str) -> Result<
     }
     if new_name.ends_with('.') || !supported_source(name) {
         return Err(
-            "O arquivo deve manter uma extensão .pors, .rs, .pors.json, .design ou .porsproj."
+            "O arquivo deve manter uma extensão .pors, .rs, .pors.json, .design ou .ferproj."
                 .into(),
         );
     }
@@ -2280,7 +2277,7 @@ fn delete_relative_file_from_dir(
         }
         if index + 1 == components.len() && (!metadata.is_file() || !supported_source(relative)) {
             return Err(
-                "O explorador só exclui arquivos .pors, .rs, .pors.json, .design e .porsproj."
+                "O explorador só exclui arquivos .pors, .rs, .pors.json, .design e .ferproj."
                     .into(),
             );
         }

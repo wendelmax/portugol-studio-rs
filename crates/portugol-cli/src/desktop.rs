@@ -1,5 +1,5 @@
 //! Comandos do CLI para projetos desktop PORS (ADR 0018): criar o projeto,
-//! validar e formatar `.design` e `.porsproj`.
+//! validar e formatar `.design` e `.ferproj`.
 
 use std::fs;
 use std::path::Path;
@@ -22,12 +22,12 @@ pub(crate) fn is_manifest_file(path: &Path) -> bool {
     has_extension(path, project::MANIFEST_EXTENSION)
 }
 
-/// Arquivos de marcação de projetos desktop: `.design` e `.porsproj`.
+/// Arquivos de marcação de projetos desktop: `.design` e `.ferproj`.
 pub(crate) fn is_markup_file(path: &Path) -> bool {
     is_design_file(path) || is_manifest_file(path)
 }
 
-/// Diagnósticos de um `.design` ou `.porsproj`. No manifesto, também confere
+/// Diagnósticos de um `.design` ou `.ferproj`. No manifesto, também confere
 /// se a janela inicial existe na pasta dele.
 pub(crate) fn diagnose(path: &Path, source: &str) -> Vec<Diagnostic> {
     if is_design_file(path) {
@@ -146,7 +146,7 @@ pub(crate) fn new_project(args: &[String]) -> ExitCode {
     }
 }
 
-/// Formata um `.design` ou `.porsproj`.
+/// Formata um `.design` ou `.ferproj`.
 pub(crate) fn format_markup(path: &Path, source: &str, check_only: bool) -> ExitCode {
     let file = path.display();
     let formatted = match portugol_tela::format_source(source) {

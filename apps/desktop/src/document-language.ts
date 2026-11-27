@@ -1,12 +1,12 @@
 /**
  * Linguagem de um documento aberto no editor. `markup` cobre a marcação dos
  * projetos desktop PORS (ADR 0018): o desenho de uma tela (`.design`) e o
- * manifesto (`.porsproj`). Marcação não executa, não depura e não tem prévia
+ * manifesto (`.ferproj`). Marcação não executa, não depura e não tem prévia
  * Rust; só tem realce, diagnósticos, estrutura e formatação.
  */
 export type SourceLanguage = "portugol-rs" | "rust" | "markup";
 
-const MARKUP_EXTENSION = /\.(design|porsproj)$/i;
+const MARKUP_EXTENSION = /\.(design|ferproj)$/i;
 
 export function detectSourceLanguage(path: string): SourceLanguage {
   if (/\.rs$/i.test(path)) return "rust";

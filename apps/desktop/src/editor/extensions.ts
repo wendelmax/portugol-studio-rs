@@ -19,7 +19,7 @@ export interface EditorExtensionDependencies {
   editorPreferences?: () => Extension;
   portugolExtensions: () => Extension[];
   rustExtensions: () => Extension[];
-  /** Ferramentas da marcação dos projetos desktop (.design e .porsproj). */
+  /** Ferramentas da marcação dos projetos desktop (.design e .ferproj). */
   markupExtensions?: () => Extension[];
   portugolRsLanguage: () => Extension;
   rustLanguage: () => Extension;

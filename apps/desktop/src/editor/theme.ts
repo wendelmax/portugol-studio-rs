@@ -43,7 +43,7 @@ export const editorColors = syntaxHighlighting(HighlightStyle.define([
   { tag: tags.special(tags.string), color: "var(--syntax-interpolation)" },
   { tag: tags.comment, color: "var(--syntax-comment)" },
   { tag: tags.operator, color: "var(--syntax-operator)" },
-  // Marcação dos projetos desktop (.design e .porsproj).
+  // Marcação dos projetos desktop (.design e .ferproj).
   { tag: tags.tagName, color: "var(--syntax-type)" },
   { tag: tags.attributeName, color: "var(--syntax-function)" },
   { tag: tags.attributeValue, color: "var(--syntax-string)" },

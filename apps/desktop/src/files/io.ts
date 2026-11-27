@@ -70,7 +70,7 @@ export function createFileIO(dependencies: FileIODependencies) {
     let workspaceFile = Boolean(tab.workspaceId && tab.workspacePath);
     if (!path || as) {
       const extension = tab.language === "rust" ? "rs" : tab.language === "markup"
-        ? tab.path?.match(/\.(design|porsproj)$/i)?.[1]?.toLowerCase() ?? "design"
+        ? tab.path?.match(/\.(design|ferproj)$/i)?.[1]?.toLowerCase() ?? "design"
         : "pors";
       const exerciseName = tab.exercise
         ? `${tab.exercise.name.replace(/\.(pors\.json|json)$/i, "")}.${extension}`
@@ -78,7 +78,7 @@ export function createFileIO(dependencies: FileIODependencies) {
       const filters = tab.language === "rust"
         ? [{ name: "Rust", extensions: ["rs"] }]
         : tab.language === "markup"
-          ? [{ name: extension === "porsproj" ? "Projeto desktop PORS" : "Tela (pseudo-XAML)", extensions: [extension] }]
+          ? [{ name: extension === "ferproj" ? "Projeto desktop PORS" : "Tela (pseudo-XAML)", extensions: [extension] }]
           : [{ name: "Portugol-RS", extensions: ["pors"] }, ...FILE_FILTERS];
       path = await dependencies.saveDialog({
         filters,

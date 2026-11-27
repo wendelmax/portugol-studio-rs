@@ -31,7 +31,7 @@ pub(crate) fn report_unsupported_extension(path: &Path) {
         );
     } else {
         eprintln!(
-            "{}: extensão não suportada (use .pors, .design ou .porsproj)",
+            "{}: extensão não suportada (use .pors, .design ou .ferproj)",
             path.display()
         );
     }
@@ -75,7 +75,7 @@ fn main() -> ExitCode {
     }
 
     if files.is_empty() {
-        eprintln!("nenhum arquivo .pors, .design ou .porsproj encontrado");
+        eprintln!("nenhum arquivo .pors, .design ou .ferproj encontrado");
         return ExitCode::FAILURE;
     }
 
@@ -202,7 +202,7 @@ fn format_command(args: &[String]) -> ExitCode {
         }
     }
     let Some(file) = file else {
-        eprintln!("uso: portugol formatar [--check] <arquivo.pors | .design | .porsproj>");
+        eprintln!("uso: portugol formatar [--check] <arquivo.pors | .design | .ferproj>");
         return ExitCode::FAILURE;
     };
     let path = Path::new(file);
@@ -372,10 +372,10 @@ fn print_usage() {
         "portugol {}\n\
          \n\
          Uso:\n\
-           portugol [opções] <arquivo | diretório>...            valida .pors, .design e .porsproj\n\
+           portugol [opções] <arquivo | diretório>...            valida .pors, .design e .ferproj\n\
            portugol novo <arquivo.pors>                          cria um modelo .pors\n\
            portugol novo --desktop <pasta> [--nome <nome>]       cria um projeto desktop PORS\n\
-           portugol formatar [--check] <arquivo>                 formata .pors, .design ou .porsproj\n\
+           portugol formatar [--check] <arquivo>                 formata .pors, .design ou .ferproj\n\
            portugol exportar-rust <arquivo.pors>                 imprime o Rust gerado\n\
            portugol exportar-cargo <arquivo.pors> <pasta>        gera um projeto Cargo pronto\n\
            portugol executar [--bytecode] <arquivo.pors>         executa um programa na VM\n\

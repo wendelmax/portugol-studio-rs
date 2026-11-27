@@ -1,5 +1,5 @@
 // Realce da marcação dos projetos desktop PORS (ADR 0018): o pseudo-XAML dos
-// arquivos .design e o manifesto .porsproj. O realce é só apresentação; a
+// arquivos .design e o manifesto .ferproj. O realce é só apresentação; a
 // validade do documento vem dos diagnósticos do backend.
 
 import { LanguageSupport, StreamLanguage, type StringStream } from "@codemirror/language";
@@ -96,7 +96,7 @@ export const markupStreamParser = {
 
 const markupLanguage = StreamLanguage.define(markupStreamParser);
 
-/** Linguagem CodeMirror dos arquivos .design e .porsproj. */
+/** Linguagem CodeMirror dos arquivos .design e .ferproj. */
 export function markup(): LanguageSupport {
   return new LanguageSupport(markupLanguage);
 }

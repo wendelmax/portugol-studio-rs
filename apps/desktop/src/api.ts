@@ -134,9 +134,9 @@ export interface RustExport {
 }
 
 export const inspectPortugolRs = (source: string) => invoke<Inspection>("inspect_portugol_rs", { source });
-/** Diagnósticos e estrutura de um `.design` ou `.porsproj`; o tipo vem da extensão de `path`. */
+/** Diagnósticos e estrutura de um `.design` ou `.ferproj`; o tipo vem da extensão de `path`. */
 export const inspectMarkup = (source: string, path: string) => invoke<Inspection>("inspect_markup", { source, path });
-/** Formata um `.design` ou `.porsproj`; `null` quando há erro de sintaxe. */
+/** Formata um `.design` ou `.ferproj`; `null` quando há erro de sintaxe. */
 export const formatMarkup = (source: string) =>
   invoke<{ from: number; to: number; insert: string }[] | null>("format_markup", { source });
 export const exportPortugolRs = (source: string) => invoke<RustExport>("export_portugol_rs", { source });

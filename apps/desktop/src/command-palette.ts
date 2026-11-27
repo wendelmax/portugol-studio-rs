@@ -65,7 +65,7 @@ export const RUST_UNSUPPORTED_COMMANDS: ReadonlySet<string> = new Set([
   "Filtrar tipo real", "Filtrar tipo cadeia", "Filtrar tipo logico", "Filtrar tipo vazio",
 ]);
 
-/** Comandos de programa que não se aplicam à marcação (.design e .porsproj). */
+/** Comandos de programa que não se aplicam à marcação (.design e .ferproj). */
 export const MARKUP_UNSUPPORTED_COMMANDS: ReadonlySet<string> = new Set([
   "Executar", "Depurar", "Interromper", "Pausar", "Continuar", "Próxima instrução",
   "Entrar na função", "Sair da função", "Renomear símbolo", "Parâmetros de execução",

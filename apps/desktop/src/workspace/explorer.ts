@@ -230,7 +230,7 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
       message.textContent = "Abra uma pasta para navegar pelos arquivos do projeto.";
       message.hidden = false;
     } else if (rows.length === 0) {
-      message.textContent = "Esta pasta não contém arquivos .pors, .rs, .pors.json, .design ou .porsproj.";
+      message.textContent = "Esta pasta não contém arquivos .pors, .rs, .pors.json, .design ou .ferproj.";
       message.hidden = false;
     } else {
       message.textContent = "";

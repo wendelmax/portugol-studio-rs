@@ -18,7 +18,7 @@ export interface EditorSetupDependencies {
   bugIcon: () => HTMLElement;
   activeTab: () => Tab | undefined;
   inspectPortugolRs: (source: string) => Promise<Inspection>;
-  /** Inspeção de .design e .porsproj; o tipo vem da extensão do caminho. */
+  /** Inspeção de .design e .ferproj; o tipo vem da extensão do caminho. */
   inspectMarkup: (source: string, path: string) => Promise<Inspection>;
   renderMessages: () => void;
   showOutline: (symbols: SymbolInfo[]) => void;
