@@ -2,7 +2,7 @@
 
 - **Data:** 2026-11-27
 - **Status:** Aceita
-- **Relacionados:** [ADR 0018](../../adr/0018-contrato-minimo-de-tipos-pors.md), [RFC 002](2026-11-27-rfc-002-leia-como-expressao.md), [RFC 003](2026-11-27-rfc-003-escreval.md), [RFC 004](2026-11-27-rfc-004-interpolacao-de-cadeias.md), [RFC 005](2026-11-27-rfc-005-retorno-implicito.md), [design de evolução sintática inicial do PORS](2026-11-26-pors-syntax-evolution-design.md)
+- **Relacionados:** [ADR 0019](../../adr/0019-contrato-minimo-de-tipos-pors.md), [RFC 002](2026-11-27-rfc-002-leia-como-expressao.md), [RFC 003](2026-11-27-rfc-003-escreval.md), [RFC 004](2026-11-27-rfc-004-interpolacao-de-cadeias.md), [RFC 005](2026-11-27-rfc-005-retorno-implicito.md), [design de evolução sintática inicial do PORS](2026-11-26-pors-syntax-evolution-design.md)
 
 ## Contexto
 
@@ -133,6 +133,6 @@ apresentem os mesmos tokens para as mesmas regras sem divergir.
 - A implementação planejada em `docs/superpowers/plans/2026-11-27-pors-syntax-highlighting.md` (Tasks
   1 a 4) mantém a mesma taxonomia nos dois editores, sem tokens internos no playground.
 - Qualquer mudança na gramática de `{...}`, nas regras de escapes ou na lista de tokens exige
-  revisão desta RFC e do ADR 0018 antes de entrar em código.
+  revisão desta RFC e do ADR 0019 antes de entrar em código.
 - Não há novo opcode, VM, crate, produto, API WASM ou pasta `specs/` paralela; o contrato de realce
   reusa os tokens existentes do frontend.

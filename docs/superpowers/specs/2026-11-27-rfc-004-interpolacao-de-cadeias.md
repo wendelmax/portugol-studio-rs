@@ -2,13 +2,13 @@
 
 - **Data:** 2026-11-27
 - **Status:** Aceita
-- **Relacionados:** [ADR 0018](../../adr/0018-contrato-minimo-de-tipos-pors.md), [RFC 002](2026-11-27-rfc-002-leia-como-expressao.md), [RFC 003](2026-11-27-rfc-003-escreval.md), [design de evolução sintática inicial do PORS](2026-11-26-pors-syntax-evolution-design.md)
+- **Relacionados:** [ADR 0019](../../adr/0019-contrato-minimo-de-tipos-pors.md), [RFC 002](2026-11-27-rfc-002-leia-como-expressao.md), [RFC 003](2026-11-27-rfc-003-escreval.md), [design de evolução sintática inicial do PORS](2026-11-26-pors-syntax-evolution-design.md)
 
 ## Contexto
 
 O design aprovado pede `"Olá, {nome}!"` como cadeia com partes na HIR, e classifica como anti-objetivo substituir o texto antes de montar a HIR: isso perderia spans, formatação, rename e diagnósticos. Hoje o lexer devolve `String(String)` já com os escapes decodificados e trata `{`/`}` dentro de cadeia como literais, então `"{nome}"` imprime `{nome}`.
 
-O ADR 0018 congela `cadeia` e `caracter` como os únicos tipos que participam da concatenação de texto e mantém spans como offsets UTF-8 semiabertos em bytes. A regra vigente em `crates/portugol-rs-frontend/src/parser/constants.rs:318-323` aceita `Add` entre `String`/`String` e `Character`/`Character` com resultado `String`; o bytecode reusa `Op::Add` e o Rust gerado reusa `__pors_concat`, sem opcode novo. A RFC 002 dá tipo `cadeia` fixo a `leia()`, e a RFC 003 define `escreval` como açúcar de `escreva`, sem alterar a cadeia em si.
+O ADR 0019 congela `cadeia` e `caracter` como os únicos tipos que participam da concatenação de texto e mantém spans como offsets UTF-8 semiabertos em bytes. A regra vigente em `crates/portugol-rs-frontend/src/parser/constants.rs:318-323` aceita `Add` entre `String`/`String` e `Character`/`Character` com resultado `String`; o bytecode reusa `Op::Add` e o Rust gerado reusa `__pors_concat`, sem opcode novo. A RFC 002 dá tipo `cadeia` fixo a `leia()`, e a RFC 003 define `escreval` como açúcar de `escreva`, sem alterar a cadeia em si.
 
 Esta RFC fixa o contrato observável da interpolação no frontend, na HIR, no bytecode/VM, no Rust gerado, no formatador e nos editores. Não define retorno implícito (RFC 005) nem o contrato completo de realce (RFC 006).
 
@@ -72,9 +72,9 @@ Esta RFC fixa o contrato observável da interpolação no frontend, na HIR, no b
 
 - Especificadores de formato não são aceitos nesta fatia e nenhuma sintaxe é reservada para eles; aceitar algum formato exige revisar esta RFC.
 - A decisão sobre conversão de números para texto também fica adiada: até lá, números em interpolação geram `pors.interpolation-non-string`.
-- `leia<T>()`, conversão e validação tipada de entrada continuam em **P1**, conforme RFC 002 e ADR 0018.
+- `leia<T>()`, conversão e validação tipada de entrada continuam em **P1**, conforme RFC 002 e ADR 0019.
 - Retorno implícito é da RFC 005 e realce de sintaxe é da RFC 006; esta RFC não altera nenhum dos dois contratos.
-- Permanecem adiados pelo ADR 0018: novas larguras de inteiro e a decisão sobre overflow, aliases, `nunca`, Unicode além dos offsets de bytes dos spans e mudanças em heap/GC.
+- Permanecem adiados pelo ADR 0019: novas larguras de inteiro e a decisão sobre overflow, aliases, `nunca`, Unicode além dos offsets de bytes dos spans e mudanças em heap/GC.
 - Não há nova crate, renomeação de produto, pasta `specs/` paralela ou API WASM. RFCs e design docs continuam em `docs/superpowers/specs/` e ADRs em `docs/adr/`.
 
 ## Exemplos válidos
@@ -116,4 +116,4 @@ O segundo `escreva` imprime `{nome} e {} ficam literais; { aberto também` — `
 
 - Os testes de aceite devem verificar a estrutura `StringPart`, `ty = cadeia`, os spans UTF-8 em bytes, os dois códigos de diagnóstico e a saída observável igual entre bytecode/VM e Rust gerado.
 - O programador motivador do design passa a imprimir a saudação interpolada sem concatenação manual, preservando `leia(variavel)`, `escreva` e a concatenação com `+` já publicados.
-- Qualquer mudança na gramática das chaves, nas partes da HIR, nos códigos de diagnóstico, na conversão permitida ou na preservação verbatim do conteúdo exige revisão desta RFC e do ADR 0018 antes de entrar em código.
+- Qualquer mudança na gramática das chaves, nas partes da HIR, nos códigos de diagnóstico, na conversão permitida ou na preservação verbatim do conteúdo exige revisão desta RFC e do ADR 0019 antes de entrar em código.

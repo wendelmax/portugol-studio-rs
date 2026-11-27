@@ -2,18 +2,18 @@
 
 - **Data:** 2026-11-27
 - **Status:** Aceita
-- **Relacionados:** [ADR 0018](../../adr/0018-contrato-minimo-de-tipos-pors.md), RFC 002 (`leia()` como expressão)
+- **Relacionados:** [ADR 0019](../../adr/0019-contrato-minimo-de-tipos-pors.md), RFC 002 (`leia()` como expressão)
 
 ## Contexto
 
-`declaration()` em `crates/portugol-rs-frontend/src/parser/stmt.rs:284-346` exige hoje `:` e `=` antes do inicializador e compara o tipo anotado com o da expressão. Em `crates/portugol-rs-frontend/src/parser/expr.rs:843-852`, `[]` só recebe tipo quando existe um tipo vetorial esperado. O design aprovado de evolução sintática pede a forma do programa motivador, e o ADR 0018 congela `inteiro` como `i32` com `wrapping` e spans UTF-8 em bytes.
+`declaration()` em `crates/portugol-rs-frontend/src/parser/stmt.rs:284-346` exige hoje `:` e `=` antes do inicializador e compara o tipo anotado com o da expressão. Em `crates/portugol-rs-frontend/src/parser/expr.rs:843-852`, `[]` só recebe tipo quando existe um tipo vetorial esperado. O design aprovado de evolução sintática pede a forma do programa motivador, e o ADR 0019 congela `inteiro` como `i32` com `wrapping` e spans UTF-8 em bytes.
 
 ## Decisão
 
 A sintaxe com inferência é `seja nome = expressao;`: `seja`, `mutavel` opcional, identificador, `=`, expressão inicial e `;`.
 
 1. `:` é opcional; `=` e a expressão inicial são obrigatórios, sem declaração que fique sem valor (regra 1).
-2. Sem anotação, o tipo do binding é o tipo da expressão inicial, obtido de literal, chamada, construtor ou operação binária. O contexto — declaração, parâmetro ou retorno — nunca altera o tipo inferido. `seja nome = leia();` infere `cadeia` porque `leia()` tem tipo fixo `cadeia` (RFC 002), não por causa do `seja`. `inteiro` permanece `i32` com `wrapping`, conforme ADR 0018.
+2. Sem anotação, o tipo do binding é o tipo da expressão inicial, obtido de literal, chamada, construtor ou operação binária. O contexto — declaração, parâmetro ou retorno — nunca altera o tipo inferido. `seja nome = leia();` infere `cadeia` porque `leia()` tem tipo fixo `cadeia` (RFC 002), não por causa do `seja`. `inteiro` permanece `i32` com `wrapping`, conforme ADR 0019.
 3. O tipo explícito continua aceito e é a forma canônica da documentação; incompatibilidade com o inicializador gera `pors.type-mismatch` com span na expressão inicial (regra 3).
 4. Vetor vazio não muda: sem tipo esperado, `[]` gera `pors.empty-vector-type-inference` com span no par de colchetes (regra 4).
 5. Spans são offsets UTF-8 semiabertos `[início, fim)` em bytes, inclusive quando há acentos; índices por caractere ou ponto de código não entram nesta RFC.

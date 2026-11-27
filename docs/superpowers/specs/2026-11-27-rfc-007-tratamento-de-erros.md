@@ -2,7 +2,7 @@
 
 - **Data:** 2026-11-27
 - **Status:** Proposta
-- **Relacionados:** [ADR 0018](../../adr/0018-contrato-minimo-de-tipos-pors.md), [RFC 005](2026-11-27-rfc-005-retorno-implicito.md), [RFC 006](2026-11-27-rfc-006-realce-de-sintaxe.md), [RFC 008](2026-11-27-rfc-008-coalescencia-e-navegacao-segura.md), [design de evolução sintática inicial do PORS](2026-11-26-pors-syntax-evolution-design.md)
+- **Relacionados:** [ADR 0019](../../adr/0019-contrato-minimo-de-tipos-pors.md), [RFC 005](2026-11-27-rfc-005-retorno-implicito.md), [RFC 006](2026-11-27-rfc-006-realce-de-sintaxe.md), [RFC 008](2026-11-27-rfc-008-coalescencia-e-navegacao-segura.md), [design de evolução sintática inicial do PORS](2026-11-26-pors-syntax-evolution-design.md)
 
 ## Contexto
 
@@ -10,7 +10,7 @@ O PORS já tem erros como valor: `Resultado<T, E>` com as variantes `Ok` e `Erro
 
 A proposta é dar ao estudante a forma familiar do Java e do C# sem abandonar o modelo explícito e tipado do Rust. A distinção arquitetural é preservada: `Resultado::Erro` é um valor quando retornado, e só se torna transferência de controle quando um `?`, um `lance` ou uma captura o transforma em fluxo.
 
-O ADR 0018 congela `enum`, `Resultado` e `escolha`, mantém `vazio` apenas como tipo de retorno e adia aliases. A RFC 005 define a expressão final sem `;` como retorno implícito; a RFC 006 fixa a taxonomia de realce. Esta RFC adiciona construtos sobre esse contrato, sem renomear nada e sem criar opcode, VM, crate ou API WASM nova.
+O ADR 0019 congela `enum`, `Resultado` e `escolha`, mantém `vazio` apenas como tipo de retorno e adia aliases. A RFC 005 define a expressão final sem `;` como retorno implícito; a RFC 006 fixa a taxonomia de realce. Esta RFC adiciona construtos sobre esse contrato, sem renomear nada e sem criar opcode, VM, crate ou API WASM nova.
 
 ## Decisão
 
@@ -184,5 +184,5 @@ funcao inicio() {
 ## Abordagens consideradas
 
 1. **Compatibilidade sobre o contrato publicado (escolhida).** Manter `Resultado`/`Ok`/`Erro`, `enum`, `escolha`, `registro` e `leia()`, adicionando `tente/capture/finalmente`, `lance` e captura tipada. O rebaixamento usa desvios e duplicação de `finalmente`, sem opcode novo. Trade-off: a sintaxe não usa `OK`, `enumeracao` ou `corresponda` como no texto original, mas exige zero migração de código publicado e nenhum ADR de revogação.
-2. **Proposta literal, com aliases e instruction set novo.** Adotar `Resultado::OK`, `enumeracao`, `corresponda`, `TRY_BEGIN`/`THROW`/`Handler Stack` e `vazio` como argumento de tipo. Trade-off: mais próximo do texto motivador, mas revoga partes do ADR 0018, exige valor unitário e multiplica a superfície de testes em frontend, bytecode, VM, Rust gerado, WASM, IDE e playground.
+2. **Proposta literal, com aliases e instruction set novo.** Adotar `Resultado::OK`, `enumeracao`, `corresponda`, `TRY_BEGIN`/`THROW`/`Handler Stack` e `vazio` como argumento de tipo. Trade-off: mais próximo do texto motivador, mas revoga partes do ADR 0019, exige valor unitário e multiplica a superfície de testes em frontend, bytecode, VM, Rust gerado, WASM, IDE e playground.
 3. **Duas RFCs separadas, uma para `tente` e outra para `lance`/erro tipado.** Trade-off: documentos menores, mas o contrato de `?` e a precedência entre tratadores ficariam divididos, com risco de divergência entre as duas peças.

@@ -31,29 +31,29 @@
 
 ---
 
-### Task 1: ADR 0018 — contrato mínimo de tipos
+### Task 1: ADR 0019 — contrato mínimo de tipos
 
 **Files:**
-- Create: `docs/adr/0018-contrato-minimo-de-tipos-pors.md`
+- Create: `docs/adr/0019-contrato-minimo-de-tipos-pors.md`
 - Modify: `docs/superpowers/specs/2026-11-26-pors-syntax-evolution-design.md:4` (`Status: proposto` → `Status: aprovado`)
 
 **Interfaces:**
 - Consumes: decisões em `2026-11-26-pors-syntax-evolution-design.md:96-105` e `:180-191`.
-- Produces: ADR referenciado pelas RFCs 001–006 como `../adr/0018-contrato-minimo-de-tipos-pors.md`.
+- Produces: ADR referenciado pelas RFCs 001–006 como `../adr/0019-contrato-minimo-de-tipos-pors.md`.
 
 - [ ] **Step 1: Escrever o ADR**
 
-Seguir o formato de `docs/adr/0017-modelo-execucao-e-estado-ui-visual-pors.md`: título `ADR 0018: Contrato mínimo de tipos do PORS`, `Status: Aceita`, `Data: 2026-11-27`, `Responsável: mantenedor do produto`, relacionados (ADR 0002, ADR 0016, design doc). Nas seções `Contexto`, `Decisão` e `Alternativas consideradas`, registrar literalmente: `inteiro` = `i32` com `wrapping`; `leia()` = `cadeia` fixa sem `leia<T>()`; nomes `caracter`, `registro`, `enum`, `Opcao`, `Resultado`, `escolha` preservados; spans UTF-8 em bytes; `vazio` apenas como tipo de retorno; adiamento explícito de larguras, overflow, aliases (`caractere`, `estrutura`, `opcional`, `resultado`), `nunca`, Unicode e heap/GC.
+Seguir o formato de `docs/adr/0017-modelo-execucao-e-estado-ui-visual-pors.md`: título `ADR 0019: Contrato mínimo de tipos do PORS`, `Status: Aceita`, `Data: 2026-11-27`, `Responsável: mantenedor do produto`, relacionados (ADR 0002, ADR 0016, design doc). Nas seções `Contexto`, `Decisão` e `Alternativas consideradas`, registrar literalmente: `inteiro` = `i32` com `wrapping`; `leia()` = `cadeia` fixa sem `leia<T>()`; nomes `caracter`, `registro`, `enum`, `Opcao`, `Resultado`, `escolha` preservados; spans UTF-8 em bytes; `vazio` apenas como tipo de retorno; adiamento explícito de larguras, overflow, aliases (`caractere`, `estrutura`, `opcional`, `resultado`), `nunca`, Unicode e heap/GC.
 
 - [ ] **Step 2: Verificar o conteúdo**
 
-Run: `grep -nE "i32|cadeia|UTF-8|wrapping|aliases|heap|nunca" docs/adr/0018-contrato-minimo-de-tipos-pors.md && grep -n "Status: aprovado" docs/superpowers/specs/2026-11-26-pors-syntax-evolution-design.md`
+Run: `grep -nE "i32|cadeia|UTF-8|wrapping|aliases|heap|nunca" docs/adr/0019-contrato-minimo-de-tipos-pors.md && grep -n "Status: aprovado" docs/superpowers/specs/2026-11-26-pors-syntax-evolution-design.md`
 Expected: todos os termos presentes; status atualizado.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add docs/adr/0018-contrato-minimo-de-tipos-pors.md docs/superpowers/specs/2026-11-26-pors-syntax-evolution-design.md
+git add docs/adr/0019-contrato-minimo-de-tipos-pors.md docs/superpowers/specs/2026-11-26-pors-syntax-evolution-design.md
 git commit -m "docs: registrar contrato mínimo de tipos do PORS"
 ```
 
@@ -65,12 +65,12 @@ git commit -m "docs: registrar contrato mínimo de tipos do PORS"
 - Create: `docs/superpowers/specs/2026-11-27-rfc-001-inferencia-em-seja.md`
 
 **Interfaces:**
-- Consumes: ADR 0018 (Task 1); `pors.declaration()` em `crates/portugol-rs-frontend/src/parser/stmt.rs:284-346`; `pors.empty-vector-type-inference` em `expr.rs:843-852`.
+- Consumes: ADR 0019 (Task 1); `pors.declaration()` em `crates/portugol-rs-frontend/src/parser/stmt.rs:284-346`; `pors.empty-vector-type-inference` em `expr.rs:843-852`.
 - Produces: regra `:` opcional com `=` obrigatório; nenhum tipo inferido muda por contexto.
 
 - [ ] **Step 1: Escrever a RFC**
 
-Formato: `RFC 001: Inferência de tipo em seja`, `Data: 2026-11-27`, `Status: Aceita`, relacionados (ADR 0018, RFC 002). Incluir: sintaxe `seja nome = expressao;`; o tipo vem de literal, chamada, construtor ou operação binária; tipo explícito continua canônico e é conferido com `pors.type-mismatch`; `[]` sem contexto continua `pors.empty-vector-type-inference`; inicializador continua obrigatório; exemplos válidos e inválidos com spans.
+Formato: `RFC 001: Inferência de tipo em seja`, `Data: 2026-11-27`, `Status: Aceita`, relacionados (ADR 0019, RFC 002). Incluir: sintaxe `seja nome = expressao;`; o tipo vem de literal, chamada, construtor ou operação binária; tipo explícito continua canônico e é conferido com `pors.type-mismatch`; `[]` sem contexto continua `pors.empty-vector-type-inference`; inicializador continua obrigatório; exemplos válidos e inválidos com spans.
 
 - [ ] **Step 2: Verificar**
 
@@ -92,7 +92,7 @@ git commit -m "docs: especificar inferência de tipo em seja"
 - Create: `docs/superpowers/specs/2026-11-27-rfc-002-leia-como-expressao.md`
 
 **Interfaces:**
-- Consumes: RFC 001 (Task 2), ADR 0018; `Op::Read(ValueType)` em `crates/portugol-bytecode/src/op.rs:166-167`; `__portugol_read_line` em `crates/portugol-rust/src/codegen/mod.rs:50`.
+- Consumes: RFC 001 (Task 2), ADR 0019; `Op::Read(ValueType)` em `crates/portugol-bytecode/src/op.rs:166-167`; `__portugol_read_line` em `crates/portugol-rust/src/codegen/mod.rs:50`.
 - Produces: `ExprKind::Read` com `Type::String`; `StmtKind::Read` preservado; `has_read` deve enxergar expressões.
 
 - [ ] **Step 1: Escrever a RFC**

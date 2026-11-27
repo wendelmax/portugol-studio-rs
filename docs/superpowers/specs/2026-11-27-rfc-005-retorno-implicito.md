@@ -2,7 +2,7 @@
 
 - **Data:** 2026-11-27
 - **Status:** Aceita
-- **Relacionados:** [ADR 0018](../../adr/0018-contrato-minimo-de-tipos-pors.md), [RFC 001](2026-11-27-rfc-001-inferencia-em-seja.md), [RFC 002](2026-11-27-rfc-002-leia-como-expressao.md), [RFC 003](2026-11-27-rfc-003-escreval.md), [RFC 004](2026-11-27-rfc-004-interpolacao-de-cadeias.md), [design de evolução sintática inicial do PORS](2026-11-26-pors-syntax-evolution-design.md)
+- **Relacionados:** [ADR 0019](../../adr/0019-contrato-minimo-de-tipos-pors.md), [RFC 001](2026-11-27-rfc-001-inferencia-em-seja.md), [RFC 002](2026-11-27-rfc-002-leia-como-expressao.md), [RFC 003](2026-11-27-rfc-003-escreval.md), [RFC 004](2026-11-27-rfc-004-interpolacao-de-cadeias.md), [design de evolução sintática inicial do PORS](2026-11-26-pors-syntax-evolution-design.md)
 
 ## Contexto
 
@@ -16,7 +16,7 @@ funcao saudar(nome: cadeia) -> cadeia {
 }
 ```
 
-O ADR 0018 congela os pontos de tipo e spans; a RFC 004 formalizou a interpolação de cadeias; esta RFC fixa o contrato observável do retorno implícito no frontend, na HIR, no bytecode/VM, no Rust gerado, no formatador e nos editores. Não define o realce de sintaxe (RFC 006).
+O ADR 0019 congela os pontos de tipo e spans; a RFC 004 formalizou a interpolação de cadeias; esta RFC fixa o contrato observável do retorno implícito no frontend, na HIR, no bytecode/VM, no Rust gerado, no formatador e nos editores. Não define o realce de sintaxe (RFC 006).
 
 ## Decisão
 
@@ -79,4 +79,4 @@ funcao saudar(nome: cadeia) -> cadeia {
 ## Consequências
 
 - Os testes de aceite devem verificar o campo `Function.tail_expression`, o `StmtKind::Return { value }` do lowering, os backends, os spans UTF-8 em bytes e a ausência de novo opcode, VM ou API WASM.
-- Qualquer mudança na regra de `;`, nos blocos aninhados, nos tipos ou nos diagnósticos acima exige revisão desta RFC e do ADR 0018 antes de entrar em código.
+- Qualquer mudança na regra de `;`, nos blocos aninhados, nos tipos ou nos diagnósticos acima exige revisão desta RFC e do ADR 0019 antes de entrar em código.

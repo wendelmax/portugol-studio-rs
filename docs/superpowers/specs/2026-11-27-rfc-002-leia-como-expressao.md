@@ -2,13 +2,13 @@
 
 - **Data:** 2026-11-27
 - **Status:** Aceita
-- **Relacionados:** [ADR 0018](../../adr/0018-contrato-minimo-de-tipos-pors.md), [RFC 001](2026-11-27-rfc-001-inferencia-em-seja.md), [design de evolução sintática inicial do PORS](2026-11-26-pors-syntax-evolution-design.md)
+- **Relacionados:** [ADR 0019](../../adr/0019-contrato-minimo-de-tipos-pors.md), [RFC 001](2026-11-27-rfc-001-inferencia-em-seja.md), [design de evolução sintática inicial do PORS](2026-11-26-pors-syntax-evolution-design.md)
 
 ## Contexto
 
 Hoje `leia` só é aceito como comando: `leia(variavel);` gera `StmtKind::Read` e usa o valor lido para atualizar a variável. O bytecode já tem `Op::Read(ValueType)` em `crates/portugol-bytecode/src/op.rs:166-167`, que empilha o valor lido, e o exportador Rust já emite `__portugol_read_line` em `crates/portugol-rust/src/codegen/mod.rs:50`, que anuncia `PORTUGOL_INPUT:{expected}` quando o protocolo de entrada está ativo. Falta expor a leitura como expressão sem quebrar o comando legado.
 
-O ADR 0018 congela o contrato: `leia()` tem tipo `cadeia` fixo, contexto nunca altera esse tipo, `leia(variavel)` mantém o tipo da variável, `inteiro` continua `i32` com `wrapping` e spans são offsets UTF-8 em bytes. A RFC 001 depende desta decisão ao afirmar que `seja nome = leia();` infere `cadeia` pela expressão, não pelo `seja`.
+O ADR 0019 congela o contrato: `leia()` tem tipo `cadeia` fixo, contexto nunca altera esse tipo, `leia(variavel)` mantém o tipo da variável, `inteiro` continua `i32` com `wrapping` e spans são offsets UTF-8 em bytes. A RFC 001 depende desta decisão ao afirmar que `seja nome = leia();` infere `cadeia` pela expressão, não pelo `seja`.
 
 ## Decisão
 
@@ -23,7 +23,7 @@ O ADR 0018 congela o contrato: `leia()` tem tipo `cadeia` fixo, contexto nunca a
 
 1. A leitura sem argumento vira `ExprKind::Read` na HIR, com tipo fixo `Type::String` (`cadeia`). Não há parâmetro de tipo, conversão implícita ou inferência a partir do contexto.
 2. Declaração, parâmetro e retorno nunca mudam esse tipo. `seja nome = leia();` infere `cadeia`, como especificado na RFC 001; `seja mensagem: cadeia = leia();`, `saudar(leia())` com parâmetro `cadeia` e `retorne leia();` em função `-> cadeia` são válidos.
-3. Quando o contexto exige outro tipo — por exemplo `seja n: inteiro = leia();`, argumento de parâmetro `inteiro` ou `retorne leia();` em função `-> inteiro` — o diagnóstico é `pors.type-mismatch` no span da chamada. Não há parse automático de texto para `inteiro`: `inteiro` permanece `i32` com `wrapping`, conforme ADR 0018.
+3. Quando o contexto exige outro tipo — por exemplo `seja n: inteiro = leia();`, argumento de parâmetro `inteiro` ou `retorne leia();` em função `-> inteiro` — o diagnóstico é `pors.type-mismatch` no span da chamada. Não há parse automático de texto para `inteiro`: `inteiro` permanece `i32` com `wrapping`, conforme ADR 0019.
 
 ### Bytecode, VM e Rust gerado
 
@@ -72,11 +72,11 @@ Exemplos inválidos:
 ### Escopo adiado e fronteiras
 
 - `leia<T>()` e conversão ou validação tipada da entrada ficam em **P1**, sem sintaxe reservada nesta fatia.
-- Interpolação de cadeias é decidida na RFC 004 e retorno implícito na RFC 005; esta RFC não altera essas regras. `escreval(a, b);` é apenas açúcar para `escreva(a, b, "\n")`, conforme ADR 0018 e RFC 003, sem tipo, opcode ou tratamento de leitura novo.
-- Permanecem adiados pelo ADR 0018: novas larguras de inteiro e a decisão sobre overflow, aliases, `nunca`, Unicode além dos offsets de bytes dos spans e mudanças em heap/GC.
+- Interpolação de cadeias é decidida na RFC 004 e retorno implícito na RFC 005; esta RFC não altera essas regras. `escreval(a, b);` é apenas açúcar para `escreva(a, b, "\n")`, conforme ADR 0019 e RFC 003, sem tipo, opcode ou tratamento de leitura novo.
+- Permanecem adiados pelo ADR 0019: novas larguras de inteiro e a decisão sobre overflow, aliases, `nunca`, Unicode além dos offsets de bytes dos spans e mudanças em heap/GC.
 
 ## Consequências
 
 - Os testes de aceite devem executar os exemplos em HIR, bytecode/VM e Rust gerado, comparando saída observável e spans UTF-8, sem novo contrato de WASM.
 - `leia(variavel);` continua válido e testado; o protocolo de entrada da IDE deve continuar funcionando quando a leitura acontece dentro de uma expressão.
-- Qualquer mudança no tipo fixo `cadeia`, no comando legado ou nos diagnósticos acima exige revisão desta RFC e do ADR 0018 antes de entrar em código.
+- Qualquer mudança no tipo fixo `cadeia`, no comando legado ou nos diagnósticos acima exige revisão desta RFC e do ADR 0019 antes de entrar em código.

@@ -1,7 +1,7 @@
 # Design: evolução sintática inicial do PORS
 
-**Data:** 2026-11-26  
-**Status: aprovado**  
+**Data:** 2026-11-26
+**Status: aprovado**
 **Relacionados:** [ADR 0001](../../adr/0001-webstudio-benchmark-e-ponte-progressiva-rust.md), [ADR 0002](../../adr/0002-hir-compartilhada-portugol-rs.md), [ADR 0016](../../adr/0016-pors-como-linguagem-autoral-e-retirada-do-por.md), [matriz de migração](../../research/PORS_MIGRATION_MATRIX.md)
 
 ## Intenção

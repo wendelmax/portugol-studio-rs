@@ -1,4 +1,4 @@
-# ADR 0018: Contrato mínimo de tipos do PORS
+# ADR 0019: Contrato mínimo de tipos do PORS
 
 - **Status:** Aceita
 - **Data:** 2026-11-27
@@ -73,7 +73,7 @@ gerado.
 ## Consequências
 
 - As RFCs 001–006 referenciam este ADR por
-  `../adr/0018-contrato-minimo-de-tipos-pors.md`.
+  `../adr/0019-contrato-minimo-de-tipos-pors.md`.
 - Qualquer mudança nos pontos congelados acima — inclusive larguras, overflow,
   aliases, `nunca`, Unicode e heap/GC — exige novo ADR antes de entrada em
   código.

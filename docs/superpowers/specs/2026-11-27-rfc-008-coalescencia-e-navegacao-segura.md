@@ -2,7 +2,7 @@
 
 - **Data:** 2026-11-27
 - **Status:** Proposta
-- **Relacionados:** [ADR 0018](../../adr/0018-contrato-minimo-de-tipos-pors.md), [RFC 004](2026-11-27-rfc-004-interpolacao-de-cadeias.md), [RFC 006](2026-11-27-rfc-006-realce-de-sintaxe.md), [RFC 007](2026-11-27-rfc-007-tratamento-de-erros.md), [design de evolução sintática inicial do PORS](2026-11-26-pors-syntax-evolution-design.md)
+- **Relacionados:** [ADR 0019](../../adr/0019-contrato-minimo-de-tipos-pors.md), [RFC 004](2026-11-27-rfc-004-interpolacao-de-cadeias.md), [RFC 006](2026-11-27-rfc-006-realce-de-sintaxe.md), [RFC 007](2026-11-27-rfc-007-tratamento-de-erros.md), [design de evolução sintática inicial do PORS](2026-11-26-pors-syntax-evolution-design.md)
 
 ## Contexto
 
@@ -14,7 +14,7 @@ A proposta recebida pede `??`, `?.` e `??=`, tipos compactos como `cadeia?`, o v
 
 ### Nomes e valores preservados
 
-1. O tipo opcional é `Opcao<T>`; os valores são `Opcao::Algum(valor)` e `Opcao::Nenhum`. Não há alias `Opcional`, nem palavra `nenhum`, nem sufixo `cadeia?` nesta RFC — todos exigiriam nova decisão sobre aliases, explicitamente adiada pelo ADR 0018.
+1. O tipo opcional é `Opcao<T>`; os valores são `Opcao::Algum(valor)` e `Opcao::Nenhum`. Não há alias `Opcional`, nem palavra `nenhum`, nem sufixo `cadeia?` nesta RFC — todos exigiriam nova decisão sobre aliases, explicitamente adiada pelo ADR 0019.
 2. `registro` continua o nome do tipo composto; `estrutura` não vira sinônimo.
 3. `leia()` continua `cadeia` fixa, sem `leia<T>()`. A conversão de entrada continua explícita.
 4. `?` continua sendo **somente** propagação de `Opcao` ou `Resultado`. Em posição de tipo, `?` não é aceito; `Opcao<T>` é a grafia canônica.
@@ -52,7 +52,7 @@ A proposta recebida pede `??`, `?.` e `??=`, tipos compactos como `cadeia?`, o v
 2. Não se aplica a campos de registro, payload de enum, elementos de vetor, alvo de atribuição, operando de `??`, base de `?.` nem ramo de `tente`. Assim, `seja x: Opcao<inteiro> = 1 ?? 2;` continua inválido pelo operando esquerdo, e a atribuição `x = 1;` continua exigindo `Opcao::Algum(1)`.
 3. A conversão é de um único nível. Não converte `T` em `Opcao<Opcao<T>>`, nem `Opcao<T>` em `Opcao<Opcao<T>>`, e nunca altera o tipo de uma expressão sem tipo esperado.
 4. `Opcao::Algum(x)` e `Opcao::Nenhum` continuam exigindo contexto quando o tipo não pode ser inferido; a conversão implícita não remove essa exigência. Em particular, o lado direito de `??` **não** fornece contexto para inferir `Opcao::Nenhum`: `seja x = Opcao::Nenhum ?? 0;` gera `pors.option-type-inference` no `Opcao::Nenhum`. A forma válida é `seja x: Opcao<inteiro> = Opcao::Nenhum; escreval(x ?? 0);`.
-5. A conversão não se aplica a `Resultado`, nem a `vazio`, mantendo o ADR 0018.
+5. A conversão não se aplica a `Resultado`, nem a `vazio`, mantendo o ADR 0019.
 
 ### Precedência
 
@@ -158,6 +158,6 @@ funcao inicio() {
 
 ## Abordagens consideradas
 
-1. **Compatibilidade sobre o contrato publicado (escolhida).** Manter `Opcao`/`Algum`/`Nenhum`, `registro` e `leia()`, adicionando `??`, `??=` e `?.` com rebaixamento sobre a representação de enum já existente. Trade-off: não adota `Opcional`, `nenhum`, `cadeia?` nem `OptionalValue`, mas evita revogar o ADR 0018 e mantém um único caminho de ausência em HIR, bytecode, VM, Rust gerado e WASM.
+1. **Compatibilidade sobre o contrato publicado (escolhida).** Manter `Opcao`/`Algum`/`Nenhum`, `registro` e `leia()`, adicionando `??`, `??=` e `?.` com rebaixamento sobre a representação de enum já existente. Trade-off: não adota `Opcional`, `nenhum`, `cadeia?` nem `OptionalValue`, mas evita revogar o ADR 0019 e mantém um único caminho de ausência em HIR, bytecode, VM, Rust gerado e WASM.
 2. **Proposta literal, com aliases, sobrecarga de `?` e opcodes novos.** Adotar `Opcional<T>`, `nenhum`, `cadeia?`, `OptionalValue`, `MAKE_SOME`/`MAKE_NONE`/`JUMP_IF_NONE` e `ok()`. Trade-off: mais próximo do texto motivador, mas exige ADR novo, dois nomes para o mesmo tipo, uma tabela de precedência maior e muito mais superfície de teste em todos os backends e editores.
 3. **Somente `??`, adiando `?.` e `??=`.** Trade-off: documentação menor e mais barata, mas deixa o encadeamento seguro sem contrato e cria incentivo para encadeamento manual de `escolha`, que é exatamente o caso que a proposta quer simplificar.
