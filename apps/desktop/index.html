@@ -145,7 +145,10 @@
           <span id="design-status" class="design-status" role="status" aria-live="polite"></span>
         </div>
         <div class="editor-area">
-          <section id="design-surface" class="design-surface" aria-label="Desenho da tela; clique num controle para selecioná-lo" hidden></section>
+          <section id="design-surface" class="design-surface" aria-label="Designer da tela" hidden>
+            <aside id="design-toolbox" class="design-toolbox" aria-label="Caixa de ferramentas"></aside>
+            <div id="design-viewport" class="design-viewport" tabindex="0" aria-label="Desenho da tela: clique num controle para selecioná-lo; setas movem, Delete apaga, Esc seleciona o contêiner"></div>
+          </section>
           <section id="editor" data-testid="code-editor" class="editor"></section>
           <nav id="rust-mapping-gutter" class="rust-mapping-gutter" aria-label="Mapeamento Portugol para Rust" hidden>
             <p id="rust-mapping-status" role="status" aria-live="polite">Aguardando source maps…</p>

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { codeBehindCandidates, codeBehindPath, designPathForCode, isDesignTab, mountDesignerShell } from "../src/designer/designer-shell.ts";
+import { codeBehindCandidates, codeBehindPath, designPathForCode, isDesignTab, mountDesignerShell, textChange } from "../src/designer/designer-shell.ts";
 
 function fakeElement() {
   const listeners = {};
@@ -19,13 +19,16 @@ function fakeElement() {
     getAttribute(name) { return attributes[name]; },
     addEventListener(type, listener) { listeners[type] = listener; },
     replaceChildren(...children) { this.children = children; this.firstElementChild = children[0] ?? null; },
+    querySelector() { return null; },
     click() { listeners.click?.({ target: null }); },
   };
 }
 
-function setup({ files = [], tab }) {
+function setup({ files = [], tab, tree = null, editDesign = async (source) => source }) {
   const opened = [];
   const statuses = [];
+  const edits = [];
+  let source = "<Janela />";
   let active = tab;
   const buttons = { design: fakeElement(), split: fakeElement(), text: fakeElement(), code: fakeElement() };
   const area = fakeElement();
@@ -35,13 +38,14 @@ function setup({ files = [], tab }) {
     area,
     toolbar,
     surface,
+    viewport: fakeElement(),
     status: fakeElement(),
     buttons,
     activeTab: () => active,
-    source: () => "",
+    source: () => source,
     cursorOffset: () => 0,
     selectInEditor: () => {},
-    designTree: async () => null,
+    designTree: async () => tree,
     designSchema: async () => ({ window: {}, elements: [] }),
     hasFile: (_workspace, path) => files.includes(path),
     openFile: async (_workspace, path) => {
@@ -49,11 +53,17 @@ function setup({ files = [], tab }) {
       if (path.endsWith(".design")) active = { id: 9, workspaceId: "w", workspacePath: path, path: `/p/${path}` };
       return true;
     },
+    editDesign: async (current, requested) => {
+      edits.push(requested);
+      return editDesign(current, requested);
+    },
+    replaceSource: (next) => { source = next; },
+    canvas: { paint() {}, highlight() {} },
     setStatus: (message) => statuses.push(message),
     setTimeout: () => 1,
     clearTimeout: () => {},
   });
-  return { shell, buttons, area, toolbar, surface, opened, statuses, setActive: (next) => { active = next; } };
+  return { shell, buttons, area, toolbar, surface, opened, statuses, edits, source: () => source, setActive: (next) => { active = next; } };
 }
 
 const designTab = { id: 1, workspaceId: "w", workspacePath: "App/JanelaPrincipal.design", path: "/p/App/JanelaPrincipal.design" };
@@ -134,9 +144,63 @@ test("F7 numa tela sem código avisa e não abre nada; fora de telas não faz na
   assert.equal(await shell.toggleCode(), false);
 });
 
+test("textChange troca só o trecho alterado", () => {
+  assert.equal(textChange("abc", "abc"), null);
+  assert.deepEqual(textChange("<A X=\"1\" />", "<A X=\"16\" />"), { from: 7, to: 7, insert: "6" });
+  assert.deepEqual(textChange("abcdef", "abXYef"), { from: 2, to: 4, insert: "XY" });
+  assert.deepEqual(textChange("aaa", "aaaa"), { from: 3, to: 3, insert: "a" });
+});
+
+function treeNode(tag, path, attributes = {}, children = []) {
+  return {
+    tag,
+    path,
+    attributes: Object.entries(attributes).map(([name, value]) => ({ name, value })),
+    text: null,
+    from: 0,
+    to: 0,
+    children,
+  };
+}
+
+test("item da caixa de ferramentas insere em cascata na janela e troca o texto do editor", async () => {
+  const tree = treeNode("Janela", [], { Largura: "300", Altura: "200" }, [treeNode("Botao", [0], { X: "16", Y: "16" })]);
+  const { shell, edits, source } = setup({ tab: designTab, tree, editDesign: async () => "<Janela>novo</Janela>" });
+  shell.screenOpened();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(await shell.insertTool("Rotulo"), true);
+  assert.deepEqual(edits.at(-1), [
+    { kind: "insert", parent: [], index: 1, tag: "Rotulo", attributes: [["X", "32"], ["Y", "32"]] },
+  ]);
+  assert.equal(source(), "<Janela>novo</Janela>");
+});
+
+test("componente da caixa vai para o fim da janela, mesmo com uma pilha selecionada", async () => {
+  const tree = treeNode("Janela", [], {}, [treeNode("Pilha", [0])]);
+  const { shell, edits } = setup({ tab: designTab, tree });
+  shell.screenOpened();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(await shell.insertTool("Temporizador"), true);
+  assert.deepEqual(edits.at(-1), [{ kind: "insert", parent: [], index: 1, tag: "Temporizador" }]);
+});
+
+test("edição recusada pelo núcleo vira mensagem e não troca o texto", async () => {
+  const tree = treeNode("Janela", [], {}, []);
+  const { shell, statuses, source } = setup({
+    tab: designTab,
+    tree,
+    editDesign: async () => { throw "Posição fora da janela"; },
+  });
+  shell.screenOpened();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(await shell.insertTool("Botao"), false);
+  assert.equal(statuses.at(-1), "Posição fora da janela");
+  assert.equal(source(), "<Janela />");
+});
+
 test("a IDE monta as vistas da tela e o atalho F7", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
-  for (const id of ["design-toolbar", "design-view-design", "design-view-split", "design-view-text", "design-view-code", "design-surface"]) {
+  for (const id of ["design-toolbar", "design-view-design", "design-view-split", "design-view-text", "design-view-code", "design-surface", "design-toolbox", "design-viewport"]) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
   const shortcuts = readFileSync(new URL("../src/commands/ide-shortcuts.ts", import.meta.url), "utf8");

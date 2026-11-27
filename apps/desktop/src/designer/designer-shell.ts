@@ -10,11 +10,13 @@
  * desenha e seleciona; arrastar, redimensionar e o painel de propriedades vêm
  * nos próximos PRs.
  */
-import type { DesignNode, DesignSchema } from "../api.ts";
+import type { DesignEdit, DesignNode, DesignSchema } from "../api.ts";
 import { acceptedExtensions, fileExtension, fileKind, stripFileExtension } from "../file-formats.ts";
 import type { Tab } from "../state/tab.ts";
 import { buildCanvasModel, nodeAt, pathAtOffset, pathFromKey, pathKey, type DefaultSizes } from "./canvas-model.ts";
 import { markSelection, renderCanvas } from "./canvas-dom.ts";
+import type { CanvasInteractionHost } from "./interactions.ts";
+import { insertPlan, keyboardTarget } from "./interactions.ts";
 
 export type DesignView = "design" | "split" | "text";
 
@@ -22,6 +24,8 @@ export interface DesignerShellDependencies {
   area: HTMLElement;
   toolbar: HTMLElement;
   surface: HTMLElement;
+  /** Onde a janela desenhada é montada, ao lado da caixa de ferramentas. */
+  viewport: HTMLElement;
   status: HTMLElement;
   buttons: Record<DesignView | "code", HTMLButtonElement>;
   activeTab: () => Tab | undefined;
@@ -30,6 +34,17 @@ export interface DesignerShellDependencies {
   selectInEditor: (from: number) => void;
   designTree: (source: string) => Promise<DesignNode | null>;
   designSchema: () => Promise<DesignSchema>;
+  /** Aplica edições estruturais e devolve o novo texto (rejeita com a mensagem). */
+  editDesign: (source: string, edits: DesignEdit[]) => Promise<string>;
+  /** Troca o texto do editor pelo novo `.design`. */
+  replaceSource: (source: string) => void;
+  /** Arrastar, redimensionar e teclado no canvas; opcional para testes sem DOM. */
+  mountInteractions?: (host: CanvasInteractionHost) => { refresh: () => void };
+  /** Desenho do canvas; o padrão monta o DOM com `canvas-dom.ts`. Substituível em testes sem DOM. */
+  canvas?: {
+    paint: (tree: DesignNode, sizes: DefaultSizes, selected: string | null) => void;
+    highlight: (selected: string | null) => void;
+  };
   hasFile: (workspaceId: string | undefined, path: string) => boolean;
   openFile: (workspaceId: string | undefined, path: string) => Promise<boolean>;
   setStatus: (message: string, kind?: "error" | "ok") => void;
@@ -69,6 +84,25 @@ export function designPathForCode(codePath: string): string | null {
   return `${folder}${stripFileExtension(codePath.slice(slash + 1))}.${fileExtension("design")}`;
 }
 
+/**
+ * Menor troca que leva `previous` a `next`: o designer reescreve o arquivo
+ * inteiro, mas o editor recebe só o trecho que mudou (preserva rolagem e
+ * deixa o desfazer do editor com passos pequenos).
+ */
+export function textChange(previous: string, next: string): { from: number; to: number; insert: string } | null {
+  if (previous === next) return null;
+  let start = 0;
+  const limit = Math.min(previous.length, next.length);
+  while (start < limit && previous.charCodeAt(start) === next.charCodeAt(start)) start++;
+  let endPrevious = previous.length;
+  let endNext = next.length;
+  while (endPrevious > start && endNext > start && previous.charCodeAt(endPrevious - 1) === next.charCodeAt(endNext - 1)) {
+    endPrevious--;
+    endNext--;
+  }
+  return { from: start, to: endPrevious, insert: next.slice(start, endNext) };
+}
+
 export function mountDesignerShell(dependencies: DesignerShellDependencies) {
   const setTimer = dependencies.setTimeout ?? ((callback, delay) => setTimeout(callback, delay));
   const clearTimer = dependencies.clearTimeout ?? ((handle) => clearTimeout(handle as number));
@@ -78,6 +112,19 @@ export function mountDesignerShell(dependencies: DesignerShellDependencies) {
   let sizes: DefaultSizes = {};
   let timer: unknown = null;
   let renderGeneration = 0;
+  let interactions: { refresh: () => void } | null = null;
+  const currentFrame = () => dependencies.viewport.querySelector<HTMLElement>(".design-frame");
+  const canvas = dependencies.canvas ?? {
+    paint(next: DesignNode, defaults: DefaultSizes, selected: string | null) {
+      const frame = renderCanvas(buildCanvasModel(next, defaults));
+      dependencies.viewport.replaceChildren(frame);
+      markSelection(frame, selected);
+    },
+    highlight(selected: string | null) {
+      const frame = currentFrame();
+      if (frame) markSelection(frame, selected);
+    },
+  };
 
   void dependencies.designSchema().then((schema) => {
     sizes = Object.fromEntries(
@@ -130,10 +177,30 @@ export function mountDesignerShell(dependencies: DesignerShellDependencies) {
     tree = next;
     dependencies.surface.classList.remove("is-stale");
     dependencies.status.textContent = "";
-    const frame = renderCanvas(buildCanvasModel(next, sizes));
-    dependencies.surface.replaceChildren(frame);
-    const selected = selections.get(tab.id) ?? null;
-    markSelection(frame, selected !== null && nodeAt(next, pathFromKey(selected)) ? selected : null);
+    let selected = selections.get(tab.id) ?? null;
+    if (selected !== null && !nodeAt(next, pathFromKey(selected))) selected = null;
+    selections.set(tab.id, selected);
+    canvas.paint(next, sizes, selected);
+    interactions?.refresh();
+  }
+
+  /** Aplica edições do designer, troca o texto e redesenha já, sem esperar o atraso da digitação. */
+  async function apply(plan: { edits: DesignEdit[]; select: number[] | null }): Promise<boolean> {
+    const tab = dependencies.activeTab();
+    if (!tab || !isDesignTab(tab) || plan.edits.length === 0) return false;
+    const source = dependencies.source();
+    try {
+      const next = await dependencies.editDesign(source, plan.edits);
+      if (dependencies.activeTab() !== tab || dependencies.source() !== source) return false;
+      selections.set(tab.id, plan.select ? pathKey(plan.select) : null);
+      if (next !== source) dependencies.replaceSource(next);
+      refresh();
+      return true;
+    } catch (error) {
+      dependencies.setStatus(String(error).replace(/^Error: /, ""), "error");
+      refresh();
+      return false;
+    }
   }
 
   function refresh() {
@@ -163,8 +230,8 @@ export function mountDesignerShell(dependencies: DesignerShellDependencies) {
     const tab = dependencies.activeTab();
     if (!tab) return;
     selections.set(tab.id, path);
-    const frame = dependencies.surface.firstElementChild as HTMLElement | null;
-    if (frame) markSelection(frame, path);
+    canvas.highlight(path);
+    interactions?.refresh();
     if (moveCursor && path !== null && tree) {
       const node = nodeAt(tree, pathFromKey(path));
       if (node) dependencies.selectInEditor(node.from);
@@ -198,7 +265,7 @@ export function mountDesignerShell(dependencies: DesignerShellDependencies) {
     const tab = dependencies.activeTab();
     applyView(tab);
     tree = null;
-    dependencies.surface.replaceChildren();
+    dependencies.viewport.replaceChildren();
     if (tab && isDesignTab(tab) && viewOf(tab) !== "text") refresh();
   }
 
@@ -207,7 +274,20 @@ export function mountDesignerShell(dependencies: DesignerShellDependencies) {
   dependencies.buttons.text.addEventListener("click", () => setView("text"));
   dependencies.buttons.code.addEventListener("click", () => void toggleCode());
 
-  dependencies.surface.addEventListener("click", (event) => {
+  interactions = dependencies.mountInteractions?.({
+    viewport: dependencies.viewport,
+    frame: currentFrame,
+    tree: () => tree,
+    selected: () => {
+      const tab = dependencies.activeTab();
+      return tab ? (selections.get(tab.id) ?? null) : null;
+    },
+    select: (path, moveCursor) => select(path, moveCursor),
+    apply,
+    setStatus: dependencies.setStatus,
+  }) ?? null;
+
+  dependencies.viewport.addEventListener("click", (event) => {
     const target = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-path]");
     select(target?.dataset.path ?? null, true);
   });
@@ -233,6 +313,13 @@ export function mountDesignerShell(dependencies: DesignerShellDependencies) {
       }
     },
     toggleCode,
+    /** Clique ou Enter num item da caixa de ferramentas: insere no contêiner selecionado. */
+    async insertTool(tag: string): Promise<boolean> {
+      const tab = dependencies.activeTab();
+      if (!tab || !isDesignTab(tab) || !tree) return false;
+      const plan = insertPlan(tree, tag, keyboardTarget(tree, selections.get(tab.id) ?? null));
+      return plan ? apply(plan) : false;
+    },
     /** Esquece a vista e a seleção de uma aba fechada. */
     forget(tabId: number) {
       views.delete(tabId);

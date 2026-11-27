@@ -64,7 +64,9 @@ import { mountFontSizeControls } from "./shell/font-size";
 import { appendConsole, appendProcessOutput, clearConsole, consoleText } from "./run/console";
 import { applyPageTheme, editorTheme, onSystemThemeChange, themeChoice } from "./editor/theme";
 import { createEditorShell } from "./editor/editor-shell";
-import { mountDesignerShell } from "./designer/designer-shell";
+import { mountDesignerShell, textChange } from "./designer/designer-shell";
+import { mountCanvasInteractions } from "./designer/interactions";
+import { renderToolbox } from "./designer/toolbox";
 import { createEditorActionsShell } from "./editor/actions-shell";
 import {
   editorPreferenceExtensions,
@@ -367,6 +369,7 @@ designer = mountDesignerShell({
   area: document.querySelector<HTMLElement>(".editor-area")!,
   toolbar: $("design-toolbar"),
   surface: $("design-surface"),
+  viewport: $("design-viewport"),
   status: $("design-status"),
   buttons: {
     design: $<HTMLButtonElement>("design-view-design"),
@@ -383,10 +386,19 @@ designer = mountDesignerShell({
   },
   designTree: api.designTree,
   designSchema: api.designSchema,
+  editDesign: api.editDesign,
+  replaceSource: (source) => {
+    const change = textChange(view.state.doc.toString(), source);
+    if (change) view.dispatch({ changes: change });
+  },
+  mountInteractions: mountCanvasInteractions,
   hasFile: (workspaceId, path) => workspaceExplorer.hasFile(workspaceId, path),
   openFile: (workspaceId, path) => workspaceExplorer.openFile(workspaceId, path),
   setStatus,
 });
+void api.designSchema().then((schema) => {
+  renderToolbox($("design-toolbox"), schema, (tag) => void designer?.insertTool(tag));
+}).catch(() => undefined);
 
 // ---------------------------------------------------------------------------
 // Execução e console

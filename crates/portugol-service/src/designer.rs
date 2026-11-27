@@ -142,7 +142,15 @@ pub fn edit_design(source: &str, edits: Vec<DesignEdit>) -> Result<String, Strin
             } => {
                 if names_automatically(&tag) && attributes.iter().all(|(name, _)| name != "Nome") {
                     let name = edit::next_control_name(&document, &tag);
-                    attributes.insert(0, ("Nome".to_owned(), name));
+                    attributes.insert(0, ("Nome".to_owned(), name.clone()));
+                    // Como no Windows Forms, o texto visível começa igual ao
+                    // nome. Não vale para texto digitado (`CaixaTexto`).
+                    let shows_text = schema::element(&tag)
+                        .and_then(|s| s.attribute("Texto"))
+                        .is_some_and(|a| a.binding == Binding::OneWay);
+                    if shows_text && attributes.iter().all(|(n, _)| n != "Texto") {
+                        attributes.insert(1, ("Texto".to_owned(), name));
+                    }
                 }
                 Edit::Insert {
                     parent,
@@ -323,15 +331,30 @@ mod tests {
         .unwrap();
         let out = edit_design(SOURCE, edits).unwrap();
         assert!(
-            out.contains("<Botao Nome=\"botao1\" X=\"10\" Y=\"40\" />"),
+            out.contains("<Botao Nome=\"botao1\" Texto=\"botao1\" X=\"10\" Y=\"40\" />"),
             "{out}"
         );
-        assert!(out.contains("<Botao Nome=\"botao2\" />"), "{out}");
+        assert!(
+            out.contains("<Botao Nome=\"botao2\" Texto=\"botao2\" />"),
+            "{out}"
+        );
         assert!(out.contains("<Pilha />"), "{out}");
         assert!(
             out.contains("<Combo Nome=\"c\" X=\"0\" Y=\"0\" Largura=\"120\">"),
             "{out}"
         );
+    }
+
+    #[test]
+    fn caixa_de_texto_nao_ganha_texto_automatico() {
+        let edits = vec![DesignEdit::Insert {
+            parent: vec![],
+            index: 0,
+            tag: "CaixaTexto".into(),
+            attributes: vec![],
+        }];
+        let out = edit_design(SOURCE, edits).unwrap();
+        assert!(out.contains("<CaixaTexto Nome=\"caixaTexto1\" />"), "{out}");
     }
 
     #[test]

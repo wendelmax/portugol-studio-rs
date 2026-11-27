@@ -25,18 +25,116 @@
 
 .design-surface {
   flex: 1;
+  display: flex;
   min-height: 80px;
   min-width: 0;
-  overflow: auto;
-  padding: 24px;
+  overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
 }
 
+.design-toolbox {
+  flex: 0 0 168px;
+  overflow-y: auto;
+  padding: 8px;
+  border-right: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.design-toolbox-title {
+  margin: 0 0 8px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.design-toolbox-group h3 {
+  margin: 10px 0 4px;
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.design-toolbox-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.design-tool {
+  justify-content: flex-start;
+  width: 100%;
+  text-align: start;
+  cursor: grab;
+}
+
+.design-tool:active {
+  cursor: grabbing;
+}
+
+.design-viewport {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: 24px;
+}
+
+.design-viewport:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 .design-surface[hidden] {
   display: none;
 }
+
+.design-window,
+.design-panel {
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--design-border) 55%, transparent) 1px, transparent 1px);
+  background-size: 8px 8px;
+}
+
+.design-el.is-dragging {
+  opacity: 0.75;
+  z-index: 10;
+  box-shadow: var(--shadow-popover);
+}
+
+.design-overlay {
+  position: absolute;
+  pointer-events: none;
+  outline: 1px solid var(--design-selection);
+}
+
+.design-overlay[hidden] {
+  display: none;
+}
+
+.design-handle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  background: var(--design-control-bg);
+  border: 1px solid var(--design-selection);
+  pointer-events: auto;
+}
+
+.design-handle[hidden] {
+  display: none;
+}
+
+.design-handle-nw { left: 0; top: 0; cursor: nwse-resize; }
+.design-handle-n { left: 50%; top: 0; cursor: ns-resize; }
+.design-handle-ne { left: 100%; top: 0; cursor: nesw-resize; }
+.design-handle-e { left: 100%; top: 50%; cursor: ew-resize; }
+.design-handle-se { left: 100%; top: 100%; cursor: nwse-resize; }
+.design-handle-s { left: 50%; top: 100%; cursor: ns-resize; }
+.design-handle-sw { left: 0; top: 100%; cursor: nesw-resize; }
+.design-handle-w { left: 0; top: 50%; cursor: ew-resize; }
 
 .design-surface.is-stale .design-frame {
   opacity: 0.55;
