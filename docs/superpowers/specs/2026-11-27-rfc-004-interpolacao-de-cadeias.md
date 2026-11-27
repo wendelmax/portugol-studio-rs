@@ -22,8 +22,9 @@ Esta RFC fixa o contrato observável da interpolação no frontend, na HIR, no b
 4. O conteúdo entre as chaves é uma expressão PORS completa, parseada pelo parser normal nos offsets de bytes originais do fonte. Não há reconhecimento de strings aninhadas para adiantar o fechamento: o primeiro `}` não escapado fecha a parte.
 5. `{}` e um `{` sem fechamento não escapado na mesma cadeia permanecem texto literal; o `{` é emitido como literal e a varredura continua. Quando há mais de um `{` antes do primeiro `}`, somente o primeiro par forma a parte: `"{nome} e { aberto"` interpola `{nome}` e deixa o último `{` literal.
 6. Espaço em branco conta como conteúdo: `{ }` não é vazio e tenta parsear como expressão, com o diagnóstico da regra de conteúdo inválido.
-7. Não há especificador de formato, largura, alinhamento, precisão, conversão especial ou sintaxe reservada para eles nesta fatia. `{nome:>10}` é conteúdo inválido, não formatação.
-8. Cadeias sem `{` não escapado, sem `\{`, `\}` e sem interpolação continuam `ExprKind::String` como hoje; nenhuma cadeia existente muda de forma só por esta RFC.
+7. Por compatibilidade com cadeias que já continham chaves, conteúdo com erro léxico ou com nomes não resolvidos continua literal; não há diagnóstico de interpolação nesses casos. Exemplos: `"{@}"` e `"{invalido}"` permanecem `ExprKind::String`. Os diagnósticos de interpolação ficam reservados a conteúdo lexicalmente válido e sintaticamente reconhecível.
+8. Não há especificador de formato, largura, alinhamento, precisão, conversão especial ou sintaxe reservada para eles nesta fatia. `{nome:>10}` é conteúdo inválido, não formatação.
+9. Cadeias sem `{` não escapado, sem `\{`, `\}` e sem interpolação continuam `ExprKind::String` como hoje; nenhuma cadeia existente muda de forma só por esta RFC.
 
 ### HIR e spans
 

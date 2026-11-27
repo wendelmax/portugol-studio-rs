@@ -51,8 +51,9 @@ apresentem os mesmos tokens para as mesmas regras sem divergir.
    - `{}` e um `{` sem fechamento permanecem `string`; o conteúdo precisa ser não vazio; o conteúdo pode
      conter espaços, que contam como conteúdo.
 3. O realce **não valida** a expressão: a validade é decidida pelo parser, com os diagnósticos
-   `pors.interpolation-invalid` e `pors.interpolation-non-string` (RFC 004). O scanner apenas emite
-   o token `interpolation`.
+   `pors.interpolation-invalid` e `pors.interpolation-non-string` (RFC 004). Conteúdo com erro
+   léxico ou nomes não resolvidos permanece literal, sem diagnóstico de interpolação. O scanner apenas
+   emite o token `interpolation`.
 
 ### IDE
 

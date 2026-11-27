@@ -1111,10 +1111,17 @@ fn json_braces_in_a_string_literal_are_not_interpolation() {
     };
     assert!(matches!(&values[0].kind, ExprKind::String(text) if text == "{\"ok\":true}"));
 
-    let source = "funcao inicio() { escreva(\"{invalido}\"); }";
-    let program = lower(source).expect("nome não declarado entre chaves deve ser literal");
-    let StmtKind::Write(values) = &program.body[0].kind else {
-        panic!("esperava Write");
-    };
-    assert!(matches!(&values[0].kind, ExprKind::String(text) if text == "{invalido}"));
+    for source in [
+        "funcao inicio() { escreva(\"{invalido}\"); }",
+        "funcao inicio() { escreva(\"{@}\"); }",
+    ] {
+        let program = lower(source).expect("conteúdo irreconhecível entre chaves deve ser literal");
+        let StmtKind::Write(values) = &program.body[0].kind else {
+            panic!("esperava Write");
+        };
+        assert!(
+            matches!(&values[0].kind, ExprKind::String(text) if text == "{invalido}" || text == "{@}"),
+            "{source}"
+        );
+    }
 }
