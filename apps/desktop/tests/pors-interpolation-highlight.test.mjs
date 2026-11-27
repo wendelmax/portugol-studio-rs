@@ -33,3 +33,18 @@ test("PORS keeps escaped and malformed braces as literal string", () => {
     assert.ok(tokens(doc).every(([name]) => name !== "interpolation"), doc);
   }
 });
+
+test("PORS treats the first unescaped brace as interpolation even across nested braces and lines", () => {
+  for (const [doc, expected] of [
+    ['escreval("{a{b}");', ["a"]],
+    ['escreval("{\n nome \n}");', ["nome"]],
+  ]) {
+    const found = tokens(doc);
+    assert.deepEqual(
+      found.filter(([name]) => name === "variableName").map(([, text]) => text.trim()),
+      expected,
+      doc,
+    );
+    assert.ok(found.some(([name]) => name === "interpolation"), doc);
+  }
+});

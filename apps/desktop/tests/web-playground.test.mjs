@@ -376,6 +376,16 @@ function collectTokenClasses(root) {
   return classes;
 }
 
+function collectTokenTexts(root, className) {
+  const texts = [];
+  const visit = (node) => {
+    if (node.className === className) texts.push(node.textContent);
+    for (const child of node.children ?? []) visit(child);
+  };
+  visit(root);
+  return texts;
+}
+
 test("web playground highlights interpolated strings and escreval builtins", async () => {
   const elementsById = new Map();
   const fakeDocument = {
@@ -432,6 +442,15 @@ test("web playground highlights interpolated strings and escreval builtins", asy
 
     render('escreval("Olá, {nome}!");');
     assert.equal(highlightEl.textContent, editorEl.value);
+
+    for (const [doc, expected] of [
+      ['escreval("{a{b}");', "{a{b}"],
+      ['escreval("{\n nome \n}");', "{\n nome \n}"],
+    ]) {
+      render(doc);
+      assert.deepEqual(collectTokenTexts(highlightEl, "pg-tok-interpolation"), [expected], doc);
+      assert.equal(highlightEl.textContent, editorEl.value);
+    }
 
     const appSource = readFileSync(new URL("../../web-playground/app.mjs", import.meta.url), "utf8");
     assert.ok(!appSource.includes(".innerHTML"));

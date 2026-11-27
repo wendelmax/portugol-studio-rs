@@ -75,7 +75,7 @@ function interpolationEnd(literal, from) {
       i += 1;
       continue;
     }
-    if (ch === quote || ch === "{" || ch === "\n") return -1;
+    if (ch === quote) return -1;
     if (ch === "}") return i > from ? i : -1;
   }
   return -1;

@@ -217,10 +217,22 @@ function interpolationEnd(line: string, from: number): number {
       i += 1;
       continue;
     }
-    if (ch === '"') return -1;
     if (ch === "}") return i > from ? i : -1;
   }
   return -1;
+}
+
+/** Verdadeiro quando um `{` pode fechar em uma linha seguinte da mesma cadeia. */
+function interpolationContinuesOnNextLine(line: string, from: number): boolean {
+  for (let i = from; i < line.length; i += 1) {
+    const ch = line[i];
+    if (ch === "\\") {
+      i += 1;
+      continue;
+    }
+    if (ch === '"' || ch === "}") return false;
+  }
+  return true;
 }
 
 function classifyPorsToken(stream: StringStream, state: PorsState): string | null {
@@ -302,7 +314,12 @@ function scanPorsString(stream: StringStream, state: PorsState): string | null {
       state.inString = false;
       return "string";
     }
-    if (!state.inInterpolation && ch === "{" && interpolationEnd(stream.string, stream.pos + 1) >= 0) {
+    if (
+      !state.inInterpolation &&
+      ch === "{" &&
+      (interpolationEnd(stream.string, stream.pos + 1) >= 0 ||
+        interpolationContinuesOnNextLine(stream.string, stream.pos + 1))
+    ) {
       if (consumed) return "string";
       stream.next();
       state.inInterpolation = true;
@@ -331,11 +348,6 @@ const porsParser: StreamParser<PorsState> = {
     inNestedString: false,
   }),
   token(stream, state) {
-    if (stream.sol()) {
-      state.inString = false;
-      state.inInterpolation = false;
-      state.inNestedString = false;
-    }
     if (state.inString) return scanPorsString(stream, state);
     if (state.inComment) {
       if (stream.skipTo("*/")) {
