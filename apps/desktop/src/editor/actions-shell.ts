@@ -54,6 +54,7 @@ export function createEditorActionsShell(dependencies: EditorActionsShellDepende
     view: dependencies.view,
     formatRust: api.formatRustSource,
     formatPortugolRs: api.formatPortugolRs,
+    formatMarkup: api.formatMarkup,
     setStatus,
   });
 

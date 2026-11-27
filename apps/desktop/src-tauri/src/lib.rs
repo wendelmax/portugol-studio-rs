@@ -205,6 +205,20 @@ fn inspect_portugol_rs(source: String) -> portugol_service::Inspection {
     portugol_service::inspect_portugol_rs(&source)
 }
 
+/// Diagnósticos e estrutura de um `.design` ou `.porsproj`; o tipo vem da
+/// extensão de `path`.
+#[tauri::command]
+fn inspect_markup(source: String, path: String) -> Result<portugol_service::Inspection, String> {
+    let kind = portugol_service::MarkupKind::from_path(&path)
+        .ok_or_else(|| "O arquivo não é um .design nem um .porsproj.".to_string())?;
+    Ok(portugol_service::inspect_markup(&source, kind))
+}
+
+#[tauri::command]
+fn format_markup(source: String) -> Option<Vec<portugol_service::TextEdit>> {
+    portugol_service::format_markup(&source)
+}
+
 #[tauri::command]
 async fn export_portugol_rs(source: String) -> Result<portugol_service::RustExport, String> {
     tauri::async_runtime::spawn_blocking(move || portugol_service::export_portugol_rs(&source))
@@ -889,6 +903,8 @@ pub fn run_app() {
         .manage(graphics::GraphicsWindows::default())
         .invoke_handler(tauri::generate_handler![
             inspect_portugol_rs,
+            inspect_markup,
+            format_markup,
             export_portugol_rs,
             format_rust_source,
             rustfmt_available,

@@ -29,7 +29,7 @@ export function createLearningModeController(dependencies: LearningModeControlle
     if (persist) dependencies.persist(availableMode, dependencies.activeTab()?.workspacePreferenceKey);
     if (dependencies.panelVisible()) dependencies.renderPanel();
 
-    const bridgeEnabled = availableMode === "bridge" && dependencies.activeTab()?.language !== "rust";
+    const bridgeEnabled = availableMode === "bridge" && dependencies.activeTab()?.language === "portugol-rs";
     dependencies.setPreviewHidden(!bridgeEnabled);
     dependencies.renderMappingGutter();
     dependencies.setBridgePressed(bridgeEnabled);

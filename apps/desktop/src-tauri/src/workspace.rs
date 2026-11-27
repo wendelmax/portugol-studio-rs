@@ -88,6 +88,44 @@ mod tests {
     }
 
     #[test]
+    fn handles_desktop_project_markup_like_other_sources() {
+        let temp = TempDir::new();
+        fs::create_dir_all(temp.0.join("App/recursos")).unwrap();
+        fs::write(temp.0.join("App/meu-app.porsproj"), "<Projeto />").unwrap();
+        fs::write(temp.0.join("App/JanelaPrincipal.design"), "<Janela />").unwrap();
+        fs::write(temp.0.join("App/recursos/logo.png"), "png").unwrap();
+
+        let entries = list_entries(&temp.0).unwrap();
+        let mut paths = Vec::new();
+        file_paths(&entries, &mut paths);
+        paths.sort();
+        assert_eq!(
+            paths,
+            ["App/JanelaPrincipal.design", "App/meu-app.porsproj"]
+        );
+
+        let design = Path::new("App/JanelaPrincipal.design");
+        assert_eq!(read_relative_file(&temp.0, design).unwrap(), "<Janela />");
+        super::write_relative_file(&temp.0, design, "<Janela Nome=\"J\" />").unwrap();
+        assert_eq!(
+            fs::read_to_string(temp.0.join(design)).unwrap(),
+            "<Janela Nome=\"J\" />"
+        );
+
+        // Renomear mantém a extensão; trocar .design por .pors é recusado.
+        assert!(rename_relative_file(&temp.0, design, "Outra.pors").is_err());
+        let renamed = rename_relative_file(&temp.0, design, "Outra.design").unwrap();
+        assert!(renamed.ends_with("App/Outra.design"));
+
+        let manifest = Path::new("App/meu-app.porsproj");
+        delete_relative_file(&temp.0, manifest).unwrap();
+        assert!(!temp.0.join(manifest).exists());
+
+        // Criar pelo explorador continua restrito a .pors e .rs.
+        assert!(create_source_file(&temp.0, "Nova.design").is_err());
+    }
+
+    #[test]
     fn reads_a_supported_file_relative_to_the_workspace_root() {
         let temp = TempDir::new();
         fs::create_dir_all(temp.0.join("aula")).unwrap();
@@ -1350,9 +1388,14 @@ fn open_selected_file_with_hook(
             .map_err(|_| "O arquivo selecionado mudou durante a validação.".to_string())?;
         if is_last {
             if !metadata.is_file()
-                || !(supported_program(relative_path) || is_exercise(relative_path))
+                || !(supported_program(relative_path)
+                    || is_exercise(relative_path)
+                    || supported_markup(relative_path))
             {
-                return Err("O explorador só exporta arquivos .pors, .rs e .pors.json.".into());
+                return Err(
+                    "O explorador só exporta arquivos .pors, .rs, .pors.json, .design e .porsproj."
+                        .into(),
+                );
             }
             after_metadata(relative_path)?;
             let file = current
@@ -1616,17 +1659,23 @@ fn source_extension_label(path: &Path) -> Option<&'static str> {
         return Some("pors.json");
     }
     let ext = path.extension().and_then(|extension| extension.to_str())?;
-    if ext.eq_ignore_ascii_case("pors") {
-        Some("pors")
-    } else if ext.eq_ignore_ascii_case("rs") {
-        Some("rs")
-    } else {
-        None
-    }
+    ["pors", "rs", "design", "porsproj"]
+        .into_iter()
+        .find(|label| ext.eq_ignore_ascii_case(label))
 }
 
 fn supported_source(path: &Path) -> bool {
-    supported_program(path) || is_exercise(path)
+    supported_program(path) || is_exercise(path) || supported_markup(path)
+}
+
+/// Marcação de projetos desktop PORS (ADR 0018): o desenho de uma tela
+/// (`.design`) e o manifesto (`.porsproj`).
+fn supported_markup(path: &Path) -> bool {
+    path.extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| {
+            extension.eq_ignore_ascii_case("design") || extension.eq_ignore_ascii_case("porsproj")
+        })
 }
 
 fn supported_program(path: &Path) -> bool {
@@ -1739,7 +1788,9 @@ fn checked_file(root: &Path, relative: &Path, allow_exercise: bool) -> Result<Pa
     let metadata =
         fs::metadata(&candidate).map_err(|_| "O arquivo não está mais disponível.".to_string())?;
     if !metadata.is_file()
-        || !(supported_program(&candidate) || allow_exercise && is_exercise(&candidate))
+        || !(supported_program(&candidate)
+            || supported_markup(&candidate)
+            || allow_exercise && is_exercise(&candidate))
     {
         if is_legacy_extension(&candidate) {
             return Err(
@@ -1747,7 +1798,9 @@ fn checked_file(root: &Path, relative: &Path, allow_exercise: bool) -> Result<Pa
                     .into(),
             );
         }
-        return Err("O explorador só abre arquivos .pors, .rs e .pors.json.".into());
+        return Err(
+            "O explorador só abre arquivos .pors, .rs, .pors.json, .design e .porsproj.".into(),
+        );
     }
     let canonical = fs::canonicalize(&candidate)
         .map_err(|_| "O arquivo não está mais disponível.".to_string())?;
@@ -1820,8 +1873,11 @@ fn read_relative_file(root: &Path, relative: &Path) -> Result<String, String> {
 }
 
 fn write_relative_file(root: &Path, relative: &Path, source: &str) -> Result<(), String> {
-    if !supported_program(relative) {
-        return Err("Apenas arquivos .pors e .rs podem ser salvos pelo explorador.".into());
+    if !supported_program(relative) && !supported_markup(relative) {
+        return Err(
+            "Apenas arquivos .pors, .rs, .design e .porsproj podem ser salvos pelo explorador."
+                .into(),
+        );
     }
     let path = checked_file(root, relative, false)?;
     fs::write(path, source).map_err(|error| format!("Não foi possível salvar o arquivo: {error}"))
@@ -2050,7 +2106,10 @@ fn rename_relative_file(root: &Path, relative: &Path, new_name: &str) -> Result<
         return Err("Informe um nome de arquivo sem pastas.".into());
     }
     if new_name.ends_with('.') || !supported_source(name) {
-        return Err("O arquivo deve manter uma extensão .pors, .rs ou .pors.json.".into());
+        return Err(
+            "O arquivo deve manter uma extensão .pors, .rs, .pors.json, .design ou .porsproj."
+                .into(),
+        );
     }
 
     let source_extension = source_extension_label(&source)
@@ -2125,7 +2184,10 @@ fn delete_relative_file_from_dir(
             return Err("O caminho do arquivo é inválido.".into());
         }
         if index + 1 == components.len() && (!metadata.is_file() || !supported_source(relative)) {
-            return Err("O explorador só exclui arquivos .pors, .rs e .pors.json.".into());
+            return Err(
+                "O explorador só exclui arquivos .pors, .rs, .pors.json, .design e .porsproj."
+                    .into(),
+            );
         }
     }
 

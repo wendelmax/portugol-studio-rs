@@ -59,7 +59,7 @@ export function createUtilityInsertions(dependencies: UtilityInsertionsDependenc
       button.title = snippet.detail ?? snippet.label;
       button.onclick = () => {
         const tab = dependencies.activeTab();
-        if (!tab || tab.language === "rust" || dependencies.isRunning(tab)) return;
+        if (!tab || tab.language !== "portugol-rs" || dependencies.isRunning(tab)) return;
         if (snippet.label === "programa") {
           dependencies.createProgramTab();
           return;

@@ -15,7 +15,7 @@ test("encaminha projetos Cargo por comandos Tauri tipados e consentimento explí
   assert.match(api, /runCargoProject =[\s\S]*target: CargoRunTarget \| null[\s\S]*args: string\[\][\s\S]*target, args/);
   assert.match(api, /cargoProjectRunTargets = \(id: number, workspaceId: string, relativeSource: string\)/);
   assert.match(main, /args\.disabled = controls\.arguments\.disabled/);
-  assert.match(languageCapabilities, /disabled: pors/);
+  assert.match(languageCapabilities, /disabled: !rustFile/);
   assert.match(main, /parseArguments: parseProcessArguments/);
   assert.match(main, /runCargoProject: api\.runCargoProject/);
   assert.match(main, /cargoRunTargets: api\.cargoProjectRunTargets/);

@@ -188,7 +188,7 @@ export function mountRustPreview(host: RustPreviewHost) {
 
   function scheduleRustExport() {
     const tab = activeTab();
-    if (!tab || tab.language === "rust") {
+    if (!tab || tab.language !== "portugol-rs") {
       rustExportGeneration++;
       return;
     }
@@ -288,7 +288,7 @@ export function mountRustPreview(host: RustPreviewHost) {
     const comparisonTabs = $<HTMLElement>("rust-comparison-tabs");
     const splitter = $<HTMLElement>("rust-comparison-splitter");
     const tab = activeTab();
-    const visible = Boolean(tab && tab.language !== "rust" && host.learningMode() === "bridge" && !preview.hidden);
+    const visible = Boolean(tab && tab.language === "portugol-rs" && host.learningMode() === "bridge" && !preview.hidden);
     gutter.hidden = !visible;
     splitter.hidden = !visible;
     comparisonTabs.hidden = !visible;
@@ -386,7 +386,7 @@ export function mountRustPreview(host: RustPreviewHost) {
     const sourceTab = activeTab();
     const previewState = sourceTab?.rustPreview;
     const artifact = previewState?.artifact;
-    if (!sourceTab || sourceTab.language === "rust" || !artifact || previewState.pending || previewState.stale) return;
+    if (!sourceTab || sourceTab.language !== "portugol-rs" || !artifact || previewState.pending || previewState.stale) return;
 
     const snapshot = { tab: sourceTab, document: view.state.doc, artifact };
     const accepted = await ask(

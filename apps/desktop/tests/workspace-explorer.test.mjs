@@ -212,3 +212,14 @@ test("workspace refresh, subfolder creation, and Cargo scaffold export expose ac
   assert.match(main, /api\.exportCargoProject/);
   assert.match(main, /workspaceSubfolderPath/);
 });
+
+test("classifies desktop project markup and gives each file a marker", async () => {
+  const { workspaceFileMarker } = await import("../src/workspace-explorer.ts");
+  assert.equal(workspaceFileKind("App/JanelaPrincipal.DESIGN"), "markup");
+  assert.equal(workspaceFileKind("App/meu-app.porsproj"), "markup");
+  assert.equal(workspaceFileMarker("App/JanelaPrincipal.design"), "TL");
+  assert.equal(workspaceFileMarker("App/meu-app.porsproj"), "PJ");
+  assert.equal(workspaceFileMarker("ponte.pors"), "RS");
+  assert.equal(workspaceFileMarker("main.rs"), "R");
+  assert.equal(workspaceFileMarker("lista.pors.json"), "EX");
+});

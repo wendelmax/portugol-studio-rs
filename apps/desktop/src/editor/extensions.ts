@@ -19,8 +19,11 @@ export interface EditorExtensionDependencies {
   editorPreferences?: () => Extension;
   portugolExtensions: () => Extension[];
   rustExtensions: () => Extension[];
+  /** Ferramentas da marcação dos projetos desktop (.design e .porsproj). */
+  markupExtensions?: () => Extension[];
   portugolRsLanguage: () => Extension;
   rustLanguage: () => Extension;
+  markupLanguage?: () => Extension;
   editorColors: Extension;
   editorTheme: () => Extension;
   findDialog: Extension;
@@ -34,10 +37,17 @@ export interface EditorExtensionDependencies {
 export function createEditorExtensionFactory(dependencies: EditorExtensionDependencies) {
   return function extensions(language: SourceLanguage): Extension[] {
     const isRust = language === "rust";
-    const tools = isRust ? dependencies.rustExtensions() : dependencies.portugolExtensions();
+    const isMarkup = language === "markup";
+    const tools = isRust
+      ? dependencies.rustExtensions()
+      : isMarkup
+        ? dependencies.markupExtensions?.() ?? []
+        : dependencies.portugolExtensions();
     const languageExtension = isRust
       ? dependencies.rustLanguage()
-      : dependencies.portugolRsLanguage();
+      : isMarkup
+        ? dependencies.markupLanguage?.() ?? []
+        : dependencies.portugolRsLanguage();
 
     return [
       lineNumbers(),
