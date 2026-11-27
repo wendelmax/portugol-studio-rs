@@ -32,9 +32,9 @@ let runtime = null;
 let activeUiSession = null;
 
 const THEME_STORAGE_KEY = "pg-theme";
-const TOKEN_NAMES = ["comment", "string", "number", "keyword", "type", "builtin"];
+const TOKEN_NAMES = ["comment", "string", "interpolation", "number", "keyword", "type", "builtin"];
 const PORS_TOKEN_RE =
-  /(?<comment>\/\/[^\n]*|\/\*[\s\S]*?\*\/)|(?<string>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(?<number>\b\d+(?:\.\d+)?\b)|(?<keyword>\b(?:funcao|retorne|se|senao|senao_se|seja|mutavel|enquanto|faca_enquanto|para|escolha|caso|registro|enum|verdadeiro|falso|nulo|e|ou|nao)\b)|(?<type>\b(?:inteiro|real|logico|cadeia|caracter|vetor|Resultado|Opcao)\b)|(?<builtin>\b(?:UI|Matematica|Texto|Tipos|Util|Calendario|Arquivos|Json|Internet|Graficos|Teclado|Mouse|Sons|escreva|leia|adicionar|remover|obter|tamanho)\b)/g;
+  /(?<comment>\/\/[^\n]*|\/\*[\s\S]*?\*\/)|(?<string>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(?<number>\b\d+(?:\.\d+)?\b)|(?<keyword>\b(?:funcao|retorne|se|senao|senao_se|seja|mutavel|enquanto|faca_enquanto|para|escolha|caso|registro|enum|verdadeiro|falso|nulo|e|ou|nao)\b)|(?<type>\b(?:inteiro|real|logico|cadeia|caracter|vetor|Resultado|Opcao)\b)|(?<builtin>\b(?:UI|Matematica|Texto|Tipos|Util|Calendario|Arquivos|Json|Internet|Graficos|Teclado|Mouse|Sons|escreva|escreval|leia|adicionar|remover|obter|tamanho)\b)/g;
 const UI_START_RE = /\bfuncao\s+iniciar\s*\(/;
 
 function setStatus(message, tone = "info") {
@@ -58,6 +58,51 @@ function applyTheme(theme, persist = true) {
   }
 }
 
+function appendToken(fragment, name, text) {
+  if (!text) return;
+  const span = document.createElement("span");
+  span.className = `pg-tok-${name}`;
+  span.textContent = text;
+  fragment.append(span);
+}
+
+/** Índice do `}` que fecha a interpolação, ou -1 quando o trecho é literal. */
+function interpolationEnd(literal, from) {
+  const quote = literal[0];
+  for (let i = from; i < literal.length - 1; i += 1) {
+    const ch = literal[i];
+    if (ch === "\\") {
+      i += 1;
+      continue;
+    }
+    if (ch === quote || ch === "{" || ch === "\n") return -1;
+    if (ch === "}") return i > from ? i : -1;
+  }
+  return -1;
+}
+
+function appendStringTokens(fragment, literal) {
+  let cursor = 0;
+  for (let i = 1; i < literal.length - 1; ) {
+    if (literal[i] === "\\") {
+      i += 2;
+      continue;
+    }
+    if (literal[i] === "{") {
+      const end = interpolationEnd(literal, i + 1);
+      if (end >= 0) {
+        appendToken(fragment, "string", literal.slice(cursor, i));
+        appendToken(fragment, "interpolation", literal.slice(i, end + 1));
+        cursor = end + 1;
+        i = end + 1;
+        continue;
+      }
+    }
+    i += 1;
+  }
+  appendToken(fragment, "string", literal.slice(cursor));
+}
+
 function renderHighlight(source) {
   const fragment = document.createDocumentFragment();
   let cursor = 0;
@@ -66,15 +111,11 @@ function renderHighlight(source) {
       fragment.append(document.createTextNode(source.slice(cursor, match.index)));
     }
     const token = TOKEN_NAMES.find((name) => match.groups?.[name]);
-    const span = document.createElement("span");
-    span.className = `pg-tok-${token}`;
-    span.textContent = match[0];
-    fragment.append(span);
+    if (token === "string") appendStringTokens(fragment, match[0]);
+    else appendToken(fragment, token, match[0]);
     cursor = match.index + match[0].length;
   }
   fragment.append(document.createTextNode(source.slice(cursor)));
-  // Uma linha extra mantém o alinhamento do pre com a última linha do textarea.
-  fragment.append(document.createTextNode("\n"));
   highlightEl.replaceChildren(fragment);
   syncHighlightScroll();
 }

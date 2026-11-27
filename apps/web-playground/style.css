@@ -28,6 +28,7 @@
   --pg-code-font: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --pg-keyword: #7c3aed;
   --pg-string: #0f766e;
+  --pg-interpolation: #1d4ed8;
   --pg-number: #b45309;
   --pg-comment: #64748b;
   --pg-type: #1d4ed8;
@@ -62,6 +63,7 @@
   --pg-shadow: 0 18px 45px -28px rgba(0, 0, 0, 0.8);
   --pg-keyword: #c4b5fd;
   --pg-string: #6ee7b7;
+  --pg-interpolation: #93c5fd;
   --pg-number: #fcd34d;
   --pg-comment: #8ea0bb;
   --pg-type: #93c5fd;
@@ -436,6 +438,11 @@ button:disabled {
 
 .pg-tok-string {
   color: var(--pg-string);
+}
+
+.pg-tok-interpolation {
+  color: var(--pg-interpolation);
+  font-weight: 600;
 }
 
 .pg-tok-number {
