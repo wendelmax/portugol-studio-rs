@@ -5,7 +5,7 @@
 - **Relacionados:** [ADR 0019](../../adr/0019-contrato-minimo-de-tipos-pors.md), [RFC 001](2026-11-27-rfc-001-inferencia-em-seja.md), [design de evolução sintática inicial do PORS](2026-11-26-pors-syntax-evolution-design.md)
 - **Revisada por:** [ADR 0020](../../adr/0020-ajustes-pedagogicos-da-sintaxe-pors.md)
 
-> **Revisão (ADR 0020):** Revisada pela decisão 3 do ADR 0020. A regra "tipo fixo `cadeia`" vale só sem destino tipado; com destino declarado (inicializador anotado, atribuição, argumento de parâmetro e `retorne`), a entrada é convertida com as regras de `leia(variavel)`. Os exemplos inválidos com destino `inteiro` desta RFC passam a ser válidos.
+> **Revisão (ADR 0020):** Revisada pela decisão 3 do ADR 0020. A regra "tipo fixo `cadeia`" vale só sem destino tipado; com destino declarado (inicializador anotado, atribuição, argumento de parâmetro e `retorne`), a entrada é convertida com as regras da forma com variável-alvo. Os exemplos inválidos com destino `inteiro` desta RFC passam a ser válidos.
 
 ## Contexto
 

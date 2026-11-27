@@ -292,7 +292,7 @@ fn generated_rust_trims_integer_input_before_conversion() {
     let result = run_portugol_rs_with_io(
         "funcao inicio() { seja n: inteiro = leia(); escreval(n + 1); }",
         &cancel,
-        |_| Ok(" 36\n".to_owned()),
+        |_| Ok(" 36".to_owned()),
         |_| {},
     )
     .unwrap();
@@ -308,7 +308,7 @@ fn generated_rust_trims_boolean_input_before_conversion() {
     let result = run_portugol_rs_with_io(
         "funcao inicio() { seja n: logico = leia(); escreval(n); }",
         &cancel,
-        |_| Ok(" verdadeiro\n".to_owned()),
+        |_| Ok(" verdadeiro".to_owned()),
         |_| {},
     )
     .unwrap();
@@ -324,7 +324,7 @@ fn generated_rust_trims_character_input_before_conversion() {
     let result = run_portugol_rs_with_io(
         "funcao inicio() { seja n: caracter = leia(); escreval(n); }",
         &cancel,
-        |_| Ok(" A \n".to_owned()),
+        |_| Ok(" A ".to_owned()),
         |_| {},
     )
     .unwrap();
@@ -340,7 +340,7 @@ fn generated_rust_rejects_multi_character_input_for_a_character_read() {
     let result = run_portugol_rs_with_io(
         "funcao inicio() { seja n: caracter = leia(); escreval(n); }",
         &cancel,
-        |_| Ok("AB\n".to_owned()),
+        |_| Ok("AB".to_owned()),
         |_| {},
     )
     .unwrap();
@@ -357,7 +357,7 @@ fn generated_rust_rejects_unknown_boolean_input_with_surrounding_spaces() {
     let result = run_portugol_rs_with_io(
         "funcao inicio() { seja n: logico = leia(); escreval(n); }",
         &cancel,
-        |_| Ok(" talvez \n".to_owned()),
+        |_| Ok(" talvez ".to_owned()),
         |_| {},
     )
     .unwrap();
@@ -373,17 +373,17 @@ fn generated_rust_and_vm_agree_on_trimmed_scalar_reads() {
     for (source, input, expected) in [
         (
             "funcao inicio() { seja n: inteiro = leia(); escreval(n + 1); }",
-            " 36\n",
+            " 36",
             "37\n",
         ),
         (
             "funcao inicio() { seja n: logico = leia(); escreval(n); }",
-            " verdadeiro\n",
+            " verdadeiro",
             "verdadeiro\n",
         ),
         (
             "funcao inicio() { seja n: caracter = leia(); escreval(n); }",
-            " A \n",
+            " A ",
             "A\n",
         ),
     ] {
@@ -408,13 +408,12 @@ fn generated_rust_and_vm_agree_on_multi_character_caracter_rejection() {
     let source = "funcao inicio() { seja n: caracter = leia(); escreval(n); }";
     let program = portugol_rs_frontend::lower(source).unwrap();
     let module = portugol_bytecode::compile_pors(&program).unwrap();
-    let mut io = portugol_vm::BufferIo::new("AB\n");
+    let mut io = portugol_vm::BufferIo::new("AB");
     let vm_error = portugol_vm::run(&module, &mut io).expect_err("VM deve rejeitar a entrada");
     assert!(format!("{vm_error:?}").contains("caracter"), "{vm_error:?}");
 
     let cancel = AtomicBool::new(false);
-    let result =
-        run_portugol_rs_with_io(source, &cancel, |_| Ok("AB\n".to_owned()), |_| {}).unwrap();
+    let result = run_portugol_rs_with_io(source, &cancel, |_| Ok("AB".to_owned()), |_| {}).unwrap();
     assert!(
         matches!(result, PortugolRsRunResult::Executed { ref stderr, exit_code: Some(code), .. }
             if code != 0 && stderr.to_lowercase().contains("caracter")),
