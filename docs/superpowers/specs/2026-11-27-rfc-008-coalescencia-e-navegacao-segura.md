@@ -3,6 +3,9 @@
 - **Data:** 2026-11-27
 - **Status:** Proposta
 - **Relacionados:** [ADR 0019](../../adr/0019-contrato-minimo-de-tipos-pors.md), [RFC 004](2026-11-27-rfc-004-interpolacao-de-cadeias.md), [RFC 006](2026-11-27-rfc-006-realce-de-sintaxe.md), [RFC 007](2026-11-27-rfc-007-tratamento-de-erros.md), [design de evolução sintática inicial do PORS](2026-11-26-pors-syntax-evolution-design.md)
+- **Revisada por:** [ADR 0020](../../adr/0020-ajustes-pedagogicos-da-sintaxe-pors.md)
+
+> **Revisão (ADR 0020):** Escopo da primeira entrega limitado pela decisão 6 do ADR 0020: somente `??`. `?.`, `??=` e a conversão implícita de `T` para `Opcao<T>` ficam adiados; os exemplos devem usar `Opcao::Algum(valor)` explicitamente.
 
 > **Aviso:** Estes exemplos não executam no `main`: `tente`/`capture`/`lance` e a navegação segura ainda não estão implementados. Os trechos mostram o contrato proposto; as interpolações apresentadas usam apenas `cadeia`, conforme a RFC 004.
 

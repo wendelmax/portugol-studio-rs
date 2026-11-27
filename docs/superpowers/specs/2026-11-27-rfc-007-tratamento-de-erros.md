@@ -3,6 +3,9 @@
 - **Data:** 2026-11-27
 - **Status:** Proposta
 - **Relacionados:** [ADR 0019](../../adr/0019-contrato-minimo-de-tipos-pors.md), [RFC 005](2026-11-27-rfc-005-retorno-implicito.md), [RFC 006](2026-11-27-rfc-006-realce-de-sintaxe.md), [RFC 008](2026-11-27-rfc-008-coalescencia-e-navegacao-segura.md), [design de evolução sintática inicial do PORS](2026-11-26-pors-syntax-evolution-design.md)
+- **Revisada por:** [ADR 0020](../../adr/0020-ajustes-pedagogicos-da-sintaxe-pors.md)
+
+> **Revisão (ADR 0020):** Escopo da primeira entrega limitado pela decisão 5 do ADR 0020: somente `tente { ... } capture erro { ... }` como comando, com um único `capture`, `?` dentro de `tente` e `lance`. `finalmente`, `capture` por variante e `capture _`, vários `capture`, `tente` como expressão e as regras de cobertura ficam adiados. Os exemplos desta RFC que interpolam números passam a ser válidos pela decisão 1 do mesmo ADR.
 
 > **Aviso:** Estes exemplos não executam no `main`: `tente`/`capture`/`lance` e a navegação segura ainda não estão implementados. Os trechos mostram o contrato proposto; as chamadas de `escreval` já seguem a RFC 004 e não interpolam valores não textuais.
 

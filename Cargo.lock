@@ -2687,6 +2687,7 @@ dependencies = [
  "portugol-hir",
  "portugol-rs-frontend",
  "portugol-rust",
+ "portugol-tela",
  "portugol-vm",
 ]
 
@@ -2739,6 +2740,13 @@ dependencies = [
  "serde",
  "serde_json",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "portugol-tela"
+version = "0.7.0"
+dependencies = [
+ "portugol-hir",
 ]
 
 [[package]]

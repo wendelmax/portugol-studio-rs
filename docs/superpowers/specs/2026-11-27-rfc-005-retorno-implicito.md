@@ -3,6 +3,9 @@
 - **Data:** 2026-11-27
 - **Status:** Aceita
 - **Relacionados:** [ADR 0019](../../adr/0019-contrato-minimo-de-tipos-pors.md), [RFC 001](2026-11-27-rfc-001-inferencia-em-seja.md), [RFC 002](2026-11-27-rfc-002-leia-como-expressao.md), [RFC 003](2026-11-27-rfc-003-escreval.md), [RFC 004](2026-11-27-rfc-004-interpolacao-de-cadeias.md), [design de evolução sintática inicial do PORS](2026-11-26-pors-syntax-evolution-design.md)
+- **Revisada por:** [ADR 0020](../../adr/0020-ajustes-pedagogicos-da-sintaxe-pors.md)
+
+> **Revisão (ADR 0020):** A regra desta RFC foi mantida pela decisão 4 do ADR 0020, mas `retorne` é a forma canônica no material inicial. Novos diagnósticos: `pors.missing-return` com dica para `x * 2;` no fim da função, e explicação da regra quando a expressão final sem `;` está dentro de `se`, `senao`, `escolha` ou laço. A exceção dos ramos de `tente` em expressão fica suspensa enquanto `tente` como expressão estiver adiado.
 
 ## Contexto
 

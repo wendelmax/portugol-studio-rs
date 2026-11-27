@@ -161,7 +161,12 @@ experiência:
 As decisões de produto relacionadas são os ADRs
 [0015](adr/0015-evolucao-visual-orientada-a-aprendizagem.md),
 [0016](adr/0016-pors-como-linguagem-autoral-e-retirada-do-por.md),
-[0017](adr/0017-modelo-execucao-e-estado-ui-visual-pors.md) e
-[0018](adr/0018-projetos-desktop-pors-com-designer-visual.md). Eles definem,
+[0017](adr/0017-modelo-execucao-e-estado-ui-visual-pors.md),
+[0018](adr/0018-projetos-desktop-pors-com-designer-visual.md),
+[0019](adr/0019-contrato-minimo-de-tipos-pors.md),
+[0020](adr/0020-ajustes-pedagogicos-da-sintaxe-pors.md) e
+[0021](adr/0021-tela-como-forma-unica-de-interface-pors.md). Eles definem,
 respectivamente, a direção visual, a evolução de `.por` para PORS, o modelo
-para programas visuais PORS e os projetos desktop com designer visual.
+para programas visuais PORS, os projetos desktop com designer visual, o
+contrato mínimo de tipos, os ajustes pedagógicos da sintaxe e as telas
+(`.design` + `.pors`) como forma única de interface.
