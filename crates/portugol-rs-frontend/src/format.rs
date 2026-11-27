@@ -62,7 +62,7 @@ fn classify(kind: &Kind, prev_syntax: Option<SyntaxKind>) -> SyntaxKind {
             "retorne" => SyntaxKind::Retorne,
             _ => SyntaxKind::Ident,
         },
-        Kind::Integer(_) | Kind::Real(_) | Kind::String(_) | Kind::Character(_) => {
+        Kind::Integer(_) | Kind::Real(_) | Kind::String { .. } | Kind::Character(_) => {
             SyntaxKind::Literal
         }
         Kind::LParen => SyntaxKind::LParen,
@@ -365,6 +365,17 @@ mod tests {
         let source = "funcao f(v:Opcao<inteiro>)->Opcao<inteiro>{seja x:inteiro=v ? +1;retorne Opcao::Algum(x);}funcao inicio(){}";
         let formatted = apply(source, format(source).expect("fonte com Opcao e ? válida"));
         assert!(formatted.contains("seja x: inteiro = v? + 1;"));
+        assert_eq!(format(&formatted), Some(Vec::new()));
+    }
+
+    #[test]
+    fn preserves_interpolation_content_verbatim() {
+        let source = "funcao inicio(){seja nome=\"Ada\";escreva(\"Olá, { nome }!\");}";
+        let formatted = apply(
+            source,
+            format(source).expect("fonte com interpolação válida"),
+        );
+        assert!(formatted.contains("\"Olá, { nome }!\""));
         assert_eq!(format(&formatted), Some(Vec::new()));
     }
 }

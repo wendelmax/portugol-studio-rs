@@ -3,7 +3,7 @@ use portugol_hir::{Diagnostic, Span};
 
 use super::Parser;
 use super::constants::*;
-use crate::lexer::Kind;
+use crate::lexer::{Kind, lex};
 
 impl Parser {
     pub(super) fn expression(&mut self, min_precedence: u8) -> Result<hir::Expr, Vec<Diagnostic>> {
@@ -152,7 +152,21 @@ impl Parser {
                 hir::Type::Integer,
             ),
             Kind::Real(n) => (hir::ExprKind::Real(n), hir::Type::Real),
-            Kind::String(value) => (hir::ExprKind::String(value), hir::Type::String),
+            Kind::String { decoded, raw } => {
+                let parts = self.string_parts(span, &raw)?;
+                if parts
+                    .iter()
+                    .all(|part| matches!(part, hir::StringPart::Literal(_, _)))
+                {
+                    (hir::ExprKind::String(decoded), hir::Type::String)
+                } else {
+                    return Ok(hir::Expr {
+                        kind: hir::ExprKind::InterpolatedString { parts },
+                        ty: hir::Type::String,
+                        span: to_hir_span(span),
+                    });
+                }
+            }
             Kind::Character(value) => (hir::ExprKind::Character(value), hir::Type::Character),
             Kind::Ident(word) if word == "verdadeiro" => {
                 (hir::ExprKind::Boolean(true), hir::Type::Boolean)
@@ -630,6 +644,118 @@ impl Parser {
         })
     }
 
+    fn string_parts(
+        &mut self,
+        token_span: Span,
+        raw: &str,
+    ) -> Result<Vec<hir::StringPart>, Vec<Diagnostic>> {
+        let content_start = token_span.start as usize + 1;
+        debug_assert_eq!(&self.source[content_start..content_start + raw.len()], raw);
+        let mut parts = Vec::new();
+        let mut literal = String::new();
+        let mut literal_start = None;
+        let mut cursor = 0usize;
+
+        while cursor < raw.len() {
+            let ch = raw[cursor..].chars().next().expect("offset válido em raw");
+            if ch == '\\' && cursor + 1 < raw.len() {
+                let escaped = raw[cursor + 1..]
+                    .chars()
+                    .next()
+                    .expect("offset válido em raw");
+                let decoded = match escaped {
+                    'n' => '\n',
+                    'r' => '\r',
+                    't' => '\t',
+                    '0' => '\0',
+                    '\\' => '\\',
+                    '"' => '"',
+                    '\'' => '\'',
+                    other => other,
+                };
+                literal_start.get_or_insert(cursor);
+                literal.push(decoded);
+                cursor += 1 + escaped.len_utf8();
+                continue;
+            }
+            if ch == '{' {
+                if let Some(close) = unescaped_closing_brace(raw, cursor + 1) {
+                    let content = &raw[cursor + 1..close];
+                    if !content.is_empty() {
+                        let start = (content_start + cursor + 1) as u32;
+                        let end = (content_start + close) as u32;
+                        let span = Span::new(start, end);
+                        let (tokens, lex_errors) = lex(content);
+                        if lex_errors.is_empty() {
+                            let shifted: Vec<_> = tokens
+                                .into_iter()
+                                .map(|mut token| {
+                                    token.span =
+                                        Span::new(token.span.start + start, token.span.end + start);
+                                    token
+                                })
+                                .collect();
+                            let outer_tokens = std::mem::replace(&mut self.tokens, shifted);
+                            let outer_cursor = self.cursor;
+                            self.cursor = 0;
+                            let parsed = self.expression(0);
+                            let complete = matches!(self.current().kind, Kind::Eof);
+                            let unresolved_name = parsed.as_ref().is_err_and(|errors| {
+                                errors.iter().all(|d| {
+                                    matches!(d.code, "pors.unknown-name" | "pors.unknown-function")
+                                })
+                            });
+                            self.tokens = outer_tokens;
+                            self.cursor = outer_cursor;
+                            if parsed.is_err() && !unresolved_name {
+                                return self.fail(
+                                    "pors.interpolation-invalid",
+                                    "Conteúdo inválido dentro da interpolação",
+                                    span,
+                                );
+                            }
+                            if complete && !unresolved_name {
+                                let expr = parsed.expect("expressão de interpolação válida");
+                                if !matches!(expr.ty, hir::Type::String | hir::Type::Character) {
+                                    return self.fail(
+                                        "pors.interpolation-non-string",
+                                        "A interpolação exige um valor `cadeia` ou `caracter`",
+                                        span,
+                                    );
+                                }
+                                flush_string_literal(
+                                    &mut parts,
+                                    &mut literal,
+                                    literal_start,
+                                    cursor,
+                                    content_start,
+                                );
+                                literal_start = None;
+                                parts.push(hir::StringPart::Expression(
+                                    expr,
+                                    Span::new(start - 1, end + 1),
+                                ));
+                                cursor = close + 1;
+                                continue;
+                            }
+                        }
+                    }
+                }
+            }
+            literal_start.get_or_insert(cursor);
+            literal.push(ch);
+            cursor += ch.len_utf8();
+        }
+        flush_string_literal(
+            &mut parts,
+            &mut literal,
+            literal_start,
+            cursor,
+            content_start,
+        );
+        Ok(parts)
+    }
+
     pub(super) fn parse_builtin_option_constructor(
         &mut self,
         start: Span,
@@ -887,4 +1013,42 @@ impl Parser {
             span: to_hir_span(start.join(close.span)),
         })
     }
+}
+
+fn flush_string_literal(
+    parts: &mut Vec<hir::StringPart>,
+    literal: &mut String,
+    start: Option<usize>,
+    end: usize,
+    content_start: usize,
+) {
+    if literal.is_empty() {
+        return;
+    }
+    let start = start.expect("texto literal possui início");
+    parts.push(hir::StringPart::Literal(
+        std::mem::take(literal),
+        Span::new((content_start + start) as u32, (content_start + end) as u32),
+    ));
+}
+
+fn unescaped_closing_brace(raw: &str, from: usize) -> Option<usize> {
+    let bytes = raw.as_bytes();
+    let mut cursor = from;
+    while cursor < bytes.len() {
+        if bytes[cursor] == b'\\' {
+            cursor += 1;
+            if cursor < bytes.len() {
+                let ch = raw[cursor..].chars().next().expect("offset válido em raw");
+                cursor += ch.len_utf8();
+            }
+            continue;
+        }
+        if bytes[cursor] == b'}' {
+            return Some(cursor);
+        }
+        let ch = raw[cursor..].chars().next().expect("offset válido em raw");
+        cursor += ch.len_utf8();
+    }
+    None
 }

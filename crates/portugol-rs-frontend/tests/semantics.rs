@@ -422,6 +422,21 @@ fn rejects_invalid_interpolation_content_at_the_inner_span() {
         &source[error.span.start as usize..error.span.end as usize],
         "1 +"
     );
+
+    let number = "funcao inicio() { escreva(\"{42}\"); }";
+    assert!(
+        lower(number)
+            .unwrap_err()
+            .iter()
+            .any(|d| d.code == "pors.interpolation-non-string")
+    );
+
+    for literal in [
+        "funcao inicio() { escreva(\"{}\"); }",
+        "funcao inicio() { escreva(\"abri {\"); }",
+    ] {
+        assert!(lower(literal).is_ok(), "{literal}");
+    }
 }
 
 #[test]

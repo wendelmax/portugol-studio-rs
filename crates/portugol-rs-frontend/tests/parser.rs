@@ -1,4 +1,4 @@
-use portugol_hir::{AssignOp, ExprKind, Mutability, StmtKind, Type};
+use portugol_hir::{AssignOp, ExprKind, Mutability, StmtKind, StringPart, Type};
 use portugol_rs_frontend::lower;
 
 const SOURCE: &str =
@@ -1037,4 +1037,62 @@ fn infers_binding_type_from_the_initializer_without_a_colon() {
     let program = lower(source).expect("declarações sem tipo devem compilar");
     assert_eq!(program.bindings[0].ty, Type::String);
     assert_eq!(program.bindings[1].ty, Type::Integer);
+}
+
+#[test]
+fn interpolation_parts_keep_their_own_spans_and_escaped_braces_are_literal() {
+    let source = "funcao inicio() { seja nome = \"Ada\"; escreva(\"Olá, {nome}!\"); }";
+    let program = lower(source).expect("interpolação válida");
+    let StmtKind::Write(values) = &program.body[1].kind else {
+        panic!("esperava Write");
+    };
+    let ExprKind::InterpolatedString { parts } = &values[0].kind else {
+        panic!("esperava cadeia interpolada");
+    };
+    assert_eq!(parts.len(), 3);
+    assert!(matches!(&parts[0], StringPart::Literal(text, _) if text == "Olá, "));
+    let StringPart::Expression(expr, span) = &parts[1] else {
+        panic!("esperava parte de expressão");
+    };
+    assert_eq!(expr.ty, Type::String);
+    assert_eq!(&source[span.start as usize..span.end as usize], "{nome}");
+    assert!(matches!(&parts[2], StringPart::Literal(text, _) if text == "!"));
+
+    let literal = "funcao inicio() { escreva(\"\\{nome}\"); }";
+    let program = lower(literal).expect("chaves escapadas são literais");
+    let StmtKind::Write(values) = &program.body[0].kind else {
+        panic!("esperava Write");
+    };
+    assert!(matches!(&values[0].kind, ExprKind::String(text) if text == "{nome}"));
+
+    let escaped_and_interpolated =
+        "funcao inicio() { seja nome = \"Ada\"; escreva(\"\\{{nome}\"); }";
+    let program = lower(escaped_and_interpolated).expect("escape e interpolação");
+    let StmtKind::Write(values) = &program.body[1].kind else {
+        panic!("esperava Write");
+    };
+    let ExprKind::InterpolatedString { parts } = &values[0].kind else {
+        panic!("esperava cadeia interpolada");
+    };
+    assert!(
+        matches!(&parts[0], StringPart::Literal(text, span) if text == "{" && span.end - span.start == 2),
+        "{parts:?}"
+    );
+}
+
+#[test]
+fn json_braces_in_a_string_literal_are_not_interpolation() {
+    let source = "funcao inicio() { escreva(\"{\\\"ok\\\":true}\"); }";
+    let program = lower(source).expect("JSON literal deve compilar");
+    let StmtKind::Write(values) = &program.body[0].kind else {
+        panic!("esperava Write");
+    };
+    assert!(matches!(&values[0].kind, ExprKind::String(text) if text == "{\"ok\":true}"));
+
+    let source = "funcao inicio() { escreva(\"{invalido}\"); }";
+    let program = lower(source).expect("nome não declarado entre chaves deve ser literal");
+    let StmtKind::Write(values) = &program.body[0].kind else {
+        panic!("esperava Write");
+    };
+    assert!(matches!(&values[0].kind, ExprKind::String(text) if text == "{invalido}"));
 }

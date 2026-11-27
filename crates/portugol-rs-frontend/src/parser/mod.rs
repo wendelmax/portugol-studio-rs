@@ -14,6 +14,7 @@ use constants::*;
 
 pub(super) struct Parser {
     tokens: Vec<Token>,
+    source: String,
     cursor: usize,
     invalid_items: Vec<(usize, usize)>,
     diagnostics: Vec<Diagnostic>,
@@ -57,9 +58,10 @@ struct Symbol {
 }
 
 impl Parser {
-    pub(super) fn new(tokens: Vec<Token>) -> Self {
+    pub(super) fn new(tokens: Vec<Token>, source: String) -> Self {
         Self {
             tokens,
+            source,
             cursor: 0,
             invalid_items: Vec::new(),
             diagnostics: Vec::new(),

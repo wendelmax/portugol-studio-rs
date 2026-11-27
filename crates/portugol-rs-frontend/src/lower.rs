@@ -9,5 +9,5 @@ pub fn lower(source: &str) -> Result<Program, Vec<Diagnostic>> {
     if !diagnostics.is_empty() {
         return Err(diagnostics);
     }
-    Parser::new(tokens).program()
+    Parser::new(tokens, source.to_owned()).program()
 }

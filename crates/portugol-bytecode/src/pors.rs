@@ -209,6 +209,14 @@ impl<'a> Compiler<'a> {
         self.code.len() - 1
     }
 
+    fn intern_string(&mut self, value: &str) -> u32 {
+        if let Some(index) = self.strings.iter().position(|item| item == value) {
+            return index as u32;
+        }
+        self.strings.push(value.to_owned());
+        (self.strings.len() - 1) as u32
+    }
+
     fn patch(&mut self, at: usize, target: u32) {
         match &mut self.code[at] {
             Op::Jump(t)
@@ -749,15 +757,36 @@ impl<'a> Compiler<'a> {
                 self.emit(Op::PushChar(*value), expr.span);
             }
             E::String(value) => {
-                let index = self
-                    .strings
-                    .iter()
-                    .position(|item| item == value)
-                    .unwrap_or_else(|| {
-                        self.strings.push(value.clone());
-                        self.strings.len() - 1
-                    });
-                self.emit(Op::PushStr(index as u32), expr.span);
+                let index = self.intern_string(value);
+                self.emit(Op::PushStr(index), expr.span);
+            }
+            E::InterpolatedString { parts } => {
+                if parts.is_empty() {
+                    let index = self.intern_string("");
+                    self.emit(Op::PushStr(index), expr.span);
+                }
+                let mut started = false;
+                for part in parts {
+                    match part {
+                        hir::StringPart::Literal(text, span) => {
+                            let index = self.intern_string(text);
+                            self.emit(Op::PushStr(index), *span);
+                            if started {
+                                self.emit(Op::Add, *span);
+                            }
+                            started = true;
+                        }
+                        hir::StringPart::Expression(value, span) => {
+                            if !started {
+                                let index = self.intern_string("");
+                                self.emit(Op::PushStr(index), *span);
+                                started = true;
+                            }
+                            self.expr(value)?;
+                            self.emit(Op::Add, *span);
+                        }
+                    }
+                }
             }
             E::Parenthesized(inner) => self.expr(inner)?,
             E::Try { operand } => {

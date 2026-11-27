@@ -335,6 +335,14 @@ pub struct Expr {
     pub span: Span,
 }
 
+/// Uma parte literal ou expressiva de uma cadeia interpolada. O `Span` da
+/// parte cobre o texto literal decodificado ou `{...}`, incluindo as chaves.
+#[derive(Debug, Clone, PartialEq)]
+pub enum StringPart {
+    Literal(String, Span),
+    Expression(Expr, Span),
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum ExprKind {
     Binding(BindingId),
@@ -379,6 +387,9 @@ pub enum ExprKind {
     Real(f64),
     Boolean(bool),
     String(String),
+    InterpolatedString {
+        parts: Vec<StringPart>,
+    },
     Character(char),
     Parenthesized(Box<Expr>),
     Try {

@@ -413,6 +413,10 @@ fn expr_uses_host_module(expr: &Expr, target: &str) -> bool {
         | ExprKind::Parenthesized(value)
         | ExprKind::Try { operand: value }
         | ExprKind::Unary { operand: value, .. } => expr_uses_host_module(value, target),
+        ExprKind::InterpolatedString { parts } => parts.iter().any(|part| match part {
+            portugol_hir::StringPart::Literal(_, _) => false,
+            portugol_hir::StringPart::Expression(value, _) => expr_uses_host_module(value, target),
+        }),
         ExprKind::Binary { left, right, .. } => {
             expr_uses_host_module(left, target) || expr_uses_host_module(right, target)
         }

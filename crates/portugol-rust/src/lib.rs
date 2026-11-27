@@ -257,6 +257,10 @@ fn find_host_call_in_expr(expr: &portugol_hir::Expr) -> Option<(&str, &str, port
         E::Binary { left, right, .. } => {
             find_host_call_in_expr(left).or_else(|| find_host_call_in_expr(right))
         }
+        E::InterpolatedString { parts } => parts.iter().find_map(|part| match part {
+            portugol_hir::StringPart::Literal(_, _) => None,
+            portugol_hir::StringPart::Expression(value, _) => find_host_call_in_expr(value),
+        }),
         E::Binding(_)
         | E::Length { .. }
         | E::VectorPop { .. }
