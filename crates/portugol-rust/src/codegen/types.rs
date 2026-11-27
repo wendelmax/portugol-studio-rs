@@ -74,11 +74,20 @@ fn statement_has_read(kind: &StmtKind) -> bool {
                 || statements_have_read(then_branch)
                 || else_branch.as_deref().is_some_and(statements_have_read)
         }
-        S::While { condition, body }
-        | S::DoWhile { condition, body }
-        | S::For {
-            condition, body, ..
-        } => expression_has_read(condition) || statements_have_read(body),
+        S::While { condition, body } | S::DoWhile { condition, body } => {
+            expression_has_read(condition) || statements_have_read(body)
+        }
+        S::For {
+            initializer,
+            condition,
+            step,
+            body,
+        } => {
+            expression_has_read(condition)
+                || statement_has_read(&initializer.kind)
+                || statement_has_read(&step.kind)
+                || statements_have_read(body)
+        }
         S::Return { value } => value.as_ref().is_some_and(expression_has_read),
         S::IndexAssign { index, value, .. } => {
             expression_has_read(index) || expression_has_read(value)

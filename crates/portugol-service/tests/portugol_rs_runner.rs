@@ -189,6 +189,35 @@ fn generated_rust_requests_a_string_when_read_is_an_expression() {
 }
 
 #[test]
+fn generated_rust_declares_read_helper_for_leia_in_para_header() {
+    let cancel = AtomicBool::new(false);
+    let mut inputs = ["abc", "a"].into_iter();
+    let mut streamed = Vec::new();
+    let result = run_portugol_rs_with_io(
+        "funcao inicio() { para (seja mutavel i: inteiro = Texto.numero_caracteres(leia()); i < 4; i += 1) { escreva(i); } para (seja mutavel j: inteiro = 0; j < 1; j += Texto.numero_caracteres(leia())) { escreva(j); } }",
+        &cancel,
+        |expected| {
+            assert_eq!(expected, "cadeia");
+            Ok(inputs.next().expect("duas entradas").to_owned())
+        },
+        |text| streamed.push(text.to_owned()),
+    )
+    .unwrap();
+    assert!(
+        matches!(
+            result,
+            PortugolRsRunResult::Executed {
+                exit_code: Some(0),
+                ..
+            }
+        ),
+        "{result:?}"
+    );
+    assert_eq!(streamed.concat(), "30");
+    assert_eq!(inputs.len(), 0);
+}
+
+#[test]
 fn parses_string_real_boolean_and_character_inputs() {
     for (ty, value) in [
         ("cadeia", "Olá, Rust"),
