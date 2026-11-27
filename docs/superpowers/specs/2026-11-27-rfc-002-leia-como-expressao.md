@@ -46,6 +46,7 @@ há tipo esperado, não por causa do `seja`.
 1. A leitura sem argumento vira `ExprKind::Read` na HIR, com tipo inferido do
    contexto esperado; sem contexto, `Type::String` (`cadeia`). Não há parâmetro
    de tipo; a conversão implícita segue as regras dos helpers `Tipos.para_*`.
+   Escalares passam por `trim` antes da conversão; `cadeia` permanece bruta.
 2. Declaração tipada, parâmetro, retorno, atribuição e campo fornecem o tipo
    esperado: `seja n: inteiro = leia();` lê e converte para `inteiro`, enquanto
    `seja nome = leia();` infere `cadeia`, como na RFC 001. `caracter` exige
