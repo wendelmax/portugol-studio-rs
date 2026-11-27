@@ -1030,3 +1030,11 @@ fn escreval_appends_a_newline_expression_to_write() {
     assert!(matches!(&values[1].kind, ExprKind::String(text) if text == "\n"));
     assert!(values[1].span.is_empty());
 }
+
+#[test]
+fn infers_binding_type_from_the_initializer_without_a_colon() {
+    let source = "funcao inicio() { seja nome = \"Ada\"; seja idade = 42; }";
+    let program = lower(source).expect("declarações sem tipo devem compilar");
+    assert_eq!(program.bindings[0].ty, Type::String);
+    assert_eq!(program.bindings[1].ty, Type::Integer);
+}

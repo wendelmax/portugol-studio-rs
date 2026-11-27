@@ -296,14 +296,18 @@ impl Parser {
                 name_span,
             );
         }
-        self.expect(Kind::Colon, "Esperado `:` entre nome e tipo")?;
-        let ty = self.type_name()?;
+        let declared_ty = self
+            .eat(&Kind::Colon)
+            .then(|| self.type_name())
+            .transpose()?;
         self.expect(
             Kind::Assign,
             "Toda variável deve receber um valor inicial (`=`)",
         )?;
-        let initializer = self.expression_with_expected(0, Some(ty))?;
-        if initializer.ty != ty {
+        let initializer = self.expression_with_expected(0, declared_ty)?;
+        if let Some(ty) = declared_ty
+            && initializer.ty != ty
+        {
             return self.fail(
                 "pors.type-mismatch",
                 format!(
@@ -313,6 +317,7 @@ impl Parser {
                 syntax_span(initializer.span),
             );
         }
+        let ty = initializer.ty;
         let semi = self.expect(Kind::Semicolon, "Esperado `;` após declaração")?;
         if self.scopes.last().unwrap().contains_key(&name) {
             return self.fail(

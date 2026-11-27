@@ -434,3 +434,19 @@ fn rejects_trailing_expression_in_a_function_without_return_type() {
             .any(|d| d.code == "pors.implicit-return-without-type")
     );
 }
+
+#[test]
+fn still_requires_an_initializer_and_an_explicit_type_for_an_empty_vector() {
+    assert!(
+        lower("funcao inicio() { seja x: inteiro; }")
+            .unwrap_err()
+            .iter()
+            .any(|d| d.code == "pors.unexpected-token")
+    );
+    assert!(
+        lower("funcao inicio() { seja x = []; }")
+            .unwrap_err()
+            .iter()
+            .any(|d| d.code == "pors.empty-vector-type-inference")
+    );
+}
