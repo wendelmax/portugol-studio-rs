@@ -31,7 +31,7 @@ A proposta recebida pede `??`, `?.` e `??=`, tipos compactos como `cadeia?`, o v
 
 ### Atribuição por coalescência `??=`
 
-1. Sintaxe: `alvo ??= expressao;`, onde `alvo` é uma variável **mutável** de tipo `Opcao<T>` e `expressao` tem tipo `T`.
+1. Sintaxe: `alvo ??= expressao;`, onde `alvo` é o nome de uma variável **mutável** de tipo `Opcao<T>` e `expressao` tem tipo `T`. Campos de registro e elementos de vetor não são alvos nesta fatia, embora sejam alvos de `=`; nesses casos, `pors.coalesce-assign-invalid-type` com span no alvo.
 2. Se `alvo` é `Opcao::Nenhum`, recebe `Opcao::Algum(expressao)`; se já é `Opcao::Algum(_)`, nada acontece e `expressao` não é avaliada.
 3. `??=` é comando nesta RFC: não produz valor e não pode ser encadeado. A forma de expressão fica adiada.
 4. Alvo imutável, inexistente ou de tipo diferente de `Opcao<T>` gera `pors.coalesce-assign-invalid-type`, com span no alvo. Expressão de tipo diferente de `T` gera `pors.coalesce-type-mismatch`, com span na expressão.
@@ -48,10 +48,11 @@ A proposta recebida pede `??`, `?.` e `??=`, tipos compactos como `cadeia?`, o v
 
 ### Conversão implícita para `Opcao<T>`
 
-1. Quando o tipo esperado é conhecido e é exatamente `Opcao<T>`, um valor do tipo `T` é aceito e embrulhado em `Opcao::Algum`. Exemplos: `seja nome: Opcao<cadeia> = "Maria";`, argumento de parâmetro `Opcao<inteiro>` chamado com `18`, e retorno `Opcao<T>` com `Algum(valor)` inferido.
-2. A conversão é de um único nível. Não converte `T` em `Opcao<Opcao<T>>`, nem `Opcao<T>` em `Opcao<Opcao<T>>`, e nunca altera o tipo de uma expressão sem tipo esperado.
-3. `Opcao::Algum(x)` e `Opcao::Nenhum` continuam exigindo contexto quando o tipo não pode ser inferido; a conversão implícita não remove essa exigência.
-4. A conversão não se aplica a `Resultado`, nem a `vazio`, mantendo o ADR 0018.
+1. Quando o tipo esperado é conhecido e é exatamente `Opcao<T>`, um valor do tipo `T` é aceito e embrulhado em `Opcao::Algum`. A conversão se aplica somente a inicializador de `seja`, argumento de chamada e valor de retorno: `seja nome: Opcao<cadeia> = "Maria";`, parâmetro `Opcao<inteiro>` chamado com `18`, `retorne 42;` em função `-> Opcao<inteiro>`.
+2. Não se aplica a campos de registro, payload de enum, elementos de vetor, alvo de atribuição, operando de `??`, base de `?.` nem ramo de `tente`. Assim, `seja x: Opcao<inteiro> = 1 ?? 2;` continua inválido pelo operando esquerdo, e a atribuição `x = 1;` continua exigindo `Opcao::Algum(1)`.
+3. A conversão é de um único nível. Não converte `T` em `Opcao<Opcao<T>>`, nem `Opcao<T>` em `Opcao<Opcao<T>>`, e nunca altera o tipo de uma expressão sem tipo esperado.
+4. `Opcao::Algum(x)` e `Opcao::Nenhum` continuam exigindo contexto quando o tipo não pode ser inferido; a conversão implícita não remove essa exigência. Em particular, o lado direito de `??` **não** fornece contexto para inferir `Opcao::Nenhum`: `seja x = Opcao::Nenhum ?? 0;` gera `pors.option-type-inference` no `Opcao::Nenhum`. A forma válida é `seja x: Opcao<inteiro> = Opcao::Nenhum; escreval(x ?? 0);`.
+5. A conversão não se aplica a `Resultado`, nem a `vazio`, mantendo o ADR 0018.
 
 ### Precedência
 
@@ -138,6 +139,15 @@ funcao inicio() {
 | `funcao inicio() { seja p: Pessoa = Pessoa { nome: "Ana", telefone: Opcao::Nenhum }; escreval(p?.nome); }` | `pors.safe-access-invalid-type` em `[94, 96)` | `p` não é `Opcao<registro>` |
 | `funcao inicio() { seja p: Opcao<Pessoa> = Opcao::Nenhum; escreval(p?.nome()); }` | `pors.safe-call-unsupported` em `[67, 69)` | chamada segura não existe nesta fatia |
 | `funcao inicio() { seja r: Resultado<inteiro, cadeia> = Resultado::Erro("x"); escreval(r ?? 0); }` | `pors.coalesce-invalid-type` no `??` | ausência e erro são domínios distintos |
+
+## Decisões de escopo (chamadas do autor)
+
+- A conversão implícita `T -> Opcao<T>` fica restrita a inicializador de `seja`, argumento de chamada e retorno; não alcança campos, vetores, atribuição, operandos de `??`, base de `?.` nem ramos de `tente`.
+- O lado direito de `??` não infere `T` para `Opcao::Nenhum`; a anotação continua obrigatória.
+- `??=` aceita somente nome de variável mutável; campos e índices ficam adiados.
+- `?.` cobre apenas acesso a campo de registro; chamada segura fica adiada porque o PORS não tem chamada de método em instância.
+- `?.` achata exatamente um nível por operador, inclusive em encadeamento.
+- Nenhum operador novo entra em interpolação de cadeia além do que a RFC 004 já permite.
 
 ## Consequências
 
