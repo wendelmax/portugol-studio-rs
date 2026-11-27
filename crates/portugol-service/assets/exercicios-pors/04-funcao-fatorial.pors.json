@@ -3,7 +3,7 @@
   "id": "pors-04-funcao-fatorial",
   "title": "Fatorial com função",
   "statement": "Leia um inteiro N (entre 0 e 10) e escreva o valor de N! usando uma função auxiliar.",
-  "starter_code": "funcao fatorial(n: inteiro) -> inteiro {\n    retorne 1;\n}\n\nfuncao inicio() {\n    seja mutavel n: inteiro = 0;\n    leia(n);\n    escreva(fatorial(n));\n}\n",
+  "starter_code": "funcao fatorial(n: inteiro) -> inteiro {\n    retorne 1;\n}\n\nfuncao inicio() {\n    seja mutavel n: inteiro = leia();\n    escreva(fatorial(n));\n}\n",
   "hints": [
     "Para n <= 1 retorne 1; caso contrário retorne n * fatorial(n - 1)."
   ],

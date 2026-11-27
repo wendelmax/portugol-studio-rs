@@ -3,7 +3,7 @@
   "id": "pors-02-maior-de-dois",
   "title": "Maior de dois inteiros",
   "statement": "Leia dois números inteiros e escreva apenas o maior entre eles.",
-  "starter_code": "funcao inicio() {\n    seja mutavel a: inteiro = 0;\n    seja mutavel b: inteiro = 0;\n    leia(a);\n    leia(b);\n    escreva(a);\n}\n",
+  "starter_code": "funcao inicio() {\n    seja mutavel a: inteiro = leia();\n    seja mutavel b: inteiro = leia();\n    escreva(a);\n}\n",
   "hints": [
     "Use se (a >= b) { escreva(a); } senao { escreva(b); }."
   ],

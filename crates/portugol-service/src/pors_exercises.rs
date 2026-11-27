@@ -351,59 +351,59 @@ mod tests {
         let solutions = [
             (
                 "pors-01-dobro",
-                "funcao inicio() { seja mutavel n: inteiro = 0; leia(n); escreva(n * 2); }",
+                "funcao inicio() { seja mutavel n: inteiro = leia(); escreva(n * 2); }",
             ),
             (
                 "pors-02-maior-de-dois",
-                "funcao inicio() { seja mutavel a: inteiro = 0; seja mutavel b: inteiro = 0; leia(a); leia(b); se (a >= b) { escreva(a); } senao { escreva(b); } }",
+                "funcao inicio() { seja mutavel a: inteiro = leia(); seja mutavel b: inteiro = leia(); se (a >= b) { escreva(a); } senao { escreva(b); } }",
             ),
             (
                 "pors-03-soma-ate-n",
-                "funcao inicio() { seja mutavel n: inteiro = 0; leia(n); seja mutavel s: inteiro = 0; para (seja mutavel i: inteiro = 1; i <= n; i += 1) { s += i; } escreva(s); }",
+                "funcao inicio() { seja mutavel n: inteiro = leia(); seja mutavel s: inteiro = 0; para (seja mutavel i: inteiro = 1; i <= n; i += 1) { s += i; } escreva(s); }",
             ),
             (
                 "pors-04-funcao-fatorial",
-                "funcao fatorial(n: inteiro) -> inteiro { se (n <= 1) { retorne 1; } senao { retorne n * fatorial(n - 1); } } funcao inicio() { seja mutavel n: inteiro = 0; leia(n); escreva(fatorial(n)); }",
+                "funcao fatorial(n: inteiro) -> inteiro { se (n <= 1) { retorne 1; } senao { retorne n * fatorial(n - 1); } } funcao inicio() { seja mutavel n: inteiro = leia(); escreva(fatorial(n)); }",
             ),
             (
                 "pors-05-divisao-segura",
-                "funcao dividir(a: inteiro, b: inteiro) -> Resultado<inteiro, cadeia> { se (b == 0) { retorne Resultado::Erro(\"erro\"); } retorne Resultado::Ok(a / b); } funcao inicio() { seja mutavel a: inteiro = 0; seja mutavel b: inteiro = 0; leia(a); leia(b); escolha dividir(a, b) { caso Resultado::Ok(q) => { escreva(q); } caso Resultado::Erro(e) => { escreva(e); } } }",
+                "funcao dividir(a: inteiro, b: inteiro) -> Resultado<inteiro, cadeia> { se (b == 0) { retorne Resultado::Erro(\"erro\"); } retorne Resultado::Ok(a / b); } funcao inicio() { seja mutavel a: inteiro = leia(); seja mutavel b: inteiro = leia(); escolha dividir(a, b) { caso Resultado::Ok(q) => { escreva(q); } caso Resultado::Erro(e) => { escreva(e); } } }",
             ),
             (
                 "pors-06-filtrar-positivos",
-                "funcao inicio() { seja mutavel n: inteiro = 0; leia(n); seja mutavel positivos: vetor<inteiro> = []; para (seja mutavel i: inteiro = 0; i < n; i += 1) { seja mutavel v: inteiro = 0; leia(v); se (v > 0) { adicionar(positivos, v); } } escolha obter(positivos, 0) { caso Opcao::Algum(p) => { escreva(tamanho(positivos), \" \", p); } caso Opcao::Nenhum => { escreva(tamanho(positivos), \" 0\"); } } }",
+                "funcao inicio() { seja mutavel n: inteiro = leia(); seja mutavel positivos: vetor<inteiro> = []; para (seja mutavel i: inteiro = 0; i < n; i += 1) { seja mutavel v: inteiro = leia(); se (v > 0) { adicionar(positivos, v); } } escolha obter(positivos, 0) { caso Opcao::Algum(p) => { escreva(tamanho(positivos), \" \", p); } caso Opcao::Nenhum => { escreva(tamanho(positivos), \" 0\"); } } }",
             ),
             (
                 "pors-07-normalizar-csv",
-                "funcao inicio() { seja mutavel linha: cadeia = \"\"; leia(linha); seja partes: vetor<cadeia> = Texto.dividir(linha, \",\"); escreva(tamanho(partes), \"|\", Texto.caixa_alta(Texto.aparar(partes[0]))); }",
+                "funcao inicio() { seja mutavel linha = leia(); seja partes: vetor<cadeia> = Texto.dividir(linha, \",\"); escreva(tamanho(partes), \"|\", Texto.caixa_alta(Texto.aparar(partes[0]))); }",
             ),
             (
                 "pors-08-dias-do-mes",
-                "funcao calcular_dias(ano_txt: cadeia, mes_txt: cadeia) -> Resultado<inteiro, cadeia> { seja ano: inteiro = Tipos.para_inteiro(ano_txt)?; seja mes: inteiro = Tipos.para_inteiro(mes_txt)?; retorne Calendario.dias_no_mes(ano, mes); } funcao inicio() { seja mutavel ano_txt: cadeia = \"\"; seja mutavel mes_txt: cadeia = \"\"; leia(ano_txt); leia(mes_txt); escolha calcular_dias(ano_txt, mes_txt) { caso Resultado::Ok(d) => { escreva(d); } caso Resultado::Erro(_) => { escreva(\"invalido\"); } } }",
+                "funcao calcular_dias(ano_txt: cadeia, mes_txt: cadeia) -> Resultado<inteiro, cadeia> { seja ano: inteiro = Tipos.para_inteiro(ano_txt)?; seja mes: inteiro = Tipos.para_inteiro(mes_txt)?; retorne Calendario.dias_no_mes(ano, mes); } funcao inicio() { seja mutavel ano_txt = leia(); seja mutavel mes_txt = leia(); escolha calcular_dias(ano_txt, mes_txt) { caso Resultado::Ok(d) => { escreva(d); } caso Resultado::Erro(_) => { escreva(\"invalido\"); } } }",
             ),
             (
                 "pors-09-resumo-json",
-                "funcao processar(texto: cadeia) -> Resultado<cadeia, cadeia> { seja nome: cadeia = Json.obter_cadeia(texto, \"nome\")?; seja idade: inteiro = Json.obter_inteiro(texto, \"idade\")?; retorne Resultado::Ok(nome + \":\" + Tipos.inteiro_para_cadeia(idade + 1)); } funcao inicio() { seja mutavel linha: cadeia = \"\"; leia(linha); escolha processar(linha) { caso Resultado::Ok(s) => { escreva(s); } caso Resultado::Erro(_) => { escreva(\"invalido\"); } } }",
+                "funcao processar(texto: cadeia) -> Resultado<cadeia, cadeia> { seja nome: cadeia = Json.obter_cadeia(texto, \"nome\")?; seja idade: inteiro = Json.obter_inteiro(texto, \"idade\")?; retorne Resultado::Ok(nome + \":\" + Tipos.inteiro_para_cadeia(idade + 1)); } funcao inicio() { seja mutavel linha = leia(); escolha processar(linha) { caso Resultado::Ok(s) => { escreva(s); } caso Resultado::Erro(_) => { escreva(\"invalido\"); } } }",
             ),
             (
                 "pors-10-somar-lista-json",
-                "funcao somar_json(texto: cadeia) -> Resultado<inteiro, cadeia> { seja lista: vetor<inteiro> = Json.obter_lista_inteiro(texto, \"valores\")?; seja mutavel total: inteiro = 0; para (seja mutavel i: inteiro = 0; i < tamanho(lista); i += 1) { total += lista[i]; } retorne Resultado::Ok(total); } funcao inicio() { seja mutavel linha: cadeia = \"\"; leia(linha); escolha somar_json(linha) { caso Resultado::Ok(s) => { escreva(s); } caso Resultado::Erro(_) => { escreva(\"invalido\"); } } }",
+                "funcao somar_json(texto: cadeia) -> Resultado<inteiro, cadeia> { seja lista: vetor<inteiro> = Json.obter_lista_inteiro(texto, \"valores\")?; seja mutavel total: inteiro = 0; para (seja mutavel i: inteiro = 0; i < tamanho(lista); i += 1) { total += lista[i]; } retorne Resultado::Ok(total); } funcao inicio() { seja mutavel linha = leia(); escolha somar_json(linha) { caso Resultado::Ok(s) => { escreva(s); } caso Resultado::Erro(_) => { escreva(\"invalido\"); } } }",
             ),
             (
                 "pors-11-par-ou-impar",
-                "funcao inicio() { seja mutavel numero: inteiro = 0; leia(numero); escreva(numero % 2 == 0); }",
+                "funcao inicio() { seja mutavel numero: inteiro = leia(); escreva(numero % 2 == 0); }",
             ),
             (
                 "pors-12-saudacao-cadeia",
-                "funcao inicio() { seja mutavel nome: cadeia = \"\"; leia(nome); escreva(\"Ola, \", nome); }",
+                "funcao inicio() { seja mutavel nome = leia(); escreva(\"Ola, \", nome); }",
             ),
             (
                 "pors-13-registro-ponto",
-                "registro Retangulo { largura: inteiro, altura: inteiro, } funcao area(r: Retangulo) -> inteiro { retorne r.largura * r.altura; } funcao inicio() { seja mutavel largura: inteiro = 0; seja mutavel altura: inteiro = 0; leia(largura); leia(altura); seja r: Retangulo = Retangulo { largura: largura, altura: altura }; escreva(area(r)); }",
+                "registro Retangulo { largura: inteiro, altura: inteiro, } funcao area(r: Retangulo) -> inteiro { retorne r.largura * r.altura; } funcao inicio() { seja mutavel largura: inteiro = leia(); seja mutavel altura: inteiro = leia(); seja r: Retangulo = Retangulo { largura: largura, altura: altura }; escreva(area(r)); }",
             ),
             (
                 "pors-14-enum-semaforo",
-                "enum Sinal { Verde, Amarelo, Vermelho, } funcao classificar(codigo: inteiro) -> Sinal { se (codigo == 1) { retorne Sinal::Verde; } senao se (codigo == 2) { retorne Sinal::Amarelo; } retorne Sinal::Vermelho; } funcao inicio() { seja mutavel codigo: inteiro = 0; leia(codigo); escolha classificar(codigo) { caso Sinal::Verde => { escreva(\"siga\"); } caso Sinal::Amarelo => { escreva(\"atencao\"); } caso Sinal::Vermelho => { escreva(\"pare\"); } } }",
+                "enum Sinal { Verde, Amarelo, Vermelho, } funcao classificar(codigo: inteiro) -> Sinal { se (codigo == 1) { retorne Sinal::Verde; } senao se (codigo == 2) { retorne Sinal::Amarelo; } retorne Sinal::Vermelho; } funcao inicio() { seja mutavel codigo: inteiro = leia(); escolha classificar(codigo) { caso Sinal::Verde => { escreva(\"siga\"); } caso Sinal::Amarelo => { escreva(\"atencao\"); } caso Sinal::Vermelho => { escreva(\"pare\"); } } }",
             ),
         ];
 
@@ -420,7 +420,7 @@ mod tests {
 
         let wrong = check_pors_exercise(
             "pors-01-dobro",
-            "funcao inicio() { seja mutavel n: inteiro = 0; leia(n); escreva(n); }",
+            "funcao inicio() { seja mutavel n: inteiro = leia(); escreva(n); }",
         )
         .unwrap();
         assert_eq!(wrong.status, PorsExerciseStatus::Failed);

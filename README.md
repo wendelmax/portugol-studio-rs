@@ -122,12 +122,15 @@ funcao dividir(a: inteiro, b: inteiro) -> Resultado<inteiro, cadeia> {
 }
 
 funcao inicio() {
-    escolha dividir(20, 4) {
+    seja nome = leia();
+    seja a: inteiro = leia();
+    seja b: inteiro = leia();
+    escolha dividir(a, b) {
         caso Resultado::Ok(v) => {
-            escreva("resultado = ", v);
+            escreval("{nome}: resultado = ", v);
         }
         caso Resultado::Erro(e) => {
-            escreva("erro: ", e);
+            escreval("{nome}: erro: {e}");
         }
     }
 }

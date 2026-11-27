@@ -3,7 +3,7 @@
   "id": "pors-05-divisao-segura",
   "title": "Divisão segura com Resultado",
   "statement": "Implemente uma função dividir(a, b) que retorne Resultado<inteiro, cadeia>. Leia dois inteiros e escreva o quociente ou \"erro\" quando o divisor for zero.",
-  "starter_code": "funcao dividir(a: inteiro, b: inteiro) -> Resultado<inteiro, cadeia> {\n    se (b == 0) {\n        retorne Resultado::Erro(\"erro\");\n    }\n    retorne Resultado::Ok(0);\n}\n\nfuncao inicio() {\n    seja mutavel a: inteiro = 0;\n    seja mutavel b: inteiro = 0;\n    leia(a);\n    leia(b);\n    escolha dividir(a, b) {\n        caso Resultado::Ok(q) => { escreva(q); }\n        caso Resultado::Erro(e) => { escreva(e); }\n    }\n}\n",
+  "starter_code": "funcao dividir(a: inteiro, b: inteiro) -> Resultado<inteiro, cadeia> {\n    se (b == 0) {\n        retorne Resultado::Erro(\"erro\");\n    }\n    retorne Resultado::Ok(0);\n}\n\nfuncao inicio() {\n    seja mutavel a: inteiro = leia();\n    seja mutavel b: inteiro = leia();\n    escolha dividir(a, b) {\n        caso Resultado::Ok(q) => { escreva(q); }\n        caso Resultado::Erro(e) => { escreva(e); }\n    }\n}\n",
   "hints": [
     "Retorne Resultado::Ok(a / b) quando b != 0 e Resultado::Erro(\"erro\") quando b == 0."
   ],
