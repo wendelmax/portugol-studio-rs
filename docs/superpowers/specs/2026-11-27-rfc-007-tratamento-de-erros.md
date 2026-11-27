@@ -176,7 +176,7 @@ funcao inicio() {
 
 ## Consequências
 
-- As RFCs 001–006 não mudam. `?` sobre `Resultado` ganha uma segunda forma de satisfazer a exigência de retorno, apenas dentro de `tente`.
+- As RFCs 001–004 e 006 não mudam. A RFC 005 recebe somente a exceção estreita dos ramos de valor de `tente` em expressão, registrada como chamada do autor e repetida no design doc aprovado. `?` sobre `Resultado` ganha uma segunda forma de satisfazer a exigência de retorno, apenas dentro de `tente`.
 - `lance` é açúcar de `retorne Resultado::Erro(...)` fora de `tente`, e um desvio ao tratador dentro dele. Não há valor, opcode ou tipo novo.
 - A identidade híbrida fica explícita: Java/C# fornecem a forma `tente/capture/finalmente`/`lance`; Rust fornece `Resultado`, `?`, `escolha` e erro tipado. Nenhuma das duas formas esconde o tipo do erro.
 - Os casos ausência (`Opcao`) e erro (`Resultado`) continuam separados. A RFC 008 cobre a primeira família.
