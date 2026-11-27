@@ -721,32 +721,42 @@ fn debug_set_breakpoints(runs: State<'_, Runs>, id: u32, source: String, lines: 
 }
 
 const MAX_STANDALONE_FILE_BYTES: u64 = 16 * 1024 * 1024;
-const ALLOWED_READ_EXTENSIONS: &[&str] = &["pors", "rs", "json"];
-const ALLOWED_WRITE_EXTENSIONS: &[&str] = &["pors", "rs"];
+/// O que pode ser lido fora de um workspace: programas, exercícios e JSON de
+/// exercício importado com outro nome.
+fn standalone_readable(path: &std::path::Path) -> bool {
+    use portugol_formatos::Kind;
+    portugol_formatos::classify_path(path)
+        .is_some_and(|m| m.kind().is_program() || m.kind() == Kind::Lesson)
+        || path
+            .extension()
+            .is_some_and(|extension| extension.eq_ignore_ascii_case("json"))
+}
+
+/// O que pode ser gravado fora de um workspace: só programas.
+fn standalone_writable(path: &std::path::Path) -> bool {
+    portugol_formatos::classify_path(path).is_some_and(|m| m.kind().is_program())
+}
 
 fn validate_standalone_file_path<'a>(
     raw_path: &'a str,
-    allowed_extensions: &[&str],
+    allowed: fn(&std::path::Path) -> bool,
     action: &str,
 ) -> Result<&'a std::path::Path, String> {
     if raw_path.trim().is_empty() || raw_path.contains('\0') {
         return Err(format!("Caminho inválido para {action}."));
     }
     let path = std::path::Path::new(raw_path);
-    let extension = path
-        .extension()
-        .and_then(std::ffi::OsStr::to_str)
-        .unwrap_or_default();
-    if extension.eq_ignore_ascii_case("por") || extension.eq_ignore_ascii_case("pex") {
-        return Err(
-            "Arquivos legados .por e .pex não são suportados no Portugol Studio RS. Use o Portugol Studio original para abri-los ou utilize arquivos .pors, .rs e .pors.json."
-                .into(),
-        );
+    if portugol_formatos::is_retired_path(path) {
+        return Err(format!(
+            "Arquivos legados .por e .pex não são suportados no Portugol Studio RS. Use o Portugol Studio original para abri-los ou utilize arquivos {}.",
+            portugol_formatos::describe(&[
+                portugol_formatos::Kind::Source,
+                portugol_formatos::Kind::Rust,
+                portugol_formatos::Kind::Lesson
+            ])
+        ));
     }
-    if !allowed_extensions
-        .iter()
-        .any(|allowed| extension.eq_ignore_ascii_case(allowed))
-    {
+    if !allowed(path) {
         return Err(format!(
             "Tipo de arquivo não suportado para {action}: {raw_path}"
         ));
@@ -758,7 +768,7 @@ fn validate_standalone_file_path<'a>(
 /// UTF-8 (com ou sem BOM) e caímos para Latin-1 quando necessário.
 #[tauri::command]
 fn read_file(path: String) -> Result<String, String> {
-    let target = validate_standalone_file_path(&path, ALLOWED_READ_EXTENSIONS, "leitura")?;
+    let target = validate_standalone_file_path(&path, standalone_readable, "leitura")?;
     let metadata =
         std::fs::metadata(target).map_err(|e| format!("não foi possível ler {path}: {e}"))?;
     if !metadata.is_file() {
@@ -788,7 +798,7 @@ fn decode_text(bytes: Vec<u8>) -> String {
 
 #[tauri::command]
 fn write_file(path: String, text: String) -> Result<(), String> {
-    let target = validate_standalone_file_path(&path, ALLOWED_WRITE_EXTENSIONS, "gravação")?;
+    let target = validate_standalone_file_path(&path, standalone_writable, "gravação")?;
     if (text.len() as u64) > MAX_STANDALONE_FILE_BYTES {
         return Err(format!(
             "não foi possível gravar {path}: o conteúdo excede o limite de {} MiB",

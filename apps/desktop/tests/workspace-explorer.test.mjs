@@ -58,23 +58,23 @@ test("classifies Portugol-RS, Rust, and PORS exercise files case-insensitively a
 });
 
 test("validates Rust workspace source filenames", () => {
-  assert.equal(workspaceSourceFileName("main", "rs"), "main.rs");
-  assert.equal(workspaceSourceFileName("main.RS", "rs"), "main.RS");
-  assert.throws(() => workspaceSourceFileName("main.pors", "rs"), /extensão/);
+  assert.equal(workspaceSourceFileName("main", "rust"), "main.rs");
+  assert.equal(workspaceSourceFileName("main.RS", "rust"), "main.RS");
+  assert.throws(() => workspaceSourceFileName("main.pors", "rust"), /extensão/);
 });
 
 test("builds new Portugol-RS and Rust filenames from the selected language", () => {
-  assert.equal(workspaceSourceFileName("ola", "pors"), "ola.pors");
-  assert.equal(workspaceSourceFileName("ponte.pors", "pors"), "ponte.pors");
-  assert.equal(workspaceSourceFileName("main", "rs"), "main.rs");
-  assert.equal(workspaceSourceFileName("moderno.PORS", "pors"), "moderno.PORS");
+  assert.equal(workspaceSourceFileName("ola", "source"), "ola.pors");
+  assert.equal(workspaceSourceFileName("ponte.pors", "source"), "ponte.pors");
+  assert.equal(workspaceSourceFileName("main", "rust"), "main.rs");
+  assert.equal(workspaceSourceFileName("moderno.PORS", "source"), "moderno.PORS");
 });
 
 test("rejects empty names, path separators, and extensions that conflict with the language", () => {
-  assert.throws(() => workspaceSourceFileName("", "pors"), /nome/i);
-  assert.throws(() => workspaceSourceFileName("../fora", "pors"), /nome/i);
-  assert.throws(() => workspaceSourceFileName("subpasta\\programa", "pors"), /nome/i);
-  assert.throws(() => workspaceSourceFileName("programa.por", "pors"), /extensão/i);
+  assert.throws(() => workspaceSourceFileName("", "source"), /nome/i);
+  assert.throws(() => workspaceSourceFileName("../fora", "source"), /nome/i);
+  assert.throws(() => workspaceSourceFileName("subpasta\\programa", "source"), /nome/i);
+  assert.throws(() => workspaceSourceFileName("programa.por", "source"), /extensão/i);
 });
 
 test("renames a workspace file while preserving its original extension", () => {
@@ -131,8 +131,8 @@ test("workspace create dialog exposes the .pors (default) and .rs choices and an
   assert.match(html, /id="workspace-new-file"/);
   assert.match(html, /id="workspace-create-dialog"[^>]*aria-labelledby="workspace-create-title"/);
   assert.match(html, /id="workspace-create-name"[^>]*aria-describedby="workspace-create-error"/);
-  assert.match(html, /<option value="pors" selected>[^<]*\.pors\)<\/option>/);
-  assert.match(html, /<option value="rs">[^<]*\.rs\)<\/option>/);
+  assert.match(html, /<option value="source" selected>[^<]*\.pors\)<\/option>/);
+  assert.match(html, /<option value="rust">[^<]*\.rs\)<\/option>/);
   assert.doesNotMatch(html, /<option value="por">/);
   assert.match(html, /id="workspace-create-error"[^>]*role="status"/);
   assert.match(html, /id="workspace-create-submit"/);

@@ -2684,6 +2684,7 @@ name = "portugol-cli"
 version = "0.7.0"
 dependencies = [
  "portugol-bytecode",
+ "portugol-formatos",
  "portugol-hir",
  "portugol-rs-frontend",
  "portugol-rust",
@@ -2696,6 +2697,7 @@ name = "portugol-desktop"
 version = "0.7.0"
 dependencies = [
  "cap-std",
+ "portugol-formatos",
  "portugol-service",
  "portugol-tela",
  "rodio",
@@ -2708,6 +2710,10 @@ dependencies = [
  "tauri-plugin-dialog",
  "ureq",
 ]
+
+[[package]]
+name = "portugol-formatos"
+version = "0.7.0"
 
 [[package]]
 name = "portugol-hir"
@@ -2734,6 +2740,7 @@ version = "0.7.0"
 dependencies = [
  "libc",
  "portugol-bytecode",
+ "portugol-formatos",
  "portugol-hir",
  "portugol-rs-frontend",
  "portugol-rust",
@@ -2748,6 +2755,7 @@ dependencies = [
 name = "portugol-tela"
 version = "0.7.0"
 dependencies = [
+ "portugol-formatos",
  "portugol-hir",
 ]
 

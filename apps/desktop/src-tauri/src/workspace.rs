@@ -962,6 +962,7 @@ mod tests {
         );
     }
 }
+use portugol_formatos::Kind;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::ffi::OsString;
 use std::fs;
@@ -1484,10 +1485,10 @@ fn open_selected_file_with_hook(
                     || is_exercise(relative_path)
                     || supported_markup(relative_path))
             {
-                return Err(
-                    "O explorador só exporta arquivos .pors, .rs, .pors.json, .design e .ferproj."
-                        .into(),
-                );
+                return Err(format!(
+                    "O explorador só exporta arquivos {}.",
+                    all_extensions()
+                ));
             }
             after_metadata(relative_path)?;
             let file = current
@@ -1738,42 +1739,34 @@ fn same_file_identity(_left: &fs::File, _right: &fs::File) -> bool {
     false
 }
 
+// O que é cada arquivo vem da tabela única de formatos (ADR 0023, Emenda 2).
+
 fn is_legacy_extension(path: &Path) -> bool {
-    path.extension()
-        .and_then(|extension| extension.to_str())
-        .is_some_and(|extension| {
-            extension.eq_ignore_ascii_case("por") || extension.eq_ignore_ascii_case("pex")
-        })
+    portugol_formatos::is_retired_path(path)
 }
 
-fn source_extension_label(path: &Path) -> Option<&'static str> {
-    if is_exercise(path) {
-        return Some("pors.json");
-    }
-    let ext = path.extension().and_then(|extension| extension.to_str())?;
-    ["pors", "rs", "design", "ferproj"]
-        .into_iter()
-        .find(|label| ext.eq_ignore_ascii_case(label))
+fn file_kind(path: &Path) -> Option<Kind> {
+    portugol_formatos::classify_path(path).map(|m| m.kind())
 }
 
+/// Tudo o que o explorador lista, abre, renomeia, exporta e exclui.
 fn supported_source(path: &Path) -> bool {
-    supported_program(path) || is_exercise(path) || supported_markup(path)
+    file_kind(path).is_some()
 }
 
-/// Marcação de projetos desktop PORS (ADR 0018): o desenho de uma tela
-/// (`.design`) e o manifesto (`.ferproj`).
+/// Marcação de projetos desktop (ADR 0018): o desenho de uma tela e o
+/// manifesto.
 fn supported_markup(path: &Path) -> bool {
-    path.extension()
-        .and_then(|extension| extension.to_str())
-        .is_some_and(|extension| {
-            extension.eq_ignore_ascii_case("design") || extension.eq_ignore_ascii_case("ferproj")
-        })
+    file_kind(path).is_some_and(Kind::is_markup)
 }
 
 fn supported_program(path: &Path) -> bool {
-    path.extension()
-        .and_then(|extension| extension.to_str())
-        .is_some_and(|extension| matches!(extension.to_ascii_lowercase().as_str(), "pors" | "rs"))
+    file_kind(path).is_some_and(Kind::is_program)
+}
+
+/// Extensões de tudo o que o explorador aceita, para mensagens.
+fn all_extensions() -> String {
+    portugol_formatos::describe(&portugol_formatos::all_kinds())
 }
 
 fn relative_path(root: &Path, path: &Path) -> Result<String, String> {
@@ -1890,9 +1883,10 @@ fn checked_file(root: &Path, relative: &Path, allow_exercise: bool) -> Result<Pa
                     .into(),
             );
         }
-        return Err(
-            "O explorador só abre arquivos .pors, .rs, .pors.json, .design e .ferproj.".into(),
-        );
+        return Err(format!(
+            "O explorador só abre arquivos {}.",
+            all_extensions()
+        ));
     }
     let canonical = fs::canonicalize(&candidate)
         .map_err(|_| "O arquivo não está mais disponível.".to_string())?;
@@ -1920,8 +1914,11 @@ pub(super) fn cargo_project_and_source(
     let root = fs::canonicalize(session.root(workspace_id)?)
         .map_err(|_| "A pasta aberta não está mais disponível.".to_string())?;
     let source = checked_file(&root, Path::new(relative_source), false)?;
-    if source.extension().and_then(|extension| extension.to_str()) != Some("rs") {
-        return Err("A execução Cargo exige um arquivo .rs do workspace.".into());
+    if file_kind(&source) != Some(Kind::Rust) {
+        return Err(format!(
+            "A execução Cargo exige um arquivo {} do workspace.",
+            portugol_formatos::describe(&[Kind::Rust])
+        ));
     }
     let mut directory = source.parent();
     while let Some(candidate) = directory {
@@ -1951,9 +1948,7 @@ pub(super) fn cargo_project_and_source(
 }
 
 fn is_exercise(path: &Path) -> bool {
-    path.file_name()
-        .and_then(|name| name.to_str())
-        .is_some_and(|name| name.to_ascii_lowercase().ends_with(".pors.json"))
+    file_kind(path) == Some(Kind::Lesson)
 }
 
 #[cfg(test)]
@@ -1966,10 +1961,10 @@ fn read_relative_file(root: &Path, relative: &Path) -> Result<String, String> {
 
 fn write_relative_file(root: &Path, relative: &Path, source: &str) -> Result<(), String> {
     if !supported_program(relative) && !supported_markup(relative) {
-        return Err(
-            "Apenas arquivos .pors, .rs, .design e .ferproj podem ser salvos pelo explorador."
-                .into(),
-        );
+        return Err(format!(
+            "Apenas arquivos {} podem ser salvos pelo explorador.",
+            portugol_formatos::describe(&[Kind::Source, Kind::Rust, Kind::Design, Kind::Manifest])
+        ));
     }
     let path = checked_file(root, relative, false)?;
     fs::write(path, source).map_err(|error| format!("Não foi possível salvar o arquivo: {error}"))
@@ -2198,19 +2193,22 @@ fn rename_relative_file(root: &Path, relative: &Path, new_name: &str) -> Result<
         return Err("Informe um nome de arquivo sem pastas.".into());
     }
     if new_name.ends_with('.') || !supported_source(name) {
-        return Err(
-            "O arquivo deve manter uma extensão .pors, .rs, .pors.json, .design ou .ferproj."
-                .into(),
-        );
+        return Err(format!(
+            "O arquivo deve manter uma extensão {}.",
+            portugol_formatos::describe_alternatives(&portugol_formatos::all_kinds())
+        ));
     }
 
-    let source_extension = source_extension_label(&source)
+    // Renomear pode trocar a extensão antiga pela canônica do mesmo tipo,
+    // mas não muda o tipo do arquivo.
+    let source_format = portugol_formatos::classify_path(&source)
         .ok_or_else(|| "A extensão original do arquivo não é válida.".to_string())?;
-    let new_extension = source_extension_label(name)
+    let new_format = portugol_formatos::classify_path(name)
         .ok_or_else(|| "A extensão do arquivo não é válida.".to_string())?;
-    if !source_extension.eq_ignore_ascii_case(new_extension) {
+    if source_format.kind() != new_format.kind() {
         return Err(format!(
-            "A extensão deve continuar sendo .{source_extension}."
+            "A extensão deve continuar sendo .{}.",
+            source_format.extension
         ));
     }
 
@@ -2276,10 +2274,10 @@ fn delete_relative_file_from_dir(
             return Err("O caminho do arquivo é inválido.".into());
         }
         if index + 1 == components.len() && (!metadata.is_file() || !supported_source(relative)) {
-            return Err(
-                "O explorador só exclui arquivos .pors, .rs, .pors.json, .design e .ferproj."
-                    .into(),
-            );
+            return Err(format!(
+                "O explorador só exclui arquivos {}.",
+                all_extensions()
+            ));
         }
     }
 

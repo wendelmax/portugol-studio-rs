@@ -11,28 +11,28 @@ use portugol_hir::{Diagnostic, Severity};
 
 const PORS_STARTER: &str = "funcao inicio() {\n    seja mutavel idade: inteiro = 16;\n    idade += 1;\n    escreva(idade);\n}\n";
 
+use portugol_formatos::Kind;
+
 pub(crate) fn is_pors_file(path: &Path) -> bool {
-    path.extension()
-        .and_then(|ext| ext.to_str())
-        .is_some_and(|ext| ext.eq_ignore_ascii_case("pors"))
+    portugol_formatos::kind_of(path, &[Kind::Source]).is_some()
 }
 
 pub(crate) fn is_legacy_file(path: &Path) -> bool {
-    path.extension()
-        .and_then(|ext| ext.to_str())
-        .is_some_and(|ext| ext.eq_ignore_ascii_case("por") || ext.eq_ignore_ascii_case("pex"))
+    portugol_formatos::is_retired_path(path)
 }
 
 pub(crate) fn report_unsupported_extension(path: &Path) {
     if is_legacy_file(path) {
         eprintln!(
-            "{}: arquivos legados .por/.pex não são suportados no Portugol Studio RS; use o Portugol Studio original para abri-los ou converta para .pors",
-            path.display()
+            "{}: arquivos legados .por/.pex não são suportados no Portugol Studio RS; use o Portugol Studio original para abri-los ou converta para {}",
+            path.display(),
+            portugol_formatos::describe(&[Kind::Source])
         );
     } else {
         eprintln!(
-            "{}: extensão não suportada (use .pors, .design ou .ferproj)",
-            path.display()
+            "{}: extensão não suportada (use {})",
+            path.display(),
+            portugol_formatos::describe_alternatives(&[Kind::Source, Kind::Design, Kind::Manifest])
         );
     }
 }
@@ -156,12 +156,13 @@ fn new_command(args: &[String]) -> ExitCode {
     }
     let mut path = PathBuf::from(&args[0]);
     if path.extension().is_none() {
-        path.set_extension("pors");
+        path.set_extension(portugol_formatos::extension(Kind::Source));
     }
     if !is_pors_file(&path) {
         eprintln!(
-            "{}: o comando `novo` cria apenas arquivos .pors",
-            path.display()
+            "{}: o comando `novo` cria apenas arquivos {}",
+            path.display(),
+            portugol_formatos::describe(&[Kind::Source])
         );
         return ExitCode::FAILURE;
     }

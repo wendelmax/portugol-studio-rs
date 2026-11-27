@@ -34,7 +34,7 @@ pub use validate::{MAX_DEPTH, MAX_ELEMENTS, validate};
 pub const CURRENT_VERSION: u32 = 1;
 
 /// Extensão dos arquivos de desenho, sem o ponto.
-pub const FILE_EXTENSION: &str = "design";
+pub const FILE_EXTENSION: &str = portugol_formatos::extension(portugol_formatos::Kind::Design);
 
 /// Resultado de [`analyze`]: a árvore, quando o arquivo é sintaticamente
 /// válido, e todos os diagnósticos encontrados.

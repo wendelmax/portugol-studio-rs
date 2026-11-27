@@ -8,23 +8,15 @@ use std::process::ExitCode;
 use portugol_hir::Diagnostic;
 use portugol_tela::project;
 
-fn has_extension(path: &Path, extension: &str) -> bool {
-    path.extension()
-        .and_then(|ext| ext.to_str())
-        .is_some_and(|ext| ext.eq_ignore_ascii_case(extension))
-}
+use portugol_formatos::Kind;
 
 pub(crate) fn is_design_file(path: &Path) -> bool {
-    has_extension(path, portugol_tela::FILE_EXTENSION)
-}
-
-pub(crate) fn is_manifest_file(path: &Path) -> bool {
-    has_extension(path, project::MANIFEST_EXTENSION)
+    portugol_formatos::kind_of(path, &[Kind::Design]).is_some()
 }
 
 /// Arquivos de marcação de projetos desktop: `.design` e `.ferproj`.
 pub(crate) fn is_markup_file(path: &Path) -> bool {
-    is_design_file(path) || is_manifest_file(path)
+    portugol_formatos::classify_path(path).is_some_and(|m| m.kind().is_markup())
 }
 
 /// Diagnósticos de um `.design` ou `.ferproj`. No manifesto, também confere

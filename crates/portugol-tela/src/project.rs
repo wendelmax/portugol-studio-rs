@@ -16,7 +16,8 @@ use crate::ast::{Attribute, Document};
 use crate::value;
 
 /// Extensão do manifesto, sem o ponto.
-pub const MANIFEST_EXTENSION: &str = "ferproj";
+pub const MANIFEST_EXTENSION: &str =
+    portugol_formatos::extension(portugol_formatos::Kind::Manifest);
 /// Pasta das imagens e ícones do projeto.
 pub const RESOURCES_DIR: &str = "recursos";
 /// Nome da janela criada pelo modelo.

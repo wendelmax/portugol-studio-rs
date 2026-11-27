@@ -1,3 +1,4 @@
+import { describeExtensions, fileKind, isProgramKind, isRetiredFile } from "../file-formats.ts";
 import type { ExerciseDocument } from "../exercises";
 
 export interface IncomingFileDependencies {
@@ -7,6 +8,8 @@ export interface IncomingFileDependencies {
   setStatus: (message: string, kind?: "error" | "ok") => void;
 }
 
+const OPENABLE = describeExtensions(["source", "rust", "lesson"], "ou");
+
 /** Abre arquivos recebidos pelo sistema ou por arrastar e soltar. */
 export function createIncomingFileOpener(dependencies: IncomingFileDependencies) {
   return async function openIncomingFiles(paths: string[], warnUnsupported = false) {
@@ -14,13 +17,14 @@ export function createIncomingFileOpener(dependencies: IncomingFileDependencies)
     let sawLegacy = false;
     for (const path of paths) {
       try {
-        if (/\.pors\.json$/i.test(path)) {
+        const kind = fileKind(path);
+        if (kind === "lesson") {
           supported = true;
           dependencies.openExercise(await dependencies.readExercise(path));
-        } else if (/\.(pors|rs)$/i.test(path)) {
+        } else if (isProgramKind(kind)) {
           supported = true;
           await dependencies.openFile(path);
-        } else if (/\.(por|pex)$/i.test(path)) {
+        } else if (isRetiredFile(path)) {
           sawLegacy = true;
         }
       } catch (error) {
@@ -30,8 +34,8 @@ export function createIncomingFileOpener(dependencies: IncomingFileDependencies)
     if (warnUnsupported && !supported && paths.length) {
       dependencies.setStatus(
         sawLegacy
-          ? "Arquivos legados .por e .pex não são suportados no Portugol Studio RS. Use o Portugol Studio original para abri-los, ou escolha um arquivo .pors, .rs ou .pors.json."
-          : "Escolha um arquivo .pors, .rs ou .pors.json.",
+          ? `Arquivos legados .por e .pex não são suportados no Portugol Studio RS. Use o Portugol Studio original para abri-los, ou escolha um arquivo ${OPENABLE}.`
+          : `Escolha um arquivo ${OPENABLE}.`,
         "error",
       );
     }

@@ -14,5 +14,6 @@ portugol-hir = { path = "../portugol-hir" }
 portugol-rs-frontend = { path = "../portugol-rs-frontend" }
 portugol-rust = { path = "../portugol-rust" }
 portugol-tela = { path = "../portugol-tela" }
+portugol-formatos = { path = "../portugol-formatos" }
 portugol-bytecode = { path = "../portugol-bytecode" }
 portugol-vm = { path = "../portugol-vm" }
