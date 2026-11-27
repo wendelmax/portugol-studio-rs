@@ -22,21 +22,23 @@ O ADR 0018 congela os pontos de tipo e spans; a RFC 004 formalizou a interpolaç
 
 ### Sintaxe e forma final
 
+A **cauda** é a expressão final sem `;` do corpo de função.
+
 1. A regra vale **somente para o corpo da função**: se a última posição do corpo de uma função com tipo de retorno declarado (`Function.return_type: Option<Type>`) for uma expressão sem `;`, essa expressão é a cauda e passa a ser retorno implícito.
-2. O frontend guarda a expressão final em `Function.tail_expression: Option<Expr>` e o backend converte a cauda em `StmtKind::Return { value }`.
+2. O frontend guarda a expressão final em `Function.tail_expression: Option<Expr>`; a cauda não materializa como nó em `Function.body`; o backend converte a cauda em `StmtKind::Return { value }`, nomeando a conversão semântica nos backends.
 3. Blocos aninhados (`se`, `senao`, `escolha`, laços) não ganham retorno implícito: neles `retorne valor;` continua obrigatório e a falta de `retorne` segue diagnosticada por `pors.missing-return`.
-4. `retorne valor;` continua válido em qualquer posição com retorno declarado, com ou sem o `;`.
+4. `retorne valor;` continua válido em qualquer posição com retorno declarado; o `;` do `retorne` segue exigido pelo parser.
 5. Funções sem retorno declarado (`return_type: None`) e blocos vazios não ganham retorno implícito: sem expressão final não há cauda, e a expressão final sem `;` em função sem retorno declarado gera `pors.implicit-return-without-type` no span da expressão.
 
 ### HIR, spans e diagnósticos
 
 1. `Function.tail_expression: Option<Expr>` é `Some` somente quando o corpo termina com expressão sem `;` e a função declara retorno; é `None` nos demais casos.
-2. Quando a cauda existe, ela satisfaz a garantição de retorno; o tipo da cauda deve coincidir com o retorno declarado, sob pena de `pors.return-type-mismatch` no span da cauda.
-3. Quando a cauda existe e a função não declara retorno, o diagnóstico é `pors.implicit-return-without-type` no span da expressão.
+2. Quando a cauda existe em função com retorno declarado, ela satisfaz a garantição de retorno; o tipo da cauda deve coincidir com o retorno declarado, sob pena de `pors.return-type-mismatch` no span da cauda.
+3. Quando a expressão final sem `;` aparece em função sem retorno declarado, o diagnóstico é `pors.implicit-return-without-type` no span da expressão.
 
 ### Lowering, bytecode, Rust gerado e source maps
 
-1. Em `compile_function()`, com a cauda presente, emitir `self.expr(tail)?` seguido de `Op::Return` (sem `Op::PushVoid`); sem a cauda, manter `Op::PushVoid; Op::Return`.
+1. Em `compile_function()`, com a cauda presente, emitir `self.expr(tail)?` seguido de `Op::Return` (sem `Op::PushVoid`); sem a cauda, manter `Op::PushVoid; Op::Return`. A cauda não é materializada como `StmtKind::Return` no corpo; `StmtKind::Return { value }` nomeia a conversão semântica no backend.
 2. No codegen, após `render_statements(&function.body, ...)` e antes do `}` da função, emitir `return <expr>;` com `push_expr(..., owned = true, pors)` e mapeamento no span da cauda.
 
 ### Fronteiras e adiamentos
@@ -67,8 +69,8 @@ funcao saudar(nome: cadeia) -> cadeia {
 
 | Trecho (coluna 0) | Motivo | Diagnóstico |
 | --- | --- | --- |
-| `funcao inicio() { 1 }` | função sem retorno declarado com expressão final sem `;` | `pors.implicit-return-without-type` no span da expressão `[17, 18)` |
-| `funcao f() -> cadeia { 1 + 1 }` | cauda com tipo incompatível com o retorno declarado | `pors.return-type-mismatch` no span da cauda `[23, 27)` |
+| `funcao inicio() { 1 }` | função sem retorno declarado com expressão final sem `;` | `pors.implicit-return-without-type` no span da expressão `[18, 19)` |
+| `funcao f() -> cadeia { 1 + 1 }` | cauda com tipo incompatível com o retorno declarado | `pors.return-type-mismatch` no span da cauda `[23, 28)` |
 
 ## Consequências
 
