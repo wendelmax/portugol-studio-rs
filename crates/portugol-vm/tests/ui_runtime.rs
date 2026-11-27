@@ -58,6 +58,7 @@ fn counter_mvu_module() -> Module {
         locals: vec![],
         code: vec![Op::PushInt(0), Op::Return],
         spans: vec![span; 2],
+        nodes: vec![None; 2],
         span,
     };
 
@@ -97,6 +98,7 @@ fn counter_mvu_module() -> Module {
             local("valor", ValueType::Cadeia),
         ],
         spans: vec![span; atualizar_code.len()],
+        nodes: vec![None; atualizar_code.len()],
         code: atualizar_code,
         span,
     };
@@ -128,6 +130,7 @@ fn counter_mvu_module() -> Module {
         return_type: ValueType::Inteiro,
         locals: vec![local("estado", ValueType::Inteiro)],
         spans: vec![span; visualizar_code.len()],
+        nodes: vec![None; visualizar_code.len()],
         code: visualizar_code,
         span,
     };

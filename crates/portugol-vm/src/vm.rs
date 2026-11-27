@@ -739,6 +739,8 @@ impl<'a> Vm<'a> {
 
         PausedInfo {
             span,
+            ip: frame.ip,
+            mapping: function.nodes.get(frame.ip).copied().flatten(),
             stack,
             variables,
         }

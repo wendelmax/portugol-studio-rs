@@ -30,6 +30,7 @@ fn build_counter_ui_module() -> Module {
         locals: vec![],
         code: vec![Op::PushInt(0), Op::Return],
         spans: vec![span; 2],
+        nodes: vec![None; 2],
         span,
     };
 
@@ -67,6 +68,7 @@ fn build_counter_ui_module() -> Module {
             Op::Return,
         ],
         spans: vec![span; 16],
+        nodes: vec![None; 16],
         span,
     };
 
@@ -98,6 +100,7 @@ fn build_counter_ui_module() -> Module {
             Op::Return,
         ],
         spans: vec![span; 14],
+        nodes: vec![None; 14],
         span,
     };
 

@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use portugol_bytecode::Module;
@@ -115,6 +116,7 @@ fn reports_unavailable_native_libraries_when_stdlib_feature_is_disabled() {
                 Op::Return,
             ],
             spans: vec![span; 4],
+            nodes: vec![None; 4],
             span,
         }],
         entry: 0,
@@ -1017,4 +1019,49 @@ fn reads_a_string_expression_without_a_target_binding() {
     let mut io = BufferIo::new("Ada\n");
     run(&module, &mut io).expect("leia() como expressão");
     assert_eq!(io.output, "Ada");
+}
+
+#[test]
+fn paused_info_exposes_the_instruction_ip_and_its_hir_mapping() {
+    use std::sync::mpsc;
+
+    use portugol_vm::debug::{DebugCommand, DebugControl};
+
+    let source = "funcao inicio() { escreva(leia()); }";
+    let module = compile_pors_source(source);
+    let entry = &module.functions[module.entry as usize];
+    let read_ip = entry
+        .nodes
+        .iter()
+        .position(|n| n.is_some_and(|n| n.node == "Read"))
+        .expect("instrução Read rotulada");
+    let breakpoint = entry.spans[read_ip];
+
+    let captured = Arc::new(Mutex::new(Vec::new()));
+    let sink = Arc::clone(&captured);
+    let (tx, rx) = mpsc::channel();
+    let debug = DebugControl::new(move |info| {
+        sink.lock()
+            .expect("mutex da pausa")
+            .push((info.ip, info.mapping.clone()));
+        tx.send(()).expect("canal da pausa");
+    });
+    debug.set_breakpoints(vec![breakpoint]);
+    let cont = debug.clone();
+    let worker = std::thread::spawn(move || {
+        rx.recv().expect("pausa no Read");
+        cont.command(DebugCommand::Continue);
+    });
+
+    let mut io = BufferIo::new("Ada\n");
+    Vm::new(&module, &mut io)
+        .with_debug(debug)
+        .run()
+        .expect("execução com pausa");
+    worker.join().expect("thread de continue");
+
+    let found = captured.lock().expect("mutex da pausa").clone();
+    assert!(found.iter().any(|(ip, mapping)| {
+        *ip == read_ip && mapping.as_ref().is_some_and(|m| m.node == "Read")
+    }));
 }

@@ -4,8 +4,8 @@ use portugol_hir as hir;
 use portugol_hir::Span;
 
 use crate::op::{
-    Function, LocalInfo, Module, NativeRef, Op, PorsDebugField, PorsDebugShape, PorsDebugType,
-    PorsDebugVariant, ValueType,
+    Function, InstructionMapping, LocalInfo, Module, NativeRef, Op, PorsDebugField, PorsDebugShape,
+    PorsDebugType, PorsDebugVariant, ValueType,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -28,6 +28,7 @@ struct LoopFrame {
 struct Compiler<'a> {
     code: Vec<Op>,
     spans: Vec<Span>,
+    nodes: Vec<Option<InstructionMapping>>,
     locals: Vec<LocalInfo>,
     strings: Vec<String>,
     natives: &'a mut Vec<NativeRef>,
@@ -137,6 +138,7 @@ impl<'a> Compiler<'a> {
         Self {
             code: Vec::new(),
             spans: Vec::new(),
+            nodes: Vec::new(),
             locals,
             strings: Vec::new(),
             natives,
@@ -192,9 +194,12 @@ impl<'a> Compiler<'a> {
         }
         match tail_expression {
             Some(expression) => {
-                let span = expression.span;
                 self_.expr(expression)?;
-                self_.emit(Op::Return, span);
+                self_.emit_node(
+                    Op::Return,
+                    expression.span,
+                    mapping("Return.tail", expression.span),
+                );
             }
             None => {
                 self_.emit(Op::PushVoid, span);
@@ -209,6 +214,7 @@ impl<'a> Compiler<'a> {
                 locals: self_.locals,
                 code: self_.code,
                 spans: self_.spans,
+                nodes: self_.nodes,
                 span: convert_span(span),
             },
             self_.strings,
@@ -218,7 +224,14 @@ impl<'a> Compiler<'a> {
     fn emit(&mut self, op: Op, span: hir::Span) -> usize {
         self.code.push(op);
         self.spans.push(convert_span(span));
+        self.nodes.push(None);
         self.code.len() - 1
+    }
+
+    fn emit_node(&mut self, op: Op, span: hir::Span, node: InstructionMapping) -> usize {
+        let ip = self.emit(op, span);
+        self.nodes[ip] = Some(node);
+        ip
     }
 
     fn intern_string(&mut self, value: &str) -> u32 {
@@ -773,7 +786,11 @@ impl<'a> Compiler<'a> {
                 self.emit(Op::PushStr(index), expr.span);
             }
             E::Read => {
-                self.emit(Op::Read(ValueType::Cadeia), expr.span);
+                self.emit_node(
+                    Op::Read(ValueType::Cadeia),
+                    expr.span,
+                    mapping("Read", expr.span),
+                );
             }
             E::InterpolatedString { parts } => {
                 if parts.is_empty() {
@@ -785,9 +802,17 @@ impl<'a> Compiler<'a> {
                     match part {
                         hir::StringPart::Literal(text, span) => {
                             let index = self.intern_string(text);
-                            self.emit(Op::PushStr(index), *span);
+                            self.emit_node(
+                                Op::PushStr(index),
+                                *span,
+                                mapping("InterpolatedString.Literal", *span),
+                            );
                             if started {
-                                self.emit(Op::Add, *span);
+                                self.emit_node(
+                                    Op::Add,
+                                    *span,
+                                    mapping("InterpolatedString.Literal", *span),
+                                );
                             }
                             started = true;
                         }
@@ -798,7 +823,11 @@ impl<'a> Compiler<'a> {
                                 started = true;
                             }
                             self.expr(value)?;
-                            self.emit(Op::Add, *span);
+                            self.emit_node(
+                                Op::Add,
+                                *span,
+                                mapping("InterpolatedString.Expression", *span),
+                            );
                         }
                     }
                 }
@@ -1036,6 +1065,13 @@ fn value_type(ty: ValueType) -> ValueType {
 }
 fn convert_span(span: hir::Span) -> Span {
     span
+}
+fn mapping(node: &'static str, span: hir::Span) -> InstructionMapping {
+    InstructionMapping {
+        node,
+        start: span.start,
+        end: span.end,
+    }
 }
 fn assign_op(op: hir::AssignOp) -> Option<Op> {
     match op {

@@ -6,6 +6,7 @@
 
 use std::sync::{Condvar, Mutex};
 
+use portugol_bytecode::InstructionMapping;
 use portugol_hir::Span;
 
 /// O que a VM deve fazer depois de voltar de uma pausa.
@@ -43,6 +44,10 @@ pub struct DebugFrame {
 #[derive(Debug, Clone, PartialEq)]
 pub struct PausedInfo {
     pub span: Span,
+    /// Instrução pausada, índice em `Function.code`.
+    pub ip: usize,
+    /// Nó HIR que originou a instrução, quando rotulado.
+    pub mapping: Option<InstructionMapping>,
     pub stack: Vec<DebugFrame>,
     pub variables: Vec<DebugVariable>,
 }
@@ -240,6 +245,8 @@ mod tests {
         let join = std::thread::spawn(move || {
             let info = PausedInfo {
                 span: Span::new(0, 1),
+                ip: 0,
+                mapping: None,
                 stack: Vec::new(),
                 variables: Vec::new(),
             };
