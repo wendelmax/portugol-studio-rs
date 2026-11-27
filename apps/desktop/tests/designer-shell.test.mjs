@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { codeBehindPath, designPathForCode, isDesignTab, mountDesignerShell } from "../src/designer/designer-shell.ts";
+import { codeBehindCandidates, codeBehindPath, designPathForCode, isDesignTab, mountDesignerShell } from "../src/designer/designer-shell.ts";
 
 function fakeElement() {
   const listeners = {};
@@ -59,9 +59,11 @@ function setup({ files = [], tab }) {
 const designTab = { id: 1, workspaceId: "w", workspacePath: "App/JanelaPrincipal.design", path: "/p/App/JanelaPrincipal.design" };
 
 test("caminhos do code-behind e do desenho de uma tela", () => {
-  assert.equal(codeBehindPath("App/JanelaPrincipal.design"), "App/JanelaPrincipal.pors");
-  assert.equal(codeBehindPath("Inicio.DESIGN"), "Inicio.pors");
-  assert.equal(designPathForCode("App/JanelaPrincipal.pors"), "App/JanelaPrincipal.design");
+  assert.equal(codeBehindPath("App/JanelaPrincipal.design"), "App/JanelaPrincipal.fer");
+  assert.equal(codeBehindPath("Inicio.DESIGN"), "Inicio.fer");
+  assert.deepEqual(codeBehindCandidates("App/JanelaPrincipal.design"), ["App/JanelaPrincipal.fer", "App/JanelaPrincipal.pors"]);
+  assert.equal(designPathForCode("App/JanelaPrincipal.fer"), "App/JanelaPrincipal.design");
+  assert.equal(designPathForCode("App/JanelaPrincipal.pors"), "App/JanelaPrincipal.design", "code-behind antigo também volta ao desenho");
   assert.equal(designPathForCode("main.rs"), null);
   assert.equal(isDesignTab(designTab), true);
   assert.equal(isDesignTab({ id: 2, path: "/p/meu-app.ferproj" }), false);
@@ -99,18 +101,28 @@ test("abas que não são telas escondem a barra", () => {
 });
 
 test("F7 vai do desenho ao código e volta ao Design", async () => {
-  const files = ["App/JanelaPrincipal.design", "App/JanelaPrincipal.pors"];
+  const files = ["App/JanelaPrincipal.design", "App/JanelaPrincipal.fer"];
   const { shell, buttons, opened, setActive, area } = setup({ files, tab: designTab });
+  shell.sync();
+  assert.equal(buttons.code.disabled, false);
+  assert.match(buttons.code.title, /JanelaPrincipal\.fer/);
+  assert.equal(await shell.toggleCode(), true);
+  assert.deepEqual(opened, ["App/JanelaPrincipal.fer"]);
+
+  setActive({ id: 4, workspaceId: "w", workspacePath: "App/JanelaPrincipal.fer", path: "/p/App/JanelaPrincipal.fer" });
+  assert.equal(await shell.toggleCode(), true);
+  assert.deepEqual(opened, ["App/JanelaPrincipal.fer", "App/JanelaPrincipal.design"]);
+  assert.equal(area.dataset.designView, "design");
+});
+
+test("tela com code-behind na extensão antiga (.pors) continua achando o código", async () => {
+  const files = ["App/JanelaPrincipal.design", "App/JanelaPrincipal.pors"];
+  const { shell, buttons, opened } = setup({ files, tab: designTab });
   shell.sync();
   assert.equal(buttons.code.disabled, false);
   assert.match(buttons.code.title, /JanelaPrincipal\.pors/);
   assert.equal(await shell.toggleCode(), true);
   assert.deepEqual(opened, ["App/JanelaPrincipal.pors"]);
-
-  setActive({ id: 4, workspaceId: "w", workspacePath: "App/JanelaPrincipal.pors", path: "/p/App/JanelaPrincipal.pors" });
-  assert.equal(await shell.toggleCode(), true);
-  assert.deepEqual(opened, ["App/JanelaPrincipal.pors", "App/JanelaPrincipal.design"]);
-  assert.equal(area.dataset.designView, "design");
 });
 
 test("F7 numa tela sem código avisa e não abre nada; fora de telas não faz nada", async () => {
@@ -118,7 +130,7 @@ test("F7 numa tela sem código avisa e não abre nada; fora de telas não faz na
   assert.equal(await shell.toggleCode(), true);
   assert.deepEqual(opened, []);
   assert.match(statuses.at(-1), /primeiro evento/);
-  setActive({ id: 5, workspaceId: "w", workspacePath: "solto.pors", path: "/p/solto.pors" });
+  setActive({ id: 5, workspaceId: "w", workspacePath: "solto.fer", path: "/p/solto.fer" });
   assert.equal(await shell.toggleCode(), false);
 });
 
