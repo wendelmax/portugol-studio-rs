@@ -1043,7 +1043,7 @@ fn paused_info_exposes_the_instruction_ip_and_its_hir_mapping() {
     let debug = DebugControl::new(move |info| {
         sink.lock()
             .expect("mutex da pausa")
-            .push((info.ip, info.mapping.clone()));
+            .push((info.ip, info.mapping));
         tx.send(()).expect("canal da pausa");
     });
     debug.set_breakpoints(vec![breakpoint]);
