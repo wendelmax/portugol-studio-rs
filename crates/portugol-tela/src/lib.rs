@@ -17,6 +17,7 @@
 //! convenção de [`portugol_hir::Span`]: bytes UTF-8, intervalo `[start, end)`.
 
 pub mod ast;
+pub mod edit;
 mod format;
 mod parser;
 pub mod project;

@@ -58,6 +58,19 @@ pub enum Placement {
     Layout,
 }
 
+impl Placement {
+    /// Se um atributo com esta exigência vale num contêiner com esse layout.
+    pub fn fits(self, layout: Layout) -> bool {
+        match self {
+            Placement::Any => true,
+            Placement::Free => layout == Layout::Free,
+            Placement::Grid => layout == Layout::Grid,
+            Placement::Dock => layout == Layout::Dock,
+            Placement::Layout => matches!(layout, Layout::Stack | Layout::Grid | Layout::Dock),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AttributeSchema {
     pub name: &'static str,

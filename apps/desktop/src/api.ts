@@ -134,6 +134,56 @@ export interface RustExport {
 }
 
 export const inspectPortugolRs = (source: string) => invoke<Inspection>("inspect_portugol_rs", { source });
+/** Elemento de um `.design` como o designer visual o recebe (ADR 0018). */
+export type DesignNode = {
+  tag: string;
+  /** Posições entre os elementos filhos, a partir da `<Janela>`. */
+  path: number[];
+  attributes: { name: string; value: string }[];
+  text: string | null;
+  /** Início e fim da tag no texto, em UTF-16. */
+  from: number;
+  to: number;
+  children: DesignNode[];
+};
+
+export type DesignEdit =
+  | { kind: "setAttribute"; path: number[]; name: string; value: string }
+  | { kind: "removeAttribute"; path: number[]; name: string }
+  | { kind: "insert"; parent: number[]; index: number; tag: string; attributes?: [string, string][] }
+  | { kind: "remove"; path: number[] }
+  | { kind: "move"; path: number[]; parent: number[]; index: number };
+
+export type DesignAttributeInfo = {
+  name: string;
+  description: string;
+  type: "integer" | "text" | "bool" | "event" | "type" | "name" | "choice" | "anchors" | "thickness" | "tracks" | "path";
+  min: number | null;
+  max: number | null;
+  choices: string[];
+  required: boolean;
+  binding: "none" | "oneWay" | "twoWay";
+  placement: "any" | "free" | "grid" | "dock" | "layout";
+};
+
+export type DesignElementInfo = {
+  name: string;
+  label: string;
+  description: string;
+  category: "control" | "container" | "component";
+  layout: "none" | "free" | "stack" | "grid" | "dock" | "items";
+  defaultEvent: string | null;
+  defaultWidth: number;
+  defaultHeight: number;
+  attributes: DesignAttributeInfo[];
+};
+
+export type DesignSchema = { window: DesignElementInfo; elements: DesignElementInfo[] };
+
+export const designTree = (source: string) => invoke<DesignNode | null>("design_tree", { source });
+/** Novo texto do `.design`; rejeita com a mensagem quando a edição não vale. */
+export const editDesign = (source: string, edits: DesignEdit[]) => invoke<string>("edit_design", { source, edits });
+export const designSchema = () => invoke<DesignSchema>("design_schema");
 /** Diagnósticos e estrutura de um `.design` ou `.ferproj`; o tipo vem da extensão de `path`. */
 export const inspectMarkup = (source: string, path: string) => invoke<Inspection>("inspect_markup", { source, path });
 /** Formata um `.design` ou `.ferproj`; `null` quando há erro de sintaxe. */

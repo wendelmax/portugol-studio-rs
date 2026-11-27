@@ -219,6 +219,24 @@ fn format_markup(source: String) -> Option<Vec<portugol_service::TextEdit>> {
     portugol_service::format_markup(&source)
 }
 
+/// Árvore de um `.design` para o designer visual; `None` com erro de sintaxe.
+#[tauri::command]
+fn design_tree(source: String) -> Option<portugol_service::DesignNode> {
+    portugol_service::design_tree(&source)
+}
+
+/// Aplica edições do designer e devolve o novo texto do `.design`.
+#[tauri::command]
+fn edit_design(source: String, edits: Vec<portugol_service::DesignEdit>) -> Result<String, String> {
+    portugol_service::edit_design(&source, edits)
+}
+
+/// Controles e atributos do formato `.design`, para a caixa de ferramentas.
+#[tauri::command]
+fn design_schema() -> portugol_service::DesignSchema {
+    portugol_service::design_schema()
+}
+
 #[tauri::command]
 async fn export_portugol_rs(source: String) -> Result<portugol_service::RustExport, String> {
     tauri::async_runtime::spawn_blocking(move || portugol_service::export_portugol_rs(&source))
@@ -905,6 +923,9 @@ pub fn run_app() {
             inspect_portugol_rs,
             inspect_markup,
             format_markup,
+            design_tree,
+            edit_design,
+            design_schema,
             export_portugol_rs,
             format_rust_source,
             rustfmt_available,

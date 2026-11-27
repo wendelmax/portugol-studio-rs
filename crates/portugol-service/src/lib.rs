@@ -8,6 +8,7 @@
 //! Não depende do Tauri: a camada da janela só traduz os eventos.
 
 mod cargo_project;
+mod designer;
 mod markup;
 mod outline;
 mod pors_examples;
@@ -29,6 +30,10 @@ pub use cargo_project::{
     check_cargo_project_with_cancel, run_cargo_project_target_with_args_and_cancel,
     run_cargo_project_target_with_cancel, run_cargo_project_with_cancel,
     test_cargo_project_with_cancel,
+};
+pub use designer::{
+    AttributeInfo, DesignAttribute, DesignEdit, DesignNode, DesignSchema, ElementInfo,
+    design_schema, design_tree, edit_design,
 };
 pub use markup::{MarkupKind, format_markup, inspect_markup};
 pub use outline::{SymbolInfo, SymbolKind};
