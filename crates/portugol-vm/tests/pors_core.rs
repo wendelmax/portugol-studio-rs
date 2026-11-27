@@ -1022,6 +1022,45 @@ fn reads_a_string_expression_without_a_target_binding() {
 }
 
 #[test]
+fn reads_typed_expressions_without_a_target_binding_in_minimal_vm() {
+    for (source, input, expected) in [
+        (
+            "funcao inicio() { seja n: inteiro = leia(); escreval(n + 1); }",
+            "36\n",
+            "37\n",
+        ),
+        (
+            "funcao inicio() { seja n: real = leia(); escreval(n + 1.0); }",
+            "1.5\n",
+            "2.5\n",
+        ),
+        (
+            "funcao inicio() { seja n: caracter = leia(); escreval(n); }",
+            "A\n",
+            "A\n",
+        ),
+        (
+            "funcao inicio() { seja n: logico = leia(); escreval(n); }",
+            "verdadeiro\n",
+            "verdadeiro\n",
+        ),
+    ] {
+        let module = compile_pors_source(source);
+        let mut io = BufferIo::new(input);
+        run(&module, &mut io).expect("leitura tipada na VM mínima");
+        assert_eq!(io.output, expected);
+    }
+}
+
+#[test]
+fn reports_invalid_input_for_a_typed_read_expression() {
+    let module = compile_pors_source("funcao inicio() { seja n: inteiro = leia(); escreval(n); }");
+    let mut io = BufferIo::new("abc\n");
+    let err = run(&module, &mut io).expect_err("entrada inválida deve falhar");
+    assert!(format!("{err:?}").contains("inteiro"), "{err:?}");
+}
+
+#[test]
 fn paused_info_exposes_the_instruction_ip_and_its_hir_mapping() {
     use std::sync::mpsc;
 
