@@ -48,8 +48,10 @@ Baixe o instalador da sua plataforma na página de
 | Sistema | Arquivo |
 |---|---|
 | Windows x64 | `.exe` (instala sem pedir administrador) ou `.msi` |
-| Linux x64 | `.deb`, `.rpm` ou `.AppImage` |
+| Linux x64 | `.deb`, `.rpm`, `.AppImage` ou `.pkg.tar.zst` (Arch Linux) |
 | macOS (Apple Silicon e Intel) | `.dmg` |
+
+No **Arch Linux**, você pode instalar o pacote `.pkg.tar.zst` da página de Releases com `sudo pacman -U portugol-studio-rs-*.pkg.tar.zst` ou compilar localmente a partir do repositório com `bash packaging/arch/build-package.sh`.
 
 Os instaladores ainda não são assinados. No Windows, o SmartScreen pode exibir
 "O Windows protegeu o seu computador": clique em **Mais informações** e depois

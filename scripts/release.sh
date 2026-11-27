@@ -106,6 +106,9 @@ sed -i "/^\[workspace.package\]/,/^\[/{s/^version = \".*\"/version = \"$nova\"/}
 for json in apps/desktop/package.json apps/desktop/src-tauri/tauri.conf.json; do
     sed -i "0,/\"version\": \".*\"/s//\"version\": \"$nova\"/" "$json"
 done
+if [[ -f packaging/arch/PKGBUILD ]]; then
+    sed -i "s/^pkgver=.*/pkgver=$nova/; s/^pkgrel=.*/pkgrel=1/" packaging/arch/PKGBUILD
+fi
 # package-lock.json repete a versão do pacote raiz em dois lugares.
 node -e '
     const fs = require("fs");

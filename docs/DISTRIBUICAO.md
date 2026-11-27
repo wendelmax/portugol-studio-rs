@@ -7,8 +7,10 @@ Os instaladores são gerados pelo workflow
 | Plataforma | Arquivos |
 |---|---|
 | Windows x64 | `.exe` (NSIS, instala para o usuário, sem pedir administrador) e `.msi` |
-| Linux x64 | `.deb`, `.rpm` e `.AppImage` |
+| Linux x64 | `.deb`, `.rpm`, `.AppImage` e `.pkg.tar.zst` (Arch Linux) |
 | macOS (Apple Silicon e Intel) | `.dmg` e `.app` |
+
+No **Arch Linux**, o pacote `.pkg.tar.zst` é gerado automaticamente pelo job `arch_linux` em [`.github/workflows/release.yml`](../.github/workflows/release.yml) usando [`packaging/arch/PKGBUILD`](../packaging/arch/PKGBUILD) e [`packaging/arch/build-package.sh`](../packaging/arch/build-package.sh). Para instalar um pacote baixado: `sudo pacman -U portugol-studio-rs-*.pkg.tar.zst`. Para gerar localmente: `bash packaging/arch/build-package.sh`.
 
 ## Como publicar uma versão
 
