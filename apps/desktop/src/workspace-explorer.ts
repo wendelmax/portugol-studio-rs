@@ -57,6 +57,37 @@ export function workspaceSourceFileName(name: string, language: "pors" | "rs"): 
   return `${trimmed}.${language}`;
 }
 
+export function workspaceSubfolderPath(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+  if (trimmed.includes("\\")) {
+    throw new Error("Use '/' para separar subpastas.");
+  }
+  if (trimmed.startsWith("/") || /^[a-zA-Z]:/.test(trimmed)) {
+    throw new Error("Informe uma subpasta relativa dentro do projeto.");
+  }
+  const withoutTrailing = trimmed.replace(/\/+$/, "");
+  if (!withoutTrailing) {
+    throw new Error("Informe uma subpasta relativa dentro do projeto.");
+  }
+  const segments = withoutTrailing.split("/");
+  for (const segment of segments) {
+    if (!segment || segment === "." || segment === "..") {
+      throw new Error("Informe uma subpasta relativa válida dentro do projeto.");
+    }
+  }
+  return segments.join("/");
+}
+
+export function workspaceParentFolders(relativePath: string): string[] {
+  const segments = relativePath.split("/").filter(Boolean);
+  const parents: string[] = [];
+  for (let i = 1; i < segments.length; i++) {
+    parents.push(segments.slice(0, i).join("/"));
+  }
+  return parents;
+}
+
 export function workspaceRenameFileName(name: string, currentPath: string): string {
   const currentName = currentPath.split(/[\\/]/).pop() ?? currentPath;
   if (name === currentName) return currentName;

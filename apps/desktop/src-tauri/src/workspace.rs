@@ -835,6 +835,71 @@ mod tests {
             "segredo"
         );
     }
+
+    #[test]
+    fn creates_source_file_inside_nested_subfolder_and_rejects_traversal() {
+        let temp = TempDir::new();
+
+        let created =
+            super::create_source_file_in_folder(&temp.0, "ola.pors", Some("aulas/modulo1"))
+                .unwrap();
+        assert_eq!(created, "aulas/modulo1/ola.pors");
+        assert!(temp.0.join("aulas/modulo1/ola.pors").is_file());
+
+        assert!(
+            super::create_source_file_in_folder(&temp.0, "ola.pors", Some("aulas/modulo1"))
+                .is_err()
+        );
+        assert!(
+            super::create_source_file_in_folder(&temp.0, "fora.pors", Some("../fora")).is_err()
+        );
+        assert!(
+            super::create_source_file_in_folder(&temp.0, "fora.pors", Some("aulas\\sub")).is_err()
+        );
+        assert!(super::create_source_file_in_folder(&temp.0, "fora.pors", Some("/abs")).is_err());
+    }
+
+    #[test]
+    fn sanitizes_cargo_package_names_for_export() {
+        assert_eq!(
+            super::sanitize_cargo_package_name("Olá Mundo!.pors"),
+            "ol_mundo"
+        );
+        assert_eq!(
+            super::sanitize_cargo_package_name("123_teste.rs"),
+            "programa_123_teste"
+        );
+        assert_eq!(super::sanitize_cargo_package_name("match"), "match_app");
+        assert_eq!(
+            super::sanitize_cargo_package_name("   "),
+            "programa_portugol"
+        );
+    }
+
+    #[test]
+    fn exports_complete_cargo_project_scaffold_without_overwriting_existing_folder() {
+        let destination = TempDir::new();
+        let code = "fn main() {\n    println!(\"Olá, Rust!\");\n}";
+
+        let exported =
+            super::write_cargo_project_scaffold(&destination.0, "meu-programa.pors", code).unwrap();
+
+        assert_eq!(exported.package_name, "meu_programa");
+        let project_dir = destination.0.join("meu_programa");
+        assert_eq!(
+            fs::read_to_string(project_dir.join("Cargo.toml")).unwrap(),
+            "[package]\nname = \"meu_programa\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[dependencies]\n"
+        );
+        assert_eq!(
+            fs::read_to_string(project_dir.join("src/main.rs")).unwrap(),
+            "fn main() {\n    println!(\"Olá, Rust!\");\n}\n"
+        );
+        assert!(
+            super::write_cargo_project_scaffold(&destination.0, "meu-programa.pors", code)
+                .unwrap_err()
+                .contains("Já existe")
+        );
+    }
 }
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::ffi::OsString;
@@ -1069,6 +1134,15 @@ pub struct WorkspaceDeleteResult {
 pub struct WorkspaceExportResult {
     project_name: String,
     file_count: usize,
+}
+
+#[derive(Serialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct CargoScaffoldExportResult {
+    project_dir: String,
+    manifest_path: String,
+    main_path: String,
+    package_name: String,
 }
 
 #[cfg(test)]
@@ -1753,7 +1827,16 @@ fn write_relative_file(root: &Path, relative: &Path, source: &str) -> Result<(),
     fs::write(path, source).map_err(|error| format!("Não foi possível salvar o arquivo: {error}"))
 }
 
+#[cfg(test)]
 fn create_source_file(root: &Path, file_name: &str) -> Result<(), String> {
+    create_source_file_in_folder(root, file_name, None).map(|_| ())
+}
+
+fn create_source_file_in_folder(
+    root: &Path,
+    file_name: &str,
+    folder: Option<&str>,
+) -> Result<String, String> {
     let relative = Path::new(file_name);
     if file_name.trim().is_empty()
         || file_name == "."
@@ -1774,19 +1857,183 @@ fn create_source_file(root: &Path, file_name: &str) -> Result<(), String> {
     if !root.is_dir() {
         return Err("A pasta aberta não está mais disponível.".into());
     }
-    let path = root.join(relative);
+
+    let mut target_dir = root.clone();
+    let mut normalized_segments: Vec<&str> = Vec::new();
+    if let Some(raw_folder) = folder {
+        let trimmed = raw_folder.trim();
+        if !trimmed.is_empty() {
+            if trimmed.contains('\\') {
+                return Err("Use '/' para separar subpastas.".into());
+            }
+            if trimmed.starts_with('/') || Path::new(trimmed).is_absolute() {
+                return Err("Informe uma subpasta relativa dentro do projeto.".into());
+            }
+            for segment in trimmed.trim_end_matches('/').split('/') {
+                if segment.is_empty() || segment == "." || segment == ".." {
+                    return Err("Informe uma subpasta relativa válida dentro do projeto.".into());
+                }
+                let segment_path = Path::new(segment);
+                if segment_path.components().count() != 1
+                    || !matches!(segment_path.components().next(), Some(Component::Normal(_)))
+                {
+                    return Err("Informe uma subpasta relativa válida dentro do projeto.".into());
+                }
+                target_dir.push(segment);
+                match fs::symlink_metadata(&target_dir) {
+                    Ok(metadata) if metadata.file_type().is_symlink() => {
+                        return Err("Links simbólicos não podem ser usados como subpasta.".into());
+                    }
+                    Ok(metadata) if metadata.is_dir() => {}
+                    Ok(_) => {
+                        return Err("Já existe um arquivo com o mesmo nome da subpasta.".into());
+                    }
+                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                        fs::create_dir(&target_dir).map_err(|create_error| {
+                            format!("Não foi possível criar a subpasta: {create_error}")
+                        })?;
+                    }
+                    Err(error) => {
+                        return Err(format!("Não foi possível acessar a subpasta: {error}"));
+                    }
+                }
+                normalized_segments.push(segment);
+            }
+            let canonical_dir = fs::canonicalize(&target_dir)
+                .map_err(|_| "Não foi possível acessar a subpasta criada.".to_string())?;
+            if !canonical_dir.starts_with(&root) {
+                return Err("A subpasta está fora da pasta aberta.".into());
+            }
+            target_dir = canonical_dir;
+        }
+    }
+
+    let path = target_dir.join(relative);
     fs::OpenOptions::new()
         .write(true)
         .create_new(true)
         .open(path)
-        .map(|_| ())
         .map_err(|error| {
             if error.kind() == std::io::ErrorKind::AlreadyExists {
                 "Já existe um arquivo com esse nome.".into()
             } else {
                 format!("Não foi possível criar o arquivo: {error}")
             }
-        })
+        })?;
+
+    if normalized_segments.is_empty() {
+        Ok(file_name.to_string())
+    } else {
+        Ok(format!("{}/{file_name}", normalized_segments.join("/")))
+    }
+}
+
+fn sanitize_cargo_package_name(raw: &str) -> String {
+    let trimmed = raw.trim();
+    let without_ext = trimmed
+        .strip_suffix(".pors")
+        .or_else(|| trimmed.strip_suffix(".PORS"))
+        .or_else(|| trimmed.strip_suffix(".rs"))
+        .or_else(|| trimmed.strip_suffix(".RS"))
+        .unwrap_or(trimmed);
+
+    let mut sanitized = String::new();
+    let mut previous_underscore = false;
+    for ch in without_ext.chars() {
+        if ch.is_ascii_alphanumeric() {
+            sanitized.push(ch.to_ascii_lowercase());
+            previous_underscore = false;
+        } else if (ch == '_' || ch == '-' || ch.is_whitespace())
+            && !sanitized.is_empty()
+            && !previous_underscore
+        {
+            sanitized.push('_');
+            previous_underscore = true;
+        }
+    }
+    while sanitized.ends_with('_') {
+        sanitized.pop();
+    }
+    if sanitized.is_empty() {
+        return "programa_portugol".to_string();
+    }
+    if sanitized
+        .chars()
+        .next()
+        .is_some_and(|ch| ch.is_ascii_digit())
+    {
+        sanitized.insert_str(0, "programa_");
+    }
+    const RUST_KEYWORDS: &[&str] = &[
+        "as", "async", "await", "break", "const", "continue", "crate", "dyn", "else", "enum",
+        "extern", "false", "fn", "for", "if", "impl", "in", "let", "loop", "match", "mod", "move",
+        "mut", "pub", "ref", "return", "self", "static", "struct", "super", "trait", "true",
+        "type", "unsafe", "use", "where", "while",
+    ];
+    if RUST_KEYWORDS.contains(&sanitized.as_str()) {
+        sanitized.push_str("_app");
+    }
+    sanitized
+}
+
+fn write_cargo_project_scaffold(
+    destination_parent: &Path,
+    raw_package_name: &str,
+    rust_code: &str,
+) -> Result<CargoScaffoldExportResult, String> {
+    if rust_code.trim().is_empty() {
+        return Err("Não há código Rust gerado para exportar.".into());
+    }
+    let parent = fs::canonicalize(destination_parent)
+        .map_err(|_| "A pasta de destino não está disponível.".to_string())?;
+    if !parent.is_dir() {
+        return Err("A pasta de destino não é um diretório válido.".into());
+    }
+    let package_name = sanitize_cargo_package_name(raw_package_name);
+    let project_dir = parent.join(&package_name);
+    fs::create_dir(&project_dir).map_err(|error| {
+        if error.kind() == std::io::ErrorKind::AlreadyExists {
+            format!("Já existe uma pasta \"{package_name}\" no destino selecionado.")
+        } else {
+            format!("Não foi possível criar a pasta do projeto Cargo: {error}")
+        }
+    })?;
+
+    let write_files = || -> Result<(PathBuf, PathBuf), String> {
+        let src_dir = project_dir.join("src");
+        fs::create_dir(&src_dir)
+            .map_err(|error| format!("Não foi possível criar a pasta src/: {error}"))?;
+        let manifest_path = project_dir.join("Cargo.toml");
+        let manifest = format!(
+            "[package]\nname = \"{package_name}\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[dependencies]\n"
+        );
+        fs::write(&manifest_path, manifest)
+            .map_err(|error| format!("Não foi possível gravar Cargo.toml: {error}"))?;
+        let main_path = src_dir.join("main.rs");
+        let main_source = if rust_code.ends_with('\n') {
+            rust_code.to_string()
+        } else {
+            format!("{rust_code}\n")
+        };
+        fs::write(&main_path, main_source)
+            .map_err(|error| format!("Não foi possível gravar src/main.rs: {error}"))?;
+        Ok((manifest_path, main_path))
+    };
+
+    let (manifest_path, main_path) = match write_files() {
+        Ok(paths) => paths,
+        Err(error) => {
+            let _ = fs::remove_dir_all(&project_dir);
+            return Err(error);
+        }
+    };
+
+    Ok(CargoScaffoldExportResult {
+        project_dir: project_dir.to_string_lossy().into_owned(),
+        manifest_path: manifest_path.to_string_lossy().into_owned(),
+        main_path: main_path.to_string_lossy().into_owned(),
+        package_name,
+    })
 }
 
 fn rename_relative_file(root: &Path, relative: &Path, new_name: &str) -> Result<PathBuf, String> {
@@ -2001,13 +2248,34 @@ pub fn workspace_write_file(
 }
 
 #[tauri::command]
-pub fn workspace_create_file(
+pub fn workspace_refresh(
     workspace_id: String,
-    file_name: String,
     session: State<'_, WorkspaceSession>,
 ) -> Result<WorkspaceListing, String> {
     let root = session.root(&workspace_id)?;
-    create_source_file(&root, &file_name)?;
+    let entries = list_entries(&root)?;
+    let name = root
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("Projeto")
+        .to_string();
+    Ok(WorkspaceListing {
+        id: workspace_id,
+        name,
+        preference_key: workspace_preference_key(&root),
+        entries,
+    })
+}
+
+#[tauri::command]
+pub fn workspace_create_file(
+    workspace_id: String,
+    file_name: String,
+    folder: Option<String>,
+    session: State<'_, WorkspaceSession>,
+) -> Result<WorkspaceListing, String> {
+    let root = session.root(&workspace_id)?;
+    create_source_file_in_folder(&root, &file_name, folder.as_deref())?;
     let entries = list_entries(&root)?;
     let name = root
         .file_name()
@@ -2138,4 +2406,31 @@ pub async fn workspace_export(
     })
     .await
     .map_err(|error| format!("Não foi possível exportar o projeto: {error}"))?
+}
+
+#[tauri::command]
+pub async fn export_cargo_project(
+    app: AppHandle,
+    package_name: String,
+    rust_code: String,
+) -> Result<Option<CargoScaffoldExportResult>, String> {
+    if rust_code.trim().is_empty() {
+        return Err("Não há código Rust gerado para exportar.".into());
+    }
+    tauri::async_runtime::spawn_blocking(move || {
+        let Some(selected) = app
+            .dialog()
+            .file()
+            .set_title("Exportar projeto Cargo para uma pasta")
+            .blocking_pick_folder()
+        else {
+            return Ok(None);
+        };
+        let destination = selected
+            .into_path()
+            .map_err(|error| format!("Não foi possível acessar a pasta selecionada: {error}"))?;
+        write_cargo_project_scaffold(&destination, &package_name, &rust_code).map(Some)
+    })
+    .await
+    .map_err(|error| format!("Não foi possível exportar o projeto Cargo: {error}"))?
 }

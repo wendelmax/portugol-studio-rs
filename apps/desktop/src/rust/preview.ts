@@ -220,6 +220,7 @@ export function mountRustPreview(host: RustPreviewHost) {
     const status = $<HTMLElement>("rust-status");
     const copy = $<HTMLButtonElement>("rust-copy");
     const save = $<HTMLButtonElement>("rust-save");
+    const exportCargo = $<HTMLButtonElement>("rust-export-cargo");
     const diffToggle = $<HTMLButtonElement>("rust-diff-toggle");
     const generatedOutput = $<HTMLElement>("rust-output");
     const diffOutput = $<HTMLElement>("rust-diff-output");
@@ -276,6 +277,7 @@ export function mountRustPreview(host: RustPreviewHost) {
     if (state?.stale) status.dataset.stale = "true";
     else delete status.dataset.stale;
     copy.disabled = save.disabled = detach.disabled = !artifact || Boolean(pending || stale);
+    exportCargo.disabled = copy.disabled;
     renderMappingGutter();
     host.onRendered();
   }
@@ -358,6 +360,18 @@ export function mountRustPreview(host: RustPreviewHost) {
       if (!path) return;
       await api.writeFile(path, code);
       setStatus("Rust salvo em " + path + ".", "ok");
+    } catch (error) {
+      setStatus(String(error), "error");
+    }
+  };
+  $<HTMLButtonElement>("rust-export-cargo").onclick = async () => {
+    const code = generatedRustEditor.state.doc.toString();
+    const tab = activeTab();
+    const rawName = tab?.path?.split(/[\\/]/).pop() ?? tab?.exampleName ?? "programa_portugol";
+    try {
+      const exported = await api.exportCargoProject(rawName, code);
+      if (!exported) return;
+      setStatus(`Projeto Cargo "${exported.packageName}" exportado em ${exported.projectDir}.`, "ok");
     } catch (error) {
       setStatus(String(error), "error");
     }
