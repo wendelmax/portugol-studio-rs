@@ -192,6 +192,9 @@ jobs:
             pacman-key --init
             pacman-key --populate archlinuxarm
           fi
+          if ! grep -qE '^[[:space:]]*DisableSandbox' /etc/pacman.conf; then
+            sed -i '/^\[options\]/a DisableSandbox' /etc/pacman.conf
+          fi
           pacman -Syu --noconfirm --needed base-devel rust nodejs npm pkgconf webkit2gtk-4.1 gtk3 alsa-lib zstd
       - name: Construir e validar pacote Arch Linux
         run: bash packaging/arch/build-package.sh "" "$GITHUB_WORKSPACE/dist-arch"
