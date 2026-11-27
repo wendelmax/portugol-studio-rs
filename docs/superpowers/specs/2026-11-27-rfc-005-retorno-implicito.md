@@ -24,11 +24,15 @@ O ADR 0018 congela os pontos de tipo e spans; a RFC 004 formalizou a interpolaç
 
 A **cauda** é a expressão final sem `;` do corpo de função.
 
-1. A regra vale **somente para o corpo da função**: se a última posição do corpo de uma função com tipo de retorno declarado (`Function.return_type: Option<Type>`) for uma expressão sem `;`, essa expressão é a cauda e passa a ser retorno implícito.
+1. A regra vale **somente para o corpo da função**: se a última posição do corpo de uma função com tipo de retorno declarado (`Function.return_type: Option<Type>`) for uma expressão sem `;`, essa expressão é a cauda e passa a ser retorno implícito. A única exceção são os ramos de valor de `tente` em expressão (RFC 007), cuja expressão final sem `;` é valor do ramo, não retorno da função.
 2. O frontend guarda a expressão final em `Function.tail_expression: Option<Expr>`; a cauda não materializa como nó em `Function.body`; o backend converte a cauda em `StmtKind::Return { value }`, nomeando a conversão semântica nos backends.
-3. Blocos aninhados (`se`, `senao`, `escolha`, laços) não ganham retorno implícito: neles `retorne valor;` continua obrigatório e a falta de `retorne` segue diagnosticada por `pors.missing-return`.
+3. Blocos aninhados (`se`, `senao`, `escolha`, laços) não ganham retorno implícito: neles `retorne valor;` continua obrigatório e a falta de `retorne` segue diagnosticada por `pors.missing-return`. A única exceção são os ramos de valor de `tente` em expressão (RFC 007), corpo protegido e `capture`: a expressão final sem `;` nesses ramos é o valor do ramo e não vira `retorne` da função.
 4. `retorne valor;` continua válido em qualquer posição com retorno declarado; o `;` do `retorne` segue exigido pelo parser.
 5. Funções sem retorno declarado (`return_type: None`) e blocos vazios não ganham retorno implícito: sem expressão final não há cauda, e a expressão final sem `;` em função sem retorno declarado gera `pors.implicit-return-without-type` no span da expressão.
+
+### Decisão de escopo (chamada do autor)
+
+A exceção para ramos de `tente` em expressão é deliberadamente estreita: ela não estende retorno implícito a `se`, `senao`, `escolha`, laços nem a qualquer outro bloco. Foi registrada como chamada do autor para manter os exemplos da RFC 007 válidos sem alterar a regra do corpo da função.
 
 ### HIR, spans e diagnósticos
 

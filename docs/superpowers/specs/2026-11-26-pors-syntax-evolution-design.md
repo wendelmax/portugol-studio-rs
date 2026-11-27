@@ -149,7 +149,7 @@ O scanner de realce dos dois editores marca todo `{...}` não escapado e não va
 
 ### Retorno implícito
 
-Adicionar `tail_expression` ao bloco/HIR. A regra vale **somente para o corpo da função**: se a última posição do corpo de uma função com tipo de retorno declarado for uma expressão sem `;`, ela vira retorno implícito. Blocos aninhados (`se`, `senao`, `escolha`, laços) não ganham retorno implícito — neles, `retorne valor;` continua obrigatório. `retorne valor;` continua válido em qualquer posição. Blocos vazios e funções `vazio`/sem retorno declarado não ganham retorno implícito. Uma expressão sem `;` em corpo de função sem retorno declarado é erro localizado. A regra de `;` é documentada com exemplos e erros localizados.
+Adicionar `tail_expression` ao bloco/HIR. A regra vale **somente para o corpo da função**: se a última posição do corpo de uma função com tipo de retorno declarado for uma expressão sem `;`, ela vira retorno implícito. Blocos aninhados (`se`, `senao`, `escolha`, laços) não ganham retorno implícito — neles, `retorne valor;` continua obrigatório. A única exceção são os ramos de valor de `tente` em expressão (RFC 007), nos quais a expressão final sem `;` produz o valor do ramo e não retorno implícito da função. `retorne valor;` continua válido em qualquer posição. Blocos vazios e funções `vazio`/sem retorno declarado não ganham retorno implícito. Uma expressão sem `;` em corpo de função sem retorno declarado é erro localizado. A regra de `;` é documentada com exemplos e erros localizados.
 
 ### Realce de sintaxe: IDE e playground
 

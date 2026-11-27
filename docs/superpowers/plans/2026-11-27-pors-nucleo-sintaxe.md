@@ -42,7 +42,7 @@
 
 **Interfaces:**
 - Consumes: `write(&mut self)` atual, `StmtKind::Write(Vec<Expr>)`.
-- Produces: `write(&mut self, newline: bool)`; `escreval` reservado; newline sintético com `Span::new(semicolon.span.end, semicolon.span.end)`.
+- Produces: `write(&mut self, newline: bool)`; `escreval` reservado; newline sintético com `Span::new(close.span.start, close.span.start)`.
 
 - [ ] **Step 1: Escrever os testes que falham**
 
@@ -82,7 +82,7 @@ Expected: FAIL — `lower()` retorna `pors.expected-statement`.
 
 - [ ] **Step 3: Implementar o açúcar**
 
-Adicionar `escreval` à lista de reservadas em `is_reserved()`. Em `statement()`, despachar `escreval` para `self.write(true)` e `escreva` para `self.write(false)`. Em `write(newline)`: manter o laço atual de argumentos; após `let end = self.expect(Kind::Semicolon, ...)?`, quando `newline`, acrescentar a `values` a expressão `hir::Expr { kind: hir::ExprKind::String("\n".to_owned()), ty: hir::Type::String, span: hir::Span::new(end.span.end, end.span.end) }`. Não alterar HIR, bytecode, VM nem Rust gerado.
+Adicionar `escreval` à lista de reservadas em `is_reserved()`. Em `statement()`, despachar `escreval` para `self.write(true)` e `escreva` para `self.write(false)`. Em `write(newline)`: manter o laço atual de argumentos, capturando o token de fechamento com `let close = self.expect(Kind::RParen, "Esperado `)` após valores de escreva")?;`, após `let end = self.expect(Kind::Semicolon, ...)?`, quando `newline`, acrescentar a `values` a expressão `hir::Expr { kind: hir::ExprKind::String("\n".to_owned()), ty: hir::Type::String, span: hir::Span::new(close.span.start, close.span.start) }`. Não alterar HIR, bytecode, VM nem Rust gerado. Este passo implementa o RFC 003, linha 24: o `"\n"` sintético tem span `[p, p)` com `p` imediatamente antes do `)` de fechamento.
 
 - [ ] **Step 4: Rodar e confirmar o passe**
 
@@ -195,6 +195,14 @@ fn interpolation_parts_keep_their_own_spans_and_escaped_braces_are_literal() {
     let program = lower(literal).expect("chaves escapadas são literais");
     let StmtKind::Write(values) = &program.body[0].kind else { panic!("esperava Write") };
     assert!(matches!(&values[0].kind, ExprKind::String(text) if text == "{nome}"));
+
+    let escaped_and_interpolated = "funcao inicio() { escreva(\"\\{{nome}\"); }";
+    let program = lower(escaped_and_interpolated).expect("escape e interpolação");
+    let StmtKind::Write(values) = &program.body[0].kind else { panic!("esperava Write") };
+    let ExprKind::InterpolatedString { parts } = &values[0].kind else {
+        panic!("esperava cadeia interpolada");
+    };
+    assert!(matches!(&parts[0], StringPart::Literal(text, span) if text == "{" && span.end - span.start == 2), "{parts:?}");
 }
 ```
 
@@ -244,7 +252,7 @@ Mudar `Kind::String(String)` para `Kind::String { decoded: String, raw: String }
 
 - [ ] **Step 5: Implementar o parser de partes**
 
-Em `expr.rs`, acrescentar `fn string_parts(&mut self, token: &Token) -> Result<Vec<StringPart>, ...>` e chamar da arm `Kind::String` quando `raw` contém interpolação válida. Regras exatas: percorrer `raw` com índices de byte; `\{`/`\}` viram `Literal("{"/"}", span_de_1_byte)`; demais escapes seguem a tabela atual do lexer; `{` não escapado só vira expressão se existir `}` não escapado depois dele com conteúdo não vazio na mesma cadeia; `{}` e `{` sem fechamento viram `Literal`. Para o conteúdo, trocar temporariamente `self.tokens`/`self.cursor` pelos tokens de `lexer::lex(conteudo)` com spans deslocados pelo offset do conteúdo, chamar `self.expression(0)`, restaurar a stream e devolver `StringPart::Expression(expr, span_da_parte)`. Conforme a RFC 004, o `Span` da parte cobre `{...}` incluindo as chaves, enquanto `expr.span` e os diagnósticos continuam no conteúdo sem chaves. Erros de parse viram `pors.interpolation-invalid` no span do conteúdo; expressão com `ty` diferente de `String`/`Character` vira `pors.interpolation-non-string` no mesmo span. A expressão inteira tem `ty: Type::String` e `span` do token original.
+Em `expr.rs`, acrescentar `fn string_parts(&mut self, token: &Token) -> Result<Vec<StringPart>, ...>` e chamar da arm `Kind::String` quando `raw` contém interpolação válida. Regras exatas: percorrer `raw` com índices de byte; `\{`/`\}` viram `Literal("{"/"}", span_de_2_bytes)` cobrindo os dois bytes do escape no fonte, enquanto o valor decodificado é um caractere; demais escapes seguem a tabela atual do lexer; `{` não escapado só vira expressão se existir `}` não escapado depois dele com conteúdo não vazio na mesma cadeia; `{}` e `{` sem fechamento viram `Literal`. Para o conteúdo, trocar temporariamente `self.tokens`/`self.cursor` pelos tokens de `lexer::lex(conteudo)` com spans deslocados pelo offset do conteúdo, chamar `self.expression(0)`, restaurar a stream e devolver `StringPart::Expression(expr, span_da_parte)`. Conforme a RFC 004, o `Span` da parte cobre `{...}` incluindo as chaves, enquanto `expr.span` e os diagnósticos continuam no conteúdo sem chaves. Erros de parse viram `pors.interpolation-invalid` no span do conteúdo; expressão com `ty` diferente de `String`/`Character` vira `pors.interpolation-non-string` no mesmo span. A expressão inteira tem `ty: Type::String` e `span` do token original.
 
 - [ ] **Step 6: Lowering nos backends**
 
@@ -422,7 +430,7 @@ Expected: FAIL — campo `tail_expression` inexistente / `pors.expected-statemen
 
 - [ ] **Step 3: Implementar a HIR e o parser**
 
-Acrescentar `tail_expression: Option<Expr>` a `Function`. Mudar `block()` para `block(&mut self, root: bool, allow_tail: bool) -> Result<(Vec<Stmt>, Option<Expr>, Span), ...>` e atualizar os 8 chamadores: `allow_tail = true` somente em `mod.rs:139` (corpo de qualquer função, inclusive `inicio`), `false` nos blocos aninhados de `stmt.rs`. Em `block()`, quando `allow_tail` e o próximo token não é `}`/`Eof` nem início de item, guardar `cursor`, tentar `self.expression(0)`; se o token seguinte for `}`, registrar a expressão como cauda; senão restaurar `cursor` e seguir com `statement()`. Se cauda existir e `self.return_type.is_none()`, emitir `pors.implicit-return-without-type` no span da expressão — é isso que mantém `inicio` sem retorno implícito, com diagnóstico localizado. Em `mod.rs`, preencher `tail_expression` na construção de `Function`; exigir `guarantees_return()` apenas quando não há cauda; conferir `tail_expression.ty == signature.return_type`, senão `pors.return-type-mismatch` no span da cauda. Atualizar `guarantees_return()` se necessário para o novo formato de bloco.
+Acrescentar `tail_expression: Option<Expr>` a `Function`. Mudar `block()` para `block(&mut self, root: bool, allow_tail: bool) -> Result<(Vec<Stmt>, Option<Expr>, Span), ...>` e atualizar os 8 chamadores: `allow_tail = true` somente em `mod.rs:139` (corpo de qualquer função, inclusive `inicio`), `false` nos blocos aninhados de `stmt.rs`. Fatorar a lookahead em `try_tail()`: guardar `cursor`, tentar `self.expression(0)`, aceitar somente se o token seguinte for `}`/`Eof` sem `;`; senão restaurar `cursor` e seguir com `statement()`. Em `block()`, quando `allow_tail=true`, registrar a expressão devolvida por `try_tail()` como cauda; quando `allow_tail=false` e `try_tail()` encontra expressão final sem `;`, emitir `pors.implicit-return-without-type` no span da expressão sem registrar cauda — é isso que faz `se (verdadeiro) { 1 }` ser diagnosticado como retorno implícito fora do corpo da função, em vez de `pors.expected-statement`. Se cauda existir no corpo raiz e `self.return_type.is_none()`, emitir o mesmo `pors.implicit-return-without-type` no span da expressão — é isso que mantém `inicio` sem retorno implícito, com diagnóstico localizado. Em `mod.rs`, preencher `tail_expression` na construção de `Function`; exigir `guarantees_return()` apenas quando não há cauda; conferir `tail_expression.ty == signature.return_type`, senão `pors.return-type-mismatch` no span da cauda. Atualizar `guarantees_return()` se necessário para o novo formato de bloco. Esta fatia não implementa `tente`; quando a RFC 007 for implementada, os ramos de valor de `tente` em expressão devem usar `try_tail()` para produzir valor de ramo, sem emitir esse diagnóstico.
 
 - [ ] **Step 4: Atualizar os backends**
 

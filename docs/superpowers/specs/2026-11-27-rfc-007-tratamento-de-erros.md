@@ -69,6 +69,7 @@ O ADR 0018 congela `enum`, `Resultado` e `escolha`, mantém `vazio` apenas como 
 3. `finalmente` não participa do tipo do resultado.
 4. Para desambiguar as duas formas: na forma de comando, `tente ...` não é seguido de `;`; na forma de expressão usada como comando, o `;` final é obrigatório e o valor é descartado.
 5. `tente` em expressão não é aceito dentro de interpolação de cadeia nesta RFC: o scanner textual da RFC 004 fecha no primeiro `}` não escapado. Esse uso gera `pors.interpolation-invalid` no conteúdo da interpolação.
+6. A expressão final sem `;` de um ramo de valor (corpo protegido ou `capture`) é o valor daquele ramo; é a única exceção nomeada à regra da RFC 005 e não é um `retorne` implícito da função. `retorne` continua saindo da função, e `finalmente` não tem valor nem cauda.
 
 ### Bytecode, VM e Rust gerado
 
@@ -170,6 +171,7 @@ funcao inicio() {
 - `inicio` permanece sem retorno; erro escapado é diagnóstico de execução da VM, não mudança de assinatura.
 - `retorne`, `lance`, `pare` e `continue` continuam proibidos dentro de `finalmente`; `?` é permitido, mas mira para fora.
 - Blocos da forma de comando não têm expressão final; ramos da forma de expressão podem divergir sem valor.
+- Ramos de `tente` em expressão podem terminar com expressão sem `;` como valor do ramo: única exceção à RFC 005, registrada como chamada do autor e explicitada também no design doc aprovado.
 - `tente` não entra em interpolação de cadeia nesta fatia, para não exigir scanner com reconhecimento de chaves aninhadas.
 
 ## Consequências
