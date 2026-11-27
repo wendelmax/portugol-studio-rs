@@ -41,7 +41,7 @@ Esta RFC fixa o contrato observável da interpolação no frontend, na HIR, no b
 
 ### Tipos e diagnósticos
 
-1. Somente expressões do tipo `cadeia` ou `caracter` são convertidas diretamente para texto. `caracter` entra na concatenação como cadeia de um caractere, pela conversão existente; `cadeia` entra como ela mesma. `leia()` satisfaz esta regra com o tipo `cadeia` fixo da RFC 002.
+1. Somente expressões do tipo `cadeia` ou `caracter` são aceitas como parte de texto. Antes da dobra, cada parte é convertida para `cadeia`: uma parte `cadeia` entra como ela mesma e uma parte `caracter` é materializada como cadeia de um caractere. Assim, toda `Op::Add` da dobra tem dois operandos `cadeia`, e nenhuma chamada a `__pors_concat` mistura tipos. A conversão não cria nó de HIR nem auxiliar: o `Expr` filho mantém seu `ty = caracter` e seu `Expr.span` interno, e a parte passa a ser tratada como `cadeia` no lowering. `leia()` satisfaz esta regra com o tipo `cadeia` fixo da RFC 002.
 2. Conteúdo que não parseia como expressão PORS completa gera `pors.interpolation-invalid` no span exato do conteúdo entre chaves, sem as chaves. Exemplo: `escreva("{1 +}");` aponta `[10, 13)`.
 3. Conteúdo que parseia, mas cujo tipo não é `cadeia` nem `caracter`, gera `pors.interpolation-non-string` no span da expressão interna, sem as chaves. Números inteiros e reais, lógicos, vetores, registros, enums e `vazio` usam todos esse código; não há `to_string` implícito nem conversão numérica nesta fatia. Exemplo: `escreva("{42}");` aponta `[10, 12)`.
 4. Um diagnóstico não transforma a parte em literal: a cadeia interpolada continua com `ty = cadeia`, e o erro é localizado na parte ofensiva.
@@ -56,10 +56,10 @@ Esta RFC fixa o contrato observável da interpolação no frontend, na HIR, no b
 
 ### Lowering, bytecode, Rust gerado e source maps
 
-1. O lowering do `ExprKind::InterpolatedString` monta o texto das partes na ordem do fonte, reusando `Op::Add` com resultado `cadeia`; a VM mantém a concatenação atual de `Op::Add` (inclusive a conversão de `caracter` para texto), e o Rust gerado mantém `__pors_concat`. Não há opcode, helper, VM, crate ou tipo novo.
+1. O lowering do `ExprKind::InterpolatedString` monta o texto das partes na ordem do fonte depois da conversão para `cadeia`, reusando `Op::Add` com resultado `cadeia` e dois operandos `cadeia` em cada operação da dobra. No bytecode, a parte `caracter` é convertida ao valor `Str` de um caractere antes de entrar na dobra, pelo caminho de concatenação já existente na VM, sem opcode novo. No Rust gerado, `pors_string_view(parte, ty)` aplica a conversão existente (`__pors_char` para `caracter`, helper já presente) e `__pors_concat` continua recebendo dois `&str`. Não há opcode, helper, VM, crate ou tipo novo.
 2. Quando há uma única parte literal, o resultado é o próprio valor da cadeia; não é introduzida operação de concatenação vazia. Quando há mais partes, a dobra é associativa à esquerda, na ordem do fonte.
-3. Cada operação de concatenação, incluindo a conversão de um `caracter`, recebe source map apontando para o `Span` da parte correspondente; a expressão interna mantém seu próprio span. Debugger, bytecode/VM e Rust gerado leem as partes e esses mapas, não o texto bruto da cadeia.
-4. VM e Rust gerado produzem stdout idêntico, incluindo para escapes e cadeias com chaves literais. Não há campo JSON, fachada ou API WASM nova.
+3. Cada parte possui um `SourceMapSegment` apontando para o `Span` da parte; a conversão para `cadeia` não cria segmento próprio nem nó de HIR, e a expressão interna mantém seu `Expr.span` e o span interno usado pelos diagnósticos. Debugger, bytecode/VM e Rust gerado leem as partes e esses mapas, não o texto bruto da cadeia.
+4. VM e Rust gerado produzem stdout idêntico, inclusive para partes `caracter`, pela mesma conversão para `cadeia` nos dois backends, e para escapes e cadeias com chaves literais. Não há campo JSON, fachada ou API WASM nova.
 
 ### Formatação, editores e debugger
 
