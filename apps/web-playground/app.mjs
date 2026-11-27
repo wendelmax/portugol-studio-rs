@@ -35,6 +35,7 @@ const THEME_STORAGE_KEY = "pg-theme";
 const TOKEN_NAMES = ["comment", "string", "number", "keyword", "type", "builtin"];
 const PORS_TOKEN_RE =
   /(?<comment>\/\/[^\n]*|\/\*[\s\S]*?\*\/)|(?<string>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(?<number>\b\d+(?:\.\d+)?\b)|(?<keyword>\b(?:funcao|retorne|se|senao|senao_se|seja|mutavel|enquanto|faca_enquanto|para|escolha|caso|registro|enum|verdadeiro|falso|nulo|e|ou|nao)\b)|(?<type>\b(?:inteiro|real|logico|cadeia|caracter|vetor|Resultado|Opcao)\b)|(?<builtin>\b(?:UI|Matematica|Texto|Tipos|Util|Calendario|Arquivos|Json|Internet|Graficos|Teclado|Mouse|Sons|escreva|leia|adicionar|remover|obter|tamanho)\b)/g;
+const UI_START_RE = /\bfuncao\s+iniciar\s*\(/;
 
 function setStatus(message, tone = "info") {
   statusTextEl.textContent = message;
@@ -207,6 +208,16 @@ function applyUiResult(result) {
 
 function runUiSession() {
   if (!runtime) return;
+  // O playground abre com um exemplo de console. Sem um programa MVU carregado,
+  // o botão apenas reportaria a ausência de "iniciar" e não mostraria prévia.
+  if (!UI_START_RE.test(editorEl.value)) {
+    const uiExample = PLAYGROUND_EXAMPLES.find((item) => item.mode === "ui");
+    if (uiExample) {
+      exampleSelect.value = uiExample.id;
+      loadExample(uiExample.id);
+      return;
+    }
+  }
   closeActiveUi();
   applyUiResult(runtime.startUi(editorEl.value));
 }

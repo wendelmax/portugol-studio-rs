@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const desktopRoot = path.resolve(__dirname, "..");
 const distDir = path.join(desktopRoot, "dist");
+const REPORT_TIMEOUT_MS = Number(process.env.E2E_REPORT_TIMEOUT_MS || 45_000);
 
 if (!existsSync(path.join(distDir, "index.html"))) {
   console.error("dist/index.html ausente. Execute `npm run build` em apps/desktop antes.");
@@ -36,9 +37,17 @@ const MIME = {
   ".wasm": "application/wasm",
 };
 
-function e2eHarnessScript(scenario, width, height) {
+function e2eHarnessScript(scenario, width, height, runId) {
   return `<script>
 (function () {
+  const RUN_ID = ${JSON.stringify(runId)};
+  function postReport(payload) {
+    return fetch("/__e2e_report", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...payload, runId: RUN_ID, scenario: ${JSON.stringify(scenario)}, width: ${width}, height: ${height} })
+    });
+  }
   const MOCK_RUST = 'fn main() {\\n    let mut total: i32 = 0_i32;\\n    println!("{}", total);\\n}\\n';
   window.__TAURI_INTERNALS__ = {
     metadata: { currentWindow: { label: "main" }, currentWebview: { windowLabel: "main", label: "main" } },
@@ -135,11 +144,7 @@ function e2eHarnessScript(scenario, width, height) {
     if (${JSON.stringify(scenario)} === "home-dark") {
       document.documentElement.dataset.theme = "dark";
       await sleep(100);
-      await fetch("/__e2e_report", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ scenario: ${JSON.stringify(scenario)}, width: ${width}, height: ${height}, viewport: { w: window.innerWidth, h: window.innerHeight }, checks })
-      });
+      await postReport({ viewport: { w: window.innerWidth, h: window.innerHeight }, checks });
       return;
     }
 
@@ -252,30 +257,22 @@ function e2eHarnessScript(scenario, width, height) {
       await sleep(100);
     }
 
-    await fetch("/__e2e_report", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ scenario: ${JSON.stringify(scenario)}, width: ${width}, height: ${height}, viewport: { w: window.innerWidth, h: window.innerHeight }, checks })
-    });
+    await postReport({ viewport: { w: window.innerWidth, h: window.innerHeight }, checks });
   }
 
   window.addEventListener("error", (ev) => {
-    fetch("/__e2e_report", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ scenario: ${JSON.stringify(scenario)}, width: ${width}, height: ${height}, error: "window.error: " + (ev.message || ev.error), checks: [] })
-    });
+    postReport({ error: "window.error: " + (ev.message || ev.error), checks: [] });
   });
 
-  window.addEventListener("load", () => {
+  function startScenario() {
     runScenario().catch((err) => {
-      fetch("/__e2e_report", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ scenario: ${JSON.stringify(scenario)}, width: ${width}, height: ${height}, error: String(err), checks: [] })
-      });
+      postReport({ error: String(err), checks: [] });
     });
-  });
+  }
+  // O script é injetado no <head>; se o load já tiver ocorrido, não há evento
+  // posterior e o relatório nunca seria enviado.
+  if (document.readyState === "complete") startScenario();
+  else window.addEventListener("load", startScenario);
 })();
 </script>`;
 }
@@ -324,7 +321,9 @@ function shotSetupScript(scenario) {
 </script>`;
 }
 
-let pendingReportResolve = null;
+// Cada execução de navegador tem um runId próprio: um relatório atrasado de
+// uma execução anterior não pode mais satisfazer a espera da execução seguinte.
+const pendingReports = new Map();
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, "http://127.0.0.1");
@@ -334,11 +333,11 @@ const server = http.createServer((req, res) => {
     req.on("end", () => {
       res.writeHead(204);
       res.end();
-      if (pendingReportResolve) {
-        const resolve = pendingReportResolve;
-        pendingReportResolve = null;
-        try { resolve(JSON.parse(body)); } catch (error) { resolve({ error: String(error), checks: [] }); }
-      }
+      let report;
+      try { report = JSON.parse(body); } catch (error) { report = { error: String(error), checks: [] }; }
+      const resolve = pendingReports.get(report.runId);
+      if (resolve) resolve(report);
+      else console.error(`Relatório E2E ignorado (sem espera ativa para runId=${report.runId ?? "desconhecido"})`);
     });
     return;
   }
@@ -356,10 +355,11 @@ const server = http.createServer((req, res) => {
     const scenario = url.searchParams.get("e2e") || url.searchParams.get("shot") || "editor-bridge-verify";
     const width = Number(url.searchParams.get("w") || "1536");
     const height = Number(url.searchParams.get("h") || "960");
+    const runId = url.searchParams.get("rid") || "sem-rid";
     const html = readFileSync(filePath, "utf8");
     const injected = url.searchParams.has("shot")
       ? shotSetupScript(scenario)
-      : e2eHarnessScript(scenario, width, height);
+      : e2eHarnessScript(scenario, width, height, runId);
     res.end(html.replace("<head>", `<head>${injected}`));
     return;
   }
@@ -410,28 +410,71 @@ function browserArgs(profileDir, width, height, url, screenshotFile) {
   return flags;
 }
 
-async function runViewport({ scenario, width, height, screenshotName }) {
+class BrowserLifecycleError extends Error {}
+
+function tailFrom(stream) {
+  let tail = "";
+  stream.on("data", (chunk) => { tail = (tail + chunk.toString()).slice(-4000); });
+  return () => tail;
+}
+
+async function runViewportAttempt({ scenario, width, height, screenshotName, runId }) {
   const profileDir = mkdtempSync(path.join(tmpdir(), "portugol-e2e-"));
   const address = server.address();
-  const targetUrl = `http://127.0.0.1:${address.port}/?e2e=${encodeURIComponent(scenario)}&w=${width}&h=${height}`;
+  const targetUrl = `http://127.0.0.1:${address.port}/?e2e=${encodeURIComponent(scenario)}&w=${width}&h=${height}&rid=${encodeURIComponent(runId)}`;
 
+  let child;
+  let settled = false;
+  let timer;
+  let heartbeat;
+  let exitGrace;
+  let rejectReport;
+  let stderrTail = () => "";
+  const finish = (callback) => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(timer);
+    clearTimeout(exitGrace);
+    clearInterval(heartbeat);
+    pendingReports.delete(runId);
+    callback();
+  };
   const reportPromise = new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      pendingReportResolve = null;
-      reject(new Error(`Timeout aguardando relatório E2E (${scenario} ${width}x${height})`));
-    }, 25_000);
-    pendingReportResolve = (report) => {
-      clearTimeout(timer);
+    rejectReport = reject;
+    timer = setTimeout(() => finish(() => reject(new Error(
+      `Timeout aguardando relatório E2E (${scenario} ${width}x${height}) após ${REPORT_TIMEOUT_MS}ms.` +
+      `\nNavegador pid=${child?.pid ?? "?"} código=${child?.exitCode ?? "?"} sinal=${child?.signalCode ?? "?"}` +
+      `\nstderr: ${stderrTail() || "(vazio)"}`,
+    ))), REPORT_TIMEOUT_MS);
+    heartbeat = setInterval(() => {
+      const tail = stderrTail();
+      console.log(`Aguardando relatório E2E (${scenario} ${width}x${height}, ${runId})...${tail ? `\nstderr: ${tail}` : ""}`);
+    }, 10_000);
+    pendingReports.set(runId, (report) => finish(() => {
+      if (report.scenario !== scenario || report.width !== width || report.height !== height) {
+        reject(new Error(`Relatório E2E de outro cenário: ${JSON.stringify({ scenario: report.scenario, width: report.width, height: report.height })}`));
+        return;
+      }
       resolve(report);
-    };
-  });
-
-  const child = spawn(browser.bin, browserArgs(profileDir, width, height, targetUrl, null), {
-    env: { ...process.env, MOZ_HEADLESS: "1" },
-    stdio: ["ignore", "pipe", "pipe"],
+    }));
   });
 
   try {
+    child = spawn(browser.bin, browserArgs(profileDir, width, height, targetUrl, null), {
+      env: { ...process.env, MOZ_HEADLESS: "1" },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    stderrTail = tailFrom(child.stderr);
+    tailFrom(child.stdout);
+    child.once("error", (error) => finish(() => rejectReport(new BrowserLifecycleError(`Falha ao iniciar navegador: ${error.message}`))));
+    child.once("exit", (code, signal) => {
+      // Um relatório já em trânsito pode chegar logo após o exit: dá esse
+      // pequeno grace antes de considerar a falha como ciclo de vida.
+      exitGrace = setTimeout(() => finish(() => rejectReport(new BrowserLifecycleError(
+        `Navegador encerrado antes do relatório (código=${code}, sinal=${signal})\nstderr: ${stderrTail() || "(vazio)"}`,
+      ))), 500);
+    });
+
     const report = await reportPromise;
     assert.equal(report.error, undefined, `Erro no cenário ${scenario}: ${report.error}`);
     assert.ok(Array.isArray(report.checks) && report.checks.length > 0, "Relatório E2E sem verificações");
@@ -442,8 +485,11 @@ async function runViewport({ scenario, width, height, screenshotName }) {
         failed.map((c) => `  - ${c.name}: ${c.detail}`).join("\n"),
       );
     }
-    child.kill("SIGTERM");
-    await new Promise((resolve) => child.on("close", resolve));
+    if (child.exitCode === null && child.signalCode === null) child.kill("SIGTERM");
+    await new Promise((resolve) => {
+      if (child.exitCode !== null || child.signalCode !== null) return resolve();
+      child.once("close", resolve);
+    });
 
     if (screenshotsDir) {
       const shotProfile = mkdtempSync(path.join(tmpdir(), "portugol-shot-"));
@@ -466,8 +512,22 @@ async function runViewport({ scenario, width, height, screenshotName }) {
       console.log(`✔ E2E [${browser.engine}] ${scenario} @ ${width}x${height} (${report.checks.length} verificações OK)`);
     }
   } finally {
-    child.kill("SIGKILL");
+    if (child && child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
+    finish(() => {});
     rmSync(profileDir, { recursive: true, force: true });
+  }
+}
+
+async function runViewport(options) {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const runId = `${options.scenario}-${options.width}x${options.height}-${attempt}`;
+    try {
+      await runViewportAttempt({ ...options, runId });
+      return;
+    } catch (error) {
+      if (attempt === 2 || !(error instanceof BrowserLifecycleError)) throw error;
+      console.log(`Navegador falhou antes do relatório (${options.scenario}); repetindo uma vez. ${error.message}`);
+    }
   }
 }
 
