@@ -223,3 +223,49 @@ test("classifies desktop project markup and gives each file a marker", async () 
   assert.equal(workspaceFileMarker("main.rs"), "R");
   assert.equal(workspaceFileMarker("lista.pors.json"), "EX");
 });
+
+test("groups each .design with the .pors of the same name into a screen node", async () => {
+  const { groupScreens, screensContaining, SCREEN_PATH_SUFFIX } = await import("../src/workspace-explorer.ts");
+  const file = (path) => ({ kind: "file", name: path.split("/").pop(), path });
+  const entries = [
+    { kind: "folder", name: "App", path: "App", entries: [
+      file("App/Cadastro.design"),
+      file("App/JanelaPrincipal.DESIGN"),
+      file("App/JanelaPrincipal.pors"),
+      file("App/meu-app.porsproj"),
+      file("App/util.pors"),
+    ] },
+    file("solto.pors"),
+  ];
+
+  const grouped = groupScreens(entries);
+  const app = grouped[0];
+  assert.equal(app.kind, "folder");
+  assert.deepEqual(app.entries.map((entry) => [entry.kind, entry.name]), [
+    ["screen", "Cadastro"],
+    ["screen", "JanelaPrincipal"],
+    ["file", "meu-app.porsproj"],
+    ["file", "util.pors"],
+  ]);
+  const [cadastro, principal] = app.entries;
+  assert.equal(cadastro.code, null);
+  assert.deepEqual(cadastro.entries.map((f) => f.path), ["App/Cadastro.design"]);
+  assert.equal(principal.path, `App/JanelaPrincipal.DESIGN${SCREEN_PATH_SUFFIX}`);
+  assert.deepEqual(principal.entries.map((f) => f.path), ["App/JanelaPrincipal.DESIGN", "App/JanelaPrincipal.pors"]);
+  assert.deepEqual(grouped[1], file("solto.pors"));
+
+  assert.deepEqual(screensContaining(grouped, "App/JanelaPrincipal.pors"), [principal.path]);
+  assert.deepEqual(screensContaining(grouped, "App/util.pors"), []);
+
+  const rows = flattenWorkspaceEntries(grouped, new Set(["App", principal.path]));
+  assert.deepEqual(rows.map((row) => [row.entry.name, row.depth]), [
+    ["App", 0],
+    ["Cadastro", 1],
+    ["JanelaPrincipal", 1],
+    ["JanelaPrincipal.DESIGN", 2],
+    ["JanelaPrincipal.pors", 2],
+    ["meu-app.porsproj", 1],
+    ["util.pors", 1],
+    ["solto.pors", 0],
+  ]);
+});
