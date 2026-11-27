@@ -43,7 +43,7 @@ const PORS_TYPES = [
   "inteiro", "real", "logico", "cadeia", "caracter", "vetor", "Opcao", "Resultado",
 ] as const;
 
-const PORS_BUILTINS = ["escreva", "leia", "tamanho", "adicionar", "remover", "obter"] as const;
+const PORS_BUILTINS = ["escreva", "escreval", "leia", "tamanho", "adicionar", "remover", "obter"] as const;
 
 export const PORS_MODULES = PORS_STDLIB_MODULES;
 
@@ -79,7 +79,8 @@ const PORS_TOP_LEVEL_DOCS: Record<string, PorsDocEntry> = {
   remover: { label: "remover", kind: "function", signature: "remover(v: mutavel vetor<T>) -> Opcao<T>", description: "Remove e retorna o último elemento de um vetor mutável como `Opcao<T>` (equivale a `Vec::pop`)." },
   obter: { label: "obter", kind: "function", signature: "obter(v: vetor<T>, indice: inteiro) -> Opcao<T>", description: "Lê um elemento do vetor com segurança retornando `Opcao<T>` sem encerrar o programa fora dos limites." },
   escreva: { label: "escreva", kind: "function", signature: "escreva(valor, ...)", description: "Escreve um ou mais valores escalares na saída padrão sem quebra de linha automática." },
-  leia: { label: "leia", kind: "function", signature: "leia(variavel_mutavel)", description: "Lê um valor tipado da entrada padrão para uma variável declarada com `seja mutavel`." },
+  escreval: { label: "escreval", kind: "function", signature: "escreval(valor, ...)", description: "Escreve os valores na saída padrão com quebra de linha ao final; equivale a `escreva(valor, ..., \"\\n\")`." },
+  leia: { label: "leia", kind: "function", signature: "leia() | leia(variavel_mutavel)", description: "Sem argumentos, lê uma linha e devolve uma `cadeia`. Com uma variável declarada com `seja mutavel`, lê um valor tipado da entrada padrão para essa variável." },
   seja: { label: "seja", kind: "keyword", signature: "seja [mutavel] nome: Tipo = valor;", description: "Declara um binding imutável por padrão (ou mutável com `seja mutavel`), equivalente a `let` / `let mut` em Rust." },
   mutavel: { label: "mutavel", kind: "keyword", signature: "seja mutavel nome: Tipo = valor;", description: "Permite reatribuição e mutação de campos ou índices do binding." },
   registro: { label: "registro", kind: "keyword", signature: "registro Nome { campo: Tipo }", description: "Declara um tipo composto nominal com campos tipados (equivale a `struct` em Rust)." },
