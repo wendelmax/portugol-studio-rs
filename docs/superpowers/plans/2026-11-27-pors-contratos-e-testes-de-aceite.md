@@ -226,7 +226,7 @@ git commit -m "docs: especificar contrato compartilhado de realce PORS"
 **Files:**
 - Create: `tests/fixtures/pors-syntax-evolution.pors`
 - Modify: `crates/portugol-rs-frontend/tests/parser.rs`, `crates/portugol-rs-frontend/tests/semantics.rs`, `crates/portugol-vm/tests/pors_core.rs`, `crates/portugol-wasm/tests/wasm_facade.rs`, `crates/portugol-service/tests/portugol_rs_runner.rs`
-- Referência (não modificar aqui): testes das Tasks 1, 2 e 4 de `docs/superpowers/plans/2026-11-27-pors-syntax-highlighting.md`
+- Testes dos editores: executar somente os Steps 1 e 2 das Tasks 1, 2 e 4 de `docs/superpowers/plans/2026-11-27-pors-syntax-highlighting.md` (escrever os testes e confirmar a falha); não implementar as features.
 
 **Interfaces:**
 - Consumes: RFCs 001–006; `lower(source) -> Result<Program, Vec<Diagnostic>>`; `compile_pors(&Program) -> Result<Module, PorsCompileError>`; `run(&Module, &mut BufferIo)`; `run_pors_json(source, input, RunBudget)`; `run_portugol_rs_with_io(source, &AtomicBool, handler, observer)`.
@@ -357,6 +357,6 @@ Expected: os cinco comandos `cargo test` falham em `lower()`/exportação (não 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add tests/fixtures/pors-syntax-evolution.pors crates/portugol-rs-frontend/tests/parser.rs crates/portugol-rs-frontend/tests/semantics.rs crates/portugol-vm/tests/pors_core.rs crates/portugol-wasm/tests/wasm_facade.rs crates/portugol-service/tests/portugol_rs_runner.rs
+git add tests/fixtures/pors-syntax-evolution.pors crates/portugol-rs-frontend/tests/parser.rs crates/portugol-rs-frontend/tests/semantics.rs crates/portugol-vm/tests/pors_core.rs crates/portugol-wasm/tests/wasm_facade.rs crates/portugol-service/tests/portugol_rs_runner.rs apps/desktop/tests/pors-completions.test.mjs apps/desktop/tests/pors-interpolation-highlight.test.mjs apps/desktop/tests/web-playground.test.mjs
 git commit -m "test: adicionar aceite vermelho para evolução sintática do PORS"
 ```
