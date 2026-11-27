@@ -139,7 +139,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
     example: {
       title: "Cálculo de hipotenusa e arredondamento",
       fileName: "exemplo-matematica.pors",
-      source: `funcao inicio() {\n    seja a: real = 3.0;\n    seja b: real = 4.0;\n    seja hipotenusa: real = Matematica.raiz_quadrada(Matematica.potencia(a, 2.0) + Matematica.potencia(b, 2.0));\n    escreva("Hipotenusa: ", Matematica.arredondar(hipotenusa, 2), "\\n");\n    escreva("PI ≈ ", Matematica.arredondar(Matematica.PI, 4));\n}\n`,
+      source: `funcao inicio() {\n    seja a = 3.0;\n    seja b = 4.0;\n    seja hipotenusa: real = Matematica.raiz_quadrada(Matematica.potencia(a, 2.0) + Matematica.potencia(b, 2.0));\n    escreval("Hipotenusa: ", Matematica.arredondar(hipotenusa, 2));\n    escreva("PI ≈ ", Matematica.arredondar(Matematica.PI, 4));\n}\n`,
     },
     items: [
       constant("PI", "Matematica.PI: real", "Constante matemática π (≈ 3.141592653589793)."),
@@ -171,7 +171,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
     example: {
       title: "Normalização e divisão de texto",
       fileName: "exemplo-texto.pors",
-      source: `funcao inicio() {\n    seja frase: cadeia = Texto.aparar("  Portugol-RS e Rust  ");\n    seja partes: vetor<cadeia> = Texto.dividir(frase, " ");\n    escreva("Maiúsculas: ", Texto.caixa_alta(frase), "\\n");\n    escreva("Palavras: ", tamanho(partes), "\\n");\n}\n`,
+      source: `funcao inicio() {\n    seja frase = Texto.aparar("  Portugol-RS e Rust  ");\n    seja partes: vetor<cadeia> = Texto.dividir(frase, " ");\n    escreval("Maiúsculas: ", Texto.caixa_alta(frase));\n    escreval("Palavras: ", tamanho(partes));\n}\n`,
     },
     items: [
       fn("numero_caracteres", "Texto.numero_caracteres(texto: cadeia) -> inteiro", "Retorna a quantidade de caracteres Unicode (`char`) da cadeia."),
@@ -249,7 +249,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
     example: {
       title: "Data UTC atual e verificação de ano bissexto",
       fileName: "exemplo-calendario.pors",
-      source: `funcao inicio() {\n    seja ano: inteiro = Calendario.ano_atual();\n    escreva("Data UTC: ", Calendario.data_iso_atual(), "\\n");\n    escreva("Ano ", ano, " é bissexto? ", Calendario.eh_bissexto(ano));\n}\n`,
+      source: `funcao inicio() {\n    seja ano = Calendario.ano_atual();\n    escreval("Data UTC: ", Calendario.data_iso_atual());\n    escreva("Ano ", ano, " é bissexto? ", Calendario.eh_bissexto(ano));\n}\n`,
     },
     items: [
       constant("DIA_DOMINGO", "Calendario.DIA_DOMINGO: inteiro", "Constante para domingo (1)."),

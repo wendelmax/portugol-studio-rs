@@ -1,6 +1,6 @@
 // Funcao sem retorno e sem parametro
 funcao imprime_linha() {
-    escreva("\n-----------------------------\n");
+    escreval("\n-----------------------------");
 }
 
 // Funcao com retorno do tipo real e tres parametros inteiros
@@ -40,5 +40,5 @@ funcao inicio() {
     seja num: inteiro = 3;
 
     // Verifica se o numero 3 e par com uma resposta do tipo logico
-    escreva(num, " é par? ", verifica_par(num), "\n");
+    escreval(num, " é par? ", verifica_par(num));
 }

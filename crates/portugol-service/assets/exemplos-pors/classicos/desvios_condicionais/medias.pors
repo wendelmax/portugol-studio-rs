@@ -20,30 +20,26 @@
  */
 
 funcao inicio() {
-    seja mutavel m1: real = 0.0;
-    seja mutavel m2: real = 0.0;
-    seja mutavel m3: real = 0.0;
-
     escreva("Informe a média 1: ");
-    leia(m1);
+    seja mutavel m1: real = leia();
     escreva("Informe a média 2: ");
-    leia(m2);
+    seja mutavel m2: real = leia();
     escreva("Informe a média 3: ");
-    leia(m3);
+    seja mutavel m3: real = leia();
 
     seja media: real = (m1 + m2 + m3) / 3.0;
 
-    escreva("\nA média final é: ", Matematica.arredondar(media, 2), "\n\n");
+    escreval("\nA média final é: ", Matematica.arredondar(media, 2), "\n");
 
     se (m1 < media) {
-        escreva("A média 1 é menor que a média final\n");
+        escreval("A média 1 é menor que a média final");
     }
 
     se (m2 < media) {
-        escreva("A média 2 é menor que a média final\n");
+        escreval("A média 2 é menor que a média final");
     }
 
     se (m3 < media) {
-        escreva("A média 3 é menor que a média final\n");
+        escreval("A média 3 é menor que a média final");
     }
 }

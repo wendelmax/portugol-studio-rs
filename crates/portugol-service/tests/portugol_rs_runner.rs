@@ -189,6 +189,47 @@ fn generated_rust_requests_a_string_when_read_is_an_expression() {
 }
 
 #[test]
+fn generated_rust_requests_typed_input_for_read_expression() {
+    let cancel = AtomicBool::new(false);
+    let mut requests = Vec::new();
+    let result = run_portugol_rs_with_io(
+        "funcao inicio() { seja n: inteiro = leia(); escreval(n); }",
+        &cancel,
+        |expected| {
+            requests.push(expected.to_owned());
+            Ok("36".to_owned())
+        },
+        |_| {},
+    )
+    .unwrap();
+    assert_eq!(requests, ["inteiro"]);
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { ref stdout, exit_code: Some(0), .. } if stdout == "36\n"),
+        "{result:?}"
+    );
+}
+
+#[test]
+fn generated_rust_reports_invalid_typed_expression_input() {
+    let cancel = AtomicBool::new(false);
+    let result = run_portugol_rs_with_io(
+        "funcao inicio() { seja n: inteiro = leia(); escreval(n); }",
+        &cancel,
+        |_| Ok("abc".to_owned()),
+        |_| {},
+    )
+    .unwrap();
+    assert!(
+        matches!(
+            result,
+            PortugolRsRunResult::Executed { ref stderr, exit_code: Some(code), .. }
+                if code != 0 && stderr.to_lowercase().contains("inteiro")
+        ),
+        "{result:?}"
+    );
+}
+
+#[test]
 fn generated_rust_declares_read_helper_for_leia_in_para_header() {
     let cancel = AtomicBool::new(false);
     let mut inputs = ["abc", "a"].into_iter();
@@ -243,6 +284,141 @@ fn parses_string_real_boolean_and_character_inputs() {
             PortugolRsRunResult::Executed { stdout, exit_code: Some(0), .. } if stdout == value
         ));
     }
+}
+
+#[test]
+fn generated_rust_trims_integer_input_before_conversion() {
+    let cancel = AtomicBool::new(false);
+    let result = run_portugol_rs_with_io(
+        "funcao inicio() { seja n: inteiro = leia(); escreval(n + 1); }",
+        &cancel,
+        |_| Ok(" 36".to_owned()),
+        |_| {},
+    )
+    .unwrap();
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { ref stdout, exit_code: Some(0), .. } if stdout == "37\n"),
+        "{result:?}"
+    );
+}
+
+#[test]
+fn generated_rust_trims_boolean_input_before_conversion() {
+    let cancel = AtomicBool::new(false);
+    let result = run_portugol_rs_with_io(
+        "funcao inicio() { seja n: logico = leia(); escreval(n); }",
+        &cancel,
+        |_| Ok(" verdadeiro".to_owned()),
+        |_| {},
+    )
+    .unwrap();
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { ref stdout, exit_code: Some(0), .. } if stdout == "verdadeiro\n"),
+        "{result:?}"
+    );
+}
+
+#[test]
+fn generated_rust_trims_character_input_before_conversion() {
+    let cancel = AtomicBool::new(false);
+    let result = run_portugol_rs_with_io(
+        "funcao inicio() { seja n: caracter = leia(); escreval(n); }",
+        &cancel,
+        |_| Ok(" A ".to_owned()),
+        |_| {},
+    )
+    .unwrap();
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { ref stdout, exit_code: Some(0), .. } if stdout == "A\n"),
+        "{result:?}"
+    );
+}
+
+#[test]
+fn generated_rust_rejects_multi_character_input_for_a_character_read() {
+    let cancel = AtomicBool::new(false);
+    let result = run_portugol_rs_with_io(
+        "funcao inicio() { seja n: caracter = leia(); escreval(n); }",
+        &cancel,
+        |_| Ok("AB".to_owned()),
+        |_| {},
+    )
+    .unwrap();
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { ref stderr, exit_code: Some(code), .. }
+            if code != 0 && stderr.to_lowercase().contains("caracter")),
+        "{result:?}"
+    );
+}
+
+#[test]
+fn generated_rust_rejects_unknown_boolean_input_with_surrounding_spaces() {
+    let cancel = AtomicBool::new(false);
+    let result = run_portugol_rs_with_io(
+        "funcao inicio() { seja n: logico = leia(); escreval(n); }",
+        &cancel,
+        |_| Ok(" talvez ".to_owned()),
+        |_| {},
+    )
+    .unwrap();
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { ref stderr, exit_code: Some(code), .. }
+            if code != 0 && stderr.to_lowercase().contains("logico")),
+        "{result:?}"
+    );
+}
+
+#[test]
+fn generated_rust_and_vm_agree_on_trimmed_scalar_reads() {
+    for (source, input, expected) in [
+        (
+            "funcao inicio() { seja n: inteiro = leia(); escreval(n + 1); }",
+            " 36",
+            "37\n",
+        ),
+        (
+            "funcao inicio() { seja n: logico = leia(); escreval(n); }",
+            " verdadeiro",
+            "verdadeiro\n",
+        ),
+        (
+            "funcao inicio() { seja n: caracter = leia(); escreval(n); }",
+            " A ",
+            "A\n",
+        ),
+    ] {
+        let program = portugol_rs_frontend::lower(source).unwrap();
+        let module = portugol_bytecode::compile_pors(&program).unwrap();
+        let mut io = portugol_vm::BufferIo::new(input);
+        portugol_vm::run(&module, &mut io).expect("VM deve aceitar a entrada");
+
+        let cancel = AtomicBool::new(false);
+        let result =
+            run_portugol_rs_with_io(source, &cancel, |_| Ok(input.to_owned()), |_| {}).unwrap();
+        assert!(
+            matches!(result, PortugolRsRunResult::Executed { ref stdout, exit_code: Some(0), .. } if stdout == expected),
+            "{result:?}"
+        );
+        assert_eq!(io.output, expected);
+    }
+}
+
+#[test]
+fn generated_rust_and_vm_agree_on_multi_character_caracter_rejection() {
+    let source = "funcao inicio() { seja n: caracter = leia(); escreval(n); }";
+    let program = portugol_rs_frontend::lower(source).unwrap();
+    let module = portugol_bytecode::compile_pors(&program).unwrap();
+    let mut io = portugol_vm::BufferIo::new("AB");
+    let vm_error = portugol_vm::run(&module, &mut io).expect_err("VM deve rejeitar a entrada");
+    assert!(format!("{vm_error:?}").contains("caracter"), "{vm_error:?}");
+
+    let cancel = AtomicBool::new(false);
+    let result = run_portugol_rs_with_io(source, &cancel, |_| Ok("AB".to_owned()), |_| {}).unwrap();
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { ref stderr, exit_code: Some(code), .. }
+            if code != 0 && stderr.to_lowercase().contains("caracter")),
+        "{result:?}"
+    );
 }
 
 #[test]

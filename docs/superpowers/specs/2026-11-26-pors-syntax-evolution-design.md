@@ -7,6 +7,8 @@
 
 > **Revisão (ADR 0020):** no material didático, o exemplo motivador usa `retorne "Olá, {nome}!";`; o retorno implícito fica na trilha de ponte para Rust. A interpolação passa a aceitar `inteiro`, `real` e `logico`, e `leia()` converte para o tipo de um destino declarado.
 
+> **Revisão de 2026-11-27:** o contrato original deste design congelava `leia()` como `cadeia` fixa. Ele foi superado pela revisão da ADR 0019 e pela RFC 002: `leia()` agora infere o tipo esperado pelo contexto e a conversão implícita vale também para a forma com variável-alvo. As seções históricas abaixo são mantidas como registro do planejamento, com os pontos superados sinalizados.
+
 ## Intenção
 
 O aluno deve conseguir escrever o programa motivador com menos ruído operacional:
@@ -40,14 +42,14 @@ O objetivo é evoluir o núcleo da linguagem mantendo a ponte para Rust e a comp
 - É a menor fatia que entrega o exemplo discutido de ponta a ponta.
 - As quatro lacunas são independentes da largura de inteiros e do modelo de memória; não exigem GC nem novos tipos numéricos.
 - O projeto já tem HIR, bytecode, VM stack-based, I/O abstraído, dois backends (VM e Rust gerado) e WASM. O risco está em mudar contratos compartilhados sem especificação executável.
-- Manter o exemplo atual (`leia(nome)`, `escreva`, concatenação com `+`) funcionando é obrigatório; ele está em documentação, testes e no Web Playground.
+- Manter o exemplo atual (forma com variável-alvo de `leia`, `escreva`, concatenação com `+`) funcionando é obrigatório; ele está em documentação, testes e no Web Playground.
 
 ## Objetivos
 
 1. Publicar um **ADR mínimo de contrato de tipos** que registre explicitamente o que fica congelado nesta fatia e o que fica adiado.
 2. Escrever RFCs datadas em `docs/superpowers/specs/` para:
    - inferência de tipo em `seja nome = expressao;`;
-   - `leia()` como expressão que retorna `cadeia`;
+   - `leia()` como expressão com conversão implícita ao tipo esperado (`cadeia` sem contexto);
    - `escreval` com quebra de linha implícita;
    - interpolação de cadeias com partes `Literal`/`Expressão` na HIR;
    - retorno implícito com expressão final de bloco;
@@ -75,7 +77,7 @@ O objetivo é evoluir o núcleo da linguagem mantendo a ponte para Rust e a comp
 
 - Tratar `"Olá, {nome}"` como substituição textual antes de montar a HIR: perde spans, formatação, rename e diagnósticos.
 - Adicionar `escreval` como novo opcode sem necessidade: isso duplicaria `Write` e enfraqueceria a equivalência VM/Rust.
-- Quebrar `leia(variavel)`: a forma antiga continua válida e testada.
+- Quebrar a forma com variável-alvo de `leia`: a forma antiga continua válida e testada.
 - Prometer tradução Rust “bonita” como se fosse o código compilável real. O painel educacional deve separar **Rust compilável** de **equivalência conceitual resumida**.
 
 ## Restrições verificadas
@@ -101,7 +103,7 @@ O objetivo é evoluir o núcleo da linguagem mantendo a ponte para Rust e a comp
 O primeiro artefato será um ADR curto registrando:
 
 - `inteiro` continua `i32` com `wrapping` até decisão posterior;
-- `leia()` tem tipo fixo `cadeia` nesta fatia, sem tipo dependente de contexto e sem `leia<T>()`;
+- `leia()` infere o tipo do contexto e resulta em `cadeia` sem contexto tipado, sem `leia<T>()` (revisão de 2026-11-27);
 - nomes atuais (`caracter`, `registro`, `enum`, `Opcao`, `Resultado`, `escolha`) permanecem;
 - spans continuam UTF-8 em bytes;
 - `vazio` existe apenas como tipo de retorno/função sem valor, sem valor `nunca`;
@@ -109,11 +111,11 @@ O primeiro artefato será um ADR curto registrando:
 
 ### Inferência
 
-Tornar `:` opcional em declarações com inicializador. O tipo vem do literal, chamada, construtor ou operação binária; o contexto existente apenas confirma compatibilidade e nunca muda o tipo inferido. `[]` sem contexto continua erro. Tipos explícitos continuam aceitos e são a forma canônica em documentação. `seja nome = leia();` infere `cadeia` porque `leia()` é `cadeia`, não por causa da declaração.
+Tornar `:` opcional em declarações com inicializador. O tipo vem do literal, chamada, construtor ou operação binária; sem anotação, o contexto não altera o tipo inferido. `[]` sem contexto continua erro. Tipos explícitos continuam aceitos e são a forma canônica em documentação. `seja nome = leia();` infere `cadeia` porque não há tipo esperado; `seja n: inteiro = leia();` mantém o binding `inteiro` e a leitura converte implicitamente ao tipo anotado.
 
 ### `leia()` como expressão
 
-Adicionar nó de expressão de leitura ao HIR, mantendo `StmtKind::Read` como açúcar para compatibilidade. **Toda leitura sem argumento tem tipo fixo `cadeia`**, independentemente do contexto; declaração, parâmetro ou retorno nunca mudam esse tipo. Usar `leia()` onde se espera `inteiro`, por exemplo, é erro de tipo com span na chamada. A forma legada `leia(variavel)` continua com o tipo da variável e não é convertida em expressão nesta fatia. A varredura de `has_read` no exportador Rust e o protocolo `PORTUGOL_INPUT:cadeia` devem passar a enxergar leituras dentro de expressões. `leia<T>()`, conversão e validação tipada de entrada ficam em P1.
+Adicionar nó de expressão de leitura ao HIR, mantendo `StmtKind::Read` como açúcar para compatibilidade. **A leitura sem argumento infere o tipo esperado pelo contexto**; sem contexto, resulta em `cadeia`. Declaração tipada, parâmetro, retorno, atribuição e campo fornecem o tipo; entrada inválida gera erro de execução, não erro de tipo estático. A forma com variável-alvo continua com o tipo da variável e não é convertida em expressão nesta fatia. A varredura de `has_read` no exportador Rust e o protocolo `PORTUGOL_INPUT:{expected}` devem passar a enxergar leituras dentro de expressões. `leia<T>()` e validação tipada explícita de entrada ficam em P1.
 
 ### `escreval`
 
@@ -123,11 +125,7 @@ Implementar como sugar sintático:
 escreval(a, b);
 ```
 
-equivale a:
-
-```pors
-escreva(a, b, "\n");
-```
+equivale a escrever `a`, `b` e uma quebra de linha final com `escreva`. A quebra é sintética: o fonte do exemplo não precisa conter `"\n"` explícito.
 
 Isso preserva `StmtKind::Write`, `Op::Write`, o `print!` do Rust gerado e os limites de saída existentes.
 
@@ -184,7 +182,7 @@ Isso mantém o mapeamento testável nos crates e evita ampliar o contrato públi
 
 Registro único para quem for planejar a implementação:
 
-1. `leia()` é sempre `cadeia`; contexto nunca altera o tipo. `leia(variavel)` legado mantém o tipo da variável.
+1. `leia()` infere o tipo do contexto; sem contexto é `cadeia`. A forma legada com variável-alvo mantém o tipo da variável e também converte implicitamente.
 2. Retorno implícito vale somente para o corpo da função; blocos aninhados exigem `retorne`.
 3. Interpolação: `\{`/`\}` são literais; `{...}` não vazio e fechado é expressão; `{}` e `{` aberto permanecem literais; conteúdo inválido gera diagnóstico com span.
 4. Superfície do mapa HIR → bytecode → Rust: source maps internos + painel do debugger na IDE + preview Rust existente; nenhuma API WASM nova.
@@ -216,7 +214,7 @@ Registro único para quem for planejar a implementação:
 
 ## Riscos
 
-- Inferência mal definida pode tornar `leia()` ambíguo em contextos sem tipo; o tipo fixo `cadeia` e o erro para `[]` mitigam.
+- Inferência mal definida pode tornar `leia()` ambíguo em contextos sem tipo; o resultado `cadeia` sem contexto e o erro para `[]` mitigam.
 - Interpolação pode perder spans se for implementada no lexer; por isso as partes vivem na HIR com spans próprios.
 - `leia()` como expressão pode quebrar o protocolo de entrada da IDE se `has_read` não for atualizado; testes de runner cobrem isso.
 - `escreval` pode duplicar newline se o programa já usar `"\n"`; o sugar é explícito e não altera `escreva`.

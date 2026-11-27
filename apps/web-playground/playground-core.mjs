@@ -9,13 +9,12 @@ export const PLAYGROUND_EXAMPLES = [
     mode: "console",
     input: "Ada\n",
     source: `funcao saudar(nome: cadeia) -> cadeia {
-    retorne "Olá, " + nome + "! Bem-vindo ao Portugol-RS no navegador.";
+    retorne "Olá, {nome}! Bem-vindo ao Portugol-RS no navegador.";
 }
 
 funcao inicio() {
-    seja mutavel nome: cadeia = "";
-    leia(nome);
-    escreva(saudar(nome), "\\n");
+    seja nome = leia();
+    escreval(saudar(nome));
 }
 `,
   },
@@ -39,18 +38,18 @@ funcao calcular(a: inteiro, b: inteiro) -> Resultado<inteiro, cadeia> {
 funcao inicio() {
     escolha calcular(20, 4) {
         caso Resultado::Ok(v) => {
-            escreva("20 / 4 * 10 = ", v, "\\n");
+            escreval("20 / 4 * 10 = ", v);
         }
         caso Resultado::Erro(e) => {
-            escreva("Erro: ", e, "\\n");
+            escreval("Erro: ", e);
         }
     }
     escolha calcular(20, 0) {
         caso Resultado::Ok(v) => {
-            escreva("resultado = ", v, "\\n");
+            escreval("resultado = ", v);
         }
         caso Resultado::Erro(e) => {
-            escreva("20 / 0 -> Erro: ", e, "\\n");
+            escreval("20 / 0 -> Erro: ", e);
         }
     }
 }
@@ -64,13 +63,13 @@ funcao inicio() {
     source: `funcao inicio() {
     seja mutavel notas: vetor<inteiro> = [7, 8, 10];
     adicionar(notas, 9);
-    seja mutavel soma: inteiro = 0;
-    para (seja mutavel i: inteiro = 0; i < tamanho(notas); i += 1) {
+    seja mutavel soma = 0;
+    para (seja mutavel i = 0; i < tamanho(notas); i += 1) {
         soma += notas[i];
     }
-    escreva("Quantidade: ", tamanho(notas), "\\n");
-    escreva("Soma: ", soma, "\\n");
-    escreva("Média inteira: ", soma / tamanho(notas), "\\n");
+    escreval("Quantidade: ", tamanho(notas));
+    escreval("Soma: ", soma);
+    escreval("Média inteira: ", soma / tamanho(notas));
 }
 `,
   },

@@ -2,13 +2,13 @@ funcao inicio() {
     // A variavel teste e falsa; o operador "!" inverte o valor para verdadeiro
     seja teste: logico = falso;
     se (!teste) {
-        escreva("Teste 1 positivo\n");
+        escreval("Teste 1 positivo");
     }
 
     // A soma a + b resulta em 5, que nao e maior que 7; logo !(a + b > 7) e verdadeiro
     seja a: inteiro = 2;
     seja b: inteiro = 3;
     se (!(a + b > 7)) {
-        escreva("Teste 2 positivo\n");
+        escreval("Teste 2 positivo");
     }
 }

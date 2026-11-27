@@ -77,16 +77,16 @@ funcao desenhar_poligono_seguro(xs: vetor < inteiro >, ys: vetor < inteiro >, pr
 
 funcao construir_fase(fase: inteiro) -> vetor < inteiro > {
     seja mutavel m: vetor < inteiro > = [];
-    para (seja mutavel i: inteiro = 0; i < 15 * 25; i += 1) {
+    para (seja mutavel i = 0; i < 15 * 25; i += 1) {
         adicionar(m, 0);
     }
 
     // Bordas externas sólidas
-    para (seja mutavel c: inteiro = 0; c < 25; c += 1) {
+    para (seja mutavel c = 0; c < 25; c += 1) {
         m[c] = 1;
         m[14 * 25 + c] = 1;
     }
-    para (seja mutavel l: inteiro = 0; l < 15; l += 1) {
+    para (seja mutavel l = 0; l < 15; l += 1) {
         m[l * 25] = 1;
         m[l * 25 + 24] = 1;
     }
@@ -383,8 +383,8 @@ funcao desenhar(jogo: JogoBallSaga) {
     seja mapa: vetor < inteiro > = jogo.mapa;
     seja oy: inteiro = 48;
 
-    para (seja mutavel l: inteiro = 0; l < 15; l += 1) {
-        para (seja mutavel c: inteiro = 0; c < 25; c += 1) {
+    para (seja mutavel l = 0; l < 15; l += 1) {
+        para (seja mutavel c = 0; c < 25; c += 1) {
             seja v: inteiro = mapa[l * 25 + c];
             seja x: inteiro = c * 32;
             seja y: inteiro = oy + l * 32;

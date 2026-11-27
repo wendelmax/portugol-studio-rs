@@ -41,7 +41,7 @@ funcao calcular_coordenadas(raio_movimento: inteiro) -> TabelaOnda {
     seja incremento_angulo: real = (Matematica.PI * 2.0) / 360.0;
     seja raio_real: real = Tipos.inteiro_para_real(raio_movimento);
 
-    para (seja mutavel i: inteiro = 0; i < 360; i += 1) {
+    para (seja mutavel i = 0; i < 360; i += 1) {
         seja x: real = Matematica.arredondar(Matematica.cosseno(angulo) * raio_real, 0);
         seja y: real = Matematica.arredondar(Matematica.seno(angulo) * raio_real, 0);
 
@@ -117,7 +117,7 @@ funcao inicio() {
     Graficos.definir_dimensoes_janela(largura_janela, altura_janela);
     Graficos.definir_titulo_janela("Onda");
 
-    seja mutavel iteracao: inteiro = 0;
+    seja mutavel iteracao = 0;
 
     enquanto (!Teclado.tecla_pressionada(Teclado.TECLA_ESC)) {
         Graficos.definir_cor(cor_fundo);

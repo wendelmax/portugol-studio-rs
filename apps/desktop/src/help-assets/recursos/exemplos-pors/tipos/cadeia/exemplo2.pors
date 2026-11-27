@@ -1,10 +1,9 @@
 funcao inicio() {
     // Variavel inicializada diretamente no codigo
     seja nome1: cadeia = "Variável declarada através de atribuição";
-    seja mutavel nome2: cadeia = "";
 
-    escreva(nome1, "\n");
+    escreval(nome1);
     escreva("Digite seu nome: ");
-    leia(nome2);
-    escreva("\nOlá ", nome2, "\n");
+    seja nome2 = leia();
+    escreval("\nOlá ", nome2);
 }

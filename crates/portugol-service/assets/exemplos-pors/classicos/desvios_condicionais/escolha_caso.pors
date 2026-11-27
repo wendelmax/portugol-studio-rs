@@ -40,16 +40,14 @@ funcao interpretar_opcao(codigo: inteiro) -> OpcaoMenu {
 }
 
 funcao inicio() {
-    seja mutavel codigo: inteiro = 0;
-
-    escreva("1) Elogio\n");
-    escreva("2) Ofensa\n");
-    escreva("3) Sair\n\n");
+    escreval("1) Elogio");
+    escreval("2) Ofensa");
+    escreval("3) Sair\n");
 
     escreva("Escolha uma opção: ");
-    leia(codigo);
+    seja mutavel codigo: inteiro = leia();
 
-    escreva("\n");
+    escreval();
 
     seja opcao: OpcaoMenu = interpretar_opcao(codigo);
 
@@ -68,5 +66,5 @@ funcao inicio() {
         }
     }
 
-    escreva("\n");
+    escreval();
 }

@@ -37,10 +37,8 @@ funcao fibonacci(posicao: inteiro) -> inteiro {
 }
 
 funcao inicio() {
-    seja mutavel numero: inteiro = 0;
-
     escreva("Quantos elementos da sequência de Fibonacci deseja calcular? ");
-    leia(numero);
+    seja mutavel numero: inteiro = leia();
 
     // O laço de repetição percorre todos os valores de 1 até a posição informada,
     // calculando o elemento correspondente na sequência.
@@ -48,5 +46,5 @@ funcao inicio() {
         escreva(fibonacci(i), " ");
     }
 
-    escreva("\n");
+    escreval();
 }

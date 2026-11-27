@@ -51,7 +51,7 @@ A exceção para ramos de `tente` em expressão é deliberadamente estreita: ela
 ### Fronteiras e adiamentos
 
 - Nenhum novo opcode, VM, crate, produto, API WASM ou pasta `specs/` paralela.
-- `escreval` permanece açúcar de `Write` (RFC 003) e `leia()` tipo fixo `cadeia` (RFC 002); esta RFC não altera esses contratos.
+- `escreval` permanece acréscimo de quebra final a `Write` (RFC 003) e `leia()` infere o tipo do contexto, resultando em `cadeia` sem contexto (RFC 002); esta RFC não altera esses contratos.
 - Retorno implícito é da RFC 005; realce de sintaxe é da RFC 006.
 
 ## Exemplos válidos

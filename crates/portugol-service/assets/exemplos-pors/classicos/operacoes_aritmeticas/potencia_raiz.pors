@@ -22,10 +22,8 @@
  */
 
 funcao inicio() {
-    seja mutavel valor: real = 0.0;
-
     escreva("Digite um valor: ");
-    leia(valor);
+    seja mutavel valor: real = leia();
 
     // Calcula o valor elevado ao cubo
     seja potencia: real = Matematica.potencia(valor, 3.0);
@@ -33,6 +31,6 @@ funcao inicio() {
     seja raiz_quadrada: real = Matematica.raiz(valor, 2.0);
 
     // Exibe os resultados
-    escreva("\nO número ao cubo é: ", potencia, "\n");
-    escreva("A raiz quadrada do número é: ", raiz_quadrada, "\n");
+    escreval("\nO número ao cubo é: ", potencia);
+    escreval("A raiz quadrada do número é: ", raiz_quadrada);
 }

@@ -29,12 +29,11 @@
  */
 
 funcao inicio() {
-    seja mutavel numero: inteiro = 0;
     seja mutavel atual: inteiro = 1;
     seja mutavel fatorial: inteiro = 1;
 
     escreva("Digite um número: ");
-    leia(numero);
+    seja mutavel numero: inteiro = leia();
 
     // Itera 'atual' até o valor informado
     enquanto (atual <= numero) {
@@ -43,5 +42,5 @@ funcao inicio() {
         atual += 1;
     }
 
-    escreva("O fatorial de ", numero, " é: ", fatorial, "\n");
+    escreval("O fatorial de ", numero, " é: ", fatorial);
 }

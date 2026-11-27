@@ -11,15 +11,15 @@ funcao inicio() {
     matriz[0 * colunas_matriz + 1] = -1;
 
     // Imprime o valor 15 correspondente a primeira linha e primeira coluna
-    seja i: inteiro = 0;
-    escreva(matriz[i * colunas_matriz + 0], "\n");
+    seja i = 0;
+    escreval(matriz[i * colunas_matriz + 0]);
 
     // Imprime o valor 11 correspondente a ultima linha e ultima coluna
-    escreva(matriz[1 * colunas_matriz + 1], "\n");
+    escreval(matriz[1 * colunas_matriz + 1]);
 
     // Matriz de reais de 2 linhas por 4 colunas (8 posicoes) inicializada com 0.0
     seja mutavel outra_matriz: vetor < real > = [];
-    para (seja mutavel k: inteiro = 0; k < 2 * 4; k += 1) {
+    para (seja mutavel k = 0; k < 2 * 4; k += 1) {
         adicionar(outra_matriz, 0.0);
     }
 
@@ -30,5 +30,5 @@ funcao inicio() {
     'O', 'X', 'O',
     ' ', ' ', 'X'
     ];
-    escreva("Centro do tabuleiro: ", jogo_velha[1 * colunas_velha + 1], "\n");
+    escreval("Centro do tabuleiro: ", jogo_velha[1 * colunas_velha + 1]);
 }

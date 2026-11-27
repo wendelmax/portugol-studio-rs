@@ -150,7 +150,7 @@ xc: real,
 yc: real,
 coef_elipse: real
 ) -> vetor < Planeta > {
-    para (seja mutavel i: inteiro = 0; i < tamanho(planetas); i += 1) {
+    para (seja mutavel i = 0; i < tamanho(planetas); i += 1) {
         seja mutavel p: Planeta = planetas[i];
         p.x = xc + (Matematica.cosseno(p.angulo) * p.distancia);
         p.y = yc + (Matematica.seno(p.angulo) * p.distancia * coef_elipse);
@@ -179,7 +179,7 @@ funcao desenhar_estrelas(estrelas: inteiro, cor_estrela: inteiro) {
     seja h: inteiro = Graficos.altura_janela();
     Graficos.definir_cor(cor_estrela);
 
-    para (seja mutavel i: inteiro = 0; i < estrelas; i += 1) {
+    para (seja mutavel i = 0; i < estrelas; i += 1) {
         seja x: inteiro = sortear_intervalo(0, w);
         seja y: inteiro = sortear_intervalo(0, h);
         seja opacidade: inteiro = sortear_intervalo(40, 220);
@@ -231,7 +231,7 @@ funcao inicio() {
             );
         }
 
-        para (seja mutavel i: inteiro = 0; i < tamanho(planetas); i += 1) {
+        para (seja mutavel i = 0; i < tamanho(planetas); i += 1) {
             desenhar_planeta(planetas[i], unidade);
         }
 

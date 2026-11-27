@@ -1,6 +1,6 @@
 funcao inicio() {
     // Variavel inteira mutavel inicializada com 0
-    seja mutavel variavel: inteiro = 0;
+    seja mutavel variavel = 0;
 
     // Outra variavel local do tipo inteiro
     seja mutavel outra_variavel: inteiro = 10;
@@ -15,5 +15,5 @@ funcao inicio() {
     seja exemplo: logico = verdadeiro;
 
     // Imprime 1.79, valor armazenado na variavel altura
-    escreva(altura, "\n");
+    escreval(altura);
 }

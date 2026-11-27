@@ -1,5 +1,5 @@
 funcao inicio() {
     seja num1: inteiro = 5;
     seja num2: inteiro = 3;
-    escreva(num1 + num2, "\n");
+    escreval(num1 + num2);
 }

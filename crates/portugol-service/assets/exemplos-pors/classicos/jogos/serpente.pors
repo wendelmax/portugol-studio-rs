@@ -145,7 +145,7 @@ funcao proxima_dificuldade(dif: Dificuldade) -> Dificuldade {
 
 funcao celula_ocupada(corpo: vetor < Segmento >, linha: inteiro, coluna: inteiro) -> logico {
     seja total: inteiro = tamanho(corpo);
-    para (seja mutavel i: inteiro = 0; i < total; i += 1) {
+    para (seja mutavel i = 0; i < total; i += 1) {
         seja seg: Segmento = corpo[i];
         se (seg.linha == linha && seg.coluna == coluna) {
             retorne verdadeiro;
@@ -156,7 +156,7 @@ funcao celula_ocupada(corpo: vetor < Segmento >, linha: inteiro, coluna: inteiro
 
 funcao sortear_comida(corpo: vetor < Segmento >) -> Segmento {
     // Grade 24 linhas x 34 colunas
-    para (seja mutavel tentativa: inteiro = 0; tentativa < 200; tentativa += 1) {
+    para (seja mutavel tentativa = 0; tentativa < 200; tentativa += 1) {
         seja l: inteiro = sortear_entre(0, 23);
         seja c: inteiro = sortear_entre(0, 33);
         se (!celula_ocupada(corpo, l, c)) {
@@ -166,8 +166,8 @@ funcao sortear_comida(corpo: vetor < Segmento >) -> Segmento {
             ;
         }
     }
-    para (seja mutavel l: inteiro = 0; l < 24; l += 1) {
-        para (seja mutavel c: inteiro = 0; c < 34; c += 1) {
+    para (seja mutavel l = 0; l < 24; l += 1) {
+        para (seja mutavel c = 0; c < 34; c += 1) {
             se (!celula_ocupada(corpo, l, c)) {
                 retorne Segmento {
                     linha: l, coluna: c
@@ -371,7 +371,7 @@ funcao atualizar(jogo: JogoSerpente) -> JogoSerpente {
     se (comeu) {
         limite_copia = total_antigo;
     }
-    para (seja mutavel i: inteiro = 0; i < limite_copia; i += 1) {
+    para (seja mutavel i = 0; i < limite_copia; i += 1) {
         adicionar(novo_corpo, corpo_atual[i]);
     }
     j.corpo = novo_corpo;

@@ -97,10 +97,21 @@ fn statement_has_read(kind: &StmtKind) -> bool {
     }
 }
 
+pub(super) fn read_target_label(target: Option<Type>) -> &'static str {
+    match target {
+        Some(Type::Integer) => "inteiro",
+        Some(Type::Real) => "real",
+        Some(Type::Character) => "caracter",
+        Some(Type::Boolean) => "logico",
+        Some(Type::String) | None => "cadeia",
+        _ => unreachable!("tipo de leitura não suportado: {target:?}"),
+    }
+}
+
 pub(super) fn expression_has_read(expr: &Expr) -> bool {
     use ExprKind as E;
     match &expr.kind {
-        E::Read => true,
+        E::Read { .. } => true,
         E::Call { arguments, .. }
         | E::HostCall { arguments, .. }
         | E::VectorLiteral(arguments)
@@ -497,7 +508,7 @@ fn expr_uses_host_module(expr: &Expr, target: &str) -> bool {
         | ExprKind::Real(_)
         | ExprKind::Boolean(_)
         | ExprKind::String(_)
-        | ExprKind::Read
+        | ExprKind::Read { .. }
         | ExprKind::Character(_) => false,
     }
 }

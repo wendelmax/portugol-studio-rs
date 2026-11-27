@@ -785,12 +785,9 @@ impl<'a> Compiler<'a> {
                 let index = self.intern_string(value);
                 self.emit(Op::PushStr(index), expr.span);
             }
-            E::Read => {
-                self.emit_node(
-                    Op::Read(ValueType::Cadeia),
-                    expr.span,
-                    mapping("Read", expr.span),
-                );
+            E::Read { target } => {
+                let ty = target.map(value_type_hir).unwrap_or(ValueType::Cadeia);
+                self.emit_node(Op::Read(ty), expr.span, mapping("Read", expr.span));
             }
             E::InterpolatedString { parts } => {
                 if parts.is_empty() {

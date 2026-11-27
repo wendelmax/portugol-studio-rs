@@ -19,17 +19,16 @@
  */
 
 funcao inicio() {
-    seja mutavel soma: inteiro = 0;
-    seja mutavel numero: inteiro = 0;
+    seja mutavel soma = 0;
 
     escreva("Digite o número até o qual deseja somar: ");
-    leia(numero);
+    seja mutavel numero: inteiro = leia();
 
     // Repete até o contador atingir o valor informado pelo usuário
-    para (seja mutavel contador: inteiro = 0; contador <= numero; contador += 1) {
+    para (seja mutavel contador = 0; contador <= numero; contador += 1) {
         // Soma o valor atual do contador
         soma += contador;
     }
 
-    escreva("A soma de 1 até ", numero, " é: ", soma, "\n");
+    escreval("A soma de 1 até ", numero, " é: ", soma);
 }

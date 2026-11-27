@@ -37,5 +37,5 @@ funcao inicio() {
 
     seja media: real = soma / 10.0;
 
-    escreva("\nA média dos números é: ", media, "\n");
+    escreval("\nA média dos números é: ", media);
 }

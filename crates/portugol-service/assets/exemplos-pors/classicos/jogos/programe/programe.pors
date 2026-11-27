@@ -77,7 +77,7 @@ funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
 
 funcao carregar_fase(fase: inteiro) -> JogoPrograme {
     seja mutavel m: vetor < inteiro > = [];
-    para (seja mutavel i: inteiro = 0; i < 8 * 10; i += 1) {
+    para (seja mutavel i = 0; i < 8 * 10; i += 1) {
         adicionar(m, 0);
     }
 
@@ -101,7 +101,7 @@ funcao carregar_fase(fase: inteiro) -> JogoPrograme {
         m[sl * 10 + sc] = 3;
     } senao se (fase == 2) {
         // Fase 2: Zigue-zague entre cercas
-        para (seja mutavel c: inteiro = 0; c <= 6; c += 1) {
+        para (seja mutavel c = 0; c <= 6; c += 1) {
             m[5 * 10 + c] = 1;
         }
         para (seja mutavel c: inteiro = 3; c <= 9; c += 1) {
@@ -116,7 +116,7 @@ funcao carregar_fase(fase: inteiro) -> JogoPrograme {
         m[sl * 10 + sc] = 3;
     } senao {
         // Fase 3: Labirinto compacto
-        para (seja mutavel l: inteiro = 0; l <= 5; l += 1) {
+        para (seja mutavel l = 0; l <= 5; l += 1) {
             m[l * 10 + 3] = 1;
         }
         para (seja mutavel l: inteiro = 2; l <= 7; l += 1) {
@@ -451,8 +451,8 @@ funcao desenhar(jogo: JogoPrograme) {
 
     // Grade do mapa 10x8 (tile = 48 px, x=24..504, y=72..456)
     seja mapa: vetor < inteiro > = jogo.mapa;
-    para (seja mutavel l: inteiro = 0; l < 8; l += 1) {
-        para (seja mutavel c: inteiro = 0; c < 10; c += 1) {
+    para (seja mutavel l = 0; l < 8; l += 1) {
+        para (seja mutavel c = 0; c < 10; c += 1) {
             seja x: inteiro = 24 + c * 48;
             seja y: inteiro = 72 + l * 48;
             se ((l + c) % 2 == 0) {
@@ -528,7 +528,7 @@ funcao desenhar(jogo: JogoPrograme) {
     Graficos.definir_tamanho_texto(12.0);
     Graficos.desenhar_texto(36, 478, "PROGRAMA: " + jogo.mensagem);
 
-    para (seja mutavel i: inteiro = 0; i < total; i += 1) {
+    para (seja mutavel i = 0; i < total; i += 1) {
         seja linha_q: inteiro = i / 12;
         seja col_q: inteiro = i % 12;
         seja cx: inteiro = 36 + col_q * 62;

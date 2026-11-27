@@ -93,7 +93,7 @@ funcao desenhar_poligono_seguro(xs: vetor < inteiro >, ys: vetor < inteiro >, pr
 
 funcao criar_estrelas() -> vetor < Estrela > {
     seja mutavel lista: vetor < Estrela > = [];
-    para (seja mutavel i: inteiro = 0; i < 65; i += 1) {
+    para (seja mutavel i = 0; i < 65; i += 1) {
         seja b: inteiro = sortear_entre(80, 240);
         seja p: inteiro = sortear_entre(2, 5);
         adicionar(lista, Estrela {
@@ -132,7 +132,7 @@ funcao criar_partida(estado: EstadoMoonLander, estrelas: vetor < Estrela >) -> J
 funcao atualizar_estrelas(estrelas: vetor < Estrela >) -> vetor < Estrela > {
     seja mutavel lista: vetor < Estrela > = estrelas;
     seja total: inteiro = tamanho(lista);
-    para (seja mutavel i: inteiro = 0; i < total; i += 1) {
+    para (seja mutavel i = 0; i < total; i += 1) {
         seja mutavel e: Estrela = lista[i];
         e.brilho += e.passo;
         se (e.brilho >= 245) {
@@ -283,7 +283,7 @@ funcao desenhar(jogo: JogoMoonLander) {
     // Estrelas cintilantes
     seja estrelas: vetor < Estrela > = jogo.estrelas;
     seja total_est: inteiro = tamanho(estrelas);
-    para (seja mutavel i: inteiro = 0; i < total_est; i += 1) {
+    para (seja mutavel i = 0; i < total_est; i += 1) {
         seja e: Estrela = estrelas[i];
         Graficos.definir_cor(cor_rgb(e.brilho, e.brilho, e.brilho));
         Graficos.desenhar_elipse(e.x, e.y, e.tamanho * 2, e.tamanho * 2, verdadeiro);

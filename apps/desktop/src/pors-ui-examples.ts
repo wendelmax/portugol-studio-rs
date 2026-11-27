@@ -46,7 +46,7 @@ funcao atualizar(estado: Estado, tipo: cadeia, alvo: cadeia, valor: cadeia) -> E
 }
 
 funcao visualizar(estado: Estado) -> inteiro {
-    seja mutavel selo: cadeia = "Neutro";
+    seja mutavel selo = "Neutro";
     escolha estado.humor {
         caso Humor::Neutro => { selo = "Neutro"; }
         caso Humor::Animado => { selo = "Animado"; }
@@ -129,9 +129,9 @@ funcao atualizar(estado: Estado, tipo: cadeia, alvo: cadeia, valor: cadeia) -> E
 
 funcao rotulo_tarefa(texto: cadeia, feita: logico) -> cadeia {
     se (feita) {
-        retorne "[x] " + texto;
+        retorne "[x] {texto}";
     } senao {
-        retorne "[ ] " + texto;
+        retorne "[ ] {texto}";
     }
 }
 

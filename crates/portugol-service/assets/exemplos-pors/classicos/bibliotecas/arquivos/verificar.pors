@@ -20,15 +20,15 @@
 
 funcao testar_ciclo_arquivo(caminho: cadeia) -> Resultado < logico, cadeia > {
     seja existe_antes: logico = Arquivos.existe(caminho)?;
-    escreva("Arquivo \"", caminho, "\" existe antes de criar? ", existe_antes, "\n");
+    escreval("Arquivo \"", caminho, "\" existe antes de criar? ", existe_antes);
 
     seja _criado: logico = Arquivos.escrever_texto(caminho, "Teste de verificação\n")?;
     seja existe_depois: logico = Arquivos.existe(caminho)?;
-    escreva("Arquivo \"", caminho, "\" existe após criar? ", existe_depois, "\n");
+    escreval("Arquivo \"", caminho, "\" existe após criar? ", existe_depois);
 
     seja _removido: logico = Arquivos.remover(caminho)?;
     seja existe_final: logico = Arquivos.existe(caminho)?;
-    escreva("Arquivo \"", caminho, "\" existe após remover? ", existe_final, "\n");
+    escreval("Arquivo \"", caminho, "\" existe após remover? ", existe_final);
 
     retorne Resultado::Ok(verdadeiro);
 }
@@ -37,7 +37,7 @@ funcao inicio() {
     escolha testar_ciclo_arquivo("arquivo_verificacao.txt") {
         caso Resultado::Ok(_) => {}
         caso Resultado::Erro(erro) => {
-            escreva("Erro ao verificar arquivo: ", erro, "\n");
+            escreval("Erro ao verificar arquivo: ", erro);
         }
     }
 }

@@ -1,33 +1,25 @@
 funcao inicio() {
-    seja mutavel idade: inteiro = 0;
-    seja mutavel salario: real = 0.0;
-    seja mutavel nota1: real = 0.0;
-    seja mutavel nota2: real = 0.0;
-    seja mutavel nota3: real = 0.0;
-    seja mutavel nome: cadeia = "";
-    seja mutavel sobrenome: cadeia = "";
-
     escreva("Informe a sua idade: ");
-    leia(idade);
+    seja mutavel idade: inteiro = leia();
 
     escreva("Informe seu salário: ");
-    leia(salario);
+    seja mutavel salario: real = leia();
 
     escreva("Informe o seu nome: ");
-    leia(nome);
+    seja mutavel nome = leia();
 
     escreva("Informe o seu sobrenome: ");
-    leia(sobrenome);
+    seja mutavel sobrenome = leia();
 
-    escreva("Informe as suas três notas (uma por linha):\n");
-    leia(nota1);
-    leia(nota2);
-    leia(nota3);
+    escreval("Informe as suas três notas (uma por linha):");
+    seja mutavel nota1: real = leia();
+    seja mutavel nota2: real = leia();
+    seja mutavel nota3: real = leia();
 
-    escreva("Seu nome é: ", nome, " ", sobrenome, "\n");
-    escreva("Você tem ", idade, " anos e ganha de salário ", salario, "\n");
-    escreva("Suas três notas foram:\n");
-    escreva("Nota 1: ", nota1, "\n");
-    escreva("Nota 2: ", nota2, "\n");
-    escreva("Nota 3: ", nota3, "\n");
+    escreval("Seu nome é: ", nome, " ", sobrenome);
+    escreval("Você tem ", idade, " anos e ganha de salário ", salario);
+    escreval("Suas três notas foram:");
+    escreval("Nota 1: ", nota1);
+    escreval("Nota 2: ", nota2);
+    escreval("Nota 3: ", nota3);
 }

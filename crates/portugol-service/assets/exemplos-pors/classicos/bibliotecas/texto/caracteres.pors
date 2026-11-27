@@ -21,11 +21,10 @@
  */
 
 funcao inicio() {
-    seja mutavel numero: cadeia = "";
     seja mutavel binario: logico = verdadeiro;
 
     escreva("Informe um número no formato binário (Ex.: 1101001): ");
-    leia(numero);
+    seja mutavel numero = leia();
 
     seja comprimento: inteiro = Texto.numero_caracteres(numero);
 
@@ -35,7 +34,7 @@ funcao inicio() {
 
     // Usamos um laço para percorrer todos os caracteres da cadeia, começando
     // no caracter 0 e indo até o último caracter (comprimento - 1)
-    para (seja mutavel indice: inteiro = 0; indice < comprimento; indice += 1) {
+    para (seja mutavel indice = 0; indice < comprimento; indice += 1) {
         // Em Portugol-RS, obter_caracter retorna Opcao<caracter>
         escolha Texto.obter_caracter(numero, indice) {
             caso Opcao::Algum(digito) => {
@@ -52,11 +51,11 @@ funcao inicio() {
         }
     }
 
-    escreva("\n");
+    escreval();
 
     se (binario) {
-        escreva("O número informado é binário\n");
+        escreval("O número informado é binário");
     } senao {
-        escreva("O número informado não é binário\n");
+        escreval("O número informado não é binário");
     }
 }

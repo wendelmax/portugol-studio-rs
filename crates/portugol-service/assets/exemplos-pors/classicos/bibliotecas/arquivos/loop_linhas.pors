@@ -52,11 +52,11 @@ funcao inicio() {
             // Percorre as linhas até o limite desejado usando o laço "para"
             para (seja mutavel numero_da_linha: inteiro = 1; numero_da_linha <= limite; numero_da_linha += 1) {
                 seja linha: cadeia = linhas[numero_da_linha - 1];
-                escreva("Linha ", numero_da_linha, ": ", linha, "\n");
+                escreval("Linha ", numero_da_linha, ": ", linha);
             }
         }
         caso Resultado::Erro(erro) => {
-            escreva("Erro ao ler arquivo: ", erro, "\n");
+            escreval("Erro ao ler arquivo: ", erro);
         }
     }
 }

@@ -316,6 +316,10 @@ handler recebe a janela e **devolve a janela atualizada**.
 </Janela>
 ```
 
+O texto dos campos é lido como `cadeia` bruta; a conversão para `inteiro`
+continua explícita com `Tipos.para_*` e `Resultado`, conforme a exceção
+`UI.entrada` registrada na matriz de migração:
+
 ```pors
 registro Conta {
     mensagem: cadeia

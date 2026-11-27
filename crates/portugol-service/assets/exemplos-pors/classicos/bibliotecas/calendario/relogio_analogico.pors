@@ -72,7 +72,7 @@ funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro, padrao: inteiro) -> inteiro {
 
 funcao criar_vetor_inteiros(qtd: inteiro) -> vetor < inteiro > {
     seja mutavel v: vetor < inteiro > = [];
-    para (seja mutavel i: inteiro = 0; i < qtd; i += 1) {
+    para (seja mutavel i = 0; i < qtd; i += 1) {
         adicionar(v, 0);
     }
     retorne v;
@@ -80,7 +80,7 @@ funcao criar_vetor_inteiros(qtd: inteiro) -> vetor < inteiro > {
 
 funcao criar_vetor_reais(qtd: inteiro) -> vetor < real > {
     seja mutavel v: vetor < real > = [];
-    para (seja mutavel i: inteiro = 0; i < qtd; i += 1) {
+    para (seja mutavel i = 0; i < qtd; i += 1) {
         adicionar(v, 0.0);
     }
     retorne v;
@@ -131,8 +131,8 @@ funcao inicializar() -> EstadoRelogio {
     // Calcula coordenadas externas e internas das 12 marcações de horas
     seja inc_hr: real = (Matematica.PI * 2.0) / 12.0;
     seja mutavel angulo: real = 0.0;
-    para (seja mutavel camada: inteiro = 0; camada < 2; camada += 1) {
-        seja mutavel a: inteiro = 0;
+    para (seja mutavel camada = 0; camada < 2; camada += 1) {
+        seja mutavel a = 0;
         para (seja mutavel j: inteiro = 9; j < 21; j += 1) {
             seja mutavel raio: real = tam_relogio_r / 2.0;
             se (camada == 1) {
@@ -162,7 +162,7 @@ funcao inicializar() -> EstadoRelogio {
     // Calcula coordenadas das 60 marcações de minutos e ponteiro de segundos
     seja inc_min: real = (Matematica.PI * 2.0) / 60.0;
     angulo = 0.0;
-    seja mutavel k: inteiro = 0;
+    seja mutavel k = 0;
     para (seja mutavel i: inteiro = 45; i < 105; i += 1) {
         seja raio_min: real = tam_relogio_r / 2.0;
         seja raio_seg: real = (tam_relogio_r - tam_relogio_r * 0.2) / 2.0;
@@ -268,7 +268,7 @@ funcao desenhar_relogio(est: EstadoRelogio) {
     Graficos.definir_cor(Graficos.COR_BRANCO);
     Graficos.desenhar_elipse(est.x_relogio, est.y_relogio, est.tam_relogio, est.tam_relogio, verdadeiro);
 
-    para (seja mutavel i: inteiro = 0; i < 60; i += 1) {
+    para (seja mutavel i = 0; i < 60; i += 1) {
         Graficos.definir_cor(Graficos.COR_PRETO);
         se (!(i % 5 == 0)) {
             Graficos.desenhar_linha(est.centro_x, est.centro_y, est.centro_x + x_min[i], est.centro_y - y_min[i]);
@@ -278,7 +278,7 @@ funcao desenhar_relogio(est: EstadoRelogio) {
     Graficos.definir_cor(Graficos.COR_BRANCO);
     Graficos.desenhar_elipse(est.x_circulo_min, est.y_circulo_min, est.tam_circulo_min, est.tam_circulo_min, verdadeiro);
 
-    para (seja mutavel i: inteiro = 0; i < 12; i += 1) {
+    para (seja mutavel i = 0; i < 12; i += 1) {
         Graficos.definir_cor(Graficos.COR_PRETO);
         Graficos.desenhar_linha(est.centro_x, est.centro_y, est.centro_x + x_hr_ext[i], est.centro_y - y_hr_ext[i]);
     }
@@ -302,7 +302,7 @@ funcao desenhar_relogio(est: EstadoRelogio) {
 
     // Números das horas
     Graficos.definir_tamanho_texto(est.tam_fonte_horas);
-    para (seja mutavel i: inteiro = 0; i < 12; i += 1) {
+    para (seja mutavel i = 0; i < 12; i += 1) {
         seja mutavel num: cadeia = Tipos.inteiro_para_cadeia(i);
         se (i == 0) {
             num = "12";
@@ -323,14 +323,14 @@ funcao desenhar_linhas_orientacao(est: EstadoRelogio) {
 
     se (est.exibir_linhas_minutos) {
         Graficos.definir_cor(Graficos.COR_AZUL);
-        para (seja mutavel i: inteiro = 0; i < 60; i += 1) {
+        para (seja mutavel i = 0; i < 60; i += 1) {
             Graficos.desenhar_linha(est.centro_x, est.centro_y, est.centro_x + x_min[i], est.centro_y - y_min[i]);
         }
     }
 
     se (est.exibir_linhas_horas) {
         Graficos.definir_cor(Graficos.COR_VERDE);
-        para (seja mutavel i: inteiro = 0; i < 12; i += 1) {
+        para (seja mutavel i = 0; i < 12; i += 1) {
             Graficos.desenhar_linha(est.centro_x, est.centro_y, est.centro_x + x_hr_ext[i], est.centro_y - y_hr_ext[i]);
         }
     }
@@ -390,7 +390,7 @@ funcao desenhar(est: EstadoRelogio) {
 
     // Ponteiro das horas
     seja p_hora: Ponto = calcular_ponteiro_hora(est, hora, minuto);
-    para (seja mutavel i: inteiro = 0; i < 6; i += 1) {
+    para (seja mutavel i = 0; i < 6; i += 1) {
         Graficos.desenhar_linha(est.centro_x - i, est.centro_y, est.centro_x - p_hora.x, est.centro_y - p_hora.y);
         Graficos.desenhar_linha(est.centro_x + i, est.centro_y, est.centro_x - p_hora.x, est.centro_y - p_hora.y);
         Graficos.desenhar_linha(est.centro_x, est.centro_y - i, est.centro_x - p_hora.x, est.centro_y - p_hora.y);
@@ -399,7 +399,7 @@ funcao desenhar(est: EstadoRelogio) {
 
     // Ponteiro dos minutos
     seja p_min: Ponto = calcular_ponteiro_minuto(est, minuto, segundo);
-    para (seja mutavel i: inteiro = 0; i < 4; i += 1) {
+    para (seja mutavel i = 0; i < 4; i += 1) {
         Graficos.desenhar_linha(est.centro_x - i, est.centro_y, est.centro_x - p_min.x, est.centro_y - p_min.y);
         Graficos.desenhar_linha(est.centro_x + i, est.centro_y, est.centro_x - p_min.x, est.centro_y - p_min.y);
         Graficos.desenhar_linha(est.centro_x, est.centro_y - i, est.centro_x - p_min.x, est.centro_y - p_min.y);
@@ -410,7 +410,7 @@ funcao desenhar(est: EstadoRelogio) {
     seja x_seg: vetor < inteiro > = est.coordenadas_x_seg;
     seja y_seg: vetor < inteiro > = est.coordenadas_y_seg;
     Graficos.definir_cor(Graficos.COR_VERMELHO);
-    para (seja mutavel i: inteiro = 0; i < 2; i += 1) {
+    para (seja mutavel i = 0; i < 2; i += 1) {
         Graficos.desenhar_linha(est.centro_x - i, est.centro_y, est.centro_x - x_seg[segundo], est.centro_y - y_seg[segundo]);
         Graficos.desenhar_linha(est.centro_x + i, est.centro_y, est.centro_x - x_seg[segundo], est.centro_y - y_seg[segundo]);
         Graficos.desenhar_linha(est.centro_x, est.centro_y - i, est.centro_x - x_seg[segundo], est.centro_y - y_seg[segundo]);

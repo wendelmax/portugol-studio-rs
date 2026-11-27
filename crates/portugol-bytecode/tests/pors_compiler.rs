@@ -276,3 +276,16 @@ fn maps_interpolation_parts_and_read_expression_to_hir_nodes() {
     assert!(labels.contains(&"InterpolatedString.Expression"));
     assert!(labels.contains(&"Read"));
 }
+
+#[test]
+fn compiles_typed_read_expression_with_the_expected_value_type() {
+    let source = "funcao inicio() { seja n: inteiro = leia(); }";
+    let program = portugol_rs_frontend::lower(source).expect("fonte válida");
+    let module = portugol_bytecode::compile_pors(&program).expect("bytecode válido");
+    let entry = &module.functions[module.entry as usize];
+    assert!(entry.code.iter().any(|op| matches!(
+        op,
+        portugol_bytecode::Op::Read(portugol_bytecode::ValueType::Inteiro)
+    )));
+    assert!(entry.nodes.iter().flatten().any(|n| n.node == "Read"));
+}

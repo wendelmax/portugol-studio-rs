@@ -1,7 +1,7 @@
 funcao inicio() {
-    escreva(7 % 3, "\n");
+    escreval(7 % 3);
 
     seja valor: inteiro = 7 % 3;
 
-    escreva(valor, "\n");
+    escreval(valor);
 }

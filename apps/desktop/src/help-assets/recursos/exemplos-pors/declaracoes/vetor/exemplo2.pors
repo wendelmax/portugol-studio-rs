@@ -3,21 +3,21 @@ funcao inicio() {
     seja numeros: vetor < inteiro > = [15, 22, 8, 10, 11];
 
     // Imprime o valor 15 correspondente ao primeiro elemento do vetor
-    escreva(numeros[0], "\n");
+    escreval(numeros[0]);
 
     // Imprime o segundo elemento do vetor
-    escreva(numeros[1], "\n");
+    escreval(numeros[1]);
 
     // Imprime o valor 11 correspondente ao ultimo elemento do vetor
-    escreva(numeros[4], "\n");
+    escreval(numeros[4]);
 
     // Declaracao de um vetor de reais preenchido dinamicamente com 10 posicoes
     seja mutavel outro_vetor: vetor < real > = [];
-    para (seja mutavel i: inteiro = 0; i < 10; i += 1) {
+    para (seja mutavel i = 0; i < 10; i += 1) {
         adicionar(outro_vetor, 0.0);
     }
 
     // Declaracao de um vetor de caracteres inicializado diretamente
     seja nome: vetor < caracter > = ['P', 'o', 'r', 't', 'u', 'g', 'o', 'l'];
-    escreva("Tamanho do vetor nome: ", tamanho(nome), "\n");
+    escreval("Tamanho do vetor nome: ", tamanho(nome));
 }

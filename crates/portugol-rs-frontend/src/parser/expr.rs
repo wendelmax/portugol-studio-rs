@@ -198,9 +198,10 @@ impl Parser {
                     );
                 }
                 let close = self.expect(Kind::RParen, "Esperado `)` após leia")?;
+                let target = implicit_read_target(expected);
                 return Ok(hir::Expr {
-                    kind: hir::ExprKind::Read,
-                    ty: hir::Type::String,
+                    kind: hir::ExprKind::Read { target },
+                    ty: target.unwrap_or(hir::Type::String),
                     span: to_hir_span(span.join(close.span)),
                 });
             }
@@ -1043,6 +1044,10 @@ impl Parser {
             span: to_hir_span(start.join(close.span)),
         })
     }
+}
+
+fn implicit_read_target(expected: Option<hir::Type>) -> Option<hir::Type> {
+    expected.filter(|ty| ty.is_implicit_read_target())
 }
 
 fn flush_string_literal(

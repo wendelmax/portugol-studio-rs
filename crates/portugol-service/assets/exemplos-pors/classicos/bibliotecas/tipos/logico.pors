@@ -22,16 +22,16 @@ funcao testar_cadeia_logica(texto: cadeia) {
     se (Tipos.cadeia_e_logico(texto)) {
         escolha Tipos.para_logico(texto) {
             caso Resultado::Ok(valor) => {
-                escreva("A cadeia \"", texto, "\" representa o lógico: ", valor, "\n");
-                escreva("  -> em cadeia: ", Tipos.logico_para_cadeia(valor), "\n");
-                escreva("  -> em inteiro: ", Tipos.logico_para_inteiro(valor), "\n");
+                escreval("A cadeia \"", texto, "\" representa o lógico: ", valor);
+                escreval("  -> em cadeia: ", Tipos.logico_para_cadeia(valor));
+                escreval("  -> em inteiro: ", Tipos.logico_para_inteiro(valor));
             }
             caso Resultado::Erro(erro) => {
-                escreva("Erro ao converter \"", texto, "\": ", erro, "\n");
+                escreval("Erro ao converter \"", texto, "\": ", erro);
             }
         }
     } senao {
-        escreva("A cadeia \"", texto, "\" não representa um valor lógico\n");
+        escreval("A cadeia \"", texto, "\" não representa um valor lógico");
     }
 }
 

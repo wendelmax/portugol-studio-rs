@@ -80,9 +80,8 @@ fn executa_com_leia_e_saida() {
     let (observer, rx) = recorder();
     let handle = start_portugol_rs(
         r#"funcao inicio() {
-            seja mutavel n: inteiro = 0;
             escreva("n? ");
-            leia(n);
+            seja mutavel n: inteiro = leia();
             escreva(n * 2);
         }"#,
         RunOptions::default(),
@@ -119,7 +118,7 @@ fn parar_laco_infinito_e_leia() {
 
     let (observer, rx) = recorder();
     let handle = start_portugol_rs(
-        "funcao inicio() { seja mutavel s: cadeia = \"\"; leia(s); }",
+        "funcao inicio() { seja s = leia(); }",
         RunOptions::default(),
         observer,
     )

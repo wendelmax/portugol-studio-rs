@@ -36,20 +36,20 @@ funcao inicio() {
     seja mutavel numeros: vetor < inteiro > = [];
 
     // Preenche o vetor com 10 números aleatórios
-    para (seja mutavel posicao: inteiro = 0; posicao < 10; posicao += 1) {
+    para (seja mutavel posicao = 0; posicao < 10; posicao += 1) {
         adicionar(numeros, sortear(1, 100));
     }
 
     // Exibe o vetor na ordem original
-    escreva("Vetor na ordem original:\n");
-    para (seja mutavel posicao: inteiro = 0; posicao < tamanho(numeros); posicao += 1) {
+    escreval("Vetor na ordem original:");
+    para (seja mutavel posicao = 0; posicao < tamanho(numeros); posicao += 1) {
         escreva(numeros[posicao], " ");
     }
 
     // Exibe o vetor na ordem inversa
-    escreva("\n\nVetor na ordem inversa:\n");
+    escreval("\n\nVetor na ordem inversa:");
     para (seja mutavel posicao: inteiro = tamanho(numeros) - 1; posicao >= 0; posicao -= 1) {
         escreva(numeros[posicao], " ");
     }
-    escreva("\n");
+    escreval();
 }

@@ -72,8 +72,8 @@ funcao inicio() {
             pare;
         } senao se (Teclado.tecla_pressionada(Teclado.TECLA_I)) {
             Util.aguarde(100);
-            escreva("Janela [", Graficos.largura_janela(), ", ", Graficos.altura_janela(), "]\n");
-            escreva("Tela [", Graficos.largura_tela(), ", ", Graficos.altura_tela(), "]\n\n");
+            escreval("Janela [", Graficos.largura_janela(), ", ", Graficos.altura_janela(), "]");
+            escreval("Tela [", Graficos.largura_tela(), ", ", Graficos.altura_tela(), "]\n");
             aguardar_soltar(Teclado.TECLA_I);
         } senao se (Teclado.tecla_pressionada(Teclado.TECLA_SETA_ACIMA)) {
             Util.aguarde(100);
@@ -129,8 +129,8 @@ funcao inicio() {
 
         escolha imagem_carregada {
             caso Opcao::Algum(img) => {
-                seja mutavel larg_img: inteiro = 0;
-                seja mutavel alt_img: inteiro = 0;
+                seja mutavel larg_img = 0;
+                seja mutavel alt_img = 0;
                 escolha Graficos.largura_imagem(img) {
                     caso Resultado::Ok(w) => {
                         larg_img = w;

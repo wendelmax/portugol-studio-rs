@@ -1,3 +1,4 @@
 funcao inicio() {
-    escreva(23 << 1, "\n", -105 >> 1, "\n");
+    escreval(23 << 1);
+    escreval(-105 >> 1);
 }

@@ -112,8 +112,8 @@ funcao inicio() {
     Graficos.definir_titulo_janela("Teclado - ler_tecla");
 
     seja mutavel executando: logico = verdadeiro;
-    seja mutavel ultima_tecla: inteiro = 0;
-    seja mutavel total_lidas: inteiro = 0;
+    seja mutavel ultima_tecla = 0;
+    seja mutavel total_lidas = 0;
     seja mutavel aviso: cadeia = "";
 
     desenhar_tela(ultima_tecla, total_lidas, aviso);
@@ -133,7 +133,7 @@ funcao inicio() {
                 }
             }
             caso Resultado::Erro(mensagem) => {
-                escreva("Erro ao ler tecla: ", mensagem, "\n");
+                escreval("Erro ao ler tecla: ", mensagem);
                 executando = falso;
             }
         }

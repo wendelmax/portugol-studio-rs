@@ -96,7 +96,7 @@ funcao x_da_faixa(faixa: inteiro) -> real {
 
 funcao criar_corrida() -> JogoCorrida {
     seja mutavel carros: vetor < CarroTraffic > = [];
-    para (seja mutavel i: inteiro = 0; i < 5; i += 1) {
+    para (seja mutavel i = 0; i < 5; i += 1) {
         seja faixa: inteiro = sortear_entre(0, 3);
         adicionar(carros, CarroTraffic {
             x: x_da_faixa(faixa),
@@ -208,7 +208,7 @@ funcao atualizar(jogo: JogoCorrida) -> JogoCorrida {
     // Atualiza carros do tráfego
     seja mutavel carros: vetor < CarroTraffic > = j.carros;
     seja total_carros: inteiro = tamanho(carros);
-    para (seja mutavel i: inteiro = 0; i < total_carros; i += 1) {
+    para (seja mutavel i = 0; i < total_carros; i += 1) {
         seja mutavel c: CarroTraffic = carros[i];
         c.y += (j.velocidade - c.vel) * 1.4;
 
@@ -244,7 +244,7 @@ funcao atualizar(jogo: JogoCorrida) -> JogoCorrida {
     // Atualiza itens (galões e reparos)
     seja mutavel itens: vetor < ItemPista > = j.itens;
     seja total_itens: inteiro = tamanho(itens);
-    para (seja mutavel k: inteiro = 0; k < total_itens; k += 1) {
+    para (seja mutavel k = 0; k < total_itens; k += 1) {
         seja mutavel it: ItemPista = itens[k];
         it.y += j.velocidade * 1.4;
 
@@ -350,7 +350,7 @@ funcao desenhar(jogo: JogoCorrida) {
     // Itens da pista
     seja itens: vetor < ItemPista > = jogo.itens;
     seja total_it: inteiro = tamanho(itens);
-    para (seja mutavel k: inteiro = 0; k < total_it; k += 1) {
+    para (seja mutavel k = 0; k < total_it; k += 1) {
         seja it: ItemPista = itens[k];
         se (it.ativo && it.y > -40.0 && it.y < 620.0) {
             seja ix: inteiro = Tipos.real_para_inteiro(it.x);
@@ -374,7 +374,7 @@ funcao desenhar(jogo: JogoCorrida) {
     // Tráfego
     seja carros: vetor < CarroTraffic > = jogo.carros;
     seja total_c: inteiro = tamanho(carros);
-    para (seja mutavel i: inteiro = 0; i < total_c; i += 1) {
+    para (seja mutavel i = 0; i < total_c; i += 1) {
         seja c: CarroTraffic = carros[i];
         se (c.y > -100.0 && c.y < 640.0) {
             desenhar_carro(Tipos.real_para_inteiro(c.x), Tipos.real_para_inteiro(c.y), cor_trafego(c.cor_tipo), falso);

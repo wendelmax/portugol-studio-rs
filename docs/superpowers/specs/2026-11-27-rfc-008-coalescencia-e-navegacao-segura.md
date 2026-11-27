@@ -7,6 +7,8 @@
 
 > **Revisão (ADR 0020):** Escopo da primeira entrega limitado pela decisão 6 do ADR 0020: somente `??`. `?.`, `??=` e a conversão implícita de `T` para `Opcao<T>` ficam adiados; os exemplos devem usar `Opcao::Algum(valor)` explicitamente.
 
+> **Aviso:** Estes exemplos não executam no `main`: `tente`/`capture`/`lance` e a navegação segura ainda não estão implementados. Os trechos mostram o contrato proposto; as interpolações apresentadas usam apenas `cadeia`, conforme a RFC 004.
+
 ## Contexto
 
 O PORS já é *null-safe* por construção: não há `null`, ponteiro nulo, nem valor `nenhum` na linguagem. A ausência é `Opcao<T>` com `Opcao::Algum(valor)` e `Opcao::Nenhum`, representada no bytecode como arranjo com discriminante (`Value::Array` + `PorsDebugShape::Enum`) e gerada em Rust como `Option<T>`. O operador `?` já existe e propaga `Opcao<T>` ou `Resultado<T, E>` para a função chamadora, com diagnóstico `pors.try-return-mismatch` quando a assinatura não é compatível (`crates/portugol-rs-frontend/src/parser/expr.rs:60-106`).
@@ -19,7 +21,7 @@ A proposta recebida pede `??`, `?.` e `??=`, tipos compactos como `cadeia?`, o v
 
 1. O tipo opcional é `Opcao<T>`; os valores são `Opcao::Algum(valor)` e `Opcao::Nenhum`. Não há alias `Opcional`, nem palavra `nenhum`, nem sufixo `cadeia?` nesta RFC — todos exigiriam nova decisão sobre aliases, explicitamente adiada pelo ADR 0019.
 2. `registro` continua o nome do tipo composto; `estrutura` não vira sinônimo.
-3. `leia()` continua `cadeia` fixa, sem `leia<T>()`. A conversão de entrada continua explícita.
+3. `leia()` infere o tipo do contexto (RFC 002) e resulta em `cadeia` sem contexto tipado, sem `leia<T>()`. A conversão de entrada é implícita na própria leitura; o caminho explícito com `Tipos.para_*` permanece disponível.
 4. `?` continua sendo **somente** propagação de `Opcao` ou `Resultado`. Em posição de tipo, `?` não é aceito; `Opcao<T>` é a grafia canônica.
 5. Variáveis mutáveis usam `seja mutavel nome: Opcao<T> = ...;`, conforme o parser atual.
 

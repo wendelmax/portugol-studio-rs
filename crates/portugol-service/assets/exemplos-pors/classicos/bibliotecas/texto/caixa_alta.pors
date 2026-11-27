@@ -19,10 +19,8 @@
  */
 
 funcao inicio() {
-    seja mutavel nome: cadeia = "";
-
     escreva("Digite seu nome em letras minúsculas: ");
-    leia(nome);
+    seja mutavel nome = leia();
 
     // Transforma os caracteres da cadeia em caracteres maiúsculos
     nome = Texto.caixa_alta(nome);
@@ -30,5 +28,5 @@ funcao inicio() {
     // Transforma os caracteres da cadeia em caracteres maiúsculos
     seja bem_vindo: cadeia = Texto.caixa_alta("bem vindo(a)");
 
-    escreva("\n", bem_vindo, " ", nome, "!!\n");
+    escreval("\n", bem_vindo, " ", nome, "!!");
 }

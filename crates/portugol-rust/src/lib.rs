@@ -265,7 +265,7 @@ fn find_host_call_in_expr(expr: &portugol_hir::Expr) -> Option<(&str, &str, port
             portugol_hir::StringPart::Literal(_, _) => None,
             portugol_hir::StringPart::Expression(value, _) => find_host_call_in_expr(value),
         }),
-        E::Read => None,
+        E::Read { .. } => None,
         E::Binding(_)
         | E::Length { .. }
         | E::VectorPop { .. }

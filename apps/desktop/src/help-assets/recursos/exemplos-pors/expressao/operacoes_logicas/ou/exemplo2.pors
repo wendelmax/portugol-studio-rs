@@ -3,13 +3,13 @@ funcao inicio() {
     seja a: inteiro = 2;
     seja b: inteiro = 2;
     se (a == 2 || b == 2) {
-        escreva("Teste 1 positivo\n");
+        escreval("Teste 1 positivo");
     }
 
     // Neste caso c e igual a 2 e d e 3; como uma condicao e verdadeira, o resultado e verdadeiro
     seja c: inteiro = 2;
     seja d: inteiro = 3;
     se (c == 2 || d == 2) {
-        escreva("Teste 2 positivo\n");
+        escreval("Teste 2 positivo");
     }
 }

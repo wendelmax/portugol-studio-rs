@@ -69,7 +69,7 @@ funcao inicio() {
 
         // Rastro suave do movimento
         seja n: inteiro = tamanho(rastro_x);
-        para (seja mutavel i: inteiro = 0; i < n; i += 1) {
+        para (seja mutavel i = 0; i < n; i += 1) {
             seja raio: inteiro = 3 + (i / 3);
             seja intensidade: inteiro = 80 + ((i * 170) / limite_rastro);
             Graficos.definir_cor(cor_rgb(60, intensidade, 240));

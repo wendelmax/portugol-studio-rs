@@ -1590,6 +1590,7 @@ fn convert(value: &Value, ty: ValueType) -> Option<Value> {
 }
 
 /// Converte a linha digitada como a aba de console do Portugol Studio.
+/// Escalares passam por `trim` como no Rust gerado; `cadeia` permanece bruta.
 fn parse_input(ty: ValueType, line: Option<String>) -> Exec<Value> {
     let invalid = || {
         format!(
@@ -1605,10 +1606,10 @@ fn parse_input(ty: ValueType, line: Option<String>) -> Exec<Value> {
         return Err(invalid());
     }
     match ty {
-        ValueType::Inteiro => line.parse().map(Value::Int).map_err(|_| invalid()),
+        ValueType::Inteiro => line.trim().parse().map(Value::Int).map_err(|_| invalid()),
         ValueType::Real => line.trim().parse().map(Value::Real).map_err(|_| invalid()),
-        ValueType::Caracter => Ok(Value::Char(line.chars().next().expect("linha não vazia"))),
-        ValueType::Logico => match line.as_str() {
+        ValueType::Caracter => line.trim().parse().map(Value::Char).map_err(|_| invalid()),
+        ValueType::Logico => match line.trim() {
             "verdadeiro" => Ok(Value::Bool(true)),
             "falso" => Ok(Value::Bool(false)),
             _ => Err(invalid()),

@@ -22,7 +22,7 @@
 
 funcao inicio() {
     para (seja mutavel contador: inteiro = 10; contador >= 0; contador -= 1) {
-        escreva("Lançando o foguete em: ", contador, "\n");
+        escreval("Lançando o foguete em: ", contador);
 
         /*
          * Faz com que o programa espere 1 segundo antes da próxima contagem.
@@ -31,5 +31,5 @@ funcao inicio() {
         Util.aguarde(1000);
     }
 
-    escreva("O foguete foi lançado!!\n");
+    escreval("O foguete foi lançado!!");
 }

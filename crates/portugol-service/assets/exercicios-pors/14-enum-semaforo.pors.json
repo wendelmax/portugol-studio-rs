@@ -3,7 +3,7 @@
   "id": "pors-14-enum-semaforo",
   "title": "Semáforo com enum e escolha",
   "statement": "Leia um código inteiro (1 = Verde, 2 = Amarelo, outro = Vermelho), associe ao enum Sinal e escreva siga, atencao ou pare usando escolha.",
-  "starter_code": "enum Sinal {\n    Verde,\n    Amarelo,\n    Vermelho,\n}\n\nfuncao inicio() {\n    seja mutavel codigo: inteiro = 0;\n    leia(codigo);\n    seja sinal: Sinal = Sinal::Vermelho;\n    escolha sinal {\n        caso Sinal::Verde => { escreva(\"siga\"); }\n        caso Sinal::Amarelo => { escreva(\"atencao\"); }\n        caso Sinal::Vermelho => { escreva(\"pare\"); }\n    }\n}\n",
+  "starter_code": "enum Sinal {\n    Verde,\n    Amarelo,\n    Vermelho,\n}\n\nfuncao inicio() {\n    seja mutavel codigo: inteiro = leia();\n    seja sinal: Sinal = Sinal::Vermelho;\n    escolha sinal {\n        caso Sinal::Verde => { escreva(\"siga\"); }\n        caso Sinal::Amarelo => { escreva(\"atencao\"); }\n        caso Sinal::Vermelho => { escreva(\"pare\"); }\n    }\n}\n",
   "hints": [
     "Crie uma função ou use se / senao se para definir sinal como Sinal::Verde (1), Sinal::Amarelo (2) ou Sinal::Vermelho."
   ],

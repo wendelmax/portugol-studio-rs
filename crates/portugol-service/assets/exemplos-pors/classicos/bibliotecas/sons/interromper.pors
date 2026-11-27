@@ -22,49 +22,49 @@
 funcao inicio() {
     seja caminho: cadeia = "audio/musica.mp3";
 
-    escreva("=== Biblioteca Sons: Pausar, Reposicionar e Interromper ===\n");
-    escreva("Carregando: ", caminho, "\n");
+    escreval("=== Biblioteca Sons: Pausar, Reposicionar e Interromper ===");
+    escreval("Carregando: ", caminho);
 
     escolha Sons.carregar_som(caminho) {
         caso Resultado::Ok(som) => {
             escolha Sons.reproduzir_som(som, verdadeiro) {
                 caso Resultado::Ok(reproducao) => {
-                    escreva("1) Reproduzindo música em repetição contínua...\n");
+                    escreval("1) Reproduzindo música em repetição contínua...");
                     Util.aguarde(1000);
 
-                    escreva(
+                    escreval(
                     "2) Pausando na posição ",
                     Sons.obter_posicao_atual_musica(reproducao),
-                    " ms...\n"
+                    " ms..."
                     );
                     Sons.pausar_som(reproducao);
                     Util.aguarde(500);
 
-                    escreva("3) Reposicionando para o início (0 ms)...\n");
+                    escreval("3) Reposicionando para o início (0 ms)...");
                     escolha Sons.definir_posicao_atual_musica(reproducao, 0) {
                         caso Resultado::Ok(_) => {
-                            escreva("   Posição redefinida com sucesso.\n");
+                            escreval("   Posição redefinida com sucesso.");
                         }
                         caso Resultado::Erro(erro_pos) => {
-                            escreva("   Não foi possível reposicionar: ", erro_pos, "\n");
+                            escreval("   Não foi possível reposicionar: ", erro_pos);
                         }
                     }
 
-                    escreva("4) Interrompendo reprodução...\n");
+                    escreval("4) Interrompendo reprodução...");
                     Sons.interromper_som(reproducao);
-                    escreva("Reprodução interrompida com sucesso.\n");
+                    escreval("Reprodução interrompida com sucesso.");
                 }
                 caso Resultado::Erro(erro_rep) => {
-                    escreva("Erro ao iniciar reprodução: ", erro_rep, "\n");
+                    escreval("Erro ao iniciar reprodução: ", erro_rep);
                 }
             }
 
             Sons.liberar_som(som);
-            escreva("Som liberado.\n");
+            escreval("Som liberado.");
         }
         caso Resultado::Erro(erro) => {
-            escreva("Não foi possível carregar '", caminho, "': ", erro, "\n");
-            escreva("Coloque um arquivo de áudio nesse caminho para testar o controle completo.\n");
+            escreval("Não foi possível carregar '", caminho, "': ", erro);
+            escreval("Coloque um arquivo de áudio nesse caminho para testar o controle completo.");
         }
     }
 }

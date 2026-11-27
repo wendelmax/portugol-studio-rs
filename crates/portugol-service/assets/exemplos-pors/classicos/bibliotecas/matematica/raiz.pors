@@ -22,10 +22,10 @@ funcao inicio() {
     seja mutavel numero: real = 4.0;
     seja mutavel resultado: real = Matematica.raiz(numero, 2.0); // Obtém a raiz quadrada do número
 
-    escreva("A raiz quadrada de ", numero, " é: ", resultado, "\n");
+    escreval("A raiz quadrada de ", numero, " é: ", resultado);
 
     numero = 27.0;
     resultado = Matematica.raiz(numero, 3.0); // Obtém a raiz cúbica do número
 
-    escreva("A raiz cúbica de ", numero, " é: ", resultado, "\n");
+    escreval("A raiz cúbica de ", numero, " é: ", resultado);
 }

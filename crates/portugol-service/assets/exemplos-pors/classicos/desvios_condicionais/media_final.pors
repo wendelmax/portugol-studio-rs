@@ -20,29 +20,24 @@
  */
 
 funcao inicio() {
-    seja mutavel nome: cadeia = "";
-    seja mutavel nota1: real = 0.0;
-    seja mutavel nota2: real = 0.0;
-    seja mutavel nota3: real = 0.0;
-
     escreva("Digite seu nome: ");
-    leia(nome);
+    seja mutavel nome = leia();
 
-    escreva("\n");
+    escreval();
 
     escreva("Digite a primeira nota: ");
-    leia(nota1);
+    seja mutavel nota1: real = leia();
 
     escreva("Digite a segunda nota: ");
-    leia(nota2);
+    seja mutavel nota2: real = leia();
 
     escreva("Digite a terceira nota: ");
-    leia(nota3);
+    seja mutavel nota3: real = leia();
 
     // Calcula a média final do usuário
     seja media: real = (nota1 + nota2 + nota3) / 3.0;
 
-    escreva("\n");
+    escreval();
 
     se (media >= 6.0) {
         escreva("Parabéns ", nome, "!\nVocê foi aprovado com a média ", Matematica.arredondar(media, 2));
@@ -50,5 +45,5 @@ funcao inicio() {
         escreva("Que pena ", nome, "!\nVocê foi reprovado com a média ", Matematica.arredondar(media, 2));
     }
 
-    escreva("\n");
+    escreval();
 }

@@ -19,10 +19,8 @@
  */
 
 funcao inicio() {
-    seja mutavel numero: inteiro = 0;
-
     escreva("Digite um número inteiro: ");
-    leia(numero);
+    seja mutavel numero: inteiro = leia();
 
     se (numero > 0) {
         // Verifica se o número é positivo
@@ -35,5 +33,5 @@ funcao inicio() {
         escreva("O número é igual a zero");
     }
 
-    escreva("\n");
+    escreval();
 }

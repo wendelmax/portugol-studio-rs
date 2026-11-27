@@ -1,3 +1,4 @@
+use portugol_hir::{self as hir, ExprKind, Type};
 use portugol_rs_frontend::lower;
 
 #[test]
@@ -408,17 +409,49 @@ fn read_expression_rejects_arguments() {
 }
 
 #[test]
-fn rejects_read_expression_in_an_integer_context_at_its_span() {
-    let source = "funcao inicio() { seja idade: inteiro = leia(); }";
-    let errors = lower(source).unwrap_err();
-    let error = errors
-        .iter()
-        .find(|d| d.code == "pors.type-mismatch")
-        .unwrap();
-    assert_eq!(
-        &source[error.span.start as usize..error.span.end as usize],
-        "leia()"
-    );
+fn typed_read_expression_is_accepted_in_annotated_scalar_initializers() {
+    for (type_name, expected) in [
+        ("inteiro", Type::Integer),
+        ("real", Type::Real),
+        ("caracter", Type::Character),
+        ("logico", Type::Boolean),
+    ] {
+        let source = format!("funcao inicio() {{ seja n: {type_name} = leia(); }}");
+        let program = lower(&source).unwrap_or_else(|e| panic!("{type_name}: {e:?}"));
+        let hir::StmtKind::Declare {
+            initializer: Some(expr),
+            ..
+        } = &program.body[0].kind
+        else {
+            panic!("initializer ausente para {type_name}");
+        };
+        assert_eq!(expr.ty, expected);
+        assert!(matches!(expr.kind, ExprKind::Read { target: Some(_) }));
+    }
+}
+
+#[test]
+fn typed_read_expression_is_accepted_as_typed_function_argument() {
+    let source =
+        "funcao f(n: inteiro) -> inteiro { retorne n; } funcao inicio() { escreval(f(leia())); }";
+    assert!(lower(source).is_ok(), "{source}");
+}
+
+#[test]
+fn keeps_untyped_read_expression_as_cadeia() {
+    let source = "funcao inicio() { escreval(leia()); }";
+    let program = lower(source).unwrap();
+    let hir::StmtKind::Write(values) = &program.body[0].kind else {
+        panic!("Write ausente")
+    };
+    assert_eq!(values[0].ty, Type::String);
+    assert!(matches!(values[0].kind, ExprKind::Read { target: None }));
+}
+
+#[test]
+fn keeps_explicit_tipos_conversion_as_resultado() {
+    let source = "funcao inicio() { escolha Tipos.para_inteiro(leia()) { caso Resultado::Ok(n) => { escreval(n); } caso Resultado::Erro(_) => { escreval(\"erro\"); } } }";
+    assert!(lower(source).is_ok());
 }
 
 #[test]

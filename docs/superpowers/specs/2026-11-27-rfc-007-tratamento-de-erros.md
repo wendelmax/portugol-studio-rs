@@ -7,6 +7,8 @@
 
 > **Revisão (ADR 0020):** Escopo da primeira entrega limitado pela decisão 5 do ADR 0020: somente `tente { ... } capture erro { ... }` como comando, com um único `capture`, `?` dentro de `tente` e `lance`. `finalmente`, `capture` por variante e `capture _`, vários `capture`, `tente` como expressão e as regras de cobertura ficam adiados. Os exemplos desta RFC que interpolam números passam a ser válidos pela decisão 1 do mesmo ADR.
 
+> **Aviso:** Estes exemplos não executam no `main`: `tente`/`capture`/`lance` e a navegação segura ainda não estão implementados. Os trechos mostram o contrato proposto; as chamadas de `escreval` já seguem a RFC 004 e não interpolam valores não textuais.
+
 ## Contexto
 
 O PORS já tem erros como valor: `Resultado<T, E>` com as variantes `Ok` e `Erro`, construtores tipados, `escolha` exaustivo e o operador `?`. Em `crates/portugol-rs-frontend/src/parser/expr.rs:60-106`, `?` sobre `Resultado<T, E>` extrai `T` quando a função retorna `Resultado<_, E>` com o mesmo tipo de erro; fora disso, o diagnóstico é `pors.try-return-mismatch` ou `pors.try-invalid-type`. Não existe `tente`, `capture`, `finalmente` nem `lance`, e a VM não tem pilha de tratadores.
@@ -23,7 +25,7 @@ O ADR 0019 congela `enum`, `Resultado` e `escolha`, mantém `vazio` apenas como 
 2. Tipos de erro são qualquer tipo PORS, inclusive `enum` definido pelo usuário: `enum ErroMatematico { DivisaoPorZero, Estouro, ValorInvalido(cadeia) }`. Não se introduce `enumeracao` como sinônimo de `enum`.
 3. Pattern matching continua sendo `escolha`. Não se introduce `corresponda`.
 4. `registro` permanece o nome do tipo composto; `estrutura` não vira sinônimo.
-5. `leia()` continua `cadeia` fixa, sem `leia<T>()`. `vazio` continua restrito a tipo de retorno e não aparece como argumento de `Resultado`.
+5. `leia()` infere o tipo do contexto (RFC 002) e resulta em `cadeia` sem contexto tipado, sem `leia<T>()`. `vazio` continua restrito a tipo de retorno e não aparece como argumento de `Resultado`.
 
 ### `lance`
 
@@ -101,9 +103,9 @@ funcao dividir(a: inteiro, b: inteiro) -> Resultado<inteiro, cadeia> {
 funcao inicio() {
     tente {
         seja valor = dividir(10, 0)?;
-        escreval("Resultado: {valor}");
+        escreval("Resultado: ", valor);
     } capture erro {
-        escreval("Falha: {erro}");
+        escreval("Falha: ", erro);
     } finalmente {
         escreval("Operação encerrada.");
     }
@@ -126,6 +128,20 @@ funcao dividir(a: inteiro, b: inteiro)
     Resultado::Ok(a / b)
 }
 
+funcao descrever_erro(erro: ErroMatematico) -> cadeia {
+    escolha erro {
+        caso ErroMatematico::DivisaoPorZero => {
+            retorne "divisão por zero";
+        }
+        caso ErroMatematico::Estouro => {
+            retorne "estouro";
+        }
+        caso ErroMatematico::ValorInvalido(motivo) => {
+            retorne motivo;
+        }
+    }
+}
+
 funcao inicio() {
     tente {
         seja valor = dividir(10, 0)?;
@@ -135,7 +151,8 @@ funcao inicio() {
     } capture ErroMatematico::Estouro {
         escreval("Limite numérico excedido.");
     } capture erro {
-        escreval("Erro inesperado: {erro}");
+        seja erro_cadeia = descrever_erro(erro);
+        escreval("Erro inesperado: ", erro_cadeia);
     } finalmente {
         escreval("Execução finalizada.");
     }
@@ -152,7 +169,7 @@ funcao inicio() {
         escreval("Leitura encerrada.");
     };
 
-    escreval("Número: {numero}");
+    escreval("Número: ", numero);
 }
 ```
 

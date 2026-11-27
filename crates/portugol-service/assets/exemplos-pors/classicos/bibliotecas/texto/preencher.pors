@@ -25,12 +25,11 @@ funcao inicio() {
     // Por exemplo, para exibir o número 5 (101 em binário) sempre com 8, 16 ou 32 bits,
     // basta preencher a cadeia com zeros ('0') à esquerda até o tamanho desejado.
 
-    seja mutavel binario: cadeia = "";
 
     escreva("Digite um número em binário: ");
-    leia(binario);
+    seja mutavel binario = leia();
 
-    escreva("\nNúmero binário informado: ", binario, "\n");
+    escreval("\nNúmero binário informado: ", binario);
 
     // Preenche a cadeia com zeros à esquerda até que o tamanho seja 8 caracteres
     seja binario_8bits: cadeia = Texto.preencher_a_esquerda('0', 8, binario);
@@ -42,5 +41,5 @@ funcao inicio() {
 
     // Preenche a cadeia com zeros à esquerda até que o tamanho seja 32 caracteres
     seja binario_32bits: cadeia = Texto.preencher_a_esquerda('0', 32, binario);
-    escreva("\nNúmero binário com 32 bits: ", binario_32bits, "\n");
+    escreval("\nNúmero binário com 32 bits: ", binario_32bits);
 }

@@ -38,9 +38,9 @@ Se o projeto já possui AST, usar e ampliar a representação em vez de criar á
 ```text
 Portugol-RS:
 funcao inicio() {
-  seja mutavel idade: inteiro = 16;
+  seja mutavel idade = 16;
   idade += 1;
-  escreva(idade);
+  escreval(idade);
 }
 
 Rust:

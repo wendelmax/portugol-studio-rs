@@ -79,7 +79,7 @@ funcao desenhar_cena(marcadores: vetor < Marcador >, status: cadeia) {
     Graficos.desenhar_texto(556, 30, "Sair");
 
     // Desenha marcadores acumulados
-    para (seja mutavel i: inteiro = 0; i < tamanho(marcadores); i += 1) {
+    para (seja mutavel i = 0; i < tamanho(marcadores); i += 1) {
         seja m: Marcador = marcadores[i];
         Graficos.definir_cor(cor_botao(m.botao));
         Graficos.desenhar_elipse(m.x - 10, m.y - 10, 20, 20, verdadeiro);
@@ -121,7 +121,7 @@ funcao inicio() {
                 }
             }
             caso Resultado::Erro(mensagem) => {
-                escreva("Erro ao ler botão do mouse: ", mensagem, "\n");
+                escreval("Erro ao ler botão do mouse: ", mensagem);
                 executando = falso;
             }
         }

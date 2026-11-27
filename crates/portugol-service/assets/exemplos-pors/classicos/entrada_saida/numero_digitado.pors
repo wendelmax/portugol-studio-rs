@@ -20,10 +20,8 @@
  */
 
 funcao inicio() {
-    seja mutavel numero: inteiro = 0;
-
     escreva("Digite um número inteiro: ");
-    leia(numero);
+    seja mutavel numero: inteiro = leia();
 
-    escreva("O número digitado foi: ", numero, "\n");
+    escreval("O número digitado foi: ", numero);
 }

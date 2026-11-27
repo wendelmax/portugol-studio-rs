@@ -39,8 +39,8 @@ funcao indice_matriz(linha: inteiro, coluna: inteiro, colunas: inteiro) -> intei
 funcao preencher_diagonal(lado: inteiro) -> vetor < caracter > {
     seja mutavel matriz: vetor < caracter > = [];
 
-    para (seja mutavel linha: inteiro = 0; linha < lado; linha += 1) {
-        para (seja mutavel coluna: inteiro = 0; coluna < lado; coluna += 1) {
+    para (seja mutavel linha = 0; linha < lado; linha += 1) {
+        para (seja mutavel coluna = 0; coluna < lado; coluna += 1) {
             se (linha == coluna) {
                 adicionar(matriz, '*');
             } senao {
@@ -54,12 +54,12 @@ funcao preencher_diagonal(lado: inteiro) -> vetor < caracter > {
 
 // Percorre e exibe a matriz
 funcao exibir_matriz(matriz: vetor < caracter >, linhas: inteiro, colunas: inteiro) {
-    para (seja mutavel linha: inteiro = 0; linha < linhas; linha += 1) {
-        para (seja mutavel coluna: inteiro = 0; coluna < colunas; coluna += 1) {
+    para (seja mutavel linha = 0; linha < linhas; linha += 1) {
+        para (seja mutavel coluna = 0; coluna < colunas; coluna += 1) {
             seja idx: inteiro = indice_matriz(linha, coluna, colunas);
             escreva("[", matriz[idx], "]");
         }
-        escreva("\n");
+        escreval();
     }
 }
 

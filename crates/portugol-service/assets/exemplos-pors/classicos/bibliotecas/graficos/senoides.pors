@@ -87,7 +87,7 @@ logo: Opcao < inteiro >
     seja xr: real = Tipos.inteiro_para_real(estado.x);
     seja yr: real = Tipos.inteiro_para_real(estado.y);
 
-    para (seja mutavel passo: inteiro = 0; passo < 722; passo += 1) {
+    para (seja mutavel passo = 0; passo < 722; passo += 1) {
         seja i: real = Tipos.inteiro_para_real(passo) * 0.5;
         seja bolinha: inteiro = Tipos.real_para_inteiro(
         (32.0 * (Tipos.inteiro_para_real(estado.iterador) / 360.0)) + 1.0

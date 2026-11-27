@@ -143,6 +143,13 @@ impl Type {
     pub const fn is_vector(self) -> bool {
         self.vector_element().is_some()
     }
+
+    pub const fn is_implicit_read_target(self) -> bool {
+        matches!(
+            self,
+            Self::Integer | Self::Real | Self::Boolean | Self::Character
+        )
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -389,8 +396,10 @@ pub enum ExprKind {
     Real(f64),
     Boolean(bool),
     String(String),
-    /// Leitura de uma cadeia da entrada, usada como expressão (`leia()`).
-    Read,
+    /// Leitura da entrada usada como expressão (`leia()`), convertida ao tipo esperado quando conhecido.
+    Read {
+        target: Option<Type>,
+    },
     InterpolatedString {
         parts: Vec<StringPart>,
     },

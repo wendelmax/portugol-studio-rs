@@ -1,10 +1,8 @@
 funcao inicio() {
-    seja mutavel num: inteiro = 0;
-
     escreva("Digite um valor para ser comparado: ");
-    leia(num);
+    seja num: inteiro = leia();
 
     seja teste: logico = num > 0;
 
-    escreva("O número digitado é maior que zero? ", teste, "\n");
+    escreval("O número digitado é maior que zero? ", teste);
 }

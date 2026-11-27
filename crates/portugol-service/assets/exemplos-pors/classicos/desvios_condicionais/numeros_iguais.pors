@@ -20,10 +20,8 @@
  */
 
 funcao inicio() {
-    seja mutavel num_digitado: inteiro = 0;
-
     escreva("Informe um número de 0 a 6: ");
-    leia(num_digitado);
+    seja mutavel num_digitado: inteiro = leia();
 
     escolha Util.sorteia(0, 6) {
         caso Resultado::Ok(num_sorteado) => {
@@ -36,13 +34,13 @@ funcao inicio() {
                 }
 
                 escreva("\n\nNúmero digitado: ", num_digitado);
-                escreva("\nNúmero sorteado: ", num_sorteado, "\n");
+                escreval("\nNúmero sorteado: ", num_sorteado);
             } senao {
-                escreva("O número digitado deve estar entre 0 e 6\n");
+                escreval("O número digitado deve estar entre 0 e 6");
             }
         }
         caso Resultado::Erro(erro) => {
-            escreva("Erro ao sortear número: ", erro, "\n");
+            escreval("Erro ao sortear número: ", erro);
         }
     }
 }

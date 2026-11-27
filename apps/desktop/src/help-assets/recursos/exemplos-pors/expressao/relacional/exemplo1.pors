@@ -2,7 +2,7 @@ se (5 > 3) { // Estrutura de controle "se (...)", operacao relacional "5 > 3"
     // Conjunto de comandos executados se for verdadeiro
 }
 
-para (seja mutavel i: inteiro = 0; i < 5; i += 1) { // Operacao relacional "i < 5"
+para (seja mutavel i = 0; i < 5; i += 1) { // Operacao relacional "i < 5"
     // Conjunto de comandos repetidos enquanto a expressao for verdadeira
 }
 

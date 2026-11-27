@@ -1,3 +1,3 @@
-para (seja mutavel i: inteiro = 0; i < 8; i += 1) {
+para (seja mutavel i = 0; i < 8; i += 1) {
     // Codigo executado enquanto a condicao for satisfeita
 }

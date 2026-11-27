@@ -32,16 +32,16 @@ funcao inicio() {
             se (val > 24) {
                 escolha Texto.extrair_subtexto(resp, 23, val - 1) {
                     caso Resultado::Ok(users) => {
-                        escreva("Este exemplo já foi executado ", users, " vezes\n");
+                        escreval("Este exemplo já foi executado ", users, " vezes");
                     }
                     caso Resultado::Erro(_) => {}
                 }
             }
-            escreva("\nConteúdo capturado:\n", resp, "\n");
+            escreval("\nConteúdo capturado:\n", resp);
         }
         caso Resultado::Erro(erro) => {
-            escreva("Não foi possível acessar ", endereco, "\n");
-            escreva("Motivo: ", erro, "\n");
+            escreval("Não foi possível acessar ", endereco);
+            escreval("Motivo: ", erro);
         }
     }
 }

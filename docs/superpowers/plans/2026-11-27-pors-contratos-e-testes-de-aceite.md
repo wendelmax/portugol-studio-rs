@@ -13,8 +13,8 @@
 ## Global Constraints
 
 - `inteiro` continua `i32` com `wrapping_add` e `__pors_index(index: i32, ...)` até ADR posterior.
-- `leia()` tem tipo fixo `cadeia`; contexto nunca altera esse tipo; `leia(variavel)` legado mantém o tipo da variável.
-- `escreval(a, b);` equivale a `escreva(a, b, "\n");` — nenhum opcode novo.
+- `leia()` infere o tipo do contexto e resulta em `cadeia` sem contexto tipado; a forma legada com variável-alvo converte ao tipo da variável; entrada inválida é erro de execução.
+- `escreval(a, b);` escreve `a`, `b` e uma quebra final como `escreva`; nenhum opcode novo. `escreval` é builtin não reservado, conforme RFC 003.
 - Interpolação: `\{`/`\}` literais; `{...}` não vazio e fechado é expressão; `{}` e `{` aberto permanecem literais; conteúdo inválido gera diagnóstico com span UTF-8 exato.
 - Retorno implícito vale somente para a última expressão sem `;` do corpo de função com tipo de retorno declarado; blocos aninhados exigem `retorne`.
 - Nenhuma API WASM nova, nenhuma VM nova, nenhum rename de crate/produto, nenhuma pasta `specs/` paralela.
@@ -23,11 +23,11 @@
 
 ## Review Focus
 
-- `seja idade: inteiro = leia();` deve falhar com `pors.type-mismatch` no span de `leia()` — teste em `crates/portugol-rs-frontend/tests/semantics.rs` na Task 8.
+- `seja idade: inteiro = leia();` deve compilar com conversão implícita a `inteiro`; entrada não numérica falha em execução, não no frontend — teste em `crates/portugol-rs-frontend/tests/semantics.rs` e no runner na Task 8.
 - `{1 +}` deve falhar com diagnóstico no span exato do conteúdo entre chaves, não no span da cadeia inteira — teste em `crates/portugol-rs-frontend/tests/semantics.rs` na Task 8.
 - `{}`, `"abri {"` e `"\\{nome}"` devem continuar cadeia literal, sem token `interpolation` — testes nas Tasks 2 e 4 de `docs/superpowers/plans/2026-11-27-pors-syntax-highlighting.md`, confirmados vermelhos na Task 8.
 - Expressão sem `;` no corpo de função sem retorno declarado deve ser erro localizado, sem retorno implícito — teste em `crates/portugol-rs-frontend/tests/semantics.rs` na Task 8.
-- `leia(variavel)` e `escreva` atuais não podem regredir — teste preexistente `reads_typed_input_through_buffer_io_in_minimal_vm` é preservado e executado na Task 8.
+- A forma com variável-alvo de `leia` e `escreva` atuais não podem regredir — teste preexistente `reads_typed_input_through_buffer_io_in_minimal_vm` é preservado e executado na Task 8.
 
 ---
 
@@ -43,7 +43,7 @@
 
 - [ ] **Step 1: Escrever o ADR**
 
-Seguir o formato de `docs/adr/0017-modelo-execucao-e-estado-ui-visual-pors.md`: título `ADR 0019: Contrato mínimo de tipos do PORS`, `Status: Aceita`, `Data: 2026-11-27`, `Responsável: mantenedor do produto`, relacionados (ADR 0002, ADR 0016, design doc). Nas seções `Contexto`, `Decisão` e `Alternativas consideradas`, registrar literalmente: `inteiro` = `i32` com `wrapping`; `leia()` = `cadeia` fixa sem `leia<T>()`; nomes `caracter`, `registro`, `enum`, `Opcao`, `Resultado`, `escolha` preservados; spans UTF-8 em bytes; `vazio` apenas como tipo de retorno; adiamento explícito de larguras, overflow, aliases (`caractere`, `estrutura`, `opcional`, `resultado`), `nunca`, Unicode e heap/GC.
+Seguir o formato de `docs/adr/0017-modelo-execucao-e-estado-ui-visual-pors.md`: título `ADR 0019: Contrato mínimo de tipos do PORS`, `Status: Aceita`, `Data: 2026-11-27`, `Responsável: mantenedor do produto`, relacionados (ADR 0002, ADR 0016, design doc). Nas seções `Contexto`, `Decisão` e `Alternativas consideradas`, registrar literalmente: `inteiro` = `i32` com `wrapping`; `leia()` converte implícita ao tipo esperado pelo contexto (`cadeia` sem contexto), sem `leia<T>()` nesta fatia; nomes `caracter`, `registro`, `enum`, `Opcao`, `Resultado`, `escolha` preservados; spans UTF-8 em bytes; `vazio` apenas como tipo de retorno; adiamento explícito de larguras, overflow, aliases (`caractere`, `estrutura`, `opcional`, `resultado`), `nunca`, Unicode e heap/GC.
 
 - [ ] **Step 2: Verificar o conteúdo**
 
@@ -93,22 +93,22 @@ git commit -m "docs: especificar inferência de tipo em seja"
 
 **Interfaces:**
 - Consumes: RFC 001 (Task 2), ADR 0019; `Op::Read(ValueType)` em `crates/portugol-bytecode/src/op.rs:166-167`; `__portugol_read_line` em `crates/portugol-rust/src/codegen/mod.rs:50`.
-- Produces: `ExprKind::Read` com `Type::String`; `StmtKind::Read` preservado; `has_read` deve enxergar expressões.
+- Produces: `ExprKind::Read { target }` com alvo inferido do contexto (`None` → `cadeia`); `StmtKind::Read` preservado; `has_read` deve enxergar expressões.
 
 - [ ] **Step 1: Escrever a RFC**
 
-Incluir: sintaxe `leia()` em posição de expressão, tipo fixo `cadeia` mesmo em contexto `inteiro`/parâmetro/retorno; erro `pors.type-mismatch` no span da chamada quando o contexto exige outro tipo; `leia(argumento)` em expressão gera `pors.read-arguments-unsupported`; forma legada `leia(variavel)` inalterada e com o tipo da variável; `StmtKind::Read` mantido como açúcar de compatibilidade; `has_read` e `PORTUGOL_INPUT:cadeia` no Rust gerado; `leia<T>()` e conversão tipada em P1; nenhuma mudança na API WASM.
+Incluir: sintaxe `leia()` em posição de expressão, com conversão implícita ao tipo esperado pelo contexto e `cadeia` sem contexto; leitura com argumento em expressão gera `pors.read-arguments-unsupported`; forma legada com variável-alvo inalterada e com o tipo da variável; entrada inválida gera erro de execução; `StmtKind::Read` mantido como açúcar de compatibilidade; `has_read` e `PORTUGOL_INPUT:{expected}` no Rust gerado; `leia<T>()` e validação tipada explícita em P1; nenhuma mudança na API WASM.
 
 - [ ] **Step 2: Verificar**
 
-Run: `grep -nE "cadeia|pors.type-mismatch|read-arguments|has_read|PORTUGOL_INPUT|P1" docs/superpowers/specs/2026-11-27-rfc-002-leia-como-expressao.md`
+Run: `grep -nE "cadeia|convers|read-arguments|erro de execu|has_read|PORTUGOL_INPUT|P1" docs/superpowers/specs/2026-11-27-rfc-002-leia-como-expressao.md`
 Expected: todos os termos presentes.
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add docs/superpowers/specs/2026-11-27-rfc-002-leia-como-expressao.md
-git commit -m "docs: especificar leia() como expressão de cadeia"
+git commit -m "docs: especificar leia() com conversão implícita"
 ```
 
 ---
@@ -120,15 +120,15 @@ git commit -m "docs: especificar leia() como expressão de cadeia"
 
 **Interfaces:**
 - Consumes: `StmtKind::Write(Vec<Expr>)` em `crates/portugol-hir/src/lib.rs:282`; `write()` em `crates/portugol-rs-frontend/src/parser/stmt.rs:582-618`.
-- Produces: equivalência exata `escreval(a, b);` ≡ `escreva(a, b, "\n");`, com newline sintético de span zero.
+- Produces: equivalência observável: `escreval(a, b);` escreve `a`, `b` e uma quebra final como `escreva`, com newline sintético de span zero.
 
 - [ ] **Step 1: Escrever a RFC**
 
-Incluir: sintaxe, equivalência, `escreval()` sem argumentos equivalente a `escreva("\n")`, nenhum opcode/HIR novo, preservação de `Op::Write`, do `print!` e dos limites de saída, `escreval` como builtin (não keyword) na IDE e no playground, e exemplo com `stdout` esperado terminando em `\n`.
+Incluir: sintaxe, equivalência com `escreva` acrescido de uma quebra final, `escreval()` sem argumentos produzindo apenas a quebra, nenhum opcode/HIR novo, preservação de `Op::Write`, do `print!` e dos limites de saída, `escreval` como builtin não reservado na IDE e no playground, e exemplo com `stdout` esperado terminando em `\n`.
 
 - [ ] **Step 2: Verificar**
 
-Run: `grep -nE 'escreva\(a, b, "\\n"\)|Op::Write|builtin|stdout' docs/superpowers/specs/2026-11-27-rfc-003-escreval.md`
+Run: `grep -nE 'quebra final|Op::Write|builtin|stdout' docs/superpowers/specs/2026-11-27-rfc-003-escreval.md`
 Expected: todos os termos presentes.
 
 - [ ] **Step 3: Commit**
@@ -262,16 +262,15 @@ Em `crates/portugol-rs-frontend/tests/semantics.rs`:
 
 ```rust
 #[test]
-fn rejects_read_expression_in_an_integer_context_at_its_span() {
+fn infers_integer_target_for_read_expression_in_annotated_declaration() {
     let source = "funcao inicio() { seja idade: inteiro = leia(); }";
-    let errors = lower(source).unwrap_err();
-    let error = errors.iter().find(|d| d.code == "pors.type-mismatch").unwrap();
-    assert_eq!(&source[error.span.start as usize..error.span.end as usize], "leia()");
+    let program = lower(source).expect("leia() infere o tipo anotado");
+    assert_eq!(program.bindings[0].ty, hir::Type::Integer);
 }
 
 #[test]
 fn rejects_invalid_interpolation_content_at_the_inner_span() {
-    let source = "funcao inicio() { escreva(\"{1 +}\"); }";
+    let source = r#"funcao inicio() { escreva("{1 +}"); }"#;
     let errors = lower(source).unwrap_err();
     let error = errors.iter().find(|d| d.code == "pors.interpolation-invalid").unwrap();
     assert_eq!(&source[error.span.start as usize..error.span.end as usize], "1 +");
@@ -345,7 +344,7 @@ Run (na raiz):
 
 ```bash
 cargo test -p portugol-rs-frontend --test parser accepts_the_canonical_syntax_evolution_program
-cargo test -p portugol-rs-frontend --test semantics rejects_read_expression_in_an_integer_context_at_its_span
+cargo test -p portugol-rs-frontend --test semantics infers_integer_target_for_read_expression_in_annotated_declaration
 cargo test -p portugol-vm --test pors_core executes_canonical_syntax_evolution_program_in_minimal_vm
 cargo test -p portugol-wasm --test wasm_facade executes_canonical_syntax_evolution_program_through_wasm_facade
 cargo test -p portugol-service --test portugol_rs_runner compiles_and_runs_canonical_syntax_evolution_program_with_real_rustc

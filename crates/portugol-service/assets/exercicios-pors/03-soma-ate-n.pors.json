@@ -3,7 +3,7 @@
   "id": "pors-03-soma-ate-n",
   "title": "Soma de 1 até N",
   "statement": "Leia um inteiro positivo N e escreva a soma de todos os inteiros de 1 até N.",
-  "starter_code": "funcao inicio() {\n    seja mutavel n: inteiro = 0;\n    leia(n);\n    escreva(0);\n}\n",
+  "starter_code": "funcao inicio() {\n    seja mutavel n: inteiro = leia();\n    escreva(0);\n}\n",
   "hints": [
     "Declare seja mutavel soma: inteiro = 0 e acumule em um laço para de 1 até n."
   ],

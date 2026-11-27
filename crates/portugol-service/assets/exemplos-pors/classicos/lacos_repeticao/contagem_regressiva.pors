@@ -22,11 +22,11 @@ funcao inicio() {
     seja mutavel contador: inteiro = 10;
 
     enquanto (contador > 0) {
-        escreva("Detonação em: ", contador, "\n");
+        escreval("Detonação em: ", contador);
         contador -= 1;
         // Aguarda 1000 milissegundos (1 segundo)
         Util.aguarde(1000);
     }
 
-    escreva("Booom!\n");
+    escreval("Booom!");
 }

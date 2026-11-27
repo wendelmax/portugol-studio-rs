@@ -14,8 +14,8 @@
 
 ## Global Constraints
 
-- `escreval(a, b);` ≡ `escreva(a, b, "\n");`; nenhum `Op`/`StmtKind` novo para ele.
-- `leia()` tem tipo fixo `cadeia`; `leia(variavel)` legado continua com o tipo da variável.
+- `escreval(a, b);` escreve `a`, `b` e uma quebra final como `escreva`; nenhum `Op`/`StmtKind` novo para ele. `escreval` é builtin não reservado, conforme RFC 003.
+- `leia()` infere o tipo do contexto e resulta em `cadeia` sem contexto tipado; a forma legada com variável-alvo converte ao tipo da variável.
 - Interpolação: `\{`/`\}` literais; `{...}` não vazio e fechado é expressão; `{}` e `{` aberto são literais; números em interpolação geram diagnóstico nesta fatia.
 - Retorno implícito apenas na última posição do corpo de função com retorno declarado; blocos aninhados exigem `retorne`.
 - Spans são offsets UTF-8 semiabertos; cada parte de interpolação e cada nó de leitura carrega o seu.
@@ -28,7 +28,7 @@
 - `escreval("a");` não pode duplicar newline quando o programa já termina com `"\n"` — teste na Task 1.
 - `seja x = [];` continua erro de inferência, mesmo com `:` opcional — teste na Task 2.
 - `\{nome}`, `{}` e `{` sem fechamento continuam literais, e `{1 +}` falha no span do conteúdo — testes na Task 3.
-- `leia()` em contexto `inteiro` falha com `pors.type-mismatch` no span da chamada, e `has_read` enxerga a leitura dentro da expressão — testes na Task 4.
+- `leia()` em contexto `inteiro` converte para `inteiro` e falha em execução quando a entrada não converte; `has_read` enxerga a leitura dentro da expressão — testes na Task 4.
 - Bloco aninhado sem `;` não vira retorno; `seja` sem `;` no corpo de `inicio` continua erro — teste na Task 5.
 
 ---
@@ -36,13 +36,12 @@
 ### Task 1: `escreval` como açúcar de `Write`
 
 **Files:**
-- Modify: `crates/portugol-rs-frontend/src/parser/constants.rs:232-268` (`is_reserved`)
-- Modify: `crates/portugol-rs-frontend/src/parser/stmt.rs:175-181`, `:582-618`
+- Modify: `crates/portugol-rs-frontend/src/parser/stmt.rs:175-181`, `:582-618` (despacho de `escreval` como builtin não reservado)
 - Test: `crates/portugol-rs-frontend/tests/parser.rs`, `crates/portugol-vm/tests/pors_core.rs`
 
 **Interfaces:**
 - Consumes: `write(&mut self)` atual, `StmtKind::Write(Vec<Expr>)`.
-- Produces: `write(&mut self, newline: bool)`; `escreval` reservado; newline sintético com `Span::new(close.span.start, close.span.start)`.
+- Produces: `write(&mut self, newline: bool)`; `escreval` é builtin não reservado, conforme RFC 003; newline sintético com `Span::new(close.span.start, close.span.start)`.
 
 - [ ] **Step 1: Escrever os testes que falham**
 
@@ -82,7 +81,7 @@ Expected: FAIL — `lower()` retorna `pors.expected-statement`.
 
 - [ ] **Step 3: Implementar o açúcar**
 
-Adicionar `escreval` à lista de reservadas em `is_reserved()`. Em `statement()`, despachar `escreval` para `self.write(true)` e `escreva` para `self.write(false)`. Em `write(newline)`: manter o laço atual de argumentos, capturando o token de fechamento com `let close = self.expect(Kind::RParen, "Esperado `)` após valores de escreva")?;`, após `let end = self.expect(Kind::Semicolon, ...)?`, quando `newline`, acrescentar a `values` a expressão `hir::Expr { kind: hir::ExprKind::String("\n".to_owned()), ty: hir::Type::String, span: hir::Span::new(close.span.start, close.span.start) }`. Não alterar HIR, bytecode, VM nem Rust gerado. Este passo implementa o RFC 003, linha 24: o `"\n"` sintético tem span `[p, p)` com `p` imediatamente antes do `)` de fechamento.
+Manter `escreval` fora da lista de reservadas (`is_reserved()`): ele é builtin não reservado, conforme RFC 003 e o teste `escreval_can_still_be_used_as_an_identifier`. Em `statement()`, despachar `escreval` para `self.write(true)` e `escreva` para `self.write(false)`. Em `write(newline)`: manter o laço atual de argumentos, capturando o token de fechamento com `let close = self.expect(Kind::RParen, "Esperado `)` após valores de escreva")?;`, após `let end = self.expect(Kind::Semicolon, ...)?`, quando `newline`, acrescentar a `values` a expressão `hir::Expr { kind: hir::ExprKind::String("\n".to_owned()), ty: hir::Type::String, span: hir::Span::new(close.span.start, close.span.start) }`. Não alterar HIR, bytecode, VM nem Rust gerado. Este passo implementa o RFC 003, linha 24: o `"\n"` sintético tem span `[p, p)` com `p` imediatamente antes do `)` de fechamento.
 
 - [ ] **Step 4: Rodar e confirmar o passe**
 
@@ -92,7 +91,7 @@ Expected: PASS nos dois testes; `cargo fmt --check` limpo.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add crates/portugol-rs-frontend/src/parser/constants.rs crates/portugol-rs-frontend/src/parser/stmt.rs crates/portugol-rs-frontend/tests/parser.rs crates/portugol-vm/tests/pors_core.rs
+git add crates/portugol-rs-frontend/src/parser/stmt.rs crates/portugol-rs-frontend/tests/parser.rs crates/portugol-vm/tests/pors_core.rs
 git commit -m "feat(pors): adicionar escreval como açúcar de escreva"
 ```
 
@@ -182,7 +181,7 @@ Em `crates/portugol-rs-frontend/tests/parser.rs`, acrescentando `StringPart` ao 
 ```rust
 #[test]
 fn interpolation_parts_keep_their_own_spans_and_escaped_braces_are_literal() {
-    let source = "funcao inicio() { escreva(\"Olá, {nome}!\"); }";
+    let source = r#"funcao inicio() { escreva("Olá, {nome}!"); }"#;
     let program = lower(source).expect("interpolação válida");
     let StmtKind::Write(values) = &program.body[0].kind else { panic!("esperava Write") };
     let ExprKind::InterpolatedString { parts } = &values[0].kind else {
@@ -191,12 +190,12 @@ fn interpolation_parts_keep_their_own_spans_and_escaped_braces_are_literal() {
     assert_eq!(parts.len(), 3);
     assert!(matches!(&parts[0], StringPart::Literal(text, _) if text == "Olá, "));
     assert!(matches!(&parts[1], StringPart::Expression(expr, _) if expr.ty == Type::String));
-    let literal = "funcao inicio() { escreva(\"\\{nome}\"); }";
+    let literal = r#"funcao inicio() { escreva("\{nome}"); }"#;
     let program = lower(literal).expect("chaves escapadas são literais");
     let StmtKind::Write(values) = &program.body[0].kind else { panic!("esperava Write") };
     assert!(matches!(&values[0].kind, ExprKind::String(text) if text == "{nome}"));
 
-    let escaped_and_interpolated = "funcao inicio() { escreva(\"\\{{nome}\"); }";
+    let escaped_and_interpolated = r#"funcao inicio() { escreva("\{{nome}"); }"#;
     let program = lower(escaped_and_interpolated).expect("escape e interpolação");
     let StmtKind::Write(values) = &program.body[0].kind else { panic!("esperava Write") };
     let ExprKind::InterpolatedString { parts } = &values[0].kind else {
@@ -211,14 +210,14 @@ Em `crates/portugol-rs-frontend/tests/semantics.rs`:
 ```rust
 #[test]
 fn interpolation_rejects_invalid_content_numbers_and_unclosed_braces() {
-    let source = "funcao inicio() { escreva(\"{1 +}\"); }";
+    let source = r#"funcao inicio() { escreva("{1 +}"); }"#;
     let error = lower(source).unwrap_err().into_iter().find(|d| d.code == "pors.interpolation-invalid").unwrap();
     assert_eq!(&source[error.span.start as usize..error.span.end as usize], "1 +");
 
-    let number = "funcao inicio() { escreva(\"{42}\"); }";
+    let number = r#"funcao inicio() { escreva("{42}"); }"#;
     assert!(lower(number).unwrap_err().iter().any(|d| d.code == "pors.interpolation-non-string"));
 
-    for literal in ["funcao inicio() { escreva(\"{}\"); }", "funcao inicio() { escreva(\"abri {\"); }"] {
+    for literal in [r#"funcao inicio() { escreva("{}"); }"#, r#"funcao inicio() { escreva("abri {"); }"#] {
         assert!(lower(literal).is_ok(), "{literal}");
     }
 }
@@ -229,7 +228,7 @@ Em `crates/portugol-vm/tests/pors_core.rs`:
 ```rust
 #[test]
 fn executes_interpolated_string_through_bytecode_and_vm() {
-    let source = "funcao inicio() { seja nome = \"Ada\"; escreva(\"Olá, {nome}!\"); }";
+    let source = r#"funcao inicio() { seja nome = "Ada"; escreva("Olá, {nome}!"); }"#;
     let module = compile_pors_source(source);
     let mut io = BufferIo::default();
     run(&module, &mut io).expect("execução de interpolação");
@@ -276,7 +275,7 @@ git commit -m "feat(pors): representar interpolação com partes na HIR"
 
 ---
 
-### Task 4: `leia()` como expressão de cadeia
+### Task 4: `leia()` como expressão com conversão implícita
 
 **Files:**
 - Modify: `crates/portugol-hir/src/lib.rs:338-396`
@@ -287,8 +286,8 @@ git commit -m "feat(pors): representar interpolação com partes na HIR"
 - Test: `crates/portugol-rs-frontend/tests/semantics.rs`, `crates/portugol-vm/tests/pors_core.rs`, `crates/portugol-wasm/tests/wasm_facade.rs`, `crates/portugol-service/tests/portugol_rs_runner.rs`
 
 **Interfaces:**
-- Consumes: `ExprKind::Read` (Task 3 estabeleceu os pontos exaustivos), `Op::Read(ValueType::Cadeia)`, `__portugol_read_line("cadeia")`.
-- Produces: `ExprKind::Read` com `ty = Type::String`; `pors.read-arguments-unsupported`; `statements_have_read` passa a enxergar expressões.
+- Consumes: `ExprKind::Read { target }` (Task 3 estabeleceu os pontos exaustivos), `Op::Read(ValueType)` com o tipo inferido, `__portugol_read_line` com o rótulo do tipo esperado.
+- Produces: `ExprKind::Read` com `target` vindo do contexto (`None` → `cadeia`); erro de execução em entrada inválida; `pors.read-arguments-unsupported`; `statements_have_read` passa a enxergar expressões.
 
 - [ ] **Step 1: Escrever os testes que falham**
 
@@ -328,16 +327,14 @@ Em `crates/portugol-rs-frontend/tests/semantics.rs`:
 
 ```rust
 #[test]
-fn read_expression_rejects_arguments() {
-    let source = "funcao inicio() { escreva(leia(\"x\")); }";
-    assert!(
-        lower(source)
-            .unwrap_err()
-            .iter()
-            .any(|d| d.code == "pors.read-arguments-unsupported")
-    );
+fn read_expression_infers_integer_from_context() {
+    let source = "funcao inicio() { seja idade: inteiro = leia(); }";
+    let program = lower(source).expect("leia() infere o tipo anotado");
+    assert_eq!(program.bindings[0].ty, hir::Type::Integer);
 }
 ```
+
+A rejeição de argumentos na forma de expressão (`pors.read-arguments-unsupported`) continua coberta em `crates/portugol-rs-frontend/tests/semantics.rs`; a grafia legada não é repetida neste plano.
 
 - [ ] **Step 2: Rodar e confirmar a falha**
 
@@ -346,11 +343,11 @@ Expected: FAIL — `leia()` exige identificador.
 
 - [ ] **Step 3: Implementar o nó e o parser**
 
-Acrescentar `ExprKind::Read` na HIR. Em `prefix()` (`expr.rs`), na arm `Kind::Ident(name)`, antes da cadeia de builtins, tratar `name == "leia"` seguido de `LParen`: sem argumentos, consumir `RParen` e devolver `Expr { kind: ExprKind::Read, ty: Type::String, span: início..fechamento }`; com argumentos, falhar com `pors.read-arguments-unsupported` no span dos argumentos. Não alterar `read()` em `stmt.rs`: `leia(variavel)` continua comando com tipo da variável.
+Acrescentar `ExprKind::Read { target }` na HIR. Em `prefix()` (`expr.rs`), na arm `Kind::Ident(name)`, antes da cadeia de builtins, tratar `name == "leia"` seguido de `LParen`: sem argumentos, consumir `RParen`, tomar o tipo esperado de `expression_with_expected` (ou `None` para `cadeia`) e devolver `Expr { kind: ExprKind::Read { target }, ty, span: início..fechamento }`; com argumentos, falhar com `pors.read-arguments-unsupported` no span dos argumentos. Não alterar `read()` em `stmt.rs`: a forma com variável-alvo continua comando com o tipo da variável.
 
 - [ ] **Step 4: Atualizar os backends e `has_read`**
 
-Em `pors.rs`, `expr()`: `ExprKind::Read` emite `Op::Read(ValueType::Cadeia)` com o span da expressão (o valor fica na pilha, sem `StoreLocal`). Em `codegen/expr.rs`, `render_expr()`: `ExprKind::Read` devolve `__portugol_read_line("cadeia")` com mapeamento no span da chamada. Em `codegen/types.rs`, estender `statements_have_read()` com um auxiliar `expression_has_read(&Expr)` aplicado a todos os campos de expressão dos comandos (`Declare.initializer`, `Assign.value`, `FieldAssign.value`, `Write`, condições e corpos de `If`/laços/`Choose`, `Return.value`, `IndexAssign`, `VectorPush`); estender `expr_uses_host_module()` para percorrer `InterpolatedString`. Fazer o mesmo percurso em `portugol-service/src/rename.rs`.
+Em `pors.rs`, `expr()`: `ExprKind::Read { target }` emite `Op::Read(ValueType)` com o tipo inferido e o span da expressão (o valor fica na pilha, sem `StoreLocal`). Em `codegen/expr.rs`, `render_expr()`: `ExprKind::Read` devolve `__portugol_read_line` com o rótulo do tipo esperado (`cadeia` quando `target` é `None`) e mapeamento no span da chamada. Em `codegen/types.rs`, estender `statements_have_read()` com um auxiliar `expression_has_read(&Expr)` aplicado a todos os campos de expressão dos comandos (`Declare.initializer`, `Assign.value`, `FieldAssign.value`, `Write`, condições e corpos de `If`/laços/`Choose`, `Return.value`, `IndexAssign`, `VectorPush`); estender `expr_uses_host_module()` para percorrer `InterpolatedString`. Fazer o mesmo percurso em `portugol-service/src/rename.rs`.
 
 - [ ] **Step 5: Rodar e confirmar o passe**
 
@@ -361,7 +358,7 @@ Expected: PASS, incluindo `pauses_at_leia_requests_typed_input_and_resumes_the_p
 
 ```bash
 git add crates/portugol-hir/src/lib.rs crates/portugol-rs-frontend/src crates/portugol-bytecode/src/pors.rs crates/portugol-rust/src/codegen crates/portugol-service/src/rename.rs crates/portugol-rs-frontend/tests crates/portugol-vm/tests crates/portugol-service/tests
-git commit -m "feat(pors): aceitar leia() como expressão de cadeia"
+git commit -m "feat(pors): aceitar leia() como expressão com conversão implícita"
 ```
 
 ---
@@ -454,7 +451,7 @@ git commit -m "feat(pors): aceitar retorno implícito no corpo da função"
 
 **Files:**
 - Modify: `docs/research/PORS_MIGRATION_MATRIX.md`
-- Modify: Ajuda/exemplos PORS existentes que ensinam entrada e saída (registrar `escreval`, `leia()` e interpolação sem remover `leia(variavel)`/`escreva`)
+- Modify: Ajuda/exemplos PORS existentes que ensinam entrada e saída (registrar `escreval`, `leia()` e interpolação sem remover a forma com variável-alvo de `leia` nem `escreva`)
 - Test: fixture e testes das Tasks 1–5 do plano de aceite
 
 **Interfaces:**

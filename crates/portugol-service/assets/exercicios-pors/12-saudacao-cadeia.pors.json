@@ -3,7 +3,7 @@
   "id": "pors-12-saudacao-cadeia",
   "title": "Saudação com cadeia",
   "statement": "Leia o nome de uma pessoa em uma variável cadeia e escreva \"Ola, \" seguido do nome lido.",
-  "starter_code": "funcao inicio() {\n    seja mutavel nome: cadeia = \"\";\n    leia(nome);\n    escreva(nome);\n}\n",
+  "starter_code": "funcao inicio() {\n    seja mutavel nome = leia();\n    escreva(nome);\n}\n",
   "hints": [
     "Use escreva(\"Ola, \", nome); para exibir a saudação seguida do nome."
   ],

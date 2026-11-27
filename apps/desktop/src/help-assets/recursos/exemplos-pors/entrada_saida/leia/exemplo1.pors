@@ -1,9 +1,5 @@
-seja mutavel x: inteiro = 0;
-seja mutavel y: cadeia = "";
-seja mutavel z: real = 0.0;
-
-// Em Portugol-RS, o comando leia recebe uma variavel mutavel por chamada
-leia(x);
-leia(y);
-leia(z);
+// Em Portugol-RS, leia() e uma expressao: converte a entrada ao tipo esperado
+seja mutavel x: inteiro = leia();
+seja mutavel y = leia();
+seja mutavel z: real = leia();
 // Ao final, as variaveis terao os valores digitados pelo usuario.

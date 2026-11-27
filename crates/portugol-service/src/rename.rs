@@ -300,7 +300,7 @@ fn collect_pors_function_calls_in_expr(
             }
         }
         ExprKind::Binding(_)
-        | ExprKind::Read
+        | ExprKind::Read { .. }
         | ExprKind::Integer(_)
         | ExprKind::Real(_)
         | ExprKind::Boolean(_)
@@ -739,7 +739,7 @@ fn collect_portugol_rs_expression(
                 }
             }
         }
-        ExprKind::Read
+        ExprKind::Read { .. }
         | ExprKind::Integer(_)
         | ExprKind::Real(_)
         | ExprKind::Boolean(_)

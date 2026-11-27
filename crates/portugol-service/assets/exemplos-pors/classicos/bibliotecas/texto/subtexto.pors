@@ -22,10 +22,10 @@ funcao mostrar_subtexto(texto: cadeia, inicio_pos: inteiro, fim_pos: inteiro) {
     // Em Portugol-RS, extrair_subtexto retorna Resultado<cadeia, cadeia>
     escolha Texto.extrair_subtexto(texto, inicio_pos, fim_pos) {
         caso Resultado::Ok(sub_texto) => {
-            escreva(sub_texto, "\n");
+            escreval(sub_texto);
         }
         caso Resultado::Erro(erro) => {
-            escreva("Erro ao extrair subtexto: ", erro, "\n");
+            escreval("Erro ao extrair subtexto: ", erro);
         }
     }
 }

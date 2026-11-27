@@ -19,10 +19,8 @@
  */
 
 funcao inicio() {
-    seja mutavel base: real = 0.0;
-
     escreva("Informe um número: ");
-    leia(base);
+    seja mutavel base: real = leia();
 
     // Eleva o número informado ao quadrado
     seja quadrado: real = Matematica.potencia(base, 2.0);
@@ -30,5 +28,5 @@ funcao inicio() {
 
     // Eleva o número informado ao cubo
     seja cubo: real = Matematica.potencia(base, 3.0);
-    escreva("\n", base, " ao cubo é igual a: ", cubo, "\n");
+    escreval("\n", base, " ao cubo é igual a: ", cubo);
 }

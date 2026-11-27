@@ -35,7 +35,7 @@ export const PORS_HELP_TOPICS: readonly PorsHelpTopic[] = [
     example: {
       title: "Variáveis, funções e controle de fluxo",
       fileName: "guia-pors-tipos.pors",
-      source: `funcao dobro(valor: inteiro) -> inteiro {\n    retorne valor * 2;\n}\n\nfuncao inicio() {\n    seja mutavel total: inteiro = 0;\n    para (seja mutavel i: inteiro = 1; i <= 3; i += 1) {\n        total += dobro(i);\n    }\n    escreva("Total: ", total);\n}\n`,
+      source: `funcao dobro(valor: inteiro) -> inteiro {\n    retorne valor * 2;\n}\n\nfuncao inicio() {\n    seja mutavel total = 0;\n    para (seja mutavel i = 1; i <= 3; i += 1) {\n        total += dobro(i);\n    }\n    escreva("Total: ", total);\n}\n`,
     },
   },
   {
@@ -57,13 +57,13 @@ export const PORS_HELP_TOPICS: readonly PorsHelpTopic[] = [
     title: "Laços de repetição (para, enquanto, faca-enquanto)",
     summary: "Estruturas de repetição tipadas com controle explícito por `pare` e `continue`.",
     paragraphs: [
-      "Em Portugol-RS você pode usar `para (seja mutavel i: inteiro = 0; i < n; i += 1)`, `enquanto (condicao)` e `faca { ... } enquanto (condicao);`.",
+      "Em Portugol-RS você pode usar `para (seja mutavel i = 0; i < n; i += 1)`, `enquanto (condicao)` e `faca { ... } enquanto (condicao);`.",
       "Use `continue;` para pular para a próxima iteração e `pare;` para interromper o laço imediatamente, com o mesmo comportamento na VM e no Rust gerado.",
     ],
     example: {
       title: "Soma seletiva com para, continue e pare",
       fileName: "guia-pors-lacos.pors",
-      source: `funcao inicio() {\n    seja mutavel soma: inteiro = 0;\n    para (seja mutavel i: inteiro = 1; i <= 10; i += 1) {\n        se (i % 2 == 0) {\n            continue;\n        }\n        se (i > 7) {\n            pare;\n        }\n        soma += i;\n    }\n    escreva("Soma dos ímpares até 7: ", soma);\n}\n`,
+      source: `funcao inicio() {\n    seja mutavel soma = 0;\n    para (seja mutavel i = 1; i <= 10; i += 1) {\n        se (i % 2 == 0) {\n            continue;\n        }\n        se (i > 7) {\n            pare;\n        }\n        soma += i;\n    }\n    escreva("Soma dos ímpares até 7: ", soma);\n}\n`,
     },
   },
   {
