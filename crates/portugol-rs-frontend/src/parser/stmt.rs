@@ -177,7 +177,10 @@ impl Parser {
             return self.declaration();
         }
         if self.is_keyword("escreva") {
-            return self.write();
+            return self.write(false);
+        }
+        if self.is_keyword("escreval") {
+            return self.write(true);
         }
         if self.is_keyword("leia") {
             return self.read();
@@ -579,7 +582,7 @@ impl Parser {
         })
     }
 
-    pub(super) fn write(&mut self) -> Result<hir::Stmt, Vec<Diagnostic>> {
+    pub(super) fn write(&mut self, newline: bool) -> Result<hir::Stmt, Vec<Diagnostic>> {
         let start = self.advance().span;
         self.expect(Kind::LParen, "Esperado `(` após escreva")?;
         let mut values = Vec::new();
@@ -609,7 +612,14 @@ impl Parser {
                 }
             }
         }
-        self.expect(Kind::RParen, "Esperado `)` após valores de escreva")?;
+        let close = self.expect(Kind::RParen, "Esperado `)` após valores de escreva")?;
+        if newline {
+            values.push(hir::Expr {
+                kind: hir::ExprKind::String("\n".to_owned()),
+                ty: hir::Type::String,
+                span: hir::Span::new(close.span.start, close.span.start),
+            });
+        }
         let end = self.expect(Kind::Semicolon, "Esperado `;` após escreva")?;
         Ok(hir::Stmt {
             kind: hir::StmtKind::Write(values),

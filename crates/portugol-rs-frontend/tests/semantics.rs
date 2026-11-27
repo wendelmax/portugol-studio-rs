@@ -400,21 +400,37 @@ fn nested_counted_loops_keep_shadowed_control_bindings_separate() {
 fn rejects_read_expression_in_an_integer_context_at_its_span() {
     let source = "funcao inicio() { seja idade: inteiro = leia(); }";
     let errors = lower(source).unwrap_err();
-    let error = errors.iter().find(|d| d.code == "pors.type-mismatch").unwrap();
-    assert_eq!(&source[error.span.start as usize..error.span.end as usize], "leia()");
+    let error = errors
+        .iter()
+        .find(|d| d.code == "pors.type-mismatch")
+        .unwrap();
+    assert_eq!(
+        &source[error.span.start as usize..error.span.end as usize],
+        "leia()"
+    );
 }
 
 #[test]
 fn rejects_invalid_interpolation_content_at_the_inner_span() {
     let source = "funcao inicio() { escreva(\"{1 +}\"); }";
     let errors = lower(source).unwrap_err();
-    let error = errors.iter().find(|d| d.code == "pors.interpolation-invalid").unwrap();
-    assert_eq!(&source[error.span.start as usize..error.span.end as usize], "1 +");
+    let error = errors
+        .iter()
+        .find(|d| d.code == "pors.interpolation-invalid")
+        .unwrap();
+    assert_eq!(
+        &source[error.span.start as usize..error.span.end as usize],
+        "1 +"
+    );
 }
 
 #[test]
 fn rejects_trailing_expression_in_a_function_without_return_type() {
     let source = "funcao inicio() { 1 + 1 }";
     let errors = lower(source).unwrap_err();
-    assert!(errors.iter().any(|d| d.code == "pors.implicit-return-without-type"));
+    assert!(
+        errors
+            .iter()
+            .any(|d| d.code == "pors.implicit-return-without-type")
+    );
 }

@@ -981,3 +981,12 @@ fn executes_canonical_syntax_evolution_program_in_minimal_vm() {
     run(&module, &mut io).expect("execução do programa motivador na VM");
     assert_eq!(io.output, "Olá, Ada!\n");
 }
+
+#[test]
+fn escreval_emits_one_newline_without_duplication() {
+    let source = "funcao inicio() { escreval(\"a\"); escreval(); }";
+    let module = compile_pors_source(source);
+    let mut io = BufferIo::default();
+    run(&module, &mut io).expect("execução de escreval");
+    assert_eq!(io.output, "a\n\n");
+}

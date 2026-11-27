@@ -1018,3 +1018,15 @@ fn accepts_the_canonical_syntax_evolution_program() {
     let program = lower(source).expect("programa motivador deve compilar no frontend");
     assert_eq!(program.functions.len(), 1);
 }
+
+#[test]
+fn escreval_appends_a_newline_expression_to_write() {
+    let source = "funcao inicio() { escreval(\"a\"); }";
+    let program = lower(source).expect("escreval deve compilar");
+    let StmtKind::Write(values) = &program.body[0].kind else {
+        panic!("esperava Write");
+    };
+    assert_eq!(values.len(), 2);
+    assert!(matches!(&values[1].kind, ExprKind::String(text) if text == "\n"));
+    assert!(values[1].span.is_empty());
+}

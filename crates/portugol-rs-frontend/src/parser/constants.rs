@@ -249,6 +249,7 @@ pub(super) fn is_reserved(name: &str) -> bool {
             | "verdadeiro"
             | "falso"
             | "escreva"
+            | "escreval"
             | "se"
             | "senao"
             | "enquanto"
