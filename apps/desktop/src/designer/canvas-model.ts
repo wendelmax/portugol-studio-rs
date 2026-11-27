@@ -79,6 +79,31 @@ const NOT_VISUAL = new Set(["Item", "DadosExemplo", ...COMPONENTS]);
 const LAYOUTS = new Set<CanvasKind>(["stack", "grid", "dock"]);
 const ALIGN: Record<string, string> = { Inicio: "start", Centro: "center", Fim: "end", Esticar: "stretch" };
 
+/** Como um elemento posiciona os filhos. */
+export type ContainerLayout = "free" | "stack" | "grid" | "dock" | "none";
+
+export function layoutOf(tag: string): ContainerLayout {
+  if (tag === "Janela" || tag === "Painel") return "free";
+  if (tag === "Pilha") return "stack";
+  if (tag === "Grade") return "grid";
+  if (tag === "Encaixe") return "dock";
+  return "none";
+}
+
+/** Componente sem aparência (`Temporizador`, `DialogoArquivo`): fica direto na `Janela`. */
+export function isComponentTag(tag: string): boolean {
+  return COMPONENTS.has(tag);
+}
+
+/** Elemento que aparece na janela (não é `Item`, `DadosExemplo` nem componente). */
+export function isVisualTag(tag: string): boolean {
+  return !NOT_VISUAL.has(tag);
+}
+
+export function attributeOf(node: DesignNode, name: string): string | undefined {
+  return node.attributes.find((attribute) => attribute.name === name)?.value;
+}
+
 export const pathKey = (path: readonly number[]): string => path.join(".");
 
 export function pathFromKey(key: string): number[] {
