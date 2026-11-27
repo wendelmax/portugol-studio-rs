@@ -615,6 +615,13 @@ mod tests {
             rename_relative_file(&temp.0, Path::new("aulas/ex1.pors.json"), "ex2.pors.json")
                 .unwrap();
         assert_eq!(fs::read_to_string(renamed_ex).unwrap(), "{}");
+
+        assert!(create_source_file(&temp.0, "novo.fer").is_ok());
+        assert!(temp.0.join("novo.fer").is_file());
+        fs::write(temp.0.join("aulas/legado.pors"), "escreva(7);").unwrap();
+        let migrated_ok =
+            rename_relative_file(&temp.0, Path::new("aulas/legado.pors"), "legado.fer").unwrap();
+        assert_eq!(fs::read_to_string(migrated_ok).unwrap(), "escreva(7);");
     }
 
     #[test]

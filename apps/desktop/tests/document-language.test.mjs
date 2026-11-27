@@ -2,7 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { detectSourceLanguage, ensureSourceExtension } from "../src/document-language.ts";
 
-test("detects Portugol-RS from case-insensitive .pors paths", () => {
+test("detects Ferro from case-insensitive .fer and .pors paths", () => {
+  assert.equal(detectSourceLanguage("/tmp/Aula álgebra.FER"), "portugol-rs");
   assert.equal(detectSourceLanguage("/tmp/Aula álgebra.PORS"), "portugol-rs");
 });
 
@@ -18,7 +19,8 @@ test("adds the correct source extension for Rust documents", () => {
 });
 
 test("adds the active language extension without changing an explicit source suffix", () => {
-  assert.equal(ensureSourceExtension("/tmp/Olá", "portugol-rs"), "/tmp/Olá.pors");
+  assert.equal(ensureSourceExtension("/tmp/Olá", "portugol-rs"), "/tmp/Olá.fer");
+  assert.equal(ensureSourceExtension("/tmp/Olá.FER", "portugol-rs"), "/tmp/Olá.FER");
   assert.equal(ensureSourceExtension("/tmp/Olá.PORS", "portugol-rs"), "/tmp/Olá.PORS");
   assert.equal(ensureSourceExtension("/tmp/aula.rs", "portugol-rs"), "/tmp/aula.rs");
 });

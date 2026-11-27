@@ -27,7 +27,7 @@ pub fn main(args: &[String]) -> ExitCode {
         }
     }
     let Some(file) = file else {
-        eprintln!("uso: portugol executar [--bytecode] <arquivo.pors>");
+        eprintln!("uso: portugol executar [--bytecode] <arquivo.fer>");
         return ExitCode::FAILURE;
     };
 

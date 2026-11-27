@@ -314,3 +314,83 @@ fn creates_validates_and_formats_desktop_projects() {
     assert!(!missing.status.success());
     assert!(String::from_utf8_lossy(&missing.stdout).contains("projeto.missing-start-window"));
 }
+
+#[test]
+fn novo_sem_extensao_cria_arquivo_fer_e_executa_normalmente() {
+    let dir = TempDir::new();
+    let base = dir.0.join("saudacao");
+    let expected = dir.0.join("saudacao.fer");
+
+    let created = cli().args(["novo"]).arg(&base).output().unwrap();
+    assert!(created.status.success(), "{created:?}");
+    assert!(expected.is_file());
+
+    let executed = cli().args(["executar"]).arg(&expected).output().unwrap();
+    assert!(executed.status.success(), "{executed:?}");
+    assert_eq!(String::from_utf8_lossy(&executed.stdout), "17");
+}
+
+#[test]
+fn migrar_pede_confirmacao_respeita_sim_e_detecta_conflitos() {
+    let dir = TempDir::new();
+    fs::create_dir_all(dir.0.join("aulas/sub")).unwrap();
+    let f1 = dir.0.join("aulas/um.pors");
+    let f2 = dir.0.join("aulas/sub/dois.pors");
+    fs::write(&f1, "funcao inicio() { escreva(1); }").unwrap();
+    fs::write(&f2, "funcao inicio() { escreva(2); }").unwrap();
+
+    // Sem --sim e resposta 'n' cancela sem renomear.
+    let mut child = cli()
+        .args(["migrar"])
+        .arg(dir.0.join("aulas"))
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child.stdin.take().unwrap().write_all(b"n\n").unwrap();
+    let cancelled = child.wait_with_output().unwrap();
+    assert!(cancelled.status.success(), "{cancelled:?}");
+    assert!(f1.is_file());
+    assert!(f2.is_file());
+
+    // Com resposta 's' renomeia recursivamente.
+    let mut child = cli()
+        .args(["migrar"])
+        .arg(dir.0.join("aulas"))
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child.stdin.take().unwrap().write_all(b"s\n").unwrap();
+    let confirmed = child.wait_with_output().unwrap();
+    assert!(confirmed.status.success(), "{confirmed:?}");
+    assert!(!f1.exists());
+    assert!(!f2.exists());
+    assert!(dir.0.join("aulas/um.fer").is_file());
+    assert!(dir.0.join("aulas/sub/dois.fer").is_file());
+
+    // Pasta já migrada retorna sucesso sem erro.
+    let clean = cli()
+        .args(["migrar", "--sim"])
+        .arg(dir.0.join("aulas"))
+        .output()
+        .unwrap();
+    assert!(clean.status.success(), "{clean:?}");
+
+    // Conflito impede migração sem sobrescrever.
+    fs::write(&f1, "antigo").unwrap();
+    let conflict = cli()
+        .args(["migrar", "--sim"])
+        .arg(dir.0.join("aulas"))
+        .output()
+        .unwrap();
+    assert!(!conflict.status.success());
+    assert!(String::from_utf8_lossy(&conflict.stderr).contains("conflito:"));
+    assert_eq!(fs::read_to_string(&f1).unwrap(), "antigo");
+    assert_eq!(
+        fs::read_to_string(dir.0.join("aulas/um.fer")).unwrap(),
+        "funcao inicio() { escreva(1); }"
+    );
+}

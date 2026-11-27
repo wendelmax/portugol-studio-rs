@@ -82,18 +82,18 @@ test("canceling the open dialog does not change tabs or status", async () => {
   assert.deepEqual(events, []);
 });
 
-test("saving as Portugol-RS adds .pors and reports the language change after writing", async () => {
+test("saving as Ferro adds .fer and reports the language change after writing", async () => {
   const tab = makeTab({ id: 4, path: null, language: "portugol-rs", saved: "antigo" });
   const { io, events, dependencies } = fixture({ selectedTab: tab });
   dependencies.saveDialog = async (options) => {
-    assert.equal(options.defaultPath, "programa.pors");
+    assert.equal(options.defaultPath, "programa.fer");
     return "/tmp/aula";
   };
 
   const saved = await io.save();
 
   assert.equal(saved, true);
-  assert.equal(tab.path, "/tmp/aula.pors");
+  assert.equal(tab.path, "/tmp/aula.fer");
   assert.equal(tab.language, "portugol-rs");
   assert.deepEqual(events.map(([name]) => name), ["writeFile", "afterSave", "recent", "renderTabs", "status"]);
   assert.equal(events[0][2], "conteúdo atual");

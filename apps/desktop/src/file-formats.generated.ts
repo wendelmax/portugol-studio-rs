@@ -12,7 +12,7 @@ export type FileFormat = {
 };
 
 export const FILE_FORMATS: readonly FileFormat[] = [
-  { kind: "source", extension: "pors", legacy: [], label: "Portugol-RS", mime: "text/x-portugol-rs" },
+  { kind: "source", extension: "fer", legacy: ["pors"], label: "Ferro", mime: "text/x-ferro" },
   { kind: "rust", extension: "rs", legacy: [], label: "Rust", mime: "text/x-rust" },
   { kind: "lesson", extension: "pors.json", legacy: [], label: "Exercício Portugol-RS", mime: "application/json" },
   { kind: "design", extension: "design", legacy: [], label: "Tela (pseudo-XAML)", mime: "application/xml" },

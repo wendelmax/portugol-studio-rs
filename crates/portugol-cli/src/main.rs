@@ -1,5 +1,6 @@
 mod debug;
 mod desktop;
+mod migrate;
 mod run;
 
 use std::env;
@@ -24,7 +25,7 @@ pub(crate) fn is_legacy_file(path: &Path) -> bool {
 pub(crate) fn report_unsupported_extension(path: &Path) {
     if is_legacy_file(path) {
         eprintln!(
-            "{}: arquivos legados .por/.pex não são suportados no Portugol Studio RS; use o Portugol Studio original para abri-los ou converta para {}",
+            "{}: arquivos legados .por/.pex não são suportados no Ferro Studio; use o Portugol Studio original para abri-los ou converta para {}",
             path.display(),
             portugol_formatos::describe(&[Kind::Source])
         );
@@ -44,6 +45,7 @@ fn main() -> ExitCode {
         Some("executar") => return run::main(&args[1..]),
         Some("depurar") => return debug::main(&args[1..]),
         Some("formatar") => return format_command(&args[1..]),
+        Some("migrar") => return migrate::main(&args[1..]),
         Some("novo") => return new_command(&args[1..]),
         Some("exportar-rust") => return export_rust_command(&args[1..]),
         Some("exportar-cargo") => return export_cargo_command(&args[1..]),
@@ -75,7 +77,10 @@ fn main() -> ExitCode {
     }
 
     if files.is_empty() {
-        eprintln!("nenhum arquivo .pors, .design ou .ferproj encontrado");
+        eprintln!(
+            "nenhum arquivo {} encontrado",
+            portugol_formatos::describe_alternatives(&[Kind::Source, Kind::Design, Kind::Manifest])
+        );
         return ExitCode::FAILURE;
     }
 
@@ -150,7 +155,7 @@ fn new_command(args: &[String]) -> ExitCode {
     }
     if args.len() != 1 || args[0] == "-h" || args[0] == "--help" {
         eprintln!(
-            "uso: portugol novo <arquivo.pors>\n     portugol novo --desktop <pasta> [--nome \"Nome do aplicativo\"]"
+            "uso: portugol novo <arquivo.fer>\n     portugol novo --desktop <pasta> [--nome \"Nome do aplicativo\"]"
         );
         return ExitCode::FAILURE;
     }
@@ -203,7 +208,7 @@ fn format_command(args: &[String]) -> ExitCode {
         }
     }
     let Some(file) = file else {
-        eprintln!("uso: portugol formatar [--check] <arquivo.pors | .design | .ferproj>");
+        eprintln!("uso: portugol formatar [--check] <arquivo.fer | .design | .ferproj>");
         return ExitCode::FAILURE;
     };
     let path = Path::new(file);
@@ -271,7 +276,7 @@ fn format_command(args: &[String]) -> ExitCode {
 
 fn export_rust_command(args: &[String]) -> ExitCode {
     if args.len() != 1 || args[0] == "-h" || args[0] == "--help" {
-        eprintln!("uso: portugol exportar-rust <arquivo.pors>");
+        eprintln!("uso: portugol exportar-rust <arquivo.fer>");
         return ExitCode::FAILURE;
     }
     let file = &args[0];
@@ -304,7 +309,7 @@ fn export_rust_command(args: &[String]) -> ExitCode {
 
 fn export_cargo_command(args: &[String]) -> ExitCode {
     if args.len() != 2 || args.iter().any(|arg| arg == "-h" || arg == "--help") {
-        eprintln!("uso: portugol exportar-cargo <arquivo.pors> <pasta-destino>");
+        eprintln!("uso: portugol exportar-cargo <arquivo.fer> <pasta-destino>");
         return ExitCode::FAILURE;
     }
     let file = &args[0];
@@ -373,14 +378,15 @@ fn print_usage() {
         "portugol {}\n\
          \n\
          Uso:\n\
-           portugol [opções] <arquivo | diretório>...            valida .pors, .design e .ferproj\n\
-           portugol novo <arquivo.pors>                          cria um modelo .pors\n\
-           portugol novo --desktop <pasta> [--nome <nome>]       cria um projeto desktop PORS\n\
-           portugol formatar [--check] <arquivo>                 formata .pors, .design ou .ferproj\n\
-           portugol exportar-rust <arquivo.pors>                 imprime o Rust gerado\n\
-           portugol exportar-cargo <arquivo.pors> <pasta>        gera um projeto Cargo pronto\n\
-           portugol executar [--bytecode] <arquivo.pors>         executa um programa na VM\n\
-           portugol depurar [--ponto <linha>]... <arquivo.pors>  depura um programa .pors interativamente\n\
+           portugol [opções] <arquivo | diretório>...            valida .fer, .design e .ferproj (aceita .pors)\n\
+           portugol novo <arquivo.fer>                           cria um modelo .fer\n\
+           portugol novo --desktop <pasta> [--nome <nome>]       cria um projeto desktop\n\
+           portugol formatar [--check] <arquivo>                 formata .fer, .design ou .ferproj\n\
+           portugol migrar [--sim] <pasta | arquivo>...          renomeia .pors para .fer\n\
+           portugol exportar-rust <arquivo.fer>                  imprime o Rust gerado\n\
+           portugol exportar-cargo <arquivo.fer> <pasta>         gera um projeto Cargo pronto\n\
+           portugol executar [--bytecode] <arquivo.fer>          executa um programa na VM\n\
+           portugol depurar [--ponto <linha>]... <arquivo.fer>   depura um programa interativamente\n\
          \n\
          Opções da validação:\n\
            -q, --quiet   só mostra arquivos com erro\n\
