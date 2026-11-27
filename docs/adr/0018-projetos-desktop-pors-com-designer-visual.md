@@ -3,7 +3,19 @@
 - **Status:** Aceita
 - **Data:** 2026-11-27
 - **Responsável:** mantenedor do produto
-- **Relacionados:** [ADR 0015](0015-evolucao-visual-orientada-a-aprendizagem.md), [ADR 0016](0016-pors-como-linguagem-autoral-e-retirada-do-por.md), [ADR 0017](0017-modelo-execucao-e-estado-ui-visual-pors.md)
+- **Relacionados:** [ADR 0015](0015-evolucao-visual-orientada-a-aprendizagem.md), [ADR 0016](0016-pors-como-linguagem-autoral-e-retirada-do-por.md), [ADR 0017](0017-modelo-execucao-e-estado-ui-visual-pors.md), [ADR 0020](0020-ajustes-pedagogicos-da-sintaxe-pors.md), [ADR 0021](0021-tela-como-forma-unica-de-interface-pors.md)
+- **Emendas:** Emenda 1 (2026-11-27)
+
+> **Emenda 1 (2026-11-27).** O `.tela` passa a usar uma marcação de tags no
+> estilo XAML (pseudo-XAML) em vez da sintaxe de chaves da versão inicial. O
+> designer segue um caminho híbrido em três níveis: posição livre como no
+> Windows Forms, layout com `Pilha` e `Grade` como no WPF, e vinculação de
+> exibição com `{dados.campo}`. `Pilha` e `Grade` passam da última fase para
+> a fase do designer. O `UI.*` deixa de ser um caminho paralelo e é aposentado
+> pelo [ADR 0021](0021-tela-como-forma-unica-de-interface-pors.md). As seções
+> 2, 3, 4, 6 e 7, as alternativas e as consequências foram reescritas; as
+> decisões de handler puro, execução em janela própria e exportação Slint não
+> mudaram.
 
 ## Contexto
 
@@ -58,80 +70,148 @@ O manifesto `.porsproj` é a raiz do projeto: a IDE o reconhece ao abrir a
 pasta, como já faz com `Cargo.toml`. Um projeto pode ter várias janelas; cada
 uma é um par `.tela` + `.pors` com o mesmo nome.
 
-### 2. Formato `.tela`: fonte de verdade do layout
+### 2. Formato `.tela`: pseudo-XAML, fonte de verdade do layout
 
-O layout é descrito num formato **próprio do Portugol Studio RS**, textual,
-determinístico e legível, para que diffs e revisões sejam úteis e o aluno possa
-editá-lo à mão:
+O layout é descrito numa marcação de tags **própria do Portugol Studio RS**,
+inspirada no XAML do WPF: o aluno reconhece a estrutura de HTML e XAML, e o que
+aprende aqui vale depois em WPF, MAUI ou Avalonia. A tela fica na marcação e a
+lógica fica no `.pors`, a mesma separação do XAML com C#.
 
-```
-janela JanelaPrincipal {
-    titulo: "Calculadora"
-    largura: 360
-    altura: 240
-
-    caixa_texto txtA { x: 16  y: 16  largura: 120 }
-    caixa_texto txtB { x: 16  y: 52  largura: 120 }
-    botao btnSomar { x: 16  y: 92  texto: "Somar"  ao_clicar: btnSomar_clicar }
-    rotulo lblResultado { x: 16  y: 132  texto: "Resultado: -" }
-}
+```xml
+<Janela Nome="JanelaPrincipal" Titulo="Olá" Largura="300" Altura="160">
+    <Rotulo Nome="lblMensagem" X="16" Y="16" Texto="Clique no botão" />
+    <Botao Nome="btnOla" X="16" Y="56" Texto="Dizer olá" AoClicar="btnOla_clicar" />
+</Janela>
 ```
 
-- O designer e o editor de texto editam o mesmo arquivo, nos dois sentidos.
-  O designer reescreve o arquivo com um formatador canônico que preserva
-  comentários e a ordem dos controles.
-- O formato tem esquema versionado e é validado por um crate novo, sem
-  dependências de UI, compilável para `wasm32-unknown-unknown` como o restante
-  do núcleo PORS.
-- O primeiro conjunto de controles é: `rotulo`, `botao`, `caixa_texto`,
-  `caixa_selecao`, `botao_opcao`, `lista`, `combo`, `imagem` e `painel`, além
-  dos componentes não visuais `temporizador` e `dialogo_arquivo`.
-- O posicionamento inicial é absoluto (`x`, `y`, `largura`, `altura`), com
-  âncoras simples. Contêineres com layout (pilha, grade, encaixe), estilos e
-  binding declarativo ficam para uma fase posterior, sem quebrar arquivos
-  existentes.
-- O formato **não** é o de nenhum framework. Isso mantém o alvo de exportação
-  trocável.
+Regras da marcação:
+
+- Elementos e atributos em PascalCase, só com letras sem acento, para facilitar
+  a digitação: `<CaixaTexto>`, `TextoVazio`, `AoClicar`.
+- Todo valor fica entre aspas; o esquema do controle define se o valor é
+  número, lógico (`verdadeiro`/`falso`), texto, nome de handler, lista de
+  bordas ou caminho de recurso, e a validação aponta o atributo errado.
+- `Nome` identifica o controle e vira o nome do campo no code-behind. É o
+  equivalente ao `x:Name` do XAML, sem prefixo.
+- Comentários usam `<!-- ... -->` e são preservados pelo formatador.
+- Só existem as entidades `&lt;`, `&gt;`, `&amp;`, `&quot;` e `&apos;`. Não há
+  namespaces, `xmlns`, DTD, instruções de processamento nem extensões de
+  marcação (`{Binding ...}`): é XML simples, com mensagens de erro em português
+  ("Falta fechar `<Pilha>` aberta na linha 3").
+- Itens de `Lista` e `Combo` são elementos filhos: `<Item>Somar</Item>`. Nenhum
+  outro elemento aceita texto solto.
+- A raiz é sempre `<Janela>`. O atributo `Formato="1"` indica a versão do
+  esquema; sem ele, vale a versão atual, e o formatador canônico o escreve.
+
+O designer e o editor de texto editam o mesmo arquivo, nos dois sentidos, e o
+designer reescreve o arquivo com um formatador canônico que preserva
+comentários e a ordem dos elementos. O formato é validado por um crate sem
+dependências de UI, compilável para `wasm32-unknown-unknown`, e **não** é o de
+nenhum framework, o que mantém o alvo de exportação trocável.
+
+#### Controles
+
+Controles: `Rotulo`, `Botao`, `CaixaTexto`, `CaixaSelecao`, `BotaoOpcao`,
+`Lista`, `Combo` e `Imagem`. Componentes não visuais: `Temporizador` e
+`DialogoArquivo`, que ficam direto na `<Janela>`. Contêineres: `Painel`,
+`Pilha` e `Grade`, descritos abaixo.
+
+#### Três níveis: do Windows Forms ao WPF
+
+O aluno sobe de nível sem trocar de ferramenta nem de formato:
+
+1. **Posição livre (Windows Forms).** `Janela` e `Painel` posicionam os filhos
+   por `X` e `Y`, com `Largura`, `Altura` e `Ancora="Cima,Esquerda"`
+   opcionais. É o comportamento padrão de arrastar e soltar no designer e não
+   exige entender layout.
+2. **Layout que se adapta (WPF).** `Pilha` empilha os filhos
+   (`Orientacao="Vertical"` ou `"Horizontal"`, `Espaco`) e `Grade` os distribui
+   em linhas e colunas (`Linhas="Auto,*"`, `Colunas="120,*"`, com `Linha` e
+   `Coluna` em cada filho). Dentro deles não há `X`/`Y`: a posição é automática,
+   e o diagnóstico explica isso. Todo controle aceita `Margem`. Uma `Pilha` ou
+   `Grade` que é o único filho de `Janela` ou `Painel` ocupa todo o espaço; caso
+   contrário, é posicionada por `X`/`Y` como qualquer controle. O designer
+   continua arrastando controles para dentro deles.
+3. **Vinculação de exibição (WPF simplificado).** Um atributo pode mostrar o
+   estado do programa com `{dados.campo}`, a mesma sintaxe da interpolação de
+   cadeias (ADR 0020):
+
+   ```xml
+   <Rotulo Nome="lblResultado" Texto="Resultado: {dados.resultado}" />
+   <Botao Nome="btnSalvar" Texto="Salvar" Habilitado="{dados.pode_salvar}" />
+   ```
+
+   - Só são aceitos caminhos de campos de `dados` (`{dados.pessoa.nome}`), sem
+     chamadas nem operações: a marcação mostra o estado, não calcula.
+   - Em atributos de texto, o valor pode misturar texto e vínculos, com os tipos
+     escalares do ADR 0020. Em atributos de outro tipo, o valor deve ser
+     exatamente um vínculo `{...}` do tipo do atributo.
+   - `\{` e `\}` escrevem chaves literais, como nas cadeias PORS.
+   - A vinculação é de mão única (estado → tela). Depois de cada handler, os
+     vínculos são reavaliados. Ligação nos dois sentidos fica para depois.
 
 ### 3. Designer visual na IDE
 
 A IDE ganha um editor de design para arquivos `.tela`, com as abas
 *Design* e *Código*:
 
-- **Caixa de ferramentas** com os controles da seção 2, arrastáveis para a
-  janela;
+- **Caixa de ferramentas** com os controles e contêineres da seção 2,
+  arrastáveis para a janela, para um `Painel` ou para dentro de uma `Pilha` ou
+  `Grade`;
 - seleção, movimentação e redimensionamento com alças, grade com *snap*, guias
-  de alinhamento, desfazer/refazer;
+  de alinhamento, desfazer/refazer; em `Pilha` e `Grade`, arrastar reordena ou
+  muda a célula em vez de mover por `X`/`Y`;
+- **árvore de elementos**, que mostra o aninhamento da marcação e permite
+  envolver uma seleção num `Painel`, `Pilha` ou `Grade`;
 - **painel de propriedades** com as abas *Propriedades* e *Eventos*;
 - **duplo clique** num controle cria o handler do evento padrão no code-behind
   (por exemplo `btnSomar_clicar`) e leva o cursor até ele;
 - componentes não visuais aparecem numa faixa abaixo da janela.
 
-O designer é implementado na própria IDE (Tauri + DOM), reaproveitando o
-renderizador da prévia `UI.*`. Nenhum framework de UI Rust é embutido na IDE.
+O designer é implementado na própria IDE (Tauri + DOM), evoluindo o
+renderizador da prévia visual atual. Nenhum framework de UI Rust é embutido na
+IDE.
 
 ### 4. Code-behind com handlers puros
 
 A partir de cada `.tela`, o frontend PORS gera um `registro` com o nome da
-janela, que tem um campo por controle e as propriedades editáveis de cada um.
-Um handler recebe a janela e **devolve a janela atualizada**:
+janela, que tem um campo por controle nomeado e as propriedades editáveis de
+cada um, além do campo `dados`. Os atributos em PascalCase viram campos em
+minúsculas com `_` (`Texto` → `texto`, `TextoVazio` → `texto_vazio`). Um
+handler recebe a janela e **devolve a janela atualizada**.
+
+```xml
+<Janela Nome="JanelaPrincipal" Titulo="Calculadora" Largura="360" Altura="240"
+        Dados="Conta">
+    <Pilha Margem="16" Espaco="8">
+        <CaixaTexto Nome="txtA" TextoVazio="Primeiro número" />
+        <CaixaTexto Nome="txtB" TextoVazio="Segundo número" />
+        <Botao Nome="btnSomar" Texto="Somar" AoClicar="btnSomar_clicar" />
+        <Rotulo Nome="lblResultado" Texto="{dados.mensagem}" />
+    </Pilha>
+</Janela>
+```
 
 ```pors
+registro Conta {
+    mensagem: cadeia
+}
+
 funcao btnSomar_clicar(tela: JanelaPrincipal) -> JanelaPrincipal {
     seja mutavel t: JanelaPrincipal = tela;
     escolha Tipos.para_inteiro(t.txtA.texto) {
         caso Resultado::Ok(a) => {
             escolha Tipos.para_inteiro(t.txtB.texto) {
                 caso Resultado::Ok(b) => {
-                    t.lblResultado.texto = "Resultado: " + Tipos.inteiro_para_cadeia(a + b);
+                    t.dados.mensagem = "Resultado: {a + b}";
                 }
                 caso Resultado::Erro(_) => {
-                    t.lblResultado.texto = "B não é um número";
+                    t.dados.mensagem = "O segundo valor não é um número";
                 }
             }
         }
         caso Resultado::Erro(_) => {
-            t.lblResultado.texto = "A não é um número";
+            t.dados.mensagem = "O primeiro valor não é um número";
         }
     }
     retorne t;
@@ -139,18 +219,22 @@ funcao btnSomar_clicar(tela: JanelaPrincipal) -> JanelaPrincipal {
 ```
 
 - Para o aluno, o código se lê como Windows Forms ("altero o texto do
-  rótulo"). Por baixo, continua sendo a transição pura do ADR 0017:
+  rótulo") nos níveis 1 e 2, e como WPF ("altero os dados e a tela acompanha")
+  no nível 3. Por baixo, continua sendo a transição pura do ADR 0017:
   `atualizar(estado, evento) -> estado`, sem `&mut` nem regras de empréstimo
   no caminho crítico.
+- Uma propriedade vinculada na marcação é somente leitura no code-behind:
+  atribuir `t.lblResultado.texto` quando `Texto` usa `{dados...}` é
+  diagnóstico, para que a tela tenha uma única fonte de verdade.
+- O registro de `Dados` começa com os valores padrão de cada campo (`0`, `""`,
+  `falso`, vetor vazio). O handler opcional `AoAbrir` da janela ajusta o
+  estado inicial.
 - A VM registra a janela antes e depois de cada evento. Isso habilita a
   inspeção de estado e o histórico (*time-travel*) no depurador.
-- O estado do programa que não pertence a nenhum controle fica num
-  `registro` declarado pelo aluno e referenciado pela janela (campo `dados`,
-  declarado no `.tela`), para não misturar estado de domínio com propriedades
-  visuais.
-- A ligação entre `ao_clicar: btnSomar_clicar` e a função é verificada em
+- A ligação entre `AoClicar="btnSomar_clicar"` e a função é verificada em
   tempo de análise: um handler ausente, com assinatura errada ou de outra
   janela gera diagnóstico em português com posição no `.tela` e no `.pors`.
+  O mesmo vale para vínculos com campo inexistente ou de tipo errado.
 - O registro gerado não é escrito em disco. Ele é sintetizado na HIR a partir
   do `.tela`, aparece no autocompletar e nas dicas, e é regenerado a cada
   mudança do layout.
@@ -175,8 +259,10 @@ funcao btnSomar_clicar(tela: JanelaPrincipal) -> JanelaPrincipal {
 A exportação Cargo de um projeto desktop usa o **[Slint](https://slint.dev)**
 como framework de UI do binário gerado:
 
-- cada `.tela` é traduzido para um componente `.slint`. Posição absoluta,
-  propriedades e *callbacks* mapeiam quase um para um;
+- cada `.tela` é traduzido para um componente `.slint`. Posição livre vira
+  `x`/`y`, `Pilha` vira `VerticalLayout`/`HorizontalLayout`, `Grade` vira
+  `GridLayout`, e vínculos `{dados.campo}` viram *bindings* de propriedade do
+  Slint; propriedades e *callbacks* mapeiam quase um para um;
 - o code-behind é traduzido pelo `portugol-rust`: o registro da janela vira uma
   `struct` Rust; cada handler vira uma função `fn(JanelaPrincipal) ->
   JanelaPrincipal`, ligada ao *callback* do Slint por um adaptador gerado que
@@ -187,8 +273,9 @@ como framework de UI do binário gerado:
 - a exportação continua opcional: executar e depurar dentro da IDE não exige
   `rustc`.
 
-Slint foi escolhido porque: (a) a descrição de tela em marcação com
-posicionamento absoluto corresponde diretamente ao `.tela`; (b) é estável e
+Slint foi escolhido porque: (a) a descrição de tela em marcação, com posição
+absoluta, layouts e *bindings*, corresponde diretamente aos três níveis do
+`.tela`; (b) é estável e
 mantido há anos; (c) gera executáveis de poucos megabytes; (d) roda em
 Windows, macOS, Linux e na Web; (e) possui um interpretador
 (`slint-interpreter`) que pode, no futuro, servir de prévia nativa sem
@@ -204,12 +291,28 @@ exportação.
 
 ### 7. Relação com `UI.*`
 
-`UI.*` continua existindo para exercícios, exemplos curtos e a Web, sem
-mudanças. Projetos desktop são um caminho separado, que reaproveita o mesmo
-modelo de estado, a mesma VM e o mesmo renderizador DOM. Nada aqui antecipa
-os gates de retirada de `.por`/`.pex` do ADR 0016.
+O `.tela` com code-behind é a **única** forma de criar interfaces em PORS. O
+`UI.*` do ADR 0017 é aposentado em etapas, conforme o
+[ADR 0021](0021-tela-como-forma-unica-de-interface-pors.md). Do ADR 0017
+permanecem o modelo de estado puro, o orçamento por evento, o histórico e a VM
+em WASM para a prévia. Nada aqui antecipa os gates de retirada de `.por`/`.pex`
+do ADR 0016.
 
 ## Alternativas consideradas
+
+### Sintaxe de chaves (versão inicial deste ADR)
+Substituída pela Emenda 1. Era mais curta, mas não lembrava nenhuma
+tecnologia que o aluno encontrará depois. A marcação de tags é reconhecível de
+HTML e transfere diretamente para XAML.
+
+### XAML completo, com namespaces e extensões de marcação
+Rejeitada. `xmlns`, `x:Name`, `{Binding Path=..., Mode=...}` e conversores são
+cerimônia que não ensina programação. O pseudo-XAML mantém a estrutura e
+troca as extensões pela interpolação que o aluno já conhece.
+
+### Um elemento `<Tela>` separado para posição livre
+Rejeitada. `Janela` e `Painel` já posicionam livremente; um elemento a mais
+seria um conceito a mais no nível 1.
 
 ### Handlers com `&mut JanelaPrincipal` ou objetos mutáveis compartilhados
 Rejeitada. É mais fiel ao Windows Forms, mas exigiria referências mutáveis e
@@ -243,20 +346,24 @@ Rust do produto. Pode ser oferecida depois como "empacotar sem compilar".
 ## Consequências
 
 - **Fase 1 (formato e projeto):** crate de parser, validação e formatação do
-  `.tela`; manifesto `.porsproj`; modelo *Aplicativo Desktop PORS*;
-  reconhecimento do projeto no Explorador.
-- **Fase 2 (designer mínimo):** canvas, caixa de ferramentas, seleção,
-  movimentação, redimensionamento, painel de propriedades, desfazer/refazer e
-  sincronização com o texto.
-- **Fase 3 (code-behind):** síntese do registro da janela na HIR, verificação
-  das ligações de eventos, criação do handler por duplo clique, execução em
-  janela Tauri separada e snapshots no depurador.
-- **Fase 4 (serviços do SO):** `Dialogo`, `Arquivos`, `AreaTransferencia`,
-  `Notificacao` e `temporizador`, com permissões no manifesto.
-- **Fase 5 (exportação Slint):** `.tela` → `.slint`, adaptadores de
+  `.tela` em pseudo-XAML; manifesto `.porsproj`; modelo *Aplicativo Desktop
+  PORS*; reconhecimento do projeto no Explorador.
+- **Fase 2 (designer, níveis 1 e 2):** canvas, caixa de ferramentas, árvore de
+  elementos, seleção, movimentação, redimensionamento, painel de propriedades,
+  desfazer/refazer e sincronização com o texto; `Janela`/`Painel` livres,
+  `Pilha` e `Grade`.
+- **Fase 3 (code-behind e execução):** síntese do registro da janela na HIR,
+  verificação das ligações de eventos, criação do handler por duplo clique,
+  execução em janela Tauri separada e snapshots no depurador; prévia visual da
+  IDE e playground passam a usar o `.tela` (ADR 0021).
+- **Fase 4 (vinculação, nível 3):** `{dados.campo}` em atributos, verificação
+  de tipos e propriedades vinculadas somente leitura.
+- **Fase 5 (serviços do SO):** `Dialogo`, `Arquivos`, `AreaTransferencia`,
+  `Notificacao` e `Temporizador`, com permissões no manifesto.
+- **Fase 6 (exportação Slint):** `.tela` → `.slint`, adaptadores de
   *callbacks* e testes de paridade entre a VM e o binário exportado.
-- **Fase 6 (recursos estilo WPF):** contêineres com layout, estilos/temas e
-  binding declarativo.
+- **Depois:** ligação nos dois sentidos, estilos e temas, células que ocupam
+  várias linhas ou colunas e modelos de itens.
 - A HIR passa a aceitar tipos sintetizados de fora do código-fonte `.pors`,
   com *source maps* que apontam para o `.tela`.
 - Testes de paridade passam a cobrir a sequência de eventos → estado da janela
@@ -264,3 +371,6 @@ Rust do produto. Pode ser oferecida depois como "empacotar sem compilar".
   (fontes, métricas de texto, aparência nativa).
 - A exportação passa a depender de uma biblioteca externa (Slint). Atualizações
   de versão do Slint precisam de testes de regressão do gerador.
+- O crate `portugol-tela` do PR #256, escrito com a sintaxe de chaves, é
+  convertido para a marcação de tags antes da mesclagem. Esquema, validação e
+  diagnósticos são mantidos.
