@@ -2,7 +2,7 @@
 
 - **Data:** 2026-11-27
 - **Status:** Aceita
-- **Relacionados:** [ADR 0018](../../adr/0018-contrato-minimo-de-tipos-pors.md), [RFC 001](rfc-001-inferencia-em-seja.md), [design de evolução sintática inicial do PORS](2026-11-26-pors-syntax-evolution-design.md)
+- **Relacionados:** [ADR 0018](../../adr/0018-contrato-minimo-de-tipos-pors.md), [RFC 001](2026-11-27-rfc-001-inferencia-em-seja.md), [design de evolução sintática inicial do PORS](2026-11-26-pors-syntax-evolution-design.md)
 
 ## Contexto
 
