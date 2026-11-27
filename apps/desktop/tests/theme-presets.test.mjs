@@ -32,9 +32,10 @@ test("presets populares têm IDs estáveis e cores para todos os tokens da IDE",
     assert.match(theme.colors["--error-text"] ?? "", /^#[\da-f]{6}$/i, `${id} precisa definir a cor do texto sobre erros`);
     for (const foreground of [
       "--text", "--muted", "--editor-text", "--editor-gutter", "--syntax-keyword", "--syntax-type",
-      "--syntax-function", "--syntax-logical", "--syntax-number", "--syntax-string", "--syntax-comment",
+      "--syntax-function", "--syntax-logical", "--syntax-number", "--syntax-string", "--syntax-interpolation", "--syntax-comment",
       "--syntax-operator",
     ]) {
+      assert.match(theme.colors[foreground] ?? "", /^#[\da-f]{6}$/i, `${id} precisa definir ${foreground}`);
       const background = foreground.startsWith("--editor-") || foreground.startsWith("--syntax-")
         ? "--editor-bg"
         : null;

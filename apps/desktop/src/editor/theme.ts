@@ -40,6 +40,7 @@ export const editorColors = syntaxHighlighting(HighlightStyle.define([
   { tag: tags.function(tags.variableName), color: "var(--syntax-function)" },
   { tag: tags.standard(tags.function(tags.variableName)), color: "var(--syntax-function)" },
   { tag: tags.string, color: "var(--syntax-string)" },
+  { tag: tags.special(tags.string), color: "var(--syntax-interpolation)" },
   { tag: tags.comment, color: "var(--syntax-comment)" },
   { tag: tags.operator, color: "var(--syntax-operator)" },
 ]));
