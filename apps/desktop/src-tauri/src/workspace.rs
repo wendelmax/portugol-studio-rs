@@ -88,6 +88,32 @@ mod tests {
     }
 
     #[test]
+    fn creates_a_desktop_project_folder_without_overwriting() {
+        let temp = TempDir::new();
+        let folder = super::create_desktop_project_in(&temp.0, "  Meu App  ").unwrap();
+        assert!(folder.ends_with("Meu App"));
+        assert!(folder.join("meu-app.porsproj").is_file());
+        assert!(folder.join("JanelaPrincipal.design").is_file());
+        assert!(folder.join("recursos").is_dir());
+        let entries = list_entries(&folder).unwrap();
+        let mut paths = Vec::new();
+        file_paths(&entries, &mut paths);
+        paths.sort();
+        assert_eq!(paths, ["JanelaPrincipal.design", "meu-app.porsproj"]);
+
+        let again = super::create_desktop_project_in(&temp.0, "Meu App").unwrap_err();
+        assert!(again.contains("Já existe uma pasta"), "{again}");
+
+        for name in ["", "   ", "a/b", "a\\b", "nome?", ".oculto", "fim.", "!!!"] {
+            assert!(
+                super::create_desktop_project_in(&temp.0, name).is_err(),
+                "{name:?}"
+            );
+        }
+        assert!(!temp.0.join("a").exists());
+    }
+
+    #[test]
     fn handles_desktop_project_markup_like_other_sources() {
         let temp = TempDir::new();
         fs::create_dir_all(temp.0.join("App/recursos")).unwrap();
@@ -1025,6 +1051,75 @@ pub struct WorkspaceListing {
     name: String,
     preference_key: String,
     entries: Vec<WorkspaceEntry>,
+}
+
+/// Projeto criado pelo modelo *Aplicativo Desktop PORS* e já aberto.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DesktopProjectCreated {
+    listing: WorkspaceListing,
+    /// Tela inicial, relativa à pasta do projeto, para abrir no editor.
+    design_path: String,
+}
+
+/// Nome do projeto que também serve de nome da pasta.
+fn desktop_project_folder_name(name: &str) -> Result<String, String> {
+    let trimmed = name.trim();
+    portugol_tela::project::validate_project_name(trimmed)
+        .map_err(|message| format!("{message}."))?;
+    if trimmed.starts_with('.') || trimmed.ends_with('.') {
+        return Err("O nome do projeto não pode começar nem terminar com ponto.".into());
+    }
+    if let Some(invalid) = trimmed
+        .chars()
+        .find(|c| matches!(c, '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|'))
+    {
+        return Err(format!(
+            "O nome do projeto vira o nome da pasta e não pode ter `{invalid}`."
+        ));
+    }
+    Ok(trimmed.to_owned())
+}
+
+/// Cria a pasta `parent/name` com o modelo de projeto desktop. A pasta não
+/// pode existir; se algo falhar depois de criá-la, ela é removida.
+fn create_desktop_project_in(parent: &Path, name: &str) -> Result<PathBuf, String> {
+    let folder_name = desktop_project_folder_name(name)?;
+    let template = portugol_tela::project::desktop_template(&folder_name)?;
+    let parent = fs::canonicalize(parent)
+        .map_err(|_| "A pasta escolhida não está disponível.".to_string())?;
+    if !parent.is_dir() {
+        return Err("A seleção não é uma pasta.".into());
+    }
+    let folder = parent.join(&folder_name);
+    fs::create_dir(&folder).map_err(|error| {
+        if error.kind() == std::io::ErrorKind::AlreadyExists {
+            format!("Já existe uma pasta chamada \"{folder_name}\" nesse local.")
+        } else {
+            format!("Não foi possível criar a pasta do projeto: {error}")
+        }
+    })?;
+    let written = (|| -> std::io::Result<()> {
+        for directory in &template.directories {
+            fs::create_dir(folder.join(directory))?;
+        }
+        for file in &template.files {
+            use std::io::Write as _;
+            fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(folder.join(&file.path))?
+                .write_all(file.content.as_bytes())?;
+        }
+        Ok(())
+    })();
+    if let Err(error) = written {
+        let _ = fs::remove_dir_all(&folder);
+        return Err(format!(
+            "Não foi possível criar os arquivos do projeto: {error}"
+        ));
+    }
+    Ok(folder)
 }
 
 fn workspace_preference_key(root: &Path) -> String {
@@ -2246,6 +2341,62 @@ pub async fn workspace_open(
     })
     .await
     .map_err(|error| format!("Não foi possível abrir a pasta do projeto: {error}"))?
+}
+
+/// Cria um projeto desktop PORS numa pasta escolhida pelo usuário e abre o
+/// projeto como workspace. Devolve `None` se o usuário cancelar a escolha.
+#[tauri::command]
+pub async fn workspace_create_desktop_project(
+    app: AppHandle,
+    session: State<'_, WorkspaceSession>,
+    name: String,
+) -> Result<Option<DesktopProjectCreated>, String> {
+    desktop_project_folder_name(&name)?;
+    let session = session.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let Some(selected) = app
+            .dialog()
+            .file()
+            .set_title("Escolha onde criar o projeto")
+            .blocking_pick_folder()
+        else {
+            return Ok(None);
+        };
+        let parent = selected
+            .into_path()
+            .map_err(|error| format!("Não foi possível usar a pasta selecionada: {error}"))?;
+        let root = create_desktop_project_in(&parent, &name)?;
+        let root = fs::canonicalize(root)
+            .map_err(|error| format!("Não foi possível acessar o projeto criado: {error}"))?;
+        let entries = list_entries(&root)?;
+        let folder_name = root
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("Projeto")
+            .to_string();
+        if let Ok(config_dir) = app.path().app_config_dir()
+            && let Err(error) = save_last_workspace(&config_dir, &root)
+        {
+            eprintln!("{error}");
+        }
+        let preference_key = workspace_preference_key(&root);
+        let id = session.register(root)?;
+        Ok(Some(DesktopProjectCreated {
+            listing: WorkspaceListing {
+                id,
+                name: folder_name,
+                preference_key,
+                entries,
+            },
+            design_path: format!(
+                "{}.{}",
+                portugol_tela::project::DEFAULT_WINDOW,
+                portugol_tela::FILE_EXTENSION
+            ),
+        }))
+    })
+    .await
+    .map_err(|error| format!("Não foi possível criar o projeto: {error}"))?
 }
 
 #[tauri::command]

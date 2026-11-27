@@ -275,6 +275,59 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
     }
   }
 
+  /** Diálogo "Novo projeto desktop": nome do projeto, depois o local no seletor do sistema. */
+  function openDesktopProjectDialog() {
+    const dialog = $<HTMLDialogElement>("desktop-project-dialog");
+    $<HTMLFormElement>("desktop-project-form").reset();
+    showDesktopProjectError(null);
+    dialog.showModal();
+    $<HTMLInputElement>("desktop-project-name").focus();
+  }
+
+  function showDesktopProjectError(message: string | null) {
+    const error = $("desktop-project-error");
+    error.textContent = message ?? "";
+    error.hidden = !message;
+  }
+
+  async function submitDesktopProjectDialog(event: SubmitEvent) {
+    event.preventDefault();
+    if (workspaceLoading) return;
+    const name = $<HTMLInputElement>("desktop-project-name").value.trim();
+    if (!name) {
+      showDesktopProjectError("Informe o nome do projeto.");
+      return;
+    }
+    const submit = $<HTMLButtonElement>("desktop-project-submit");
+    const request = ++workspaceRequest;
+    submit.disabled = true;
+    showDesktopProjectError(null);
+    try {
+      const created = await api.createDesktopProject(name);
+      if (request !== workspaceRequest || !created) return;
+      $<HTMLDialogElement>("desktop-project-dialog").close();
+      workspaceState = created.listing;
+      workspaceError = null;
+      selectedWorkspacePath = created.designPath;
+      selectedWorkspaceFolder = null;
+      expandedWorkspaceFolders.clear();
+      host.setExplorerVisible(true);
+      renderWorkspaceExplorer();
+      await openWorkspaceFile({
+        kind: "file",
+        name: created.designPath.split("/").pop() ?? created.designPath,
+        path: created.designPath,
+      });
+      setStatus(`Projeto criado: ${created.listing.name}`, "ok");
+    } catch (message) {
+      if (request === workspaceRequest) {
+        showDesktopProjectError(typeof message === "string" ? message : String(message));
+      }
+    } finally {
+      submit.disabled = false;
+    }
+  }
+
   async function refreshWorkspace() {
     const selected = workspaceState;
     if (!selected || workspaceLoading) return;
@@ -769,6 +822,9 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
   }
 
   $("home-open-folder").onclick = () => void openWorkspaceFolder();
+  $("home-new-project").onclick = openDesktopProjectDialog;
+  $("desktop-project-form").addEventListener("submit", (event) => void submitDesktopProjectDialog(event as SubmitEvent));
+  $<HTMLButtonElement>("desktop-project-cancel").onclick = () => $<HTMLDialogElement>("desktop-project-dialog").close();
   $("workspace-open-folder").onclick = () => void openWorkspaceFolder();
   $("workspace-refresh").onclick = () => void refreshWorkspace();
   $("workspace-export").onclick = openWorkspaceExportDialog;
