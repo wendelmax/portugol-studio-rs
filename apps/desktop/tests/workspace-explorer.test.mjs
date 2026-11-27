@@ -1,7 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { collectWorkspaceFiles, flattenWorkspaceEntries, workspaceFileKind, workspaceRenameFileName, workspaceSourceFileName } from "../src/workspace-explorer.ts";
+import {
+  collectWorkspaceFiles,
+  flattenWorkspaceEntries,
+  workspaceFileKind,
+  workspaceParentFolders,
+  workspaceRenameFileName,
+  workspaceSourceFileName,
+  workspaceSubfolderPath,
+} from "../src/workspace-explorer.ts";
 import { ideSource } from "./support/ide-source.mjs";
 import { ideStyles } from "./support/ide-styles.mjs";
 
@@ -170,4 +178,37 @@ test("workspace delete has an accessible destructive confirmation and typed Taur
   assert.match(api, /deleteWorkspaceFile/);
   assert.match(api, /"workspace_delete_file"/);
   assert.match(main, /deleteWorkspaceFileFlow/);
+});
+
+test("validates relative subfolder paths and computes parent folders for expansion", () => {
+  assert.equal(workspaceSubfolderPath(""), "");
+  assert.equal(workspaceSubfolderPath("   "), "");
+  assert.equal(workspaceSubfolderPath("aulas/modulo1"), "aulas/modulo1");
+  assert.equal(workspaceSubfolderPath("aulas/modulo1/"), "aulas/modulo1");
+  assert.throws(() => workspaceSubfolderPath("../fora"), /subpasta/i);
+  assert.throws(() => workspaceSubfolderPath("aulas/./sub"), /subpasta/i);
+  assert.throws(() => workspaceSubfolderPath("aulas//sub"), /subpasta/i);
+  assert.throws(() => workspaceSubfolderPath("/absoluto"), /relativa/i);
+  assert.throws(() => workspaceSubfolderPath("C:/windows"), /relativa/i);
+  assert.throws(() => workspaceSubfolderPath("aulas\\modulo1"), /\//);
+  assert.deepEqual(workspaceParentFolders("ola.pors"), []);
+  assert.deepEqual(workspaceParentFolders("aulas/modulo1/ola.pors"), ["aulas", "aulas/modulo1"]);
+});
+
+test("workspace refresh, subfolder creation, and Cargo scaffold export expose accessible controls and IPC", () => {
+  const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+  const api = readFileSync(new URL("../src/api.ts", import.meta.url), "utf8");
+  const libRust = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
+  const main = ideSource();
+
+  assert.match(html, /id="workspace-refresh"[^>]*aria-label="Atualizar projeto"/);
+  assert.match(html, /id="workspace-create-folder"[^>]*aria-describedby="workspace-create-error"/);
+  assert.match(html, /id="rust-export-cargo"[^>]*>Exportar Cargo<\/button>/);
+  assert.match(api, /refreshWorkspace[\s\S]*invoke<WorkspaceListing>\("workspace_refresh"/);
+  assert.match(api, /exportCargoProject[\s\S]*invoke<CargoScaffoldExportResult \| null>\("export_cargo_project"/);
+  assert.match(libRust, /workspace::workspace_refresh/);
+  assert.match(libRust, /workspace::export_cargo_project/);
+  assert.match(main, /api\.refreshWorkspace/);
+  assert.match(main, /api\.exportCargoProject/);
+  assert.match(main, /workspaceSubfolderPath/);
 });

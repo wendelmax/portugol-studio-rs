@@ -119,6 +119,7 @@
         <header class="workspace-explorer-header">
           <h2 id="workspace-title">Explorador</h2>
           <div class="workspace-explorer-actions">
+            <button id="workspace-refresh" title="Atualizar lista de arquivos do projeto" aria-label="Atualizar projeto" disabled>↻</button>
             <button id="workspace-export" title="Exportar arquivos do projeto localmente" aria-label="Exportar projeto" disabled>⇧</button>
             <button id="workspace-new-file" title="Novo arquivo .pors ou .rs" aria-label="Novo arquivo" disabled>＋</button>
             <button id="workspace-open-folder" title="Abrir outra pasta" aria-label="Abrir outra pasta"><span data-icon="folder"></span></button>
@@ -148,6 +149,7 @@
               <div>
                 <button id="rust-copy" disabled>Copiar</button>
                 <button id="rust-save" disabled>Salvar .rs</button>
+                <button id="rust-export-cargo" title="Exportar projeto Cargo completo (Cargo.toml + src/main.rs)" disabled>Exportar Cargo</button>
                 <button id="rust-diff-toggle" aria-pressed="false" disabled>Mostrar diferenças</button>
                 <button id="rust-detach" disabled>Desvincular e editar</button>
                 <button id="rust-close" aria-label="Fechar prévia Rust">×</button>
@@ -430,6 +432,8 @@
       <form id="workspace-create-form">
         <label for="workspace-create-name">Nome do arquivo</label>
         <input id="workspace-create-name" type="text" required maxlength="120" autocomplete="off" spellcheck="false" aria-describedby="workspace-create-error" />
+        <label for="workspace-create-folder">Subpasta (opcional)</label>
+        <input id="workspace-create-folder" type="text" maxlength="180" autocomplete="off" spellcheck="false" placeholder="ex.: aulas/modulo1" aria-describedby="workspace-create-error" />
         <label for="workspace-create-language">Linguagem</label>
         <select id="workspace-create-language">
           <option value="pors" selected>Portugol-RS (.pors)</option>

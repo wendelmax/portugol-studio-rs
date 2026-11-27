@@ -13,8 +13,10 @@ import {
   collectWorkspaceFiles,
   flattenWorkspaceEntries,
   workspaceFileKind,
+  workspaceParentFolders,
   workspaceRenameFileName,
   workspaceSourceFileName,
+  workspaceSubfolderPath,
   type WorkspaceEntry,
 } from "../workspace-explorer";
 import { workspaceExportStatus } from "../workspace-export-state";
@@ -50,6 +52,7 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
   let workspaceLoading = false;
   let workspaceRequest = 0;
   let selectedWorkspacePath: string | null = null;
+  let selectedWorkspaceFolder: string | null = null;
   const expandedWorkspaceFolders = new Set<string>();
   let workspaceError: string | null = null;
   let workspaceFileCreationPending = false;
@@ -78,6 +81,7 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
     const name = $("workspace-name");
     const openButtons = [$<HTMLButtonElement>("home-open-folder"), $<HTMLButtonElement>("workspace-open-folder")];
     openButtons.forEach((button) => { button.disabled = workspaceLoading; });
+    $<HTMLButtonElement>("workspace-refresh").disabled = !workspaceState || workspaceLoading;
     $<HTMLButtonElement>("workspace-export").disabled = !workspaceState || workspaceLoading || workspaceExportPending;
     $<HTMLButtonElement>("workspace-new-file").disabled = !workspaceState || workspaceLoading;
     name.hidden = !workspaceState;
@@ -120,6 +124,7 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
         button.setAttribute("aria-expanded", String(isExpanded));
         button.setAttribute("aria-label", `${entry.name}, pasta${isExpanded ? ", expandida" : ", recolhida"}`);
         button.onclick = () => {
+          selectedWorkspaceFolder = entry.path;
           if (expandedWorkspaceFolders.has(entry.path)) expandedWorkspaceFolders.delete(entry.path);
           else expandedWorkspaceFolders.add(entry.path);
           renderWorkspaceExplorer();
@@ -129,6 +134,8 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
         button.setAttribute("aria-label", `${entry.name}, arquivo`);
         button.onclick = () => {
           selectedWorkspacePath = entry.path;
+          const parents = workspaceParentFolders(entry.path);
+          selectedWorkspaceFolder = parents.length ? parents[parents.length - 1] : null;
           renderWorkspaceExplorer();
           void openWorkspaceFile(entry).catch((error) => {
             workspaceError = String(error);
@@ -205,6 +212,7 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
       if (request !== workspaceRequest || !selected) return;
       workspaceState = selected;
       selectedWorkspacePath = null;
+      selectedWorkspaceFolder = null;
       expandedWorkspaceFolders.clear();
       workspaceError = null;
       host.setExplorerVisible(true);
@@ -216,6 +224,34 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
       }
       renderWorkspaceExplorer();
       setStatus(`Pasta aberta: ${selected.name}`, "ok");
+    } catch (error) {
+      if (request === workspaceRequest) {
+        workspaceError = String(error);
+        renderWorkspaceExplorer();
+        setStatus(String(error), "error");
+      }
+    } finally {
+      if (request === workspaceRequest) {
+        workspaceLoading = false;
+        renderWorkspaceExplorer();
+      }
+    }
+  }
+
+  async function refreshWorkspace() {
+    const selected = workspaceState;
+    if (!selected || workspaceLoading) return;
+    const request = ++workspaceRequest;
+    workspaceLoading = true;
+    workspaceError = null;
+    renderWorkspaceExplorer();
+    try {
+      const refreshed = await api.refreshWorkspace(selected.id);
+      if (request !== workspaceRequest || workspaceState?.id !== selected.id) return;
+      workspaceState = refreshed;
+      workspaceError = null;
+      renderWorkspaceExplorer();
+      setStatus(`Projeto atualizado: ${refreshed.name}`, "ok");
     } catch (error) {
       if (request === workspaceRequest) {
         workspaceError = String(error);
@@ -528,6 +564,8 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
     const dialog = $<HTMLDialogElement>("workspace-create-dialog");
     showWorkspaceCreateError(null);
     $<HTMLFormElement>("workspace-create-form").reset();
+    const folderInput = $<HTMLInputElement>("workspace-create-folder");
+    folderInput.value = selectedWorkspaceFolder ?? "";
     dialog.showModal();
     $("workspace-create-name").focus();
   }
@@ -629,13 +667,17 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
     if (!selected) return;
 
     const name = $<HTMLInputElement>("workspace-create-name");
+    const folderInput = $<HTMLInputElement>("workspace-create-folder");
     const language = $<HTMLSelectElement>("workspace-create-language").value as "pors" | "rs";
     let fileName: string;
+    let folder: string;
     try {
       fileName = workspaceSourceFileName(name.value, language);
+      folder = workspaceSubfolderPath(folderInput.value);
     } catch (error) {
       showWorkspaceCreateError(String(error).replace(/^Error: /, ""));
-      name.focus();
+      if (folderInput.value.trim() && /[\\/]|\.\./.test(folderInput.value)) folderInput.focus();
+      else name.focus();
       return;
     }
 
@@ -646,20 +688,23 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
     cancel.disabled = true;
     showWorkspaceCreateError(null);
     try {
-      const refreshed = await api.createWorkspaceFile(selected.id, fileName);
+      const refreshed = await api.createWorkspaceFile(selected.id, fileName, folder || undefined);
       if (workspaceState?.id !== selected.id) return;
+      const createdPath = folder ? `${folder}/${fileName}` : fileName;
       workspaceState = refreshed;
       workspaceError = null;
-      selectedWorkspacePath = fileName;
+      selectedWorkspacePath = createdPath;
+      selectedWorkspaceFolder = folder || null;
+      for (const parent of workspaceParentFolders(createdPath)) {
+        expandedWorkspaceFolders.add(parent);
+      }
       host.setExplorerVisible(true);
       renderWorkspaceExplorer();
       $<HTMLDialogElement>("workspace-create-dialog").close();
       $<HTMLFormElement>("workspace-create-form").reset();
-      const created = refreshed.entries.find((entry): entry is WorkspaceFile =>
-        entry.kind === "file" && entry.path === fileName,
-      );
+      const created = collectWorkspaceFiles(refreshed.entries).find((entry) => entry.path === createdPath);
       if (created) await openWorkspaceFile(created);
-      else setStatus(`Arquivo criado: ${fileName}`, "ok");
+      else setStatus(`Arquivo criado: ${createdPath}`, "ok");
     } catch (error) {
       const message = String(error).replace(/^Error: /, "");
       if ($<HTMLDialogElement>("workspace-create-dialog").open) {
@@ -688,6 +733,7 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
 
   $("home-open-folder").onclick = () => void openWorkspaceFolder();
   $("workspace-open-folder").onclick = () => void openWorkspaceFolder();
+  $("workspace-refresh").onclick = () => void refreshWorkspace();
   $("workspace-export").onclick = openWorkspaceExportDialog;
   $("workspace-export-select-all").onclick = () => {
     document.querySelectorAll<HTMLInputElement>("#workspace-export-files input").forEach((input) => { input.checked = true; });
