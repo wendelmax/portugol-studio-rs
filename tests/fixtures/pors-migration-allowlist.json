@@ -125,5 +125,40 @@
       "escreva-com-quebra-explicita"
     ],
     "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
+  },
+  {
+    "path": "apps/desktop/src/help-assets/recursos/exemplos-pors/estruturas_controle/repeticao/enquanto/exemplo2.pors",
+    "markers": [
+      "leia("
+    ],
+    "reason": "laço enquanto com leitura repetida de parar; leia(variavel) preserva o tipo caracter declarado"
+  },
+  {
+    "path": "apps/desktop/src/help-assets/recursos/exemplos-pors/estruturas_controle/repeticao/enquantofaca/exemplo2.pors",
+    "markers": [
+      "leia("
+    ],
+    "reason": "laço faca...enquanto com leitura repetida de aresta; leia(variavel) preserva o tipo real declarado"
+  },
+  {
+    "path": "apps/desktop/src/help-assets/recursos/exemplos-pors/tipos/vazio/exemplo1.pors",
+    "markers": [
+      "escreva-com-quebra-explicita"
+    ],
+    "reason": "quebra explícita no início da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
+  },
+  {
+    "path": "apps/desktop/src/help-assets/topicos/linguagem_portugol/entrada_saida/index.html",
+    "markers": [
+      "leia("
+    ],
+    "reason": "texto de compatibilidade: leia(variavel) segue válido em laços com leitura repetida"
+  },
+  {
+    "path": "apps/desktop/src/help-assets/topicos/linguagem_portugol/entrada_saida/leia.html",
+    "markers": [
+      "leia("
+    ],
+    "reason": "texto de compatibilidade: leia(variavel) segue válido em laços com leitura repetida"
   }
 ]

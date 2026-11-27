@@ -7,5 +7,5 @@ funcao inicio() {
     } enquanto (aresta <= 0.0);
 
     seja area: real = aresta * aresta;
-    escreva("A área é: ", area, "\n");
+    escreval("A área é: ", area);
 }

@@ -8,7 +8,7 @@ funcao informacoes(nome: cadeia, versao: real, fornecedor: cadeia) {
     se (nome == "Visual Basic") {
         retorne;
     }
-    escreva("\n");
+    escreval();
     escreva("A linguagem ");
     escreva(nome);
     escreva(" encontra-se em sua versão ");
@@ -27,5 +27,5 @@ funcao inicio() {
     imprime_linha();
     informacoes("Visual Basic", 6.0, "Microsoft");
     imprime_linha();
-    escreva("\n");
+    escreval();
 }

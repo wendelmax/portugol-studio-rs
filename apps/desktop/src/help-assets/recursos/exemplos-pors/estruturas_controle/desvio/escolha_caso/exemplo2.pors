@@ -10,16 +10,16 @@ funcao inicio() {
 
     escolha valor {
         caso Valor::Zero => {
-            escreva("O valor é igual a 0\n");
+            escreval("O valor é igual a 0");
         }
         caso Valor::Um => {
-            escreva("O valor é igual a 1\n");
+            escreval("O valor é igual a 1");
         }
         caso Valor::Dois => {
-            escreva("O valor é igual a 2\n");
+            escreval("O valor é igual a 2");
         }
         caso _ => {
-            escreva("O valor não é igual a 0, 1 ou 2\n");
+            escreval("O valor não é igual a 0, 1 ou 2");
         }
     }
 }

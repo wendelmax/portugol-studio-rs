@@ -1,3 +1,3 @@
-escreva(1 * 5, "\n"); // Operacao aritmetica 1 * 5 escrita na tela
+escreval(1 * 5); // Operacao aritmetica 1 * 5 escrita na tela
 
 seja numero: real = 50.0 * 30.0; // Operacao aritmetica 50.0 * 30.0 armazenada na variavel numero

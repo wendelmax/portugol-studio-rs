@@ -1,6 +1,6 @@
 funcao inicio() {
     // Em Portugol-RS, bibliotecas nativas ficam disponiveis diretamente
     seja resultado: real = Matematica.arredondar(Matematica.PI, 5);
-    escreva(resultado, "\n");
-    escreva(Texto.caixa_alta("texto"), "\n");
+    escreval(resultado);
+    escreval(Texto.caixa_alta("texto"));
 }

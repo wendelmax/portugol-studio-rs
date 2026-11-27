@@ -1,1 +1,1 @@
-escreva("Escreva o texto a ser exibido aqui\n");
+escreval("Escreva o texto a ser exibido aqui");

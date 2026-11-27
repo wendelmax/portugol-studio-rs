@@ -1,7 +1,7 @@
 funcao inicio() {
-    escreva(3 * 4, "\n");
+    escreval(3 * 4);
 
     seja valor: inteiro = 3 * 4;
 
-    escreva(valor, "\n");
+    escreval(valor);
 }

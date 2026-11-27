@@ -1,15 +1,14 @@
 funcao inicio() {
-    seja mutavel nota: real = 0.0;
     escreva("Informe a nota: ");
-    leia(nota);
+    seja nota: real = leia();
 
     se (nota >= 9.0) {
-        escreva("O aluno teve um desempenho muito bom na prova\n");
+        escreval("O aluno teve um desempenho muito bom na prova");
     } senao se (nota >= 7.0) {
-        escreva("O aluno teve um desempenho bom na prova\n");
+        escreval("O aluno teve um desempenho bom na prova");
     } senao se (nota >= 6.0) {
-        escreva("O aluno teve um desempenho razoável na prova\n");
+        escreval("O aluno teve um desempenho razoável na prova");
     } senao {
-        escreva("O aluno teve um desempenho insatisfatório na prova\n");
+        escreval("O aluno teve um desempenho insatisfatório na prova");
     }
 }

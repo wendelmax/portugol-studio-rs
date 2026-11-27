@@ -1,6 +1,7 @@
 // Em Portugol-RS, nao ha comando limpa() no console de texto.
-// Para separar etapas no console, escreva quebras de linha:
-escreva("\n\n");
+// Para separar etapas no console, use escreval(): cada chamada escreve uma quebra
+escreval();
+escreval();
 
 // No modo grafico, utilize:
 // Graficos.limpar();

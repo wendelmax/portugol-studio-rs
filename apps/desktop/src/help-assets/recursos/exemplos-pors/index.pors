@@ -6,7 +6,7 @@
  */
 
 funcao saudacao(nome: cadeia) {
-    escreva("Olá, ", nome, "!\n");
+    escreval("Olá, ", nome, "!");
 }
 
 // Ponto de entrada obrigatorio do programa
