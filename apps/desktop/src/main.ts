@@ -350,6 +350,7 @@ const runShell = createRunShell({
   view,
   activate,
   goTo,
+  rustSourceMap: () => activeTab()?.rustPreview?.artifact?.sourceMap ?? [],
   rustcAvailable: toolchainState.rustcAvailable,
   cargoAvailable: toolchainState.cargoAvailable,
   isDirty,

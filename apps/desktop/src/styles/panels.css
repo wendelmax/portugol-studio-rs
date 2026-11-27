@@ -251,6 +251,13 @@
   font-weight: 600;
 }
 
+.debug-mapping {
+  margin-top: var(--space-2);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: var(--font-size-sm);
+}
+
 #variable-inspector table {
   width: 100%;
   border-collapse: collapse;

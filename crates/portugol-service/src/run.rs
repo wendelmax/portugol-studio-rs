@@ -45,6 +45,16 @@ pub struct DebugFrameInfo {
     pub position: Position,
 }
 
+/// Nó HIR e instrução bytecode que originaram a pausa.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DebugMappingInfo {
+    pub hir_node: String,
+    pub hir_start: Position,
+    pub hir_end: Position,
+    pub bytecode_offset: u32,
+}
+
 /// Estado publicado a cada pausa do depurador.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct DebugInfo {
@@ -52,6 +62,8 @@ pub struct DebugInfo {
     /// Da função atual para a de entrada.
     pub stack: Vec<DebugFrameInfo>,
     pub variables: Vec<DebugVarInfo>,
+    /// Rótulo HIR da instrução pausada, quando disponível.
+    pub mapping: Option<DebugMappingInfo>,
 }
 
 /// Recebe os eventos de uma execução. Chamado de outras threads.
@@ -302,6 +314,12 @@ fn start_module(
                         scope: variable.scope.to_string(),
                     })
                     .collect(),
+                mapping: info.mapping.map(|mapping| DebugMappingInfo {
+                    hir_node: mapping.node.to_string(),
+                    hir_start: index.position(mapping.start),
+                    hir_end: index.position(mapping.end),
+                    bytecode_offset: info.ip as u32,
+                }),
             });
         })
     };

@@ -1,11 +1,12 @@
-import type { DebugFrame, DebugInfo } from "../api";
+import type { DebugFrame, DebugInfo, SourceMapInfo } from "../api";
 import type { Tab } from "../state/tab";
 import { createDebuggerCommands, type DebuggerCommandDependencies } from "./debugger-commands";
 import { createPausePresentation } from "./pause-presentation";
 
 export interface DebuggerShellDependencies extends DebuggerCommandDependencies {
   runTab: () => Tab | undefined;
-  renderDebugInfo: (info: DebugInfo, onSelectFrame: (frame: DebugFrame) => void) => void;
+  renderDebugInfo: (info: DebugInfo, onSelectFrame: (frame: DebugFrame) => void, links: SourceMapInfo[]) => void;
+  rustSourceMap?: () => SourceMapInfo[];
   activate: (id: number) => void;
   goTo: (offset: number) => void;
   showUtilities: (visible: boolean) => void;
@@ -24,6 +25,7 @@ export function createDebuggerShell(dependencies: DebuggerShellDependencies) {
     setDebugLine: dependencies.setDebugLine,
     setRunning: dependencies.setRunning,
     renderDebugInfo: dependencies.renderDebugInfo,
+    rustSourceMap: dependencies.rustSourceMap,
     activate: dependencies.activate,
     goTo: dependencies.goTo,
     showUtilities: dependencies.showUtilities,

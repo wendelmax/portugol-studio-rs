@@ -17,6 +17,7 @@ export interface ExecutionPresentationDependencies {
   rustcAvailable: () => boolean | null;
   cargoAvailable?: () => boolean | null;
   view: Pick<EditorView, "dispatch">;
+  rustSourceMap?: () => api.SourceMapInfo[];
   activate: (id: number) => void;
   goTo: (offset: number) => void;
   setStatus: (message: string, kind?: "error" | "ok") => void;
@@ -68,6 +69,7 @@ export function createExecutionPresentationShell(dependencies: ExecutionPresenta
     stop: api.stop,
     runTab,
     renderDebugInfo,
+    rustSourceMap: dependencies.rustSourceMap,
     activate: dependencies.activate,
     goTo: dependencies.goTo,
     showUtilities: dependencies.showUtilities,
