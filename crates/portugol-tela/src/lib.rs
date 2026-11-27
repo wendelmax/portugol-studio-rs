@@ -17,6 +17,7 @@
 //! convenção de [`portugol_hir::Span`]: bytes UTF-8, intervalo `[start, end)`.
 
 pub mod ast;
+pub mod codebehind;
 pub mod edit;
 mod format;
 mod parser;
@@ -57,7 +58,8 @@ impl Analysis {
 pub fn analyze(source: &str) -> Analysis {
     match parse(source) {
         Ok(document) => {
-            let diagnostics = validate(&document);
+            let mut diagnostics = validate(&document);
+            diagnostics.extend(codebehind::screen_type(&document).1);
             Analysis {
                 document: Some(document),
                 diagnostics,

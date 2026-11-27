@@ -411,36 +411,57 @@ impl Parser {
                 name_span,
             )]
         })?;
-        let hir::Type::Record(type_id) = symbol.ty else {
+        let hir::Type::Record(mut type_id) = symbol.ty else {
             return self.fail(
                 "pors.field-non-record",
                 "Atribuição de campo exige um registro",
                 name_span,
             );
         };
-        self.expect(Kind::Dot, "Esperado `.` após o registro")?;
-        let (field_name, field_span) = self.identifier()?;
-        let definition = self
-            .record_types
-            .iter()
-            .find(|definition| definition.id == type_id)
-            .expect("registro possui definição");
-        let Some((field_index, field_ty)) = definition
-            .fields
-            .iter()
-            .enumerate()
-            .find(|(_, field)| field.name == field_name)
-            .map(|(index, field)| (index, field.ty))
-        else {
-            return self.fail(
-                "pors.unknown-field",
-                format!(
-                    "Campo `{field_name}` não existe no registro `{}`",
-                    definition.name
-                ),
-                field_span,
-            );
-        };
+        // Caminho de campos: `t.dados.mensagem` desce um registro por `.`.
+        let mut fields = Vec::new();
+        let mut path = name.clone();
+        let mut field_ty;
+        loop {
+            self.expect(Kind::Dot, "Esperado `.` após o registro")?;
+            let (field_name, field_span) = self.identifier()?;
+            let definition = self
+                .record_types
+                .iter()
+                .find(|definition| definition.id == type_id)
+                .expect("registro possui definição");
+            let Some((field_index, ty)) = definition
+                .fields
+                .iter()
+                .enumerate()
+                .find(|(_, field)| field.name == field_name)
+                .map(|(index, field)| (index, field.ty))
+            else {
+                return self.fail(
+                    "pors.unknown-field",
+                    format!(
+                        "Campo `{field_name}` não existe no registro `{}`",
+                        definition.name
+                    ),
+                    field_span,
+                );
+            };
+            fields.push(field_index);
+            path.push('.');
+            path.push_str(&field_name);
+            field_ty = ty;
+            if !matches!(self.current().kind, Kind::Dot) {
+                break;
+            }
+            let hir::Type::Record(inner) = ty else {
+                return self.fail(
+                    "pors.field-non-record",
+                    format!("`{path}` não é um registro; não tem campos"),
+                    field_span,
+                );
+            };
+            type_id = inner;
+        }
         let op_token = self.advance();
         let op = match op_token.kind {
             Kind::Assign => hir::AssignOp::Set,
@@ -465,7 +486,7 @@ impl Parser {
         if value.ty != field_ty {
             return self.fail(
                 "pors.type-mismatch",
-                format!("Atribuição incompatível para `{name}.{field_name}`"),
+                format!("Atribuição incompatível para `{path}`"),
                 syntax_span(value.span),
             );
         }
@@ -480,7 +501,7 @@ impl Parser {
         Ok(hir::Stmt {
             kind: hir::StmtKind::FieldAssign {
                 binding: symbol.id,
-                field_index,
+                fields,
                 op,
                 value,
             },

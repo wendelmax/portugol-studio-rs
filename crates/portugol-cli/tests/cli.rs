@@ -394,3 +394,27 @@ fn migrar_pede_confirmacao_respeita_sim_e_detecta_conflitos() {
         "funcao inicio() { escreva(1); }"
     );
 }
+
+#[test]
+fn validates_screen_code_behind_with_the_types_from_the_design() {
+    let dir = TempDir::new();
+    let design = dir.0.join("JanelaPrincipal.design");
+    let code = dir.0.join("JanelaPrincipal.fer");
+    fs::write(
+        &design,
+        "<Janela Nome=\"JanelaPrincipal\" Titulo=\"T\" Largura=\"200\" Altura=\"100\">\n    <Botao Nome=\"btnOk\" Texto=\"OK\" X=\"8\" Y=\"8\" AoClicar=\"btnOk_clicar\" />\n</Janela>\n",
+    )
+    .unwrap();
+    fs::write(
+        &code,
+        "funcao btnOk_clicar(tela: JanelaPrincipal) -> JanelaPrincipal {\n    seja mutavel t: JanelaPrincipal = tela;\n    t.btnOk.texto = \"Clicado\";\n    t.titulo = \"Pronto\";\n    retorne t;\n}\n",
+    )
+    .unwrap();
+    let checked = cli().arg(&code).output().unwrap();
+    assert!(checked.status.success(), "{checked:?}");
+
+    // Sem o .design ao lado, o mesmo código não conhece JanelaPrincipal.
+    fs::remove_file(&design).unwrap();
+    let alone = cli().arg(&code).output().unwrap();
+    assert!(!alone.status.success());
+}

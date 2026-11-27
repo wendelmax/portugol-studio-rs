@@ -104,7 +104,12 @@ fn main() -> ExitCode {
         let diagnostics: Vec<Diagnostic> = if desktop::is_markup_file(&file) {
             desktop::diagnose(&file, &source)
         } else {
-            match portugol_rs_frontend::lower(&source) {
+            // O code-behind de uma tela (`Nome.fer` ao lado de `Nome.design`)
+            // enxerga os tipos da tela e não precisa de `inicio`.
+            let options = desktop::code_behind_design(&file)
+                .map(|design| portugol_tela::codebehind::lower_options(&design))
+                .unwrap_or_default();
+            match portugol_rs_frontend::lower_with(&source, &options) {
                 Ok(_) => Vec::new(),
                 Err(diagnostics) => diagnostics,
             }

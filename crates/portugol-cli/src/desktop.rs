@@ -19,6 +19,16 @@ pub(crate) fn is_markup_file(path: &Path) -> bool {
     portugol_formatos::classify_path(path).is_some_and(|m| m.kind().is_markup())
 }
 
+/// Texto do `.design` com o mesmo nome, quando `path` é o code-behind de uma
+/// tela (`Nome.fer` ao lado de `Nome.design`).
+pub(crate) fn code_behind_design(path: &Path) -> Option<String> {
+    let design = path.with_extension(portugol_tela::FILE_EXTENSION);
+    design
+        .is_file()
+        .then(|| fs::read_to_string(design).ok())
+        .flatten()
+}
+
 /// Diagnósticos de um `.design` ou `.ferproj`. No manifesto, também confere
 /// se a janela inicial existe na pasta dele.
 pub(crate) fn diagnose(path: &Path, source: &str) -> Vec<Diagnostic> {

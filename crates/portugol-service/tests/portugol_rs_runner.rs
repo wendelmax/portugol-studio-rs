@@ -47,6 +47,16 @@ fn compiles_and_runs_pors_record_field_updates_with_real_rustc() {
 }
 
 #[test]
+fn compiles_and_runs_nested_record_field_updates_with_real_rustc() {
+    let source = "registro Conta { mensagem: cadeia, total: inteiro } registro Tela { dados: Conta } funcao inicio() { seja antes: Tela = Tela { dados: Conta { mensagem: \"\", total: 1 } }; seja mutavel t: Tela = antes; t.dados.mensagem = \"ok\"; t.dados.total += 2; escreva(antes.dados.total, t.dados.mensagem, t.dados.total); }";
+    let result = run_portugol_rs(source).unwrap();
+    assert!(
+        matches!(result, PortugolRsRunResult::Executed { ref stdout, exit_code: Some(0), .. } if stdout == "1ok3"),
+        "{result:?}"
+    );
+}
+
+#[test]
 fn compiles_and_runs_vectors_of_pors_records_with_real_rustc() {
     let source = "registro Pessoa { idade: inteiro } funcao inicio() { seja pessoas: vetor<Pessoa> = [Pessoa { idade: 16 }, Pessoa { idade: 17 }]; escreva(pessoas[0].idade); escreva(pessoas[1].idade); }";
     let result = run_portugol_rs(source).unwrap();

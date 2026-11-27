@@ -265,9 +265,11 @@ pub enum StmtKind {
         op: AssignOp,
         value: Expr,
     },
+    /// `p.x = ...` ou, em registros aninhados, `t.dados.mensagem = ...`:
+    /// `fields` é o caminho de índices de campo, nunca vazio.
     FieldAssign {
         binding: BindingId,
-        field_index: usize,
+        fields: Vec<usize>,
         op: AssignOp,
         value: Expr,
     },
