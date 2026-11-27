@@ -785,7 +785,7 @@ impl<'a> Compiler<'a> {
                 let index = self.intern_string(value);
                 self.emit(Op::PushStr(index), expr.span);
             }
-            E::Read => {
+            E::Read { .. } => {
                 self.emit_node(
                     Op::Read(ValueType::Cadeia),
                     expr.span,

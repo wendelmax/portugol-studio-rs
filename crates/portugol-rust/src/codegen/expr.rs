@@ -299,7 +299,7 @@ pub(super) fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedE
         } else {
             format!("String::from({value:?})")
         })],
-        ExprKind::Read => vec![ExpressionPart::Nested(compose_expression(
+        ExprKind::Read { .. } => vec![ExpressionPart::Nested(compose_expression(
             vec![ExpressionPart::Text(if pors {
                 "__pors_string(&__portugol_read_line(\"cadeia\"))".to_owned()
             } else {
