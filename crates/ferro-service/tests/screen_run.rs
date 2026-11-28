@@ -187,3 +187,38 @@ fn a_sessao_pode_ir_para_outra_thread() {
     fn assert_send<T: Send>() {}
     assert_send::<ScreenRun>();
 }
+
+#[test]
+fn temporizador_dispara_ao_disparar_e_o_codigo_pode_desliga_lo() {
+    let design = r#"<Janela Nome="J" Titulo="Relógio" Largura="200" Altura="100" Dados="Contagem">
+    <Rotulo Nome="lbl" Texto="{dados.vezes}" X="8" Y="8" />
+    <Temporizador Nome="relogio" Intervalo="100" Ativo="verdadeiro" AoDisparar="relogio_disparar" />
+</Janela>
+"#;
+    let code = r#"registro Contagem {
+    vezes: inteiro
+}
+
+funcao relogio_disparar(tela: J) -> J {
+    seja mutavel t: J = tela;
+    t.dados.vezes += 1;
+    se (t.dados.vezes >= 3) {
+        t.relogio.ativo = falso;
+    }
+    retorne t;
+}
+"#;
+    let (mut run, start) = ScreenRun::start(design, code).unwrap();
+    assert_eq!(start.snapshot["controles"]["relogio"]["ativo"], true);
+    assert_eq!(start.snapshot["controles"]["relogio"]["intervalo"], 100);
+    let mut last = start;
+    for _ in 0..3 {
+        last = run.dispatch(&event("relogio", "AoDisparar", None)).unwrap();
+    }
+    assert_eq!(last.snapshot["dados"]["vezes"], 3);
+    assert_eq!(last.snapshot["controles"]["lbl"]["texto"], "3");
+    assert_eq!(
+        last.snapshot["controles"]["relogio"]["ativo"], false,
+        "o código desligou o temporizador"
+    );
+}
