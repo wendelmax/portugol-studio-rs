@@ -9,10 +9,18 @@ Versão online publicada automaticamente via GitHub Pages:
 
 ## Recursos
 
+- Autocomplete da sintaxe `.fer` (instruções, tipos, variantes e operadores),
+  navegável com setas, `Enter`, `Tab` e `Escape`;
+- Painel pesquisável de sintaxe e instruções Ferro com forma canônica,
+  descrição e exemplo — clicar em um item insere o trecho no editor;
 - Validação instantânea de código `.fer` com diagnósticos em português;
 - Formatação canônica UTF-16;
 - Execução na VM PORS em memória linear com suporte a `leia` e orçamentos de
   passos, saída e memória de cadeias;
+- Terminal unificado: entradas (uma linha por `leia`) e saídas aparecem no mesmo
+  histórico, com diagnósticos quando houver;
+- Ações secundárias reunidas em um combobox (`Validar`, `Formatar`, `Prévia UI` e
+  `Ver Rust`), com `Executar` como botão primário;
 - Prévia visual interativa para apps declarativos MVU (`UI.*` com
   `iniciar`/`atualizar`/`visualizar`), renderizados sem `innerHTML`;
 - Interface responsiva com tema claro/escuro explícito (preferência salva no
