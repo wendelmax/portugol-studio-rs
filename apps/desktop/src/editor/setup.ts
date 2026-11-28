@@ -17,9 +17,10 @@ export interface EditorSetupDependencies {
   syncBreakpoints: (state: import("@codemirror/state").EditorState) => void;
   bugIcon: () => HTMLElement;
   activeTab: () => Tab | undefined;
-  inspectPortugolRs: (source: string) => Promise<Inspection>;
+  /** Inspeção de código-fonte; a aba diz se é o code-behind de uma tela. */
+  inspectPortugolRs: (source: string, tab: Tab | undefined) => Promise<Inspection>;
   /** Inspeção de .design e .ferproj; o tipo vem da extensão do caminho. */
-  inspectMarkup: (source: string, path: string) => Promise<Inspection>;
+  inspectMarkup: (source: string, path: string, tab: Tab | undefined) => Promise<Inspection>;
   renderMessages: () => void;
   showOutline: (symbols: SymbolInfo[]) => void;
   updateLibraryButtons: (symbols: SymbolInfo[]) => void;
@@ -61,7 +62,7 @@ export function createEditorSetup(dependencies: EditorSetupDependencies) {
     activeTab: dependencies.activeTab,
     language: "markup",
     inspectPortugolRs: (source, tab) =>
-      dependencies.inspectMarkup(source, tab?.workspacePath ?? tab?.path ?? "tela.design"),
+      dependencies.inspectMarkup(source, tab?.workspacePath ?? tab?.path ?? "tela.design", tab),
     renderMessages: dependencies.renderMessages,
     showOutline: dependencies.showOutline,
     updateLibraryButtons: dependencies.updateLibraryButtons,

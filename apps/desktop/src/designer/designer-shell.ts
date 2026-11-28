@@ -17,6 +17,9 @@ import { buildCanvasModel, nodeAt, pathAtOffset, pathFromKey, pathKey, type Defa
 import { markSelection, renderCanvas } from "./canvas-dom.ts";
 import type { CanvasInteractionHost } from "./interactions.ts";
 import { insertPlan, keyboardTarget } from "./interactions.ts";
+import { codeBehindTemplate, handlerName, placeHandler } from "./handlers.ts";
+import { schemaFor } from "./properties-model.ts";
+import { attributeOf } from "./canvas-model.ts";
 
 export type DesignView = "design" | "split" | "text";
 
@@ -56,6 +59,10 @@ export interface DesignerShellDependencies {
   };
   hasFile: (workspaceId: string | undefined, path: string) => boolean;
   openFile: (workspaceId: string | undefined, path: string) => Promise<boolean>;
+  /** Cria um arquivo vazio no workspace e o abre numa aba (duplo clique numa tela sem código). */
+  createFile?: (workspaceId: string | undefined, path: string) => Promise<boolean>;
+  /** Insere texto no editor ativo (`insert` nulo só move o cursor) e o foca. */
+  editActive?: (insert: { from: number; insert: string } | null, cursor: number) => void;
   setStatus: (message: string, kind?: "error" | "ok") => void;
   setTimeout?: (callback: () => void, delay: number) => unknown;
   clearTimeout?: (handle: unknown) => void;
@@ -318,6 +325,55 @@ export function mountDesignerShell(dependencies: DesignerShellDependencies) {
     }
   });
 
+  /**
+   * Duplo clique num controle: liga o evento padrão a uma função (a que já
+   * estiver ligada, ou `btnOk_clicar`) e leva ao code-behind, criando o
+   * arquivo e a função quando faltam.
+   */
+  async function createHandler(path: string): Promise<boolean> {
+    const tab = dependencies.activeTab();
+    if (!tab || !isDesignTab(tab) || !tree || !schema || !tab.workspaceId || !tab.workspacePath) return false;
+    const node = nodeAt(tree, pathFromKey(path));
+    const info = node && schemaFor(schema, node.tag);
+    if (!node || !info) return false;
+    const event = info.defaultEvent;
+    if (!event) {
+      dependencies.setStatus(`${info.label} não tem evento padrão; ligue um evento na aba Eventos.`);
+      return false;
+    }
+    const window = attributeOf(tree, "Nome") ?? "Janela";
+    const controlName = attributeOf(node, "Nome") ?? (path === "" ? window : node.tag.charAt(0).toLowerCase() + node.tag.slice(1));
+    const handler = handlerName(attributeOf(node, event), controlName, event);
+    if (attributeOf(node, event) !== handler) {
+      const applied = await apply({ edits: [{ kind: "setAttribute", path: pathFromKey(path), name: event, value: handler }], select: pathFromKey(path) });
+      if (!applied) return false;
+    }
+    const workspaceId = tab.workspaceId;
+    const existing = existingCodeBehind(tab);
+    let created = false;
+    if (existing) {
+      if (!(await dependencies.openFile(workspaceId, existing))) return false;
+    } else {
+      if (!dependencies.createFile || !(await dependencies.createFile(workspaceId, codeBehindPath(tab.workspacePath)))) return false;
+      created = true;
+    }
+    let code = dependencies.source();
+    if (created && code === "") {
+      const template = codeBehindTemplate(window, attributeOf(tree, "Dados") ?? null);
+      dependencies.editActive?.({ from: 0, insert: template }, template.length);
+      code = template;
+    }
+    const plan = placeHandler(code, handler, window);
+    dependencies.editActive?.(plan.insert === null ? null : { from: plan.from, insert: plan.insert }, plan.cursor);
+    dependencies.setStatus(plan.insert === null ? `Função ${handler}` : `Função ${handler} criada no código da tela`, "ok");
+    return true;
+  }
+
+  dependencies.viewport.addEventListener("dblclick", (event) => {
+    const target = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-path]");
+    if (target?.dataset.path !== undefined) void createHandler(target.dataset.path);
+  });
+
   dependencies.viewport.addEventListener("click", (event) => {
     const target = (event.target as HTMLElement | null)?.closest<HTMLElement>("[data-path]");
     select(target?.dataset.path ?? null, true);
@@ -344,6 +400,7 @@ export function mountDesignerShell(dependencies: DesignerShellDependencies) {
       }
     },
     toggleCode,
+    createHandler,
     /** Clique ou Enter num item da caixa de ferramentas: insere no contêiner selecionado. */
     async insertTool(tag: string): Promise<boolean> {
       const tab = dependencies.activeTab();

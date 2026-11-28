@@ -185,7 +185,15 @@ export const designTree = (source: string) => invoke<DesignNode | null>("design_
 export const editDesign = (source: string, edits: DesignEdit[]) => invoke<string>("edit_design", { source, edits });
 export const designSchema = () => invoke<DesignSchema>("design_schema");
 /** Diagnósticos e estrutura de um `.design` ou `.ferproj`; o tipo vem da extensão de `path`. */
-export const inspectMarkup = (source: string, path: string) => invoke<Inspection>("inspect_markup", { source, path });
+/**
+ * Com `checkCode`, um `.design` também confere as ligações de eventos com o
+ * code-behind (`codeSource`; `null` quando a tela ainda não tem código).
+ */
+export const inspectMarkup = (source: string, path: string, checkCode = false, codeSource: string | null = null) =>
+  invoke<Inspection>("inspect_markup", { source, path, checkCode, codeSource });
+/** Code-behind de uma tela, analisado com os tipos do `.design` dela (ADR 0018). */
+export const inspectCodeBehind = (source: string, designSource: string) =>
+  invoke<Inspection>("inspect_code_behind", { source, designSource });
 /** Formata um `.design` ou `.ferproj`; `null` quando há erro de sintaxe. */
 export const formatMarkup = (source: string) =>
   invoke<{ from: number; to: number; insert: string }[] | null>("format_markup", { source });

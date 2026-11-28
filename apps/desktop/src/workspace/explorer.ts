@@ -933,6 +933,29 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
       return workspaceId === workspaceState?.id
         && collectWorkspaceFiles(workspaceState?.entries ?? []).some((file) => file.path === path);
     },
+    /**
+     * Cria um arquivo vazio no workspace aberto (`relativePath` com subpasta,
+     * se houver) e o abre numa aba; falso se o workspace mudou.
+     */
+    async createFile(workspaceId: string | undefined, relativePath: string): Promise<boolean> {
+      const selected = workspaceState;
+      if (!selected || workspaceId !== selected.id) return false;
+      const slash = relativePath.lastIndexOf("/");
+      const folder = slash >= 0 ? relativePath.slice(0, slash) : undefined;
+      const fileName = relativePath.slice(slash + 1);
+      const refreshed = await api.createWorkspaceFile(selected.id, fileName, folder);
+      if (workspaceState?.id !== selected.id) return false;
+      workspaceState = refreshed;
+      workspaceError = null;
+      selectedWorkspacePath = relativePath;
+      for (const parent of workspaceParentFolders(relativePath)) expandedWorkspaceFolders.add(parent);
+      for (const screen of screensContaining(groupScreens(refreshed.entries), relativePath)) expandedWorkspaceFolders.add(screen);
+      renderWorkspaceExplorer();
+      const created = collectWorkspaceFiles(refreshed.entries).find((entry) => entry.path === relativePath);
+      if (!created) return false;
+      await openWorkspaceFile(created);
+      return true;
+    },
     /** Abre um arquivo do workspace aberto pelo caminho relativo; falso se ele não existir. */
     async openFile(workspaceId: string | undefined, path: string): Promise<boolean> {
       if (workspaceId !== workspaceState?.id) return false;

@@ -35,7 +35,7 @@ pub use designer::{
     AttributeInfo, DesignAttribute, DesignEdit, DesignNode, DesignSchema, ElementInfo,
     design_schema, design_tree, edit_design,
 };
-pub use markup::{MarkupKind, format_markup, inspect_markup};
+pub use markup::{CodeBehind, MarkupKind, format_markup, inspect_markup, inspect_markup_with_code};
 pub use outline::{SymbolInfo, SymbolKind};
 pub use pors_examples::{PorsExample, find_pors_example, pors_examples};
 pub use pors_exercises::{
@@ -168,7 +168,17 @@ pub fn inspect_portugol_rs(source: &str) -> Inspection {
 /// arquivo não precisa de `inicio` (ADR 0018, seção 4). Com erro de sintaxe
 /// no `.design`, os tipos da tela ficam de fora.
 pub fn inspect_code_behind(source: &str, design_source: &str) -> Inspection {
-    inspect_portugol_rs_with(source, &designer::code_behind_options(design_source))
+    let mut inspection =
+        inspect_portugol_rs_with(source, &designer::code_behind_options(design_source));
+    if inspection.diagnostics.is_empty() {
+        let index = position::LineIndex::new(source);
+        inspection.diagnostics = designer::check_screen(design_source, Some(source))
+            .code
+            .iter()
+            .map(|diagnostic| describe(&index, diagnostic))
+            .collect();
+    }
+    inspection
 }
 
 fn inspect_portugol_rs_with(

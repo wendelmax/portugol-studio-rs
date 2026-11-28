@@ -69,6 +69,7 @@ import { mountDesignerShell, textChange } from "./designer/designer-shell";
 import { mountCanvasInteractions } from "./designer/interactions";
 import { mountSidePanel } from "./designer/side-panel";
 import { renderToolbox } from "./designer/toolbox";
+import { inspectMarkupFile, inspectSource, isScreenFile, type ScreenFilesHost } from "./designer/screen-files";
 import { createEditorActionsShell } from "./editor/actions-shell";
 import {
   editorPreferenceExtensions,
@@ -92,6 +93,13 @@ function closeTab(id: number) { return tabsShell.closeTab(id); }
 let renderStatusBar: () => void = () => {};
 /** Modo visual das telas `.design` (ADR 0018); montado depois do Explorador. */
 let designer: ReturnType<typeof mountDesignerShell> | null = null;
+/** Os dois arquivos de cada tela, para analisar um com o outro. */
+const screenFiles: ScreenFilesHost = {
+  tabs: () => tabCollection.tabs(),
+  tabSource: (tab) => (tab === activeTab() ? view.state.doc.toString() : tab.state.doc.toString()),
+  hasFile: (workspaceId, path) => workspaceExplorer.hasFile(workspaceId, path),
+  readFile: async (workspaceId, path) => (await api.readWorkspaceFile(workspaceId, path)).source,
+};
 function renderTabs() {
   tabsShell.renderTabs();
   renderStatusBar();
@@ -134,8 +142,8 @@ const {
     syncBreakpoints: (state) => syncBreakpoints(state),
     bugIcon: () => icon("bug"),
     activeTab,
-    inspectPortugolRs: api.inspectPortugolRs,
-    inspectMarkup: api.inspectMarkup,
+    inspectPortugolRs: (source, tab) => inspectSource(screenFiles, api, source, tab),
+    inspectMarkup: (source, _path, tab) => inspectMarkupFile(screenFiles, api, source, tab),
     renderMessages,
     showOutline: (symbols) => outline.show(symbols),
     updateLibraryButtons,
@@ -247,6 +255,8 @@ function activate(id: number) {
     return tabActivator.activate(id);
   } finally {
     designer?.sync();
+    // O irmão da tela pode ter mudado desde a última análise desta aba.
+    if (isScreenFile(screenFiles, activeTab())) forceLinting(view);
   }
 }
 
@@ -409,6 +419,15 @@ designer = mountDesignerShell({
   redo: () => redo(view),
   hasFile: (workspaceId, path) => workspaceExplorer.hasFile(workspaceId, path),
   openFile: (workspaceId, path) => workspaceExplorer.openFile(workspaceId, path),
+  createFile: (workspaceId, path) => workspaceExplorer.createFile(workspaceId, path),
+  editActive: (insert, cursor) => {
+    view.dispatch({
+      changes: insert ?? undefined,
+      selection: { anchor: Math.min(cursor, view.state.doc.length + (insert?.insert.length ?? 0)) },
+      scrollIntoView: true,
+    });
+    view.focus();
+  },
   setStatus,
 });
 void api.designSchema().then((schema) => {

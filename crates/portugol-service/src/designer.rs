@@ -12,6 +12,109 @@ use portugol_tela::{Element, Node};
 
 use crate::position::LineIndex;
 
+/// Diagnósticos das ligações entre a marcação e o code-behind (ADR 0018,
+/// seção 4): `design` vai para o `.design` (handler que não existe) e `code`
+/// para o `.fer` (handler com assinatura errada).
+#[derive(Debug, Default)]
+pub struct ScreenCheck {
+    pub design: Vec<portugol_hir::Diagnostic>,
+    pub code: Vec<portugol_hir::Diagnostic>,
+}
+
+/// Confere se cada evento da marcação (`AoClicar="btnOk_clicar"`) aponta
+/// para uma função do code-behind que recebe e devolve a janela. `code` é
+/// `None` quando a tela ainda não tem `.fer`. Com erro no `.design` ou no
+/// código, não há o que conferir: esses erros já aparecem por conta própria.
+pub fn check_screen(design_source: &str, code: Option<&str>) -> ScreenCheck {
+    use portugol_hir::Diagnostic;
+    let mut check = ScreenCheck::default();
+    let Ok(document) = portugol_tela::parse(design_source) else {
+        return check;
+    };
+    let window = document
+        .root
+        .control_name()
+        .map_or("Janela".to_owned(), |name| name.value.clone());
+    let mut events = Vec::new();
+    collect_events(&document.root, &mut events);
+    if events.is_empty() {
+        return check;
+    }
+    let program = match code {
+        Some(source) => {
+            match portugol_rs_frontend::lower_with(source, &code_behind_options(design_source)) {
+                Ok(program) => Some((source, program)),
+                Err(_) => return check,
+            }
+        }
+        None => None,
+    };
+    let window_type = program.as_ref().and_then(|(_, program)| {
+        program
+            .record_types
+            .iter()
+            .find(|record| record.name == window)
+            .map(|record| portugol_hir::Type::Record(record.id))
+    });
+    for (handler, span) in events {
+        let function = program.as_ref().and_then(|(source, program)| {
+            program
+                .functions
+                .iter()
+                .find(|function| function.source_name == handler)
+                .map(|function| (*source, function))
+        });
+        let Some((source, function)) = function else {
+            let message = if program.is_some() {
+                format!("A função `{handler}` não existe no código da tela")
+            } else {
+                format!("A função `{handler}` não existe: esta tela ainda não tem código")
+            };
+            check.design.push(
+                Diagnostic::error("design.handler-missing", message, span)
+                    .with_help("Dê duplo clique no controle, no modo Design, para criar a função."),
+            );
+            continue;
+        };
+        let parameter_types: Vec<_> = function
+            .parameters
+            .iter()
+            .filter_map(|id| function.bindings.iter().find(|binding| binding.id == *id))
+            .map(|binding| binding.ty)
+            .collect();
+        let ok = window_type
+            .is_some_and(|ty| parameter_types == [ty] && function.return_type == Some(ty));
+        if !ok {
+            let start = crate::pors_function_name_start(source, function.span.start);
+            check.code.push(
+                Diagnostic::error(
+                    "design.handler-signature",
+                    format!("A função `{handler}` trata um evento da tela e precisa receber e devolver a janela"),
+                    portugol_hir::Span::new(start, start + handler.len() as u32),
+                )
+                .with_help(format!("Use `funcao {handler}(tela: {window}) -> {window}`.")),
+            );
+        }
+    }
+    check
+}
+
+fn collect_events(element: &Element, out: &mut Vec<(String, portugol_hir::Span)>) {
+    if let Some(element_schema) = schema::element(&element.name.text) {
+        for attribute in &element.attributes {
+            let is_event = element_schema
+                .attribute(&attribute.name.text)
+                .is_some_and(|a| a.value == ValueType::Event);
+            if is_event && !attribute.value.trim().is_empty() {
+                out.push((attribute.value.trim().to_owned(), attribute.value_span));
+            }
+        }
+    }
+    for child in element.elements() {
+        collect_events(child, out);
+    }
+}
+
 /// Opções para analisar o code-behind de uma tela (ver
 /// [`portugol_tela::codebehind::lower_options`]).
 pub fn code_behind_options(design_source: &str) -> portugol_rs_frontend::LowerOptions {
@@ -431,6 +534,75 @@ mod code_behind_tests {
                 .any(|d| d.code == "pors.unknown-type"),
             "{:?}",
             broken.diagnostics
+        );
+    }
+}
+
+#[cfg(test)]
+mod binding_tests {
+    use crate::{CodeBehind, MarkupKind, inspect_code_behind, inspect_markup_with_code};
+
+    const DESIGN: &str = "<Janela Nome=\"J\" Titulo=\"T\" Largura=\"200\" Altura=\"100\">\n    <Botao Nome=\"btnOk\" Texto=\"OK\" X=\"8\" Y=\"8\" AoClicar=\"btnOk_clicar\" />\n</Janela>\n";
+
+    #[test]
+    fn handler_existente_nao_gera_diagnostico() {
+        let code = "funcao btnOk_clicar(tela: J) -> J {\n    retorne tela;\n}\n";
+        assert!(
+            inspect_markup_with_code(DESIGN, MarkupKind::Design, CodeBehind::Source(code))
+                .diagnostics
+                .is_empty()
+        );
+        assert!(inspect_code_behind(code, DESIGN).diagnostics.is_empty());
+    }
+
+    #[test]
+    fn handler_ausente_aponta_o_atributo_no_design() {
+        let code = "funcao outro(tela: J) -> J {\n    retorne tela;\n}\n";
+        let inspection =
+            inspect_markup_with_code(DESIGN, MarkupKind::Design, CodeBehind::Source(code));
+        let diagnostic = &inspection.diagnostics[0];
+        assert_eq!(diagnostic.code, "design.handler-missing");
+        assert_eq!(diagnostic.start.line, 2);
+        assert!(diagnostic.message.contains("`btnOk_clicar`"));
+        let missing = inspect_markup_with_code(DESIGN, MarkupKind::Design, CodeBehind::Missing);
+        assert!(
+            missing.diagnostics[0]
+                .message
+                .contains("ainda não tem código")
+        );
+        assert!(
+            inspect_markup_with_code(DESIGN, MarkupKind::Design, CodeBehind::Unknown)
+                .diagnostics
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn assinatura_errada_aponta_o_nome_da_funcao_no_fer() {
+        let code = "funcao btnOk_clicar(x: inteiro) -> inteiro {\n    retorne x;\n}\n";
+        let inspection = inspect_code_behind(code, DESIGN);
+        let diagnostic = &inspection.diagnostics[0];
+        assert_eq!(diagnostic.code, "design.handler-signature");
+        assert_eq!((diagnostic.start.line, diagnostic.start.column), (1, 8));
+        assert_eq!(
+            diagnostic.end.column - diagnostic.start.column,
+            "btnOk_clicar".len() as u32
+        );
+        assert_eq!(
+            diagnostic.help.as_deref(),
+            Some("Use `funcao btnOk_clicar(tela: J) -> J`.")
+        );
+    }
+
+    #[test]
+    fn com_erro_no_codigo_as_ligacoes_nao_sao_conferidas() {
+        let code = "funcao btnOk_clicar(tela: J) -> J {\n    retorne 1;\n}\n";
+        let inspection =
+            inspect_markup_with_code(DESIGN, MarkupKind::Design, CodeBehind::Source(code));
+        assert!(
+            inspection.diagnostics.is_empty(),
+            "{:?}",
+            inspection.diagnostics
         );
     }
 }

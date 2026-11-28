@@ -207,11 +207,32 @@ fn inspect_portugol_rs(source: String) -> portugol_service::Inspection {
 
 /// Diagnósticos e estrutura de um `.design` ou `.ferproj`; o tipo vem da
 /// extensão de `path`.
+/// Com `check_code`, um `.design` também tem as ligações de eventos
+/// conferidas com o code-behind (`code_source`; `None` quando a tela ainda
+/// não tem `.fer`).
 #[tauri::command]
-fn inspect_markup(source: String, path: String) -> Result<portugol_service::Inspection, String> {
+fn inspect_markup(
+    source: String,
+    path: String,
+    check_code: Option<bool>,
+    code_source: Option<String>,
+) -> Result<portugol_service::Inspection, String> {
     let kind = portugol_service::MarkupKind::from_path(&path)
         .ok_or_else(|| "O arquivo não é um .design nem um .ferproj.".to_string())?;
-    Ok(portugol_service::inspect_markup(&source, kind))
+    let code = match (check_code.unwrap_or(false), code_source.as_deref()) {
+        (false, _) => portugol_service::CodeBehind::Unknown,
+        (true, None) => portugol_service::CodeBehind::Missing,
+        (true, Some(code)) => portugol_service::CodeBehind::Source(code),
+    };
+    Ok(portugol_service::inspect_markup_with_code(
+        &source, kind, code,
+    ))
+}
+
+/// Code-behind de uma tela, analisado com os tipos do `.design` dela.
+#[tauri::command]
+fn inspect_code_behind(source: String, design_source: String) -> portugol_service::Inspection {
+    portugol_service::inspect_code_behind(&source, &design_source)
 }
 
 #[tauri::command]
@@ -932,6 +953,7 @@ pub fn run_app() {
         .invoke_handler(tauri::generate_handler![
             inspect_portugol_rs,
             inspect_markup,
+            inspect_code_behind,
             format_markup,
             design_tree,
             edit_design,
