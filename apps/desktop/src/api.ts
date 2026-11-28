@@ -184,6 +184,10 @@ export const designTree = (source: string) => invoke<DesignNode | null>("design_
 /** Novo texto do `.design`; rejeita com a mensagem quando a edição não vale. */
 export const editDesign = (source: string, edits: DesignEdit[]) => invoke<string>("edit_design", { source, edits });
 export const designSchema = () => invoke<DesignSchema>("design_schema");
+/** Campo do registro de `Dados` de uma tela, para os dados de exemplo. */
+export type DataField = { name: string; type: string; editable: boolean };
+export const screenDataFields = (designSource: string, codeSource: string) =>
+  invoke<DataField[]>("screen_data_fields", { designSource, codeSource });
 /** Executa uma tela numa janela própria; devolve o rótulo da janela. */
 export const startScreenRun = (designSource: string, codeSource: string) =>
   invoke<string>("screen_run_start", { designSource, codeSource });

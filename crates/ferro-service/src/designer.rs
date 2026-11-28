@@ -128,6 +128,63 @@ fn collect_events(element: &Element, out: &mut Vec<(String, ferro_hir::Span)>) {
     }
 }
 
+/// Campo do registro de `Dados`, para o painel de dados de exemplo.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct DataField {
+    pub name: String,
+    /// `inteiro`, `real`, `logico`, `cadeia` ou `caracter`; outro nome para
+    /// registros e vetores, que não têm exemplo.
+    #[serde(rename = "type")]
+    pub ty: String,
+    /// Tipo simples, que aceita um valor de exemplo.
+    pub editable: bool,
+}
+
+/// Campos do registro de `Dados` da tela, lidos do code-behind. Vazio sem
+/// `Dados`, sem o registro ou com erro no código.
+pub fn screen_data_fields(design_source: &str, code_source: &str) -> Vec<DataField> {
+    let Ok(document) = ferro_tela::parse(design_source) else {
+        return Vec::new();
+    };
+    let Some(data) = document.root.attribute("Dados").map(|a| a.value.clone()) else {
+        return Vec::new();
+    };
+    let Ok(program) = ferro_frontend::lower_with(code_source, &code_behind_options(design_source))
+    else {
+        return Vec::new();
+    };
+    let Some(record) = program.record_types.iter().find(|r| r.name == data) else {
+        return Vec::new();
+    };
+    record
+        .fields
+        .iter()
+        .map(|field| {
+            let (ty, editable) = match field.ty {
+                ferro_hir::Type::Integer => ("inteiro".to_owned(), true),
+                ferro_hir::Type::Real => ("real".to_owned(), true),
+                ferro_hir::Type::Boolean => ("logico".to_owned(), true),
+                ferro_hir::Type::String => ("cadeia".to_owned(), true),
+                ferro_hir::Type::Character => ("caracter".to_owned(), true),
+                ferro_hir::Type::Record(id) => (
+                    program
+                        .record_types
+                        .iter()
+                        .find(|r| r.id == id)
+                        .map_or("registro".to_owned(), |r| r.name.clone()),
+                    false,
+                ),
+                _ => ("vetor".to_owned(), false),
+            };
+            DataField {
+                name: field.name.clone(),
+                ty,
+                editable,
+            }
+        })
+        .collect()
+}
+
 /// Opções para analisar o code-behind de uma tela (ver
 /// [`ferro_tela::codebehind::lower_options`]).
 pub fn code_behind_options(design_source: &str) -> ferro_frontend::LowerOptions {

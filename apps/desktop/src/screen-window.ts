@@ -25,7 +25,8 @@ function render(snapshot: ScreenSnapshot) {
   if (!tree) return;
   const focus = captureFocus(root);
   const live = applySnapshot(tree, snapshot);
-  root.replaceChildren(renderLive(buildCanvasModel(live), dispatch));
+  // Os <DadosExemplo> são só do designer: na execução vale o estado de verdade.
+  root.replaceChildren(renderLive(buildCanvasModel(live, {}, false), dispatch));
   restoreFocus(root, focus);
 }
 

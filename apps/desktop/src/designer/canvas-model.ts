@@ -13,7 +13,8 @@ import type { DesignNode } from "../api.ts";
 export type CanvasStyle = Record<string, string>;
 
 /** Pedaço de texto: normal, a letra da tecla de acesso (`_Salvar`) ou um vínculo. */
-export type TextRun = { text: string; kind: "plain" | "access" | "binding" };
+/** Pedaço de texto: normal, a letra da tecla de acesso, um vínculo, ou o valor de exemplo de um vínculo. */
+export type TextRun = { text: string; kind: "plain" | "access" | "binding" | "sample" };
 
 export type CanvasKind =
   | "window"
@@ -62,6 +63,11 @@ export type CanvasModel = {
 
 /** Tamanho inicial de cada controle quando não há `Largura`/`Altura` (vem do esquema). */
 export type DefaultSizes = Readonly<Record<string, readonly [number, number]>>;
+
+/** Valores de `<DadosExemplo>`: o designer mostra `Resultado: 42` em vez de `{dados.resultado}`. */
+export type SampleData = ReadonlyMap<string, string>;
+
+type BuildContext = { sizes: DefaultSizes; sample: SampleData };
 
 const KINDS: Record<string, CanvasKind> = {
   Janela: "window",
@@ -156,7 +162,7 @@ export function tracksCss(value: string | undefined): string {
  * `\{`/`\}` são chaves literais, `_X` marca a tecla de acesso e `__` é um
  * sublinhado. O texto da `Janela` não tem tecla de acesso.
  */
-export function textRuns(value: string, accessKey = true): TextRun[] {
+export function textRuns(value: string, accessKey = true, sample: SampleData = new Map()): TextRun[] {
   const runs: TextRun[] = [];
   let plain = "";
   let accessUsed = !accessKey;
@@ -177,7 +183,9 @@ export function textRuns(value: string, accessKey = true): TextRun[] {
         break;
       }
       flush();
-      runs.push({ text: value.slice(index, end + 1), kind: "binding" });
+      const binding = value.slice(index, end + 1);
+      const example = sampleFor(binding, sample);
+      runs.push(example === undefined ? { text: binding, kind: "binding" } : { text: example, kind: "sample" });
       index = end;
     } else if (char === "_" && next === "_" && accessKey) {
       plain += "_";
@@ -195,11 +203,28 @@ export function textRuns(value: string, accessKey = true): TextRun[] {
   return runs;
 }
 
+/** Valor de exemplo de `{dados.campo}` (só campos diretos de `dados`). */
+function sampleFor(binding: string, sample: SampleData): string | undefined {
+  const match = /^\{\s*dados\.([A-Za-z_][A-Za-z0-9_]*)\s*\}$/.exec(binding);
+  return match ? sample.get(match[1]) : undefined;
+}
+
+/** Atributo com o vínculo inteiro (`Habilitado="{dados.pode}"`) trocado pelo exemplo. */
+function sampled(value: string | undefined, sample: SampleData): string | undefined {
+  return value === undefined ? undefined : (sampleFor(value.trim(), sample) ?? value);
+}
+
+/** Lê `<DadosExemplo>` da janela. */
+export function sampleData(root: DesignNode): SampleData {
+  const element = root.children.find((child) => child.tag === "DadosExemplo");
+  return new Map((element?.attributes ?? []).map((attribute) => [attribute.name, attribute.value]));
+}
+
 function visualChildren(node: DesignNode): DesignNode[] {
   return node.children.filter((child) => !NOT_VISUAL.has(child.tag));
 }
 
-function box(node: DesignNode, kind: CanvasKind, style: CanvasStyle): CanvasBox {
+function box(node: DesignNode, kind: CanvasKind, style: CanvasStyle, sample: SampleData = new Map()): CanvasBox {
   const attrs = attributes(node);
   return {
     path: pathKey(node.path),
@@ -211,8 +236,8 @@ function box(node: DesignNode, kind: CanvasKind, style: CanvasStyle): CanvasBox 
     placeholder: null,
     items: [],
     checked: attrs.get("Marcado") === "verdadeiro",
-    disabled: attrs.get("Habilitado") === "falso",
-    hidden: attrs.get("Visivel") === "falso",
+    disabled: sampled(attrs.get("Habilitado"), sample) === "falso",
+    hidden: sampled(attrs.get("Visivel"), sample) === "falso",
     selected: integer(attrs.get("Selecionado")) ?? -1,
     children: [],
   };
@@ -220,15 +245,15 @@ function box(node: DesignNode, kind: CanvasKind, style: CanvasStyle): CanvasBox 
 
 type ParentLayout = "free" | "free-fill" | "stack-vertical" | "stack-horizontal" | "grid" | "dock";
 
-function placement(node: DesignNode, parent: ParentLayout, sizes: DefaultSizes): CanvasStyle {
+function placement(node: DesignNode, parent: ParentLayout, ctx: BuildContext): CanvasStyle {
   const attrs = attributes(node);
   const style: CanvasStyle = {};
   const width = integer(attrs.get("Largura"));
   const height = integer(attrs.get("Altura"));
   const margin = thicknessCss(attrs.get("Margem"));
   if (margin) style.margin = margin;
-  if (attrs.get("Visivel") === "falso") style.opacity = "0.45";
-  const [defaultWidth, defaultHeight] = sizes[node.tag] ?? [100, 24];
+  if (sampled(attrs.get("Visivel"), ctx.sample) === "falso") style.opacity = "0.45";
+  const [defaultWidth, defaultHeight] = ctx.sizes[node.tag] ?? [100, 24];
 
   switch (parent) {
     case "free":
@@ -270,11 +295,11 @@ function placement(node: DesignNode, parent: ParentLayout, sizes: DefaultSizes):
   return style;
 }
 
-function element(node: DesignNode, parent: ParentLayout, sizes: DefaultSizes): CanvasBox {
+function element(node: DesignNode, parent: ParentLayout, ctx: BuildContext): CanvasBox {
   const attrs = attributes(node);
   const kind = KINDS[node.tag] ?? "unknown";
-  const style = placement(node, parent, sizes);
-  const result = box(node, kind, style);
+  const style = placement(node, parent, ctx);
+  const result = box(node, kind, style, ctx.sample);
   const padding = thicknessCss(attrs.get("Preenchimento"));
   if (padding) style.padding = padding;
 
@@ -284,10 +309,10 @@ function element(node: DesignNode, parent: ParentLayout, sizes: DefaultSizes): C
     case "button":
     case "checkbox":
     case "radio":
-      result.text = textRuns(text ?? (kind === "label" ? (result.name ?? "Rótulo") : (result.name ?? node.tag)));
+      result.text = textRuns(text ?? (kind === "label" ? (result.name ?? "Rótulo") : (result.name ?? node.tag)), true, ctx.sample);
       break;
     case "textbox":
-      result.text = text ? textRuns(text, false) : null;
+      result.text = text ? textRuns(text, false, ctx.sample) : null;
       result.placeholder = attrs.get("TextoVazio") ?? null;
       break;
     case "list":
@@ -298,9 +323,9 @@ function element(node: DesignNode, parent: ParentLayout, sizes: DefaultSizes): C
       result.text = [{ text: attrs.get("Arquivo") ?? "Imagem", kind: "plain" }];
       break;
     case "panel":
-      result.text = attrs.has("Titulo") ? textRuns(attrs.get("Titulo") ?? "", false) : null;
+      result.text = attrs.has("Titulo") ? textRuns(attrs.get("Titulo") ?? "", false, ctx.sample) : null;
       if (attrs.get("Borda") === "verdadeiro" || attrs.has("Titulo")) style.border = "1px solid var(--design-border)";
-      result.children = children(node, "free", sizes);
+      result.children = children(node, "free", ctx);
       style.position ??= "relative";
       break;
     case "stack": {
@@ -309,7 +334,7 @@ function element(node: DesignNode, parent: ParentLayout, sizes: DefaultSizes): C
       style["flex-direction"] = horizontal ? "row" : "column";
       style.gap = `${integer(attrs.get("Espaco")) ?? 0}px`;
       result.children = visualChildren(node).map((child) =>
-        element(child, horizontal ? "stack-horizontal" : "stack-vertical", sizes),
+        element(child, horizontal ? "stack-horizontal" : "stack-vertical", ctx),
       );
       break;
     }
@@ -318,21 +343,21 @@ function element(node: DesignNode, parent: ParentLayout, sizes: DefaultSizes): C
       style["grid-template-rows"] = tracksCss(attrs.get("Linhas"));
       style["grid-template-columns"] = tracksCss(attrs.get("Colunas"));
       style.gap = `${integer(attrs.get("Espaco")) ?? 0}px`;
-      result.children = visualChildren(node).map((child) => element(child, "grid", sizes));
+      result.children = visualChildren(node).map((child) => element(child, "grid", ctx));
       break;
     case "dock":
       style.display = "flex";
-      result.children = [dock(visualChildren(node), sizes)];
+      result.children = [dock(visualChildren(node), ctx)];
       break;
   }
   return result;
 }
 
 /** Filhos de um contêiner de posição livre. */
-function children(node: DesignNode, layout: "free", sizes: DefaultSizes): CanvasBox[] {
+function children(node: DesignNode, layout: "free", ctx: BuildContext): CanvasBox[] {
   const visual = visualChildren(node);
   const fills = visual.length === 1 && LAYOUTS.has(KINDS[visual[0].tag] ?? "unknown");
-  return visual.map((child) => element(child, fills ? "free-fill" : layout, sizes));
+  return visual.map((child) => element(child, fills ? "free-fill" : layout, ctx));
 }
 
 const DOCK_DIRECTION: Record<string, string> = {
@@ -348,7 +373,7 @@ const DOCK_DIRECTION: Record<string, string> = {
  * `Encaixar` preenche o que sobra; um filho sem `Encaixar` que não é o último
  * fica à esquerda, como no WPF.
  */
-function dock(nodes: DesignNode[], sizes: DefaultSizes): CanvasBox {
+function dock(nodes: DesignNode[], ctx: BuildContext): CanvasBox {
   const rest: CanvasBox = {
     path: null,
     tag: "",
@@ -367,7 +392,7 @@ function dock(nodes: DesignNode[], sizes: DefaultSizes): CanvasBox {
   const [first, ...others] = nodes;
   if (!first) return rest;
   const declared = attributes(first).get("Encaixar");
-  const child = element(first, "dock", sizes);
+  const child = element(first, "dock", ctx);
   if (!declared && others.length === 0) {
     child.style.flex = "1 1 auto";
     rest.children = [child];
@@ -375,12 +400,13 @@ function dock(nodes: DesignNode[], sizes: DefaultSizes): CanvasBox {
   }
   child.style.flex = "0 0 auto";
   rest.style["flex-direction"] = DOCK_DIRECTION[declared ?? "Esquerda"] ?? "row";
-  rest.children = [child, dock(others, sizes)];
+  rest.children = [child, dock(others, ctx)];
   return rest;
 }
 
 /** Monta o modelo do canvas a partir da raiz `<Janela>`. */
-export function buildCanvasModel(root: DesignNode, sizes: DefaultSizes = {}): CanvasModel {
+export function buildCanvasModel(root: DesignNode, sizes: DefaultSizes = {}, useSample = true): CanvasModel {
+  const ctx: BuildContext = { sizes, sample: useSample ? sampleData(root) : new Map() };
   const attrs = attributes(root);
   const style: CanvasStyle = {
     position: "relative",
@@ -390,11 +416,11 @@ export function buildCanvasModel(root: DesignNode, sizes: DefaultSizes = {}): Ca
   const padding = thicknessCss(attrs.get("Preenchimento"));
   if (padding) style.padding = padding;
   const window = box(root, "window", style);
-  window.children = children(root, "free", sizes);
+  window.children = children(root, "free", ctx);
   const components = root.children
     .filter((child) => COMPONENTS.has(child.tag))
     .map((child) => ({ path: pathKey(child.path), tag: child.tag, name: attributes(child).get("Nome") ?? null }));
-  return { window, title: textRuns(attrs.get("Titulo") ?? "", false), components };
+  return { window, title: textRuns(attrs.get("Titulo") ?? "", false, ctx.sample), components };
 }
 
 /** Caminho do elemento mais interno cuja tag contém `offset` (UTF-16), para seguir o cursor do editor. */

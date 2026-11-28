@@ -3,7 +3,7 @@
  * elementos e as propriedades e eventos do elemento selecionado, lidas do
  * esquema (`design_schema`) e da árvore do `.design`.
  */
-import type { DesignAttributeInfo, DesignEdit, DesignElementInfo, DesignNode, DesignSchema } from "../api.ts";
+import type { DataField, DesignAttributeInfo, DesignEdit, DesignElementInfo, DesignNode, DesignSchema } from "../api.ts";
 import { attributeOf, isComponentTag, layoutOf, nodeAt, pathKey, type ContainerLayout } from "./canvas-model.ts";
 
 export type TreeRow = { path: string; depth: number; tag: string; label: string };
@@ -178,4 +178,37 @@ export function planWrap(root: DesignNode, path: readonly number[], wrapper: Wra
     );
   }
   return { edits, select: [...parent, index] };
+}
+
+export type SampleRow = { name: string; type: string; editable: boolean; value: string };
+
+/** Campos de `Dados` com o valor de exemplo de cada um (vazio se não houver). */
+export function sampleRows(root: DesignNode, fields: readonly DataField[]): SampleRow[] {
+  const sample = root.children.find((child) => child.tag === "DadosExemplo");
+  return fields.map((field) => ({
+    ...field,
+    value: sample?.attributes.find((attribute) => attribute.name === field.name)?.value ?? "",
+  }));
+}
+
+/**
+ * Edição de um valor de exemplo: cria o `<DadosExemplo>` quando falta, tira o
+ * atributo quando o valor fica vazio e apaga o elemento quando ele fica sem
+ * campos. `null` quando nada muda.
+ */
+export function sampleEdit(root: DesignNode, field: string, value: string): DesignEdit[] | null {
+  const trimmed = value.trim();
+  const sample = root.children.find((child) => child.tag === "DadosExemplo");
+  if (!sample) {
+    return trimmed === "" ? null : [{ kind: "insert", parent: [], index: root.children.length, tag: "DadosExemplo", attributes: [[field, trimmed]] }];
+  }
+  const current = sample.attributes.find((attribute) => attribute.name === field);
+  if (trimmed === "") {
+    if (!current) return null;
+    return sample.attributes.length === 1
+      ? [{ kind: "remove", path: sample.path }]
+      : [{ kind: "removeAttribute", path: sample.path, name: field }];
+  }
+  if (current?.value === trimmed) return null;
+  return [{ kind: "setAttribute", path: sample.path, name: field, value: trimmed }];
 }

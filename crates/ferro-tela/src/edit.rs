@@ -138,6 +138,18 @@ fn check_child(parent: &Element, tag: &str) -> Result<(), EditError> {
         }
         return Ok(());
     }
+    if tag == schema::SAMPLE_DATA {
+        if parent_name != schema::WINDOW.name {
+            return error("`<DadosExemplo>` fica direto na `<Janela>`");
+        }
+        if parent
+            .elements()
+            .any(|e| e.name.text == schema::SAMPLE_DATA)
+        {
+            return error("A janela já tem um `<DadosExemplo>`");
+        }
+        return Ok(());
+    }
     let Some(child) = schema::element(tag) else {
         return error(format!("`<{tag}>` não é um elemento do designer"));
     };

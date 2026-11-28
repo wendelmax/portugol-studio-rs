@@ -23,6 +23,9 @@ function runs(parent: HTMLElement, text: readonly TextRun[]): void {
     else if (run.kind === "binding") {
       span.className = "design-binding";
       span.title = "Vínculo: o valor aparece quando o programa roda";
+    } else if (run.kind === "sample") {
+      span.className = "design-sample";
+      span.title = "Valor de exemplo (DadosExemplo): na execução aparece o valor de verdade";
     }
     wrapper.append(span);
   }
