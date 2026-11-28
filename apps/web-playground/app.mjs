@@ -3,7 +3,7 @@ import {
   loadPlaygroundRuntime,
   renderUiNodeTree,
 } from "./playground-core.mjs";
-import { completeFerro, wordRangeAt } from "./ferro-language.mjs";
+import { FERRO_SYNTAX_ENTRIES, completeFerro, wordRangeAt } from "./ferro-language.mjs";
 
 const byId = (id) => document.getElementById(id);
 
@@ -14,6 +14,9 @@ const exampleSelect = byId("pg-example");
 const editorEl = byId("pg-editor");
 const completionsEl = byId("pg-completions");
 const highlightEl = byId("pg-highlight");
+const syntaxSearchEl = byId("pg-syntax-search");
+const syntaxListEl = byId("pg-syntax-list");
+const syntaxEmptyEl = byId("pg-syntax-empty");
 const stdinEl = byId("pg-stdin");
 const outputEl = byId("pg-output");
 const outputEmptyEl = byId("pg-output-empty");
@@ -175,6 +178,60 @@ function updateCompletions() {
     return;
   }
   renderCompletions(entries, 0, wordRangeAt(editorEl.value, caret));
+}
+
+function insertSyntaxEntry(entry) {
+  const caret = editorEl.selectionStart ?? editorEl.value.length;
+  const { start, end } = wordRangeAt(editorEl.value, caret);
+  const nextCaret = start + entry.insertText.length;
+  setEditorValue(`${editorEl.value.slice(0, start)}${entry.insertText}${editorEl.value.slice(end)}`);
+  editorEl.selectionStart = editorEl.selectionEnd = nextCaret;
+  closeCompletions();
+  editorEl.focus();
+}
+
+function renderSyntaxPanel(filter = "") {
+  const query = filter.trim().toLocaleLowerCase("pt-BR");
+  const matching = query
+    ? FERRO_SYNTAX_ENTRIES.filter((entry) =>
+        `${entry.label} ${entry.group} ${entry.signature} ${entry.description}`
+          .toLocaleLowerCase("pt-BR")
+          .includes(query),
+      )
+    : FERRO_SYNTAX_ENTRIES;
+  const groups = new Map();
+  for (const entry of matching) {
+    if (!groups.has(entry.group)) groups.set(entry.group, []);
+    groups.get(entry.group).push(entry);
+  }
+  syntaxListEl.replaceChildren();
+  syntaxEmptyEl.hidden = matching.length > 0;
+  for (const [name, entries] of groups) {
+    const group = document.createElement("section");
+    group.className = "pg-syntax-group";
+    const heading = document.createElement("h3");
+    heading.textContent = name;
+    group.append(heading);
+    for (const entry of entries) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "pg-syntax-item";
+      for (const [className, text] of [
+        ["pg-syntax-label", entry.label],
+        ["pg-syntax-signature", entry.signature],
+        ["pg-syntax-description", entry.description],
+        ["pg-syntax-example", entry.example],
+      ]) {
+        const part = document.createElement("span");
+        part.className = className;
+        part.textContent = text;
+        button.append(part);
+      }
+      button.addEventListener("click", () => insertSyntaxEntry(entry));
+      group.append(button);
+    }
+    syntaxListEl.append(group);
+  }
 }
 
 function syncOutput(text) {
@@ -340,6 +397,7 @@ themeButton.addEventListener("click", () => {
   const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
   applyTheme(next);
 });
+syntaxSearchEl.addEventListener("input", () => renderSyntaxPanel(syntaxSearchEl.value));
 
 exampleSelect.addEventListener("change", () => {
   const rustWasOpen = !rustSectionEl.hidden && runtime !== null;
@@ -403,6 +461,7 @@ setControlsEnabled(false);
 setEditorValue(PLAYGROUND_EXAMPLES[0].source);
 stdinEl.value = PLAYGROUND_EXAMPLES[0].input;
 syncOutput("");
+renderSyntaxPanel();
 
 loadPlaygroundRuntime("./ferro_wasm.wasm")
   .then((loaded) => {

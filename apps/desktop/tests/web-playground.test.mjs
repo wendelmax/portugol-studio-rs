@@ -12,10 +12,18 @@ test("web playground ships console and visual MVU .fer examples without innerHTM
   assert.ok(PLAYGROUND_EXAMPLES.some((ex) => ex.mode === "console"));
   assert.ok(PLAYGROUND_EXAMPLES.some((ex) => ex.mode === "ui" && ex.source.includes("UI.coluna")));
 
-  for (const file of ["index.html", "app.mjs", "playground-core.mjs"]) {
+  for (const file of ["index.html", "app.mjs", "playground-core.mjs", "ferro-language.mjs"]) {
     const content = readFileSync(new URL(`../../web-playground/${file}`, import.meta.url), "utf8");
     assert.ok(!/\.innerHTML\b/.test(content), `${file} não deve usar innerHTML`);
   }
+});
+
+test("web playground ships a searchable Ferro syntax reference panel", () => {
+  const html = readFileSync(new URL("../../web-playground/index.html", import.meta.url), "utf8");
+  assert.match(html, /id="pg-syntax-panel"/);
+  assert.match(html, /id="pg-syntax-search"[^>]*type="search"/);
+  assert.match(html, /id="pg-syntax-list"/);
+  assert.match(html, /id="pg-syntax-empty"/);
 });
 
 test("web playground CSS keeps elements with hidden attribute out of layout", () => {
@@ -221,6 +229,7 @@ test("Prévia UI loads a visual example when the editor holds a console program"
     "pg-stdin", "pg-output", "pg-output-empty", "pg-output-badge", "pg-diagnostics",
     "pg-ui-container", "pg-ui-section", "pg-rust-section", "pg-rust-code", "pg-copy-rust",
     "pg-validate", "pg-format", "pg-run", "pg-run-ui", "pg-export-rust", "pg-completions",
+    "pg-syntax-search", "pg-syntax-list", "pg-syntax-empty",
   ];
   const elements = new Map(ids.map((id) => [id, new FakeElement("div")]));
   const doc = {
@@ -553,6 +562,115 @@ test("web playground autocomplete suggests Ferro words and supports keyboard sel
     editor.selectionStart = editor.selectionEnd = 7;
     editor.fire("input");
     assert.equal(list.hidden, true);
+  } finally {
+    for (const [key, descriptor] of Object.entries(previous)) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else delete globalThis[key];
+    }
+  }
+});
+
+test("web playground syntax panel filters entries and inserts the selected snippet", async () => {
+  class SyntaxFakeElement {
+    children = [];
+    dataset = {};
+    attributes = new Map();
+    listeners = new Map();
+    _text = null;
+    value = "";
+    hidden = false;
+    disabled = false;
+    className = "";
+    placeholder = "";
+    scrollTop = 0;
+    scrollLeft = 0;
+    selectionStart = 0;
+    selectionEnd = 0;
+    isFragment = false;
+    constructor(tag) { this.tag = tag; }
+    append(...nodes) { this.children.push(...nodes); }
+    replaceChildren(...nodes) {
+      this.children = [];
+      for (const node of nodes) {
+        if (node?.isFragment) this.children.push(...node.children);
+        else this.children.push(node);
+      }
+    }
+    setAttribute(key, value) { this.attributes.set(key, String(value)); }
+    addEventListener(type, fn) {
+      if (!this.listeners.has(type)) this.listeners.set(type, []);
+      this.listeners.get(type).push(fn);
+    }
+    fire(type, event = {}) {
+      for (const fn of this.listeners.get(type) ?? []) fn(event);
+    }
+    focus() {}
+    get textContent() {
+      if (this._text !== null) return this._text;
+      return this.children.map((child) => child.textContent).join("");
+    }
+    set textContent(text) { this._text = String(text); }
+  }
+
+  const elements = new Map();
+  const getElement = (id) => {
+    if (!elements.has(id)) elements.set(id, new SyntaxFakeElement("div"));
+    return elements.get(id);
+  };
+  const findItem = (node) => {
+    if (node.className === "pg-syntax-item" && node.textContent.includes("escreval")) return node;
+    for (const child of node.children ?? []) {
+      const found = findItem(child);
+      if (found) return found;
+    }
+    return null;
+  };
+  const previous = {
+    document: Object.getOwnPropertyDescriptor(globalThis, "document"),
+    CSS: Object.getOwnPropertyDescriptor(globalThis, "CSS"),
+    localStorage: Object.getOwnPropertyDescriptor(globalThis, "localStorage"),
+    fetch: Object.getOwnPropertyDescriptor(globalThis, "fetch"),
+  };
+  globalThis.document = {
+    documentElement: new SyntaxFakeElement("html"),
+    activeElement: null,
+    getElementById: getElement,
+    createElement: (tag) => new SyntaxFakeElement(tag),
+    createTextNode: (text) => {
+      const node = new SyntaxFakeElement("#text");
+      node.textContent = text;
+      return node;
+    },
+    createDocumentFragment: () => {
+      const fragment = new SyntaxFakeElement("#fragment");
+      fragment.isFragment = true;
+      return fragment;
+    },
+  };
+  globalThis.CSS = { escape: (value) => value };
+  globalThis.localStorage = { getItem: () => null, setItem() {} };
+  globalThis.fetch = async () => ({ ok: false, status: 404 });
+
+  try {
+    await import("../../web-playground/app.mjs?syntax-panel");
+
+    const list = getElement("pg-syntax-list");
+    const empty = getElement("pg-syntax-empty");
+    const search = getElement("pg-syntax-search");
+    const editor = getElement("pg-editor");
+    assert.ok(list.children.length > 0);
+
+    search.value = "inexistente";
+    search.fire("input");
+    assert.equal(list.children.length, 0);
+    assert.equal(empty.hidden, false);
+
+    search.value = "escreval";
+    search.fire("input");
+    const item = findItem(list);
+    assert.ok(item, "item escreval deve estar na lista filtrada");
+    item.fire("click");
+    assert.ok(editor.value.includes("escreval"));
   } finally {
     for (const [key, descriptor] of Object.entries(previous)) {
       if (descriptor) Object.defineProperty(globalThis, key, descriptor);
