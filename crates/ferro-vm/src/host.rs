@@ -77,6 +77,24 @@ pub trait Host {
         }))
     }
 
+    /// `AreaTransferencia.copiar`: põe o texto na área de transferência.
+    fn clipboard_write(&mut self, text: &str) -> Result<(), String> {
+        let _ = text;
+        Err(screen_only("AreaTransferencia.copiar"))
+    }
+
+    /// `AreaTransferencia.colar`: texto da área de transferência; `None` se
+    /// não houver texto.
+    fn clipboard_read(&mut self) -> Result<Option<String>, String> {
+        Err(screen_only("AreaTransferencia.colar"))
+    }
+
+    /// `Notificacao.mostrar`: aviso do sistema, fora da janela.
+    fn notify(&mut self, title: &str, text: &str) -> Result<(), String> {
+        let _ = (title, text);
+        Err(screen_only("Notificacao.mostrar"))
+    }
+
     /// Abre (ou mostra de novo) a janela gráfica com a área de desenho no
     /// tamanho dado.
     fn graphics_open(&mut self, width: i32, height: i32) -> Result<(), String> {

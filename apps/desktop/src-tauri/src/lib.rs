@@ -970,6 +970,8 @@ fn ferro_ui_close(
 pub fn run_app() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_notification::init())
         .manage(Runs::default())
         .manage(Arc::new(ferro_service::FerroUiService::new()))
         .manage(workspace::WorkspaceSession::default())

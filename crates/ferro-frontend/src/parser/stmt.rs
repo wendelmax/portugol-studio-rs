@@ -281,7 +281,15 @@ impl Parser {
             {
                 if matches!(
                     keyword.as_str(),
-                    "Util" | "Internet" | "Graficos" | "Teclado" | "Mouse" | "Sons" | "Dialogo"
+                    "Util"
+                        | "Internet"
+                        | "Graficos"
+                        | "Teclado"
+                        | "Mouse"
+                        | "Sons"
+                        | "Dialogo"
+                        | "AreaTransferencia"
+                        | "Notificacao"
                 ) && self.lookup(keyword).is_none()
                 {
                     return self.stdlib_statement_call();

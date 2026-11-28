@@ -10,7 +10,9 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use ferro_service::{DesignNode, FileFilter, Host, ScreenEvent, ScreenRun, ScreenStep};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
+use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
+use tauri_plugin_notification::NotificationExt;
 
 /// Diálogos do sistema (`Dialogo`) presos à janela da tela. É chamado da
 /// thread que trata o evento, nunca da thread principal.
@@ -54,6 +56,38 @@ impl Host for ScreenHost {
                 "Não".into(),
             ))
             .blocking_show())
+    }
+
+    fn clipboard_write(&mut self, text: &str) -> Result<(), String> {
+        self.app
+            .clipboard()
+            .write_text(text.to_owned())
+            .map_err(|error| format!("Não foi possível copiar: {error}"))
+    }
+
+    fn clipboard_read(&mut self) -> Result<Option<String>, String> {
+        // Sem texto (área vazia ou com imagem), o plugin devolve erro: é `Nenhum`.
+        Ok(self
+            .app
+            .clipboard()
+            .read_text()
+            .ok()
+            .filter(|text| !text.is_empty()))
+    }
+
+    fn notify(&mut self, title: &str, text: &str) -> Result<(), String> {
+        let title = if title.trim().is_empty() {
+            self.window_title()
+        } else {
+            title.to_owned()
+        };
+        self.app
+            .notification()
+            .builder()
+            .title(title)
+            .body(text)
+            .show()
+            .map_err(|error| format!("Não foi possível mostrar a notificação: {error}"))
     }
 
     fn file_dialog(

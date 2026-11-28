@@ -1234,10 +1234,14 @@ impl<'a> Vm<'a> {
                         self.push(result);
                         return Ok(false);
                     }
-                    if native_ref.library == "FerroDialogo" {
+                    if matches!(
+                        native_ref.library.as_str(),
+                        "FerroDialogo" | "FerroAreaTransferencia" | "FerroNotificacao"
+                    ) {
                         #[cfg(feature = "stdlib")]
                         {
-                            let result = crate::ferro_libs::dialogo::call(
+                            let result = crate::ferro_libs::servicos::call(
+                                &native_ref.library,
                                 &native_ref.name,
                                 &args,
                                 &mut self.ctx,
@@ -1247,7 +1251,8 @@ impl<'a> Vm<'a> {
                         }
                         #[cfg(not(feature = "stdlib"))]
                         return Err(format!(
-                            "`Dialogo.{}` só funciona numa tela desktop.",
+                            "`{}.{}` só funciona numa tela desktop.",
+                            native_ref.library.trim_start_matches("Ferro"),
                             native_ref.name
                         ));
                     }

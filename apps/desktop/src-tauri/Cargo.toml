@@ -19,6 +19,8 @@ ferro-tela = { path = "../../../crates/ferro-tela" }
 ferro-formatos = { path = "../../../crates/ferro-formatos" }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
+tauri-plugin-clipboard-manager = "2"
+tauri-plugin-notification = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 semver = "1"
