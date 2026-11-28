@@ -27,10 +27,25 @@ pub enum FieldType {
     Named(String),
 }
 
+/// De onde vem o valor de um campo: o que a execução usa para montar a janela
+/// inicial e ler o estado de volta.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FieldSource {
+    /// Um atributo do elemento (`Texto`, `Habilitado`...).
+    Attribute(&'static str),
+    /// Um controle nomeado, pelo caminho dele na árvore.
+    Control(Vec<usize>),
+    /// O registro de `Dados`.
+    Data,
+    /// Os `<Item>` de `Lista` e `Combo`.
+    Items,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FieldDef {
     pub name: String,
     pub ty: FieldType,
+    pub source: FieldSource,
     /// Onde o campo nasce no `.design` (o `Nome` do controle, o atributo
     /// `Dados`); vazio para as propriedades da janela e dos controles.
     pub span: Span,
@@ -86,6 +101,7 @@ fn properties(element: &ElementSchema) -> Vec<FieldDef> {
         .map(|attribute| FieldDef {
             name: field_name(attribute.name),
             ty: field_type(attribute),
+            source: FieldSource::Attribute(attribute.name),
             span: Span::default(),
         })
         .collect();
@@ -93,18 +109,25 @@ fn properties(element: &ElementSchema) -> Vec<FieldDef> {
         fields.push(FieldDef {
             name: "itens".to_owned(),
             ty: FieldType::TextList,
+            source: FieldSource::Items,
             span: Span::default(),
         });
     }
     fields
 }
 
-fn named<'a>(element: &'a Element, out: &mut Vec<&'a Element>) {
-    for child in element.elements() {
+fn named<'a>(
+    element: &'a Element,
+    path: &mut Vec<usize>,
+    out: &mut Vec<(Vec<usize>, &'a Element)>,
+) {
+    for (index, child) in element.elements().enumerate() {
+        path.push(index);
         if child.control_name().is_some() && schema::element(&child.name.text).is_some() {
-            out.push(child);
+            out.push((path.clone(), child));
         }
-        named(child, out);
+        named(child, path, out);
+        path.pop();
     }
 }
 
@@ -122,8 +145,8 @@ pub fn screen_type(document: &Document) -> (ScreenType, Vec<Diagnostic>) {
     let window_properties: Vec<String> = fields.iter().map(|field| field.name.clone()).collect();
     let mut controls: Vec<TypeDef> = Vec::new();
     let mut elements = Vec::new();
-    named(root, &mut elements);
-    for element in elements {
+    named(root, &mut Vec::new(), &mut elements);
+    for (path, element) in elements {
         let tag = element.name.text.as_str();
         let Some(control_schema) = schema::element(tag) else {
             continue;
@@ -160,6 +183,7 @@ pub fn screen_type(document: &Document) -> (ScreenType, Vec<Diagnostic>) {
         fields.push(FieldDef {
             name: name.value.clone(),
             ty: FieldType::Named(tag.to_owned()),
+            source: FieldSource::Control(path),
             span: name.value_span,
         });
     }
@@ -172,6 +196,7 @@ pub fn screen_type(document: &Document) -> (ScreenType, Vec<Diagnostic>) {
         fields.push(FieldDef {
             name: "dados".to_owned(),
             ty: FieldType::Named(data_type.clone()),
+            source: FieldSource::Data,
             span: *span,
         });
     }
