@@ -107,8 +107,8 @@ fn main() -> ExitCode {
             let options = desktop::code_behind_design(&file)
                 .map(|design| ferro_tela::codebehind::lower_options(&design))
                 .unwrap_or_default();
-            match ferro_frontend::lower_with(&source, &options) {
-                Ok(_) => Vec::new(),
+            match ferro_frontend::lower_with_warnings(&source, &options) {
+                Ok((_, warnings)) => warnings,
                 Err(diagnostics) => diagnostics,
             }
         };

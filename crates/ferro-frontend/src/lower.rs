@@ -55,11 +55,20 @@ impl Default for LowerOptions {
 
 /// [`lower`] com registros externos e a exigência de `inicio` configurável.
 pub fn lower_with(source: &str, options: &LowerOptions) -> Result<Program, Vec<Diagnostic>> {
+    lower_with_warnings(source, options).map(|(program, _)| program)
+}
+
+/// [`lower_with`] que também devolve os avisos: o programa roda, mas algo
+/// merece atenção (como o `UI.*` obsoleto do ADR 0021).
+pub fn lower_with_warnings(
+    source: &str,
+    options: &LowerOptions,
+) -> Result<(Program, Vec<Diagnostic>), Vec<Diagnostic>> {
     let (tokens, diagnostics) = lexer::lex(source);
     if !diagnostics.is_empty() {
         return Err(diagnostics);
     }
     Parser::new(tokens, source.to_owned())
         .with_options(options)
-        .program()
+        .program_with_warnings()
 }

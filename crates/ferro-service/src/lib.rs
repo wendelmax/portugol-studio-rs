@@ -176,21 +176,26 @@ pub fn inspect_ferro_rs(source: &str) -> Inspection {
 pub fn inspect_code_behind(source: &str, design_source: &str) -> Inspection {
     let mut inspection =
         inspect_ferro_rs_with(source, &designer::code_behind_options(design_source));
-    if inspection.diagnostics.is_empty() {
+    if !inspection
+        .diagnostics
+        .iter()
+        .any(|d| d.severity == Level::Error)
+    {
         let index = position::LineIndex::new(source);
-        inspection.diagnostics = designer::check_screen(design_source, Some(source))
-            .code
-            .iter()
-            .map(|diagnostic| describe(&index, diagnostic))
-            .collect();
+        inspection.diagnostics.extend(
+            designer::check_screen(design_source, Some(source))
+                .code
+                .iter()
+                .map(|diagnostic| describe(&index, diagnostic)),
+        );
     }
     inspection
 }
 
 fn inspect_ferro_rs_with(source: &str, options: &ferro_frontend::LowerOptions) -> Inspection {
     let index = position::LineIndex::new(source);
-    match ferro_frontend::lower_with(source, options) {
-        Ok(program) => {
+    match ferro_frontend::lower_with_warnings(source, options) {
+        Ok((program, warnings)) => {
             let mut symbols: Vec<_> = program
                 .functions
                 .iter()
@@ -232,7 +237,7 @@ fn inspect_ferro_rs_with(source: &str, options: &ferro_frontend::LowerOptions) -
             }));
             symbols.sort_by_key(|symbol| symbol.position.offset);
             Inspection {
-                diagnostics: Vec::new(),
+                diagnostics: present_diagnostics(&index, &warnings),
                 symbols,
             }
         }

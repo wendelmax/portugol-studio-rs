@@ -32,12 +32,12 @@
     "description": "Use o painel Aprender para acompanhar sua trilha de conceitos, abrir exercícios práticos e corrigir soluções no painel Testes. O progresso só é marcado como concluído quando todos os casos reais passam."
   },
   {
-    "id": "ui-declarativa",
-    "badge": "UI Visual",
-    "title": "Construa interfaces declarativas com UI.*",
-    "shortcut": "Botão UI",
+    "id": "telas-designer",
+    "badge": "Telas",
+    "title": "Crie telas arrastando controles",
+    "shortcut": "Novo projeto desktop",
     "visual": "ui-preview",
-    "description": "Com as funções iniciar, atualizar e visualizar e componentes como UI.coluna, UI.texto, UI.entrada e UI.botao, você cria interfaces interativas em Ferro e testa tudo ao vivo no painel Preview Visual."
+    "description": "Num projeto desktop, a tela abre no designer: arraste botões e campos da caixa de ferramentas, dê duplo clique para criar a função do evento e clique em Executar para abrir a tela numa janela própria."
   },
   {
     "id": "workspace-cargo",
