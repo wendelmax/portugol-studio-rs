@@ -158,7 +158,7 @@ fn new_command(args: &[String]) -> ExitCode {
     }
     if args.len() != 1 || args[0] == "-h" || args[0] == "--help" {
         eprintln!(
-            "uso: ferro novo <arquivo.fer>\n     ferro novo --desktop <pasta> [--nome \"Nome do aplicativo\"]"
+            "uso: ferro novo <arquivo.fer>\n     ferro novo --desktop <pasta> [--nome \"Nome do aplicativo\"] [--exemplo contador]"
         );
         return ExitCode::FAILURE;
     }
@@ -383,6 +383,7 @@ fn print_usage() {
            ferro [opções] <arquivo | diretório>...            valida .fer, .design e .ferproj\n\
            ferro novo <arquivo.fer>                           cria um modelo .fer\n\
            ferro novo --desktop <pasta> [--nome <nome>]       cria um projeto desktop\n\
+           ferro novo --desktop <pasta> --exemplo contador    cria o projeto de exemplo\n\
            ferro formatar [--check] <arquivo>                 formata .fer, .design ou .ferproj\n\
            ferro exportar-rust <arquivo.fer>                  imprime o Rust gerado\n\
            ferro exportar-cargo <arquivo.fer> <pasta>         gera um projeto Cargo pronto\n\

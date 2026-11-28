@@ -156,3 +156,13 @@ test("converte resultados de avaliação .fer em falhas e dicas legíveis", () =
   });
   assert.match(limitErr.failures[0], /Limite de passos excedido/);
 });
+
+test("projetos desktop de exemplo viram a pasta Projetos desktop", async () => {
+  const { buildDesktopExampleFolder, DESKTOP_EXAMPLE_PREFIX } = await import("../src/ferro-catalog.ts");
+  assert.equal(buildDesktopExampleFolder([]), null);
+  const folder = buildDesktopExampleFolder([{ id: "contador", name: "Contador", description: "Soma 1." }]);
+  assert.equal(folder.name, "Projetos desktop");
+  assert.equal(folder.entries[0].file, `${DESKTOP_EXAMPLE_PREFIX}contador`);
+  assert.equal(folder.entries[0].name, "Contador");
+  assert.match(folder.entries[0].description, /Cria um projeto desktop/);
+});

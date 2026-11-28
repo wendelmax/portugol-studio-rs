@@ -60,11 +60,14 @@ fn design_files(folder: &Path) -> Vec<String> {
 /// `ferro novo --desktop <pasta> [--nome "Nome do App"]`
 pub(crate) fn new_project(args: &[String]) -> ExitCode {
     let usage = || {
-        eprintln!("uso: ferro novo --desktop <pasta> [--nome \"Nome do aplicativo\"]");
+        eprintln!(
+            "uso: ferro novo --desktop <pasta> [--nome \"Nome do aplicativo\"] [--exemplo contador]"
+        );
         ExitCode::FAILURE
     };
     let mut folder: Option<&str> = None;
     let mut name: Option<&str> = None;
+    let mut example: Option<&str> = None;
     let mut index = 0;
     while index < args.len() {
         match args[index].as_str() {
@@ -73,6 +76,13 @@ pub(crate) fn new_project(args: &[String]) -> ExitCode {
                     return usage();
                 };
                 name = Some(value);
+                index += 2;
+            }
+            "--exemplo" => {
+                let Some(value) = args.get(index + 1) else {
+                    return usage();
+                };
+                example = Some(value);
                 index += 2;
             }
             "-h" | "--help" => return usage(),
@@ -98,7 +108,11 @@ pub(crate) fn new_project(args: &[String]) -> ExitCode {
         },
     };
 
-    let template = match project::desktop_template(&name) {
+    let template = match example {
+        Some(id) => project::example_template(id, &name),
+        None => project::desktop_template(&name),
+    };
+    let template = match template {
         Ok(template) => template,
         Err(message) => {
             eprintln!("{message}");

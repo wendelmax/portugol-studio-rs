@@ -278,10 +278,15 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
     }
   }
 
+  /** Projeto de exemplo escolhido na lista de exemplos (`null` para o modelo vazio). */
+  let desktopProjectExample: string | null = null;
+
   /** Diálogo "Novo projeto desktop": nome do projeto, depois o local no seletor do sistema. */
-  function openDesktopProjectDialog() {
+  function openDesktopProjectDialog(example: { id: string; name: string } | null = null) {
     const dialog = $<HTMLDialogElement>("desktop-project-dialog");
     $<HTMLFormElement>("desktop-project-form").reset();
+    desktopProjectExample = example?.id ?? null;
+    if (example) $<HTMLInputElement>("desktop-project-name").value = example.name;
     showDesktopProjectError(null);
     dialog.showModal();
     $<HTMLInputElement>("desktop-project-name").focus();
@@ -306,7 +311,7 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
     submit.disabled = true;
     showDesktopProjectError(null);
     try {
-      const created = await api.createDesktopProject(name);
+      const created = await api.createDesktopProject(name, desktopProjectExample);
       if (request !== workspaceRequest || !created) return;
       $<HTMLDialogElement>("desktop-project-dialog").close();
       workspaceState = created.listing;
@@ -825,7 +830,7 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
   }
 
   $("home-open-folder").onclick = () => void openWorkspaceFolder();
-  $("home-new-project").onclick = openDesktopProjectDialog;
+  $("home-new-project").onclick = () => openDesktopProjectDialog();
   $("desktop-project-form").addEventListener("submit", (event) => void submitDesktopProjectDialog(event as SubmitEvent));
   $<HTMLButtonElement>("desktop-project-cancel").onclick = () => $<HTMLDialogElement>("desktop-project-dialog").close();
   $("workspace-open-folder").onclick = () => void openWorkspaceFolder();
@@ -928,6 +933,10 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
     restore: restoreWorkspaceOnStartup,
     openFolder: openWorkspaceFolder,
     toggleExplorer,
+    /** Abre o diálogo "Novo projeto desktop" já com um projeto de exemplo. */
+    newDesktopProject(example: { id: string; name: string }) {
+      openDesktopProjectDialog(example);
+    },
     /** Se o arquivo existe no workspace aberto. */
     hasFile(workspaceId: string | undefined, path: string): boolean {
       return workspaceId === workspaceState?.id

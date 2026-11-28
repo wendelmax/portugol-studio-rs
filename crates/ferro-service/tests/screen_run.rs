@@ -222,3 +222,32 @@ funcao relogio_disparar(tela: J) -> J {
         "o código desligou o temporizador"
     );
 }
+
+#[test]
+fn exemplo_do_contador_roda_como_tela() {
+    let template = ferro_tela::project::example_template("contador", "Contador").unwrap();
+    let file = |name: &str| {
+        template
+            .files
+            .iter()
+            .find(|f| f.path == name)
+            .unwrap()
+            .content
+            .clone()
+    };
+    let (mut run, start) = ScreenRun::start(
+        &file("JanelaPrincipal.design"),
+        &file("JanelaPrincipal.fer"),
+    )
+    .unwrap();
+    assert_eq!(
+        start.snapshot["controles"]["lblContagem"]["texto"], "Contagem: 0",
+        "os exemplos do designer não valem na execução"
+    );
+    run.dispatch(&event("btnInc", "AoClicar", None)).unwrap();
+    let step = run.dispatch(&event("btnInc", "AoClicar", None)).unwrap();
+    assert_eq!(
+        step.snapshot["controles"]["lblContagem"]["texto"],
+        "Contagem: 2"
+    );
+}

@@ -87,16 +87,6 @@ const EXAMPLES: &[FerroExample] = &[
         source: include_str!("../assets/exemplos-ferro/07-entrada-tipada.fer"),
     },
     FerroExample {
-        id: "ferro-08-ui-contador",
-        category: "Ferro (destaques) / UI Visual",
-        title: "Contador visual declarativo (MVU)",
-        file_name: "08-ui-contador.fer",
-        description: "Demonstra iniciar, atualizar, visualizar e componentes UI.coluna, UI.texto e UI.botao.",
-        is_visual: true,
-        license: "LGPL-3.0-only",
-        source: include_str!("../assets/exemplos-ferro/08-ui-contador.fer"),
-    },
-    FerroExample {
         id: "ferro-09-opcao-resultado",
         category: "Ferro (destaques) / Tratamento de erros",
         title: "Opcao, Resultado e operador ?",
@@ -1515,7 +1505,9 @@ mod tests {
             .filter(|example| example.id.starts_with("classic-"))
             .count();
         assert_eq!(migrated_count, MIGRATED_CLASSIC_COUNT);
-        assert_eq!(examples.len(), 14 + MIGRATED_CLASSIC_COUNT);
+        // 13 destaques: o contador `UI.*` virou o projeto desktop de exemplo
+        // (ADR 0021, Etapa B).
+        assert_eq!(examples.len(), 13 + MIGRATED_CLASSIC_COUNT);
         assert!(
             examples
                 .iter()

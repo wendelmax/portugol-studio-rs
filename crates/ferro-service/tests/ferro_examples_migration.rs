@@ -45,7 +45,7 @@ fn collect_ferro(dir: &Path, out: &mut Vec<PathBuf>) {
 fn all_examples() -> Vec<(String, PathBuf)> {
     let root = repo_root();
     let mut examples = Vec::new();
-    for (dir, expected) in [(HELP_ASSETS, 77), (SERVICE_ASSETS, 133), (FIXTURES, 1)] {
+    for (dir, expected) in [(HELP_ASSETS, 77), (SERVICE_ASSETS, 132), (FIXTURES, 1)] {
         let mut files = Vec::new();
         collect_ferro(&root.join(dir), &mut files);
         files.sort();
@@ -64,7 +64,7 @@ fn all_examples() -> Vec<(String, PathBuf)> {
             examples.push((relative, file));
         }
     }
-    assert_eq!(examples.len(), 211, "esperava 211 exemplos .fer no total");
+    assert_eq!(examples.len(), 210, "esperava 210 exemplos .fer no total");
     examples
 }
 
@@ -213,7 +213,7 @@ fn load_allowlist() -> BTreeSet<(String, String)> {
 }
 
 #[test]
-fn all_211_ferro_examples_are_well_formed_and_complete_ones_compile() {
+fn all_210_ferro_examples_are_well_formed_and_complete_ones_compile() {
     let mut failures = Vec::new();
     let mut programs = 0;
     let mut fragments = 0;
@@ -233,9 +233,8 @@ fn all_211_ferro_examples_are_well_formed_and_complete_ones_compile() {
 
         // Somente os snippets `data-type="sintaxe"` dos help-assets são
         // fragmentos: não têm `funcao inicio()` e alguns usam nomes de exemplo
-        // não declarados. Programas de serviço sem `inicio()` (por exemplo
-        // 08-ui-contador.fer, executado via UiSession) e o fixture continuam
-        // sendo compilados normalmente.
+        // não declarados. Os demais programas e o fixture continuam sendo
+        // compilados normalmente.
         if relative.starts_with(HELP_PREFIX) && !source.contains("funcao inicio(") {
             fragments += 1;
             continue;
@@ -257,7 +256,7 @@ fn all_211_ferro_examples_are_well_formed_and_complete_ones_compile() {
         }
     }
 
-    assert_eq!(programs, 172, "esperava 172 programas .fer completos");
+    assert_eq!(programs, 171, "esperava 171 programas .fer completos");
     assert_eq!(
         fragments, 39,
         "esperava 39 fragmentos de sintaxe nos help-assets"
@@ -270,7 +269,7 @@ fn all_211_ferro_examples_are_well_formed_and_complete_ones_compile() {
 }
 
 #[test]
-fn all_211_ferro_examples_avoid_legacy_syntax() {
+fn all_210_ferro_examples_avoid_legacy_syntax() {
     let allowlist = load_allowlist();
     let mut failures = Vec::new();
 

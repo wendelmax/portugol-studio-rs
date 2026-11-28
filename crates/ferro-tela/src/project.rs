@@ -326,6 +326,67 @@ pub struct Template {
     pub directories: Vec<String>,
 }
 
+/// Projeto de exemplo que o aluno pode criar já pronto (tela e código).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ExampleProject {
+    pub id: &'static str,
+    /// Nome sugerido para o projeto.
+    pub name: &'static str,
+    pub description: &'static str,
+    /// Arquivos da pasta do projeto, além do manifesto.
+    pub files: &'static [(&'static str, &'static str)],
+}
+
+/// Exemplos de projeto desktop. O contador é o antigo exemplo `UI.*`
+/// convertido em tela (ADR 0021, Etapa B).
+pub const EXAMPLE_PROJECTS: &[ExampleProject] = &[ExampleProject {
+    id: "contador",
+    name: "Contador",
+    description: "Um botão que soma 1 e um rótulo que mostra a contagem com {dados.contagem}.",
+    files: &[
+        (
+            "JanelaPrincipal.design",
+            include_str!("../assets/exemplos/contador/JanelaPrincipal.design"),
+        ),
+        (
+            "JanelaPrincipal.fer",
+            include_str!("../assets/exemplos/contador/JanelaPrincipal.fer"),
+        ),
+    ],
+}];
+
+/// Modelo de um projeto de exemplo, com o nome escolhido no manifesto.
+pub fn example_template(id: &str, name: &str) -> Result<Template, String> {
+    validate_project_name(name)?;
+    let example = EXAMPLE_PROJECTS
+        .iter()
+        .find(|example| example.id == id)
+        .ok_or_else(|| {
+            let ids: Vec<_> = EXAMPLE_PROJECTS.iter().map(|e| e.id).collect();
+            format!(
+                "Exemplo desconhecido: `{id}`. Exemplos: {}.",
+                ids.join(", ")
+            )
+        })?;
+    let name = name.trim();
+    let manifest = format!(
+        "<Projeto Nome=\"{}\" Versao=\"0.1.0\" JanelaInicial=\"{DEFAULT_WINDOW}\" />\n",
+        escape(name, false)
+    );
+    let mut files = vec![TemplateFile {
+        path: format!("{}.{MANIFEST_EXTENSION}", file_stem(name)),
+        content: crate::format_source(&manifest).unwrap_or(manifest),
+    }];
+    files.extend(example.files.iter().map(|(path, content)| TemplateFile {
+        path: (*path).to_owned(),
+        content: (*content).to_owned(),
+    }));
+    Ok(Template {
+        files,
+        directories: vec![RESOURCES_DIR.to_owned()],
+    })
+}
+
 /// Monta o modelo *Aplicativo Desktop FERRO* para um projeto com este nome.
 ///
 /// O modelo cria o manifesto, a tela inicial e a pasta de recursos. O

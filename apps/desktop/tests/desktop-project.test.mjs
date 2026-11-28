@@ -21,16 +21,24 @@ test("home and command palette offer a new desktop project", () => {
 test("the dialog asks for the name before the system folder picker", () => {
   assert.match(html, /<dialog id="desktop-project-dialog"[\s\S]*id="desktop-project-name"[\s\S]*Escolher local e criar[\s\S]*<\/dialog>/);
   assert.match(html, /id="desktop-project-name" type="text" required maxlength="64"/);
-  assert.match(api, /invoke<DesktopProjectCreated \| null>\("workspace_create_desktop_project", \{ name \}\)/);
+  assert.match(api, /invoke<DesktopProjectCreated \| null>\("workspace_create_desktop_project", \{ name, example \}\)/);
   assert.match(tauri, /workspace::workspace_create_desktop_project,/);
 });
 
 test("a created project opens as workspace with its first screen", () => {
   const submit = ideSource().match(/async function submitDesktopProjectDialog[\s\S]*?\n  }\n/)?.[0] ?? "";
-  assert.match(submit, /api\.createDesktopProject\(name\)/);
+  assert.match(submit, /api\.createDesktopProject\(name, desktopProjectExample\)/);
   assert.match(submit, /if \(request !== workspaceRequest \|\| !created\) return;/);
   assert.match(submit, /workspaceState = created\.listing;/);
   assert.match(submit, /selectedWorkspacePath = created\.designPath;/);
   assert.match(submit, /await openWorkspaceFile\(/);
   assert.match(submit, /showDesktopProjectError\(/);
+});
+
+test("projetos de exemplo abrem o mesmo diálogo, com o nome já preenchido", () => {
+  const source = ideSource();
+  assert.match(source, /function openDesktopProjectDialog\(example: \{ id: string; name: string \} \| null = null\)/);
+  assert.match(source, /desktopProjectExample = example\?\.id \?\? null;/);
+  assert.match(source, /\(id, name\) => workspaceExplorer\.newDesktopProject\(\{ id, name \}\)/);
+  assert.match(tauri, /desktop_example_projects,/);
 });
