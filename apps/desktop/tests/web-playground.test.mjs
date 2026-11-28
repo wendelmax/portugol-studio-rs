@@ -36,15 +36,30 @@ test("web playground ships a searchable Ferro syntax reference panel", () => {
   assert.match(html, /id="pg-syntax-empty"/);
 });
 
-test("web playground replaces action buttons with a single command combobox and a terminal", () => {
+test("web playground is organized as an editor shell with sidebar, tabs and bottom panels", () => {
   const html = readFileSync(new URL("../../web-playground/index.html", import.meta.url), "utf8");
-  for (const id of ["pg-validate", "pg-format", "pg-run-ui", "pg-export-rust", "pg-output"]) {
-    assert.doesNotMatch(html, new RegExp(`id="${id}"`));
+  for (const id of ["pg-validate", "pg-format", "pg-run-ui", "pg-export-rust", "pg-output", "pg-example"]) {
+    assert.doesNotMatch(html, new RegExp(`id="${id}"`), `${id} não deve existir`);
   }
-  assert.match(html, /id="pg-action"/);
-  assert.match(html, /<option value="validate">Validar<\/option>/);
-  assert.match(html, /id="pg-terminal-history"/);
-  assert.match(html, /id="pg-stdin"/);
+  for (const id of [
+    "pg-sidebar", "pg-file-list", "pg-example-list", "pg-lesson-list",
+    "pg-tabs", "pg-active-file", "pg-panel-tabs", "pg-panel-terminal",
+    "pg-panel-ui", "pg-panel-rust", "pg-panel-syntax", "pg-new-file",
+    "pg-open-file", "pg-save-file", "pg-lesson-check", "pg-lesson-progress",
+    "pg-lesson-title", "pg-lesson-prompt", "pg-lesson-hint", "pg-lesson-bar",
+    "pg-action", "pg-run", "pg-terminal-history", "pg-stdin",
+  ]) {
+    assert.match(html, new RegExp(`id="${id}"`), `id ${id} ausente`);
+  }
+  for (const panel of ["terminal", "ui", "rust", "syntax"]) {
+    assert.match(html, new RegExp(`data-panel="${panel}"`));
+  }
+
+  const css = readFileSync(new URL("../../web-playground/style.css", import.meta.url), "utf8");
+  assert.match(css, /\.pg-workspace\s*\{[^}]*grid-template-columns:\s*240px minmax\(0, 1fr\)/);
+  for (const width of [980, 720, 420]) {
+    assert.match(css, new RegExp(`@media \\(max-width: ${width}px\\)`));
+  }
 });
 
 test("web playground CSS keeps elements with hidden attribute out of layout", () => {
