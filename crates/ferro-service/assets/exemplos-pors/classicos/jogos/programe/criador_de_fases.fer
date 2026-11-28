@@ -1,0 +1,444 @@
+/*
+ * Copyright (C) 2016 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *   Criador de Fases para o jogo Programe! Permite desenhar mapas 8x10 com
+ *   cercas/blocos, árvores, posição inicial do personagem e ponto de saída,
+ *   configurar o limite de comandos e laços da fase, validar o mapa e
+ *   salvar/carregar em arquivo texto com a biblioteca `Arquivos`.
+ *
+ *   Controles:
+ *     - Clique esquerdo na grade: coloca o elemento selecionado
+ *     - Clique direito na grade: limpa a célula (grama)
+ *     - Teclas 0..4 ou clique na paleta: seleciona Grama, Cerca, Arvore, Inicio, Saida
+ *     - [S] / Salvar: grava `fase_programe.txt`
+ *     - [L] / Carregar: lê `fase_programe.txt`
+ *     - [C] / Limpar: limpa todo o mapa
+ *     - [ESC]: encerra o editor
+ *
+ * Autor (versão original):
+ *
+ *   Adson Marques da Silva Esteves (shinadson@gmail.com)
+ *
+ * Data original: 11/03/2016
+ * Adaptado para Ferro (.pors)
+ */
+
+registro EditorPrograme {
+    mapa: vetor < inteiro >,
+    ferramenta: inteiro,
+    max_comandos: inteiro,
+    max_loops: inteiro,
+    mensagem: cadeia,
+    mouse_esq_estava: logico,
+    s_estava: logico,
+    l_estava: logico,
+    c_estava: logico,
+}
+
+// 0 = grama, 1 = cerca/bloco, 2 = árvore, 3 = saída, 4 = início do personagem
+
+funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
+    escolha Graficos.criar_cor(r, g, b) {
+        caso Resultado::Ok(cor) => {
+            retorne cor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne Graficos.COR_BRANCO;
+        }
+    }
+}
+
+funcao criar_mapa_inicial() -> vetor < inteiro > {
+    seja mutavel m: vetor < inteiro > = [];
+    para (seja mutavel i = 0; i < 8 * 10; i += 1) {
+        adicionar(m, 0);
+    }
+    m[6 * 10 + 1] = 4; // Início do personagem
+    m[1 * 10 + 8] = 3; // Saída
+    m[4 * 10 + 4] = 1; // Bloco exemplo
+    m[3 * 10 + 5] = 2; // Árvore exemplo
+    retorne m;
+}
+
+funcao contar_elemento(mapa: vetor < inteiro >, codigo: inteiro) -> inteiro {
+    seja mutavel total = 0;
+    para (seja mutavel i = 0; i < 80; i += 1) {
+        se (mapa[i] == codigo) {
+            total += 1;
+        }
+    }
+    retorne total;
+}
+
+funcao limpar_elemento_unico(mapa: vetor < inteiro >, codigo: inteiro) -> vetor < inteiro > {
+    seja mutavel m: vetor < inteiro > = mapa;
+    para (seja mutavel i = 0; i < 80; i += 1) {
+        se (m[i] == codigo) {
+            m[i] = 0;
+        }
+    }
+    retorne m;
+}
+
+funcao salvar_fase(e: EditorPrograme) -> cadeia {
+    se (contar_elemento(e.mapa, 4) == 0 || contar_elemento(e.mapa, 3) == 0) {
+        retorne "Aviso: coloque 1 Inicio e 1 Saida antes de salvar!";
+    }
+
+    seja mutavel texto: cadeia = "{Tipos.inteiro_para_cadeia(e.max_comandos)},{Tipos.inteiro_para_cadeia(e.max_loops)}\n";
+    seja mapa: vetor < inteiro > = e.mapa;
+    para (seja mutavel l = 0; l < 8; l += 1) {
+        para (seja mutavel c = 0; c < 10; c += 1) {
+            texto = texto + Tipos.inteiro_para_cadeia(mapa[l * 10 + c]);
+            se (c < 9) {
+                texto = texto + ",";
+            }
+        }
+        texto = "{texto}\n";
+    }
+
+    escolha Arquivos.escrever_texto("fase_programe.txt", texto) {
+        caso Resultado::Ok(_) => {
+            retorne "Fase salva com sucesso em fase_programe.txt";
+        }
+        caso Resultado::Erro(erro) => {
+            retorne "Erro ao salvar: " + erro;
+        }
+    }
+}
+
+funcao carregar_fase_arquivo(e: EditorPrograme) -> EditorPrograme {
+    seja mutavel novo: EditorPrograme = e;
+    escolha Arquivos.ler_linhas("fase_programe.txt") {
+        caso Resultado::Ok(linhas) => {
+            se (tamanho(linhas) < 2) {
+                novo.mensagem = "Arquivo de fase vazio ou invalido";
+                retorne novo;
+            }
+            seja cabecalho: vetor < cadeia > = Texto.dividir(Texto.aparar(linhas[0]), ",");
+            se (tamanho(cabecalho) >= 2) {
+                escolha Tipos.para_inteiro(Texto.aparar(cabecalho[0])) {
+                    caso Resultado::Ok(v) => {
+                        novo.max_comandos = v;
+                    }
+                    caso Resultado::Erro(_) => {}
+                }
+                escolha Tipos.para_inteiro(Texto.aparar(cabecalho[1])) {
+                    caso Resultado::Ok(v) => {
+                        novo.max_loops = v;
+                    }
+                    caso Resultado::Erro(_) => {}
+                }
+            }
+
+            seja mutavel m: vetor < inteiro > = [];
+            para (seja mutavel i = 0; i < 80; i += 1) {
+                adicionar(m, 0);
+            }
+            seja max_l: inteiro = Matematica.menor_inteiro(8, tamanho(linhas) - 1);
+            para (seja mutavel l = 0; l < max_l; l += 1) {
+                seja cols: vetor < cadeia > = Texto.dividir(Texto.aparar(linhas[l + 1]), ",");
+                seja max_c: inteiro = Matematica.menor_inteiro(10, tamanho(cols));
+                para (seja mutavel c = 0; c < max_c; c += 1) {
+                    escolha Tipos.para_inteiro(Texto.aparar(cols[c])) {
+                        caso Resultado::Ok(v) => {
+                            m[l * 10 + c] = v;
+                        }
+                        caso Resultado::Erro(_) => {}
+                    }
+                }
+            }
+            novo.mapa = m;
+            novo.mensagem = "Fase carregada de fase_programe.txt";
+            retorne novo;
+        }
+        caso Resultado::Erro(erro) => {
+            novo.mensagem = "Nao foi possivel abrir fase_programe.txt: " + erro;
+            retorne novo;
+        }
+    }
+}
+
+funcao ponto_no_ret(px: inteiro, py: inteiro, x: inteiro, y: inteiro, l: inteiro, a: inteiro) -> logico {
+    retorne px >= x && px <= x + l && py >= y && py <= y + a;
+}
+
+funcao atualizar(editor: EditorPrograme) -> EditorPrograme {
+    seja mutavel e: EditorPrograme = editor;
+
+    se (Teclado.tecla_pressionada(Teclado.TECLA_0)) {
+        e.ferramenta = 0;
+    } senao se (Teclado.tecla_pressionada(Teclado.TECLA_1)) {
+        e.ferramenta = 1;
+    } senao se (Teclado.tecla_pressionada(Teclado.TECLA_2)) {
+        e.ferramenta = 2;
+    } senao se (Teclado.tecla_pressionada(Teclado.TECLA_3)) {
+        e.ferramenta = 3;
+    } senao se (Teclado.tecla_pressionada(Teclado.TECLA_4)) {
+        e.ferramenta = 4;
+    }
+
+    seja ts: logico = Teclado.tecla_pressionada(Teclado.TECLA_S);
+    se (ts && !e.s_estava) {
+        e.mensagem = salvar_fase(e);
+    }
+    e.s_estava = ts;
+
+    seja tl: logico = Teclado.tecla_pressionada(Teclado.TECLA_L);
+    se (tl && !e.l_estava) {
+        e = carregar_fase_arquivo(e);
+    }
+    e.l_estava = tl;
+
+    seja tc: logico = Teclado.tecla_pressionada(Teclado.TECLA_C);
+    se (tc && !e.c_estava) {
+        e.mapa = criar_mapa_inicial();
+        e.mensagem = "Mapa restaurado para o padrao";
+    }
+    e.c_estava = tc;
+
+    seja mx: inteiro = Mouse.posicao_x();
+    seja my: inteiro = Mouse.posicao_y();
+    seja esq: logico = Mouse.botao_pressionado(Mouse.BOTAO_ESQUERDO);
+    seja dir: logico = Mouse.botao_pressionado(Mouse.BOTAO_DIREITO);
+
+    // Edição na grade 10x8 (x=24..504, y=72..456, tile=48)
+    se (mx >= 24 && mx < 504 && my >= 72 && my < 456) {
+        seja col: inteiro = (mx - 24) / 48;
+        seja lin: inteiro = (my - 72) / 48;
+        se (esq || dir) {
+            seja mutavel m: vetor < inteiro > = e.mapa;
+            se (dir) {
+                m[lin * 10 + col] = 0;
+            } senao {
+                // Início (4) e Saída (3) são únicos no mapa
+                se (e.ferramenta == 3 || e.ferramenta == 4) {
+                    m = limpar_elemento_unico(m, e.ferramenta);
+                }
+                m[lin * 10 + col] = e.ferramenta;
+            }
+            e.mapa = m;
+        }
+    }
+
+    // Cliques únicos nos controles do painel direito
+    se (esq && !e.mouse_esq_estava) {
+        para (seja mutavel f = 0; f <= 4; f += 1) {
+            seja fy: inteiro = 98 + f * 42;
+            se (ponto_no_ret(mx, my, 544, fy, 230, 36)) {
+                e.ferramenta = f;
+            }
+        }
+
+        // Limite de comandos (- / +)
+        se (ponto_no_ret(mx, my, 690, 332, 34, 28) && e.max_comandos > 4) {
+            e.max_comandos -= 1;
+        }
+        se (ponto_no_ret(mx, my, 734, 332, 34, 28) && e.max_comandos < 32) {
+            e.max_comandos += 1;
+        }
+
+        // Limite de loops (- / +)
+        se (ponto_no_ret(mx, my, 690, 372, 34, 28) && e.max_loops > 0) {
+            e.max_loops -= 1;
+        }
+        se (ponto_no_ret(mx, my, 734, 372, 34, 28) && e.max_loops < 10) {
+            e.max_loops += 1;
+        }
+
+        // Botões inferiores
+        se (ponto_no_ret(mx, my, 24, 480, 148, 38)) {
+            e.mensagem = salvar_fase(e);
+        } senao se (ponto_no_ret(mx, my, 184, 480, 156, 38)) {
+            e = carregar_fase_arquivo(e);
+        } senao se (ponto_no_ret(mx, my, 352, 480, 152, 38)) {
+            e.mapa = criar_mapa_inicial();
+            e.mensagem = "Mapa restaurado para o padrao";
+        }
+    }
+    e.mouse_esq_estava = esq;
+
+    retorne e;
+}
+
+funcao nome_ferramenta(f: inteiro) -> cadeia {
+    se (f == 0) {
+        retorne "0. Grama (Vazio)";
+    } senao se (f == 1) {
+        retorne "1. Cerca / Bloco";
+    } senao se (f == 2) {
+        retorne "2. Arvore";
+    } senao se (f == 3) {
+        retorne "3. Meta / Saida";
+    } senao {
+        retorne "4. Inicio Personagem";
+    }
+}
+
+funcao desenhar(e: EditorPrograme) {
+    Graficos.definir_cor(cor_rgb(24, 30, 42));
+    Graficos.limpar();
+
+    // Cabeçalho
+    Graficos.definir_cor(cor_rgb(34, 42, 60));
+    Graficos.desenhar_retangulo(0, 0, 800, 56, falso, verdadeiro);
+    Graficos.definir_cor(cor_rgb(255, 205, 86));
+    Graficos.definir_tamanho_texto(19.0);
+    Graficos.desenhar_texto(20, 15, "PROGRAME! - CRIADOR DE FASES");
+    Graficos.definir_cor(cor_rgb(190, 200, 220));
+    Graficos.definir_tamanho_texto(12.0);
+    Graficos.desenhar_texto(375, 20, "[Esq] Colocar  [Dir] Apagar  [0..4] Pincel  [S/L] Arquivo  [ESC] Sair");
+
+    // Grade 10x8
+    seja mapa: vetor < inteiro > = e.mapa;
+    para (seja mutavel l = 0; l < 8; l += 1) {
+        para (seja mutavel c = 0; c < 10; c += 1) {
+            seja x: inteiro = 24 + c * 48;
+            seja y: inteiro = 72 + l * 48;
+            se ((l + c) % 2 == 0) {
+                Graficos.definir_cor(cor_rgb(76, 142, 82));
+            } senao {
+                Graficos.definir_cor(cor_rgb(68, 132, 74));
+            }
+            Graficos.desenhar_retangulo(x, y, 48, 48, falso, verdadeiro);
+            Graficos.definir_cor(cor_rgb(56, 108, 62));
+            Graficos.desenhar_retangulo(x, y, 48, 48, falso, falso);
+
+            seja cel: inteiro = mapa[l * 10 + c];
+            se (cel == 1) {
+                Graficos.definir_cor(cor_rgb(142, 96, 56));
+                Graficos.desenhar_retangulo(x + 4, y + 6, 40, 36, verdadeiro, verdadeiro);
+                Graficos.definir_cor(cor_rgb(186, 134, 82));
+                Graficos.desenhar_retangulo(x + 8, y + 12, 32, 8, falso, verdadeiro);
+                Graficos.desenhar_retangulo(x + 8, y + 28, 32, 8, falso, verdadeiro);
+            } senao se (cel == 2) {
+                Graficos.definir_cor(cor_rgb(108, 72, 42));
+                Graficos.desenhar_retangulo(x + 20, y + 28, 8, 16, falso, verdadeiro);
+                Graficos.definir_cor(cor_rgb(32, 98, 52));
+                Graficos.desenhar_elipse(x + 8, y + 4, 32, 30, verdadeiro);
+            } senao se (cel == 3) {
+                Graficos.definir_cor(cor_rgb(255, 215, 60));
+                Graficos.desenhar_retangulo(x + 6, y + 6, 36, 36, verdadeiro, verdadeiro);
+                Graficos.definir_cor(cor_rgb(30, 36, 50));
+                Graficos.definir_tamanho_texto(12.0);
+                Graficos.desenhar_texto(x + 9, y + 18, "META");
+            } senao se (cel == 4) {
+                Graficos.definir_cor(cor_rgb(70, 170, 255));
+                Graficos.desenhar_elipse(x + 8, y + 8, 32, 32, verdadeiro);
+                Graficos.definir_cor(Graficos.COR_BRANCO);
+                Graficos.desenhar_elipse(x + 15, y + 16, 6, 6, verdadeiro);
+                Graficos.desenhar_elipse(x + 27, y + 16, 6, 6, verdadeiro);
+            }
+        }
+    }
+
+    // Painel lateral de ferramentas e parâmetros da fase
+    Graficos.definir_cor(cor_rgb(32, 38, 54));
+    Graficos.desenhar_retangulo(530, 72, 256, 384, verdadeiro, verdadeiro);
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.definir_tamanho_texto(13.0);
+    Graficos.desenhar_texto(544, 78, "ELEMENTOS DO MAPA:");
+
+    para (seja mutavel f = 0; f <= 4; f += 1) {
+        seja fy: inteiro = 98 + f * 42;
+        se (f == e.ferramenta) {
+            Graficos.definir_cor(cor_rgb(66, 92, 138));
+            Graficos.desenhar_retangulo(544, fy, 230, 36, verdadeiro, verdadeiro);
+            Graficos.definir_cor(cor_rgb(255, 210, 70));
+            Graficos.desenhar_retangulo(544, fy, 230, 36, verdadeiro, falso);
+        } senao {
+            Graficos.definir_cor(cor_rgb(44, 52, 70));
+            Graficos.desenhar_retangulo(544, fy, 230, 36, verdadeiro, verdadeiro);
+        }
+        Graficos.definir_cor(Graficos.COR_BRANCO);
+        Graficos.definir_tamanho_texto(13.0);
+        Graficos.desenhar_texto(558, fy + 11, nome_ferramenta(f));
+    }
+
+    // Limites da fase
+    Graficos.definir_cor(cor_rgb(200, 210, 228));
+    Graficos.definir_tamanho_texto(13.0);
+    Graficos.desenhar_texto(544, 338, "Max Comandos: " + Tipos.inteiro_para_cadeia(e.max_comandos));
+    Graficos.definir_cor(cor_rgb(70, 82, 108));
+    Graficos.desenhar_retangulo(690, 332, 34, 28, verdadeiro, verdadeiro);
+    Graficos.desenhar_retangulo(734, 332, 34, 28, verdadeiro, verdadeiro);
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.desenhar_texto(704, 339, "-");
+    Graficos.desenhar_texto(747, 339, "+");
+
+    Graficos.definir_cor(cor_rgb(200, 210, 228));
+    Graficos.desenhar_texto(544, 378, "Max Loops: " + Tipos.inteiro_para_cadeia(e.max_loops));
+    Graficos.definir_cor(cor_rgb(70, 82, 108));
+    Graficos.desenhar_retangulo(690, 372, 34, 28, verdadeiro, verdadeiro);
+    Graficos.desenhar_retangulo(734, 372, 34, 28, verdadeiro, verdadeiro);
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.desenhar_texto(704, 379, "-");
+    Graficos.desenhar_texto(747, 379, "+");
+
+    // Validação do mapa
+    seja valido: logico = contar_elemento(mapa, 4) == 1 && contar_elemento(mapa, 3) == 1;
+    se (valido) {
+        Graficos.definir_cor(cor_rgb(110, 240, 145));
+        Graficos.desenhar_texto(544, 422, "Mapa valido (Inicio e Meta OK)");
+    } senao {
+        Graficos.definir_cor(cor_rgb(255, 110, 110));
+        Graficos.desenhar_texto(544, 422, "Falta Inicio ou Meta no mapa");
+    }
+
+    // Botões inferiores
+    Graficos.definir_cor(cor_rgb(56, 172, 102));
+    Graficos.desenhar_retangulo(24, 480, 148, 38, verdadeiro, verdadeiro);
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.definir_tamanho_texto(13.0);
+    Graficos.desenhar_texto(56, 492, "Salvar (S)");
+
+    Graficos.definir_cor(cor_rgb(66, 130, 212));
+    Graficos.desenhar_retangulo(184, 480, 156, 38, verdadeiro, verdadeiro);
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.desenhar_texto(212, 492, "Carregar (L)");
+
+    Graficos.definir_cor(cor_rgb(196, 86, 76));
+    Graficos.desenhar_retangulo(352, 480, 152, 38, verdadeiro, verdadeiro);
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.desenhar_texto(386, 492, "Limpar (C)");
+
+    // Mensagem de status
+    Graficos.definir_cor(cor_rgb(255, 220, 110));
+    Graficos.definir_tamanho_texto(12.0);
+    Graficos.desenhar_texto(24, 536, "Status: " + e.mensagem);
+
+    Graficos.renderizar();
+}
+
+funcao inicio() {
+    Graficos.iniciar_modo_grafico(verdadeiro);
+    Graficos.definir_dimensoes_janela(800, 568);
+    Graficos.definir_titulo_janela("Programe! - Criador de Fases");
+
+    seja mutavel editor: EditorPrograme = EditorPrograme {
+        mapa: criar_mapa_inicial(),
+        ferramenta: 1,
+        max_comandos: 16,
+        max_loops: 3,
+        mensagem: "Selecione um elemento e clique na grade para construir sua fase",
+        mouse_esq_estava: falso,
+        s_estava: falso,
+        l_estava: falso,
+        c_estava: falso,
+    }
+    ;
+
+    enquanto (!Teclado.tecla_pressionada(Teclado.TECLA_ESC)) {
+        editor = atualizar(editor);
+        desenhar(editor);
+        Util.aguarde(16);
+    }
+
+    Graficos.encerrar_modo_grafico();
+}

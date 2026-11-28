@@ -1,6 +1,6 @@
-// Ponte TypeScript sem dependências externas para a crate WebAssembly `portugol-wasm`
-// (ADR 0017 / crates/portugol-wasm/src/lib.rs).
-// Instancia `portugol_wasm.wasm`, gerencia alocação/liberação UTF-8 em memória linear
+// Ponte TypeScript sem dependências externas para a crate WebAssembly `ferro-wasm`
+// (ADR 0017 / crates/ferro-wasm/src/lib.rs).
+// Instancia `ferro_wasm.wasm`, gerencia alocação/liberação UTF-8 em memória linear
 // e conecta sessões MVU ao renderizador DOM seguro `ui-preview-renderer.ts`.
 
 import type {
@@ -193,7 +193,7 @@ function sanitizeBudgetValue(value: number | undefined): number {
   return Math.floor(value);
 }
 
-/** Cria uma fachada tipada em torno das funções exportadas por `portugol_wasm.wasm`. */
+/** Cria uma fachada tipada em torno das funções exportadas por `ferro_wasm.wasm`. */
 export function createPorsWasmRuntime(rawExports: WebAssembly.Exports | PorsWasmExports): PorsWasmRuntime {
   const exportsObj = assertWasmExports(rawExports as WebAssembly.Exports);
   const encoder = new TextEncoder();
@@ -331,7 +331,7 @@ function isResponseLike(value: unknown): value is Response {
   );
 }
 
-/** Instancia `portugol_wasm.wasm` a partir de bytes, `WebAssembly.Module` ou `Response`. */
+/** Instancia `ferro_wasm.wasm` a partir de bytes, `WebAssembly.Module` ou `Response`. */
 export async function loadPorsWasmRuntime(
   source: BufferSource | WebAssembly.Module | Response | PromiseLike<Response>,
 ): Promise<PorsWasmRuntime> {

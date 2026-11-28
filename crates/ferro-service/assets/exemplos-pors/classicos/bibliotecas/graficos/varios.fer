@@ -1,0 +1,104 @@
+/*
+ * Este programa exemplifica o uso de várias bibliotecas ao mesmo tempo:
+ * Util, Tipos, Matematica e Texto.
+ *
+ * Original do catálogo clássico do Portugol Studio adaptado para Ferro (.pors):
+ * em vez de parâmetros de linha de comando em inicio(params[]), os três dados
+ * (nome, idade e altura) são lidos diretamente com leia().
+ */
+
+funcao inicio() {
+    escreva("Informe seu nome: ");
+    seja mutavel entrada_nome = leia();
+    escreva("Informe sua idade (inteiro): ");
+    seja mutavel entrada_idade = leia();
+    escreva("Informe sua altura em metros (ex.: 1.76): ");
+    seja mutavel entrada_altura = leia();
+
+    seja mutavel id_valida: logico = falso;
+    seja mutavel alt_valida: logico = falso;
+    seja mutavel idade = 0;
+    seja mutavel altura: real = 0.0;
+
+    seja mutavel nome: cadeia = Texto.caixa_alta(entrada_nome);
+
+    se (Tipos.cadeia_e_inteiro(entrada_idade)) {
+        escolha Tipos.para_inteiro(entrada_idade) {
+            caso Resultado::Ok(valor) => {
+                idade = valor;
+                id_valida = verdadeiro;
+            }
+            caso Resultado::Erro(_) => {
+                escreval("O segundo dado deve ser do tipo inteiro.");
+            }
+        }
+    } senao {
+        escreval("O segundo dado deve ser do tipo inteiro.");
+    }
+
+    se (Tipos.cadeia_e_real(entrada_altura)) {
+        escolha Tipos.para_real(entrada_altura) {
+            caso Resultado::Ok(valor) => {
+                altura = valor;
+                alt_valida = verdadeiro;
+            }
+            caso Resultado::Erro(_) => {
+                escreval("O terceiro dado deve ser do tipo real.");
+            }
+        }
+    } senao {
+        escreval("O terceiro dado deve ser do tipo real.");
+    }
+
+    se (id_valida && alt_valida) {
+        seja centimetros: inteiro = Tipos.real_para_inteiro(
+        Matematica.arredondar(2.0 - altura, 2) * 100.0
+        );
+
+        escreva("\nSeu nome é: ", nome);
+        escreva("\nSeu nome possui ", Texto.numero_caracteres(nome), " letras");
+
+        nome = Texto.substituir(nome, "A", "");
+        nome = Texto.substituir(nome, "E", "");
+        nome = Texto.substituir(nome, "I", "");
+        nome = Texto.substituir(nome, "O", "");
+        nome = Texto.substituir(nome, "U", "");
+
+        escreva("\nSeu nome sem as vogais: ", nome);
+        escreva("\nVocê tem ", idade, " anos");
+        escreva("\nAno que vem você terá ", idade + 1, " anos");
+        escreva("\nSua altura é: ", altura);
+        escreva("\nFalta ", centimetros, " centímetros para você atingir 2 metros de altura");
+
+        se (altura <= 1.60) {
+            escreva("\nVocê é muito baixo!");
+        } senao se (altura > 1.60 && altura < 1.80) {
+            escreva("\nVocê tem uma altura normal!");
+        } senao {
+            escreva("\nVocê é muito alto!");
+        }
+
+        seja intervalo: inteiro = 1000;
+        escreval("\nPor favor, aguarde ", intervalo / 1000, " segundo(s)...");
+        Util.aguarde(intervalo);
+
+        seja mutavel resposta: cadeia = "";
+        seja mutavel resposta_valida: logico = falso;
+
+        faca {
+            escreva("Você gostou deste exemplo? (S/N): ");
+            leia(resposta);
+            seja normalizada: cadeia = Texto.caixa_alta(Texto.aparar(resposta));
+
+            se (normalizada == "S" || normalizada == "SIM") {
+                escreval("Oba! Ficamos felizes por isso!");
+                resposta_valida = verdadeiro;
+            } senao se (normalizada == "N" || normalizada == "NAO" || normalizada == "NÃO") {
+                escreval("Ahh! Que pena, vamos tentar melhorar!");
+                resposta_valida = verdadeiro;
+            } senao {
+                escreval("Resposta inválida. Digite S ou N.");
+            }
+        } enquanto (!resposta_valida);
+    }
+}

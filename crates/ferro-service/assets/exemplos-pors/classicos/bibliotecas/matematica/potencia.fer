@@ -1,0 +1,32 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ * 	Este exemplo demonstra como obter a potência de um número utilizando a
+ * 	função "potencia" da biblioteca "Matematica".
+ *
+ * Autores:
+ *
+ * 	Luiz Fernando Noschang (noschang@univali.br)
+ *
+ * Data: 18/07/2014
+ * Adaptado para Ferro (.pors)
+ */
+
+funcao inicio() {
+    escreva("Informe um número: ");
+    seja mutavel base: real = leia();
+
+    // Eleva o número informado ao quadrado
+    seja quadrado: real = Matematica.potencia(base, 2.0);
+    escreva("\n", base, " ao quadrado é igual a: ", quadrado);
+
+    // Eleva o número informado ao cubo
+    seja cubo: real = Matematica.potencia(base, 3.0);
+    escreval("\n", base, " ao cubo é igual a: ", cubo);
+}

@@ -6,8 +6,8 @@ const moduleUrl = new URL("../src/learning/trail.ts", import.meta.url);
 
 test("learning trail catalog is versioned and maps examples to PORS exercises", async () => {
   const { LEARNING_TRAIL_VERSION, LEARNING_TRAIL } = await import(moduleUrl.href);
-  const exampleDirectory = new URL("../../../crates/portugol-service/assets/exemplos-pors/", import.meta.url);
-  const exerciseDirectory = new URL("../../../crates/portugol-service/assets/exercicios/", import.meta.url);
+  const exampleDirectory = new URL("../../../crates/ferro-service/assets/exemplos-pors/", import.meta.url);
+  const exerciseDirectory = new URL("../../../crates/ferro-service/assets/exercicios/", import.meta.url);
   const examples = new Set(await readdir(exampleDirectory));
   const exerciseFiles = new Set(await readdir(exerciseDirectory));
 

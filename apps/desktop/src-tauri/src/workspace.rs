@@ -963,7 +963,7 @@ mod tests {
         );
     }
 }
-use portugol_formatos::Kind;
+use ferro_formatos::Kind;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::ffi::OsString;
 use std::fs;
@@ -1064,8 +1064,7 @@ pub struct DesktopProjectCreated {
 /// Nome do projeto que também serve de nome da pasta.
 fn desktop_project_folder_name(name: &str) -> Result<String, String> {
     let trimmed = name.trim();
-    portugol_tela::project::validate_project_name(trimmed)
-        .map_err(|message| format!("{message}."))?;
+    ferro_tela::project::validate_project_name(trimmed).map_err(|message| format!("{message}."))?;
     if trimmed.starts_with('.') || trimmed.ends_with('.') {
         return Err("O nome do projeto não pode começar nem terminar com ponto.".into());
     }
@@ -1084,7 +1083,7 @@ fn desktop_project_folder_name(name: &str) -> Result<String, String> {
 /// pode existir; se algo falhar depois de criá-la, ela é removida.
 fn create_desktop_project_in(parent: &Path, name: &str) -> Result<PathBuf, String> {
     let folder_name = desktop_project_folder_name(name)?;
-    let template = portugol_tela::project::desktop_template(&folder_name)?;
+    let template = ferro_tela::project::desktop_template(&folder_name)?;
     let parent = fs::canonicalize(parent)
         .map_err(|_| "A pasta escolhida não está disponível.".to_string())?;
     if !parent.is_dir() {
@@ -1743,11 +1742,11 @@ fn same_file_identity(_left: &fs::File, _right: &fs::File) -> bool {
 // O que é cada arquivo vem da tabela única de formatos (ADR 0023, Emenda 2).
 
 fn is_legacy_extension(path: &Path) -> bool {
-    portugol_formatos::is_retired_path(path)
+    ferro_formatos::is_retired_path(path)
 }
 
 fn file_kind(path: &Path) -> Option<Kind> {
-    portugol_formatos::classify_path(path).map(|m| m.kind())
+    ferro_formatos::classify_path(path).map(|m| m.kind())
 }
 
 /// Tudo o que o explorador lista, abre, renomeia, exporta e exclui.
@@ -1767,7 +1766,7 @@ fn supported_program(path: &Path) -> bool {
 
 /// Extensões de tudo o que o explorador aceita, para mensagens.
 fn all_extensions() -> String {
-    portugol_formatos::describe(&portugol_formatos::all_kinds())
+    ferro_formatos::describe(&ferro_formatos::all_kinds())
 }
 
 fn relative_path(root: &Path, path: &Path) -> Result<String, String> {
@@ -1918,7 +1917,7 @@ pub(super) fn cargo_project_and_source(
     if file_kind(&source) != Some(Kind::Rust) {
         return Err(format!(
             "A execução Cargo exige um arquivo {} do workspace.",
-            portugol_formatos::describe(&[Kind::Rust])
+            ferro_formatos::describe(&[Kind::Rust])
         ));
     }
     let mut directory = source.parent();
@@ -1964,7 +1963,7 @@ fn write_relative_file(root: &Path, relative: &Path, source: &str) -> Result<(),
     if !supported_program(relative) && !supported_markup(relative) {
         return Err(format!(
             "Apenas arquivos {} podem ser salvos pelo explorador.",
-            portugol_formatos::describe(&[Kind::Source, Kind::Rust, Kind::Design, Kind::Manifest])
+            ferro_formatos::describe(&[Kind::Source, Kind::Rust, Kind::Design, Kind::Manifest])
         ));
     }
     let path = checked_file(root, relative, false)?;
@@ -2196,15 +2195,15 @@ fn rename_relative_file(root: &Path, relative: &Path, new_name: &str) -> Result<
     if new_name.ends_with('.') || !supported_source(name) {
         return Err(format!(
             "O arquivo deve manter uma extensão {}.",
-            portugol_formatos::describe_alternatives(&portugol_formatos::all_kinds())
+            ferro_formatos::describe_alternatives(&ferro_formatos::all_kinds())
         ));
     }
 
     // Renomear pode trocar a extensão antiga pela canônica do mesmo tipo,
     // mas não muda o tipo do arquivo.
-    let source_format = portugol_formatos::classify_path(&source)
+    let source_format = ferro_formatos::classify_path(&source)
         .ok_or_else(|| "A extensão original do arquivo não é válida.".to_string())?;
-    let new_format = portugol_formatos::classify_path(name)
+    let new_format = ferro_formatos::classify_path(name)
         .ok_or_else(|| "A extensão do arquivo não é válida.".to_string())?;
     if source_format.kind() != new_format.kind() {
         return Err(format!(
@@ -2386,8 +2385,8 @@ pub async fn workspace_create_desktop_project(
             },
             design_path: format!(
                 "{}.{}",
-                portugol_tela::project::DEFAULT_WINDOW,
-                portugol_tela::FILE_EXTENSION
+                ferro_tela::project::DEFAULT_WINDOW,
+                ferro_tela::FILE_EXTENSION
             ),
         }))
     })

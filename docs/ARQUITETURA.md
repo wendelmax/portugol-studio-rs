@@ -39,18 +39,18 @@ dados densos (como o Sniffnet), não para um editor de código completo.
 
 > **Migração concluída (ADR 0016):** os crates do dialeto clássico (`portugol-syntax`,
 > `portugol-semantics`) e `tests/corpus/` foram removidos na Fase 6. Spans e
-> diagnósticos agora vivem em `portugol-hir`.
+> diagnósticos agora vivem em `ferro-hir`.
 
 ```
 crates/
-  portugol-hir/          # representação intermediária tipada, spans e diagnósticos compartilhados
-  portugol-rs-frontend/  # lexer, parser, formatador e checagem do Ferro (.fer)
-  portugol-bytecode/     # instruções e compilador HIR -> bytecode
-  portugol-vm/           # VM, depurador, protocolo gráfico, UI MVU, stdlib e bibliotecas PORS
-  portugol-rust/         # geração de código Rust, projetos Cargo e source maps
-  portugol-wasm/         # núcleo PORS sem dependências externas para WebAssembly
-  portugol-service/      # fachada da IDE (análise, execução, depuração, exemplos e exercícios .licao)
-  portugol-cli/          # executável `portugol`
+  ferro-hir/          # representação intermediária tipada, spans e diagnósticos compartilhados
+  ferro-frontend/  # lexer, parser, formatador e checagem do Ferro (.fer)
+  ferro-bytecode/     # instruções e compilador HIR -> bytecode
+  ferro-vm/           # VM, depurador, protocolo gráfico, UI MVU, stdlib e bibliotecas PORS
+  ferro-rust/         # geração de código Rust, projetos Cargo e source maps
+  ferro-wasm/         # núcleo PORS sem dependências externas para WebAssembly
+  ferro-service/      # fachada da IDE (análise, execução, depuração, exemplos e exercícios .licao)
+  ferro-cli/          # executável `portugol`
 apps/
   desktop/
     src-tauri/           # comandos e eventos Tauri v2, workspace (cap-std), áudio/gráficos
@@ -125,7 +125,7 @@ O original não interpreta: ele traduz o Portugol para Java
 (`execucao/gerador/GeradorCodigoJava.java`) e roda na JVM. A semântica de
 execução a reproduzir é, portanto, a do Java gerado.
 
-- `portugol-bytecode`: `Op` é um `enum` Rust (não bytes). Cada `Function` tem
+- `ferro-bytecode`: `Op` é um `enum` Rust (não bytes). Cada `Function` tem
   `code`, `spans` paralelos (mapa de fonte) e `locals` com nome/tipo de cada
   slot, já pensando no inspetor de variáveis. Uma função sintética
   `<programa>` inicializa as globais em ordem, roda comandos soltos e chama
@@ -135,11 +135,11 @@ execução a reproduzir é, portanto, a do Java gerado.
   `Convert`; as operações são resolvidas pela VM pelas tags dos valores.
 - Alvos de escrita (`v[i] += x`, `m[i][j]++`) avaliam vetor e índices uma vez,
   em temporários, na ordem do Java.
-- `portugol-vm`: VM de pilha com quadros explícitos e execução em fatias
+- `ferro-vm`: VM de pilha com quadros explícitos e execução em fatias
   (`Vm::step(n)`), sinal de interrupção (`interrupt_handle`) e erro com pilha
   de chamadas. E/S passa pelo trait `Io` (`StdIo`, `BufferIo`; a IDE terá a
   sua).
-- `portugol-rust`: lowering tipado e geração de Rust somente para o subconjunto
+- `ferro-rust`: lowering tipado e geração de Rust somente para o subconjunto
   descrito em `docs/PORTUGOL-RUST.md`; retorna diagnóstico com span no primeiro
   recurso sem suporte e não participa da execução clássica.
 - Parâmetro `&` guarda um `Reference` (slot da pilha, global ou elemento);
@@ -170,7 +170,7 @@ genérico.
 
 #### Como está implementado (fase 5)
 
-`portugol_vm::debug::DebugControl` é compartilhado entre a thread da IDE e a
+`ferro_vm::debug::DebugControl` é compartilhado entre a thread da IDE e a
 thread da VM. A VM verifica o controle antes de cada instrução: se o span da
 instrução estiver dentro de um ponto de parada, ou se houve pedido de pausa,
 publica um `PausedInfo` (span, pilha e variáveis) e bloqueia numa `Condvar`.
@@ -187,7 +187,7 @@ arquivo.
 
 O inspetor lê globais de `Module::globals` e locais de `Function::locals`
 usando `base` do quadro corrente; vetores e matrizes são expandidos até 100
-elementos. `portugol-service` converte spans em posições UTF-16 do editor e
+elementos. `ferro-service` converte spans em posições UTF-16 do editor e
 expõe `RunHandle::{pause, continue_run, step_*, set_breakpoints}`; a camada
 Tauri traduz isso em comandos `debug_*` e no evento `run:paused`.
 
@@ -195,7 +195,7 @@ Tauri traduz isso em comandos `debug_*` e no evento `run:paused`.
 
 | Biblioteca original | Estratégia no port |
 |---|---|
-| Matematica, Texto, Util, Tipos | Rust puro (**feito**, `portugol-vm/src/stdlib`) |
+| Matematica, Texto, Util, Tipos | Rust puro (**feito**, `ferro-vm/src/stdlib`) |
 | Calendario | Rust puro |
 | Arquivos | `std::fs` com sandbox por workspace |
 | Internet, ServicosWeb | `reqwest` + runtime async |

@@ -332,7 +332,7 @@ setEditorValue(PLAYGROUND_EXAMPLES[0].source);
 stdinEl.value = PLAYGROUND_EXAMPLES[0].input;
 syncOutput("");
 
-loadPlaygroundRuntime("./portugol_wasm.wasm")
+loadPlaygroundRuntime("./ferro_wasm.wasm")
   .then((loaded) => {
     runtime = loaded;
     setControlsEnabled(true);
@@ -341,7 +341,7 @@ loadPlaygroundRuntime("./portugol_wasm.wasm")
   })
   .catch((error) => {
     setStatus(
-      `Módulo ./portugol_wasm.wasm indisponível (${error instanceof Error ? error.message : String(error)}). Execute scripts/build-web-playground.sh para gerar o bundle WASM.`,
+      `Módulo ./ferro_wasm.wasm indisponível (${error instanceof Error ? error.message : String(error)}). Execute scripts/build-web-playground.sh para gerar o bundle WASM.`,
       "error",
     );
   });

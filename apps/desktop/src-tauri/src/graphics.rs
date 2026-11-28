@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::{Duration, Instant};
 
-use portugol_service::{
+use ferro_service::{
     FileFilter, Host, RunObserver, Sound,
     graphics::{InputState, WindowCommand},
 };

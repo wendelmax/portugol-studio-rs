@@ -7,7 +7,7 @@ use std::path::Path;
 use std::rc::Rc;
 use std::time::Duration;
 
-use portugol_service::Sound;
+use ferro_service::Sound;
 use rodio::{Decoder, DeviceSinkBuilder, MixerDeviceSink, Player, Source, buffer::SamplesBuffer};
 
 #[derive(Default)]
@@ -181,7 +181,7 @@ mod tests {
     #[test]
     fn decodes_wav_without_opening_a_device() {
         let path = std::env::temp_dir().join(format!(
-            "portugol-desktop-audio-test-{}.wav",
+            "ferro-desktop-audio-test-{}.wav",
             std::process::id()
         ));
         std::fs::write(&path, synthetic_wav_bytes(16_000, 1_600)).unwrap();

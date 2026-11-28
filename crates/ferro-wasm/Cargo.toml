@@ -1,0 +1,17 @@
+[package]
+name = "ferro-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Fachada WebAssembly sem dependências externas para validar, formatar, exportar Rust e executar PORS e sessões MVU de UI"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ferro-bytecode = { path = "../ferro-bytecode" }
+ferro-hir = { path = "../ferro-hir" }
+ferro-frontend = { path = "../ferro-frontend" }
+ferro-rust = { path = "../ferro-rust" }
+ferro-vm = { path = "../ferro-vm", default-features = false }

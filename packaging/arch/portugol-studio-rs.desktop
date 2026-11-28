@@ -1,10 +1,10 @@
 [Desktop Entry]
 Name=Ferro Studio
 Comment=Ferro Studio — Programe em português, crie apps e jogos e evolua para Rust
-Exec=/usr/bin/portugol-desktop %F
+Exec=/usr/bin/ferro-desktop %F
 Icon=portugol-studio-rs
 Terminal=false
 Type=Application
 Categories=Development;Education;IDE;
 MimeType=text/x-ferro;application/x-ferro-licao;text/x-rust;
-StartupWMClass=portugol-desktop
+StartupWMClass=ferro-desktop

@@ -1,0 +1,50 @@
+/* Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ * Adaptado para Ferro (.pors)
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *     Este exemplo pede ao usuário que informe um número inteiro. Logo após, calcula e
+ *     exibe todos os números da sequência de Fibonacci até a posição informada pelo usuário.
+ *
+ *     Neste exemplo, os números da sequência de Fibonacci são calculados chamando recursivamente
+ *     a função "fibonacci" definida no programa.
+ *
+ *     A sequência de Fibonacci é uma sequência numérica especial, na qual cada elemento da sequência
+ *     é calculado somando os dois elementos anteriores.
+ *
+ * Autores:
+ *
+ *     Giordana Maria da Costa Valle
+ *     Carlos Alexandre Krueger
+ *
+ * Data: 01/06/2013
+ */
+
+// Função recursiva que calcula o enésimo valor da sequência de Fibonacci.
+// Exemplo: posição 1 -> 0, posição 2 -> 1, posição 3 -> 1, posição 4 -> 2.
+funcao fibonacci(posicao: inteiro) -> inteiro {
+    se (posicao <= 1) {
+        retorne 0;
+    } senao se (posicao == 2) {
+        retorne 1;
+    }
+
+    retorne fibonacci(posicao - 1) + fibonacci(posicao - 2);
+}
+
+funcao inicio() {
+    escreva("Quantos elementos da sequência de Fibonacci deseja calcular? ");
+    seja mutavel numero: inteiro = leia();
+
+    // O laço de repetição percorre todos os valores de 1 até a posição informada,
+    // calculando o elemento correspondente na sequência.
+    para (seja mutavel i: inteiro = 1; i <= numero; i += 1) {
+        escreva(fibonacci(i), " ");
+    }
+
+    escreval();
+}

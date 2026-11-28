@@ -1,7 +1,7 @@
 // Fonte única de verdade da biblioteca padrão Ferro (.fer) para
 // autocompletar, hover do editor e documentação da Ajuda.
 // Validada por apps/desktop/tests/pors-stdlib-parity.test.mjs contra
-// crates/portugol-rs-frontend/src/parser/stdlib.rs e constants.rs.
+// crates/ferro-frontend/src/parser/stdlib.rs e constants.rs.
 
 export type PorsStdlibGroup = "standard" | "visual";
 

@@ -1,0 +1,62 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ * 	Este exemplo utiliza a biblioteca "Arquivos" para ler um conjunto definido de
+ * 	linhas de um arquivo de texto contendo o placar de um jogo usando um laço "para".
+ *
+ * Autores:
+ *
+ * 	Luiz Fernando Noschang (noschang@univali.br)
+ *
+ * Data: 10/02/2016
+ * Adaptado para Ferro (.pors)
+ */
+
+funcao garantir_placar_exemplo(caminho: cadeia) -> Resultado < logico, cadeia > {
+    seja ja_existe: logico = Arquivos.existe(caminho)?;
+    se (!ja_existe) {
+        seja conteudo: cadeia = "  1| João    | 1250 pontos\n"
+        + "  2| Julia   | 1157 pontos\n"
+        + "  3| Rafael  |  981 pontos\n"
+        + "  4| Alisson |  965 pontos\n"
+        + "  5| Marcos  |  810 pontos\n"
+        + "  6| Maria   |  805 pontos\n"
+        + "  7| Jéssica |  756 pontos\n"
+        + "  8| Paulo   |  732 pontos\n"
+        + "  9| Gustavo |  640 pontos\n"
+        + " 10| Luiz    |  500 pontos\n";
+        seja _ok: logico = Arquivos.escrever_texto(caminho, conteudo)?;
+    }
+    retorne Resultado::Ok(verdadeiro);
+}
+
+funcao carregar_linhas(caminho: cadeia) -> Resultado < vetor < cadeia >, cadeia > {
+    seja _pronto: logico = garantir_placar_exemplo(caminho)?;
+    retorne Arquivos.ler_linhas(caminho);
+}
+
+funcao inicio() {
+    seja caminho_do_arquivo: cadeia = "placar.txt";
+    seja quantidade_de_linhas: inteiro = 10;
+
+    escolha carregar_linhas(caminho_do_arquivo) {
+        caso Resultado::Ok(linhas) => {
+            seja limite: inteiro = Matematica.menor_inteiro(quantidade_de_linhas, tamanho(linhas));
+
+            // Percorre as linhas até o limite desejado usando o laço "para"
+            para (seja mutavel numero_da_linha: inteiro = 1; numero_da_linha <= limite; numero_da_linha += 1) {
+                seja linha: cadeia = linhas[numero_da_linha - 1];
+                escreval("Linha ", numero_da_linha, ": ", linha);
+            }
+        }
+        caso Resultado::Erro(erro) => {
+            escreval("Erro ao ler arquivo: ", erro);
+        }
+    }
+}

@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use portugol_service::{DesignNode, ScreenEvent, ScreenRun, ScreenStep};
+use ferro_service::{DesignNode, ScreenEvent, ScreenRun, ScreenStep};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
@@ -151,7 +151,7 @@ pub fn screen_run_state(
         .get(&label)
         .ok_or_else(|| "A execução desta tela já terminou.".to_string())?;
     Ok(ScreenState {
-        tree: portugol_service::design_tree(&session.design),
+        tree: ferro_service::design_tree(&session.design),
         step: session.run.current_step(),
     })
 }

@@ -424,7 +424,7 @@ test("falha de contrato no renderizador fecha a sessão WASM e reporta render_co
 const realWasmPath = process.env.PORTUGOL_WASM_PATH;
 
 test(
-  "executa um programa .pors visual MVU real dentro de portugol_wasm.wasm conectado ao mountUiPreview",
+  "executa um programa .pors visual MVU real dentro de ferro_wasm.wasm conectado ao mountUiPreview",
   { skip: !realWasmPath },
   async () => {
     const bytes = readFileSync(realWasmPath);

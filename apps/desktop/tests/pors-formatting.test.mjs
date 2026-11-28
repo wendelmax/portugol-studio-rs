@@ -15,5 +15,5 @@ test(".pors formatting uses the PORS backend command and applies only to the cap
   assert.match(formatter, /dependencies\.activeTab\(\) !== tab \|\| dependencies\.view\.state\.doc !== doc/);
   assert.match(formatter, /annotations: isolateHistory\.of\("full"\)/);
   assert.match(api, /invoke<\{ from: number; to: number; insert: string \}\[\] \| null>\("format_portugol_rs", \{ source \}\)/);
-  assert.match(tauri, /fn format_portugol_rs\(source: String\) -> Option<Vec<portugol_service::TextEdit>>/);
+  assert.match(tauri, /fn format_portugol_rs\(source: String\) -> Option<Vec<ferro_service::TextEdit>>/);
 });

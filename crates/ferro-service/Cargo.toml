@@ -1,0 +1,23 @@
+[package]
+name = "ferro-service"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Fachada do núcleo do Ferro para a IDE: análise e execução em segundo plano"
+
+[dependencies]
+ferro-rust = { path = "../ferro-rust" }
+ferro-frontend = { path = "../ferro-frontend" }
+ferro-hir = { path = "../ferro-hir" }
+ferro-bytecode = { path = "../ferro-bytecode" }
+ferro-vm = { path = "../ferro-vm" }
+ferro-tela = { path = "../ferro-tela", features = ["frontend"] }
+ferro-formatos = { path = "../ferro-formatos" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_SystemInformation"] }

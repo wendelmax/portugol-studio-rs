@@ -1,0 +1,12 @@
+[package]
+name = "ferro-bytecode"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Conjunto de instruções e compilador HIR -> bytecode do Ferro"
+
+[dependencies]
+ferro-hir = { path = "../ferro-hir" }
+
+[dev-dependencies]
+ferro-frontend = { path = "../ferro-frontend" }

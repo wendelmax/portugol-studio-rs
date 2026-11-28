@@ -1,7 +1,7 @@
 # Ferro Studio — Web Playground (WASM)
 
 Playground estático, sem dependências JavaScript externas, movido pelo crate
-[`portugol-wasm`](../../crates/portugol-wasm) compilado para
+[`ferro-wasm`](../../crates/ferro-wasm) compilado para
 `wasm32-unknown-unknown`.
 
 Versão online publicada automaticamente via GitHub Pages:

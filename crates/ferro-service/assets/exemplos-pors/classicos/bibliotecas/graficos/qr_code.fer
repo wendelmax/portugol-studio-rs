@@ -1,0 +1,491 @@
+/*
+ * Exemplo clássico do Portugol Studio adaptado para Ferro (.pors)
+ * Referência técnica: https://www.thonky.com/qr-code-tutorial/introduction
+ *
+ * Descrição:
+ *
+ *   Gerador e visualizador de QR Code (Versão 1 - 21x21, correção de erro L,
+ *   modo byte) implementado em Ferro utilizando vetor<inteiro> achatado
+ *   para a matriz, aritmética de corpo finito GF(256) para correção de erros
+ *   Reed-Solomon, posicionamento em zigue-zague, máscaras 0..7 e renderização
+ *   interativa com a biblioteca Graficos.
+ *
+ *   Controles:
+ *   - Tela de digitação: digite até 17 caracteres, BACKSPACE apaga, ENTER gera
+ *   - Tela do QR Code: G (alternar grade), M (trocar máscara 0..7),
+ *     T (digitar novo texto), ESC (sair)
+ */
+
+funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
+    escolha Graficos.criar_cor(r, g, b) {
+        caso Resultado::Ok(cor) => {
+            retorne cor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne Graficos.COR_PRETO;
+        }
+    }
+}
+
+funcao gf_multiplicar(a: inteiro, b: inteiro) -> inteiro {
+    seja mutavel resultado = 0;
+    seja mutavel x: inteiro = a;
+    seja mutavel y: inteiro = b;
+
+    para (seja mutavel i = 0; i < 8; i += 1) {
+        se ((y & 1) != 0) {
+            resultado = resultado ^ x;
+        }
+        seja carry: logico = (x & 128) != 0;
+        x = (x << 1) & 255;
+        se (carry) {
+            x = x ^ 29;
+        }
+        y = y >> 1;
+    }
+
+    retorne resultado;
+}
+
+funcao calcular_reed_solomon_v1l(dados: vetor < inteiro >) -> vetor < inteiro > {
+    // Polinômio gerador para 7 codewords de correção de erro (Versão 1-L)
+    seja gerador: vetor < inteiro > = [1, 127, 122, 154, 164, 11, 68, 117];
+    seja mutavel resto: vetor < inteiro > = [0, 0, 0, 0, 0, 0, 0];
+
+    para (seja mutavel i = 0; i < tamanho(dados); i += 1) {
+        seja fator: inteiro = dados[i] ^ resto[0];
+        para (seja mutavel j = 0; j < 6; j += 1) {
+            resto[j] = resto[j + 1];
+        }
+        resto[6] = 0;
+
+        para (seja mutavel j = 0; j < 7; j += 1) {
+            resto[j] = resto[j] ^ gf_multiplicar(gerador[j + 1], fator);
+        }
+    }
+
+    retorne resto;
+}
+
+funcao adicionar_bits(mutavel bits: vetor < inteiro >, valor: inteiro, qtd: inteiro) -> vetor < inteiro > {
+    para (seja mutavel i: inteiro = qtd - 1; i >= 0; i -= 1) {
+        adicionar(bits, (valor >> i) & 1);
+    }
+    retorne bits;
+}
+
+funcao codigo_ascii_caracter(ch: caracter) -> inteiro {
+    escolha Tipos.caracter_para_inteiro(ch) {
+        caso Resultado::Ok(codigo) => {
+            retorne codigo & 255;
+        }
+        caso Resultado::Erro(_) => {
+            retorne 63;
+        }
+    }
+}
+
+funcao codificar_mensagem_bits(texto: cadeia) -> vetor < inteiro > {
+    seja mutavel n: inteiro = Texto.numero_caracteres(texto);
+    se (n > 17) {
+        n = 17;
+    }
+
+    // Modo byte (0100) + contagem de 8 bits + bytes dos caracteres
+    seja mutavel bits: vetor < inteiro > = [];
+    bits = adicionar_bits(bits, 4, 4);
+    bits = adicionar_bits(bits, n, 8);
+
+    para (seja mutavel i = 0; i < n; i += 1) {
+        escolha Texto.obter_caracter(texto, i) {
+            caso Opcao::Algum(ch) => {
+                bits = adicionar_bits(bits, codigo_ascii_caracter(ch), 8);
+            }
+            caso Opcao::Nenhum => {}
+        }
+    }
+
+    // Terminador (até 4 zeros) e alinhamento em múltiplos de 8 bits
+    seja limite_bits: inteiro = 152;
+    seja mutavel term = 0;
+    enquanto (term < 4 && tamanho(bits) < limite_bits) {
+        adicionar(bits, 0);
+        term += 1;
+    } enquanto ((tamanho(bits) % 8) != 0 && tamanho(bits) < limite_bits) {
+        adicionar(bits, 0);
+    }
+
+    // Converte bits para 19 codewords de dados com padding alternado (236, 17)
+    seja mutavel codewords: vetor < inteiro > = [];
+    seja total_bytes: inteiro = tamanho(bits) / 8;
+    para (seja mutavel b = 0; b < total_bytes; b += 1) {
+        seja mutavel valor = 0;
+        para (seja mutavel k = 0; k < 8; k += 1) {
+            valor = (valor << 1) | bits[(b * 8) + k];
+        }
+        adicionar(codewords, valor);
+    }
+
+    seja mutavel pad_indice = 0;
+    enquanto (tamanho(codewords) < 19) {
+        se ((pad_indice % 2) == 0) {
+            adicionar(codewords, 236);
+        } senao {
+            adicionar(codewords, 17);
+        }
+        pad_indice += 1;
+    }
+
+    // Calcula e anexa os 7 codewords Reed-Solomon (total = 26 bytes = 208 bits)
+    seja ec: vetor < inteiro > = calcular_reed_solomon_v1l(codewords);
+    seja mutavel fluxo_final: vetor < inteiro > = [];
+
+    para (seja mutavel i = 0; i < tamanho(codewords); i += 1) {
+        fluxo_final = adicionar_bits(fluxo_final, codewords[i], 8);
+    }
+    para (seja mutavel i = 0; i < tamanho(ec); i += 1) {
+        fluxo_final = adicionar_bits(fluxo_final, ec[i], 8);
+    }
+
+    retorne fluxo_final;
+}
+
+funcao colocar_localizador(
+mutavel matriz: vetor < inteiro >,
+lado: inteiro,
+linha_base: inteiro,
+coluna_base: inteiro
+) -> vetor < inteiro > {
+    para (seja mutavel dr: inteiro = -1; dr <= 7; dr += 1) {
+        para (seja mutavel dc: inteiro = -1; dc <= 7; dc += 1) {
+            seja r: inteiro = linha_base + dr;
+            seja c: inteiro = coluna_base + dc;
+            se (r >= 0 && r < lado && c >= 0 && c < lado) {
+                seja eh_borda_ext: logico = dr == -1 || dr == 7 || dc == -1 || dc == 7;
+                seja eh_quadro: logico = dr == 0 || dr == 6 || dc == 0 || dc == 6;
+                seja eh_centro: logico = dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4;
+
+                se (eh_borda_ext) {
+                    matriz[(r * lado) + c] = 2;
+                } senao se (eh_quadro || eh_centro) {
+                    matriz[(r * lado) + c] = 3;
+                } senao {
+                    matriz[(r * lado) + c] = 2;
+                }
+            }
+        }
+    }
+    retorne matriz;
+}
+
+funcao calcular_bits_formato(mascara: inteiro) -> inteiro {
+    // Nível L = 01 (2 bits) combinado com máscara (3 bits)
+    seja dados_fmt: inteiro = (1 << 3) | (mascara & 7);
+    seja mutavel resto: inteiro = dados_fmt << 10;
+    seja poli: inteiro = 1335;
+
+    para (seja mutavel bit: inteiro = 14; bit >= 10; bit -= 1) {
+        se (((resto >> bit) & 1) != 0) {
+            resto = resto ^ (poli << (bit - 10));
+        }
+    }
+
+    retorne ((dados_fmt << 10) | resto) ^ 21522;
+}
+
+funcao condicao_mascara(mascara: inteiro, r: inteiro, c: inteiro) -> logico {
+    se (mascara == 0) {
+        retorne ((r + c) % 2) == 0;
+    } senao se (mascara == 1) {
+        retorne (r % 2) == 0;
+    } senao se (mascara == 2) {
+        retorne (c % 3) == 0;
+    } senao se (mascara == 3) {
+        retorne ((r + c) % 3) == 0;
+    } senao se (mascara == 4) {
+        retorne (((r / 2) + (c / 3)) % 2) == 0;
+    } senao se (mascara == 5) {
+        retorne (((r * c) % 2) + ((r * c) % 3)) == 0;
+    } senao se (mascara == 6) {
+        retorne ((((r * c) % 2) + ((r * c) % 3)) % 2) == 0;
+    }
+    retorne ((((r + c) % 2) + ((r * c) % 3)) % 2) == 0;
+}
+
+funcao aplicar_formato(mutavel matriz: vetor < inteiro >, lado: inteiro, mascara: inteiro) -> vetor < inteiro > {
+    seja fmt: inteiro = calcular_bits_formato(mascara);
+
+    // Primeira cópia ao redor do localizador superior esquerdo
+    seja linhas_a: vetor < inteiro > = [8, 8, 8, 8, 8, 8, 8, 8, 7, 5, 4, 3, 2, 1, 0];
+    seja cols_a: vetor < inteiro > = [0, 1, 2, 3, 4, 5, 7, 8, 8, 8, 8, 8, 8, 8, 8];
+
+    // Segunda cópia nos localizadores inferior esquerdo e superior direito
+    seja linhas_b: vetor < inteiro > = [20, 19, 18, 17, 16, 15, 14, 8, 8, 8, 8, 8, 8, 8, 8];
+    seja cols_b: vetor < inteiro > = [8, 8, 8, 8, 8, 8, 8, 13, 14, 15, 16, 17, 18, 19, 20];
+
+    para (seja mutavel i = 0; i < 15; i += 1) {
+        seja bit: inteiro = (fmt >> (14 - i)) & 1;
+        seja valor: inteiro = 2 + bit;
+        matriz[(linhas_a[i] * lado) + cols_a[i]] = valor;
+        matriz[(linhas_b[i] * lado) + cols_b[i]] = valor;
+    }
+
+    retorne matriz;
+}
+
+funcao gerar_matriz_qrcode(texto: cadeia, mascara: inteiro) -> vetor < inteiro > {
+    seja lado: inteiro = 21;
+    seja mutavel matriz: vetor < inteiro > = [];
+
+    para (seja mutavel i = 0; i < (lado * lado); i += 1) {
+        adicionar(matriz, -1);
+    }
+
+    // 1. Três padrões localizadores (7x7) e separadores
+    matriz = colocar_localizador(matriz, lado, 0, 0);
+    matriz = colocar_localizador(matriz, lado, 0, lado - 7);
+    matriz = colocar_localizador(matriz, lado, lado - 7, 0);
+
+    // 2. Padrões de temporização (linha 6 e coluna 6)
+    para (seja mutavel i: inteiro = 8; i <= 12; i += 1) {
+        seja valor: inteiro = 2 + ((i + 1) % 2);
+        matriz[(6 * lado) + i] = valor;
+        matriz[(i * lado) + 6] = valor;
+    }
+
+    // 3. Módulo escuro fixo
+    matriz[(13 * lado) + 8] = 3;
+
+    // 4. Reserva áreas de informação de formato
+    matriz = aplicar_formato(matriz, lado, mascara);
+
+    // 5. Insere os bits de dados + Reed-Solomon em zigue-zague com máscara
+    seja bits: vetor < inteiro > = codificar_mensagem_bits(texto);
+    seja mutavel idx_bit = 0;
+    seja mutavel subindo: logico = verdadeiro;
+    seja mutavel col: inteiro = lado - 1;
+
+    enquanto (col > 0) {
+        se (col == 6) {
+            col -= 1;
+        }
+
+        para (seja mutavel passo = 0; passo < lado; passo += 1) {
+            seja mutavel r: inteiro = passo;
+            se (subindo) {
+                r = (lado - 1) - passo;
+            }
+
+            para (seja mutavel dx = 0; dx < 2; dx += 1) {
+                seja c: inteiro = col - dx;
+                se (matriz[(r * lado) + c] == -1) {
+                    seja mutavel bit = 0;
+                    se (idx_bit < tamanho(bits)) {
+                        bit = bits[idx_bit];
+                        idx_bit += 1;
+                    }
+                    se (condicao_mascara(mascara, r, c)) {
+                        bit = bit ^ 1;
+                    }
+                    matriz[(r * lado) + c] = bit;
+                }
+            }
+        }
+
+        subindo = !subindo;
+        col -= 2;
+    }
+
+    retorne matriz;
+}
+
+funcao desenhar_qrcode(
+matriz: vetor < inteiro >,
+texto: cadeia,
+mascara: inteiro,
+exibir_grade: logico
+) {
+    seja lado: inteiro = 21;
+    seja tamanho_modulo: inteiro = 14;
+    seja margem: inteiro = 4;
+    seja origem_x: inteiro = 96;
+    seja origem_y: inteiro = 64;
+    seja total_px: inteiro = (lado + (margem * 2)) * tamanho_modulo;
+
+    Graficos.definir_cor(cor_rgb(28, 34, 48));
+    Graficos.limpar();
+
+    // Zona de silêncio branca ao redor do QR Code
+    Graficos.definir_cor(cor_rgb(245, 245, 245));
+    Graficos.desenhar_retangulo(
+    origem_x - (margem * tamanho_modulo),
+    origem_y - (margem * tamanho_modulo),
+    total_px,
+    total_px,
+    verdadeiro,
+    verdadeiro
+    );
+
+    para (seja mutavel r = 0; r < lado; r += 1) {
+        para (seja mutavel c = 0; c < lado; c += 1) {
+            seja celula: inteiro = matriz[(r * lado) + c];
+            seja escuro: logico = (celula % 2) == 1;
+            seja px: inteiro = origem_x + (c * tamanho_modulo);
+            seja py: inteiro = origem_y + (r * tamanho_modulo);
+
+            se (escuro) {
+                Graficos.definir_cor(Graficos.COR_PRETO);
+            } senao {
+                Graficos.definir_cor(cor_rgb(245, 245, 245));
+            }
+            Graficos.desenhar_retangulo(px, py, tamanho_modulo, tamanho_modulo, falso, verdadeiro);
+
+            se (exibir_grade) {
+                Graficos.definir_cor(cor_rgb(130, 140, 160));
+                Graficos.desenhar_retangulo(px, py, tamanho_modulo, tamanho_modulo, falso, falso);
+            }
+        }
+    }
+
+    // Rodapé informativo
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.definir_tamanho_texto(15.0);
+    Graficos.desenhar_texto(
+    24,
+    436,
+    "Texto: \"" + texto + "\" | Versão 1-L (21x21) | Máscara: " + Tipos.inteiro_para_cadeia(mascara)
+    );
+    Graficos.definir_cor(cor_rgb(180, 200, 225));
+    Graficos.definir_tamanho_texto(13.0);
+    Graficos.desenhar_texto(
+    24,
+    462,
+    "M: alternar máscara | G: alternar grade | T: novo texto | ESC: sair"
+    );
+
+    Graficos.renderizar();
+}
+
+funcao ler_texto_interativo(texto_padrao: cadeia) -> Opcao < cadeia > {
+    seja mutavel palavra: cadeia = "";
+    seja mutavel confirmou: logico = falso;
+    seja mutavel cancelou: logico = falso;
+
+    enquanto (!confirmou && !cancelou) {
+        Graficos.definir_cor(cor_rgb(24, 30, 44));
+        Graficos.limpar();
+
+        Graficos.definir_cor(Graficos.COR_BRANCO);
+        Graficos.definir_tamanho_texto(20.0);
+        Graficos.desenhar_texto(36, 120, "Gerador de QR Code (Ferro)");
+
+        Graficos.definir_tamanho_texto(15.0);
+        Graficos.definir_cor(cor_rgb(185, 200, 220));
+        Graficos.desenhar_texto(
+        36,
+        165,
+        "Digite o texto (máx. 17 caracteres) e pressione ENTER:"
+        );
+        Graficos.desenhar_texto(
+        36,
+        190,
+        "(Deixe em branco e pressione ENTER para usar \"" + texto_padrao + "\")"
+        );
+
+        Graficos.definir_cor(Graficos.COR_BRANCO);
+        Graficos.desenhar_retangulo(36, 230, 420, 46, verdadeiro, verdadeiro);
+        Graficos.definir_cor(cor_rgb(45, 65, 110));
+        Graficos.desenhar_retangulo(36, 230, 420, 46, verdadeiro, falso);
+
+        Graficos.definir_cor(Graficos.COR_PRETO);
+        Graficos.definir_tamanho_texto(20.0);
+        Graficos.desenhar_texto(50, 242, palavra + "_");
+
+        Graficos.renderizar();
+
+        escolha Teclado.ler_tecla() {
+            caso Resultado::Ok(tecla) => {
+                se (tecla == Teclado.TECLA_ESC) {
+                    cancelou = verdadeiro;
+                } senao se (tecla == Teclado.TECLA_ENTER) {
+                    confirmou = verdadeiro;
+                } senao se (tecla == Teclado.TECLA_BACKSPACE) {
+                    seja tam: inteiro = Texto.numero_caracteres(palavra);
+                    se (tam > 0) {
+                        escolha Texto.extrair_subtexto(palavra, 0, tam - 1) {
+                            caso Resultado::Ok(reduzida) => {
+                                palavra = reduzida;
+                            }
+                            caso Resultado::Erro(_) => {}
+                        }
+                    }
+                } senao se (Texto.numero_caracteres(palavra) < 17) {
+                    seja ch: caracter = Teclado.caracter_tecla(tecla);
+                    seja cod: inteiro = codigo_ascii_caracter(ch);
+                    se (cod >= 32 && cod <= 126) {
+                        palavra = palavra + Tipos.caracter_para_cadeia(ch);
+                    }
+                }
+            }
+            caso Resultado::Erro(_) => {
+                cancelou = verdadeiro;
+            }
+        }
+    }
+
+    se (cancelou) {
+        retorne Opcao::Nenhum;
+    }
+    se (Texto.numero_caracteres(Texto.aparar(palavra)) == 0) {
+        retorne Opcao::Algum(texto_padrao);
+    }
+    retorne Opcao::Algum(palavra);
+}
+
+funcao inicio() {
+    seja texto_padrao: cadeia = "PORTUGOL RS";
+
+    Graficos.iniciar_modo_grafico(verdadeiro);
+    Graficos.definir_dimensoes_janela(490, 500);
+    Graficos.definir_titulo_janela("Gerador de QR Code");
+
+    seja mutavel executando: logico = verdadeiro;
+    seja mutavel mascara = 0;
+    seja mutavel exibir_grade: logico = falso;
+
+    enquanto (executando) {
+        escolha ler_texto_interativo(texto_padrao) {
+            caso Opcao::Nenhum => {
+                executando = falso;
+            }
+            caso Opcao::Algum(texto_atual) => {
+                seja mutavel matriz: vetor < inteiro > = gerar_matriz_qrcode(texto_atual, mascara);
+                seja mutavel visualizando: logico = verdadeiro;
+
+                enquanto (visualizando && executando) {
+                    desenhar_qrcode(matriz, texto_atual, mascara, exibir_grade);
+
+                    escolha Teclado.ler_tecla() {
+                        caso Resultado::Ok(tecla) => {
+                            se (tecla == Teclado.TECLA_ESC) {
+                                executando = falso;
+                            } senao se (tecla == Teclado.TECLA_G) {
+                                exibir_grade = !exibir_grade;
+                            } senao se (tecla == Teclado.TECLA_M) {
+                                mascara = (mascara + 1) % 8;
+                                matriz = gerar_matriz_qrcode(texto_atual, mascara);
+                            } senao se (tecla == Teclado.TECLA_T) {
+                                visualizando = falso;
+                            }
+                        }
+                        caso Resultado::Erro(_) => {
+                            executando = falso;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Graficos.encerrar_modo_grafico();
+}

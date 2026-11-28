@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    portugol_desktop_lib::run_app()
+    ferro_desktop_lib::run_app()
 }

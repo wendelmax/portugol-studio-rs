@@ -1,0 +1,47 @@
+/* Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ * Adaptado para Ferro (.pors)
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *     Este exemplo ilustra o uso dos vetores da linguagem Ferro.
+ *
+ *     Neste exemplo, são criados dois vetores. O primeiro é do tipo cadeia e armazena os
+ *     nomes de várias pessoas. O segundo é do tipo real e armazena as alturas destas pessoas.
+ *
+ *     O programa então percorre cada um dos vetores, montando no console uma tabela dos dados
+ *     existentes. Cada nome é associado à sua respectiva altura.
+ *
+ * Autores:
+ *
+ *     Giordana Maria da Costa Valle
+ *     Carlos Alexandre Krueger
+ *
+ * Data: 01/06/2013
+ */
+
+funcao inicio() {
+    // Criação dos vetores, já com os dados inicializados
+    seja nomes: vetor < cadeia > = ["Andre", "Thiago", "Bruno", "Carlos", "Cassio"];
+    seja alturas: vetor < real > = [1.71, 1.78, 1.75, 1.87, 1.71];
+
+    // Cria o cabeçalho da tabela
+    escreval("--------------------");
+    escreval("       TABELA       ");
+    escreval("--------------------");
+
+    /*
+     * Percorre os vetores exibindo as informações. Note que as informações
+     * são relacionadas colocando-as na mesma posição em ambos os vetores.
+     * Por exemplo, se quiséssemos incluir a idade de cada pessoa, criaríamos
+     * mais um vetor do tipo inteiro e a idade de Andre seria armazenada na
+     * posição 0, a de Thiago na posição 1, a de Bruno na posição 2, e assim por diante.
+     */
+    para (seja mutavel posicao = 0; posicao < tamanho(nomes); posicao += 1) {
+        // O caracter especial \t serve para escrever uma tabulação
+        escreval(nomes[posicao], "\t\t", alturas[posicao]);
+    }
+}

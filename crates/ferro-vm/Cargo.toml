@@ -1,0 +1,30 @@
+[package]
+name = "ferro-vm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Máquina virtual e bibliotecas padrão do Ferro"
+
+[features]
+default = ["stdlib"]
+stdlib = [
+    "dep:ureq",
+    "dep:ab_glyph",
+    "dep:ttf-parser",
+    "dep:image",
+]
+
+[dependencies]
+ferro-hir = { path = "../ferro-hir" }
+ferro-bytecode = { path = "../ferro-bytecode" }
+ureq = { version = "2", optional = true }
+ab_glyph = { version = "0.2", optional = true }
+ttf-parser = { version = "0.25", optional = true }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "bmp"], optional = true }
+
+[dev-dependencies]
+ferro-frontend = { path = "../ferro-frontend" }
+
+[[test]]
+name = "catalogo_bibliotecas"
+required-features = ["stdlib"]

@@ -62,7 +62,7 @@ fi
 pkg_path="${packages[0]}"
 pkg_list="$(tar --zstd -tf "$pkg_path")"
 for required in \
-  "usr/bin/portugol-desktop" \
+  "usr/bin/ferro-desktop" \
   "usr/bin/portugol-studio-rs" \
   "usr/share/applications/portugol-studio-rs.desktop" \
   "usr/share/mime/packages/portugol-studio-rs.xml" \

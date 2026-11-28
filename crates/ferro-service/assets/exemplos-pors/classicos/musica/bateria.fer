@@ -1,0 +1,566 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *   Este exemplo utiliza as bibliotecas "Sons", "Graficos", "Mouse" e "Teclado"
+ *   para criar uma bateria eletrônica (sequenciador de 16 tempos). O exemplo permite
+ *   programar 3 faixas independentes, representando cada parte da bateria:
+ *   bumbo, caixa e chimbal.
+ *
+ *   O usuário pode ligar e desligar cada batida clicando na grade, controlar o
+ *   andamento (BPM), ajustar o volume geral e o volume individual de cada peça,
+ *   e acionar cada peça diretamente pelo teclado (1, 2, 3).
+ *
+ *   Caso os arquivos de áudio externos não estejam presentes, o sequenciador
+ *   continua funcionando em modo visual interativo, demonstrando o tratamento
+ *   seguro de `Resultado` e `Opcao` em Ferro.
+ *
+ * Autores (versão original):
+ *
+ *   Adson Esteves
+ *   Alisson Steffens Henrique
+ *   Elieser Ademir de Jesus
+ *   Luiz Fernando Noschang (noschang@univali.br)
+ *
+ * Data original: 10/02/2016
+ * Adaptado para Ferro (.pors)
+ */
+
+registro EstadoBateria {
+    notas: vetor < logico >,
+    executando: logico,
+    tempo_atual: inteiro,
+    andamento: inteiro,
+    volume_geral: inteiro,
+    volume_bumbo: inteiro,
+    volume_caixa: inteiro,
+    volume_chimbal: inteiro,
+    som_bumbo: Opcao < inteiro >,
+    som_caixa: Opcao < inteiro >,
+    som_chimbal: Opcao < inteiro >,
+    pulso_bumbo: inteiro,
+    pulso_caixa: inteiro,
+    pulso_chimbal: inteiro,
+    audio_disponivel: logico,
+    mouse_estava_pressionado: logico,
+    tecla_espaco_estava: logico,
+    tecla_r_estava: logico,
+    tecla_c_estava: logico,
+    tecla_1_estava: logico,
+    tecla_2_estava: logico,
+    tecla_3_estava: logico,
+}
+
+funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
+    escolha Graficos.criar_cor(r, g, b) {
+        caso Resultado::Ok(cor) => {
+            retorne cor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne Graficos.COR_BRANCO;
+        }
+    }
+}
+
+funcao tentar_carregar_som(caminho: cadeia) -> Opcao < inteiro > {
+    escolha Sons.carregar_som(caminho) {
+        caso Resultado::Ok(id) => {
+            retorne Opcao::Algum(id);
+        }
+        caso Resultado::Erro(_) => {
+            retorne Opcao::Nenhum;
+        }
+    }
+}
+
+funcao tocar_peca(som: Opcao < inteiro >, volume: inteiro) {
+    escolha som {
+        caso Opcao::Algum(id) => {
+            escolha Sons.reproduzir_som(id, falso) {
+                caso Resultado::Ok(reproducao) => {
+                    Sons.definir_volume_reproducao(reproducao, volume);
+                }
+                caso Resultado::Erro(_) => {}
+            }
+        }
+        caso Opcao::Nenhum => {}
+    }
+}
+
+funcao liberar_som_opcional(som: Opcao < inteiro >) {
+    escolha som {
+        caso Opcao::Algum(id) => {
+            Sons.liberar_som(id);
+        }
+        caso Opcao::Nenhum => {}
+    }
+}
+
+funcao criar_batida_padrao() -> vetor < logico > {
+    seja mutavel notas: vetor < logico > = [];
+    para (seja mutavel i = 0; i < 48; i += 1) {
+        adicionar(notas, falso);
+    }
+
+    // Linha 0: Bumbo (tempos 0, 6, 8, 10)
+    notas[0] = verdadeiro;
+    notas[6] = verdadeiro;
+    notas[8] = verdadeiro;
+    notas[10] = verdadeiro;
+
+    // Linha 1: Caixa (tempos 4, 12)
+    notas[16 + 4] = verdadeiro;
+    notas[16 + 12] = verdadeiro;
+
+    // Linha 2: Chimbal (a cada dois tempos)
+    para (seja mutavel c = 0; c < 16; c += 2) {
+        notas[32 + c] = verdadeiro;
+    }
+
+    retorne notas;
+}
+
+funcao criar_batida_vazia() -> vetor < logico > {
+    seja mutavel notas: vetor < logico > = [];
+    para (seja mutavel i = 0; i < 48; i += 1) {
+        adicionar(notas, falso);
+    }
+    retorne notas;
+}
+
+funcao criar_estado_inicial() -> EstadoBateria {
+    seja som_bumbo: Opcao < inteiro > = tentar_carregar_som("./bateria/sons/bumbo.mp3");
+    seja som_caixa: Opcao < inteiro > = tentar_carregar_som("./bateria/sons/caixa.mp3");
+    seja som_chimbal: Opcao < inteiro > = tentar_carregar_som("./bateria/sons/chimbal.mp3");
+
+    seja mutavel audio_ok: logico = falso;
+    escolha som_bumbo {
+        caso Opcao::Algum(_) => {
+            audio_ok = verdadeiro;
+        }
+        caso Opcao::Nenhum => {}
+    }
+
+    Sons.definir_volume(100);
+
+    retorne EstadoBateria {
+        notas: criar_batida_padrao(),
+        executando: verdadeiro,
+        tempo_atual: 0,
+        andamento: 120,
+        volume_geral: 100,
+        volume_bumbo: 100,
+        volume_caixa: 90,
+        volume_chimbal: 80,
+        som_bumbo: som_bumbo,
+        som_caixa: som_caixa,
+        som_chimbal: som_chimbal,
+        pulso_bumbo: 0,
+        pulso_caixa: 0,
+        pulso_chimbal: 0,
+        audio_disponivel: audio_ok,
+        mouse_estava_pressionado: falso,
+        tecla_espaco_estava: falso,
+        tecla_r_estava: falso,
+        tecla_c_estava: falso,
+        tecla_1_estava: falso,
+        tecla_2_estava: falso,
+        tecla_3_estava: falso,
+    }
+    ;
+}
+
+funcao ponto_no_retangulo(px: inteiro, py: inteiro, x: inteiro, y: inteiro, largura: inteiro, altura: inteiro) -> logico {
+    retorne px >= x && px <= x + largura && py >= y && py <= y + altura;
+}
+
+funcao limitar_intervalo(valor: inteiro, minimo: inteiro, maximo: inteiro) -> inteiro {
+    se (valor < minimo) {
+        retorne minimo;
+    }
+    se (valor > maximo) {
+        retorne maximo;
+    }
+    retorne valor;
+}
+
+funcao avancar_compasso(estado: EstadoBateria) -> EstadoBateria {
+    seja mutavel novo: EstadoBateria = estado;
+    seja notas: vetor < logico > = novo.notas;
+    novo.tempo_atual = (novo.tempo_atual + 1) % 16;
+
+    se (notas[novo.tempo_atual]) {
+        tocar_peca(novo.som_bumbo, novo.volume_bumbo);
+        novo.pulso_bumbo = 10;
+    }
+    se (notas[16 + novo.tempo_atual]) {
+        tocar_peca(novo.som_caixa, novo.volume_caixa);
+        novo.pulso_caixa = 10;
+    }
+    se (notas[32 + novo.tempo_atual]) {
+        tocar_peca(novo.som_chimbal, novo.volume_chimbal);
+        novo.pulso_chimbal = 10;
+    }
+
+    retorne novo;
+}
+
+funcao processar_entrada(estado: EstadoBateria) -> EstadoBateria {
+    seja mutavel novo: EstadoBateria = estado;
+
+    // Teclado: espaço inicia/pausa
+    seja espaco: logico = Teclado.tecla_pressionada(Teclado.TECLA_ESPACO);
+    se (espaco && !novo.tecla_espaco_estava) {
+        novo.executando = !novo.executando;
+    }
+    novo.tecla_espaco_estava = espaco;
+
+    // R restaura batida padrão
+    seja tecla_r: logico = Teclado.tecla_pressionada(Teclado.TECLA_R);
+    se (tecla_r && !novo.tecla_r_estava) {
+        novo.notas = criar_batida_padrao();
+    }
+    novo.tecla_r_estava = tecla_r;
+
+    // C limpa todas as notas
+    seja tecla_c: logico = Teclado.tecla_pressionada(Teclado.TECLA_C);
+    se (tecla_c && !novo.tecla_c_estava) {
+        novo.notas = criar_batida_vazia();
+    }
+    novo.tecla_c_estava = tecla_c;
+
+    // Setas ajustam andamento (BPM)
+    se (Teclado.tecla_pressionada(Teclado.TECLA_SETA_ACIMA)) {
+        novo.andamento = limitar_intervalo(novo.andamento + 1, 60, 220);
+    }
+    se (Teclado.tecla_pressionada(Teclado.TECLA_SETA_ABAIXO)) {
+        novo.andamento = limitar_intervalo(novo.andamento - 1, 60, 220);
+    }
+
+    // Teclas 1, 2, 3 disparam as peças ao vivo
+    seja t1: logico = Teclado.tecla_pressionada(Teclado.TECLA_1);
+    se (t1 && !novo.tecla_1_estava) {
+        tocar_peca(novo.som_bumbo, novo.volume_bumbo);
+        novo.pulso_bumbo = 12;
+    }
+    novo.tecla_1_estava = t1;
+
+    seja t2: logico = Teclado.tecla_pressionada(Teclado.TECLA_2);
+    se (t2 && !novo.tecla_2_estava) {
+        tocar_peca(novo.som_caixa, novo.volume_caixa);
+        novo.pulso_caixa = 12;
+    }
+    novo.tecla_2_estava = t2;
+
+    seja t3: logico = Teclado.tecla_pressionada(Teclado.TECLA_3);
+    se (t3 && !novo.tecla_3_estava) {
+        tocar_peca(novo.som_chimbal, novo.volume_chimbal);
+        novo.pulso_chimbal = 12;
+    }
+    novo.tecla_3_estava = t3;
+
+    // Cliques do mouse
+    seja clicando: logico = Mouse.botao_pressionado(Mouse.BOTAO_ESQUERDO);
+    se (clicando && !novo.mouse_estava_pressionado) {
+        seja mx: inteiro = Mouse.posicao_x();
+        seja my: inteiro = Mouse.posicao_y();
+
+        // Grade 3 x 16
+        seja margem_esq: inteiro = 140;
+        seja margem_sup: inteiro = 126;
+        seja passo_x: inteiro = 36;
+        seja passo_y: inteiro = 46;
+
+        seja mutavel notas: vetor < logico > = novo.notas;
+        para (seja mutavel linha = 0; linha < 3; linha += 1) {
+            para (seja mutavel coluna = 0; coluna < 16; coluna += 1) {
+                seja bx: inteiro = margem_esq + coluna * passo_x;
+                seja by: inteiro = margem_sup + linha * passo_y;
+                se (ponto_no_retangulo(mx, my, bx, by, 30, 30)) {
+                    seja idx: inteiro = linha * 16 + coluna;
+                    notas[idx] = !notas[idx];
+                }
+            }
+        }
+        novo.notas = notas;
+
+        // Botões de volume individual (-) e (+)
+        para (seja mutavel peca = 0; peca < 3; peca += 1) {
+            seja by: inteiro = margem_sup + peca * passo_y + 3;
+            se (ponto_no_retangulo(mx, my, 730, by, 24, 24)) {
+                se (peca == 0) {
+                    novo.volume_bumbo = limitar_intervalo(novo.volume_bumbo - 10, 0, 100);
+                } senao se (peca == 1) {
+                    novo.volume_caixa = limitar_intervalo(novo.volume_caixa - 10, 0, 100);
+                } senao {
+                    novo.volume_chimbal = limitar_intervalo(novo.volume_chimbal - 10, 0, 100);
+                }
+            }
+            se (ponto_no_retangulo(mx, my, 822, by, 24, 24)) {
+                se (peca == 0) {
+                    novo.volume_bumbo = limitar_intervalo(novo.volume_bumbo + 10, 0, 100);
+                } senao se (peca == 1) {
+                    novo.volume_caixa = limitar_intervalo(novo.volume_caixa + 10, 0, 100);
+                } senao {
+                    novo.volume_chimbal = limitar_intervalo(novo.volume_chimbal + 10, 0, 100);
+                }
+            }
+        }
+
+        // Controles inferiores
+        se (ponto_no_retangulo(mx, my, 30, 292, 110, 34)) {
+            novo.executando = !novo.executando;
+        }
+        se (ponto_no_retangulo(mx, my, 152, 292, 100, 34)) {
+            novo.notas = criar_batida_padrao();
+        }
+        se (ponto_no_retangulo(mx, my, 264, 292, 92, 34)) {
+            novo.notas = criar_batida_vazia();
+        }
+        // BPM - / +
+        se (ponto_no_retangulo(mx, my, 430, 296, 28, 28)) {
+            novo.andamento = limitar_intervalo(novo.andamento - 5, 60, 220);
+        }
+        se (ponto_no_retangulo(mx, my, 540, 296, 28, 28)) {
+            novo.andamento = limitar_intervalo(novo.andamento + 5, 60, 220);
+        }
+        // Volume geral - / +
+        se (ponto_no_retangulo(mx, my, 690, 296, 28, 28)) {
+            novo.volume_geral = limitar_intervalo(novo.volume_geral - 10, 0, 100);
+            Sons.definir_volume(novo.volume_geral);
+        }
+        se (ponto_no_retangulo(mx, my, 818, 296, 28, 28)) {
+            novo.volume_geral = limitar_intervalo(novo.volume_geral + 10, 0, 100);
+            Sons.definir_volume(novo.volume_geral);
+        }
+    }
+    novo.mouse_estava_pressionado = clicando;
+
+    se (novo.pulso_bumbo > 0) {
+        novo.pulso_bumbo -= 1;
+    }
+    se (novo.pulso_caixa > 0) {
+        novo.pulso_caixa -= 1;
+    }
+    se (novo.pulso_chimbal > 0) {
+        novo.pulso_chimbal -= 1;
+    }
+
+    retorne novo;
+}
+
+funcao desenhar_botao(x: inteiro, y: inteiro, largura: inteiro, altura: inteiro, rotulo: cadeia, ativo: logico) {
+    seja mx: inteiro = Mouse.posicao_x();
+    seja my: inteiro = Mouse.posicao_y();
+    seja sobre: logico = ponto_no_retangulo(mx, my, x, y, largura, altura);
+
+    se (ativo) {
+        Graficos.definir_cor(cor_rgb(255, 194, 0));
+    } senao se (sobre) {
+        Graficos.definir_cor(cor_rgb(76, 76, 86));
+    } senao {
+        Graficos.definir_cor(cor_rgb(48, 48, 56));
+    }
+    Graficos.desenhar_retangulo(x, y, largura, altura, verdadeiro, verdadeiro);
+
+    Graficos.definir_cor(cor_rgb(100, 100, 112));
+    Graficos.desenhar_retangulo(x, y, largura, altura, verdadeiro, falso);
+
+    se (ativo) {
+        Graficos.definir_cor(cor_rgb(20, 20, 24));
+    } senao {
+        Graficos.definir_cor(Graficos.COR_BRANCO);
+    }
+    Graficos.definir_tamanho_texto(14.0);
+    seja lw: inteiro = Graficos.largura_texto(rotulo);
+    Graficos.desenhar_texto(x + (largura - lw) / 2, y + altura / 2 - 7, rotulo);
+}
+
+funcao desenhar_barras_volume(x: inteiro, y: inteiro, volume: inteiro) {
+    seja barras_cheias: inteiro = volume / 20;
+    para (seja mutavel i = 0; i < 5; i += 1) {
+        seja bx: inteiro = x + i * 11;
+        se (i < barras_cheias) {
+            Graficos.definir_cor(cor_rgb(255, 194, 0));
+        } senao {
+            Graficos.definir_cor(cor_rgb(56, 56, 64));
+        }
+        Graficos.desenhar_retangulo(bx, y + (4 - i) * 3, 8, 8 + i * 3, falso, verdadeiro);
+    }
+}
+
+funcao desenhar(estado: EstadoBateria) {
+    seja cor_fundo: inteiro = cor_rgb(24, 24, 30);
+    seja cor_painel: inteiro = cor_rgb(34, 34, 42);
+    seja cor_destaque: inteiro = cor_rgb(255, 194, 0);
+    seja cor_texto: inteiro = cor_rgb(220, 220, 226);
+    seja cor_suave: inteiro = cor_rgb(150, 154, 168);
+
+    Graficos.definir_cor(cor_fundo);
+    Graficos.limpar();
+
+    // Cabeçalho
+    Graficos.definir_cor(cor_painel);
+    Graficos.desenhar_retangulo(16, 14, 848, 66, verdadeiro, verdadeiro);
+    Graficos.definir_cor(cor_destaque);
+    Graficos.definir_tamanho_texto(24.0);
+    Graficos.desenhar_texto(32, 24, "BATERIA ELETRONICA - SEQUENCIADOR 16 TEMPOS");
+    Graficos.definir_cor(cor_suave);
+    Graficos.definir_tamanho_texto(13.0);
+    se (estado.audio_disponivel) {
+        Graficos.desenhar_texto(32, 54, "Audio carregado | Clique na grade ou use [ESPACO] Play/Pause, [1/2/3] Pads, [Setas] BPM, [ESC] Sair");
+    } senao {
+        Graficos.desenhar_texto(32, 54, "Modo visual interativo (sem arquivos MP3 locais) | [ESPACO] Play/Pause, [1/2/3] Pads, [Setas] BPM, [ESC] Sair");
+    }
+
+    // Lâmpadas dos 16 tempos musicais
+    seja margem_esq: inteiro = 140;
+    seja passo_x: inteiro = 36;
+    para (seja mutavel c = 0; c < 16; c += 1) {
+        seja lx: inteiro = margem_esq + c * passo_x + 9;
+        se (c == estado.tempo_atual && estado.executando) {
+            Graficos.definir_cor(cor_destaque);
+        } senao se (c % 4 == 0) {
+            Graficos.definir_cor(cor_rgb(110, 86, 40));
+        } senao {
+            Graficos.definir_cor(cor_rgb(56, 56, 66));
+        }
+        Graficos.desenhar_elipse(lx, 96, 12, 12, verdadeiro);
+    }
+
+    // Grade das 3 peças: Bumbo, Caixa, Chimbal
+    seja nomes: vetor < cadeia > = ["1. BUMBO", "2. CAIXA", "3. CHIMBAL"];
+    seja pulsos: vetor < inteiro > = [estado.pulso_bumbo, estado.pulso_caixa, estado.pulso_chimbal];
+    seja volumes: vetor < inteiro > = [estado.volume_bumbo, estado.volume_caixa, estado.volume_chimbal];
+
+    seja margem_sup: inteiro = 126;
+    seja passo_y: inteiro = 46;
+
+    para (seja mutavel linha = 0; linha < 3; linha += 1) {
+        seja ry: inteiro = margem_sup + linha * passo_y;
+
+        // Indicador luminoso da peça
+        se (pulsos[linha] > 0) {
+            Graficos.definir_cor(cor_destaque);
+        } senao {
+            Graficos.definir_cor(cor_rgb(60, 62, 72));
+        }
+        Graficos.desenhar_elipse(26, ry + 7, 16, 16, verdadeiro);
+
+        // Nome da peça
+        Graficos.definir_cor(cor_texto);
+        Graficos.definir_tamanho_texto(14.0);
+        Graficos.desenhar_texto(50, ry + 8, nomes[linha]);
+
+        // 16 botões da faixa
+        seja notas: vetor < logico > = estado.notas;
+        para (seja mutavel coluna = 0; coluna < 16; coluna += 1) {
+            seja bx: inteiro = margem_esq + coluna * passo_x;
+            seja ativa: logico = notas[linha * 16 + coluna];
+            seja atual: logico = coluna == estado.tempo_atual && estado.executando;
+
+            se (ativa && atual) {
+                Graficos.definir_cor(Graficos.COR_BRANCO);
+            } senao se (ativa) {
+                se (linha == 0) {
+                    Graficos.definir_cor(cor_rgb(235, 95, 65));
+                } senao se (linha == 1) {
+                    Graficos.definir_cor(cor_rgb(70, 175, 240));
+                } senao {
+                    Graficos.definir_cor(cor_rgb(80, 210, 130));
+                }
+            } senao se (coluna % 4 == 0) {
+                Graficos.definir_cor(cor_rgb(58, 58, 70));
+            } senao {
+                Graficos.definir_cor(cor_rgb(42, 42, 50));
+            }
+            Graficos.desenhar_retangulo(bx, ry, 30, 30, verdadeiro, verdadeiro);
+
+            se (atual) {
+                Graficos.definir_cor(cor_destaque);
+            } senao {
+                Graficos.definir_cor(cor_rgb(82, 82, 96));
+            }
+            Graficos.desenhar_retangulo(bx, ry, 30, 30, verdadeiro, falso);
+        }
+
+        // Controle de volume da peça
+        desenhar_botao(730, ry + 3, 24, 24, "-", falso);
+        desenhar_barras_volume(760, ry + 5, volumes[linha]);
+        desenhar_botao(822, ry + 3, 24, 24, "+", falso);
+    }
+
+    // Painel inferior de controles gerais
+    Graficos.definir_cor(cor_painel);
+    Graficos.desenhar_retangulo(16, 280, 848, 60, verdadeiro, verdadeiro);
+
+    se (estado.executando) {
+        desenhar_botao(30, 292, 110, 34, "PAUSAR", verdadeiro);
+    } senao {
+        desenhar_botao(30, 292, 110, 34, "INICIAR", falso);
+    }
+    desenhar_botao(152, 292, 100, 34, "PADRAO", falso);
+    desenhar_botao(264, 292, 92, 34, "LIMPAR", falso);
+
+    // BPM
+    Graficos.definir_cor(cor_suave);
+    Graficos.definir_tamanho_texto(13.0);
+    Graficos.desenhar_texto(380, 302, "BPM:");
+    desenhar_botao(430, 296, 28, 28, "-", falso);
+    Graficos.definir_cor(cor_destaque);
+    Graficos.definir_tamanho_texto(18.0);
+    Graficos.desenhar_texto(474, 299, Tipos.inteiro_para_cadeia(estado.andamento));
+    desenhar_botao(540, 296, 28, 28, "+", falso);
+
+    // Volume geral
+    Graficos.definir_cor(cor_suave);
+    Graficos.definir_tamanho_texto(13.0);
+    Graficos.desenhar_texto(606, 302, "VOL GERAL:");
+    desenhar_botao(690, 296, 28, 28, "-", falso);
+    Graficos.definir_cor(cor_texto);
+    Graficos.definir_tamanho_texto(16.0);
+    Graficos.desenhar_texto(730, 300, Tipos.inteiro_para_cadeia(estado.volume_geral) + "%");
+    desenhar_botao(818, 296, 28, 28, "+", falso);
+
+    Graficos.renderizar();
+}
+
+funcao inicio() {
+    Graficos.iniciar_modo_grafico(verdadeiro);
+    Graficos.definir_dimensoes_janela(880, 360);
+    Graficos.definir_titulo_janela("Bateria Eletronica - Ferro");
+
+    seja mutavel estado: EstadoBateria = criar_estado_inicial();
+    seja mutavel acumulador_ms = 0;
+    seja mutavel ultimo_tempo: inteiro = Util.tempo_decorrido();
+
+    enquanto (!Teclado.tecla_pressionada(Teclado.TECLA_ESC)) {
+        seja agora: inteiro = Util.tempo_decorrido();
+        seja delta: inteiro = agora - ultimo_tempo;
+        ultimo_tempo = agora;
+
+        estado = processar_entrada(estado);
+
+        se (estado.executando) {
+            seja tempo_semicolcheia: inteiro = 60000 / estado.andamento / 4;
+            acumulador_ms += delta;
+            se (acumulador_ms >= tempo_semicolcheia) {
+                estado = avancar_compasso(estado);
+                acumulador_ms = acumulador_ms % tempo_semicolcheia;
+            }
+        }
+
+        desenhar(estado);
+        Util.aguarde(16);
+    }
+
+    liberar_som_opcional(estado.som_bumbo);
+    liberar_som_opcional(estado.som_caixa);
+    liberar_som_opcional(estado.som_chimbal);
+    Graficos.encerrar_modo_grafico();
+}

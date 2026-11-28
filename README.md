@@ -145,7 +145,7 @@ funcao inicio() {
 
 Programas `.fer` podem ser exportados como um arquivo Rust ou como um projeto
 Cargo completo. Os exemplos comentados ficam em
-[`crates/portugol-service/assets/exemplos-pors`](crates/portugol-service/assets/exemplos-pors)
+[`crates/ferro-service/assets/exemplos-pors`](crates/ferro-service/assets/exemplos-pors)
 e aparecem no menu de exemplos da IDE. Detalhes sobre a exportação e a execução
 de Rust estão em [`docs/PORTUGOL-RUST.md`](docs/PORTUGOL-RUST.md).
 
@@ -155,15 +155,15 @@ O executável `portugol` valida, formata, executa, depura e exporta programas
 `.fer` sem abrir a IDE. Com o repositório clonado:
 
 ```bash
-cargo run -p portugol-cli -- programa.fer                       # valida (também aceita pastas)
-cargo run -p portugol-cli -- executar programa.fer              # executa na máquina virtual
-cargo run -p portugol-cli -- depurar programa.fer               # depurador interativo no terminal
-cargo run -p portugol-cli -- novo exercicio.fer                 # cria um arquivo inicial
-cargo run -p portugol-cli -- formatar programa.fer              # formata (--check só confere)
-cargo run -p portugol-cli -- exportar-rust programa.fer         # imprime o Rust gerado
-cargo run -p portugol-cli -- exportar-cargo programa.fer pasta  # gera um projeto Cargo
-cargo run -p portugol-cli -- novo --desktop "Meu App"            # cria um projeto desktop PORS
-cargo run -p portugol-cli -- "Meu App"                           # valida .fer, .design e .ferproj
+cargo run -p ferro-cli -- programa.fer                       # valida (também aceita pastas)
+cargo run -p ferro-cli -- executar programa.fer              # executa na máquina virtual
+cargo run -p ferro-cli -- depurar programa.fer               # depurador interativo no terminal
+cargo run -p ferro-cli -- novo exercicio.fer                 # cria um arquivo inicial
+cargo run -p ferro-cli -- formatar programa.fer              # formata (--check só confere)
+cargo run -p ferro-cli -- exportar-rust programa.fer         # imprime o Rust gerado
+cargo run -p ferro-cli -- exportar-cargo programa.fer pasta  # gera um projeto Cargo
+cargo run -p ferro-cli -- novo --desktop "Meu App"            # cria um projeto desktop PORS
+cargo run -p ferro-cli -- "Meu App"                           # valida .fer, .design e .ferproj
 ```
 
 Projetos desktop PORS ([ADR 0018](docs/adr/0018-projetos-desktop-pors-com-designer-visual.md))
@@ -180,17 +180,17 @@ e `.ferproj`.
 
 | Caminho | Conteúdo |
 |---|---|
-| `crates/portugol-hir` | representação intermediária tipada, spans e diagnósticos compartilhados |
-| `crates/portugol-rs-frontend` | lexer, parser, formatador e verificação de tipos do Ferro (`.fer`) |
-| `crates/portugol-bytecode` | conjunto de instruções e compilador HIR → bytecode |
-| `crates/portugol-vm` | máquina virtual, bibliotecas padrão/multimídia, protocolo gráfico, UI MVU e depurador |
-| `crates/portugol-rust` | geração de código Rust, projetos Cargo e source maps |
-| `crates/portugol-wasm` | núcleo do Ferro compilado para WebAssembly (`wasm32-unknown-unknown`) |
-| `crates/portugol-service` | camada usada pela IDE: verificar, executar, depurar, exemplos e exercícios `.licao` |
-| `crates/portugol-tela` | formato `.design` das telas desktop (pseudo-XAML) e manifesto `.ferproj`: parser, esquema, validação, formatação e modelo de projeto |
-| `crates/portugol-cli` | executável `portugol` |
+| `crates/ferro-hir` | representação intermediária tipada, spans e diagnósticos compartilhados |
+| `crates/ferro-frontend` | lexer, parser, formatador e verificação de tipos do Ferro (`.fer`) |
+| `crates/ferro-bytecode` | conjunto de instruções e compilador HIR → bytecode |
+| `crates/ferro-vm` | máquina virtual, bibliotecas padrão/multimídia, protocolo gráfico, UI MVU e depurador |
+| `crates/ferro-rust` | geração de código Rust, projetos Cargo e source maps |
+| `crates/ferro-wasm` | núcleo do Ferro compilado para WebAssembly (`wasm32-unknown-unknown`) |
+| `crates/ferro-service` | camada usada pela IDE: verificar, executar, depurar, exemplos e exercícios `.licao` |
+| `crates/ferro-tela` | formato `.design` das telas desktop (pseudo-XAML) e manifesto `.ferproj`: parser, esquema, validação, formatação e modelo de projeto |
+| `crates/ferro-cli` | executável `portugol` |
 | `apps/desktop` | IDE em Tauri v2 com frontend TypeScript e CodeMirror 6 |
-| `apps/web-playground` | playground web estático sem dependências usando `portugol-wasm` (`scripts/build-web-playground.sh`) |
+| `apps/web-playground` | playground web estático sem dependências usando `ferro-wasm` (`scripts/build-web-playground.sh`) |
 | `docs` | arquitetura, decisões técnicas (`docs/adr`) e distribuição |
 
 A IDE usa Tauri porque o produto depende de um editor de código completo
@@ -218,7 +218,7 @@ sudo apt install libwebkit2gtk-4.1-dev libasound2-dev libayatana-appindicator3-d
 ```bash
 cargo test                                   # núcleo, CLI e WebAssembly
 cargo clippy --all-targets -- -D warnings
-cargo check --target wasm32-unknown-unknown -p portugol-wasm
+cargo check --target wasm32-unknown-unknown -p ferro-wasm
 
 cd apps/desktop
 npm ci
@@ -230,7 +230,7 @@ npm run tauri build                          # gera os instaladores locais
 ```
 
 A IDE fica fora dos membros padrão do workspace porque depende das bibliotecas
-gráficas do sistema; use `cargo build -p portugol-desktop` para compilá-la
+gráficas do sistema; use `cargo build -p ferro-desktop` para compilá-la
 diretamente.
 
 ### Documentação

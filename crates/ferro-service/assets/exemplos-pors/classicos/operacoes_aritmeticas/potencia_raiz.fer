@@ -1,0 +1,36 @@
+/* Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ * Adaptado para Ferro (.pors)
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *     Este exemplo pede ao usuário que informe um valor. Logo após, utiliza a biblioteca
+ *     Matematica para calcular e exibir:
+ *
+ *       a) O número elevado ao cubo
+ *       b) A raiz quadrada do número
+ *
+ * Autores:
+ *
+ *     Giordana Maria da Costa Valle
+ *     Carlos Alexandre Krueger
+ *
+ * Data: 01/06/2013
+ */
+
+funcao inicio() {
+    escreva("Digite um valor: ");
+    seja mutavel valor: real = leia();
+
+    // Calcula o valor elevado ao cubo
+    seja potencia: real = Matematica.potencia(valor, 3.0);
+    // Calcula a raiz quadrada do valor
+    seja raiz_quadrada: real = Matematica.raiz(valor, 2.0);
+
+    // Exibe os resultados
+    escreval("\nO número ao cubo é: ", potencia);
+    escreval("A raiz quadrada do número é: ", raiz_quadrada);
+}

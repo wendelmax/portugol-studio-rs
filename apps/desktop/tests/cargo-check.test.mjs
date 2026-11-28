@@ -12,7 +12,7 @@ test("cargo check is explicit, workspace-scoped, and mapped to the active editor
   const shortcuts = readFileSync(new URL("../src/commands/ide-shortcuts.ts", import.meta.url), "utf8");
   const controller = readFileSync(new URL("../src/run/cargo-project.ts", import.meta.url), "utf8");
   const tauri = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
-  const service = readFileSync(new URL("../../../crates/portugol-service/src/cargo_project.rs", import.meta.url), "utf8");
+  const service = readFileSync(new URL("../../../crates/ferro-service/src/cargo_project.rs", import.meta.url), "utf8");
 
   assert.match(commandShell, /isPaletteCommandAvailable\(command, dependencies\.paletteContext\(\)\)/);
   assert.match(shortcuts, /command: "Analisar projeto Cargo", matches: \(\) => false, action: actions\.checkCargoProject/);

@@ -35,7 +35,7 @@ test("conceitos apontam para exercícios .pors existentes e Rust-only não apont
 
 test("cada prompt de prática combina com o enunciado real do exercício .pors associado", async () => {
   const { conceptsForMode } = await import(moduleUrl.href);
-  const exercisesDir = new URL("../../../crates/portugol-service/assets/exercicios/", import.meta.url);
+  const exercisesDir = new URL("../../../crates/ferro-service/assets/exercicios/", import.meta.url);
   const expectedTerms = new Map([
     ["variables", /nome/i],
     ["conditionals", /par|ímpar/i],

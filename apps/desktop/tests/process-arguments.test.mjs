@@ -27,7 +27,7 @@ test("encaminha argv como lista tipada do editor ao processo Rust, sem shell", (
   const languageCapabilities = readFileSync(new URL("../src/state/language-capabilities.ts", import.meta.url), "utf8");
   const tauri = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
-  const runner = readFileSync(new URL("../../../crates/portugol-service/src/pors_run.rs", import.meta.url), "utf8");
+  const runner = readFileSync(new URL("../../../crates/ferro-service/src/pors_run.rs", import.meta.url), "utf8");
 
   assert.match(api, /runRustSource = \(id: number, source: string, args: string\[\]/);
   assert.match(api, /invoke<RustSourceRunResult>\("run_rust_source", \{ id, source, args \}\)/);

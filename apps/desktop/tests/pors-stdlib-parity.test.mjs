@@ -4,11 +4,11 @@ import { readFileSync } from "node:fs";
 import { PORS_STDLIB_CATALOG, parsePorsSignature } from "../src/pors-stdlib-catalog.ts";
 
 const stdlibRs = readFileSync(
-  new URL("../../../crates/portugol-rs-frontend/src/parser/stdlib.rs", import.meta.url),
+  new URL("../../../crates/ferro-frontend/src/parser/stdlib.rs", import.meta.url),
   "utf8",
 );
 const constantsRs = readFileSync(
-  new URL("../../../crates/portugol-rs-frontend/src/parser/constants.rs", import.meta.url),
+  new URL("../../../crates/ferro-frontend/src/parser/constants.rs", import.meta.url),
   "utf8",
 );
 

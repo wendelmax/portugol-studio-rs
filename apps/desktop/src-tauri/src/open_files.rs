@@ -8,8 +8,8 @@ pub(crate) struct PendingFiles(Mutex<Vec<String>>);
 /// Arquivos que a IDE abre quando o sistema os entrega (duplo clique,
 /// "Abrir com"): programas e exercícios.
 fn opens_from_system(path: &std::path::Path) -> bool {
-    portugol_formatos::classify_path(path)
-        .is_some_and(|m| m.kind().is_program() || m.kind() == portugol_formatos::Kind::Lesson)
+    ferro_formatos::classify_path(path)
+        .is_some_and(|m| m.kind().is_program() || m.kind() == ferro_formatos::Kind::Lesson)
 }
 
 fn file_paths(paths: impl IntoIterator<Item = PathBuf>) -> Vec<String> {

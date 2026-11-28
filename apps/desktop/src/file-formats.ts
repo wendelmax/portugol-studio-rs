@@ -1,6 +1,6 @@
 /**
  * Tabela única dos formatos de arquivo (ADR 0023, Emenda 2). A tabela vem de
- * `crates/portugol-formatos`, gerada em `file-formats.generated.ts`; aqui ficam
+ * `crates/ferro-formatos`, gerada em `file-formats.generated.ts`; aqui ficam
  * só as consultas. A IDE não compara extensões por conta própria.
  */
 import { FILE_FORMATS, RETIRED_EXTENSIONS, type FileFormat, type FileKind } from "./file-formats.generated.ts";

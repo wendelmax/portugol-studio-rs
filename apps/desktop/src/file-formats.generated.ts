@@ -1,5 +1,5 @@
-// Gerado por crates/portugol-formatos. Não edite à mão: rode
-// `UPDATE_FILE_FORMATS=1 cargo test -p portugol-formatos`.
+// Gerado por crates/ferro-formatos. Não edite à mão: rode
+// `UPDATE_FILE_FORMATS=1 cargo test -p ferro-formatos`.
 
 export type FileKind = "source" | "rust" | "lesson" | "design" | "manifest";
 
