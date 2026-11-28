@@ -836,6 +836,8 @@ mountFerroUiPreviewShell({
   source: () => view.state.doc.toString(),
   openExample: (source, fileName) => newTab(source, null, fileName, undefined, undefined, "ferro-rust"),
   focusEditor: () => view.focus(),
+  isScreen: () => isScreenFile(screenFiles, activeTab()),
+  showScreen: async () => (await designer?.showScreen()) ?? false,
 });
 activityBarControls = mountActivityBar(document.querySelectorAll<HTMLButtonElement>("[data-activity]"), {
   setInspectorView,

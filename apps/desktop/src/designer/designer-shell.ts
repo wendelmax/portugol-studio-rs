@@ -414,6 +414,20 @@ export function mountDesignerShell(dependencies: DesignerShellDependencies) {
     },
     toggleCode,
     createHandler,
+    /**
+     * Prévia visual numa tela (ADR 0021, Etapa B): o `.design` vai para a
+     * vista Design; no código da tela, abre o `.design` nessa vista. Falso se a
+     * aba não é de uma tela.
+     */
+    async showScreen(): Promise<boolean> {
+      const tab = dependencies.activeTab();
+      if (!tab) return false;
+      if (isDesignTab(tab)) {
+        setView("design");
+        return true;
+      }
+      return toggleCode();
+    },
     /** Clique ou Enter num item da caixa de ferramentas: insere no contêiner selecionado. */
     async insertTool(tag: string): Promise<boolean> {
       const tab = dependencies.activeTab();

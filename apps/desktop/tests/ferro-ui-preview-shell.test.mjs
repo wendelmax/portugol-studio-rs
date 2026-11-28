@@ -14,3 +14,12 @@ test("FERRO visual preview shell owns DOM and api.ts adapters", async () => {
   assert.match(main, /mountFerroUiPreviewShell\(/);
   assert.doesNotMatch(main, /mountFerroUiPreviewPanel\(/);
 });
+
+test("numa tela, o botão da prévia abre o designer antes do painel do UI.*", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const shell = await readFile(new URL("../src/ferro-ui-preview-shell.ts", import.meta.url), "utf8");
+  const listener = shell.indexOf('toggle.addEventListener("click"');
+  const panel = shell.indexOf("return mountFerroUiPreviewPanel(");
+  assert.ok(listener > 0 && listener < panel, "o desvio para telas é registrado antes do painel");
+  assert.match(shell, /event\.stopImmediatePropagation\(\);\n\s*void dependencies\.showScreen\?\.\(\);/);
+});
