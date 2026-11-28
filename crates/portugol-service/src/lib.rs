@@ -17,6 +17,7 @@ mod pors_run;
 mod position;
 mod rename;
 mod run;
+mod screen_bindings;
 mod screen_run;
 mod ui_session;
 

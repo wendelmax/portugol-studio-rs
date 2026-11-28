@@ -37,9 +37,6 @@ pub fn check_screen(design_source: &str, code: Option<&str>) -> ScreenCheck {
         .map_or("Janela".to_owned(), |name| name.value.clone());
     let mut events = Vec::new();
     collect_events(&document.root, &mut events);
-    if events.is_empty() {
-        return check;
-    }
     let program = match code {
         Some(source) => {
             match portugol_rs_frontend::lower_with(source, &code_behind_options(design_source)) {
@@ -49,6 +46,22 @@ pub fn check_screen(design_source: &str, code: Option<&str>) -> ScreenCheck {
         }
         None => None,
     };
+    if let Some((_, program)) = &program {
+        let (screen, _) = portugol_tela::codebehind::screen_type(&document);
+        let data = screen.data.as_ref().and_then(|(name, _)| {
+            program
+                .record_types
+                .iter()
+                .find(|record| record.name == *name)
+                .map(|record| portugol_hir::Type::Record(record.id))
+        });
+        check.design.extend(crate::screen_bindings::check_bindings(
+            &document, program, data,
+        ));
+        check.code.extend(crate::screen_bindings::check_read_only(
+            &document, &screen, program,
+        ));
+    }
     let window_type = program.as_ref().and_then(|(_, program)| {
         program
             .record_types
