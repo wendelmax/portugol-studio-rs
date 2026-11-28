@@ -26,10 +26,10 @@ export const PORS_HELP_DEFAULT_TOPIC = "pors:visao-geral";
 export const PORS_HELP_TOPICS: readonly PorsHelpTopic[] = [
   {
     id: "pors:visao-geral",
-    title: "Portugol-RS: Visão geral e tipos",
+    title: "Ferro: Visão geral e tipos",
     summary: "Sintaxe tipada com imutabilidade padrão e compilação direta para VM, WASM e Rust.",
     paragraphs: [
-      "Portugol-RS (`.fer`) é o dialeto autoral em português projetado como ponte direta para Rust. Todo binding começa imutável com `seja` e exige `seja mutavel` para reatribuição ou mutação.",
+      "Ferro (`.fer`) é o dialeto autoral em português projetado como ponte direta para Rust. Todo binding começa imutável com `seja` e exige `seja mutavel` para reatribuição ou mutação.",
       "Os tipos escalares disponíveis são `inteiro` (`i32`), `real` (`f64`), `logico` (`bool`), `cadeia` (`String` UTF-8 com orçamento de memória) e `caracter` (`char` Unicode), sem coerções implícitas entre tipos.",
     ],
     example: {
@@ -57,7 +57,7 @@ export const PORS_HELP_TOPICS: readonly PorsHelpTopic[] = [
     title: "Laços de repetição (para, enquanto, faca-enquanto)",
     summary: "Estruturas de repetição tipadas com controle explícito por `pare` e `continue`.",
     paragraphs: [
-      "Em Portugol-RS você pode usar `para (seja mutavel i = 0; i < n; i += 1)`, `enquanto (condicao)` e `faca { ... } enquanto (condicao);`.",
+      "Em Ferro você pode usar `para (seja mutavel i = 0; i < n; i += 1)`, `enquanto (condicao)` e `faca { ... } enquanto (condicao);`.",
       "Use `continue;` para pular para a próxima iteração e `pare;` para interromper o laço imediatamente, com o mesmo comportamento na VM e no Rust gerado.",
     ],
     example: {
@@ -71,7 +71,7 @@ export const PORS_HELP_TOPICS: readonly PorsHelpTopic[] = [
     title: "Funções tipadas e recursão",
     summary: "Funções auxiliares com parâmetros tipados, passagem por valor e retorno explícito.",
     paragraphs: [
-      "Funções em Portugol-RS declaram tipos explícitos nos parâmetros e no retorno (`-> Tipo`), omitindo `->` quando não retornam valor.",
+      "Funções em Ferro declaram tipos explícitos nos parâmetros e no retorno (`-> Tipo`), omitindo `->` quando não retornam valor.",
       "Parâmetros são imutáveis por padrão (ou `mutavel` para cópia local mutável) e podem ser chamados em qualquer ordem ou recursivamente.",
     ],
     example: {
@@ -113,7 +113,7 @@ export const PORS_HELP_TOPICS: readonly PorsHelpTopic[] = [
     title: "UI visual declarativa (MVU)",
     summary: "Aplicativos interativos com `iniciar()`, `atualizar()` e `visualizar()` usando `UI.*`.",
     paragraphs: [
-      "Programas visuais em Portugol-RS declaram `iniciar() -> Estado`, `atualizar(estado, tipo, alvo, valor) -> Estado` e `visualizar(estado) -> inteiro`.",
+      "Programas visuais em Ferro declaram `iniciar() -> Estado`, `atualizar(estado, tipo, alvo, valor) -> Estado` e `visualizar(estado) -> inteiro`.",
       "A visualização compõe nós imutáveis com `UI.coluna`, `UI.linha`, `UI.lista`, `UI.texto`, `UI.botao` e `UI.entrada`, executáveis na prévia visual da IDE, em WebAssembly e em projetos Cargo standalone.",
     ],
     example: {
@@ -124,11 +124,11 @@ export const PORS_HELP_TOPICS: readonly PorsHelpTopic[] = [
   },
   {
     id: "pors:ponte-rust",
-    title: "Ponte Portugol-RS ↔ Rust",
+    title: "Ponte Ferro ↔ Rust",
     summary: "Equivalência direta de conceitos entre `.fer` e `.rs`, do código didático ao Rust nativo.",
     paragraphs: [
-      "Cada construção de Portugol-RS foi desenhada para espelhar Rust real com o mínimo de atrito. Ative o botão `Rust` na barra superior para inspecionar o código Rust gerado lado a lado com source maps interativos.",
-      "Quando quiser ir além da semântica de cópia por valor do Portugol-RS e estudar ownership, movimento e empréstimos (`&T` / `&mut T`), use o painel `Aprender` no modo Ponte ou Rust para abrir o Laboratório de Ownership.",
+      "Cada construção de Ferro foi desenhada para espelhar Rust real com o mínimo de atrito. Ative o botão `Rust` na barra superior para inspecionar o código Rust gerado lado a lado com source maps interativos.",
+      "Quando quiser ir além da semântica de cópia por valor do Ferro e estudar ownership, movimento e empréstimos (`&T` / `&mut T`), use o painel `Aprender` no modo Ponte ou Rust para abrir o Laboratório de Ownership.",
     ],
     comparisonRows: [
       ["Binding imutável", "seja x: inteiro = 10;", "let x: i32 = 10;"],

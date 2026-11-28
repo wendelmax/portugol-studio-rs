@@ -91,12 +91,12 @@ export function mountExamples(openExample: (source: string, file: string, workPa
     error.hidden = true;
     try {
       if (!example.file.startsWith(PORS_EXAMPLE_PREFIX)) {
-        throw new Error(`Exemplo fora do catálogo Portugol-RS: ${example.file}`);
+        throw new Error(`Exemplo fora do catálogo Ferro: ${example.file}`);
       }
       const id = example.file.slice(PORS_EXAMPLE_PREFIX.length);
       const porsExample = porsExamplesById.get(id);
       if (!porsExample) {
-        throw new Error(`Exemplo Portugol-RS não encontrado: ${id}`);
+        throw new Error(`Exemplo Ferro não encontrado: ${id}`);
       }
       openExample(porsExample.source, porsExample.file_name, "");
     } catch (failure) {

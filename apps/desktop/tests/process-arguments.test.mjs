@@ -41,7 +41,7 @@ test("encaminha argv como lista tipada do editor ao processo Rust, sem shell", (
   assert.doesNotMatch(runner, /Command::new\(args|sh -c.*args/);
 });
 
-test("execution parameters are hidden for Portugol-RS, which takes no argv", async () => {
+test("execution parameters are hidden for Ferro, which takes no argv", async () => {
   const { isPaletteCommandAvailable } = await import("../src/command-palette.ts");
   const context = {
     language: "portugol-rs", cargoProject: false, cargoAvailable: false, canRunAsRust: false,

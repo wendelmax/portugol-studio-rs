@@ -56,7 +56,7 @@ test("ignores missing, Rust, or currently running tabs", async () => {
   assert.deepEqual(f.calls, []);
 });
 
-test("routes target lookup through the Portugol-RS service and displays the target", async () => {
+test("routes target lookup through the Ferro service and displays the target", async () => {
   const f = fixture();
   f.setTab({ id: 1, language: "portugol-rs" });
   await f.renamer.openAt(4);

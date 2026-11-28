@@ -1,4 +1,4 @@
-// Fonte única de verdade da biblioteca padrão Portugol-RS (.fer) para
+// Fonte única de verdade da biblioteca padrão Ferro (.fer) para
 // autocompletar, hover do editor e documentação da Ajuda.
 // Validada por apps/desktop/tests/pors-stdlib-parity.test.mjs contra
 // crates/portugol-rs-frontend/src/parser/stdlib.rs e constants.rs.
@@ -171,7 +171,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
     example: {
       title: "Normalização e divisão de texto",
       fileName: "exemplo-texto.fer",
-      source: `funcao inicio() {\n    seja frase = Texto.aparar("  Portugol-RS e Rust  ");\n    seja partes: vetor<cadeia> = Texto.dividir(frase, " ");\n    escreval("Maiúsculas: ", Texto.caixa_alta(frase));\n    escreval("Palavras: ", tamanho(partes));\n}\n`,
+      source: `funcao inicio() {\n    seja frase = Texto.aparar("  Ferro e Rust  ");\n    seja partes: vetor<cadeia> = Texto.dividir(frase, " ");\n    escreval("Maiúsculas: ", Texto.caixa_alta(frase));\n    escreval("Palavras: ", tamanho(partes));\n}\n`,
     },
     items: [
       fn("numero_caracteres", "Texto.numero_caracteres(texto: cadeia) -> inteiro", "Retorna a quantidade de caracteres Unicode (`char`) da cadeia."),
@@ -318,7 +318,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
     example: {
       title: "Construindo e consultando um objeto JSON",
       fileName: "exemplo-json.fer",
-      source: `funcao demo() -> Resultado<cadeia, cadeia> {\n    seja base: cadeia = Json.definir_cadeia("{}", "linguagem", "Portugol-RS")?;\n    seja completo: cadeia = Json.definir_inteiro(base, "versao", 1)?;\n    retorne Json.formatar(completo);\n}\n\nfuncao inicio() {\n    escolha demo() {\n        caso Resultado::Ok(saida) => { escreva(saida); }\n        caso Resultado::Erro(e) => { escreva("Erro: ", e); }\n    }\n}\n`,
+      source: `funcao demo() -> Resultado<cadeia, cadeia> {\n    seja base: cadeia = Json.definir_cadeia("{}", "linguagem", "Ferro")?;\n    seja completo: cadeia = Json.definir_inteiro(base, "versao", 1)?;\n    retorne Json.formatar(completo);\n}\n\nfuncao inicio() {\n    escolha demo() {\n        caso Resultado::Ok(saida) => { escreva(saida); }\n        caso Resultado::Erro(e) => { escreva("Erro: ", e); }\n    }\n}\n`,
     },
     items: [
       fn("valido", "Json.valido(texto: cadeia) -> logico", "Verifica se `texto` é um documento JSON válido (RFC 8259, profundidade máxima 64)."),
@@ -389,7 +389,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
     example: {
       title: "Desenhando formas básicas na janela gráfica",
       fileName: "exemplo-graficos.fer",
-      source: `funcao inicio() {\n    Graficos.iniciar_modo_grafico(verdadeiro);\n    Graficos.definir_dimensoes_janela(400, 260);\n    Graficos.definir_titulo_janela("Portugol-RS Gráficos");\n    Graficos.definir_cor(Graficos.COR_PRETO);\n    Graficos.limpar();\n    Graficos.definir_cor(Graficos.COR_AMARELO);\n    Graficos.desenhar_elipse(150, 80, 100, 100, verdadeiro);\n    Graficos.renderizar();\n    Util.aguarde(2000);\n    Graficos.encerrar_modo_grafico();\n}\n`,
+      source: `funcao inicio() {\n    Graficos.iniciar_modo_grafico(verdadeiro);\n    Graficos.definir_dimensoes_janela(400, 260);\n    Graficos.definir_titulo_janela("Ferro Gráficos");\n    Graficos.definir_cor(Graficos.COR_PRETO);\n    Graficos.limpar();\n    Graficos.definir_cor(Graficos.COR_AMARELO);\n    Graficos.desenhar_elipse(150, 80, 100, 100, verdadeiro);\n    Graficos.renderizar();\n    Util.aguarde(2000);\n    Graficos.encerrar_modo_grafico();\n}\n`,
     },
     items: [
       constant("COR_PRETO", "Graficos.COR_PRETO: inteiro", "Constante de cor preta (ARGB `0xFF000000`)."),

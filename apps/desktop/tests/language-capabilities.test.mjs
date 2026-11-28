@@ -23,16 +23,16 @@ function fixture(overrides = {}) {
   return deriveLanguageControls(tab, state);
 }
 
-test("Portugol-RS keeps run/debug, enables PORS modules, and disables unsupported arguments", () => {
+test("Ferro keeps run/debug, enables PORS modules, and disables unsupported arguments", () => {
   const controls = fixture({
     state: { libraryNames: ["Matematica", "Texto", "Objetos"] },
   });
 
   assert.equal(controls.buttons["btn-run"].disabled, false);
   assert.equal(controls.buttons["btn-debug"].disabled, false);
-  assert.equal(controls.buttons["btn-run"].title, "Executar na VM do Portugol-RS (Shift+F6)");
+  assert.equal(controls.buttons["btn-run"].title, "Executar na VM do Ferro (Shift+F6)");
   assert.equal(controls.arguments.disabled, true);
-  assert.equal(controls.arguments.title, "Parâmetros ainda não são suportados em Portugol-RS.");
+  assert.equal(controls.arguments.title, "Parâmetros ainda não são suportados em Ferro.");
   assert.equal(controls.libraries.Texto.disabled, false);
   assert.equal(controls.libraries.Texto.title, "Inserir módulo PORS Texto.");
   assert.equal(controls.libraries.Objetos.disabled, true);

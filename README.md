@@ -7,7 +7,7 @@ e evoluir para Rust real, construído em Rust a partir da inspiração do
 [ADR 0023](docs/adr/0023-identidade-e-marca-ferro-studio.md)).
 
 O programa reúne editor, console, depurador, designer visual, ajuda, exemplos e
-exercícios corrigidos automaticamente com foco em **Portugol-RS (`.fer`)** — um
+exercícios corrigidos automaticamente com foco em **Ferro (`.fer`)** — um
 dialeto didático em português com tipos explícitos, imutabilidade por padrão,
 registros, enumerações e tratamento de erros inspirados em Rust — além de suporte
 direto a arquivos **Rust (`.rs`)** e projetos Cargo. O código `.fer` pode ser
@@ -35,7 +35,7 @@ profissionalmente.
   ajuda integrada, catálogo de 119+ exemplos `.fer`, janela gráfica/áudio,
   interfaces declarativas (`UI.*`) e exercícios `.licao` com correção
   automática.
-- **Quem quer chegar ao Rust**: o Portugol-RS ensina conceitos essenciais do
+- **Quem quer chegar ao Rust**: o Ferro ensina conceitos essenciais do
   Rust (variáveis imutáveis por padrão, `Opcao`, `Resultado`, `escolha`
   exaustivo, operador `?`) e mostra o Rust equivalente com mapeamento de origem.
 - **Desenvolvedores** interessados em compiladores, máquinas virtuais, WASM ou
@@ -74,13 +74,13 @@ partir de um `.fer`.
 ## O que a IDE oferece
 
 - Interface desktop proprietária (Tauri v2 + CodeMirror 6) com barra superior de projeto/modo/execução, `ActivityRail`, `Explorer`, `Inspector` (`Aprender`, `Bibliotecas`/`Modelos` PORS, árvore estrutural e variáveis) e diálogo dedicado de `Configurações` (`Ctrl+,`) com restauração de layout.
-- Editor com realce de sintaxe para Portugol-RS (`.fer`) e Rust (`.rs`), autocompletar de palavras, funções e módulos PORS, dicas ao passar o mouse, dobramento de código, busca, renomeação de símbolos e formatação automática.
+- Editor com realce de sintaxe para Ferro (`.fer`) e Rust (`.rs`), autocompletar de palavras, funções e módulos PORS, dicas ao passar o mouse, dobramento de código, busca, renomeação de símbolos e formatação automática.
 - Erros e avisos em português enquanto você digita, com indicação da linha.
 - Console com entrada de dados (`leia`) e parâmetros de execução.
 - Depurador com pontos de parada, execução passo a passo, pilha de chamadas e inspeção de variáveis, vetores, registros e enums.
 - Janela gráfica para programas que usam `Graficos`, `Teclado` e `Mouse`, reprodução de áudio com `Sons` e prévia visual declarativa para apps `UI.*`.
 - Ajuda integrada 100% PORS, catálogo de 119+ exemplos `.fer`, 8 dicas ilustradas da IDE e 14 exercícios `.licao` com correção automática.
-- Ponte lado a lado Portugol-RS ↔ Rust com mapeamento de origem (`MappingGutter`), diff de traduções e desvinculação segura para editar `.rs` independente.
+- Ponte lado a lado Ferro ↔ Rust com mapeamento de origem (`MappingGutter`), diff de traduções e desvinculação segura para editar `.rs` independente.
 - Execução de arquivos Rust avulsos e projetos Cargo (`cargo check` / `cargo test` / `cargo run`).
 - Temas padronizados com contraste WCAG AA (`>= 4,5:1`): `Sistema` automático (VS Code Light/Dark Modern), `IntelliJ Rust Dark/Light`, `GitHub`, `One Dark Pro`, `Dracula`, `Catppuccin Mocha`, `Night Owl`, `Alto contraste` e editor de temas personalizados.
 
@@ -102,9 +102,9 @@ Clique na margem esquerda do editor para criar ou remover um ponto de parada.
 | Ajuda | `F1` |
 | Lista de atalhos | `F11` |
 
-## Portugol-RS (`.fer`) e Rust (`.rs`)
+## Ferro (`.fer`) e Rust (`.rs`)
 
-O **Portugol-RS** é o dialeto autoral deste projeto para ensinar lógica de
+O **Ferro** é o dialeto autoral deste projeto para ensinar lógica de
 programação com palavras-chave em português e transição natural para Rust:
 
 - variáveis com `seja`, imutáveis por padrão (`seja mutavel` para alterar);
@@ -181,11 +181,11 @@ e `.ferproj`.
 | Caminho | Conteúdo |
 |---|---|
 | `crates/portugol-hir` | representação intermediária tipada, spans e diagnósticos compartilhados |
-| `crates/portugol-rs-frontend` | lexer, parser, formatador e verificação de tipos do Portugol-RS (`.fer`) |
+| `crates/portugol-rs-frontend` | lexer, parser, formatador e verificação de tipos do Ferro (`.fer`) |
 | `crates/portugol-bytecode` | conjunto de instruções e compilador HIR → bytecode |
 | `crates/portugol-vm` | máquina virtual, bibliotecas padrão/multimídia, protocolo gráfico, UI MVU e depurador |
 | `crates/portugol-rust` | geração de código Rust, projetos Cargo e source maps |
-| `crates/portugol-wasm` | núcleo do Portugol-RS compilado para WebAssembly (`wasm32-unknown-unknown`) |
+| `crates/portugol-wasm` | núcleo do Ferro compilado para WebAssembly (`wasm32-unknown-unknown`) |
 | `crates/portugol-service` | camada usada pela IDE: verificar, executar, depurar, exemplos e exercícios `.licao` |
 | `crates/portugol-tela` | formato `.design` das telas desktop (pseudo-XAML) e manifesto `.ferproj`: parser, esquema, validação, formatação e modelo de projeto |
 | `crates/portugol-cli` | executável `portugol` |

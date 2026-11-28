@@ -1,15 +1,15 @@
-// Núcleo sem dependências externas do Web Playground Portugol-RS (WASM).
+// Núcleo sem dependências externas do Web Playground Ferro (WASM).
 // Reutiliza o mesmo protocolo de memória linear de `crates/portugol-wasm`
 // e renderiza nós `UiNode` (ADR 0017) exclusivamente com createElement/textContent.
 
 export const PLAYGROUND_EXAMPLES = [
   {
     id: "ola",
-    title: "Olá, Portugol-RS (console + entrada)",
+    title: "Olá, Ferro (console + entrada)",
     mode: "console",
     input: "Ada\n",
     source: `funcao saudar(nome: cadeia) -> cadeia {
-    retorne "Olá, {nome}! Bem-vindo ao Portugol-RS no navegador.";
+    retorne "Olá, {nome}! Bem-vindo ao Ferro no navegador.";
 }
 
 funcao inicio() {

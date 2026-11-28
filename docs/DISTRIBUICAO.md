@@ -147,7 +147,7 @@ checksum de cada arquivo aparece na página do release.
 
 ## Toolchain Rust e arquivos suportados
 
-Programas **Portugol-RS (`.fer`)** e exercícios **`.licao`** executam e
+Programas **Ferro (`.fer`)** e exercícios **`.licao`** executam e
 depuram diretamente na máquina virtual embutida na IDE, sem precisar instalar
 nada além do instalador.
 

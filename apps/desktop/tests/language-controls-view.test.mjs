@@ -45,7 +45,7 @@ test("applies derived language controls and remembers button default titles", ()
   f.view.sync(tab);
 
   assert.equal(f.buttons.get("btn-run").disabled, false);
-  assert.equal(f.buttons.get("btn-run").title, "Executar na VM do Portugol-RS (Shift+F6)");
+  assert.equal(f.buttons.get("btn-run").title, "Executar na VM do Ferro (Shift+F6)");
   assert.equal(f.buttons.get("btn-run").dataset.defaultTitle, "Padrão btn-run");
   assert.equal(f.buttons.get("btn-run").attributes["aria-description"], "");
   assert.equal(f.args.disabled, true);

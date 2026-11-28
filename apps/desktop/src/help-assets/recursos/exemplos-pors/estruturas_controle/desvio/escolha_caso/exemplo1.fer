@@ -1,4 +1,4 @@
-// Em Portugol-RS, "escolha" realiza casamento exaustivo sobre valores de um "enum"
+// Em Ferro, "escolha" realiza casamento exaustivo sobre valores de um "enum"
 enum OpcaoMenu {
     Um,
     Dois,

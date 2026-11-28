@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { canDebugSource, canFormatSource, canRunAsRust, canRunSource } from "../src/runtime-capabilities.ts";
 
-test("Portugol-RS runs and debugs in the VM without rustc and runs generated Rust only when rustc is available", () => {
+test("Ferro runs and debugs in the VM without rustc and runs generated Rust only when rustc is available", () => {
   assert.equal(canRunSource("portugol-rs", null), true);
   assert.equal(canRunSource("portugol-rs", false), true);
   assert.equal(canRunSource("portugol-rs", true), true);

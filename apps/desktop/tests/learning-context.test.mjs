@@ -168,9 +168,9 @@ test("chooses the narrowest overlapping exact mapping that identifies a binding"
   assert.equal(result?.rustSnippet, "let mut idade: i32 = 16_i32;");
 });
 
-test("explains mapped mutability for Portugol-RS", () => {
+test("explains mapped mutability for Ferro", () => {
   const mapped = context();
-  assert.match(explainMappedConcept(mapped, "portugol-rs"), /Portugol-RS/);
+  assert.match(explainMappedConcept(mapped, "portugol-rs"), /Ferro/);
   assert.match(explainMappedConcept(mapped, "portugol-rs"), /let mut/);
 });
 

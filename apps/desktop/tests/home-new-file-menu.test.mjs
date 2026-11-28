@@ -25,7 +25,7 @@ function setup(languages = ["portugol-rs", "rust"]) {
   return { callbacks, menu, summary, buttons };
 }
 
-test("home new file menu selects Portugol-RS and closes", () => {
+test("home new file menu selects Ferro and closes", () => {
   const state = setup();
   let selected = "";
   mountHomeNewFileMenu(state.menu, {

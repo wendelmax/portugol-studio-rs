@@ -17,7 +17,7 @@ export interface LearningPanelHost {
   sourceView: EditorView;
   activeTab(): Tab | undefined;
   learningMode(): LearningMode;
-  /** Abre exercício Portugol-RS pelo identificador do catálogo .fer. */
+  /** Abre exercício Ferro pelo identificador do catálogo .fer. */
   openPorsExercise(id: string): Promise<void>;
   /** Abre um exemplo .fer do catálogo pelo nome de arquivo (ex.: `01-ola-variaveis.fer`). */
   openPorsExample?(fileName: string): Promise<void>;

@@ -305,13 +305,13 @@ async fn run_portugol_rs(
         .unwrap_or_else(|error| error.into_inner())
         .get(&id)
         .cloned()
-        .ok_or_else(|| "A execução Portugol-RS não está mais registrada.".to_string())?;
+        .ok_or_else(|| "A execução Ferro não está mais registrada.".to_string())?;
     let receiver = runs
         .portugol_rs_input_receivers
         .lock()
         .unwrap_or_else(|error| error.into_inner())
         .remove(&id)
-        .ok_or_else(|| "O canal de entrada Portugol-RS não está mais registrado.".to_string())?;
+        .ok_or_else(|| "O canal de entrada Ferro não está mais registrado.".to_string())?;
     let input_app = app.clone();
     let output_app = app;
     let joined = tauri::async_runtime::spawn_blocking(move || {
@@ -337,7 +337,7 @@ async fn run_portugol_rs(
                             return Ok(String::new());
                         }
                         Err(mpsc::RecvTimeoutError::Disconnected) => {
-                            return Err("O canal de entrada Portugol-RS foi encerrado.".into());
+                            return Err("O canal de entrada Ferro foi encerrado.".into());
                         }
                     }
                 }
@@ -658,7 +658,7 @@ async fn open_project_page(page: ProjectPage) -> Result<(), String> {
     }
 }
 
-/// Executa ou depura Portugol-RS na VM educacional, sem depender de `rustc`.
+/// Executa ou depura Ferro na VM educacional, sem depender de `rustc`.
 /// Com `pause_on_start` falso é a execução normal: para apenas nos pontos de
 /// parada.
 #[tauri::command]

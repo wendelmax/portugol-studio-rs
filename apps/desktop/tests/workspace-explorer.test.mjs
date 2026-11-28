@@ -104,15 +104,15 @@ test("home action and explorer tree expose stable accessible controls", () => {
   assert.match(html, /data-testid="project-tree"/);
 });
 
-test("home start page defaults new file to Portugol-RS and groups alternate languages", () => {
+test("home start page defaults new file to Ferro and groups alternate languages", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   const main = ideSource();
   const css = ideStyles();
 
-  assert.match(html, /<button id="home-new"[^>]*Portugol-RS \(\.fer\)[^>]*>[^<]*<span[^>]*>[^<]*<\/span>Novo Arquivo<\/button>/);
+  assert.match(html, /<button id="home-new"[^>]*Ferro \(\.fer\)[^>]*>[^<]*<span[^>]*>[^<]*<\/span>Novo Arquivo<\/button>/);
   assert.match(html, /<details id="home-new-menu"[^>]*data-testid="home-new-menu"/);
   assert.match(html, /<summary[^>]*aria-label="Criar arquivo em outra linguagem"/);
-  assert.match(html, /id="home-new-pors"[^>]*data-home-new-language="portugol-rs"[^>]*>Novo Portugol-RS \(\.fer\)<\/button>/);
+  assert.match(html, /id="home-new-pors"[^>]*data-home-new-language="portugol-rs"[^>]*>Novo Ferro \(\.fer\)<\/button>/);
   assert.match(html, /id="home-new-rust"[^>]*data-home-new-language="rust"[^>]*>Novo Rust \(\.rs\)<\/button>/);
   assert.doesNotMatch(html, /id="home-new-por"/);
   assert.match(main, /\$\("home-new"\)\.onclick = \(\) => newTab\(\);/);

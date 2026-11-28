@@ -138,9 +138,9 @@ function renderTipVisual(kind: string): SVGSVGElement {
     // Default: "pors"
     svg.append(
       el("rect", { x: "28", y: "52", width: "504", height: "132", rx: "8", class: "tip-card" }),
-      el("text", { x: "44", y: "76", class: "tip-label-accent" }, "ola.fer — Portugol-RS"),
+      el("text", { x: "44", y: "76", class: "tip-label-accent" }, "ola.fer — Ferro"),
       el("text", { x: "44", y: "104", class: "tip-code" }, "funcao inicio() {"),
-      el("text", { x: "60", y: "126", class: "tip-code" }, "seja nome = \"Portugol-RS\";"),
+      el("text", { x: "60", y: "126", class: "tip-code" }, "seja nome = \"Ferro\";"),
       el("text", { x: "60", y: "148", class: "tip-code" }, "escreva(\"Olá, \", nome, \"!\");"),
       el("text", { x: "44", y: "170", class: "tip-code" }, "}"),
       el("rect", { x: "386", y: "146", width: "130", height: "26", rx: "6", class: "tip-pill" }),

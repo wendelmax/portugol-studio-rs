@@ -59,7 +59,7 @@ export function createPortugolRsExecutionController(dependencies: PortugolRsExec
         const id = await dependencies.startVm(source, breakpointLines, pauseOnStart, tab.path ?? tab.examplePath ?? null);
         dependencies.setRunId(id);
         dependencies.setRunning(true);
-        dependencies.setStatus(pauseOnStart ? "Depurando Portugol-RS na VM." : "Executando Portugol-RS na VM…");
+        dependencies.setStatus(pauseOnStart ? "Depurando Ferro na VM." : "Executando Ferro na VM…");
         dependencies.replayEvents(events, id);
       } catch (errors) {
         dependencies.setRunTabId(null);
@@ -70,8 +70,8 @@ export function createPortugolRsExecutionController(dependencies: PortugolRsExec
           dependencies.showMessages();
           dependencies.setStatus(
             pauseOnStart
-              ? "O Portugol-RS contém erros e não pode ser depurado."
-              : "O Portugol-RS contém erros e não pode ser executado.",
+              ? "O Ferro contém erros e não pode ser depurado."
+              : "O Ferro contém erros e não pode ser executado.",
             "error",
           );
         } else {
@@ -101,19 +101,19 @@ export function createPortugolRsExecutionController(dependencies: PortugolRsExec
       if (result.status === "cancelled") {
         dependencies.appendProcessOutput(result);
         const phase = result.phase === "compilation" ? "compilação" : "execução";
-        dependencies.setStatus(`Execução Portugol-RS cancelada durante a ${phase}.`);
+        dependencies.setStatus(`Execução Ferro cancelada durante a ${phase}.`);
       } else if (result.status === "executed") {
         dependencies.appendProcessOutput(result);
         dependencies.setStatus(
           result.exitCode === 0
-            ? "Programa Portugol-RS finalizado com rustc."
-            : `Programa Portugol-RS terminou com código ${result.exitCode ?? "desconhecido"}.`,
+            ? "Programa Ferro finalizado com rustc."
+            : `Programa Ferro terminou com código ${result.exitCode ?? "desconhecido"}.`,
           result.exitCode === 0 ? "ok" : "error",
         );
       } else if (result.status === "compile_limit") {
         if (result.stderr) dependencies.appendConsole(result.stderr, "error");
         const reason = result.reason === "time" ? "tempo máximo de compilação de 20 segundos" : "limite de saída de compilação de 1 MiB";
-        dependencies.setStatus(`Compilação Portugol-RS interrompida: ${reason}.`, "error");
+        dependencies.setStatus(`Compilação Ferro interrompida: ${reason}.`, "error");
       } else if (result.status === "runtime_limit") {
         dependencies.appendProcessOutput(result);
         const descriptions = {
@@ -121,7 +121,7 @@ export function createPortugolRsExecutionController(dependencies: PortugolRsExec
           output: "limite de saída de 1 MiB",
           string_memory: "limite de memória para cadeias de 16 MiB",
         } as const;
-        dependencies.setStatus(`Execução Portugol-RS interrompida: ${descriptions[result.reason]}.`, "error");
+        dependencies.setStatus(`Execução Ferro interrompida: ${descriptions[result.reason]}.`, "error");
       } else {
         const diagnostics = result.diagnostics.map(dependencies.sourceDiagnostic).filter((item): item is DiagnosticInfo => item !== null);
         dependencies.setDiagnostics(tab, diagnostics);
@@ -137,7 +137,7 @@ export function createPortugolRsExecutionController(dependencies: PortugolRsExec
     } catch (error) {
       if (dependencies.isCurrent(tab, document)) {
         dependencies.appendConsole(`${String(error)}\n`, "error");
-        dependencies.setStatus("Não foi possível compilar ou executar o Portugol-RS.", "error");
+        dependencies.setStatus("Não foi possível compilar ou executar o Ferro.", "error");
       }
     } finally {
       dependencies.hideInput();

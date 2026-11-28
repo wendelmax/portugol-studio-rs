@@ -7,7 +7,7 @@ test("detects Ferro from case-insensitive .fer paths and rejects removed .pors",
   assert.equal(ensureSourceExtension("/tmp/Aula.pors", "portugol-rs"), "/tmp/Aula.pors.fer");
 });
 
-test("keeps Portugol-RS as the default for non-Rust paths", () => {
+test("keeps Ferro as the default for non-Rust paths", () => {
   assert.equal(detectSourceLanguage("/tmp/programa.pors"), "portugol-rs");
   assert.equal(detectSourceLanguage("/tmp/lib.rs"), "rust");
   assert.equal(detectSourceLanguage("/tmp/programa.txt"), "portugol-rs");

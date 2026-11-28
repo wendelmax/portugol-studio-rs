@@ -336,7 +336,7 @@ loadPlaygroundRuntime("./portugol_wasm.wasm")
   .then((loaded) => {
     runtime = loaded;
     setControlsEnabled(true);
-    setStatus("VM WebAssembly Portugol-RS pronta.", "ok");
+    setStatus("VM WebAssembly Ferro pronta.", "ok");
     runConsole();
   })
   .catch((error) => {

@@ -1,12 +1,12 @@
 import type { SourceLanguage } from "./document-language";
 
-/** Portugol-RS executa na VM; arquivos Rust exigem `rustc`. */
+/** Ferro executa na VM; arquivos Rust exigem `rustc`. */
 export function canRunSource(language: SourceLanguage, rustcAvailable: boolean | null): boolean {
   if (language === "portugol-rs") return true;
   return language === "rust" && rustcAvailable === true;
 }
 
-/** Execução nativa do Rust gerado a partir de Portugol-RS, opcional. */
+/** Execução nativa do Rust gerado a partir de Ferro, opcional. */
 export function canRunAsRust(language: SourceLanguage, rustcAvailable: boolean | null): boolean {
   return language === "portugol-rs" && rustcAvailable === true;
 }

@@ -7,7 +7,7 @@ implementação, auditorias e relatórios de agentes não são contratos de UX.
 ## Direção do produto
 
 O Portugol Studio é uma aplicação desktop Rust + Tauri para aprender lógica,
-Portugol-RS e Rust real. Portugol-RS (`.fer`) é a linguagem autoral e o caminho
+Ferro e Rust real. Ferro (`.fer`) é a linguagem autoral e o caminho
 principal de aprendizagem; arquivos Rust (`.rs`) permitem avançar para a
 linguagem e a toolchain reais. A interface deve preservar familiaridade útil
 com uma IDE educacional e evoluir em função desses fluxos, sem exigir paridade
@@ -31,7 +31,7 @@ converter nem modificar o arquivo do usuário.
 3. **O modo de aprendizagem não muda o programa.** Iniciante, ponte e Rust
    alteram explicações e conceitos exibidos. Não trocam o dialeto do arquivo,
    não reescrevem seu conteúdo e não convertem `.fer`, `.rs` ou `.por`.
-   Portugol-RS continua sendo a linguagem de entrada do percurso inicial; o
+   Ferro continua sendo a linguagem de entrada do percurso inicial; o
    modo Rust orienta a abrir ou criar um arquivo `.rs` sem modificar o arquivo
    ativo.
 4. **Progresso exige evidência.** Abrir conteúdo, ler uma explicação ou iniciar
@@ -55,7 +55,7 @@ converter nem modificar o arquivo do usuário.
 
 ### Início
 
-- Criar Portugol-RS (`.fer`) é a ação principal; Rust (`.rs`) também pode ser
+- Criar Ferro (`.fer`) é a ação principal; Rust (`.rs`) também pode ser
   criado pelo menu de linguagens.
 - Abrir arquivo ou pasta inicia trabalho existente em `.fer`, `.rs` ou
   `.licao`; arquivos recentes e o catálogo 100% `.fer` de exemplos ajudam
@@ -91,11 +91,11 @@ converter nem modificar o arquivo do usuário.
 | --- | --- |
 | `.fer` | Linguagem principal; análise, execução e depuração na VM PORS, além de prévia/exportação Rust. Executar o fonte não exige `rustc`. |
 | `.rs` | Código Rust real. Análise, formatação, compilação e execução dependem das ferramentas Rust correspondentes instaladas; a IDE informa quando uma capacidade não está disponível. |
-| `.licao` | Exercício estruturado Portugol-RS avaliado no serviço local com casos de teste reais. |
+| `.licao` | Exercício estruturado Ferro avaliado no serviço local com casos de teste reais. |
 | `.pors` / `.pors.json` | Extensões retiradas. Não são abertas como código ou lições; renomear para `.fer` ou `.licao` mantém o conteúdo. |
 | `.por` / `.pex` | Não suportados (Fase 6 / ADR 0016). A IDE e a CLI rejeitam a abertura com aviso claro orientando o usuário ao Portugol Studio original, sem alterar nem converter o arquivo. |
 
-O Rust gerado é um artefato de tradução do Portugol-RS, não uma promessa de
+O Rust gerado é um artefato de tradução do Ferro, não uma promessa de
 compatibilidade com toda a linguagem Rust. A prévia deve corresponder à revisão
 atual e indicar quando está sendo recalculada ou ficou desatualizada. Uma
 execução real e a simulação didática de ownership nunca compartilham o mesmo

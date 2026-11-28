@@ -318,7 +318,7 @@ export const registerRustSourceRun = () => invoke<number>("register_rust_source_
 export const runRustSource = (id: number, source: string, args: string[] = []) =>
   invoke<RustSourceRunResult>("run_rust_source", { id, source, args });
 
-/** Executa Portugol-RS na VM educacional; não depende de `rustc`. */
+/** Executa Ferro na VM educacional; não depende de `rustc`. */
 export const startPortugolRsVm = (
   source: string,
   breakpoints: number[] = [],

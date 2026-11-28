@@ -31,7 +31,7 @@ export function createDebuggerCommands(dependencies: DebuggerCommandDependencies
     dependencies.setDebugLine(null);
     dependencies.setPaused(null);
     dependencies.setRunning(true);
-    dependencies.setStatus(dependencies.runLanguage() === "portugol-rs" ? "VM Portugol-RS executando…" : "Executando…");
+    dependencies.setStatus(dependencies.runLanguage() === "portugol-rs" ? "VM Ferro executando…" : "Executando…");
     try {
       await command(id);
     } catch {

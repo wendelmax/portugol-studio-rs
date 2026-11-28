@@ -40,7 +40,7 @@ test("creates a PORS exercise tab with a safely wrapped statement", () => {
   assert.match(source, /programa \{ funcao inicio\(\) \{\} \}/);
 });
 
-test("uses the PORS starter and Portugol-RS language", () => {
+test("uses the PORS starter and Ferro language", () => {
   const f = fixture();
   f.opener.open(exercise({ pors: { starter_code: "funcao inicio() {}" } }));
   assert.equal(f.calls[0][1], "/*\nUse * / no comentário\n*/\n\nfuncao inicio() {}");

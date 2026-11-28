@@ -1,4 +1,4 @@
-// Em Portugol-RS, funcoes sem valor de retorno simplesmente omitem "-> Tipo"
+// Em Ferro, funcoes sem valor de retorno simplesmente omitem "-> Tipo"
 funcao imprime_linha() {
     escreva("\n---------------------------------------------------------------------------------------------");
 }
@@ -19,7 +19,7 @@ funcao informacoes(nome: cadeia, versao: real, fornecedor: cadeia) {
 
 funcao inicio() {
     imprime_linha();
-    informacoes("Portugol-RS", 1.0, "Portugol Studio RS");
+    informacoes("Ferro", 1.0, "Portugol Studio RS");
     imprime_linha();
     informacoes("Java", 1.7, "Oracle");
     imprime_linha();

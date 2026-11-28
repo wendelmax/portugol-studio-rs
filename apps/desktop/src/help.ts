@@ -445,7 +445,7 @@ export function mountHelp(optionsOrOpen: MountHelpOptions | ((source: string, fi
         const table = document.createElement("table");
         const thead = document.createElement("thead");
         const headRow = document.createElement("tr");
-        for (const col of ["Conceito", "Portugol-RS (.fer)", "Rust (.rs)"]) {
+        for (const col of ["Conceito", "Ferro (.fer)", "Rust (.rs)"]) {
           const th = document.createElement("th");
           th.textContent = col;
           headRow.append(th);

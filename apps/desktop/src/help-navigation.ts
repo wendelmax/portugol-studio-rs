@@ -310,7 +310,7 @@ const HIGHLIGHT_TYPES = new Set([
 ]);
 const HIGHLIGHT_BUILTINS = new Set(["escreva", "leia", "tamanho", "adicionar", "remover", "obter"]);
 
-/** Tokenizador leve de Portugol-RS para realce sintático nos exemplos da Ajuda. */
+/** Tokenizador leve de Ferro para realce sintático nos exemplos da Ajuda. */
 export function tokenizePorsCode(source: string): PorsCodeToken[] {
   const tokens: PorsCodeToken[] = [];
   let i = 0;

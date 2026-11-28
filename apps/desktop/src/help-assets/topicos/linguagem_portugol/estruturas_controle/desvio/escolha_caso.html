@@ -3,11 +3,11 @@
 <div>
             <h1>Escolha-caso</h1>
             <p>A estrutura <span class="palavra-reservada">escolha</span>/<span class="palavra-reservada">caso</span> seleciona um bloco de código de acordo com a variante de um <code>enum</code>, <code>Opcao&lt;T&gt;</code> ou <code>Resultado&lt;T, E&gt;</code> — funcionando exatamente como <code>match</code> em Rust.</p>
-            <p>Diferente de linguagens antigas com queda entre casos, em Portugol-RS cada ramo usa a seta <code>=> { ... }</code> e termina automaticamente ao fim do bloco, sem precisar de <code>pare</code>. Além disso, o compilador verifica <b>exaustividade</b>: todas as variantes precisam ser tratadas explicitamente ou cobertas pelo curinga <code>caso _ => { ... }</code>.</p>
+            <p>Diferente de linguagens antigas com queda entre casos, em Ferro cada ramo usa a seta <code>=> { ... }</code> e termina automaticamente ao fim do bloco, sem precisar de <code>pare</code>. Além disso, o compilador verifica <b>exaustividade</b>: todas as variantes precisam ser tratadas explicitamente ou cobertas pelo curinga <code>caso _ => { ... }</code>.</p>
             <div class="codigo-portugol" data-type='sintaxe' data-title="Exemplo de Sintaxe" data-file="../../../../recursos/exemplos-pors/estruturas_controle/desvio/escolha_caso/exemplo1.fer"></div>
             <p>Quando precisar comparar faixas numéricas ou condições booleanas gerais, utilize <a href="topicos/linguagem_portugol/estruturas_controle/desvio/se_senao_se.html">se / senao se</a>. A figura a seguir ilustra o fluxo de decisão entre múltiplos caminhos:</p>
             <img src="../../../../recursos/imagens/${tema}/escolha_caso.png" alt='Fluxograma ilustrando o desvio entre múltiplos casos'>
-            <p>Confira no exemplo abaixo como modelar opções tipadas com <code>enum</code> e <code>escolha</code> em Portugol-RS:</p>
+            <p>Confira no exemplo abaixo como modelar opções tipadas com <code>enum</code> e <code>escolha</code> em Ferro:</p>
             <div class="codigo-portugol" data-type='exemplo' data-title="Exemplo" data-file="../../../../recursos/exemplos-pors/estruturas_controle/desvio/escolha_caso/exemplo2.fer"></div>
         </div>
 </body>

@@ -63,7 +63,7 @@ Este documento não presume framework, bibliotecas, formatos legados ou capacida
 
 | Região | `beginner` | `bridge` | `rust` |
 |---|---|---|---|
-| Editor principal | Portugol | Portugol/Portugol-RS, conforme arquivo | Rust |
+| Editor principal | Portugol | Portugol/Ferro, conforme arquivo | Rust |
 | Editor paralelo | oculto por padrão | Rust gerado, se disponível | comparação opcional |
 | Inspector | dicas básicas | explicar tradução/`mut`/tipos | ownership/borrowing e recursos avançados |
 | Motor padrão | interpretador Portugol | escolha explícita; preservar escolha válida | rustc/Cargo, se configurado |

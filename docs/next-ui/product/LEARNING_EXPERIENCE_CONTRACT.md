@@ -2,7 +2,7 @@
 
 ## Modos
 - **Iniciante**: Portugol, variáveis/condicionais/loops, execução visual; Rust não imposto.
-- **Ponte**: sintaxe Portugol-RS opcional e equivalência explícita com Rust; comparador e explicações.
+- **Ponte**: sintaxe Ferro opcional e equivalência explícita com Rust; comparador e explicações.
 - **Rust**: rustc/Cargo real (se disponível), mutabilidade, tipos, ownership, borrowing, Result/Option.
 
 **Mudança de modo nunca modifica arquivos automaticamente.** Recomendação contextual não é bloqueio rígido; professor pode permitir ou restringir recursos em futuras extensões.

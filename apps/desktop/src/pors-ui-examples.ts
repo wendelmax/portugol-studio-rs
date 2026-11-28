@@ -1,4 +1,4 @@
-// Exemplos visuais declarativos em Portugol-RS (.fer) para o Preview Visual MVU (ADR 0017).
+// Exemplos visuais declarativos em Ferro (.fer) para o Preview Visual MVU (ADR 0017).
 
 export interface PorsUiExample {
   readonly id: string;
