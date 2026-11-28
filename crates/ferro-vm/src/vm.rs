@@ -1249,8 +1249,7 @@ impl<'a> Vm<'a> {
                         return Err(format!(
                             "`Dialogo.{}` só funciona numa tela desktop.",
                             native_ref.name
-                        )
-                        .into());
+                        ));
                     }
                     #[cfg(feature = "stdlib")]
                     let multimedia_outcome = {
