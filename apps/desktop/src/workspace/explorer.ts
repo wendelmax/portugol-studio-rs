@@ -937,6 +937,14 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
     newDesktopProject(example: { id: string; name: string }) {
       openDesktopProjectDialog(example);
     },
+    /** Arquivos diretamente dentro de uma pasta do workspace aberto ("" é a raiz). */
+    filesIn(workspaceId: string | undefined, folder: string): string[] {
+      if (workspaceId !== workspaceState?.id) return [];
+      const prefix = folder ? `${folder}/` : "";
+      return collectWorkspaceFiles(workspaceState?.entries ?? [])
+        .map((file) => file.path)
+        .filter((path) => path.startsWith(prefix) && !path.slice(prefix.length).includes("/"));
+    },
     /** Se o arquivo existe no workspace aberto. */
     hasFile(workspaceId: string | undefined, path: string): boolean {
       return workspaceId === workspaceState?.id

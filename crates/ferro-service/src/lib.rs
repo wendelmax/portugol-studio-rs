@@ -187,6 +187,60 @@ pub fn inspect_ferro_rs(source: &str) -> Inspection {
 /// arquivo não precisa de `inicio` (ADR 0018, seção 4). Com erro de sintaxe
 /// no `.design`, os tipos da tela ficam de fora.
 pub fn inspect_code_behind(source: &str, design_source: &str) -> Inspection {
+    inspect_code_behind_in_project(source, design_source, None)
+}
+
+/// Como [`inspect_code_behind`], numa pasta de projeto: com o texto do
+/// `.ferproj`, o uso de um serviço que o manifesto não pede vira aviso
+/// `design.missing-permission`, com o que acrescentar em `Permissoes`.
+pub fn inspect_code_behind_in_project(
+    source: &str,
+    design_source: &str,
+    manifest: Option<&str>,
+) -> Inspection {
+    let mut inspection = inspect_code_behind_only(source, design_source);
+    if let Some(manifest) = manifest
+        && let Some(manifest) = ferro_tela::project::analyze_manifest(manifest).manifest
+    {
+        let index = position::LineIndex::new(source);
+        inspection.diagnostics.extend(
+            missing_permissions(source, &manifest.permissions)
+                .iter()
+                .map(|diagnostic| describe(&index, diagnostic)),
+        );
+    }
+    inspection
+}
+
+/// Um aviso por serviço usado e não declarado, no primeiro uso dele.
+fn missing_permissions(source: &str, permissions: &[String]) -> Vec<Diagnostic> {
+    let mut seen: Vec<String> = Vec::new();
+    ferro_frontend::module_uses(source, ferro_tela::project::PERMISSIONS)
+        .into_iter()
+        .filter(|(module, _)| !permissions.contains(module))
+        .filter_map(|(module, span)| {
+            if seen.contains(&module) {
+                return None;
+            }
+            seen.push(module.clone());
+            let current = if permissions.is_empty() {
+                format!("Permissoes=\"{module}\"")
+            } else {
+                format!("Permissoes=\"{},{module}\"", permissions.join(","))
+            };
+            Some(
+                Diagnostic::warning(
+                    "design.missing-permission",
+                    format!("A tela usa `{module}`, mas o projeto não pede essa permissão; na execução, a chamada é recusada."),
+                    span,
+                )
+                .with_help(format!("Acrescente `{module}` no .ferproj: {current}.")),
+            )
+        })
+        .collect()
+}
+
+fn inspect_code_behind_only(source: &str, design_source: &str) -> Inspection {
     let mut inspection =
         inspect_ferro_rs_with(source, &designer::code_behind_options(design_source));
     if !inspection

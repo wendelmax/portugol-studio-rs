@@ -99,6 +99,7 @@ const screenFiles: ScreenFilesHost = {
   tabs: () => tabCollection.tabs(),
   tabSource: (tab) => (tab === activeTab() ? view.state.doc.toString() : tab.state.doc.toString()),
   hasFile: (workspaceId, path) => workspaceExplorer.hasFile(workspaceId, path),
+  filesIn: (workspaceId, folder) => workspaceExplorer.filesIn(workspaceId, folder),
   readFile: async (workspaceId, path) => (await api.readWorkspaceFile(workspaceId, path)).source,
 };
 function renderTabs() {

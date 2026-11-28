@@ -15,12 +15,14 @@ export interface ScreenFilesHost {
   /** Texto atual de uma aba (o do editor, para a aba ativa). */
   tabSource: (tab: Tab) => string;
   hasFile: (workspaceId: string | undefined, path: string) => boolean;
+  /** Arquivos diretamente dentro de uma pasta ("" é a raiz). */
+  filesIn: (workspaceId: string | undefined, folder: string) => string[];
   readFile: (workspaceId: string, path: string) => Promise<string>;
 }
 
 export interface ScreenInspectors {
   inspectFerroRust: (source: string) => Promise<Inspection>;
-  inspectCodeBehind: (source: string, designSource: string) => Promise<Inspection>;
+  inspectCodeBehind: (source: string, designSource: string, manifestSource: string | null) => Promise<Inspection>;
   inspectMarkup: (source: string, path: string, checkCode?: boolean, codeSource?: string | null) => Promise<Inspection>;
 }
 
@@ -51,12 +53,26 @@ export function isScreenFile(host: ScreenFilesHost, tab: Tab | undefined): boole
   return fileKind(tab.workspacePath) === "design" || screenDesignFor(host, tab) !== null;
 }
 
-/** Inspeção de código-fonte: o code-behind de uma tela usa os tipos do `.design`. */
+/** Texto do `.ferproj` da pasta de um arquivo, se houver (o primeiro em ordem alfabética). */
+export async function projectManifestFor(host: ScreenFilesHost, workspaceId: string, path: string): Promise<string | null> {
+  const slash = path.lastIndexOf("/");
+  const folder = slash < 0 ? "" : path.slice(0, slash);
+  const manifest = host.filesIn(workspaceId, folder).filter((file) => file.toLowerCase().endsWith(".ferproj")).sort()[0];
+  return manifest ? screenFileSource(host, workspaceId, manifest) : null;
+}
+
+/**
+ * Inspeção de código-fonte: o code-behind de uma tela usa os tipos do
+ * `.design` e, num projeto, confere as permissões do `.ferproj`.
+ */
 export async function inspectSource(host: ScreenFilesHost, inspectors: ScreenInspectors, source: string, tab: Tab | undefined): Promise<Inspection> {
   const design = screenDesignFor(host, tab);
   if (tab?.workspaceId && design) {
     const designSource = await screenFileSource(host, tab.workspaceId, design);
-    if (designSource !== null) return inspectors.inspectCodeBehind(source, designSource);
+    if (designSource !== null) {
+      const manifest = await projectManifestFor(host, tab.workspaceId, design);
+      return inspectors.inspectCodeBehind(source, designSource, manifest);
+    }
   }
   return inspectors.inspectFerroRust(source);
 }
