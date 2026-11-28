@@ -230,6 +230,9 @@ impl Parser {
             &format!("Esperado `)` após argumentos de `{module}.{member}`"),
         )?;
         let whole_span = start.join(close.span);
+        if module == "Dialogo" {
+            return self.dialogo_call(member, member_span, arguments, whole_span);
+        }
 
         use StdlibReturn::{Option as RetOpt, ResultString as RetRes, Scalar as Ret};
         use hir::Type::{Boolean as B, Character as C, Integer as I, Real as R, String as S};
@@ -482,5 +485,125 @@ impl Parser {
             ty,
             span: to_hir_span(whole_span),
         })
+    }
+
+    /// `Dialogo` (ADR 0018, Fase 5): caixas do sistema chamadas de dentro das
+    /// funções de uma tela. `abrir_arquivo` e `salvar_arquivo` recebem o
+    /// componente `<DialogoArquivo>` da tela e usam o título e o filtro dele.
+    fn dialogo_call(
+        &mut self,
+        member: String,
+        member_span: Span,
+        arguments: Vec<hir::Expr>,
+        whole_span: Span,
+    ) -> Result<hir::Expr, Vec<Diagnostic>> {
+        let expect_text = |parser: &Self, arguments: &[hir::Expr]| -> Result<(), Vec<Diagnostic>> {
+            if arguments.len() != 1 {
+                return parser.fail(
+                    "pors.stdlib-call-arity",
+                    format!(
+                        "`Dialogo.{member}` espera 1 argumento (o texto), recebeu {}",
+                        arguments.len()
+                    ),
+                    whole_span,
+                );
+            }
+            if arguments[0].ty != hir::Type::String {
+                return parser.fail(
+                    "pors.stdlib-call-type-mismatch",
+                    format!("O texto de `Dialogo.{member}` deve ter tipo `cadeia`"),
+                    syntax_span(arguments[0].span),
+                );
+            }
+            Ok(())
+        };
+        // Os pares `("Dialogo", "...")` seguem o formato da tabela da biblioteca
+        // padrão, que o teste de paridade do catálogo da IDE lê.
+        let file_dialog = match ("Dialogo", member.as_str()) {
+            ("Dialogo", "mensagem") => {
+                expect_text(self, &arguments)?;
+                return Ok(dialogo_expr(member, arguments, hir::Type::Unit, whole_span));
+            }
+            ("Dialogo", "confirmar") => {
+                expect_text(self, &arguments)?;
+                return Ok(dialogo_expr(
+                    member,
+                    arguments,
+                    hir::Type::Boolean,
+                    whole_span,
+                ));
+            }
+            ("Dialogo", "abrir_arquivo") => true,
+            ("Dialogo", "salvar_arquivo") => true,
+            _ => false,
+        };
+        let (arguments, ty) = match file_dialog {
+            true => {
+                let component = self.record_ids.get("DialogoArquivo").copied();
+                let [argument] = <[hir::Expr; 1]>::try_from(arguments).map_err(|arguments| {
+                    vec![Diagnostic::error(
+                        "pors.stdlib-call-arity",
+                        format!(
+                            "`Dialogo.{member}` espera 1 argumento (um `<DialogoArquivo>` da tela), recebeu {}",
+                            arguments.len()
+                        ),
+                        whole_span,
+                    )]
+                })?;
+                let Some(id) = component.filter(|id| argument.ty == hir::Type::Record(*id)) else {
+                    return self.fail(
+                        "pors.stdlib-call-type-mismatch",
+                        format!("`Dialogo.{member}` espera um `<DialogoArquivo>` da tela, como `t.dlgAbrir`"),
+                        syntax_span(argument.span),
+                    );
+                };
+                let definition = self
+                    .record_types
+                    .iter()
+                    .find(|r| r.id == id)
+                    .expect("registro existe");
+                let field = |name: &str| definition.fields.iter().position(|f| f.name == name);
+                let (Some(title), Some(filter)) = (field("titulo"), field("filtro")) else {
+                    return self.fail(
+                        "pors.stdlib-call-type-mismatch",
+                        "O `<DialogoArquivo>` desta tela não tem título e filtro",
+                        syntax_span(argument.span),
+                    );
+                };
+                let read = |index: usize| hir::Expr {
+                    kind: hir::ExprKind::Field {
+                        value: Box::new(argument.clone()),
+                        field_index: index,
+                    },
+                    ty: hir::Type::String,
+                    span: argument.span,
+                };
+                let ty = self
+                    .intern_builtin_enum(hir::BuiltinEnum::Option(hir::Type::String), whole_span);
+                (vec![read(title), read(filter)], ty)
+            }
+            false => {
+                return self.fail(
+                    "pors.unknown-stdlib-function",
+                    format!(
+                        "Função desconhecida: Dialogo.{member}. Use `mensagem`, `confirmar`, `abrir_arquivo` ou `salvar_arquivo`."
+                    ),
+                    member_span,
+                );
+            }
+        };
+        Ok(dialogo_expr(member, arguments, ty, whole_span))
+    }
+}
+
+fn dialogo_expr(name: String, arguments: Vec<hir::Expr>, ty: hir::Type, span: Span) -> hir::Expr {
+    hir::Expr {
+        kind: hir::ExprKind::HostCall {
+            module: "Dialogo".into(),
+            name,
+            arguments,
+        },
+        ty,
+        span: to_hir_span(span),
     }
 }

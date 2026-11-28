@@ -1,5 +1,6 @@
 import type { Tab } from "./tab";
 import { canDebugSource, canFormatSource, canRunSource } from "../runtime-capabilities.ts";
+import { PORS_STDLIB_MODULES } from "../pors-stdlib-catalog.ts";
 
 export const LANGUAGE_BUTTON_IDS = [
   "btn-run", "btn-debug", "btn-debug-pause", "btn-debug-continue", "btn-debug-step-over", "btn-debug-step-into", "btn-debug-step-out",
@@ -69,10 +70,8 @@ export function deriveLanguageControls(
       ? "Instale o componente rustfmt com `rustup component add rustfmt`."
       : "Formatar código-fonte",
   };
-const PORS_LIBRARY_NAMES: ReadonlySet<string> = new Set([
-  "UI", "Matematica", "Texto", "Tipos", "Util", "Calendario",
-  "Arquivos", "Json", "Internet", "Graficos", "Teclado", "Mouse", "Sons",
-]);
+// Os módulos vêm do catálogo da biblioteca padrão, a mesma lista do autocompletar.
+const PORS_LIBRARY_NAMES: ReadonlySet<string> = new Set(PORS_STDLIB_MODULES);
 
   const libraries = Object.fromEntries(state.libraryNames.map((name) => {
     const porsAvailable = pors && PORS_LIBRARY_NAMES.has(name);

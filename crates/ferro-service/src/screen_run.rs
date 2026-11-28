@@ -17,7 +17,10 @@ use ferro_bytecode::Module;
 use ferro_hir::{self as hir, Type};
 use ferro_tela::codebehind::{FieldDef, FieldSource, FieldType, ScreenType, TypeDef, screen_type};
 use ferro_tela::{Document, Element, schema};
-use ferro_vm::{BufferIo, Value, Vm};
+use ferro_vm::{BufferIo, Host, Value, Vm};
+
+/// Cria o host de cada chamada: quem mostra os diálogos (`Dialogo`) da tela.
+pub type ScreenHostFactory = Box<dyn Fn() -> Box<dyn Host> + Send>;
 
 /// Instruções por evento antes de interromper o handler (laço infinito).
 pub const SCREEN_EVENT_STEP_BUDGET: usize = 5_000_000;
@@ -146,6 +149,7 @@ pub struct ScreenRun {
     state: ScreenValue,
     history: Vec<ScreenValue>,
     step_budget: usize,
+    host: Option<ScreenHostFactory>,
 }
 
 fn first_message(diagnostics: &[ferro_hir::Diagnostic], file: &str) -> String {
@@ -251,6 +255,7 @@ impl ScreenRun {
             screen,
             document,
             step_budget: SCREEN_EVENT_STEP_BUDGET,
+            host: None,
         };
         run.state = run.initial_window();
         run.sync_bound();
@@ -268,6 +273,13 @@ impl ScreenRun {
         }
         let step = run.step(opening, output);
         Ok((run, step))
+    }
+
+    /// Host das chamadas dos eventos (a janela da tela, com os diálogos do
+    /// sistema). Sem ele, `Dialogo` dá erro. `AoAbrir` roda antes de a janela
+    /// existir, por isso usa o host só a partir dos eventos.
+    pub fn set_host(&mut self, factory: ScreenHostFactory) {
+        self.host = Some(factory);
     }
 
     /// Limite de instruções por evento (testes usam valores pequenos).
@@ -383,6 +395,9 @@ impl ScreenRun {
         let mut io = BufferIo::default();
         let result = {
             let mut vm = Vm::new(&self.module, &mut io);
+            if let Some(factory) = &self.host {
+                vm = vm.with_host(factory());
+            }
             vm.call_function(handler, vec![self.state.to_vm()], self.step_budget)
         };
         let value = result.map_err(|error| format!("Erro em `{handler}`: {}", error.message))?;

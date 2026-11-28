@@ -1234,6 +1234,23 @@ impl<'a> Vm<'a> {
                         self.push(result);
                         return Ok(false);
                     }
+                    if native_ref.library == "PorsDialogo" {
+                        #[cfg(feature = "stdlib")]
+                        {
+                            let result = crate::pors_libs::dialogo::call(
+                                &native_ref.name,
+                                &args,
+                                &mut self.ctx,
+                            )?;
+                            self.push(result);
+                            return Ok(false);
+                        }
+                        #[cfg(not(feature = "stdlib"))]
+                        return Err(format!(
+                            "`Dialogo.{}` só funciona numa tela desktop.",
+                            native_ref.name
+                        ));
+                    }
                     #[cfg(feature = "stdlib")]
                     let multimedia_outcome = {
                         let string_limit = self.string_memory_limit;

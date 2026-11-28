@@ -37,6 +37,7 @@ export const PORS_STDLIB_MODULES = [
   "Util",
   "Calendario",
   "Arquivos",
+  "Dialogo",
   "Json",
   "Internet",
   "Graficos",
@@ -307,6 +308,24 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
       fn("existe", "Arquivos.existe(caminho: cadeia) -> Resultado<logico, cadeia>", "Verifica se o caminho relativo existe dentro do workspace."),
       fn("remover", "Arquivos.remover(caminho: cadeia) -> Resultado<logico, cadeia>", "Remove um arquivo dentro do workspace."),
       fn("listar", "Arquivos.listar(diretorio: cadeia) -> Resultado<vetor<cadeia>, cadeia>", "Lista de forma ordenada até 1024 entradas de um diretório relativo ao workspace."),
+    ],
+  },
+  {
+    id: "pors-lib:Dialogo",
+    module: "Dialogo",
+    name: "PORS: Dialogo",
+    group: "visual",
+    description: "Caixas do sistema para as telas desktop: aviso, confirmação e escolha de arquivo. Fora de uma tela, cada função explica onde funciona.",
+    example: {
+      title: "Confirmando antes de agir (numa função de tela)",
+      fileName: "exemplo-dialogo.fer",
+      source: `funcao inicio() {\n    se (Dialogo.confirmar("Salvar as notas?")) {\n        Dialogo.mensagem("Notas salvas.");\n    }\n}\n`,
+    },
+    items: [
+      fn("mensagem", "Dialogo.mensagem(texto: cadeia) -> vazio", "Mostra um aviso com o botão OK, preso à janela da tela."),
+      fn("confirmar", "Dialogo.confirmar(texto: cadeia) -> logico", "Pergunta com Sim e Não; devolve `verdadeiro` para Sim."),
+      fn("abrir_arquivo", "Dialogo.abrir_arquivo(dialogo: DialogoArquivo) -> Opcao<cadeia>", "Escolhe um arquivo para abrir com o título e o filtro do `<DialogoArquivo>` da tela (`t.dlgAbrir`); `Opcao::Nenhum` se o usuário cancelar."),
+      fn("salvar_arquivo", "Dialogo.salvar_arquivo(dialogo: DialogoArquivo) -> Opcao<cadeia>", "Escolhe onde salvar, com o título e o filtro do `<DialogoArquivo>` da tela; `Opcao::Nenhum` se o usuário cancelar."),
     ],
   },
   {

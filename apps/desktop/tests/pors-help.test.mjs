@@ -8,7 +8,7 @@ import {
   filterPorsHelp,
 } from "../src/pors-help.ts";
 
-test("PORS help starts on a PORS topic and covers all 13 PORS libraries grouped into standard and visual", () => {
+test("PORS help starts on a PORS topic and covers all 14 PORS libraries grouped into standard and visual", () => {
   assert.ok(PORS_HELP_TOPICS.some((topic) => topic.id === PORS_HELP_DEFAULT_TOPIC));
   const libNames = PORS_HELP_LIBRARIES.map((lib) => lib.name);
   for (const expected of [
@@ -25,6 +25,7 @@ test("PORS help starts on a PORS topic and covers all 13 PORS libraries grouped 
     "PORS: Teclado",
     "PORS: Mouse",
     "PORS: Sons",
+    "PORS: Dialogo",
   ]) {
     assert.ok(libNames.includes(expected), `esperava biblioteca ${expected} na ajuda PORS`);
   }
@@ -32,7 +33,7 @@ test("PORS help starts on a PORS topic and covers all 13 PORS libraries grouped 
   const standardLibs = PORS_HELP_LIBRARIES.filter((lib) => lib.group === "standard");
   const visualLibs = PORS_HELP_LIBRARIES.filter((lib) => lib.group === "visual");
   assert.equal(standardLibs.length, 8);
-  assert.equal(visualLibs.length, 5);
+  assert.equal(visualLibs.length, 6);
 });
 
 test("PORS help covers loops and typed functions alongside core topics", () => {

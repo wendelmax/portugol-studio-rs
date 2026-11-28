@@ -94,6 +94,7 @@ const PORS_TOP_LEVEL_DOCS: Record<string, PorsDocEntry> = {
   Util: { label: "Util", kind: "namespace", signature: "modulo Util", description: "Utilitários determinísticos e seguros (`Util.sorteia`, `Util.definir_semente`, `Util.tempo_decorrido`, `Util.aguarde`)." },
   Calendario: { label: "Calendario", kind: "namespace", signature: "modulo Calendario", description: "Data e hora UTC determinísticas, constantes de dias/meses e cálculos gregorianos." },
   Arquivos: { label: "Arquivos", kind: "namespace", signature: "modulo Arquivos", description: "Leitura e escrita de arquivos UTF-8 confinada ao workspace, com limite de 2 MiB e tratamento via `Resultado<T, cadeia>`." },
+  Dialogo: { label: "Dialogo", kind: "namespace", signature: "modulo Dialogo", description: "Caixas do sistema para as telas desktop: aviso, confirmação e escolha de arquivo para abrir ou salvar (com o `<DialogoArquivo>` da tela)." },
   Json: { label: "Json", kind: "namespace", signature: "modulo Json", description: "Validação, consulta, formatação e construção imutável de JSON (RFC 8259) zero-dependência com `Resultado<T, cadeia>`." },
   Internet: { label: "Internet", kind: "namespace", signature: "modulo Internet", description: "Requisições HTTP/HTTPS seguras com consentimento explícito, timeout/cancelamento e limite de 1 MiB." },
   Graficos: { label: "Graficos", kind: "namespace", signature: "modulo Graficos", description: "Janela gráfica nativa, formas, texto, imagens e GIFs com ponte tipada para o host da VM." },
