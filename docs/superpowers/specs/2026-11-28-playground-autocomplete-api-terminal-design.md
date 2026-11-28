@@ -15,7 +15,7 @@ Modernizar o Web Playground Ferro publicado em https://wendelmax.github.io/ferro
 
 - Referência das bibliotecas padrão (`UI.*`, `Matematica.*`, etc.). Ela continua existindo na IDE; o painel deste playground é sobre a **linguagem**.
 - E/S interativa de verdade durante a execução (o programa pedir `leia()` e o usuário digitar enquanto a VM roda).
-- Alterações em `crates/ferro-wasm`, no protocolo de memória linear ou em `pors_run(source, stdin)`.
+- Alterações em `crates/ferro-wasm`, no protocolo de memória linear ou em `ferro_run(source, stdin)`.
 - Introduzir CodeMirror, npm ou qualquer dependência JavaScript no playground.
 - Refatorar a IDE desktop ou a arquitetura dos exemplos.
 
@@ -31,8 +31,8 @@ Modernizar o Web Playground Ferro publicado em https://wendelmax.github.io/ferro
 
 1. **Autocomplete com CodeMirror no playground.** Daria recursos maduros de edição, mas quebra a restrição de zero dependências e exigiria build/bundling. Descartada.
 2. **Autocomplete próprio sobre o `<textarea>` existente.** Mantém o realce atual e adiciona um `role="listbox"` posicionado abaixo do editor. Escolhida: compatível com o playground estático e suficiente para a sintaxe Ferro.
-3. **Terminal interativo com streaming de stdin.** Exige mudar a fachada WASM e o protocolo `pors_run`. Descartada nesta fatia; o terminal será de histórico: o usuário preenche as entradas antes de executar e vê entrada + saída no mesmo painel.
-4. **Painel gerado a partir de `pors-stdlib-catalog.ts`.** Descartada após o esclarecimento do usuário: a “API” pedida são as instruções e sintaxes da linguagem, não as funções das bibliotecas padrão.
+3. **Terminal interativo com streaming de stdin.** Exige mudar a fachada WASM e o protocolo `ferro_run`. Descartada nesta fatia; o terminal será de histórico: o usuário preenche as entradas antes de executar e vê entrada + saída no mesmo painel.
+4. **Painel gerado a partir de `ferro-stdlib-catalog.ts`.** Descartada após o esclarecimento do usuário: a “API” pedida são as instruções e sintaxes da linguagem, não as funções das bibliotecas padrão.
 
 ## Decisões de implementação
 
@@ -43,10 +43,10 @@ Modernizar o Web Playground Ferro publicado em https://wendelmax.github.io/ferro
 - O popup de autocomplete vive dentro de `.pg-editor-wrap`, é controlado por `ArrowDown`/`ArrowUp`/`Enter`/`Tab`/`Escape` e nunca intercepta `Ctrl+Enter`.
 - O painel de referência é um card full-width abaixo da grade editor/terminal, com `<input type="search">`, lista agrupada e estado vazio; o clique insere `insertText` no caret do editor.
 - Os botões `Validar`, `Formatar`, `Prévia UI` e `Ver Rust` viram opções de `<select id="pg-action">`. Escolher uma opção dispara a ação e o select volta ao placeholder; `Executar` permanece como único botão.
-- O painel de resultado passa a se chamar Terminal. `#pg-terminal-history` recebe linhas `data-kind="input" | "output" | "error" | "empty"`; `#pg-stdin` vira o campo de entrada do terminal. `pors_run` continua recebendo o conteúdo completo de `#pg-stdin`.
+- O painel de resultado passa a se chamar Terminal. `#pg-terminal-history` recebe linhas `data-kind="input" | "output" | "error" | "empty"`; `#pg-stdin` vira o campo de entrada do terminal. `ferro_run` continua recebendo o conteúdo completo de `#pg-stdin`.
 
 ## O que fica para quem implementar
 
 - Detalhes visuais (espaçamento, cores e sombras) devem seguir o CSS existente; nenhuma decisão de layout além das estruturas acima é fixada.
-- As descrições e exemplos curtos podem ser adaptados de `apps/desktop/src/portugol.ts`, `docs/PORTUGOL-RUST.md` e das RFCs em `docs/superpowers/specs/`; o texto exato não é parte do contrato, mas presença de `signature`, `description` e `example` é.
+- As descrições e exemplos curtos podem ser adaptados de `apps/desktop/src/ferro-language.ts`, `docs/FERRO-RUST.md` e das RFCs em `docs/superpowers/specs/`; o texto exato não é parte do contrato, mas presença de `signature`, `description` e `example` é.
 - O circuito de build WASM não precisa ser alterado; basta incluir `ferro-language.mjs` na cópia do bundle.

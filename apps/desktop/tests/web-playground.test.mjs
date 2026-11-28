@@ -764,22 +764,22 @@ test("web playground terminal shows stdin history and literal stdout with the ac
   };
   const exports = {
     memory,
-    pors_alloc(len) { const ptr = nextPtr; nextPtr += len; return ptr; },
-    pors_dealloc() {},
-    pors_result_ptr: () => resultPtr,
-    pors_result_len: () => resultLen,
-    pors_validate: () => writeResult({ ok: true, diagnostics: [] }),
-    pors_format: () => writeResult({ ok: true, changed: false, formatted: "" }),
-    pors_export_rust: () => writeResult({ ok: true, code: "", diagnostics: [] }),
-    pors_run: () => writeResult({
+    ferro_alloc(len) { const ptr = nextPtr; nextPtr += len; return ptr; },
+    ferro_dealloc() {},
+    ferro_result_ptr: () => resultPtr,
+    ferro_result_len: () => resultLen,
+    ferro_validate: () => writeResult({ ok: true, diagnostics: [] }),
+    ferro_format: () => writeResult({ ok: true, changed: false, formatted: "" }),
+    ferro_export_rust: () => writeResult({ ok: true, code: "", diagnostics: [] }),
+    ferro_run: () => writeResult({
       ok: true,
       stdout: "Olá\n<script>x</script>\n",
       diagnostics: [],
     }),
-    pors_ui_start: () => writeResult({ ok: true, session: 1, step: 0, tree: { kind: "texto", content: "" }, stdout: "" }),
-    pors_ui_dispatch: () => writeResult({ ok: true, session: 1, step: 1, tree: { kind: "texto", content: "" }, stdout: "" }),
-    pors_ui_snapshot: () => writeResult({ ok: true, session: 1, step: 0, tree: { kind: "texto", content: "" }, stdout: "" }),
-    pors_ui_close: () => 1,
+    ferro_ui_start: () => writeResult({ ok: true, session: 1, step: 0, tree: { kind: "texto", content: "" }, stdout: "" }),
+    ferro_ui_dispatch: () => writeResult({ ok: true, session: 1, step: 1, tree: { kind: "texto", content: "" }, stdout: "" }),
+    ferro_ui_snapshot: () => writeResult({ ok: true, session: 1, step: 0, tree: { kind: "texto", content: "" }, stdout: "" }),
+    ferro_ui_close: () => 1,
   };
   const previous = {
     document: Object.getOwnPropertyDescriptor(globalThis, "document"),
