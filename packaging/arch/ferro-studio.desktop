@@ -2,7 +2,7 @@
 Name=Ferro Studio
 Comment=Ferro Studio — Programe em português, crie apps e jogos e evolua para Rust
 Exec=/usr/bin/ferro-desktop %F
-Icon=portugol-studio-rs
+Icon=ferro-studio
 Terminal=false
 Type=Application
 Categories=Development;Education;IDE;

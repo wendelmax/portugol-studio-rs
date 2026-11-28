@@ -280,7 +280,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          pkg_file="$(ls "$GITHUB_WORKSPACE"/dist-arch/portugol-studio-rs-*.pkg.tar.zst | head -n 1)"
+          pkg_file="$(ls "$GITHUB_WORKSPACE"/dist-arch/ferro-studio-*.pkg.tar.zst | head -n 1)"
           asset_name="$(basename "$pkg_file")"
           release_id="$(curl -fsSL \
             -H "Authorization: Bearer $GITHUB_TOKEN" \
