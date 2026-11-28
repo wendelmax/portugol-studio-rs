@@ -161,6 +161,7 @@ jobs:
           mkdir -p apps/desktop/src-tauri/binaries
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             cp target/release/ferro.exe apps/desktop/src-tauri/binaries/ferro.exe
+            cp target/release/ferro.exe apps/desktop/src-tauri/binaries/ferro
           else
             cp target/release/ferro apps/desktop/src-tauri/binaries/ferro
           fi
