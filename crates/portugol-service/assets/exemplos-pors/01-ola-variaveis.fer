@@ -1,6 +1,0 @@
-funcao inicio() {
-    seja nome: cadeia = "Portugol-RS";
-    seja mutavel ano: inteiro = 2026;
-    ano += 1;
-    escreva("Olá, ", nome, "! Próximo ano: ", ano);
-}

@@ -1,0 +1,16 @@
+[package]
+name = "ferro-tela"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Formato .design das telas desktop PORS (pseudo-XAML): parser, esquema de controles, validação e formatação canônica"
+
+[dependencies]
+ferro-hir = { path = "../ferro-hir" }
+ferro-formatos = { path = "../ferro-formatos" }
+ferro-frontend = { path = "../ferro-frontend", optional = true }
+
+[features]
+# Converte os tipos da tela para os registros externos do frontend PORS,
+# usados ao analisar o code-behind.
+frontend = ["dep:ferro-frontend"]

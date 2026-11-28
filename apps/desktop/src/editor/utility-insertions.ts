@@ -46,7 +46,7 @@ export function createUtilityInsertions(dependencies: UtilityInsertionsDependenc
           dependencies.focusEditor();
           dependencies.setStatus(`Módulo PORS inserido: ${name}. (use Ctrl+Espaço para completar).`, "ok");
         } else {
-          dependencies.setStatus(`Use ${name}.funcao(...) diretamente em Portugol-RS.`);
+          dependencies.setStatus(`Use ${name}.funcao(...) diretamente em Ferro.`);
         }
       };
       dependencies.appendLibraryButton(button);

@@ -124,7 +124,7 @@ test("palette hides tab commands without a tab and Rust-unsupported commands in 
   assert.equal(isPaletteCommandAvailable("Salvar", { ...idle, language: "rust" }), true);
 });
 
-test("Executar como Rust needs rustc for the active Portugol-RS file and no run in progress", () => {
+test("Executar como Rust needs rustc for the active Ferro file and no run in progress", () => {
   const ready = {
     language: "portugol-rs", cargoProject: false, cargoAvailable: false, canRunAsRust: true,
     runActive: false, paused: false, porsRunPending: false,

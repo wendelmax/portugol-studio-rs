@@ -34,7 +34,7 @@ export function createIncomingFileOpener(dependencies: IncomingFileDependencies)
     if (warnUnsupported && !supported && paths.length) {
       dependencies.setStatus(
         sawLegacy
-          ? `Arquivos legados .por e .pex não são suportados no Portugol Studio RS. Use o Portugol Studio original para abri-los, ou escolha um arquivo ${OPENABLE}.`
+          ? `Arquivos legados .por e .pex não são suportados no Ferro Studio. Use o Portugol Studio original para abri-los, ou escolha um arquivo ${OPENABLE}.`
           : `Escolha um arquivo ${OPENABLE}.`,
         "error",
       );

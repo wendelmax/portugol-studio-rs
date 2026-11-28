@@ -19,7 +19,7 @@ const program = String.raw`funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) ->
 
 funcao inicio() {
     Graficos.iniciar_modo_grafico(falso);
-    Graficos.definir_titulo_janela("Portugol Verificacao Grafica");
+    Graficos.definir_titulo_janela("Ferro Verificacao Grafica");
     Graficos.definir_dimensoes_janela(320, 240);
     Graficos.definir_cor(cor_rgb(34, 68, 102));
     Graficos.limpar();
@@ -76,10 +76,10 @@ funcao inicio() {
     Util.aguarde(8000);
 }`;
 
-const smokeFile = join(tmpdir(), `portugol-graphics-smoke-${process.pid}.pors`);
+const smokeFile = join(tmpdir(), `ferro-graphics-smoke-${process.pid}.fer`);
 writeFileSync(smokeFile, program, "utf8");
 
-const app = spawn(process.argv[2] ?? "target/debug/portugol-desktop", [smokeFile], {
+const app = spawn(process.argv[2] ?? "target/debug/ferro-desktop", [smokeFile], {
   env: {
     ...process.env,
     GDK_BACKEND: "x11",
@@ -101,7 +101,7 @@ function windowByTitle(title) {
 }
 
 function mainWindow() {
-  const named = windowByTitle("^(Ferro Studio|Portugol Studio)");
+  const named = windowByTitle("^Ferro Studio");
   if (named) return named;
   // O título exposto pelo GTK pode variar com o gerenciador de janelas.
   // O Xvfb é exclusivo do teste e a IDE é sua única janela grande.
@@ -145,7 +145,7 @@ try {
   const copy = (text) => execFileSync("xclip", [...selection, "-i"], {
     input: text, timeout: 3000, stdio: ["pipe", "ignore", "ignore"],
   });
-  await waitFor("O editor não carregou o programa .pors", async () => {
+  await waitFor("O editor não carregou o programa .fer", async () => {
     copy("verificacao-do-teste");
     xdotool("key", "ctrl+a", "ctrl+c");
     await delay(150);
@@ -158,10 +158,10 @@ try {
       return false;
     }
   });
-  console.log("Programa .pors carregado e conferido no editor.");
+  console.log("Programa .fer carregado e conferido no editor.");
   xdotool("key", "shift+F6");
   const graphics = await waitFor(
-    "Janela gráfica não encontrada", () => windowByTitle("^Portugol Verificacao Grafica$"),
+    "Janela gráfica não encontrada", () => windowByTitle("^Ferro Verificacao Grafica$"),
   );
   assert.equal(await waitFor("Primeiro quadro", () => pixel(graphics), (rgb) => rgb === "255,136,0"), "255,136,0");
   await delay(200);

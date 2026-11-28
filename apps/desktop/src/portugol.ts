@@ -1,4 +1,4 @@
-// Linguagem Portugol-RS (.pors) para o CodeMirror: realce (StreamLanguage),
+// Linguagem Ferro (.fer) para o CodeMirror: realce (StreamLanguage),
 // snippets, autocompletar e documentação de hover.
 
 import {
@@ -72,8 +72,8 @@ const PORS_BUILTIN_VARIANTS: Record<"Opcao" | "Resultado", readonly PorsDocEntry
 };
 
 const PORS_TOP_LEVEL_DOCS: Record<string, PorsDocEntry> = {
-  Opcao: { label: "Opcao", kind: "type", signature: "Opcao<T> { Algum(T), Nenhum }", description: "Tipo opcional nativo do Portugol-RS, mapeado diretamente para `Option<T>` em Rust. Aceita `escolha` exaustivo e propagação com `?`." },
-  Resultado: { label: "Resultado", kind: "type", signature: "Resultado<T, E> { Ok(T), Erro(E) }", description: "Tipo de resultado falível nativo do Portugol-RS, mapeado diretamente para `Result<T, E>` em Rust. Aceita `escolha` exaustivo e propagação com `?`." },
+  Opcao: { label: "Opcao", kind: "type", signature: "Opcao<T> { Algum(T), Nenhum }", description: "Tipo opcional nativo do Ferro, mapeado diretamente para `Option<T>` em Rust. Aceita `escolha` exaustivo e propagação com `?`." },
+  Resultado: { label: "Resultado", kind: "type", signature: "Resultado<T, E> { Ok(T), Erro(E) }", description: "Tipo de resultado falível nativo do Ferro, mapeado diretamente para `Result<T, E>` em Rust. Aceita `escolha` exaustivo e propagação com `?`." },
   vetor: { label: "vetor", kind: "type", signature: "vetor<T>", description: "Coleção homogênea tipada com cópia por valor e verificação de limites em tempo de execução." },
   tamanho: { label: "tamanho", kind: "function", signature: "tamanho(v: vetor<T>) -> inteiro", description: "Retorna a quantidade de elementos de um vetor tipado." },
   adicionar: { label: "adicionar", kind: "function", signature: "adicionar(v: mutavel vetor<T>, valor: T)", description: "Insere `valor` ao final de um vetor mutável (equivale a `Vec::push` em Rust)." },
@@ -88,7 +88,7 @@ const PORS_TOP_LEVEL_DOCS: Record<string, PorsDocEntry> = {
   enum: { label: "enum", kind: "keyword", signature: "enum Nome { Variante, ComPayload(Tipo) }", description: "Declara uma enumeração nominal com variantes simples ou com payload tipado (equivale a `enum` em Rust)." },
   escolha: { label: "escolha", kind: "keyword", signature: "escolha valor { caso Tipo::Variante => { ... } }", description: "Despacho exaustivo sobre variantes de um `enum`, `Opcao<T>` ou `Resultado<T, E>` (equivale a `match` em Rust)." },
   UI: { label: "UI", kind: "namespace", signature: "modulo UI", description: "Biblioteca declarativa de interface gráfica MVU (`UI.coluna`, `UI.linha`, `UI.lista`, `UI.texto`, `UI.botao`, `UI.entrada`)." },
-  Matematica: { label: "Matematica", kind: "namespace", signature: "modulo Matematica", description: "Constantes (`PI`, `E`) e funções matemáticas tipadas de Portugol-RS." },
+  Matematica: { label: "Matematica", kind: "namespace", signature: "modulo Matematica", description: "Constantes (`PI`, `E`) e funções matemáticas tipadas de Ferro." },
   Texto: { label: "Texto", kind: "namespace", signature: "modulo Texto", description: "Manipulação segura de cadeias Unicode (`char`), busca opcional (`Opcao`), fatiamento (`Resultado`) e orçamento de memória." },
   Tipos: { label: "Tipos", kind: "namespace", signature: "modulo Tipos", description: "Conversões explícitas e validação entre tipos, com `Resultado<T, cadeia>` para conversões falíveis." },
   Util: { label: "Util", kind: "namespace", signature: "modulo Util", description: "Utilitários determinísticos e seguros (`Util.sorteia`, `Util.definir_semente`, `Util.tempo_decorrido`, `Util.aguarde`)." },
@@ -503,7 +503,7 @@ function completePors(context: CompletionContext): CompletionResult | null {
   return { from, options: [...PORS_SNIPPETS, ...PORS_WORDS, ...locals], validFor: /^\w*$/ };
 }
 
-/** Resolve documentação contextual para hover sobre símbolos Portugol-RS. */
+/** Resolve documentação contextual para hover sobre símbolos Ferro. */
 export function porsHoverInfo(doc: string, pos: number): PorsHoverInfo | null {
   const isIdent = (ch: string | undefined) => !!ch && /[A-Za-z0-9_]/.test(ch);
   let start = pos;
@@ -608,7 +608,7 @@ const porsHoverExtension = hoverTooltip((view, pos): Tooltip | null => {
   };
 });
 
-/** Suporte de edição para o dialeto Portugol-RS (realce, snippets, autocompletar e hover). */
+/** Suporte de edição para o dialeto Ferro (realce, snippets, autocompletar e hover). */
 export function portugolRs(): LanguageSupport {
   return new LanguageSupport(porsLanguage, [
     indentUnit.of("    "),

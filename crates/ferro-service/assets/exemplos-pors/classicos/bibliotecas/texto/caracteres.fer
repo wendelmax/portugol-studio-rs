@@ -1,0 +1,61 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ * 	Este exemplo demonstra o uso da função "obter_caracter" da biblioteca "Texto" para
+ * 	obter um caracter específico dentro de um dado do tipo cadeia. Neste exemplo, o
+ * 	usuário deve informar um valor e o programa irá verificar se o valor digitado é
+ * 	um número binário válido.
+ *
+ * Autores:
+ *
+ * 	Luiz Fernando Noschang (noschang@univali.br)
+ *
+ * Data: 18/07/2014
+ * Adaptado para Ferro (.pors)
+ */
+
+funcao inicio() {
+    seja mutavel binario: logico = verdadeiro;
+
+    escreva("Informe um número no formato binário (Ex.: 1101001): ");
+    seja mutavel numero = leia();
+
+    seja comprimento: inteiro = Texto.numero_caracteres(numero);
+
+    se (comprimento == 0) {
+        binario = falso;
+    }
+
+    // Usamos um laço para percorrer todos os caracteres da cadeia, começando
+    // no caracter 0 e indo até o último caracter (comprimento - 1)
+    para (seja mutavel indice = 0; indice < comprimento; indice += 1) {
+        // Em Ferro, obter_caracter retorna Opcao<caracter>
+        escolha Texto.obter_caracter(numero, indice) {
+            caso Opcao::Algum(digito) => {
+                // Se não for '0' nem '1', então o número não é binário
+                se (digito != '0' && digito != '1') {
+                    binario = falso;
+                    pare;
+                }
+            }
+            caso Opcao::Nenhum => {
+                binario = falso;
+                pare;
+            }
+        }
+    }
+
+    escreval();
+
+    se (binario) {
+        escreval("O número informado é binário");
+    } senao {
+        escreval("O número informado não é binário");
+    }
+}

@@ -55,7 +55,7 @@ test("reports no errors only after a successful analysis of the current document
 test("presents file language, learning mode, execution engines, indentation and encoding", () => {
   const state = statusBarState(tab(), "fonte", "bridge", true, 4);
 
-  assert.equal(state.language, "Portugol-RS");
+  assert.equal(state.language, "Ferro");
   assert.equal(state.mode, "Ponte para Rust");
   assert.equal(state.engines, "VM e Rust nativo");
   assert.equal(state.indentation, "4 espaços");

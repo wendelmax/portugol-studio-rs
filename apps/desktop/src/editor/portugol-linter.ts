@@ -15,7 +15,7 @@ export interface PortugolLintDependencies {
   toCodeMirror: (diagnostic: DiagnosticInfo, length: number) => CodeMirrorDiagnostic;
 }
 
-/** Inspects Portugol-RS (or desktop markup) source and synchronizes its diagnostics and symbols. */
+/** Inspects Ferro (or desktop markup) source and synchronizes its diagnostics and symbols. */
 export function createPortugolLintSourceCheck(dependencies: PortugolLintDependencies) {
   return async (view: EditorView): Promise<CodeMirrorDiagnostic[]> => {
     const doc = view.state.doc;

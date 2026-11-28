@@ -7,7 +7,7 @@ implementação, auditorias e relatórios de agentes não são contratos de UX.
 ## Direção do produto
 
 O Portugol Studio é uma aplicação desktop Rust + Tauri para aprender lógica,
-Portugol-RS e Rust real. Portugol-RS (`.pors`) é a linguagem autoral e o caminho
+Ferro e Rust real. Ferro (`.fer`) é a linguagem autoral e o caminho
 principal de aprendizagem; arquivos Rust (`.rs`) permitem avançar para a
 linguagem e a toolchain reais. A interface deve preservar familiaridade útil
 com uma IDE educacional e evoluir em função desses fluxos, sem exigir paridade
@@ -30,8 +30,8 @@ converter nem modificar o arquivo do usuário.
    correspondência atual.
 3. **O modo de aprendizagem não muda o programa.** Iniciante, ponte e Rust
    alteram explicações e conceitos exibidos. Não trocam o dialeto do arquivo,
-   não reescrevem seu conteúdo e não convertem `.pors`, `.rs` ou `.por`.
-   Portugol-RS continua sendo a linguagem de entrada do percurso inicial; o
+   não reescrevem seu conteúdo e não convertem `.fer`, `.rs` ou `.por`.
+   Ferro continua sendo a linguagem de entrada do percurso inicial; o
    modo Rust orienta a abrir ou criar um arquivo `.rs` sem modificar o arquivo
    ativo.
 4. **Progresso exige evidência.** Abrir conteúdo, ler uma explicação ou iniciar
@@ -55,12 +55,12 @@ converter nem modificar o arquivo do usuário.
 
 ### Início
 
-- Criar Portugol-RS (`.pors`) é a ação principal; Rust (`.rs`) também pode ser
+- Criar Ferro (`.fer`) é a ação principal; Rust (`.rs`) também pode ser
   criado pelo menu de linguagens.
-- Abrir arquivo ou pasta inicia trabalho existente em `.pors`, `.rs` ou
-  `.pors.json`; arquivos recentes e o catálogo 100% `.pors` de exemplos ajudam
+- Abrir arquivo ou pasta inicia trabalho existente em `.fer`, `.rs` ou
+  `.licao`; arquivos recentes e o catálogo 100% `.fer` de exemplos ajudam
   a retomar ou explorar programas.
-- Exercícios `.pors.json`, Ajuda PORS, Dicas de interface, Atalhos, Alertas e
+- Exercícios `.licao`, Ajuda PORS, Dicas de interface, Atalhos, Alertas e
   Sobre ficam acessíveis a partir da tela inicial.
 
 ### Espaço de trabalho
@@ -76,7 +76,7 @@ converter nem modificar o arquivo do usuário.
 - **Painel inferior:** Console, Testes, Mensagens e Depuração. Diagnósticos
   apontam para o código; o depurador apresenta estado real da VM para
   linguagens suportadas.
-- **Inspector (`Aprender` e utilitários PORS):** explicações contextuais mapeadas por source map (mutabilidade, decisões, laços, funções, `Opcao`/`Resultado`, vetores, registros/enums), prática vinculada diretamente a exercícios `.pors`, 13 módulos PORS e 11 modelos `.pors`, estrutura do programa e inspetor de variáveis.
+- **Inspector (`Aprender` e utilitários PORS):** explicações contextuais mapeadas por source map (mutabilidade, decisões, laços, funções, `Opcao`/`Resultado`, vetores, registros/enums), prática vinculada diretamente a lições `.licao`, 13 módulos PORS e 11 modelos `.fer`, estrutura do programa e inspetor de variáveis.
 - **Prévia Rust:** mostra Rust gerado, estado da tradução, mapeamentos de
   origem e diferenças. O usuário pode copiar, salvar ou desvincular para editar
   um arquivo `.rs` independente.
@@ -89,12 +89,13 @@ converter nem modificar o arquivo do usuário.
 
 | Documento | Comportamento apresentado ao usuário |
 | --- | --- |
-| `.pors` | Linguagem principal; análise, execução e depuração na VM PORS, além de prévia/exportação Rust. Executar o fonte não exige `rustc`. |
+| `.fer` | Linguagem principal; análise, execução e depuração na VM PORS, além de prévia/exportação Rust. Executar o fonte não exige `rustc`. |
 | `.rs` | Código Rust real. Análise, formatação, compilação e execução dependem das ferramentas Rust correspondentes instaladas; a IDE informa quando uma capacidade não está disponível. |
-| `.pors.json` | Exercício estruturado Portugol-RS avaliado no serviço local com casos de teste reais. |
+| `.licao` | Exercício estruturado Ferro avaliado no serviço local com casos de teste reais. |
+| `.pors` / `.pors.json` | Extensões retiradas. Não são abertas como código ou lições; renomear para `.fer` ou `.licao` mantém o conteúdo. |
 | `.por` / `.pex` | Não suportados (Fase 6 / ADR 0016). A IDE e a CLI rejeitam a abertura com aviso claro orientando o usuário ao Portugol Studio original, sem alterar nem converter o arquivo. |
 
-O Rust gerado é um artefato de tradução do Portugol-RS, não uma promessa de
+O Rust gerado é um artefato de tradução do Ferro, não uma promessa de
 compatibilidade com toda a linguagem Rust. A prévia deve corresponder à revisão
 atual e indicar quando está sendo recalculada ou ficou desatualizada. Uma
 execução real e a simulação didática de ownership nunca compartilham o mesmo
@@ -148,7 +149,7 @@ experiência:
 
 | Issue | Escopo | Estado |
 | --- | --- | --- |
-| [#132](https://github.com/wendelmax/portugol-studio-rs/issues/132) | Executar `.pors` na VM sem exigir Rust instalado | Entregue |
+| [#132](https://github.com/wendelmax/portugol-studio-rs/issues/132) | Executar `.fer` na VM sem exigir Rust instalado | Entregue |
 | [#133](https://github.com/wendelmax/portugol-studio-rs/issues/133) | Barra de status com linguagem, modo e diagnósticos | Aberta |
 | [#134](https://github.com/wendelmax/portugol-studio-rs/issues/134) | Condicionais encadeadas `senao se` | Entregue |
 | [#135](https://github.com/wendelmax/portugol-studio-rs/issues/135) | Recuperação de erros no parser | Aberta |
@@ -169,4 +170,4 @@ As decisões de produto relacionadas são os ADRs
 respectivamente, a direção visual, a evolução de `.por` para PORS, o modelo
 para programas visuais PORS, os projetos desktop com designer visual, o
 contrato mínimo de tipos, os ajustes pedagógicos da sintaxe e as telas
-(`.design` + `.pors`) como forma única de interface.
+(`.design` + `.fer`) como forma única de interface.

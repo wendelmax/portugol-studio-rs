@@ -73,7 +73,7 @@ export function createRunEventsController(dependencies: RunEventsDependencies) {
         output: "limite de saída de 1 MiB",
         string_memory: "limite cumulativo de cadeias de 16 MiB",
       } as const;
-      const message = `VM Portugol-RS interrompida: ${descriptions[outcome.reason]}.`;
+      const message = `VM Ferro interrompida: ${descriptions[outcome.reason]}.`;
       dependencies.appendConsole(`\n${message}\n`, "error");
       dependencies.setStatus(message, "error");
     } else {

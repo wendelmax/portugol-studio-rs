@@ -1,0 +1,72 @@
+/*
+ * Copyright (C) 2017 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ * 	Este exemplo gera um identificador aleatório de robô com "Util.sorteia" e
+ * 	"Texto.obter_caracter", verifica a disponibilidade do endereço na web com
+ * 	"Internet.endereco_disponivel" e demonstra o envio de dados com "Internet.enviar_json".
+ *
+ * Adaptado para Ferro (.pors)
+ */
+
+funcao gerar_hash_robo() -> Resultado < cadeia, cadeia > {
+    seja letras: cadeia = "abcdefghijklmnopqrstuvwxyz";
+    seja qtd: inteiro = Util.sorteia(3, 10)?;
+    seja mutavel hash: cadeia = "";
+
+    para (seja mutavel i = 0; i < qtd; i += 1) {
+        seja indice: inteiro = Util.sorteia(0, 25)?;
+        escolha Texto.obter_caracter(letras, indice) {
+            caso Opcao::Algum(letra) => {
+                hash = hash + Tipos.caracter_para_cadeia(letra);
+            }
+            caso Opcao::Nenhum => {}
+        }
+    }
+
+    retorne Resultado::Ok(hash);
+}
+
+funcao inicio() {
+    Internet.definir_tempo_limite(5000);
+
+    escolha gerar_hash_robo() {
+        caso Resultado::Ok(hash) => {
+            seja url_robo: cadeia = "https://robohash.org/" + hash + ".png";
+            escreval("Robô gerado: ", hash);
+            escreval("Endereço do avatar: ", url_robo, "\n");
+
+            escolha Internet.endereco_disponivel(url_robo) {
+                caso Resultado::Ok(disponivel) => {
+                    se (disponivel) {
+                        escreval("Serviço disponível para o robô \"", hash, "\".");
+                    } senao {
+                        escreval("O endereço respondeu como indisponível.");
+                    }
+                }
+                caso Resultado::Erro(erro) => {
+                    escreval("Consulta de disponibilidade não concluída: ", erro);
+                }
+            }
+
+            // Também demonstra o envio de um payload JSON com tratamento de Resultado
+            seja corpo_json: cadeia = "{\"robo\":\"" + hash + "\"}";
+            escolha Internet.enviar_json("https://httpbin.org/post", corpo_json) {
+                caso Resultado::Ok(resposta) => {
+                    escreval("Resposta JSON recebida (", Texto.numero_caracteres(resposta), " caracteres).");
+                }
+                caso Resultado::Erro(erro) => {
+                    escreval("Envio JSON não concluído: ", erro);
+                }
+            }
+        }
+        caso Resultado::Erro(erro) => {
+            escreval("Erro ao gerar identificador do robô: ", erro);
+        }
+    }
+}

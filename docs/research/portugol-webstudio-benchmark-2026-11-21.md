@@ -59,4 +59,4 @@ O [README do projeto](https://github.com/dgadelha/Portugol-Webstudio#caracter%C3
 - Um recurso de compartilhamento precisa declarar o que sai do computador, quem pode ler, quanto tempo fica disponível e como revogar/remover.
 - Links compartilhados de exercício nunca devem incluir a solução do docente.
 - Usar nomes de autores e laboratórios com fontes e licença atribuídas; inspiração de fluxo não significa reutilização de código ou imagens.
-- O Portugol clássico continua compatível. Portugol-RS será uma opção pedagógica, não uma mudança silenciosa de sintaxe.
+- O Portugol clássico continua compatível. Ferro será uma opção pedagógica, não uma mudança silenciosa de sintaxe.

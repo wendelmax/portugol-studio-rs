@@ -1,6 +1,6 @@
 /**
  * Tabela única dos formatos de arquivo (ADR 0023, Emenda 2). A tabela vem de
- * `crates/portugol-formatos`, gerada em `file-formats.generated.ts`; aqui ficam
+ * `crates/ferro-formatos`, gerada em `file-formats.generated.ts`; aqui ficam
  * só as consultas. A IDE não compara extensões por conta própria.
  */
 import { FILE_FORMATS, RETIRED_EXTENSIONS, type FileFormat, type FileKind } from "./file-formats.generated.ts";
@@ -27,7 +27,7 @@ function hasSuffix(name: string, extension: string): boolean {
 
 /**
  * Formato de um arquivo pelo nome ou caminho. Extensões mais longas ganham
- * (`exercicio.pors.json` é exercício); um nome que é só a extensão não conta.
+ * (`exercicio.licao` é exercício); um nome que é só a extensão não conta.
  */
 export function classifyFile(path: string, table: readonly FileFormat[] = FILE_FORMATS): FileMatch | null {
   const name = fileName(path);
@@ -93,7 +93,7 @@ export function canonicalFileName(path: string): string | null {
   return `${stripFileExtension(fileName(path))}.${match.format.extension}`;
 }
 
-/** Extensões canônicas dos tipos para mensagens: `".pors, .rs e .pors.json"`. */
+/** Extensões canônicas dos tipos para mensagens: `".fer, .rs e .licao"`. */
 export function describeExtensions(kinds: readonly FileKind[], conjunction: "e" | "ou" = "e"): string {
   const names = FILE_FORMATS.filter((format) => kinds.includes(format.kind)).map((format) => `.${format.extension}`);
   if (names.length <= 1) return names.join("");

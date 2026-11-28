@@ -8,7 +8,7 @@ funcao media(m1: inteiro, m2: inteiro, m3: inteiro) -> real {
     retorne Tipos.inteiro_para_real(m1 * 2 + m2 * 3 + m3 * 8) / 13.0;
 }
 
-// Em Portugol-RS, parametros sao passados por valor: retornamos o novo valor
+// Em Ferro, parametros sao passados por valor: retornamos o novo valor
 funcao zera_valor(valor: inteiro) -> inteiro {
     retorne 0;
 }

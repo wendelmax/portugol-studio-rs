@@ -197,7 +197,7 @@ function runValidate() {
   const result = runtime.validate(editorEl.value);
   renderDiagnostics(result.diagnostics);
   if (result.ok) {
-    setStatus("Código .pors válido sem diagnósticos.", "ok");
+    setStatus("Código .fer válido sem diagnósticos.", "ok");
   } else {
     setStatus(`Encontrados ${result.diagnostics.length} diagnóstico(s).`, "error");
   }
@@ -332,16 +332,16 @@ setEditorValue(PLAYGROUND_EXAMPLES[0].source);
 stdinEl.value = PLAYGROUND_EXAMPLES[0].input;
 syncOutput("");
 
-loadPlaygroundRuntime("./portugol_wasm.wasm")
+loadPlaygroundRuntime("./ferro_wasm.wasm")
   .then((loaded) => {
     runtime = loaded;
     setControlsEnabled(true);
-    setStatus("VM WebAssembly Portugol-RS pronta.", "ok");
+    setStatus("VM WebAssembly Ferro pronta.", "ok");
     runConsole();
   })
   .catch((error) => {
     setStatus(
-      `Módulo ./portugol_wasm.wasm indisponível (${error instanceof Error ? error.message : String(error)}). Execute scripts/build-web-playground.sh para gerar o bundle WASM.`,
+      `Módulo ./ferro_wasm.wasm indisponível (${error instanceof Error ? error.message : String(error)}). Execute scripts/build-web-playground.sh para gerar o bundle WASM.`,
       "error",
     );
   });

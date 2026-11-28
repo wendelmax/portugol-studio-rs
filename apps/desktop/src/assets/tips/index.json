@@ -2,10 +2,10 @@
   {
     "id": "pors-inicio",
     "badge": "Linguagem",
-    "title": "Comece direto em Portugol-RS (.pors)",
+    "title": "Comece direto em Ferro (.fer)",
     "shortcut": "Ctrl+N",
     "visual": "pors",
-    "description": "Novos arquivos já nascem em Portugol-RS (.pors), com variáveis imutáveis por padrão (seja), tipos explícitos, registros, enums e execução imediata na máquina virtual — sem precisar instalar o compilador Rust."
+    "description": "Novos arquivos já nascem em Ferro (.fer), com variáveis imutáveis por padrão (seja), tipos explícitos, registros, enums e execução imediata na máquina virtual — sem precisar instalar o compilador Rust."
   },
   {
     "id": "ponte-rust",
@@ -13,7 +13,7 @@
     "title": "Compare seu código com Rust lado a lado",
     "shortcut": "Botão Rust",
     "visual": "rust-bridge",
-    "description": "Clique em Rust na barra superior para ver a tradução gerada em tempo real. Clique nos marcadores da margem para navegar entre cada linha do Portugol-RS e o trecho correspondente em Rust, ou desvincule para editar um arquivo .rs independente."
+    "description": "Clique em Rust na barra superior para ver a tradução gerada em tempo real. Clique nos marcadores da margem para navegar entre cada linha do Ferro e o trecho correspondente em Rust, ou desvincule para editar um arquivo .rs independente."
   },
   {
     "id": "depurador-vm",
@@ -37,7 +37,7 @@
     "title": "Construa interfaces declarativas com UI.*",
     "shortcut": "Botão UI",
     "visual": "ui-preview",
-    "description": "Com as funções iniciar, atualizar e visualizar e componentes como UI.coluna, UI.texto, UI.entrada e UI.botao, você cria interfaces interativas em Portugol-RS e testa tudo ao vivo no painel Preview Visual."
+    "description": "Com as funções iniciar, atualizar e visualizar e componentes como UI.coluna, UI.texto, UI.entrada e UI.botao, você cria interfaces interativas em Ferro e testa tudo ao vivo no painel Preview Visual."
   },
   {
     "id": "workspace-cargo",
@@ -45,7 +45,7 @@
     "title": "Organize projetos no Explorador e rode Cargo",
     "shortcut": "Ctrl+Shift+E",
     "visual": "workspace",
-    "description": "Abra qualquer pasta de projeto para criar, renomear, excluir e exportar arquivos .pors e .rs. Quando o Rust estiver instalado, a IDE reconhece projetos Cargo e executa binários e testes no painel inferior."
+    "description": "Abra qualquer pasta de projeto para criar, renomear, excluir e exportar arquivos .fer e .rs. Quando o Rust estiver instalado, a IDE reconhece projetos Cargo e executa binários e testes no painel inferior."
   },
   {
     "id": "paleta-comandos",

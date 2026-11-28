@@ -24,7 +24,7 @@ This is the source of truth for the **visual and interaction design** of Portugo
 | Mode | Primary editor | Secondary editor | Education panel | Runtime |
 |---|---|---|---|---|
 | `beginner` / Iniciante | Classic Portugol | Hidden by default | Basic hints | Portugol interpreter |
-| `bridge` / Ponte para Rust | Portugol or Portugol-RS | Generated Rust | Active explanations and mapping | Interpreter or Rust (explicit choice) |
+| `bridge` / Ponte para Rust | Portugol or Ferro | Generated Rust | Active explanations and mapping | Interpreter or Rust (explicit choice) |
 | `rust` / Rust | Rust | Optional source comparison | Advanced types, ownership, borrowing | Cargo / rustc |
 
 Mode affects defaults, hints and visible controls; it **must not change source code automatically**. Persist mode per workspace.
@@ -40,7 +40,7 @@ APP SHELL
 │   ├── EditorWorkspace (flex)
 │   │   ├── EditorTabs
 │   │   ├── EditorSplit (resizable)
-│   │   │   ├── SourceEditor: Portugol / Portugol-RS / Rust
+│   │   │   ├── SourceEditor: Portugol / Ferro / Rust
 │   │   │   ├── MappingGutter: source-to-generated correspondences
 │   │   │   └── GeneratedRustEditor: read-only initially, editable after explicit detach
 │   │   └── BottomPanel: Console · Tests · Output · Problems
@@ -311,7 +311,7 @@ crates/runtime/              # optional: execution and diagnostic interfaces
 
 ## 11. Open design decisions
 
-- Final product naming and whether `Portugol-RS` is a visible language name or only a course mode.
+- Final product naming and whether `Ferro` is a visible language name or only a course mode.
 - Existing Portugol Studio source/project compatibility scope.
 - UI framework, windowing shell and editor engine.
 - Whether Rust code generation happens incrementally or on explicit request.

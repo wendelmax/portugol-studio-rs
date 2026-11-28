@@ -1,0 +1,19 @@
+[package]
+name = "ferro-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "CLI do Portugol Studio RS: criação, validação, formatação, exportação Rust/Cargo, execução e depuração de programas .pors"
+
+[[bin]]
+name = "portugol"
+path = "src/main.rs"
+
+[dependencies]
+ferro-hir = { path = "../ferro-hir" }
+ferro-frontend = { path = "../ferro-frontend" }
+ferro-rust = { path = "../ferro-rust" }
+ferro-tela = { path = "../ferro-tela", features = ["frontend"] }
+ferro-formatos = { path = "../ferro-formatos" }
+ferro-bytecode = { path = "../ferro-bytecode" }
+ferro-vm = { path = "../ferro-vm" }

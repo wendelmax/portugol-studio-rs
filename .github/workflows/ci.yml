@@ -76,10 +76,10 @@ jobs:
       - name: Núcleo PORS mínimo (wasm32)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          cargo test -p portugol-vm --no-default-features --all-targets
-          cargo clippy -p portugol-vm --no-default-features --all-targets -- -D warnings
-          cargo check --target wasm32-unknown-unknown -p portugol-hir -p portugol-rs-frontend -p portugol-bytecode -p portugol-vm -p portugol-tela -p portugol-formatos --no-default-features
-          cargo build --target wasm32-unknown-unknown -p portugol-wasm
+          cargo test -p ferro-vm --no-default-features --all-targets
+          cargo clippy -p ferro-vm --no-default-features --all-targets -- -D warnings
+          cargo check --target wasm32-unknown-unknown -p ferro-hir -p ferro-frontend -p ferro-bytecode -p ferro-vm -p ferro-tela -p ferro-formatos --no-default-features
+          cargo build --target wasm32-unknown-unknown -p ferro-wasm
       - name: Testes do núcleo
         run: cargo test
 
@@ -117,15 +117,15 @@ jobs:
         timeout-minutes: 3
         run: npm run test:e2e
       - name: Clippy do app
-        run: cargo clippy -p portugol-desktop -- -D warnings
+        run: cargo clippy -p ferro-desktop -- -D warnings
       - name: Compilar o app com protocolo de produção
         env:
           CARGO_PROFILE_DEV_DEBUG: "0"
-        run: cargo build -p portugol-desktop --features tauri/custom-protocol --config 'profile.dev.package."*".opt-level=0'
+        run: cargo build -p ferro-desktop --features tauri/custom-protocol --config 'profile.dev.package."*".opt-level=0'
       - name: Testes do app
         env:
           CARGO_PROFILE_DEV_DEBUG: "0"
-        run: cargo test -p portugol-desktop --lib --features tauri/custom-protocol --config 'profile.dev.package."*".opt-level=0'
+        run: cargo test -p ferro-desktop --lib --features tauri/custom-protocol --config 'profile.dev.package."*".opt-level=0'
       - name: Janela gráfica nativa
         timeout-minutes: 2
         run: xvfb-run -a -s "-screen 0 1280x900x24" dbus-run-session -- node apps/desktop/tests/graphics-smoke.mjs
@@ -157,11 +157,11 @@ jobs:
           npm test
           npm run build
       - name: Clippy do app
-        run: cargo clippy -p portugol-desktop --all-targets -- -D warnings
+        run: cargo clippy -p ferro-desktop --all-targets -- -D warnings
       - name: Testes do app com protocolo de produção
         env:
           CARGO_PROFILE_DEV_DEBUG: "0"
-        run: cargo test -p portugol-desktop --lib --features tauri/custom-protocol
+        run: cargo test -p ferro-desktop --lib --features tauri/custom-protocol
 
   arch_pkg:
     name: Pacote Arch Linux (${{ matrix.nome }})

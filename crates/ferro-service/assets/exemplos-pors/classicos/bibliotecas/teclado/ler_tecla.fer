@@ -1,0 +1,143 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *   Este exemplo demonstra o uso da função Teclado.ler_tecla() para aguardar
+ *   o pressionamento de teclas e exibir o código, o caractere e o nome da
+ *   tecla pressionada na janela gráfica.
+ *
+ * Autores:
+ *
+ *   Luiz Fernando Noschang (noschang@univali.br)
+ *   Adaptado e implementado para Ferro (.pors)
+ *
+ * Data: 18/07/2014
+ */
+
+funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
+    escolha Graficos.criar_cor(r, g, b) {
+        caso Resultado::Ok(cor) => {
+            retorne cor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne Graficos.COR_PRETO;
+        }
+    }
+}
+
+funcao nome_tecla(codigo: inteiro) -> cadeia {
+    se (codigo == Teclado.TECLA_ENTER) {
+        retorne "ENTER";
+    } senao se (codigo == Teclado.TECLA_ESC) {
+        retorne "ESC";
+    } senao se (codigo == Teclado.TECLA_ESPACO) {
+        retorne "ESPACO";
+    } senao se (codigo == Teclado.TECLA_BACKSPACE) {
+        retorne "BACKSPACE";
+    } senao se (codigo == Teclado.TECLA_TAB) {
+        retorne "TAB";
+    } senao se (codigo == Teclado.TECLA_SETA_ACIMA) {
+        retorne "SETA ACIMA";
+    } senao se (codigo == Teclado.TECLA_SETA_ABAIXO) {
+        retorne "SETA ABAIXO";
+    } senao se (codigo == Teclado.TECLA_SETA_ESQUERDA) {
+        retorne "SETA ESQUERDA";
+    } senao se (codigo == Teclado.TECLA_SETA_DIREITA) {
+        retorne "SETA DIREITA";
+    } senao {
+        seja ch: caracter = Teclado.caracter_tecla(codigo);
+        retorne Tipos.caracter_para_cadeia(ch);
+    }
+}
+
+funcao desenhar_tela(ultima_tecla: inteiro, total_lidas: inteiro, aviso: cadeia) {
+    seja cor_fundo: inteiro = cor_rgb(24, 30, 44);
+    seja cor_painel: inteiro = cor_rgb(38, 48, 70);
+    seja cor_destaque: inteiro = cor_rgb(100, 210, 255);
+
+    Graficos.definir_cor(cor_fundo);
+    Graficos.limpar();
+
+    Graficos.definir_cor(cor_painel);
+    Graficos.desenhar_retangulo(30, 30, 580, 300, verdadeiro, verdadeiro);
+
+    Graficos.definir_cor(cor_destaque);
+    Graficos.definir_tamanho_texto(24.0);
+    Graficos.definir_estilo_texto(falso, verdadeiro, falso);
+    Graficos.desenhar_texto(55, 55, "Biblioteca Teclado - ler_tecla()");
+
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.definir_tamanho_texto(18.0);
+    Graficos.definir_estilo_texto(falso, falso, falso);
+    Graficos.desenhar_texto(55, 110, "Pressione qualquer tecla (ESC para sair).");
+
+    se (total_lidas > 0) {
+        seja ch: caracter = Teclado.caracter_tecla(ultima_tecla);
+        Graficos.desenhar_texto(
+        55,
+        160,
+        "Código da tecla: " + Tipos.inteiro_para_cadeia(ultima_tecla)
+        );
+        Graficos.desenhar_texto(
+        55,
+        195,
+        "Caractere: '" + Tipos.caracter_para_cadeia(ch) + "'"
+        );
+        Graficos.desenhar_texto(55, 230, "Identificação: " + nome_tecla(ultima_tecla));
+        Graficos.desenhar_texto(
+        55,
+        265,
+        "Total de teclas lidas: " + Tipos.inteiro_para_cadeia(total_lidas)
+        );
+    } senao {
+        Graficos.desenhar_texto(55, 175, "Aguardando a primeira tecla...");
+    }
+
+    se (Texto.numero_caracteres(aviso) > 0) {
+        Graficos.definir_cor(Graficos.COR_AMARELO);
+        Graficos.desenhar_texto(55, 300, aviso);
+    }
+
+    Graficos.renderizar();
+}
+
+funcao inicio() {
+    Graficos.iniciar_modo_grafico(verdadeiro);
+    Graficos.definir_dimensoes_janela(640, 360);
+    Graficos.definir_titulo_janela("Teclado - ler_tecla");
+
+    seja mutavel executando: logico = verdadeiro;
+    seja mutavel ultima_tecla = 0;
+    seja mutavel total_lidas = 0;
+    seja mutavel aviso: cadeia = "";
+
+    desenhar_tela(ultima_tecla, total_lidas, aviso);
+
+    enquanto (executando) {
+        escolha Teclado.ler_tecla() {
+            caso Resultado::Ok(tecla) => {
+                ultima_tecla = tecla;
+                total_lidas += 1;
+                se (tecla == Teclado.TECLA_ESC) {
+                    aviso = "Tecla ESC pressionada. Encerrando...";
+                    desenhar_tela(ultima_tecla, total_lidas, aviso);
+                    Util.aguarde(400);
+                    executando = falso;
+                } senao {
+                    desenhar_tela(ultima_tecla, total_lidas, "");
+                }
+            }
+            caso Resultado::Erro(mensagem) => {
+                escreval("Erro ao ler tecla: ", mensagem);
+                executando = falso;
+            }
+        }
+    }
+
+    Graficos.encerrar_modo_grafico();
+}

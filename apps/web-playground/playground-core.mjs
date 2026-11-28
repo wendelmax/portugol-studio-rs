@@ -1,15 +1,15 @@
-// Núcleo sem dependências externas do Web Playground Portugol-RS (WASM).
-// Reutiliza o mesmo protocolo de memória linear de `crates/portugol-wasm`
+// Núcleo sem dependências externas do Web Playground Ferro (WASM).
+// Reutiliza o mesmo protocolo de memória linear de `crates/ferro-wasm`
 // e renderiza nós `UiNode` (ADR 0017) exclusivamente com createElement/textContent.
 
 export const PLAYGROUND_EXAMPLES = [
   {
     id: "ola",
-    title: "Olá, Portugol-RS (console + entrada)",
+    title: "Olá, Ferro (console + entrada)",
     mode: "console",
     input: "Ada\n",
     source: `funcao saudar(nome: cadeia) -> cadeia {
-    retorne "Olá, {nome}! Bem-vindo ao Portugol-RS no navegador.";
+    retorne "Olá, {nome}! Bem-vindo ao Ferro no navegador.";
 }
 
 funcao inicio() {
@@ -139,7 +139,7 @@ function sanitizeBudget(value) {
   return Math.floor(value);
 }
 
-/** Cria a fachada de execução a partir dos exports do módulo `portugol_wasm.wasm`. */
+/** Cria a fachada de execução a partir dos exports do módulo `ferro_wasm.wasm`. */
 export function createPlaygroundRuntime(rawExports) {
   for (const name of REQUIRED_EXPORTS) {
     if (name === "memory") {
@@ -249,7 +249,7 @@ export function createPlaygroundRuntime(rawExports) {
   };
 }
 
-/** Carrega e instancia `portugol_wasm.wasm` via streaming ou ArrayBuffer. */
+/** Carrega e instancia `ferro_wasm.wasm` via streaming ou ArrayBuffer. */
 export async function loadPlaygroundRuntime(urlOrResponse) {
   const response = typeof urlOrResponse === "string" ? await fetch(urlOrResponse) : await urlOrResponse;
   if (!response.ok) {

@@ -1,0 +1,43 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ * 	Este exemplo demonstra como utilizar as funções da biblioteca "Tipos" para verificar
+ * 	e converter dados do tipo lógico para outros tipos e vice-versa.
+ *
+ * Autores:
+ *
+ * 	Luiz Fernando Noschang (noschang@univali.br)
+ *
+ * Data: 18/07/2014
+ * Completado e adaptado para Ferro (.pors)
+ */
+
+funcao testar_cadeia_logica(texto: cadeia) {
+    se (Tipos.cadeia_e_logico(texto)) {
+        escolha Tipos.para_logico(texto) {
+            caso Resultado::Ok(valor) => {
+                escreval("A cadeia \"", texto, "\" representa o lógico: ", valor);
+                escreval("  -> em cadeia: ", Tipos.logico_para_cadeia(valor));
+                escreval("  -> em inteiro: ", Tipos.logico_para_inteiro(valor));
+            }
+            caso Resultado::Erro(erro) => {
+                escreval("Erro ao converter \"", texto, "\": ", erro);
+            }
+        }
+    } senao {
+        escreval("A cadeia \"", texto, "\" não representa um valor lógico");
+    }
+}
+
+funcao inicio() {
+    // Verifica e converte diferentes cadeias para o tipo lógico
+    testar_cadeia_logica("verdadeiro");
+    testar_cadeia_logica("falso");
+    testar_cadeia_logica("talvez");
+}

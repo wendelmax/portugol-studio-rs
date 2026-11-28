@@ -39,14 +39,14 @@ build() {
   npm --prefix apps/desktop ci
   npm --prefix apps/desktop run build
   export CARGO_TARGET_DIR="${srcdir}/${pkgname}-${pkgver}/target"
-  cargo build --release --locked -p portugol-desktop --features tauri/custom-protocol
+  cargo build --release --locked -p ferro-desktop --features tauri/custom-protocol
 }
 
 package() {
   cd "${pkgname}-${pkgver}"
 
-  install -Dm755 "target/release/portugol-desktop" "${pkgdir}/usr/bin/portugol-desktop"
-  ln -s portugol-desktop "${pkgdir}/usr/bin/portugol-studio-rs"
+  install -Dm755 "target/release/ferro-desktop" "${pkgdir}/usr/bin/ferro-desktop"
+  ln -s ferro-desktop "${pkgdir}/usr/bin/portugol-studio-rs"
 
   install -Dm644 "packaging/arch/portugol-studio-rs.desktop" \
     "${pkgdir}/usr/share/applications/portugol-studio-rs.desktop"

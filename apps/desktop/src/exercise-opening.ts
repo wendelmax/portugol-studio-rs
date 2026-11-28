@@ -20,7 +20,7 @@ export function createPorsExerciseOpener(
   let pending: Promise<readonly PorsExerciseSummary[]> | null = null;
 
   return async (id: string): Promise<PorsExerciseSummary> => {
-    if (!id.trim()) throw new Error("Identificador de exercício Portugol-RS inválido.");
+    if (!id.trim()) throw new Error("Identificador de exercício Ferro inválido.");
     if (!catalog) {
       pending ??= load()
         .then((loaded) => {
@@ -32,7 +32,7 @@ export function createPorsExerciseOpener(
     }
 
     const exercise = catalog?.find((item) => item.id === id);
-    if (!exercise) throw new Error(`Exercício Portugol-RS ${id} não encontrado no catálogo.`);
+    if (!exercise) throw new Error(`Exercício Ferro ${id} não encontrado no catálogo.`);
     open(porsExerciseDocument(exercise));
     return exercise;
   };

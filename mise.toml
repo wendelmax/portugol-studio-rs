@@ -21,4 +21,4 @@ run = ["cargo test --workspace", "cd apps/desktop && npm run build"]
 
 [tasks.corpus]
 description = "Compara a VM com as saídas gravadas do corpus"
-run = "cargo test -p portugol-vm --test regressao"
+run = "cargo test -p ferro-vm --test regressao"

@@ -1,4 +1,4 @@
-//! Ponte entre a janela e o núcleo (`portugol-service`).
+//! Ponte entre a janela e o núcleo (`ferro-service`).
 //!
 //! Comandos chamados pelo frontend:
 //!
@@ -32,7 +32,7 @@ use std::sync::{Arc, Mutex, mpsc};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
-use portugol_service::{
+use ferro_service::{
     DebugInfo, DiagnosticInfo, FileFilter, RunHandle, RunObserver, RunOptions, RunOutcome,
 };
 use tauri_plugin_dialog::DialogExt;
@@ -202,8 +202,8 @@ impl RunObserver for EventSink {
 }
 
 #[tauri::command]
-fn inspect_portugol_rs(source: String) -> portugol_service::Inspection {
-    portugol_service::inspect_portugol_rs(&source)
+fn inspect_portugol_rs(source: String) -> ferro_service::Inspection {
+    ferro_service::inspect_portugol_rs(&source)
 }
 
 /// Diagnósticos e estrutura de um `.design` ou `.ferproj`; o tipo vem da
@@ -217,77 +217,75 @@ fn inspect_markup(
     path: String,
     check_code: Option<bool>,
     code_source: Option<String>,
-) -> Result<portugol_service::Inspection, String> {
-    let kind = portugol_service::MarkupKind::from_path(&path)
+) -> Result<ferro_service::Inspection, String> {
+    let kind = ferro_service::MarkupKind::from_path(&path)
         .ok_or_else(|| "O arquivo não é um .design nem um .ferproj.".to_string())?;
     let code = match (check_code.unwrap_or(false), code_source.as_deref()) {
-        (false, _) => portugol_service::CodeBehind::Unknown,
-        (true, None) => portugol_service::CodeBehind::Missing,
-        (true, Some(code)) => portugol_service::CodeBehind::Source(code),
+        (false, _) => ferro_service::CodeBehind::Unknown,
+        (true, None) => ferro_service::CodeBehind::Missing,
+        (true, Some(code)) => ferro_service::CodeBehind::Source(code),
     };
-    Ok(portugol_service::inspect_markup_with_code(
-        &source, kind, code,
-    ))
+    Ok(ferro_service::inspect_markup_with_code(&source, kind, code))
 }
 
 /// Code-behind de uma tela, analisado com os tipos do `.design` dela.
 #[tauri::command]
-fn inspect_code_behind(source: String, design_source: String) -> portugol_service::Inspection {
-    portugol_service::inspect_code_behind(&source, &design_source)
+fn inspect_code_behind(source: String, design_source: String) -> ferro_service::Inspection {
+    ferro_service::inspect_code_behind(&source, &design_source)
 }
 
 #[tauri::command]
-fn format_markup(source: String) -> Option<Vec<portugol_service::TextEdit>> {
-    portugol_service::format_markup(&source)
+fn format_markup(source: String) -> Option<Vec<ferro_service::TextEdit>> {
+    ferro_service::format_markup(&source)
 }
 
 /// Árvore de um `.design` para o designer visual; `None` com erro de sintaxe.
 #[tauri::command]
-fn design_tree(source: String) -> Option<portugol_service::DesignNode> {
-    portugol_service::design_tree(&source)
+fn design_tree(source: String) -> Option<ferro_service::DesignNode> {
+    ferro_service::design_tree(&source)
 }
 
 /// Aplica edições do designer e devolve o novo texto do `.design`.
 #[tauri::command]
-fn edit_design(source: String, edits: Vec<portugol_service::DesignEdit>) -> Result<String, String> {
-    portugol_service::edit_design(&source, edits)
+fn edit_design(source: String, edits: Vec<ferro_service::DesignEdit>) -> Result<String, String> {
+    ferro_service::edit_design(&source, edits)
 }
 
 /// Controles e atributos do formato `.design`, para a caixa de ferramentas.
 #[tauri::command]
-fn design_schema() -> portugol_service::DesignSchema {
-    portugol_service::design_schema()
+fn design_schema() -> ferro_service::DesignSchema {
+    ferro_service::design_schema()
 }
 
 #[tauri::command]
-async fn export_portugol_rs(source: String) -> Result<portugol_service::RustExport, String> {
-    tauri::async_runtime::spawn_blocking(move || portugol_service::export_portugol_rs(&source))
+async fn export_portugol_rs(source: String) -> Result<ferro_service::RustExport, String> {
+    tauri::async_runtime::spawn_blocking(move || ferro_service::export_portugol_rs(&source))
         .await
         .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
 async fn format_rust_source(source: String) -> Result<String, String> {
-    tauri::async_runtime::spawn_blocking(move || portugol_service::format_rust_source(&source))
+    tauri::async_runtime::spawn_blocking(move || ferro_service::format_rust_source(&source))
         .await
         .map_err(|error| error.to_string())?
 }
 
 #[tauri::command]
 fn rustfmt_available() -> bool {
-    portugol_service::rustfmt_available()
+    ferro_service::rustfmt_available()
 }
 
 #[tauri::command]
 fn rust_toolchain_available() -> bool {
-    portugol_service::rust_toolchain_available()
+    ferro_service::rust_toolchain_available()
 }
 
 #[tauri::command]
 async fn check_rust_source(
     source: String,
-) -> Result<Vec<portugol_service::RustSourceCompileDiagnostic>, String> {
-    tauri::async_runtime::spawn_blocking(move || portugol_service::check_rust_source(&source))
+) -> Result<Vec<ferro_service::RustSourceCompileDiagnostic>, String> {
+    tauri::async_runtime::spawn_blocking(move || ferro_service::check_rust_source(&source))
         .await
         .map_err(|error| error.to_string())?
 }
@@ -298,24 +296,24 @@ async fn run_portugol_rs(
     runs: State<'_, Runs>,
     id: u32,
     source: String,
-) -> Result<portugol_service::PortugolRsRunResult, String> {
+) -> Result<ferro_service::PortugolRsRunResult, String> {
     let cancellation = runs
         .rust_source_cancellations
         .lock()
         .unwrap_or_else(|error| error.into_inner())
         .get(&id)
         .cloned()
-        .ok_or_else(|| "A execução Portugol-RS não está mais registrada.".to_string())?;
+        .ok_or_else(|| "A execução Ferro não está mais registrada.".to_string())?;
     let receiver = runs
         .portugol_rs_input_receivers
         .lock()
         .unwrap_or_else(|error| error.into_inner())
         .remove(&id)
-        .ok_or_else(|| "O canal de entrada Portugol-RS não está mais registrado.".to_string())?;
+        .ok_or_else(|| "O canal de entrada Ferro não está mais registrado.".to_string())?;
     let input_app = app.clone();
     let output_app = app;
     let joined = tauri::async_runtime::spawn_blocking(move || {
-        portugol_service::run_portugol_rs_with_io(
+        ferro_service::run_portugol_rs_with_io(
             &source,
             &cancellation,
             |expected| {
@@ -337,7 +335,7 @@ async fn run_portugol_rs(
                             return Ok(String::new());
                         }
                         Err(mpsc::RecvTimeoutError::Disconnected) => {
-                            return Err("O canal de entrada Portugol-RS foi encerrado.".into());
+                            return Err("O canal de entrada Ferro foi encerrado.".into());
                         }
                     }
                 }
@@ -375,7 +373,7 @@ async fn run_rust_source(
     id: u32,
     source: String,
     args: Vec<String>,
-) -> Result<portugol_service::RustSourceRunResult, String> {
+) -> Result<ferro_service::RustSourceRunResult, String> {
     let cancellation = runs
         .rust_source_cancellations
         .lock()
@@ -384,7 +382,7 @@ async fn run_rust_source(
         .cloned()
         .ok_or_else(|| "A execução Rust não está mais registrada.".to_string())?;
     let joined = tauri::async_runtime::spawn_blocking(move || {
-        portugol_service::run_rust_source_with_args_and_cancel(&source, &args, &cancellation)
+        ferro_service::run_rust_source_with_args_and_cancel(&source, &args, &cancellation)
     })
     .await;
     runs.rust_source_cancellations
@@ -396,7 +394,7 @@ async fn run_rust_source(
 
 #[tauri::command]
 fn cargo_toolchain_available() -> bool {
-    portugol_service::cargo_available()
+    ferro_service::cargo_available()
 }
 
 #[tauri::command]
@@ -406,9 +404,9 @@ async fn run_cargo_project(
     id: u32,
     workspace_id: String,
     relative_source: String,
-    target: Option<portugol_service::CargoRunTarget>,
+    target: Option<ferro_service::CargoRunTarget>,
     args: Vec<String>,
-) -> Result<portugol_service::CargoProjectRunResult, String> {
+) -> Result<ferro_service::CargoProjectRunResult, String> {
     let cancellation = runs
         .rust_source_cancellations
         .lock()
@@ -435,7 +433,7 @@ async fn run_cargo_project(
             }
         };
     let joined = tauri::async_runtime::spawn_blocking(move || {
-        portugol_service::run_cargo_project_target_with_args_and_cancel(
+        ferro_service::run_cargo_project_target_with_args_and_cancel(
             &project_root,
             target.as_ref(),
             &args,
@@ -457,7 +455,7 @@ async fn cargo_project_run_targets(
     id: u32,
     workspace_id: String,
     relative_source: String,
-) -> Result<portugol_service::CargoRunTargets, String> {
+) -> Result<ferro_service::CargoRunTargets, String> {
     let cancellation = runs
         .rust_source_cancellations
         .lock()
@@ -484,7 +482,7 @@ async fn cargo_project_run_targets(
             }
         };
     let joined = tauri::async_runtime::spawn_blocking(move || {
-        portugol_service::cargo_run_targets_with_cancel(&project_root, &cancellation)
+        ferro_service::cargo_run_targets_with_cancel(&project_root, &cancellation)
     })
     .await;
     runs.rust_source_cancellations
@@ -501,7 +499,7 @@ async fn check_cargo_project(
     id: u32,
     workspace_id: String,
     relative_source: String,
-) -> Result<portugol_service::CargoProjectCheckResult, String> {
+) -> Result<ferro_service::CargoProjectCheckResult, String> {
     let cancellation = runs
         .rust_source_cancellations
         .lock()
@@ -528,11 +526,7 @@ async fn check_cargo_project(
             }
         };
     let joined = tauri::async_runtime::spawn_blocking(move || {
-        portugol_service::check_cargo_project_with_cancel(
-            &project_root,
-            &source_path,
-            &cancellation,
-        )
+        ferro_service::check_cargo_project_with_cancel(&project_root, &source_path, &cancellation)
     })
     .await;
     runs.rust_source_cancellations
@@ -549,7 +543,7 @@ async fn test_cargo_project(
     id: u32,
     workspace_id: String,
     relative_source: String,
-) -> Result<portugol_service::CargoProjectTestResult, String> {
+) -> Result<ferro_service::CargoProjectTestResult, String> {
     let cancellation = runs
         .rust_source_cancellations
         .lock()
@@ -576,7 +570,7 @@ async fn test_cargo_project(
             }
         };
     let joined = tauri::async_runtime::spawn_blocking(move || {
-        portugol_service::test_cargo_project_with_cancel(&project_root, &cancellation)
+        ferro_service::test_cargo_project_with_cancel(&project_root, &cancellation)
     })
     .await;
     runs.rust_source_cancellations
@@ -587,24 +581,24 @@ async fn test_cargo_project(
 }
 
 #[tauri::command]
-fn format_portugol_rs(source: String) -> Option<Vec<portugol_service::TextEdit>> {
-    portugol_service::format_portugol_rs(&source)
+fn format_portugol_rs(source: String) -> Option<Vec<ferro_service::TextEdit>> {
+    ferro_service::format_portugol_rs(&source)
 }
 
 #[tauri::command]
 fn rename_target_portugol_rs(
     source: String,
     offset: u32,
-) -> Result<portugol_service::RenameTarget, String> {
-    portugol_service::rename_target_portugol_rs(&source, offset)
+) -> Result<ferro_service::RenameTarget, String> {
+    ferro_service::rename_target_portugol_rs(&source, offset)
 }
 
 #[tauri::command]
 fn resolve_symbol_portugol_rs(
     source: String,
     offset: u32,
-) -> Result<portugol_service::SymbolLocation, String> {
-    portugol_service::resolve_symbol_portugol_rs(&source, offset)
+) -> Result<ferro_service::SymbolLocation, String> {
+    ferro_service::resolve_symbol_portugol_rs(&source, offset)
 }
 
 #[tauri::command]
@@ -612,8 +606,8 @@ fn rename_symbol_portugol_rs(
     source: String,
     offset: u32,
     name: String,
-) -> Result<Vec<portugol_service::RenameEdit>, String> {
-    portugol_service::rename_symbol_portugol_rs(&source, offset, &name)
+) -> Result<Vec<ferro_service::RenameEdit>, String> {
+    ferro_service::rename_symbol_portugol_rs(&source, offset, &name)
 }
 
 #[derive(serde::Deserialize)]
@@ -658,7 +652,7 @@ async fn open_project_page(page: ProjectPage) -> Result<(), String> {
     }
 }
 
-/// Executa ou depura Portugol-RS na VM educacional, sem depender de `rustc`.
+/// Executa ou depura Ferro na VM educacional, sem depender de `rustc`.
 /// Com `pause_on_start` falso é a execução normal: para apenas nos pontos de
 /// parada.
 #[tauri::command]
@@ -691,19 +685,15 @@ fn debug_portugol_rs(
         working_dir,
         ..RunOptions::default()
     };
-    let handle = portugol_service::start_portugol_rs_with_host(
-        &source,
-        options,
-        observer,
-        move |interrupt| {
+    let handle =
+        ferro_service::start_portugol_rs_with_host(&source, options, observer, move |interrupt| {
             Box::new(graphics::DesktopHost::new(
                 app,
                 id,
                 host_observer,
                 interrupt,
             ))
-        },
-    )?;
+        })?;
     *current = Some((id, handle));
     Ok(id)
 }
@@ -764,8 +754,8 @@ const MAX_STANDALONE_FILE_BYTES: u64 = 16 * 1024 * 1024;
 /// O que pode ser lido fora de um workspace: programas, exercícios e JSON de
 /// exercício importado com outro nome.
 fn standalone_readable(path: &std::path::Path) -> bool {
-    use portugol_formatos::Kind;
-    portugol_formatos::classify_path(path)
+    use ferro_formatos::Kind;
+    ferro_formatos::classify_path(path)
         .is_some_and(|m| m.kind().is_program() || m.kind() == Kind::Lesson)
         || path
             .extension()
@@ -774,7 +764,7 @@ fn standalone_readable(path: &std::path::Path) -> bool {
 
 /// O que pode ser gravado fora de um workspace: só programas.
 fn standalone_writable(path: &std::path::Path) -> bool {
-    portugol_formatos::classify_path(path).is_some_and(|m| m.kind().is_program())
+    ferro_formatos::classify_path(path).is_some_and(|m| m.kind().is_program())
 }
 
 fn validate_standalone_file_path<'a>(
@@ -786,13 +776,13 @@ fn validate_standalone_file_path<'a>(
         return Err(format!("Caminho inválido para {action}."));
     }
     let path = std::path::Path::new(raw_path);
-    if portugol_formatos::is_retired_path(path) {
+    if ferro_formatos::is_retired_path(path) {
         return Err(format!(
-            "Arquivos legados .por e .pex não são suportados no Portugol Studio RS. Use o Portugol Studio original para abri-los ou utilize arquivos {}.",
-            portugol_formatos::describe(&[
-                portugol_formatos::Kind::Source,
-                portugol_formatos::Kind::Rust,
-                portugol_formatos::Kind::Lesson
+            "Arquivos legados .por e .pex não são suportados no Ferro Studio. Use o Portugol Studio original para abri-los ou utilize arquivos {}.",
+            ferro_formatos::describe(&[
+                ferro_formatos::Kind::Source,
+                ferro_formatos::Kind::Rust,
+                ferro_formatos::Kind::Lesson
             ])
         ));
     }
@@ -857,14 +847,14 @@ fn write_file(path: String, text: String) -> Result<(), String> {
 
 #[tauri::command]
 async fn pors_ui_start(
-    ui_sessions: State<'_, Arc<portugol_service::PorsUiService>>,
+    ui_sessions: State<'_, Arc<ferro_service::PorsUiService>>,
     source: String,
     max_steps: Option<usize>,
     max_nodes: Option<usize>,
     max_depth: Option<usize>,
 ) -> Result<String, String> {
     let service = Arc::clone(ui_sessions.inner());
-    let budget = portugol_service::PorsUiBudgetRequest {
+    let budget = ferro_service::PorsUiBudgetRequest {
         max_steps,
         max_nodes,
         max_depth,
@@ -876,7 +866,7 @@ async fn pors_ui_start(
 
 #[tauri::command]
 async fn pors_ui_dispatch(
-    ui_sessions: State<'_, Arc<portugol_service::PorsUiService>>,
+    ui_sessions: State<'_, Arc<ferro_service::PorsUiService>>,
     session_id: u32,
     kind: String,
     target_id: String,
@@ -892,20 +882,20 @@ async fn pors_ui_dispatch(
 
 #[tauri::command]
 fn pors_ui_cancel(
-    ui_sessions: State<'_, Arc<portugol_service::PorsUiService>>,
+    ui_sessions: State<'_, Arc<ferro_service::PorsUiService>>,
     session_id: u32,
 ) -> bool {
     ui_sessions.cancel(session_id)
 }
 
 #[tauri::command]
-fn pors_example_catalog() -> Vec<portugol_service::PorsExample> {
-    portugol_service::pors_examples().to_vec()
+fn pors_example_catalog() -> Vec<ferro_service::PorsExample> {
+    ferro_service::pors_examples().to_vec()
 }
 
 #[tauri::command]
-fn pors_exercise_catalog() -> Vec<portugol_service::PorsExerciseSummary> {
-    portugol_service::pors_exercises()
+fn pors_exercise_catalog() -> Vec<ferro_service::PorsExerciseSummary> {
+    ferro_service::pors_exercises()
 }
 
 #[tauri::command]
@@ -913,12 +903,12 @@ async fn check_pors_exercise(
     id: Option<String>,
     source: String,
     exercise_json: Option<String>,
-) -> Result<portugol_service::PorsExerciseEvaluation, String> {
+) -> Result<ferro_service::PorsExerciseEvaluation, String> {
     tauri::async_runtime::spawn_blocking(move || {
         if let Some(raw_json) = exercise_json {
-            portugol_service::check_imported_pors_exercise(&raw_json, &source)
+            ferro_service::check_imported_pors_exercise(&raw_json, &source)
         } else if let Some(id) = id {
-            portugol_service::check_pors_exercise(&id, &source)
+            ferro_service::check_pors_exercise(&id, &source)
         } else {
             Err("Informe o identificador ou o JSON do exercício .pors.".into())
         }
@@ -928,15 +918,13 @@ async fn check_pors_exercise(
 }
 
 #[tauri::command]
-fn inspect_pors_exercise(
-    raw_json: String,
-) -> Result<portugol_service::PorsExerciseSummary, String> {
-    portugol_service::inspect_pors_exercise(&raw_json)
+fn inspect_pors_exercise(raw_json: String) -> Result<ferro_service::PorsExerciseSummary, String> {
+    ferro_service::inspect_pors_exercise(&raw_json)
 }
 
 #[tauri::command]
 fn pors_ui_close(
-    ui_sessions: State<'_, Arc<portugol_service::PorsUiService>>,
+    ui_sessions: State<'_, Arc<ferro_service::PorsUiService>>,
     session_id: u32,
 ) -> bool {
     ui_sessions.close(session_id)
@@ -947,7 +935,7 @@ pub fn run_app() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(Runs::default())
-        .manage(Arc::new(portugol_service::PorsUiService::new()))
+        .manage(Arc::new(ferro_service::PorsUiService::new()))
         .manage(workspace::WorkspaceSession::default())
         .manage(open_files::PendingFiles::from_args())
         .manage(graphics::GraphicsWindows::default())
@@ -1086,7 +1074,7 @@ mod rust_source_run_tests {
         ));
         std::fs::create_dir_all(&dir).unwrap();
 
-        let pors = dir.join("exemplo.pors");
+        let ferro = dir.join("exemplo.fer");
         let legacy_por = dir.join("legado.por");
         let legacy_pex = dir.join("legado.pex");
         let secret = dir.join("segredo.env");
@@ -1097,9 +1085,9 @@ mod rust_source_run_tests {
         std::fs::write(&secret, "SECRET=1").unwrap();
         std::fs::write(&exercise, "{}").unwrap();
 
-        super::write_file(pors.display().to_string(), "funcao inicio() {}".into()).unwrap();
+        super::write_file(ferro.display().to_string(), "funcao inicio() {}".into()).unwrap();
         assert_eq!(
-            super::read_file(pors.display().to_string()).unwrap(),
+            super::read_file(ferro.display().to_string()).unwrap(),
             "funcao inicio() {}"
         );
         assert_eq!(

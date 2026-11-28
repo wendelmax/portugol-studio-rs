@@ -5,7 +5,7 @@ funcao inicio() {
     // Le o texto digitado pelo usuario
     seja nome = leia();
 
-    // Em Portugol-RS nao ha limpa() no console de texto;
+    // Em Ferro nao ha limpa() no console de texto;
     // usamos quebras de linha para separar a saida anterior
     escreval("\n------------------------------");
 

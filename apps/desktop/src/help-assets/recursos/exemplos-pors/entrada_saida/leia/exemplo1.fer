@@ -1,4 +1,4 @@
-// Em Portugol-RS, leia() e uma expressao: converte a entrada ao tipo esperado
+// Em Ferro, leia() e uma expressao: converte a entrada ao tipo esperado
 seja mutavel x: inteiro = leia();
 seja mutavel y = leia();
 seja mutavel z: real = leia();

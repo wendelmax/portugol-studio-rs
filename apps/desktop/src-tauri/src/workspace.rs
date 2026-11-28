@@ -63,9 +63,9 @@ mod tests {
     fn lists_supported_files_recursively_and_ignores_other_extensions() {
         let temp = TempDir::new();
         fs::create_dir_all(temp.0.join("aula/subpasta")).unwrap();
-        fs::write(temp.0.join("inicio.PORS"), "funcao inicio() {}").unwrap();
-        fs::write(temp.0.join("aula/exercicio.pors.json"), "{}").unwrap();
-        fs::write(temp.0.join("aula/subpasta/rust.pors"), "funcao").unwrap();
+        fs::write(temp.0.join("inicio.FER"), "funcao inicio() {}").unwrap();
+        fs::write(temp.0.join("aula/exercicio.licao"), "{}").unwrap();
+        fs::write(temp.0.join("aula/subpasta/rust.fer"), "funcao").unwrap();
         fs::write(temp.0.join("aula/subpasta/main.rs"), "fn main() {}").unwrap();
         fs::write(temp.0.join("legado.por"), "programa {}").unwrap();
         fs::write(temp.0.join("legado.pex"), "{}").unwrap();
@@ -79,10 +79,10 @@ mod tests {
         assert_eq!(
             paths,
             [
-                "aula/exercicio.pors.json",
+                "aula/exercicio.licao",
                 "aula/subpasta/main.rs",
-                "aula/subpasta/rust.pors",
-                "inicio.PORS"
+                "aula/subpasta/rust.fer",
+                "inicio.FER"
             ]
         );
     }
@@ -135,8 +135,8 @@ mod tests {
             "<Janela Nome=\"J\" />"
         );
 
-        // Renomear mantém a extensão; trocar .design por .pors é recusado.
-        assert!(rename_relative_file(&temp.0, design, "Outra.pors").is_err());
+        // Renomear mantém a extensão; trocar .design por .fer é recusado.
+        assert!(rename_relative_file(&temp.0, design, "Outra.fer").is_err());
         let renamed = rename_relative_file(&temp.0, design, "Outra.design").unwrap();
         assert!(renamed.ends_with("App/Outra.design"));
 
@@ -144,7 +144,7 @@ mod tests {
         delete_relative_file(&temp.0, manifest).unwrap();
         assert!(!temp.0.join(manifest).exists());
 
-        // Criar pelo explorador continua restrito a .pors e .rs.
+        // Criar pelo explorador continua restrito a .fer e .rs.
         assert!(create_source_file(&temp.0, "Nova.design").is_err());
     }
 
@@ -152,9 +152,9 @@ mod tests {
     fn reads_a_supported_file_relative_to_the_workspace_root() {
         let temp = TempDir::new();
         fs::create_dir_all(temp.0.join("aula")).unwrap();
-        fs::write(temp.0.join("aula/programa.pors"), "escreva(42);").unwrap();
+        fs::write(temp.0.join("aula/programa.fer"), "escreva(42);").unwrap();
 
-        let content = read_relative_file(&temp.0, Path::new("aula/programa.pors")).unwrap();
+        let content = read_relative_file(&temp.0, Path::new("aula/programa.fer")).unwrap();
 
         assert_eq!(content, "escreva(42);");
     }
@@ -217,9 +217,9 @@ mod tests {
         let destination = TempDir::new();
         let root = source.0.join("Minha Aula");
         fs::create_dir_all(root.join("Aulas/Nível 1")).unwrap();
-        fs::write(root.join("Aulas/Nível 1/inicio.pors"), "escreva(42);").unwrap();
-        fs::write(root.join("Aulas/atividade.pors.json"), "{\"id\":\"1\"}").unwrap();
-        fs::write(root.join("ponte.pors"), "funcao inicio() {}").unwrap();
+        fs::write(root.join("Aulas/Nível 1/inicio.fer"), "escreva(42);").unwrap();
+        fs::write(root.join("Aulas/atividade.licao"), "{\"id\":\"1\"}").unwrap();
+        fs::write(root.join("ponte.fer"), "funcao inicio() {}").unwrap();
         fs::write(root.join("ignorar.rs"), "fn main() {} ").unwrap();
         fs::write(root.join("notas.txt"), "não exportar").unwrap();
 
@@ -227,10 +227,10 @@ mod tests {
             &root,
             &destination.0,
             &[
-                "Aulas/Nível 1/inicio.pors".into(),
-                "Aulas/atividade.pors.json".into(),
-                "ponte.pors".into(),
-                "ponte.pors".into(),
+                "Aulas/Nível 1/inicio.fer".into(),
+                "Aulas/atividade.licao".into(),
+                "ponte.fer".into(),
+                "ponte.fer".into(),
             ],
         )
         .unwrap();
@@ -239,15 +239,15 @@ mod tests {
         assert_eq!(result.project_name, "Minha Aula");
         assert_eq!(result.file_count, 3);
         assert_eq!(
-            fs::read_to_string(exported.join("Aulas/Nível 1/inicio.pors")).unwrap(),
+            fs::read_to_string(exported.join("Aulas/Nível 1/inicio.fer")).unwrap(),
             "escreva(42);"
         );
         assert_eq!(
-            fs::read_to_string(exported.join("Aulas/atividade.pors.json")).unwrap(),
+            fs::read_to_string(exported.join("Aulas/atividade.licao")).unwrap(),
             "{\"id\":\"1\"}"
         );
         assert_eq!(
-            fs::read_to_string(exported.join("ponte.pors")).unwrap(),
+            fs::read_to_string(exported.join("ponte.fer")).unwrap(),
             "funcao inicio() {}"
         );
         assert!(!exported.join("ignorar.rs").exists());
@@ -260,15 +260,15 @@ mod tests {
         let destination = TempDir::new();
         let root = source.0.join("projeto");
         fs::create_dir_all(&root).unwrap();
-        fs::write(root.join("a.pors"), "copiado antes da falha").unwrap();
-        fs::write(root.join("b.pors"), "falha aqui").unwrap();
+        fs::write(root.join("a.fer"), "copiado antes da falha").unwrap();
+        fs::write(root.join("b.fer"), "falha aqui").unwrap();
 
         let result = copy_selected_files_with_hook(
             &root,
             &destination.0,
-            &["a.pors".into(), "b.pors".into()],
+            &["a.fer".into(), "b.fer".into()],
             |relative| {
-                if relative == "b.pors" {
+                if relative == "b.fer" {
                     Err("falha de leitura injetada".into())
                 } else {
                     Ok(())
@@ -289,11 +289,11 @@ mod tests {
         let destination = TempDir::new();
         let root = source.0.join("projeto");
         fs::create_dir_all(&root).unwrap();
-        fs::write(root.join("programa.pors"), "origem").unwrap();
-        let conflict = destination.0.join("projeto/programa.pors");
+        fs::write(root.join("programa.fer"), "origem").unwrap();
+        let conflict = destination.0.join("projeto/programa.fer");
 
         let result =
-            copy_selected_files_with_hook(&root, &destination.0, &["programa.pors".into()], |_| {
+            copy_selected_files_with_hook(&root, &destination.0, &["programa.fer".into()], |_| {
                 fs::create_dir_all(conflict.parent().unwrap()).unwrap();
                 fs::write(&conflict, "arquivo preexistente").unwrap();
                 Ok(())
@@ -320,8 +320,8 @@ mod tests {
         let replacement = source.0.join("substituto");
         fs::create_dir_all(&root).unwrap();
         fs::create_dir_all(&replacement).unwrap();
-        fs::write(root.join("programa.pors"), "conteúdo original").unwrap();
-        fs::write(replacement.join("programa.pors"), "conteúdo externo").unwrap();
+        fs::write(root.join("programa.fer"), "conteúdo original").unwrap();
+        fs::write(replacement.join("programa.fer"), "conteúdo externo").unwrap();
 
         let session = WorkspaceSession::default();
         let workspace_id = session.register(root.clone()).unwrap();
@@ -335,7 +335,7 @@ mod tests {
                 &root,
                 "projeto",
                 &destination.0,
-                &["programa.pors".into()],
+                &["programa.fer".into()],
                 |_| Ok(()),
             )
             .unwrap_err()
@@ -346,17 +346,17 @@ mod tests {
             &moved,
             "projeto",
             &destination.0,
-            &["programa.pors".into()],
+            &["programa.fer".into()],
             |_| Ok(()),
         )
         .unwrap();
 
         assert_eq!(
-            fs::read_to_string(destination.0.join("projeto/programa.pors")).unwrap(),
+            fs::read_to_string(destination.0.join("projeto/programa.fer")).unwrap(),
             "conteúdo original"
         );
         assert_eq!(
-            fs::read_to_string(replacement.join("programa.pors")).unwrap(),
+            fs::read_to_string(replacement.join("programa.fer")).unwrap(),
             "conteúdo externo"
         );
     }
@@ -368,16 +368,16 @@ mod tests {
         let destination = TempDir::new();
         let root = source.0.join("projeto");
         fs::create_dir_all(&root).unwrap();
-        fs::write(root.join("a.pors"), "primeiro").unwrap();
-        fs::write(root.join("b.pors"), "segundo").unwrap();
+        fs::write(root.join("a.fer"), "primeiro").unwrap();
+        fs::write(root.join("b.fer"), "segundo").unwrap();
         let moved = destination.0.join("pasta-criada-movida");
 
         let result = copy_selected_files_with_hook(
             &root,
             &destination.0,
-            &["a.pors".into(), "b.pors".into()],
+            &["a.fer".into(), "b.fer".into()],
             |relative| {
-                if relative == "b.pors" {
+                if relative == "b.fer" {
                     fs::rename(destination.0.join("projeto"), &moved).unwrap();
                     fs::create_dir(destination.0.join("projeto")).unwrap();
                     fs::write(destination.0.join("projeto/nao-apagar.txt"), "substituta").unwrap();
@@ -405,25 +405,25 @@ mod tests {
         let outside = TempDir::new();
         let root = source.0.join("projeto");
         fs::create_dir_all(&root).unwrap();
-        fs::write(root.join("programa.pors"), "original").unwrap();
-        fs::write(outside.0.join("segredo.pors"), "segredo").unwrap();
+        fs::write(root.join("programa.fer"), "original").unwrap();
+        fs::write(outside.0.join("segredo.fer"), "segredo").unwrap();
         let directory =
             cap_std::fs::Dir::open_ambient_dir(&root, cap_std::ambient_authority()).unwrap();
 
-        fs::write(root.join("outro.pors"), "outro conteúdo").unwrap();
-        let result = open_selected_file_with_hook(&directory, &root, "programa.pors", |_| {
-            fs::remove_file(root.join("programa.pors")).unwrap();
-            symlink(root.join("outro.pors"), root.join("programa.pors")).unwrap();
+        fs::write(root.join("outro.fer"), "outro conteúdo").unwrap();
+        let result = open_selected_file_with_hook(&directory, &root, "programa.fer", |_| {
+            fs::remove_file(root.join("programa.fer")).unwrap();
+            symlink(root.join("outro.fer"), root.join("programa.fer")).unwrap();
             Ok(())
         });
 
         assert!(result.is_err());
         assert_eq!(
-            fs::read_to_string(root.join("outro.pors")).unwrap(),
+            fs::read_to_string(root.join("outro.fer")).unwrap(),
             "outro conteúdo"
         );
         assert_eq!(
-            fs::read_to_string(outside.0.join("segredo.pors")).unwrap(),
+            fs::read_to_string(outside.0.join("segredo.fer")).unwrap(),
             "segredo"
         );
     }
@@ -434,15 +434,15 @@ mod tests {
         let destination = TempDir::new();
         let root = source.0.join("projeto");
         fs::create_dir_all(&root).unwrap();
-        fs::write(root.join("programa.pors"), "origem").unwrap();
+        fs::write(root.join("programa.fer"), "origem").unwrap();
         fs::write(root.join("legado.por"), "programa {}").unwrap();
 
         assert!(copy_selected_files(&root, &destination.0, &[]).is_err());
         for invalid in [
-            "../fora.pors",
-            "/tmp/fora.pors",
+            "../fora.fer",
+            "/tmp/fora.fer",
             "notas.txt",
-            "missing.pors",
+            "missing.fer",
             "legado.por",
         ] {
             assert!(
@@ -459,24 +459,24 @@ mod tests {
         let destination = TempDir::new();
         let root = source.0.join("projeto");
         fs::create_dir_all(&root).unwrap();
-        fs::write(root.join("programa.pors"), "origem").unwrap();
+        fs::write(root.join("programa.fer"), "origem").unwrap();
         fs::create_dir_all(destination.0.join("projeto")).unwrap();
-        assert!(copy_selected_files(&root, &destination.0, &["programa.pors".into()]).is_err());
-        assert!(copy_selected_files(&root, &root, &["programa.pors".into()]).is_err());
+        assert!(copy_selected_files(&root, &destination.0, &["programa.fer".into()]).is_err());
+        assert!(copy_selected_files(&root, &root, &["programa.fer".into()]).is_err());
 
         #[cfg(unix)]
         {
             use std::os::unix::fs::symlink;
             let outside = TempDir::new();
             let symlink_destination = TempDir::new();
-            fs::write(outside.0.join("segredo.pors"), "segredo").unwrap();
-            symlink(outside.0.join("segredo.pors"), root.join("link.pors")).unwrap();
+            fs::write(outside.0.join("segredo.fer"), "segredo").unwrap();
+            symlink(outside.0.join("segredo.fer"), root.join("link.fer")).unwrap();
             assert!(
-                copy_selected_files(&root, &symlink_destination.0, &["link.pors".into()]).is_err()
+                copy_selected_files(&root, &symlink_destination.0, &["link.fer".into()]).is_err()
             );
             assert!(!symlink_destination.0.join("projeto").exists());
             assert_eq!(
-                fs::read_to_string(outside.0.join("segredo.pors")).unwrap(),
+                fs::read_to_string(outside.0.join("segredo.fer")).unwrap(),
                 "segredo"
             );
         }
@@ -487,12 +487,12 @@ mod tests {
         let temp = TempDir::new();
         let root = temp.0.join("projeto");
         fs::create_dir_all(&root).unwrap();
-        fs::write(temp.0.join("fora.pors"), "segredo").unwrap();
+        fs::write(temp.0.join("fora.fer"), "segredo").unwrap();
         fs::write(temp.0.join("notas.txt"), "não suportado").unwrap();
         fs::write(temp.0.join("legado.por"), "programa {}").unwrap();
         fs::write(temp.0.join("legado.pex"), "{}").unwrap();
 
-        assert!(read_relative_file(&root, Path::new("../fora.pors")).is_err());
+        assert!(read_relative_file(&root, Path::new("../fora.fer")).is_err());
         assert!(read_relative_file(&temp.0, Path::new("notas.txt")).is_err());
         assert!(
             read_relative_file(&temp.0, Path::new("legado.por"))
@@ -509,14 +509,14 @@ mod tests {
     #[test]
     fn saves_existing_supported_program_sources() {
         let temp = TempDir::new();
-        fs::write(temp.0.join("programa.pors"), "antes").unwrap();
+        fs::write(temp.0.join("programa.fer"), "antes").unwrap();
         fs::write(temp.0.join("main.rs"), "fn main() {} ").unwrap();
-        fs::write(temp.0.join("atividade.pors.json"), "exercício").unwrap();
+        fs::write(temp.0.join("atividade.licao"), "exercício").unwrap();
 
-        super::write_relative_file(&temp.0, Path::new("programa.pors"), "depois").unwrap();
+        super::write_relative_file(&temp.0, Path::new("programa.fer"), "depois").unwrap();
 
         assert_eq!(
-            fs::read_to_string(temp.0.join("programa.pors")).unwrap(),
+            fs::read_to_string(temp.0.join("programa.fer")).unwrap(),
             "depois"
         );
         super::write_relative_file(
@@ -530,11 +530,10 @@ mod tests {
             "fn main() { println!(\"ok\"); }"
         );
         assert!(
-            super::write_relative_file(&temp.0, Path::new("atividade.pors.json"), "alterado")
-                .is_err()
+            super::write_relative_file(&temp.0, Path::new("atividade.licao"), "alterado").is_err()
         );
         assert_eq!(
-            fs::read_to_string(temp.0.join("atividade.pors.json")).unwrap(),
+            fs::read_to_string(temp.0.join("atividade.licao")).unwrap(),
             "exercício"
         );
     }
@@ -543,33 +542,33 @@ mod tests {
     fn creates_empty_portugol_rs_and_rust_files_exclusively() {
         let temp = TempDir::new();
 
-        create_source_file(&temp.0, "ponte.pors").unwrap();
+        create_source_file(&temp.0, "ponte.fer").unwrap();
         create_source_file(&temp.0, "main.rs").unwrap();
         assert!(create_source_file(&temp.0, "ola.por").is_err());
 
-        assert_eq!(fs::read_to_string(temp.0.join("ponte.pors")).unwrap(), "");
+        assert_eq!(fs::read_to_string(temp.0.join("ponte.fer")).unwrap(), "");
         assert_eq!(fs::read_to_string(temp.0.join("main.rs")).unwrap(), "");
     }
 
     #[test]
     fn rejects_invalid_names_and_never_overwrites_an_existing_file() {
         let temp = TempDir::new();
-        fs::write(temp.0.join("aula.pors"), "conteúdo existente").unwrap();
+        fs::write(temp.0.join("aula.fer"), "conteúdo existente").unwrap();
 
         for invalid in [
             "",
             ".",
             "..",
-            "../fora.pors",
-            "subpasta\\programa.pors",
+            "../fora.fer",
+            "subpasta\\programa.fer",
             "dados.pex",
             "legado.por",
         ] {
             assert!(create_source_file(&temp.0, invalid).is_err(), "{invalid}");
         }
-        assert!(create_source_file(&temp.0, "aula.pors").is_err());
+        assert!(create_source_file(&temp.0, "aula.fer").is_err());
         assert_eq!(
-            fs::read_to_string(temp.0.join("aula.pors")).unwrap(),
+            fs::read_to_string(temp.0.join("aula.fer")).unwrap(),
             "conteúdo existente"
         );
     }
@@ -582,9 +581,9 @@ mod tests {
         let temp = TempDir::new();
         let outside = TempDir::new();
         fs::write(outside.0.join("segredo"), "não alterar").unwrap();
-        symlink(outside.0.join("segredo"), temp.0.join("novo.pors")).unwrap();
+        symlink(outside.0.join("segredo"), temp.0.join("novo.fer")).unwrap();
 
-        assert!(create_source_file(&temp.0, "novo.pors").is_err());
+        assert!(create_source_file(&temp.0, "novo.fer").is_err());
         assert_eq!(
             fs::read_to_string(outside.0.join("segredo")).unwrap(),
             "não alterar"
@@ -595,54 +594,53 @@ mod tests {
     fn renames_a_source_file_without_changing_its_contents() {
         let temp = TempDir::new();
         fs::create_dir_all(temp.0.join("aulas")).unwrap();
-        fs::write(temp.0.join("aulas/antigo.pors"), "escreva(42);").unwrap();
+        fs::write(temp.0.join("aulas/antigo.fer"), "escreva(42);").unwrap();
 
         let renamed =
-            rename_relative_file(&temp.0, Path::new("aulas/antigo.pors"), "novo.pors").unwrap();
+            rename_relative_file(&temp.0, Path::new("aulas/antigo.fer"), "novo.fer").unwrap();
 
-        let expected = fs::canonicalize(temp.0.join("aulas/novo.pors")).unwrap();
+        let expected = fs::canonicalize(temp.0.join("aulas/novo.fer")).unwrap();
         assert_eq!(renamed, expected);
         assert_eq!(fs::read_to_string(&renamed).unwrap(), "escreva(42);");
-        assert!(!temp.0.join("aulas/antigo.pors").exists());
+        assert!(!temp.0.join("aulas/antigo.fer").exists());
 
         fs::write(temp.0.join("aulas/main.rs"), "fn main() {}").unwrap();
         let renamed_rust =
             rename_relative_file(&temp.0, Path::new("aulas/main.rs"), "renomeado.rs").unwrap();
         assert_eq!(fs::read_to_string(renamed_rust).unwrap(), "fn main() {}");
 
-        fs::write(temp.0.join("aulas/ex1.pors.json"), "{}").unwrap();
+        fs::write(temp.0.join("aulas/ex1.licao"), "{}").unwrap();
         let renamed_ex =
-            rename_relative_file(&temp.0, Path::new("aulas/ex1.pors.json"), "ex2.pors.json")
-                .unwrap();
+            rename_relative_file(&temp.0, Path::new("aulas/ex1.licao"), "ex2.licao").unwrap();
         assert_eq!(fs::read_to_string(renamed_ex).unwrap(), "{}");
 
         assert!(create_source_file(&temp.0, "novo.fer").is_ok());
         assert!(temp.0.join("novo.fer").is_file());
-        fs::write(temp.0.join("aulas/legado.pors"), "escreva(7);").unwrap();
+        fs::write(temp.0.join("aulas/legado.fer"), "escreva(7);").unwrap();
         let migrated_ok =
-            rename_relative_file(&temp.0, Path::new("aulas/legado.pors"), "legado.fer").unwrap();
+            rename_relative_file(&temp.0, Path::new("aulas/legado.fer"), "legado.fer").unwrap();
         assert_eq!(fs::read_to_string(migrated_ok).unwrap(), "escreva(7);");
     }
 
     #[test]
     fn preserves_original_extension_and_rejects_path_changes() {
         let temp = TempDir::new();
-        fs::write(temp.0.join("programa.pors"), "funcao inicio() {}").unwrap();
+        fs::write(temp.0.join("programa.fer"), "funcao inicio() {}").unwrap();
 
         for invalid in [
             "novo.rs",
             "novo.por",
-            "../fora.pors",
-            "pasta\\novo.pors",
+            "../fora.fer",
+            "pasta\\novo.fer",
             "anotacao.txt",
         ] {
             assert!(
-                rename_relative_file(&temp.0, Path::new("programa.pors"), invalid).is_err(),
+                rename_relative_file(&temp.0, Path::new("programa.fer"), invalid).is_err(),
                 "{invalid}"
             );
         }
         assert_eq!(
-            fs::read_to_string(temp.0.join("programa.pors")).unwrap(),
+            fs::read_to_string(temp.0.join("programa.fer")).unwrap(),
             "funcao inicio() {}"
         );
     }
@@ -650,16 +648,16 @@ mod tests {
     #[test]
     fn rename_collision_never_overwrites_either_file() {
         let temp = TempDir::new();
-        fs::write(temp.0.join("antes.pors"), "origem").unwrap();
-        fs::write(temp.0.join("depois.pors"), "destino").unwrap();
+        fs::write(temp.0.join("antes.fer"), "origem").unwrap();
+        fs::write(temp.0.join("depois.fer"), "destino").unwrap();
 
-        assert!(rename_relative_file(&temp.0, Path::new("antes.pors"), "depois.pors").is_err());
+        assert!(rename_relative_file(&temp.0, Path::new("antes.fer"), "depois.fer").is_err());
         assert_eq!(
-            fs::read_to_string(temp.0.join("antes.pors")).unwrap(),
+            fs::read_to_string(temp.0.join("antes.fer")).unwrap(),
             "origem"
         );
         assert_eq!(
-            fs::read_to_string(temp.0.join("depois.pors")).unwrap(),
+            fs::read_to_string(temp.0.join("depois.fer")).unwrap(),
             "destino"
         );
     }
@@ -668,12 +666,12 @@ mod tests {
     fn deletes_supported_files_and_preserves_neighbors() {
         let temp = TempDir::new();
         fs::create_dir_all(temp.0.join("aulas")).unwrap();
-        fs::write(temp.0.join("aulas/ponte.pors"), "funcao inicio() {}").unwrap();
+        fs::write(temp.0.join("aulas/ponte.fer"), "funcao inicio() {}").unwrap();
         fs::write(temp.0.join("aulas/main.rs"), "fn main() {}").unwrap();
-        fs::write(temp.0.join("aulas/exercicio.pors.json"), "{}").unwrap();
-        fs::write(temp.0.join("aulas/manter.pors"), "manter").unwrap();
+        fs::write(temp.0.join("aulas/exercicio.licao"), "{}").unwrap();
+        fs::write(temp.0.join("aulas/manter.fer"), "manter").unwrap();
 
-        for name in ["ponte.pors", "main.rs", "exercicio.pors.json"] {
+        for name in ["ponte.fer", "main.rs", "exercicio.licao"] {
             let relative = Path::new("aulas").join(name);
             let expected = fs::canonicalize(temp.0.join("aulas").join(name)).unwrap();
             let deleted = delete_relative_file(&temp.0, &relative).unwrap();
@@ -681,7 +679,7 @@ mod tests {
             assert!(!temp.0.join("aulas").join(name).exists());
         }
         assert_eq!(
-            fs::read_to_string(temp.0.join("aulas/manter.pors")).unwrap(),
+            fs::read_to_string(temp.0.join("aulas/manter.fer")).unwrap(),
             "manter"
         );
     }
@@ -689,15 +687,15 @@ mod tests {
     #[test]
     fn delete_rejects_traversal_directories_missing_and_unsupported_files() {
         let temp = TempDir::new();
-        fs::create_dir_all(temp.0.join("pasta.pors")).unwrap();
+        fs::create_dir_all(temp.0.join("pasta.fer")).unwrap();
         fs::write(temp.0.join("notas.txt"), "manter").unwrap();
         fs::write(temp.0.join("legado.por"), "manter").unwrap();
-        fs::write(temp.0.join("programa.pors"), "manter").unwrap();
+        fs::write(temp.0.join("programa.fer"), "manter").unwrap();
 
         for relative in [
-            Path::new("../fora.pors"),
-            Path::new("pasta.pors"),
-            Path::new("ausente.pors"),
+            Path::new("../fora.fer"),
+            Path::new("pasta.fer"),
+            Path::new("ausente.fer"),
             Path::new("notas.txt"),
             Path::new("legado.por"),
         ] {
@@ -707,14 +705,14 @@ mod tests {
             );
         }
         assert_eq!(
-            fs::read_to_string(temp.0.join("programa.pors")).unwrap(),
+            fs::read_to_string(temp.0.join("programa.fer")).unwrap(),
             "manter"
         );
         assert_eq!(
             fs::read_to_string(temp.0.join("notas.txt")).unwrap(),
             "manter"
         );
-        assert!(temp.0.join("pasta.pors").is_dir());
+        assert!(temp.0.join("pasta.fer").is_dir());
     }
 
     #[test]
@@ -725,31 +723,31 @@ mod tests {
                 path: "aulas".into(),
                 entries: vec![
                     WorkspaceEntry::File {
-                        name: "manter.pors".into(),
-                        path: "aulas/manter.pors".into(),
+                        name: "manter.fer".into(),
+                        path: "aulas/manter.fer".into(),
                     },
                     WorkspaceEntry::File {
-                        name: "apagar.pors".into(),
-                        path: "aulas/apagar.pors".into(),
+                        name: "apagar.fer".into(),
+                        path: "aulas/apagar.fer".into(),
                     },
                 ],
             },
             WorkspaceEntry::File {
-                name: "fora.pors".into(),
-                path: "fora.pors".into(),
+                name: "fora.fer".into(),
+                path: "fora.fer".into(),
             },
         ];
 
-        super::remove_file_from_listing(&mut entries, "aulas/apagar.pors");
+        super::remove_file_from_listing(&mut entries, "aulas/apagar.fer");
 
         assert!(matches!(
             &entries[0],
             WorkspaceEntry::Folder { entries, .. } if entries.len() == 1
-                && matches!(&entries[0], WorkspaceEntry::File { path, .. } if path == "aulas/manter.pors")
+                && matches!(&entries[0], WorkspaceEntry::File { path, .. } if path == "aulas/manter.fer")
         ));
         assert!(matches!(
             &entries[1],
-            WorkspaceEntry::File { path, .. } if path == "fora.pors"
+            WorkspaceEntry::File { path, .. } if path == "fora.fer"
         ));
     }
 
@@ -760,15 +758,15 @@ mod tests {
 
         let temp = TempDir::new();
         let outside = TempDir::new();
-        fs::write(outside.0.join("programa.pors"), "fora").unwrap();
-        symlink(outside.0.join("programa.pors"), temp.0.join("ligacao.pors")).unwrap();
+        fs::write(outside.0.join("programa.fer"), "fora").unwrap();
+        symlink(outside.0.join("programa.fer"), temp.0.join("ligacao.fer")).unwrap();
 
-        assert!(delete_relative_file(&temp.0, Path::new("ligacao.pors")).is_err());
+        assert!(delete_relative_file(&temp.0, Path::new("ligacao.fer")).is_err());
         assert_eq!(
-            fs::read_to_string(outside.0.join("programa.pors")).unwrap(),
+            fs::read_to_string(outside.0.join("programa.fer")).unwrap(),
             "fora"
         );
-        assert!(temp.0.join("ligacao.pors").exists());
+        assert!(temp.0.join("ligacao.fer").exists());
     }
 
     #[cfg(unix)]
@@ -778,15 +776,15 @@ mod tests {
 
         let temp = TempDir::new();
         let outside = TempDir::new();
-        fs::write(outside.0.join("programa.pors"), "fora").unwrap();
-        symlink(outside.0.join("programa.pors"), temp.0.join("ligacao.pors")).unwrap();
+        fs::write(outside.0.join("programa.fer"), "fora").unwrap();
+        symlink(outside.0.join("programa.fer"), temp.0.join("ligacao.fer")).unwrap();
 
-        assert!(rename_relative_file(&temp.0, Path::new("ligacao.pors"), "novo.pors").is_err());
+        assert!(rename_relative_file(&temp.0, Path::new("ligacao.fer"), "novo.fer").is_err());
         assert_eq!(
-            fs::read_to_string(outside.0.join("programa.pors")).unwrap(),
+            fs::read_to_string(outside.0.join("programa.fer")).unwrap(),
             "fora"
         );
-        assert!(temp.0.join("ligacao.pors").exists());
+        assert!(temp.0.join("ligacao.fer").exists());
     }
 
     #[test]
@@ -808,7 +806,7 @@ mod tests {
     fn restores_a_saved_workspace_with_a_fresh_session_id() {
         let config = TempDir::new();
         let root = TempDir::new();
-        fs::write(root.0.join("programa.pors"), "funcao inicio() {}").unwrap();
+        fs::write(root.0.join("programa.fer"), "funcao inicio() {}").unwrap();
         save_last_workspace(&config.0, &root.0).unwrap();
 
         let session = super::WorkspaceSession::default();
@@ -822,7 +820,7 @@ mod tests {
         );
         assert_eq!(restored.id, "workspace-1");
         assert!(
-            matches!(&restored.entries[0], WorkspaceEntry::File { name, .. } if name == "programa.pors")
+            matches!(&restored.entries[0], WorkspaceEntry::File { name, .. } if name == "programa.fer")
         );
     }
 
@@ -891,15 +889,15 @@ mod tests {
 
         let temp = TempDir::new();
         let outside = TempDir::new();
-        fs::write(outside.0.join("segredo.pors"), "segredo").unwrap();
-        symlink(outside.0.join("segredo.pors"), temp.0.join("link.pors")).unwrap();
+        fs::write(outside.0.join("segredo.fer"), "segredo").unwrap();
+        symlink(outside.0.join("segredo.fer"), temp.0.join("link.fer")).unwrap();
         symlink(&outside.0, temp.0.join("pasta-link")).unwrap();
 
         assert!(list_entries(&temp.0).unwrap().is_empty());
-        assert!(read_relative_file(&temp.0, Path::new("link.pors")).is_err());
-        assert!(super::write_relative_file(&temp.0, Path::new("link.pors"), "alterado").is_err());
+        assert!(read_relative_file(&temp.0, Path::new("link.fer")).is_err());
+        assert!(super::write_relative_file(&temp.0, Path::new("link.fer"), "alterado").is_err());
         assert_eq!(
-            fs::read_to_string(outside.0.join("segredo.pors")).unwrap(),
+            fs::read_to_string(outside.0.join("segredo.fer")).unwrap(),
             "segredo"
         );
     }
@@ -909,28 +907,24 @@ mod tests {
         let temp = TempDir::new();
 
         let created =
-            super::create_source_file_in_folder(&temp.0, "ola.pors", Some("aulas/modulo1"))
-                .unwrap();
-        assert_eq!(created, "aulas/modulo1/ola.pors");
-        assert!(temp.0.join("aulas/modulo1/ola.pors").is_file());
+            super::create_source_file_in_folder(&temp.0, "ola.fer", Some("aulas/modulo1")).unwrap();
+        assert_eq!(created, "aulas/modulo1/ola.fer");
+        assert!(temp.0.join("aulas/modulo1/ola.fer").is_file());
 
         assert!(
-            super::create_source_file_in_folder(&temp.0, "ola.pors", Some("aulas/modulo1"))
-                .is_err()
+            super::create_source_file_in_folder(&temp.0, "ola.fer", Some("aulas/modulo1")).is_err()
         );
+        assert!(super::create_source_file_in_folder(&temp.0, "fora.fer", Some("../fora")).is_err());
         assert!(
-            super::create_source_file_in_folder(&temp.0, "fora.pors", Some("../fora")).is_err()
+            super::create_source_file_in_folder(&temp.0, "fora.fer", Some("aulas\\sub")).is_err()
         );
-        assert!(
-            super::create_source_file_in_folder(&temp.0, "fora.pors", Some("aulas\\sub")).is_err()
-        );
-        assert!(super::create_source_file_in_folder(&temp.0, "fora.pors", Some("/abs")).is_err());
+        assert!(super::create_source_file_in_folder(&temp.0, "fora.fer", Some("/abs")).is_err());
     }
 
     #[test]
     fn sanitizes_cargo_package_names_for_export() {
         assert_eq!(
-            super::sanitize_cargo_package_name("Olá Mundo!.pors"),
+            super::sanitize_cargo_package_name("Olá Mundo!.fer"),
             "ol_mundo"
         );
         assert_eq!(
@@ -950,7 +944,7 @@ mod tests {
         let code = "fn main() {\n    println!(\"Olá, Rust!\");\n}";
 
         let exported =
-            super::write_cargo_project_scaffold(&destination.0, "meu-programa.pors", code).unwrap();
+            super::write_cargo_project_scaffold(&destination.0, "meu-programa.fer", code).unwrap();
 
         assert_eq!(exported.package_name, "meu_programa");
         let project_dir = destination.0.join("meu_programa");
@@ -963,13 +957,13 @@ mod tests {
             "fn main() {\n    println!(\"Olá, Rust!\");\n}\n"
         );
         assert!(
-            super::write_cargo_project_scaffold(&destination.0, "meu-programa.pors", code)
+            super::write_cargo_project_scaffold(&destination.0, "meu-programa.fer", code)
                 .unwrap_err()
                 .contains("Já existe")
         );
     }
 }
-use portugol_formatos::Kind;
+use ferro_formatos::Kind;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::ffi::OsString;
 use std::fs;
@@ -1070,8 +1064,7 @@ pub struct DesktopProjectCreated {
 /// Nome do projeto que também serve de nome da pasta.
 fn desktop_project_folder_name(name: &str) -> Result<String, String> {
     let trimmed = name.trim();
-    portugol_tela::project::validate_project_name(trimmed)
-        .map_err(|message| format!("{message}."))?;
+    ferro_tela::project::validate_project_name(trimmed).map_err(|message| format!("{message}."))?;
     if trimmed.starts_with('.') || trimmed.ends_with('.') {
         return Err("O nome do projeto não pode começar nem terminar com ponto.".into());
     }
@@ -1090,7 +1083,7 @@ fn desktop_project_folder_name(name: &str) -> Result<String, String> {
 /// pode existir; se algo falhar depois de criá-la, ela é removida.
 fn create_desktop_project_in(parent: &Path, name: &str) -> Result<PathBuf, String> {
     let folder_name = desktop_project_folder_name(name)?;
-    let template = portugol_tela::project::desktop_template(&folder_name)?;
+    let template = ferro_tela::project::desktop_template(&folder_name)?;
     let parent = fs::canonicalize(parent)
         .map_err(|_| "A pasta escolhida não está disponível.".to_string())?;
     if !parent.is_dir() {
@@ -1749,11 +1742,11 @@ fn same_file_identity(_left: &fs::File, _right: &fs::File) -> bool {
 // O que é cada arquivo vem da tabela única de formatos (ADR 0023, Emenda 2).
 
 fn is_legacy_extension(path: &Path) -> bool {
-    portugol_formatos::is_retired_path(path)
+    ferro_formatos::is_retired_path(path)
 }
 
 fn file_kind(path: &Path) -> Option<Kind> {
-    portugol_formatos::classify_path(path).map(|m| m.kind())
+    ferro_formatos::classify_path(path).map(|m| m.kind())
 }
 
 /// Tudo o que o explorador lista, abre, renomeia, exporta e exclui.
@@ -1773,7 +1766,7 @@ fn supported_program(path: &Path) -> bool {
 
 /// Extensões de tudo o que o explorador aceita, para mensagens.
 fn all_extensions() -> String {
-    portugol_formatos::describe(&portugol_formatos::all_kinds())
+    ferro_formatos::describe(&ferro_formatos::all_kinds())
 }
 
 fn relative_path(root: &Path, path: &Path) -> Result<String, String> {
@@ -1886,7 +1879,7 @@ fn checked_file(root: &Path, relative: &Path, allow_exercise: bool) -> Result<Pa
     {
         if is_legacy_extension(&candidate) {
             return Err(
-                "Arquivos legados .por e .pex não são suportados no Portugol Studio RS. Use o Portugol Studio original para abri-los."
+                "Arquivos legados .por e .pex não são suportados no Ferro Studio. Use o Portugol Studio original para abri-los."
                     .into(),
             );
         }
@@ -1924,7 +1917,7 @@ pub(super) fn cargo_project_and_source(
     if file_kind(&source) != Some(Kind::Rust) {
         return Err(format!(
             "A execução Cargo exige um arquivo {} do workspace.",
-            portugol_formatos::describe(&[Kind::Rust])
+            ferro_formatos::describe(&[Kind::Rust])
         ));
     }
     let mut directory = source.parent();
@@ -1970,7 +1963,7 @@ fn write_relative_file(root: &Path, relative: &Path, source: &str) -> Result<(),
     if !supported_program(relative) && !supported_markup(relative) {
         return Err(format!(
             "Apenas arquivos {} podem ser salvos pelo explorador.",
-            portugol_formatos::describe(&[Kind::Source, Kind::Rust, Kind::Design, Kind::Manifest])
+            ferro_formatos::describe(&[Kind::Source, Kind::Rust, Kind::Design, Kind::Manifest])
         ));
     }
     let path = checked_file(root, relative, false)?;
@@ -1999,7 +1992,7 @@ fn create_source_file_in_folder(
         return Err("Informe um nome de arquivo sem pastas.".into());
     }
     if !supported_program(relative) {
-        return Err("O arquivo deve usar a extensão .pors ou .rs.".into());
+        return Err("O arquivo deve usar a extensão .fer ou .rs.".into());
     }
 
     let root = fs::canonicalize(root)
@@ -2081,7 +2074,7 @@ fn create_source_file_in_folder(
 fn sanitize_cargo_package_name(raw: &str) -> String {
     let trimmed = raw.trim();
     let without_ext = trimmed
-        .strip_suffix(".pors")
+        .strip_suffix(".fer")
         .or_else(|| trimmed.strip_suffix(".PORS"))
         .or_else(|| trimmed.strip_suffix(".rs"))
         .or_else(|| trimmed.strip_suffix(".RS"))
@@ -2202,15 +2195,15 @@ fn rename_relative_file(root: &Path, relative: &Path, new_name: &str) -> Result<
     if new_name.ends_with('.') || !supported_source(name) {
         return Err(format!(
             "O arquivo deve manter uma extensão {}.",
-            portugol_formatos::describe_alternatives(&portugol_formatos::all_kinds())
+            ferro_formatos::describe_alternatives(&ferro_formatos::all_kinds())
         ));
     }
 
     // Renomear pode trocar a extensão antiga pela canônica do mesmo tipo,
     // mas não muda o tipo do arquivo.
-    let source_format = portugol_formatos::classify_path(&source)
+    let source_format = ferro_formatos::classify_path(&source)
         .ok_or_else(|| "A extensão original do arquivo não é válida.".to_string())?;
-    let new_format = portugol_formatos::classify_path(name)
+    let new_format = ferro_formatos::classify_path(name)
         .ok_or_else(|| "A extensão do arquivo não é válida.".to_string())?;
     if source_format.kind() != new_format.kind() {
         return Err(format!(
@@ -2392,8 +2385,8 @@ pub async fn workspace_create_desktop_project(
             },
             design_path: format!(
                 "{}.{}",
-                portugol_tela::project::DEFAULT_WINDOW,
-                portugol_tela::FILE_EXTENSION
+                ferro_tela::project::DEFAULT_WINDOW,
+                ferro_tela::FILE_EXTENSION
             ),
         }))
     })

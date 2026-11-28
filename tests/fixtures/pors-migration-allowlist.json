@@ -1,27 +1,27 @@
 [
   {
-    "path": "crates/portugol-service/assets/exemplos-pors/classicos/algoritmos_sequenciais/loja_ferramentas.fer",
+    "path": "crates/ferro-service/assets/exemplos-pors/classicos/algoritmos_sequenciais/loja_ferramentas.fer",
     "markers": [
       "escreva-com-quebra-explicita"
     ],
     "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
   },
   {
-    "path": "crates/portugol-service/assets/exemplos-pors/classicos/bibliotecas/arquivos/ler_selecionado.fer",
+    "path": "crates/ferro-service/assets/exemplos-pors/classicos/bibliotecas/arquivos/ler_selecionado.fer",
     "markers": [
       "escreva-com-quebra-explicita"
     ],
     "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
   },
   {
-    "path": "crates/portugol-service/assets/exemplos-pors/classicos/bibliotecas/arquivos/selecionar_arquivo.fer",
+    "path": "crates/ferro-service/assets/exemplos-pors/classicos/bibliotecas/arquivos/selecionar_arquivo.fer",
     "markers": [
       "escreva-com-quebra-explicita"
     ],
     "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
   },
   {
-    "path": "crates/portugol-service/assets/exemplos-pors/classicos/bibliotecas/graficos/varios.fer",
+    "path": "crates/ferro-service/assets/exemplos-pors/classicos/bibliotecas/graficos/varios.fer",
     "markers": [
       "escreva-com-quebra-explicita",
       "leia("
@@ -29,98 +29,98 @@
     "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout | laço faca...enquanto com leitura repetida de resposta; leia(variavel) preserva o tipo cadeia declarado"
   },
   {
-    "path": "crates/portugol-service/assets/exemplos-pors/classicos/bibliotecas/matematica/area_circunferencia.fer",
+    "path": "crates/ferro-service/assets/exemplos-pors/classicos/bibliotecas/matematica/area_circunferencia.fer",
     "markers": [
       "escreva-com-quebra-explicita"
     ],
     "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
   },
   {
-    "path": "crates/portugol-service/assets/exemplos-pors/classicos/bibliotecas/matematica/funcoes_trigonometricas.fer",
+    "path": "crates/ferro-service/assets/exemplos-pors/classicos/bibliotecas/matematica/funcoes_trigonometricas.fer",
     "markers": [
       "escreva-com-quebra-explicita"
     ],
     "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
   },
   {
-    "path": "crates/portugol-service/assets/exemplos-pors/classicos/bibliotecas/matematica/potencia.fer",
+    "path": "crates/ferro-service/assets/exemplos-pors/classicos/bibliotecas/matematica/potencia.fer",
     "markers": [
       "escreva-com-quebra-explicita"
     ],
     "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
   },
   {
-    "path": "crates/portugol-service/assets/exemplos-pors/classicos/bibliotecas/texto/preencher.fer",
+    "path": "crates/ferro-service/assets/exemplos-pors/classicos/bibliotecas/texto/preencher.fer",
     "markers": [
       "escreva-com-quebra-explicita"
     ],
     "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
   },
   {
-    "path": "crates/portugol-service/assets/exemplos-pors/classicos/bibliotecas/tipos/inteiro.fer",
+    "path": "crates/ferro-service/assets/exemplos-pors/classicos/bibliotecas/tipos/inteiro.fer",
     "markers": [
       "escreva-com-quebra-explicita"
     ],
     "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
   },
   {
-    "path": "crates/portugol-service/assets/exemplos-pors/classicos/bibliotecas/util/sorteio.fer",
+    "path": "crates/ferro-service/assets/exemplos-pors/classicos/bibliotecas/util/sorteio.fer",
     "markers": [
       "escreva-com-quebra-explicita"
     ],
     "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
   },
   {
-    "path": "crates/portugol-service/assets/exemplos-pors/classicos/desvios_condicionais/media_final.fer",
+    "path": "crates/ferro-service/assets/exemplos-pors/classicos/desvios_condicionais/media_final.fer",
     "markers": [
       "escreva-com-quebra-explicita"
     ],
     "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
   },
   {
-    "path": "crates/portugol-service/assets/exemplos-pors/classicos/desvios_condicionais/numeros_iguais.fer",
+    "path": "crates/ferro-service/assets/exemplos-pors/classicos/desvios_condicionais/numeros_iguais.fer",
     "markers": [
       "escreva-com-quebra-explicita"
     ],
     "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
   },
   {
-    "path": "crates/portugol-service/assets/exemplos-pors/classicos/lacos_repeticao/consistencia.fer",
+    "path": "crates/ferro-service/assets/exemplos-pors/classicos/lacos_repeticao/consistencia.fer",
     "markers": [
       "leia("
     ],
     "reason": "laço faca...enquanto com leitura repetida de idade; leia(variavel) preserva o tipo inteiro declarado"
   },
   {
-    "path": "crates/portugol-service/assets/exemplos-pors/classicos/lacos_repeticao/eleicao.fer",
+    "path": "crates/ferro-service/assets/exemplos-pors/classicos/lacos_repeticao/eleicao.fer",
     "markers": [
       "leia("
     ],
     "reason": "laço faca...enquanto com leitura repetida de codigo_voto; leia(variavel) preserva o tipo inteiro declarado"
   },
   {
-    "path": "crates/portugol-service/assets/exemplos-pors/classicos/lacos_repeticao/media_dez_numeros.fer",
+    "path": "crates/ferro-service/assets/exemplos-pors/classicos/lacos_repeticao/media_dez_numeros.fer",
     "markers": [
       "leia("
     ],
     "reason": "laço enquanto com leitura repetida de numero; leia(variavel) preserva o tipo real declarado"
   },
   {
-    "path": "crates/portugol-service/assets/exemplos-pors/classicos/operacoes_aritmeticas/divisoes_inteiras.fer",
+    "path": "crates/ferro-service/assets/exemplos-pors/classicos/operacoes_aritmeticas/divisoes_inteiras.fer",
     "markers": [
       "escreva-com-quebra-explicita"
     ],
     "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
   },
   {
-    "path": "crates/portugol-service/assets/exemplos-pors/classicos/operacoes_aritmeticas/operacoes_simples.fer",
+    "path": "crates/ferro-service/assets/exemplos-pors/classicos/operacoes_aritmeticas/operacoes_simples.fer",
     "markers": [
       "escreva-com-quebra-explicita"
     ],
     "reason": "quebra explícita no início/meio da cadeia, sem \"\\n\" final: escreval acrescentaria quebra e alteraria stdout"
   },
   {
-    "path": "crates/portugol-service/assets/exemplos-pors/classicos/operacoes_aritmeticas/prioridades.fer",
+    "path": "crates/ferro-service/assets/exemplos-pors/classicos/operacoes_aritmeticas/prioridades.fer",
     "markers": [
       "escreva-com-quebra-explicita"
     ],

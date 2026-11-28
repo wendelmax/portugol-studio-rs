@@ -39,7 +39,7 @@ export interface ExerciseGrade {
 
 export async function readExercise(path: string): Promise<ExerciseDocument> {
   if (isRetiredFile(path)) {
-    throw `Arquivos legados .pex não são suportados no Portugol Studio RS. Use o Portugol Studio original para abri-los ou importe um exercício ${describeExtensions(["lesson"])}.`;
+    throw `Arquivos legados .pex não são suportados no Ferro Studio. Use o Portugol Studio original para abri-los ou importe uma lição ${describeExtensions(["lesson"])}.`;
   }
   const contents = await readFile(path);
   const fileName = path.split(/[\\/]/).pop() ?? "Exercício";
@@ -89,7 +89,7 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
     const porsId = parsePorsExerciseOptionValue(list.value);
     const porsExercise = porsId !== null ? porsCatalog.find(({ id }) => id === porsId) : undefined;
     statement.textContent = porsExercise
-      ? `${porsExercise.statement}\n\nCasos de teste (.pors): ${porsExercise.cases}`
+      ? `${porsExercise.statement}\n\nCasos de teste: ${porsExercise.cases}`
       : "";
     solve.disabled = !porsExercise;
   }
@@ -98,7 +98,7 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
     const nodes: Array<HTMLOptionElement | HTMLOptGroupElement> = [];
     if (porsCatalog.length > 0) {
       const porsGroup = document.createElement("optgroup");
-      porsGroup.label = "Portugol-RS (.pors)";
+      porsGroup.label = "Lições Ferro (.licao)";
       for (const item of porsCatalog) {
         porsGroup.append(
           new Option(
@@ -128,7 +128,7 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
     try {
       const path = await openDialog({
         filters: [
-          { name: `${fileFormat("lesson").label} (${describeExtensions(["lesson"])})`, extensions: ["json"] },
+          { name: `${fileFormat("lesson").label} (${describeExtensions(["lesson"])})`, extensions: ["licao"] },
         ],
       });
       if (typeof path !== "string" || !chooser.open) return;

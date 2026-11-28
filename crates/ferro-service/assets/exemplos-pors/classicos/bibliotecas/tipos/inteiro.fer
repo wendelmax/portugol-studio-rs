@@ -1,0 +1,76 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ * 	Este exemplo demonstra como utilizar as funções da biblioteca "Tipos" para verificar
+ * 	e converter dados do tipo inteiro para outros tipos e vice-versa.
+ *
+ * Autores:
+ *
+ * 	Luiz Fernando Noschang (noschang@univali.br)
+ *
+ * Data: 18/07/2014
+ * Adaptado para Ferro (.pors)
+ */
+
+funcao testar_base(texto: cadeia, base: inteiro, rotulo: cadeia) {
+    // Em Ferro, para_inteiro_base valida e converte em um único passo seguro
+    escolha Tipos.para_inteiro_base(texto, base) {
+        caso Resultado::Ok(num_inteiro) => {
+            escreval("Este valor é o número ", rotulo, ": ", num_inteiro);
+        }
+        caso Resultado::Erro(erro) => {
+            escreval("Não foi possível converter na base ", base, ": ", erro);
+        }
+    }
+}
+
+funcao mostrar_em_base(valor: inteiro, base: inteiro, rotulo: cadeia) {
+    escolha Tipos.inteiro_para_cadeia_base(valor, base) {
+        caso Resultado::Ok(texto) => {
+            escreval("Valor convertido para cadeia em ", rotulo, ": ", texto);
+        }
+        caso Resultado::Erro(erro) => {
+            escreval("Erro ao formatar na base ", base, ": ", erro);
+        }
+    }
+}
+
+funcao inicio() {
+    seja texto: cadeia = "101";
+
+    // Verifica se a cadeia representa um número inteiro decimal
+    se (Tipos.cadeia_e_inteiro(texto)) {
+        testar_base(texto, 10, "decimal");
+    }
+
+    // Uma mesma cadeia pode representar diferentes números em diferentes bases:
+    // "101" representa 5 em binário, 101 em decimal e 257 em hexadecimal
+    testar_base(texto, 2, "binário");
+    testar_base(texto, 16, "hexadecimal");
+
+    escolha Tipos.para_inteiro("2863") {
+        caso Resultado::Ok(valor_original) => {
+            // Uma vez convertida para inteiro, podemos operar normalmente
+            seja metade_inteira: inteiro = valor_original / 2;
+            escreva("\nNúmero convertido em inteiro (dividido por 2): ", metade_inteira);
+
+            // Também podemos converter um inteiro para real usando "inteiro_para_real"
+            seja metade_real: real = Tipos.inteiro_para_real(valor_original) / 2.0;
+            escreval("\nNúmero convertido em real (dividido por 2.0): ", metade_real, "\n");
+
+            // Por último, convertemos o número inteiro em cadeia em diferentes bases
+            mostrar_em_base(valor_original, 2, "binário");
+            escreval("Valor convertido para cadeia em decimal: ", Tipos.inteiro_para_cadeia(valor_original));
+            mostrar_em_base(valor_original, 16, "hexadecimal");
+        }
+        caso Resultado::Erro(erro) => {
+            escreval("Erro na conversão: ", erro);
+        }
+    }
+}

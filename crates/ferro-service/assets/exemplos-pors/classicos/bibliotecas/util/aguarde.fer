@@ -1,0 +1,35 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ * 	Este exemplo ilustra o uso da função "aguarde" da biblioteca "Util" simulando uma
+ * 	contagem regressiva. O programa utiliza a função aguarde para fazer com que o
+ * 	programa espere 1 segundo antes de escrever o próximo número da contagem regressiva
+ * 	na tela.
+ *
+ * Autores:
+ *
+ * 	Luiz Fernando Noschang (noschang@univali.br)
+ *
+ * Data: 18/07/2014
+ * Adaptado para Ferro (.pors)
+ */
+
+funcao inicio() {
+    para (seja mutavel contador: inteiro = 10; contador >= 0; contador -= 1) {
+        escreval("Lançando o foguete em: ", contador);
+
+        /*
+         * Faz com que o programa espere 1 segundo antes da próxima contagem.
+         * O intervalo é informado em milissegundos (1000 ms = 1 segundo).
+         */
+        Util.aguarde(1000);
+    }
+
+    escreval("O foguete foi lançado!!");
+}

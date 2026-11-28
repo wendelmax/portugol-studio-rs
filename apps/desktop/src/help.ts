@@ -132,7 +132,7 @@ export function mountHelp(optionsOrOpen: MountHelpOptions | ((source: string, fi
     if (executable && fileName) {
       const openBtn = document.createElement("button");
       openBtn.type = "button";
-      openBtn.textContent = "Abrir no editor (.pors)";
+      openBtn.textContent = "Abrir no editor (.fer)";
       openBtn.onclick = () => options.openExample(source, fileName);
       actions.append(openBtn);
 
@@ -445,7 +445,7 @@ export function mountHelp(optionsOrOpen: MountHelpOptions | ((source: string, fi
         const table = document.createElement("table");
         const thead = document.createElement("thead");
         const headRow = document.createElement("tr");
-        for (const col of ["Conceito", "Portugol-RS (.pors)", "Rust (.rs)"]) {
+        for (const col of ["Conceito", "Ferro (.fer)", "Rust (.rs)"]) {
           const th = document.createElement("th");
           th.textContent = col;
           headRow.append(th);
@@ -670,7 +670,7 @@ export function mountHelp(optionsOrOpen: MountHelpOptions | ((source: string, fi
       ["Primeiros passos (PORS)", porsTopics, true],
       ["Bibliotecas padrão (PORS)", standardLibraries, true],
       ["UI e Multimídia (PORS)", visualLibraries, Boolean(query)],
-      ["Referência da sintaxe (.pors)", language, Boolean(query)],
+      ["Referência da sintaxe (.fer)", language, Boolean(query)],
     ] as const) {
       if (!entriesList.childNodes.length) continue;
       navigation.append(buildGroup(label, entriesList, defaultOpen || Boolean(query)));

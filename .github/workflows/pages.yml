@@ -5,12 +5,12 @@ on:
     branches: [main]
     paths:
       - 'apps/web-playground/**'
-      - 'crates/portugol-hir/**'
-      - 'crates/portugol-rs-frontend/**'
-      - 'crates/portugol-bytecode/**'
-      - 'crates/portugol-vm/**'
-      - 'crates/portugol-rust/**'
-      - 'crates/portugol-wasm/**'
+      - 'crates/ferro-hir/**'
+      - 'crates/ferro-frontend/**'
+      - 'crates/ferro-bytecode/**'
+      - 'crates/ferro-vm/**'
+      - 'crates/ferro-rust/**'
+      - 'crates/ferro-wasm/**'
       - 'scripts/build-web-playground.sh'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
@@ -34,7 +34,7 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
-      - name: Montar bundle estático com portugol-wasm
+      - name: Montar bundle estático com ferro-wasm
         run: ./scripts/build-web-playground.sh
       - name: Configurar GitHub Pages
         uses: actions/configure-pages@v6

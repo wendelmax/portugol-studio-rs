@@ -24,9 +24,9 @@ function walk(dir, ext) {
   return results.sort();
 }
 
-test("help-assets ships all 77 ported .pors examples without classic .por boilerplate", () => {
+test("help-assets ships all 77 ported .fer examples without classic .por boilerplate", () => {
   const porsFiles = walk(exemplosPorsDir, ".fer");
-  assert.equal(porsFiles.length, 77, `esperava 77 arquivos .pors, encontrou ${porsFiles.length}`);
+  assert.equal(porsFiles.length, 77, `esperava 77 arquivos .fer, encontrou ${porsFiles.length}`);
 
   for (const file of porsFiles) {
     const source = fs.readFileSync(file, "utf8");
@@ -37,7 +37,7 @@ test("help-assets ships all 77 ported .pors examples without classic .por boiler
   }
 });
 
-test("all 48 HTML help topics and help.ts reference .pors examples with zero broken links", () => {
+test("all 48 HTML help topics and help.ts reference .fer examples with zero broken links", () => {
   const htmlFiles = walk(topicosDir, ".html");
   assert.equal(htmlFiles.length, 48, `esperava 48 arquivos HTML de topicos, encontrou ${htmlFiles.length}`);
 

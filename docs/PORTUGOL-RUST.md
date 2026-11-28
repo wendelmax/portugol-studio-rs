@@ -1,6 +1,6 @@
 # Prévia e exportação para Rust
 
-O botão **Rust** no editor mostra uma tradução local do programa ativo. O painel acompanha alterações e troca de abas. **Copiar** copia o arquivo gerado e **Salvar .rs** o exporta para continuar fora da IDE. O código não é enviado a nenhum serviço. Arquivos `.rs` podem ser compilados e executados diretamente com `rustc` instalado; a IDE também executa o código da prévia `.pors`.
+O botão **Rust** no editor mostra uma tradução local do programa ativo. O painel acompanha alterações e troca de abas. **Copiar** copia o arquivo gerado e **Salvar .rs** o exporta para continuar fora da IDE. O código não é enviado a nenhum serviço. Arquivos `.rs` podem ser compilados e executados diretamente com `rustc` instalado; a IDE também executa o código da prévia `.fer`.
 
 ## Subconjunto disponível
 
@@ -12,11 +12,11 @@ O exportador prefixa nomes de variáveis com `pt_` para evitar palavras reservad
 
 Quando o código usa recursos fora desse subconjunto — por exemplo `leia`, laços, bibliotecas, vetores, matrizes, funções auxiliares ou conversões implícitas — a prévia explica o primeiro recurso sem suporte e sua posição. Nenhum código parcial é apresentado como tradução válida. Editar e executar o programa original continuam usando o compilador e a VM de Portugol.
 
-## Portugol-RS (`.pors`)
+## Ferro (`.fer`)
 
-Portugol-RS é um dialeto didático implementado separadamente da prévia do Portugol clássico. O subset atual inclui variáveis escalares tipadas, funções auxiliares com parâmetros e retorno tipados, chamadas (incluindo recursão), expressões aritméticas, comparações, lógica `&&`/`||`, condicionais, laços `enquanto` e `para`, `pare`, `continue`, concatenação de cadeias e `leia` tipado. O editor oferece outline, navegação e renomeação semântica para funções e bindings PORS. Recursos fora da gramática atual, como operadores bit a bit, vetores e bibliotecas, recebem diagnósticos em português com posição de origem.
+Ferro é um dialeto didático implementado separadamente da prévia do Portugol clássico. O subset atual inclui variáveis escalares tipadas, funções auxiliares com parâmetros e retorno tipados, chamadas (incluindo recursão), expressões aritméticas, comparações, lógica `&&`/`||`, condicionais, laços `enquanto` e `para`, `pare`, `continue`, concatenação de cadeias e `leia` tipado. O editor oferece outline, navegação e renomeação semântica para funções e bindings PORS. Recursos fora da gramática atual, como operadores bit a bit, vetores e bibliotecas, recebem diagnósticos em português com posição de origem.
 
-Executar e depurar um `.pors` usam a VM educacional, sem exigir Rust instalado; `Arquivos.*` fica restrito à pasta do programa. A opção **Executar como Rust**, na paleta de comandos, compila o Rust gerado com `rustc` quando a toolchain está disponível. A depuração mostra os valores da VM. A depuração não representa execução, ownership ou borrowing do Rust. O laboratório de ownership continua sendo conteúdo editorial baseado em cenários, não uma análise do buffer do aluno.
+Executar e depurar um `.fer` usam a VM educacional, sem exigir Rust instalado; `Arquivos.*` fica restrito à pasta do programa. A opção **Executar como Rust**, na paleta de comandos, compila o Rust gerado com `rustc` quando a toolchain está disponível. A depuração mostra os valores da VM. A depuração não representa execução, ownership ou borrowing do Rust. O laboratório de ownership continua sendo conteúdo editorial baseado em cenários, não uma análise do buffer do aluno.
 
 ## Executar arquivos Rust (`.rs`)
 

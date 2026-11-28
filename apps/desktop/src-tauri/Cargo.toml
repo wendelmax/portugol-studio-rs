@@ -1,12 +1,12 @@
 [package]
-name = "portugol-desktop"
+name = "ferro-desktop"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 description = "IDE desktop do Portugol (Tauri v2)"
 
 [lib]
-name = "portugol_desktop_lib"
+name = "ferro_desktop_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -14,9 +14,9 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 cap-std = "4"
-portugol-service = { path = "../../../crates/portugol-service" }
-portugol-tela = { path = "../../../crates/portugol-tela" }
-portugol-formatos = { path = "../../../crates/portugol-formatos" }
+ferro-service = { path = "../../../crates/ferro-service" }
+ferro-tela = { path = "../../../crates/ferro-tela" }
+ferro-formatos = { path = "../../../crates/ferro-formatos" }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }

@@ -10,7 +10,7 @@ test("encaminha projetos Cargo por comandos Tauri tipados e consentimento explí
   const languageCapabilities = readFileSync(new URL("../src/state/language-capabilities.ts", import.meta.url), "utf8");
   const tauri = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
   const workspace = readFileSync(new URL("../src-tauri/src/workspace.rs", import.meta.url), "utf8");
-  const runner = readFileSync(new URL("../../../crates/portugol-service/src/cargo_project.rs", import.meta.url), "utf8");
+  const runner = readFileSync(new URL("../../../crates/ferro-service/src/cargo_project.rs", import.meta.url), "utf8");
 
   assert.match(api, /runCargoProject =[\s\S]*target: CargoRunTarget \| null[\s\S]*args: string\[\][\s\S]*target, args/);
   assert.match(api, /cargoProjectRunTargets = \(id: number, workspaceId: string, relativeSource: string\)/);

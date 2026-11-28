@@ -32,14 +32,14 @@ test("PORS execution uses the shared registered cancellation token", () => {
   assert.match(tauri, /async fn run_portugol_rs\([\s\S]*id: u32,[\s\S]*run_portugol_rs_with_io[\s\S]*remove\(&id\)/);
   assert.match(main, /registerRun: api\.registerPortugolRsRun/);
   assert.match(porsExecution, /registeredId = await dependencies\.registerRun\(\)[\s\S]*dependencies\.setRunId\(registeredId\)[\s\S]*dependencies\.runGeneratedRust\(registeredId, source\)/);
-  assert.match(porsExecution, /result\.status === "cancelled"[\s\S]*Execução Portugol-RS cancelada durante/);
+  assert.match(porsExecution, /result\.status === "cancelled"[\s\S]*Execução Ferro cancelada durante/);
 });
 
 test("standalone Rust API covers compile/runtime limits and Tauri registers the command", () => {
   assert.match(api, /interface RustSourceCompileDiagnostic[\s\S]*start: Position[\s\S]*end: Position/);
   assert.match(api, /status: "compile_limit"[\s\S]*status: "runtime_limit"[\s\S]*runRustSource[\s\S]*"run_rust_source"/);
   const tauri = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
-  assert.match(tauri, /async fn run_rust_source[\s\S]*portugol_service::run_rust_source/);
+  assert.match(tauri, /async fn run_rust_source[\s\S]*ferro_service::run_rust_source/);
   assert.match(tauri, /generate_handler!\[[\s\S]*run_rust_source/);
   assert.match(main, /hasRustExecutionConsent[\s\S]*Executar código Rust sem sandbox[\s\S]*api\.runRustSource/);
 });

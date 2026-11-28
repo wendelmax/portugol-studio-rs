@@ -26,7 +26,7 @@ export interface StatusBarState {
 }
 
 const languages: Record<SourceLanguage, string> = {
-  "portugol-rs": "Portugol-RS",
+  "portugol-rs": "Ferro",
   rust: "Rust",
   markup: "Marcação (pseudo-XAML)",
 };

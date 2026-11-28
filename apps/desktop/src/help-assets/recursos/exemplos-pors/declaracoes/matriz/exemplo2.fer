@@ -1,5 +1,5 @@
 funcao inicio() {
-    // Em Portugol-RS, uma matriz de L linhas por C colunas e representada
+    // Em Ferro, uma matriz de L linhas por C colunas e representada
     // por um vetor linear usando o indice (linha * colunas + coluna).
     seja colunas_matriz: inteiro = 2;
     seja mutavel matriz: vetor < inteiro > = [

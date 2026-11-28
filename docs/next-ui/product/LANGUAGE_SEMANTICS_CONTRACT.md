@@ -1,6 +1,6 @@
-# Contrato de semântica: Portugol ⇄ Portugol-RS ⇄ Rust
+# Contrato de semântica: Portugol ⇄ Ferro ⇄ Rust
 
-**Não existe garantia de tradução automática universal.** Tratar o Portugol-RS como dialeto **proposto**; não afirmar que compila em rustc diretamente.
+**Não existe garantia de tradução automática universal.** Tratar o Ferro como dialeto **proposto**; não afirmar que compila em rustc diretamente.
 
 ## Descoberta obrigatória
 Inventariar gramática real, bibliotecas, precedência, coercões, índices de vetores, escopo, comportamento das strings e entrada/saída do Portugol implementado. Não partir de suposições ou de um único exemplo de código.
@@ -36,7 +36,7 @@ Se o projeto já possui AST, usar e ampliar a representação em vez de criar á
 ## Exemplo didático (não contrato sintático definitivo)
 
 ```text
-Portugol-RS:
+Ferro:
 funcao inicio() {
   seja mutavel idade = 16;
   idade += 1;

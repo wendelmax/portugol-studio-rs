@@ -54,7 +54,7 @@ function fixture(overrides = {}) {
   };
 }
 
-test("Portugol-RS VM starts with active breakpoints and replays early events", async () => {
+test("Ferro VM starts with active breakpoints and replays early events", async () => {
   const { controller, events, tab, document, getPendingEvents } = fixture();
 
   await controller.run(tab, document, [2, 4], true, false);
@@ -64,7 +64,7 @@ test("Portugol-RS VM starts with active breakpoints and replays early events", a
   assert.equal(getPendingEvents(), null);
 });
 
-test("VM compile diagnostics are displayed as a Portugol-RS debug error", async () => {
+test("VM compile diagnostics are displayed as a Ferro debug error", async () => {
   const diagnostics = [{ severity: "error", code: "PORS001", message: "erro", help: null, start: {}, end: {} }];
   const { controller, dependencies, events, tab, document } = fixture({
     dependencies: { startVm: async () => { throw diagnostics; } },
@@ -73,7 +73,7 @@ test("VM compile diagnostics are displayed as a Portugol-RS debug error", async 
   await controller.run(tab, document, [], true, false);
 
   assert.equal(tab.diagnostics, diagnostics);
-  assert.equal(events.some(([name, message]) => name === "status" && message === "O Portugol-RS contém erros e não pode ser depurado."), true);
+  assert.equal(events.some(([name, message]) => name === "status" && message === "O Ferro contém erros e não pode ser depurado."), true);
   assert.equal(events.some(([name, panel]) => name === "showMessages"), true);
 });
 

@@ -49,7 +49,7 @@ test("constrói árvore aninhada para categorias com separador e mantém a tela 
   assert.doesNotMatch(examplesTs, /exemplo\.por/);
 });
 
-test("agrupa exemplos Portugol-RS por categoria dentro da pasta raiz", () => {
+test("agrupa exemplos Ferro por categoria dentro da pasta raiz", () => {
   assert.equal(buildPorsExampleCatalogFolder([]), null);
 
   const folder = buildPorsExampleCatalogFolder([
@@ -76,7 +76,7 @@ test("agrupa exemplos Portugol-RS por categoria dentro da pasta raiz", () => {
   ]);
 
   assert.equal(folder?.kind, "folder");
-  assert.equal(folder?.name, "Portugol-RS (.pors)");
+  assert.equal(folder?.name, "Ferro (.fer)");
   assert.equal(folder?.entries.length, 2);
   assert.equal(folder?.entries[0].kind, "folder");
   assert.equal(folder?.entries[0].name, "Fundamentos");

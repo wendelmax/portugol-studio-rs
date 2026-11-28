@@ -1,4 +1,4 @@
-// Em Portugol-RS, matrizes sao representadas como vetor linear (linha * colunas + coluna)
+// Em Ferro, matrizes sao representadas como vetor linear (linha * colunas + coluna)
 // Matriz de numeros reais com 5 linhas e 3 colunas (15 elementos)
 seja colunas: inteiro = 3;
 seja mutavel nome_da_variavel: vetor<real> = [

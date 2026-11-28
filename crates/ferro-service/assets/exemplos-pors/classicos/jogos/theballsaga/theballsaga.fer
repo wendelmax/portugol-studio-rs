@@ -1,0 +1,523 @@
+/*
+ * Copyright (C) 2016 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *   The Ball Saga — Jogo de Habilidade e Plataforma (estilo Bounce). Guie a
+ *   bolinha pelas fases, colete chaves prata e ouro para abrir portas trancadas,
+ *   desvie de espinhos mortais, use blocos de inversão de gravidade e alcance o
+ *   portal de saída!
+ *
+ *   Controles:
+ *     - Setas Esquerda/Direita ou A/D: mover a bolinha
+ *     - Seta Acima / W / ESPACO: saltar
+ *     - R: reiniciar fase atual
+ *     - ENTER: iniciar / jogar novamente
+ *     - ESC: encerrar o jogo
+ *
+ * Autores (versão original):
+ *
+ *   Alisson Steffens Henrique (ash@edu.univali.br)
+ *   Luiz Fernando Noschang (noschang@univali.br)
+ *
+ * Data original: 10/02/2016
+ * Adaptado para Ferro (.pors)
+ */
+
+enum EstadoBallSaga {
+    Menu,
+    Jogando,
+    Vitoria,
+    Derrota,
+}
+
+registro JogoBallSaga {
+    estado: EstadoBallSaga,
+    fase: inteiro,
+    mapa: vetor < inteiro >,
+    bola_x: real,
+    bola_y: real,
+    vx: real,
+    vy: real,
+    no_chao: logico,
+    gravidade_invertida: logico,
+    chave_prata: logico,
+    chave_ouro: logico,
+    vidas: inteiro,
+    pontos: inteiro,
+    enter_estava: logico,
+    r_estava: logico,
+}
+
+// Códigos de blocos no mapa 15 linhas x 25 colunas (tile = 32 px):
+// 0 = vazio, 1 = solido, 2 = espinho mortal, 3 = portal, 4 = chave prata,
+// 5 = porta prata, 6 = chave ouro, 7 = porta ouro, 8 = vida extra, 9 = inversor gravidade
+
+funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
+    escolha Graficos.criar_cor(r, g, b) {
+        caso Resultado::Ok(cor) => {
+            retorne cor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne Graficos.COR_BRANCO;
+        }
+    }
+}
+
+funcao desenhar_poligono_seguro(xs: vetor < inteiro >, ys: vetor < inteiro >, preencher: logico) {
+    escolha Graficos.desenhar_poligono(xs, ys, preencher) {
+        caso Resultado::Ok(_) => {}
+        caso Resultado::Erro(_) => {}
+    }
+}
+
+funcao construir_fase(fase: inteiro) -> vetor < inteiro > {
+    seja mutavel m: vetor < inteiro > = [];
+    para (seja mutavel i = 0; i < 15 * 25; i += 1) {
+        adicionar(m, 0);
+    }
+
+    // Bordas externas sólidas
+    para (seja mutavel c = 0; c < 25; c += 1) {
+        m[c] = 1;
+        m[14 * 25 + c] = 1;
+    }
+    para (seja mutavel l = 0; l < 15; l += 1) {
+        m[l * 25] = 1;
+        m[l * 25 + 24] = 1;
+    }
+
+    se (fase == 1) {
+        // Fase 1: Chaves, plataformas e espinhos
+        para (seja mutavel c: inteiro = 1; c <= 8; c += 1) {
+            m[11 * 25 + c] = 1;
+        }
+        para (seja mutavel c: inteiro = 10; c <= 17; c += 1) {
+            m[9 * 25 + c] = 1;
+        }
+        para (seja mutavel c: inteiro = 5; c <= 12; c += 1) {
+            m[6 * 25 + c] = 1;
+        }
+        para (seja mutavel c: inteiro = 16; c <= 23; c += 1) {
+            m[5 * 25 + c] = 1;
+        }
+        // Parede vertical com porta prata protegendo o portal
+        para (seja mutavel l: inteiro = 1; l <= 4; l += 1) {
+            m[l * 25 + 19] = 1;
+        }
+        m[4 * 25 + 19] = 5; // Porta prata
+        m[3 * 25 + 22] = 3; // Portal
+
+        // Chave prata e vida extra
+        m[5 * 25 + 7] = 4; // Chave prata
+        m[13 * 25 + 21] = 8; // Vida extra
+
+        // Espinhos no chão e nas plataformas
+        m[13 * 25 + 9] = 2;
+        m[13 * 25 + 10] = 2;
+        m[13 * 25 + 11] = 2;
+        m[8 * 25 + 14] = 2;
+        m[13 * 25 + 16] = 2;
+        m[13 * 25 + 17] = 2;
+    } senao {
+        // Fase 2: Chave prata + chave ouro + inversor de gravidade
+        para (seja mutavel c: inteiro = 1; c <= 7; c += 1) {
+            m[11 * 25 + c] = 1;
+        }
+        para (seja mutavel c: inteiro = 9; c <= 15; c += 1) {
+            m[10 * 25 + c] = 1;
+        }
+        para (seja mutavel c: inteiro = 17; c <= 23; c += 1) {
+            m[8 * 25 + c] = 1;
+        }
+        para (seja mutavel c: inteiro = 4; c <= 13; c += 1) {
+            m[5 * 25 + c] = 1;
+        }
+        // Corredor superior com porta ouro e portal
+        para (seja mutavel l: inteiro = 1; l <= 4; l += 1) {
+            m[l * 25 + 16] = 1;
+        }
+        m[3 * 25 + 16] = 7; // Porta ouro
+        m[2 * 25 + 22] = 3; // Portal
+
+        // Itens especiais
+        m[9 * 25 + 12] = 4; // Chave prata
+        m[7 * 25 + 21] = 6; // Chave ouro
+        m[4 * 25 + 6] = 9; // Inversor de gravidade
+        m[4 * 25 + 11] = 8; // Vida extra
+
+        // Espinhos
+        m[13 * 25 + 7] = 2;
+        m[13 * 25 + 8] = 2;
+        m[13 * 25 + 15] = 2;
+        m[13 * 25 + 16] = 2;
+        m[1 * 25 + 9] = 2;
+    }
+
+    retorne m;
+}
+
+funcao carregar_fase(estado: EstadoBallSaga, fase: inteiro, vidas: inteiro, pontos: inteiro) -> JogoBallSaga {
+    retorne JogoBallSaga {
+        estado: estado,
+        fase: fase,
+        mapa: construir_fase(fase),
+        bola_x: 72.0,
+        bola_y: 312.0,
+        vx: 0.0,
+        vy: 0.0,
+        no_chao: falso,
+        gravidade_invertida: falso,
+        chave_prata: falso,
+        chave_ouro: falso,
+        vidas: vidas,
+        pontos: pontos,
+        enter_estava: falso,
+        r_estava: falso,
+    }
+    ;
+}
+
+funcao bloco_eh_solido(valor: inteiro, chave_prata: logico, chave_ouro: logico) -> logico {
+    se (valor == 1) {
+        retorne verdadeiro;
+    }
+    se (valor == 5 && !chave_prata) {
+        retorne verdadeiro;
+    }
+    se (valor == 7 && !chave_ouro) {
+        retorne verdadeiro;
+    }
+    retorne falso;
+}
+
+funcao colide_solido(mapa: vetor < inteiro >, bx: real, by: real, raio: real, cp: logico, co: logico) -> logico {
+    seja col_ini: inteiro = Tipos.real_para_inteiro((bx - raio) / 32.0);
+    seja col_fim: inteiro = Tipos.real_para_inteiro((bx + raio) / 32.0);
+    seja lin_ini: inteiro = Tipos.real_para_inteiro((by - raio) / 32.0);
+    seja lin_fim: inteiro = Tipos.real_para_inteiro((by + raio) / 32.0);
+
+    para (seja mutavel l: inteiro = lin_ini; l <= lin_fim; l += 1) {
+        para (seja mutavel c: inteiro = col_ini; c <= col_fim; c += 1) {
+            se (l >= 0 && l < 15 && c >= 0 && c < 25) {
+                seja v: inteiro = mapa[l * 25 + c];
+                se (bloco_eh_solido(v, cp, co)) {
+                    retorne verdadeiro;
+                }
+            }
+        }
+    }
+    retorne falso;
+}
+
+funcao atualizar(jogo: JogoBallSaga) -> JogoBallSaga {
+    seja mutavel j: JogoBallSaga = jogo;
+
+    seja enter_agora: logico = Teclado.tecla_pressionada(Teclado.TECLA_ENTER);
+    seja enter_disp: logico = enter_agora && !j.enter_estava;
+    j.enter_estava = enter_agora;
+
+    seja r_agora: logico = Teclado.tecla_pressionada(Teclado.TECLA_R);
+    seja r_disp: logico = r_agora && !j.r_estava;
+    j.r_estava = r_agora;
+
+    escolha j.estado {
+        caso EstadoBallSaga::Jogando => {}
+        caso _ => {
+            se (enter_disp) {
+                j = carregar_fase(EstadoBallSaga::Jogando, 1, 3, 0);
+                j.enter_estava = verdadeiro;
+            }
+            retorne j;
+        }
+    }
+
+    se (r_disp) {
+        j = carregar_fase(EstadoBallSaga::Jogando, j.fase, j.vidas, j.pontos);
+        j.r_estava = verdadeiro;
+        retorne j;
+    }
+
+    // Movimento horizontal
+    se (Teclado.tecla_pressionada(Teclado.TECLA_SETA_ESQUERDA) || Teclado.tecla_pressionada(Teclado.TECLA_A)) {
+        j.vx -= 0.55;
+    } senao se (Teclado.tecla_pressionada(Teclado.TECLA_SETA_DIREITA) || Teclado.tecla_pressionada(Teclado.TECLA_D)) {
+        j.vx += 0.55;
+    } senao {
+        j.vx *= 0.84;
+    }
+
+    se (j.vx > 5.0) {
+        j.vx = 5.0;
+    }
+    se (j.vx < -5.0) {
+        j.vx = -5.0;
+    }
+
+    // Gravidade e salto
+    seja mutavel grav: real = 0.42;
+    se (j.gravidade_invertida) {
+        grav = -0.42;
+    }
+    j.vy += grav;
+    se (j.vy > 8.5) {
+        j.vy = 8.5;
+    }
+    se (j.vy < -8.5) {
+        j.vy = -8.5;
+    }
+
+    se (j.no_chao && (Teclado.tecla_pressionada(Teclado.TECLA_SETA_ACIMA) || Teclado.tecla_pressionada(Teclado.TECLA_W) || Teclado.tecla_pressionada(Teclado.TECLA_ESPACO))) {
+        se (j.gravidade_invertida) {
+            j.vy = 9.2;
+        } senao {
+            j.vy = -9.2;
+        }
+        j.no_chao = falso;
+    }
+
+    seja raio: real = 12.0;
+    seja mutavel mapa: vetor < inteiro > = j.mapa;
+
+    // Passo X
+    seja novo_x: real = j.bola_x + j.vx;
+    se (!colide_solido(mapa, novo_x, j.bola_y, raio, j.chave_prata, j.chave_ouro)) {
+        j.bola_x = novo_x;
+    } senao {
+        j.vx = -j.vx * 0.4;
+    }
+
+    // Passo Y
+    j.no_chao = falso;
+    seja novo_y: real = j.bola_y + j.vy;
+    se (!colide_solido(mapa, j.bola_x, novo_y, raio, j.chave_prata, j.chave_ouro)) {
+        j.bola_y = novo_y;
+    } senao {
+        se ((!j.gravidade_invertida && j.vy > 0.0) || (j.gravidade_invertida && j.vy < 0.0)) {
+            j.no_chao = verdadeiro;
+        }
+        // Quique suave característico do Bounce
+        se (Matematica.valor_absoluto(j.vy) > 3.5) {
+            j.vy = -j.vy * 0.35;
+        } senao {
+            j.vy = 0.0;
+        }
+    }
+
+    // Interações com o bloco sob o centro da bolinha
+    seja col_c: inteiro = Tipos.real_para_inteiro(j.bola_x / 32.0);
+    seja lin_c: inteiro = Tipos.real_para_inteiro(j.bola_y / 32.0);
+    se (lin_c >= 0 && lin_c < 15 && col_c >= 0 && col_c < 25) {
+        seja idx: inteiro = lin_c * 25 + col_c;
+        seja cel: inteiro = mapa[idx];
+        se (cel == 2) {
+            // Espinho mortal
+            j.vidas -= 1;
+            se (j.vidas <= 0) {
+                j.estado = EstadoBallSaga::Derrota;
+            } senao {
+                j = carregar_fase(EstadoBallSaga::Jogando, j.fase, j.vidas, j.pontos);
+                retorne j;
+            }
+        } senao se (cel == 4) {
+            j.chave_prata = verdadeiro;
+            j.pontos += 100;
+            mapa[idx] = 0;
+        } senao se (cel == 6) {
+            j.chave_ouro = verdadeiro;
+            j.pontos += 150;
+            mapa[idx] = 0;
+        } senao se (cel == 8) {
+            j.vidas += 1;
+            j.pontos += 50;
+            mapa[idx] = 0;
+        } senao se (cel == 9) {
+            j.gravidade_invertida = !j.gravidade_invertida;
+            mapa[idx] = 0;
+        } senao se (cel == 3) {
+            j.pontos += 250;
+            se (j.fase == 1) {
+                j = carregar_fase(EstadoBallSaga::Jogando, 2, j.vidas, j.pontos);
+                retorne j;
+            } senao {
+                j.estado = EstadoBallSaga::Vitoria;
+            }
+        }
+    }
+
+    j.mapa = mapa;
+    retorne j;
+}
+
+funcao desenhar(jogo: JogoBallSaga) {
+    Graficos.definir_cor(cor_rgb(20, 28, 44));
+    Graficos.limpar();
+
+    // HUD superior (y = 0..48)
+    Graficos.definir_cor(cor_rgb(14, 18, 30));
+    Graficos.desenhar_retangulo(0, 0, 800, 48, falso, verdadeiro);
+    Graficos.definir_cor(cor_rgb(255, 110, 90));
+    Graficos.definir_tamanho_texto(17.0);
+    Graficos.desenhar_texto(18, 14, "THE BALL SAGA");
+
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.definir_tamanho_texto(13.0);
+    Graficos.desenhar_texto(190, 16, "Fase: " + Tipos.inteiro_para_cadeia(jogo.fase) + "/2");
+    Graficos.desenhar_texto(286, 16, "Vidas: " + Tipos.inteiro_para_cadeia(jogo.vidas));
+    Graficos.desenhar_texto(382, 16, "Pontos: " + Tipos.inteiro_para_cadeia(jogo.pontos));
+
+    se (jogo.chave_prata) {
+        Graficos.definir_cor(cor_rgb(210, 220, 235));
+        Graficos.desenhar_texto(510, 16, "[Chave Prata]");
+    }
+    se (jogo.chave_ouro) {
+        Graficos.definir_cor(cor_rgb(255, 210, 60));
+        Graficos.desenhar_texto(630, 16, "[Chave Ouro]");
+    }
+
+    // Mapa 15x25 deslocado em y = 48 (total altura 48 + 480 = 528)
+    seja mapa: vetor < inteiro > = jogo.mapa;
+    seja oy: inteiro = 48;
+
+    para (seja mutavel l = 0; l < 15; l += 1) {
+        para (seja mutavel c = 0; c < 25; c += 1) {
+            seja v: inteiro = mapa[l * 25 + c];
+            seja x: inteiro = c * 32;
+            seja y: inteiro = oy + l * 32;
+
+            se (v == 1) {
+                Graficos.definir_cor(cor_rgb(86, 98, 128));
+                Graficos.desenhar_retangulo(x, y, 32, 32, falso, verdadeiro);
+                Graficos.definir_cor(cor_rgb(120, 134, 168));
+                Graficos.desenhar_retangulo(x + 2, y + 2, 28, 28, falso, falso);
+            } senao se (v == 2) {
+                // Espinho mortal
+                Graficos.definir_cor(cor_rgb(240, 66, 66));
+                seja xs: vetor < inteiro > = [x + 2, x + 16, x + 30];
+                seja ys: vetor < inteiro > = [y + 30, y + 4, y + 30];
+                desenhar_poligono_seguro(xs, ys, verdadeiro);
+            } senao se (v == 3) {
+                // Portal de saída
+                Graficos.definir_cor(cor_rgb(130, 80, 255));
+                Graficos.desenhar_elipse(x + 2, y + 2, 28, 28, verdadeiro);
+                Graficos.definir_cor(cor_rgb(110, 240, 255));
+                Graficos.desenhar_elipse(x + 8, y + 8, 16, 16, verdadeiro);
+            } senao se (v == 4) {
+                // Chave prata
+                Graficos.definir_cor(cor_rgb(215, 224, 238));
+                Graficos.desenhar_elipse(x + 6, y + 8, 14, 14, verdadeiro);
+                Graficos.desenhar_retangulo(x + 16, y + 13, 12, 4, falso, verdadeiro);
+            } senao se (v == 5) {
+                // Porta prata
+                se (!jogo.chave_prata) {
+                    Graficos.definir_cor(cor_rgb(185, 195, 212));
+                    Graficos.desenhar_retangulo(x + 4, y, 24, 32, falso, verdadeiro);
+                    Graficos.definir_cor(cor_rgb(40, 46, 60));
+                    Graficos.desenhar_elipse(x + 12, y + 12, 8, 8, verdadeiro);
+                }
+            } senao se (v == 6) {
+                // Chave ouro
+                Graficos.definir_cor(cor_rgb(255, 210, 50));
+                Graficos.desenhar_elipse(x + 6, y + 8, 14, 14, verdadeiro);
+                Graficos.desenhar_retangulo(x + 16, y + 13, 12, 4, falso, verdadeiro);
+            } senao se (v == 7) {
+                // Porta ouro
+                se (!jogo.chave_ouro) {
+                    Graficos.definir_cor(cor_rgb(235, 185, 40));
+                    Graficos.desenhar_retangulo(x + 4, y, 24, 32, falso, verdadeiro);
+                    Graficos.definir_cor(cor_rgb(60, 42, 14));
+                    Graficos.desenhar_elipse(x + 12, y + 12, 8, 8, verdadeiro);
+                }
+            } senao se (v == 8) {
+                // Vida extra
+                Graficos.definir_cor(cor_rgb(80, 230, 120));
+                Graficos.desenhar_elipse(x + 6, y + 6, 20, 20, verdadeiro);
+                Graficos.definir_cor(Graficos.COR_BRANCO);
+                Graficos.desenhar_retangulo(x + 14, y + 10, 4, 12, falso, verdadeiro);
+                Graficos.desenhar_retangulo(x + 10, y + 14, 12, 4, falso, verdadeiro);
+            } senao se (v == 9) {
+                // Inversor de gravidade
+                Graficos.definir_cor(cor_rgb(255, 120, 220));
+                Graficos.desenhar_retangulo(x + 4, y + 4, 24, 24, verdadeiro, verdadeiro);
+                Graficos.definir_cor(Graficos.COR_BRANCO);
+                Graficos.definir_tamanho_texto(14.0);
+                Graficos.desenhar_texto(x + 11, y + 8, "G");
+            }
+        }
+    }
+
+    // Bolinha do jogador
+    seja bx: inteiro = Tipos.real_para_inteiro(jogo.bola_x);
+    seja by: inteiro = oy + Tipos.real_para_inteiro(jogo.bola_y);
+    Graficos.definir_cor(cor_rgb(238, 68, 68));
+    Graficos.desenhar_elipse(bx - 12, by - 12, 24, 24, verdadeiro);
+    Graficos.definir_cor(cor_rgb(255, 175, 175));
+    Graficos.desenhar_elipse(bx - 6, by - 8, 8, 6, verdadeiro);
+
+    // Rodapé
+    Graficos.definir_cor(cor_rgb(165, 178, 200));
+    Graficos.definir_tamanho_texto(12.0);
+    Graficos.desenhar_texto(100, 536, "[Setas/AD] Mover  |  [W/Cima/ESPACO] Saltar  |  [R] Reiniciar Fase  |  [ESC] Sair");
+
+    // Telas de estado
+    escolha jogo.estado {
+        caso EstadoBallSaga::Menu => {
+            Graficos.definir_cor(cor_rgb(14, 20, 34));
+            Graficos.desenhar_retangulo(180, 190, 440, 170, verdadeiro, verdadeiro);
+            Graficos.definir_cor(cor_rgb(238, 68, 68));
+            Graficos.desenhar_retangulo(180, 190, 440, 170, verdadeiro, falso);
+            Graficos.definir_tamanho_texto(28.0);
+            Graficos.desenhar_texto(278, 214, "THE BALL SAGA");
+            Graficos.definir_cor(Graficos.COR_BRANCO);
+            Graficos.definir_tamanho_texto(14.0);
+            Graficos.desenhar_texto(214, 264, "Colete as chaves, evite espinhos e chegue ao portal!");
+            Graficos.definir_cor(cor_rgb(255, 215, 70));
+            Graficos.desenhar_texto(265, 314, "Pressione [ENTER] para iniciar");
+        }
+        caso EstadoBallSaga::Vitoria => {
+            Graficos.definir_cor(cor_rgb(16, 48, 30));
+            Graficos.desenhar_retangulo(190, 200, 420, 150, verdadeiro, verdadeiro);
+            Graficos.definir_cor(cor_rgb(110, 245, 145));
+            Graficos.definir_tamanho_texto(26.0);
+            Graficos.desenhar_texto(252, 224, "SAGA CONCLUIDA!");
+            Graficos.definir_cor(Graficos.COR_BRANCO);
+            Graficos.definir_tamanho_texto(15.0);
+            Graficos.desenhar_texto(285, 270, "Pontuacao: " + Tipos.inteiro_para_cadeia(jogo.pontos));
+            Graficos.desenhar_texto(248, 310, "Pressione [ENTER] para jogar de novo");
+        }
+        caso EstadoBallSaga::Derrota => {
+            Graficos.definir_cor(cor_rgb(54, 18, 22));
+            Graficos.desenhar_retangulo(190, 200, 420, 150, verdadeiro, verdadeiro);
+            Graficos.definir_cor(cor_rgb(255, 100, 100));
+            Graficos.definir_tamanho_texto(26.0);
+            Graficos.desenhar_texto(290, 224, "FIM DE JOGO");
+            Graficos.definir_cor(Graficos.COR_BRANCO);
+            Graficos.definir_tamanho_texto(15.0);
+            Graficos.desenhar_texto(285, 270, "Pontuacao: " + Tipos.inteiro_para_cadeia(jogo.pontos));
+            Graficos.desenhar_texto(248, 310, "Pressione [ENTER] para tentar de novo");
+        }
+        caso EstadoBallSaga::Jogando => {}
+    }
+
+    Graficos.renderizar();
+}
+
+funcao inicio() {
+    Graficos.iniciar_modo_grafico(verdadeiro);
+    Graficos.definir_dimensoes_janela(800, 560);
+    Graficos.definir_titulo_janela("The Ball Saga - Ferro");
+
+    seja mutavel jogo: JogoBallSaga = carregar_fase(EstadoBallSaga::Menu, 1, 3, 0);
+
+    enquanto (!Teclado.tecla_pressionada(Teclado.TECLA_ESC)) {
+        jogo = atualizar(jogo);
+        desenhar(jogo);
+        Util.aguarde(16);
+    }
+
+    Graficos.encerrar_modo_grafico();
+}

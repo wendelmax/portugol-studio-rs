@@ -1,0 +1,335 @@
+/*
+ * Copyright (C) 2017 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *   Este exemplo demonstra a detecção de vários tipos de colisão ao mesmo tempo:
+ *   dois retângulos (A e B) e dois círculos (C e D) movem-se autonomamente pela
+ *   arena, detectando colisões retângulo-retângulo, círculo-círculo e
+ *   retângulo-círculo simultaneamente.
+ *
+ *   Controles:
+ *     - G: exibe/oculta as guias visuais de colisão
+ *     - C: ativa/desativa o ricochete entre formas
+ *     - R: reinicia as posições e velocidades
+ *     - ESC: encerra o programa
+ *
+ * Autor (versão original):
+ *
+ *   Luiz Fernando Noschang (noschang@univali.br)
+ *
+ * Data original: 26/06/2017
+ * Adaptado para Ferro (.pors)
+ */
+
+registro RetMovel {
+    x: inteiro,
+    y: inteiro,
+    l: inteiro,
+    a: inteiro,
+    vx: inteiro,
+    vy: inteiro,
+}
+
+registro CircMovel {
+    cx: inteiro,
+    cy: inteiro,
+    r: inteiro,
+    vx: inteiro,
+    vy: inteiro,
+}
+
+registro CenaCompleta {
+    ret_a: RetMovel,
+    ret_b: RetMovel,
+    circ_c: CircMovel,
+    circ_d: CircMovel,
+    exibir_guias: logico,
+    tratar_colisoes: logico,
+    tecla_g_estava: logico,
+    tecla_c_estava: logico,
+    tecla_r_estava: logico,
+}
+
+funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
+    escolha Graficos.criar_cor(r, g, b) {
+        caso Resultado::Ok(cor) => {
+            retorne cor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne Graficos.COR_BRANCO;
+        }
+    }
+}
+
+funcao sortear_velocidade() -> inteiro {
+    escolha Util.sorteia(0, 1) {
+        caso Resultado::Ok(v) => {
+            se (v == 0) {
+                retorne -3;
+            }
+            retorne 3;
+        }
+        caso Resultado::Erro(_) => {
+            retorne 3;
+        }
+    }
+}
+
+funcao limitar(valor: inteiro, minimo: inteiro, maximo: inteiro) -> inteiro {
+    se (valor < minimo) {
+        retorne minimo;
+    }
+    se (valor > maximo) {
+        retorne maximo;
+    }
+    retorne valor;
+}
+
+funcao distancia_pontos(xa: inteiro, ya: inteiro, xb: inteiro, yb: inteiro) -> real {
+    seja dx: real = Tipos.inteiro_para_real(xb - xa);
+    seja dy: real = Tipos.inteiro_para_real(yb - ya);
+    retorne Matematica.raiz_quadrada(dx * dx + dy * dy);
+}
+
+funcao colisao_ret_ret(a: RetMovel, b: RetMovel) -> logico {
+    retorne a.x < b.x + b.l && a.x + a.l > b.x && a.y < b.y + b.a && a.y + a.a > b.y;
+}
+
+funcao colisao_circ_circ(c: CircMovel, d: CircMovel) -> logico {
+    retorne distancia_pontos(c.cx, c.cy, d.cx, d.cy) < Tipos.inteiro_para_real(c.r + d.r);
+}
+
+funcao colisao_ret_circ(r: RetMovel, c: CircMovel) -> logico {
+    seja px: inteiro = limitar(c.cx, r.x, r.x + r.l);
+    seja py: inteiro = limitar(c.cy, r.y, r.y + r.a);
+    retorne distancia_pontos(c.cx, c.cy, px, py) < Tipos.inteiro_para_real(c.r);
+}
+
+funcao criar_cena_inicial() -> CenaCompleta {
+    retorne CenaCompleta {
+        ret_a: RetMovel {
+            x: 100, y: 150, l: 100, a: 72, vx: sortear_velocidade(), vy: sortear_velocidade()
+        }
+        ,
+        ret_b: RetMovel {
+            x: 560, y: 150, l: 110, a: 84, vx: sortear_velocidade(), vy: sortear_velocidade()
+        }
+        ,
+        circ_c: CircMovel {
+            cx: 180, cy: 440, r: 44, vx: sortear_velocidade(), vy: sortear_velocidade()
+        }
+        ,
+        circ_d: CircMovel {
+            cx: 610, cy: 440, r: 52, vx: sortear_velocidade(), vy: sortear_velocidade()
+        }
+        ,
+        exibir_guias: verdadeiro,
+        tratar_colisoes: verdadeiro,
+        tecla_g_estava: falso,
+        tecla_c_estava: falso,
+        tecla_r_estava: falso,
+    }
+    ;
+}
+
+funcao atualizar(cena: CenaCompleta) -> CenaCompleta {
+    seja mutavel n: CenaCompleta = cena;
+
+    seja g_p: logico = Teclado.tecla_pressionada(Teclado.TECLA_G);
+    se (g_p && !n.tecla_g_estava) {
+        n.exibir_guias = !n.exibir_guias;
+    }
+    n.tecla_g_estava = g_p;
+
+    seja c_p: logico = Teclado.tecla_pressionada(Teclado.TECLA_C);
+    se (c_p && !n.tecla_c_estava) {
+        n.tratar_colisoes = !n.tratar_colisoes;
+    }
+    n.tecla_c_estava = c_p;
+
+    seja r_p: logico = Teclado.tecla_pressionada(Teclado.TECLA_R);
+    se (r_p && !n.tecla_r_estava) {
+        seja guias_atual: logico = n.exibir_guias;
+        seja tratar_atual: logico = n.tratar_colisoes;
+        n = criar_cena_inicial();
+        n.exibir_guias = guias_atual;
+        n.tratar_colisoes = tratar_atual;
+        n.tecla_r_estava = verdadeiro;
+        retorne n;
+    }
+    n.tecla_r_estava = r_p;
+
+    seja mutavel ra: RetMovel = n.ret_a;
+    seja mutavel rb: RetMovel = n.ret_b;
+    seja mutavel cc: CircMovel = n.circ_c;
+    seja mutavel cd: CircMovel = n.circ_d;
+
+    // Atualiza Retângulo A
+    ra.x += ra.vx;
+    se (ra.x <= 12 || ra.x + ra.l >= 788 || (n.tratar_colisoes && (colisao_ret_ret(ra, rb) || colisao_ret_circ(ra, cc) || colisao_ret_circ(ra, cd)))) {
+        ra.x -= ra.vx;
+        ra.vx = -ra.vx;
+    }
+    ra.y += ra.vy;
+    se (ra.y <= 82 || ra.y + ra.a >= 564 || (n.tratar_colisoes && (colisao_ret_ret(ra, rb) || colisao_ret_circ(ra, cc) || colisao_ret_circ(ra, cd)))) {
+        ra.y -= ra.vy;
+        ra.vy = -ra.vy;
+    }
+
+    // Atualiza Retângulo B
+    rb.x += rb.vx;
+    se (rb.x <= 12 || rb.x + rb.l >= 788 || (n.tratar_colisoes && (colisao_ret_ret(ra, rb) || colisao_ret_circ(rb, cc) || colisao_ret_circ(rb, cd)))) {
+        rb.x -= rb.vx;
+        rb.vx = -rb.vx;
+    }
+    rb.y += rb.vy;
+    se (rb.y <= 82 || rb.y + rb.a >= 564 || (n.tratar_colisoes && (colisao_ret_ret(ra, rb) || colisao_ret_circ(rb, cc) || colisao_ret_circ(rb, cd)))) {
+        rb.y -= rb.vy;
+        rb.vy = -rb.vy;
+    }
+
+    // Atualiza Círculo C
+    cc.cx += cc.vx;
+    se (cc.cx - cc.r <= 12 || cc.cx + cc.r >= 788 || (n.tratar_colisoes && (colisao_circ_circ(cc, cd) || colisao_ret_circ(ra, cc) || colisao_ret_circ(rb, cc)))) {
+        cc.cx -= cc.vx;
+        cc.vx = -cc.vx;
+    }
+    cc.cy += cc.vy;
+    se (cc.cy - cc.r <= 82 || cc.cy + cc.r >= 564 || (n.tratar_colisoes && (colisao_circ_circ(cc, cd) || colisao_ret_circ(ra, cc) || colisao_ret_circ(rb, cc)))) {
+        cc.cy -= cc.vy;
+        cc.vy = -cc.vy;
+    }
+
+    // Atualiza Círculo D
+    cd.cx += cd.vx;
+    se (cd.cx - cd.r <= 12 || cd.cx + cd.r >= 788 || (n.tratar_colisoes && (colisao_circ_circ(cc, cd) || colisao_ret_circ(ra, cd) || colisao_ret_circ(rb, cd)))) {
+        cd.cx -= cd.vx;
+        cd.vx = -cd.vx;
+    }
+    cd.cy += cd.vy;
+    se (cd.cy - cd.r <= 82 || cd.cy + cd.r >= 564 || (n.tratar_colisoes && (colisao_circ_circ(cc, cd) || colisao_ret_circ(ra, cd) || colisao_ret_circ(rb, cd)))) {
+        cd.cy -= cd.vy;
+        cd.vy = -cd.vy;
+    }
+
+    n.ret_a = ra;
+    n.ret_b = rb;
+    n.circ_c = cc;
+    n.circ_d = cd;
+    retorne n;
+}
+
+funcao desenhar(cena: CenaCompleta) {
+    seja col_ab: logico = colisao_ret_ret(cena.ret_a, cena.ret_b);
+    seja col_ac: logico = colisao_ret_circ(cena.ret_a, cena.circ_c);
+    seja col_ad: logico = colisao_ret_circ(cena.ret_a, cena.circ_d);
+    seja col_bc: logico = colisao_ret_circ(cena.ret_b, cena.circ_c);
+    seja col_bd: logico = colisao_ret_circ(cena.ret_b, cena.circ_d);
+    seja col_cd: logico = colisao_circ_circ(cena.circ_c, cena.circ_d);
+
+    Graficos.definir_cor(cor_rgb(245, 247, 250));
+    Graficos.limpar();
+
+    // Cabeçalho
+    Graficos.definir_cor(cor_rgb(30, 38, 52));
+    Graficos.desenhar_retangulo(0, 0, 800, 76, falso, verdadeiro);
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.definir_tamanho_texto(18.0);
+    Graficos.desenhar_texto(18, 12, "Colisao 6: Todas as Formas Simultaneamente");
+    Graficos.definir_tamanho_texto(12.0);
+    Graficos.definir_cor(cor_rgb(200, 210, 225));
+    Graficos.desenhar_texto(18, 40, "[G] Exibir/Ocultar Guias  |  [C] Ativar/Desativar Ricochete  |  [R] Reiniciar  |  [ESC] Sair");
+
+    // Borda da arena
+    Graficos.definir_cor(cor_rgb(180, 190, 205));
+    Graficos.desenhar_retangulo(10, 80, 780, 486, falso, falso);
+
+    // Retângulo A
+    se (col_ab || col_ac || col_ad) {
+        Graficos.definir_cor(cor_rgb(102, 255, 153));
+    } senao {
+        Graficos.definir_cor(cor_rgb(102, 204, 255));
+    }
+    Graficos.desenhar_retangulo(cena.ret_a.x, cena.ret_a.y, cena.ret_a.l, cena.ret_a.a, falso, verdadeiro);
+    Graficos.definir_cor(cor_rgb(30, 60, 90));
+    Graficos.desenhar_retangulo(cena.ret_a.x, cena.ret_a.y, cena.ret_a.l, cena.ret_a.a, falso, falso);
+    Graficos.definir_tamanho_texto(15.0);
+    Graficos.desenhar_texto(cena.ret_a.x + cena.ret_a.l / 2 - 6, cena.ret_a.y + cena.ret_a.a / 2 - 8, "A");
+
+    // Retângulo B
+    se (col_ab || col_bc || col_bd) {
+        Graficos.definir_cor(cor_rgb(255, 153, 102));
+    } senao {
+        Graficos.definir_cor(cor_rgb(255, 240, 110));
+    }
+    Graficos.desenhar_retangulo(cena.ret_b.x, cena.ret_b.y, cena.ret_b.l, cena.ret_b.a, falso, verdadeiro);
+    Graficos.definir_cor(cor_rgb(100, 75, 20));
+    Graficos.desenhar_retangulo(cena.ret_b.x, cena.ret_b.y, cena.ret_b.l, cena.ret_b.a, falso, falso);
+    Graficos.desenhar_texto(cena.ret_b.x + cena.ret_b.l / 2 - 6, cena.ret_b.y + cena.ret_b.a / 2 - 8, "B");
+
+    // Círculo C
+    se (col_cd || col_ac || col_bc) {
+        Graficos.definir_cor(cor_rgb(102, 255, 153));
+    } senao {
+        Graficos.definir_cor(cor_rgb(140, 210, 255));
+    }
+    Graficos.desenhar_elipse(cena.circ_c.cx - cena.circ_c.r, cena.circ_c.cy - cena.circ_c.r, cena.circ_c.r * 2, cena.circ_c.r * 2, verdadeiro);
+    Graficos.definir_cor(cor_rgb(30, 60, 90));
+    Graficos.desenhar_elipse(cena.circ_c.cx - cena.circ_c.r, cena.circ_c.cy - cena.circ_c.r, cena.circ_c.r * 2, cena.circ_c.r * 2, falso);
+    Graficos.desenhar_texto(cena.circ_c.cx - 6, cena.circ_c.cy - 8, "C");
+
+    // Círculo D
+    se (col_cd || col_ad || col_bd) {
+        Graficos.definir_cor(cor_rgb(255, 153, 102));
+    } senao {
+        Graficos.definir_cor(cor_rgb(255, 215, 130));
+    }
+    Graficos.desenhar_elipse(cena.circ_d.cx - cena.circ_d.r, cena.circ_d.cy - cena.circ_d.r, cena.circ_d.r * 2, cena.circ_d.r * 2, verdadeiro);
+    Graficos.definir_cor(cor_rgb(100, 75, 20));
+    Graficos.desenhar_elipse(cena.circ_d.cx - cena.circ_d.r, cena.circ_d.cy - cena.circ_d.r, cena.circ_d.r * 2, cena.circ_d.r * 2, falso);
+    Graficos.desenhar_texto(cena.circ_d.cx - 6, cena.circ_d.cy - 8, "D");
+
+    // Guias ligando centros
+    se (cena.exibir_guias) {
+        seja cxa: inteiro = cena.ret_a.x + cena.ret_a.l / 2;
+        seja cya: inteiro = cena.ret_a.y + cena.ret_a.a / 2;
+        seja cxb: inteiro = cena.ret_b.x + cena.ret_b.l / 2;
+        seja cyb: inteiro = cena.ret_b.y + cena.ret_b.a / 2;
+
+        Graficos.definir_cor(cor_rgb(153, 0, 153));
+        Graficos.desenhar_linha(cxa, cya, cxb, cyb);
+        Graficos.desenhar_linha(cena.circ_c.cx, cena.circ_c.cy, cena.circ_d.cx, cena.circ_d.cy);
+
+        Graficos.definir_cor(cor_rgb(90, 90, 110));
+        Graficos.desenhar_linha(cxa, cya, cena.circ_c.cx, cena.circ_c.cy);
+        Graficos.desenhar_linha(cxb, cyb, cena.circ_d.cx, cena.circ_d.cy);
+    }
+
+    // Rodapé
+    Graficos.definir_cor(cor_rgb(40, 45, 55));
+    Graficos.definir_tamanho_texto(12.0);
+    Graficos.desenhar_texto(18, 574, "Ricochete entre formas: " + Tipos.logico_para_cadeia(cena.tratar_colisoes) + "  |  Guias: " + Tipos.logico_para_cadeia(cena.exibir_guias));
+
+    Graficos.renderizar();
+}
+
+funcao inicio() {
+    Graficos.iniciar_modo_grafico(verdadeiro);
+    Graficos.definir_dimensoes_janela(800, 600);
+    Graficos.definir_titulo_janela("Colisao: Multiplas Formas - Ferro");
+
+    seja mutavel cena: CenaCompleta = criar_cena_inicial();
+
+    enquanto (!Teclado.tecla_pressionada(Teclado.TECLA_ESC)) {
+        cena = atualizar(cena);
+        desenhar(cena);
+        Util.aguarde(16);
+    }
+
+    Graficos.encerrar_modo_grafico();
+}

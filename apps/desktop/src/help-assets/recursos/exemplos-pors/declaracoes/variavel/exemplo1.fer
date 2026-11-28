@@ -1,4 +1,4 @@
-// Em Portugol-RS, toda declaracao informa o tipo e o valor inicial
+// Em Ferro, toda declaracao informa o tipo e o valor inicial
 // Use "seja mutavel" quando o valor puder ser alterado depois
 seja mutavel nome_variavel: caracter = ' ';
 seja variavel_inicializada: inteiro = 42;

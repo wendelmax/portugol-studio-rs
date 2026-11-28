@@ -17,7 +17,7 @@ export function collectWorkspaceFiles(entries: readonly WorkspaceEntry[]): Works
 
 /**
  * Nó de tela do Explorador (ADR 0018, Emenda 2): agrupa `Nome.design` com o
- * code-behind `Nome.pors` da mesma pasta. Não existe arquivo `.tela` em disco;
+ * code-behind `Nome.fer` da mesma pasta. Não existe arquivo `.tela` em disco;
  * o caminho do nó é o do `.design` com o sufixo {@link SCREEN_PATH_SUFFIX}.
  */
 export type ScreenEntry = {
@@ -38,7 +38,7 @@ export type ExplorerEntry =
 
 export const SCREEN_PATH_SUFFIX = "#tela";
 
-/** Agrupa cada `Nome.design` com o code-behind `.fer`/`.pors` da mesma pasta num nó de tela. */
+/** Agrupa cada `Nome.design` com o code-behind `.fer`/`.fer` da mesma pasta num nó de tela. */
 export function groupScreens(entries: readonly WorkspaceEntry[]): ExplorerEntry[] {
   const designs = new Set<string>();
   const codes = new Map<string, WorkspaceFileEntry[]>();

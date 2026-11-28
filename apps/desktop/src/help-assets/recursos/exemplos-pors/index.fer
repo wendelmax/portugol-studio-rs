@@ -1,5 +1,5 @@
 /*
- * Estrutura basica de um arquivo Portugol-RS (.pors):
+ * Estrutura basica de um arquivo Ferro (.fer):
  * - Nao ha bloco envolvente nem importacao explicita de bibliotecas nativas.
  * - No nivel superior declaramos funcoes, registros e enums.
  * - Bibliotecas nativas (Matematica, Texto, Tipos, etc.) ficam disponiveis diretamente.
@@ -15,6 +15,6 @@ funcao inicio() {
      * Dentro das funcoes declaramos variaveis locais,
      * estruturas de controle e expressoes.
      */
-    seja linguagem: cadeia = "Portugol-RS";
+    seja linguagem: cadeia = "Ferro";
     saudacao(linguagem);
 }

@@ -19,6 +19,21 @@
 > `portugol migrar` para pastas inteiras; e a ordem dos PRs. Também registra as
 > decisões que ainda faltam antes de `.licao` e `@teste`. Ver a seção 5.
 
+> **Emenda 3 (2026-11-27).** Registra o encerramento da migração: `.fer` é a
+> única extensão de código Ferro e `.licao` a única extensão das lições
+> estruturadas. `.pors` e `.pors.json` não são mais reconhecidos nem aceitos;
+> a migração de transição e a janela de compatibilidade descritas abaixo foram
+> encerradas. A UI, a Ajuda, o Web Playground e a documentação atual usam os
+> nomes canônicos. Esta emenda prevalece sobre qualquer plano futuro das
+> Emendas 1 e 2 e sobre referências de extensão nos ADRs anteriores.
+
+> **Emenda 4 (2026-11-28).** Define **Ferro** como o único nome público da
+> linguagem em texto da interface, Ajuda, exemplos, documentação atual e
+> ferramentas de desenvolvimento. Os pacotes Rust que compõem a linguagem
+> adotam o prefixo `ferro-`; `portugol` permanece apenas como nome do comando
+> CLI legado por compatibilidade. Menções anteriores a Portugol-RS descrevem
+> o nome histórico e não devem reaparecer na experiência atual.
+
 ## Contexto
 
 Com a sequência dos ADRs 0016 a 0022, o projeto distanciou-se definitivamente
@@ -63,10 +78,11 @@ projetos humorísticos ou buscas não relacionadas.
 
 ### 2. Extensões oficiais do Ferro Studio e estabilidade de crates internos *(Emenda 1)*
 
-Durante a conclusão das entregas do designer `.design` (Fase 1), as extensões
-atuais (`.pors`, `.porsproj`, `.pors.json`) permanecem intocadas. Na **Fase 2**,
-com janela de compatibilidade de leitura/aviso para arquivos `.pors` existentes,
-o Ferro Studio adota seu conjunto oficial de extensões:
+No plano original, durante a conclusão das entregas do designer `.design`
+(Fase 1), as extensões atuais (`.pors`, `.porsproj`, `.pors.json`)
+permaneceriam intocadas. Na **Fase 2**, com janela de compatibilidade de
+leitura/aviso para arquivos `.pors` existentes, o Ferro Studio adotaria seu
+conjunto oficial de extensões. A janela foi encerrada pela Emenda 3:
 
 | Extensão | Finalidade | Exemplo | Observações |
 |---|---|---|---|
@@ -79,8 +95,8 @@ o Ferro Studio adota seu conjunto oficial de extensões:
 
 - **Adoção antecipada de `.ferproj` (2026-11-27):** o manifesto `.porsproj`
   nunca saiu numa versão lançada (não está na `v0.7.0`), então foi trocado
-  por `.ferproj` sem janela de transição. `.pors` e `.pors.json` continuam
-  com a transição descrita acima.
+  por `.ferproj` sem janela de transição. (Estado atualizado pela Emenda 3:
+  `.pors` e `.pors.json` também foram retirados sem período de compatibilidade.)
 - **Retirada de `.por`/`.pex` mantida (ADR 0016):** o Ferro Studio não
   reintroduz o compilador clássico `.por` nem pacotes legados `.pex`.
 - **Crates internos:** os nomes dos crates internos (`crates/portugol-*`)
@@ -112,7 +128,7 @@ instaladores e documentação:
 - **Tipografia recomendada:** `Inter` ou `Plus Jakarta Sans` para interface e
   títulos; `JetBrains Mono` para editor e blocos de código.
 
-### 4. Adoção em duas fases
+### 4. Adoção em duas fases *(plano histórico, concluído pela Emenda 3)*
 
 Para não gerar conflitos com as entregas paralelas do designer `.design` (ADRs
 0018 e 0021):
@@ -165,7 +181,7 @@ Trocar extensões nesse cenário é caro e arriscado.
   falha se o JSON e o Rust divergirem, então a lista não volta a ser
   duplicada.
 
-#### 5.2 Extensões antigas durante a transição
+#### 5.2 Extensões antigas durante a transição *(plano histórico, encerrado pela Emenda 3)*
 
 - **Abrir, executar e salvar** funcionam como antes; extensão antiga não é
   erro.
@@ -184,7 +200,7 @@ Trocar extensões nesse cenário é caro e arriscado.
   direto e passa a abrir só pela migração) é decidido num PR de release,
   depois de pelo menos uma versão lançada com o aviso.
 
-#### 5.3 Ordem dos PRs
+#### 5.3 Ordem dos PRs *(plano histórico, concluído pela Emenda 3)*
 
 1. **Tabela única, sem mudar comportamento:** troca as checagens espalhadas
    pela consulta à tabela.
@@ -197,7 +213,7 @@ Trocar extensões nesse cenário é caro e arriscado.
 O `.ferproj` foi adotado antes desta ordem porque o `.porsproj` nunca saiu
 numa versão lançada.
 
-#### 5.4 Decisões pendentes
+#### 5.4 Decisões pendentes *(resolvidas pelas Emendas 3 e 4)*
 
 - **Formato interno do `.licao`:** continuar em JSON, como o `.pors.json`, ou
   usar a mesma marcação do `.design` e do `.ferproj`. Se mudar, a migração
@@ -206,8 +222,24 @@ numa versão lançada.
   ADRs 0019 e 0020: onde a anotação pode aparecer, como o aluno escreve o
   resultado esperado e como os testes se relacionam com os casos do
   `.licao`.
-- **Nome visível da linguagem:** se "PORS" sai também de mensagens, ajuda e
-  ADRs quando a linguagem passa a se chamar Ferro.
+- **Nome visível da linguagem:** Ferro em todas as superfícies atuais; menções
+  anteriores a Portugol-RS são históricas e não são rótulos de produto.
+
+#### 5.5 Estado final da migração *(Emenda 3)*
+
+- `.fer` é a extensão canônica exclusiva para arquivos-fonte Ferro. `.pors`
+  deixa de ser classificado como código-fonte, não pode ser criado nem aberto
+  como arquivo Ferro e não recebe renomeação automática.
+- As 14 lições integradas usam `.licao`, mantendo o conteúdo JSON. `.pors.json`
+  deixou de ser reconhecido como lição.
+- A CLI não oferece mais `portugol migrar`; não há fluxo de migração de `.pors`
+  ou `.pors.json` dentro do produto.
+- Os crates têm nomes `ferro-*`; nomes internos de módulos, funções e
+  contratos WASM com `portugol` ou `PORS` podem permanecer estáveis enquanto
+  identificadores técnicos não expostos na interface.
+- Especificações, planos e relatórios anteriores preservam os nomes usados
+  quando foram escritos; para comportamento atual, prevalecem esta emenda,
+  `README.md`, `docs/UX.md`, `docs/ARQUITETURA.md` e `docs/PARIDADE.md`.
 
 ## Alternativas consideradas
 

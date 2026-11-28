@@ -58,7 +58,7 @@ features:
     testStatus: unit_integration_and_smoke_passing
 
   - id: FEAT-TRANSLATION-001
-    title: Ponte Portugol-RS → Rust lado a lado, source map, diff e desvinculação segura
+    title: Ponte Ferro → Rust lado a lado, source map, diff e desvinculação segura
     ui: [UI-013, UI-014, UI-015, UI-016, UI-017]
     useCases: [UC-07, UC-08]
     backend: [TranslationPort]

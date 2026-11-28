@@ -492,7 +492,7 @@ body:has(#code[hidden]) .titlebar-actions {
   text-overflow: ellipsis;
 }
 
-/* Nó de tela (ADR 0018): agrupa Nome.design e Nome.pors. */
+/* Nó de tela (ADR 0018): agrupa Nome.design e Nome.fer. */
 .workspace-tree-badge {
   margin-inline-start: auto;
   padding: 0 var(--space-1);

@@ -1,0 +1,36 @@
+/* Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ * Adaptado para Ferro (.pors)
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *     Este exemplo pede ao usuário que informe o ano atual. Logo após, calcula e
+ *     exibe a quantidade de dias que se passaram desde o dia 01/01/0001 (ano 1 d.C.)
+ *     até o dia 01/01 do ano atual.
+ *
+ * Autores:
+ *
+ *     Giordana Maria da Costa Valle
+ *     Carlos Alexandre Krueger
+ *
+ * Data: 01/06/2013
+ */
+
+funcao inicio() {
+    escreva("Informe o ano atual: ");
+    seja mutavel ano_atual: inteiro = leia();
+
+    /*
+     * Calcula a quantidade de anos bissextos que ocorreram até
+     * o ano atual (divisão inteira).
+     */
+    seja qtd_anos_bi: inteiro = ano_atual / 4;
+
+    // Calcula quantos dias serão no total
+    seja dias: inteiro = (ano_atual - 1) * 365 + qtd_anos_bi;
+
+    escreval("Já se passaram ", dias, " dias desde 01/01/0001");
+}

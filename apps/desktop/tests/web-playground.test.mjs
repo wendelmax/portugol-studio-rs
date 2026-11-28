@@ -7,7 +7,7 @@ import {
   renderUiNodeTree,
 } from "../../web-playground/playground-core.mjs";
 
-test("web playground ships console and visual MVU .pors examples without innerHTML", () => {
+test("web playground ships console and visual MVU .fer examples without innerHTML", () => {
   assert.ok(PLAYGROUND_EXAMPLES.length >= 4);
   assert.ok(PLAYGROUND_EXAMPLES.some((ex) => ex.mode === "console"));
   assert.ok(PLAYGROUND_EXAMPLES.some((ex) => ex.mode === "ui" && ex.source.includes("UI.coluna")));

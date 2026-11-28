@@ -9,7 +9,7 @@ test("cargo run resolves workspace binaries and requires an explicit target when
   const main = ideSource();
   const rustExecution = readFileSync(new URL("../src/run/rust-execution.ts", import.meta.url), "utf8");
   const tauri = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
-  const service = readFileSync(new URL("../../../crates/portugol-service/src/cargo_project.rs", import.meta.url), "utf8");
+  const service = readFileSync(new URL("../../../crates/ferro-service/src/cargo_project.rs", import.meta.url), "utf8");
 
   assert.match(html, /id="cargo-target-dialog"[\s\S]*id="cargo-target-select"[\s\S]*value="run"/);
   assert.match(api, /cargoProjectRunTargets = \(id: number, workspaceId: string, relativeSource: string\)[\s\S]*invoke<CargoRunTargets>\("cargo_project_run_targets", \{ id, workspaceId, relativeSource \}\)/);

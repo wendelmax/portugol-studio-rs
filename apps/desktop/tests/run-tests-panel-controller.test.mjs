@@ -89,7 +89,7 @@ test("exercise test panel renders current case count and labels", () => {
   controller.render();
 
   assert.equal(view.title, "Testes — basico.pors");
-  assert.equal(view.status, "2 casos configurados para este exercício (.pors).");
+  assert.equal(view.status, "2 casos configurados para este exercício (.fer).");
   assert.equal(view.runHidden, false);
   assert.equal(view.runDisabled, false);
   assert.equal(view.runText, "Executar casos");
@@ -109,7 +109,7 @@ test("running exercise cases records the result and hints for the current docume
     hints: ["Confira a condição"],
     completed: true,
   });
-  assert.equal(view.status, "1 de 2 casos aprovados (.pors). Exercício concluído nesta revisão.");
+  assert.equal(view.status, "1 de 2 casos aprovados (.fer). Exercício concluído nesta revisão.");
   assert.deepEqual(view.results, ["Caso 2 falhou", "Dica: Confira a condição"]);
   assert.equal(view.resultsHidden, false);
 });
@@ -125,7 +125,7 @@ test("a result from a superseded document does not replace the current document'
   await controller.runExerciseTests();
 
   assert.equal(tab.exerciseTestRun.status, "running");
-  assert.equal(view.status, "2 casos configurados para este exercício (.pors).");
+  assert.equal(view.status, "2 casos configurados para este exercício (.fer).");
 });
 
 test("Cargo test button stays disabled without Cargo or while a run is active", () => {

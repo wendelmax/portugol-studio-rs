@@ -24,7 +24,7 @@ test("todos os data-icon do HTML resolvem para ícones vetoriais SVG próprios",
   }
 });
 
-test("dicas da IDE são proprietárias de Portugol-RS/Rust sem imagens legadas", () => {
+test("dicas da IDE são proprietárias de Ferro/Rust sem imagens legadas", () => {
   assert.ok(Array.isArray(tipsJson) && tipsJson.length >= 6);
   for (const tip of tipsJson) {
     assert.ok(tip.id && tip.badge && tip.title && tip.shortcut && tip.visual && tip.description);
@@ -34,7 +34,7 @@ test("dicas da IDE são proprietárias de Portugol-RS/Rust sem imagens legadas",
   assert.doesNotMatch(html, /id="tips-image"/);
 });
 
-test("tela inicial e prévia de temas usam identidade própria de Portugol-RS", () => {
+test("tela inicial e prévia de temas usam identidade própria de Ferro", () => {
   assert.doesNotMatch(homeCss, /border:\s*9px\s+solid\s+var\(--home-border\)/);
   assert.match(html, /class="home-tagline"/);
   assert.match(html, /class="titlebar-actions"[\s\S]*?id="btn-run"/);

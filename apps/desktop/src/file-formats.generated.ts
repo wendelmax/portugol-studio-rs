@@ -1,5 +1,5 @@
-// Gerado por crates/portugol-formatos. Não edite à mão: rode
-// `UPDATE_FILE_FORMATS=1 cargo test -p portugol-formatos`.
+// Gerado por crates/ferro-formatos. Não edite à mão: rode
+// `UPDATE_FILE_FORMATS=1 cargo test -p ferro-formatos`.
 
 export type FileKind = "source" | "rust" | "lesson" | "design" | "manifest";
 
@@ -12,11 +12,11 @@ export type FileFormat = {
 };
 
 export const FILE_FORMATS: readonly FileFormat[] = [
-  { kind: "source", extension: "fer", legacy: ["pors"], label: "Ferro", mime: "text/x-ferro" },
+  { kind: "source", extension: "fer", legacy: [], label: "Ferro", mime: "text/x-ferro" },
   { kind: "rust", extension: "rs", legacy: [], label: "Rust", mime: "text/x-rust" },
-  { kind: "lesson", extension: "pors.json", legacy: [], label: "Exercício Portugol-RS", mime: "application/json" },
+  { kind: "lesson", extension: "licao", legacy: [], label: "Lição Ferro", mime: "application/json" },
   { kind: "design", extension: "design", legacy: [], label: "Tela (pseudo-XAML)", mime: "application/xml" },
-  { kind: "manifest", extension: "ferproj", legacy: [], label: "Projeto desktop PORS", mime: "application/xml" },
+  { kind: "manifest", extension: "ferproj", legacy: [], label: "Projeto Ferro", mime: "application/xml" },
 ];
 
 export const RETIRED_EXTENSIONS: readonly string[] = ["por", "pex"];

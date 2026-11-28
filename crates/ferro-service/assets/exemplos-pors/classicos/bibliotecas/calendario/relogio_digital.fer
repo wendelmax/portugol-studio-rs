@@ -1,0 +1,193 @@
+/*
+ * Copyright (C) 2017 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ * 	Este exemplo demonstra a utilização da biblioteca Calendario em conjunto com a
+ * 	biblioteca Graficos para exibir um relógio digital com hora, data, mês e dia da semana.
+ *
+ * Adaptado para Ferro (.pors)
+ */
+
+registro EstadoDigital {
+    largura_janela: inteiro,
+    altura_janela: inteiro,
+    cor_letra: inteiro,
+    cor_fundo_letra: inteiro,
+    cor_moldura: inteiro,
+    cor_visor: inteiro,
+    imagem_fundo: Opcao < inteiro >,
+}
+
+funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro, padrao: inteiro) -> inteiro {
+    escolha Graficos.criar_cor(r, g, b) {
+        caso Resultado::Ok(cor) => {
+            retorne cor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne padrao;
+        }
+    }
+}
+
+funcao dois_digitos(valor: inteiro) -> cadeia {
+    retorne Texto.preencher_a_esquerda('0', 2, Tipos.inteiro_para_cadeia(valor));
+}
+
+funcao carregar_imagem_opcional(caminho: cadeia, largura: inteiro, altura: inteiro) -> Opcao < inteiro > {
+    escolha Graficos.carregar_imagem(caminho) {
+        caso Resultado::Ok(temp) => {
+            escolha Graficos.redimensionar_imagem(temp, largura, altura, verdadeiro) {
+                caso Resultado::Ok(redimensionada) => {
+                    Graficos.liberar_imagem(temp);
+                    retorne Opcao::Algum(redimensionada);
+                }
+                caso Resultado::Erro(_) => {
+                    retorne Opcao::Algum(temp);
+                }
+            }
+        }
+        caso Resultado::Erro(_) => {
+            retorne Opcao::Nenhum;
+        }
+    }
+}
+
+funcao inicializar() -> EstadoDigital {
+    Graficos.iniciar_modo_grafico(verdadeiro);
+    Graficos.definir_dimensoes_janela(800, 600);
+    Graficos.definir_titulo_janela("Relógio Digital");
+
+    seja largura: inteiro = Graficos.largura_janela();
+    seja altura: inteiro = Graficos.altura_janela();
+
+    // Tenta carregar a fonte digital opcional; se não estiver disponível, usa a fonte padrão
+    escolha Graficos.carregar_fonte("./relogio_digital/fonte/digital-7/digital-7-mono.ttf") {
+        caso Resultado::Ok(_) => {
+            Graficos.definir_fonte_texto("Digital-7 Mono");
+        }
+        caso Resultado::Erro(_) => {
+            // Mantém a fonte padrão do modo gráfico
+        }
+    }
+
+    seja imagem: Opcao < inteiro > = carregar_imagem_opcional("./relogio_digital/imgs/relogio_vazio.png", largura, altura);
+
+    retorne EstadoDigital {
+        largura_janela: largura,
+        altura_janela: altura,
+        cor_letra: cor_rgb(0, 6, 18, Graficos.COR_PRETO),
+        cor_fundo_letra: cor_rgb(0, 68, 204, Graficos.COR_AZUL),
+        cor_moldura: cor_rgb(38, 43, 52, Graficos.COR_PRETO),
+        cor_visor: cor_rgb(168, 198, 224, Graficos.COR_BRANCO),
+        imagem_fundo: imagem,
+    }
+    ;
+}
+
+funcao desenhar_fundo(est: EstadoDigital) {
+    escolha est.imagem_fundo {
+        caso Opcao::Algum(img) => {
+            Graficos.desenhar_imagem(0, 0, img);
+        }
+        caso Opcao::Nenhum => {
+            Graficos.definir_cor(est.cor_moldura);
+            Graficos.limpar();
+            Graficos.definir_cor(est.cor_visor);
+            Graficos.desenhar_retangulo(90, 110, est.largura_janela - 180, est.altura_janela - 220, verdadeiro, verdadeiro);
+        }
+    }
+}
+
+funcao desenhar(est: EstadoDigital) {
+    desenhar_fundo(est);
+
+    seja hora: inteiro = Calendario.hora_atual(falso);
+    seja minuto: inteiro = Calendario.minuto_atual();
+    seja segundo: inteiro = Calendario.segundo_atual();
+    seja dia_mes: inteiro = Calendario.dia_mes_atual();
+    seja dia_semana: inteiro = Calendario.dia_semana_atual();
+    seja mes: inteiro = Calendario.mes_atual();
+
+    seja dm: cadeia = dois_digitos(dia_mes);
+    seja m: cadeia = dois_digitos(mes);
+    seja relogio: cadeia = dois_digitos(hora) + ":" + dois_digitos(minuto) + ":" + dois_digitos(segundo);
+
+    seja mutavel sigla_dia: cadeia = "---";
+    escolha Calendario.dia_semana_abreviado(dia_semana, verdadeiro, falso) {
+        caso Resultado::Ok(sigla) => {
+            sigla_dia = sigla;
+        }
+        caso Resultado::Erro(_) => {
+            sigla_dia = "---";
+        }
+    }
+
+    seja x_textos: inteiro = (est.largura_janela / 2) / 2;
+    seja y_textos: inteiro = 305;
+
+    Graficos.definir_tamanho_texto(125.0);
+
+    // Fundo dos dígitos das horas
+    Graficos.definir_cor(est.cor_fundo_letra);
+    Graficos.definir_opacidade(70);
+    Graficos.desenhar_texto((est.largura_janela / 2) - (Graficos.largura_texto(relogio) / 2), 160, "88:88:88");
+    Graficos.definir_opacidade(255);
+
+    // Hora atual
+    Graficos.definir_cor(est.cor_letra);
+    Graficos.desenhar_texto((est.largura_janela / 2) - (Graficos.largura_texto(relogio) / 2), 160, relogio);
+
+    // Separadores do visor
+    Graficos.desenhar_retangulo(140, 300, 510, 5, verdadeiro, verdadeiro);
+    Graficos.desenhar_retangulo(est.largura_janela / 2, 310, 5, 100, verdadeiro, verdadeiro);
+
+    // Rótulos inferiores
+    Graficos.definir_tamanho_texto(35.0);
+    Graficos.desenhar_texto(x_textos - 30, y_textos, "DATA");
+    Graficos.desenhar_texto(x_textos + 100, y_textos, "MES");
+    Graficos.desenhar_texto(x_textos + 300, y_textos, "DIA");
+
+    // Fundo dos dígitos inferiores
+    Graficos.definir_tamanho_texto(90.0);
+    Graficos.definir_cor(est.cor_fundo_letra);
+    Graficos.definir_opacidade(70);
+    Graficos.desenhar_texto(x_textos - 40, y_textos + 20, "88");
+    Graficos.desenhar_texto(x_textos + 85, y_textos + 20, "88");
+    Graficos.desenhar_texto(x_textos + 265, y_textos + 20, "888");
+    Graficos.definir_opacidade(255);
+
+    // Dia, mês e dia da semana
+    Graficos.definir_cor(est.cor_letra);
+    Graficos.desenhar_texto(x_textos - 40, y_textos + 20, dm);
+    Graficos.desenhar_texto(x_textos + 85, y_textos + 20, m);
+    Graficos.desenhar_texto(x_textos + 265, y_textos + 20, sigla_dia);
+}
+
+funcao inicio() {
+    seja estado: EstadoDigital = inicializar();
+
+    enquanto (verdadeiro) {
+        desenhar(estado);
+        Graficos.renderizar();
+
+        se (Teclado.tecla_pressionada(Teclado.TECLA_ESC)) {
+            pare;
+        }
+
+        Util.aguarde(100);
+    }
+
+    escolha estado.imagem_fundo {
+        caso Opcao::Algum(img) => {
+            Graficos.liberar_imagem(img);
+        }
+        caso Opcao::Nenhum => {}
+    }
+
+    Graficos.encerrar_modo_grafico();
+}

@@ -91,7 +91,7 @@ Rode o que corresponde ao que você alterou:
 |---|---|
 | crates Rust | `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test` |
 | frontend da IDE | em `apps/desktop`: `npx tsc --noEmit`, `npm test`, `npm run build` |
-| app Tauri | `cargo clippy -p portugol-desktop -- -D warnings` |
+| app Tauri | `cargo clippy -p ferro-desktop -- -D warnings` |
 
 O CI roda só os jobs ligados aos arquivos alterados: mudanças apenas em
 documentação não disparam build nem testes.

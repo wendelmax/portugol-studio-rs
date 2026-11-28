@@ -332,7 +332,7 @@ test("descarta resposta assíncrona atrasada após cancelamento e fecha sessão 
 const realWasmPath = process.env.PORTUGOL_WASM_PATH;
 
 test(
-  "executa os 2 exemplos visuais oficiais no painel conectado ao portugol_wasm.wasm real",
+  "executa os 2 exemplos visuais oficiais no painel conectado ao ferro_wasm.wasm real",
   { skip: !realWasmPath },
   async () => {
     const runtime = await loadPorsWasmRuntime(readFileSync(realWasmPath));

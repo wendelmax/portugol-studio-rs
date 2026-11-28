@@ -241,7 +241,7 @@ export function mountPorsUiPreviewPanel(
       await closeActiveSession(true);
       preview.setDisabled(true);
       setStatus(
-        "Abra um arquivo .pors com iniciar/atualizar/visualizar ou carregue um exemplo visual acima.",
+        "Abra um arquivo .fer com iniciar/atualizar/visualizar ou carregue um exemplo visual acima.",
         false,
       );
       syncButtons();

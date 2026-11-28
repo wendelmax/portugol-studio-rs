@@ -1,4 +1,4 @@
-// Protocolo de quadros definido em crates/portugol-vm/src/graphics.rs.
+// Protocolo de quadros definido em crates/ferro-vm/src/graphics.rs.
 const Op = {
   UploadImage: 1,
   ReleaseImage: 2,

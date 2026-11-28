@@ -925,6 +925,119 @@ dependencies = [
 ]
 
 [[package]]
+name = "ferro-bytecode"
+version = "0.7.0"
+dependencies = [
+ "ferro-frontend",
+ "ferro-hir",
+]
+
+[[package]]
+name = "ferro-cli"
+version = "0.7.0"
+dependencies = [
+ "ferro-bytecode",
+ "ferro-formatos",
+ "ferro-frontend",
+ "ferro-hir",
+ "ferro-rust",
+ "ferro-tela",
+ "ferro-vm",
+]
+
+[[package]]
+name = "ferro-desktop"
+version = "0.7.0"
+dependencies = [
+ "cap-std",
+ "ferro-formatos",
+ "ferro-service",
+ "ferro-tela",
+ "rodio",
+ "semver",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "ureq",
+]
+
+[[package]]
+name = "ferro-formatos"
+version = "0.7.0"
+
+[[package]]
+name = "ferro-frontend"
+version = "0.7.0"
+dependencies = [
+ "ferro-hir",
+]
+
+[[package]]
+name = "ferro-hir"
+version = "0.7.0"
+
+[[package]]
+name = "ferro-rust"
+version = "0.7.0"
+dependencies = [
+ "ferro-frontend",
+ "ferro-hir",
+]
+
+[[package]]
+name = "ferro-service"
+version = "0.7.0"
+dependencies = [
+ "ferro-bytecode",
+ "ferro-formatos",
+ "ferro-frontend",
+ "ferro-hir",
+ "ferro-rust",
+ "ferro-tela",
+ "ferro-vm",
+ "libc",
+ "serde",
+ "serde_json",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "ferro-tela"
+version = "0.7.0"
+dependencies = [
+ "ferro-formatos",
+ "ferro-frontend",
+ "ferro-hir",
+]
+
+[[package]]
+name = "ferro-vm"
+version = "0.7.0"
+dependencies = [
+ "ab_glyph",
+ "ferro-bytecode",
+ "ferro-frontend",
+ "ferro-hir",
+ "image",
+ "ttf-parser",
+ "ureq",
+]
+
+[[package]]
+name = "ferro-wasm"
+version = "0.7.0"
+dependencies = [
+ "ferro-bytecode",
+ "ferro-frontend",
+ "ferro-hir",
+ "ferro-rust",
+ "ferro-vm",
+]
+
+[[package]]
 name = "field-offset"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2669,119 +2782,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "10ab3eb7f3becc3a1cbc4f2c6f20267996cfc1a6467a873763411b136a122715"
 dependencies = [
  "portable-atomic",
-]
-
-[[package]]
-name = "portugol-bytecode"
-version = "0.7.0"
-dependencies = [
- "portugol-hir",
- "portugol-rs-frontend",
-]
-
-[[package]]
-name = "portugol-cli"
-version = "0.7.0"
-dependencies = [
- "portugol-bytecode",
- "portugol-formatos",
- "portugol-hir",
- "portugol-rs-frontend",
- "portugol-rust",
- "portugol-tela",
- "portugol-vm",
-]
-
-[[package]]
-name = "portugol-desktop"
-version = "0.7.0"
-dependencies = [
- "cap-std",
- "portugol-formatos",
- "portugol-service",
- "portugol-tela",
- "rodio",
- "semver",
- "serde",
- "serde_json",
- "sha2",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "ureq",
-]
-
-[[package]]
-name = "portugol-formatos"
-version = "0.7.0"
-
-[[package]]
-name = "portugol-hir"
-version = "0.7.0"
-
-[[package]]
-name = "portugol-rs-frontend"
-version = "0.7.0"
-dependencies = [
- "portugol-hir",
-]
-
-[[package]]
-name = "portugol-rust"
-version = "0.7.0"
-dependencies = [
- "portugol-hir",
- "portugol-rs-frontend",
-]
-
-[[package]]
-name = "portugol-service"
-version = "0.7.0"
-dependencies = [
- "libc",
- "portugol-bytecode",
- "portugol-formatos",
- "portugol-hir",
- "portugol-rs-frontend",
- "portugol-rust",
- "portugol-tela",
- "portugol-vm",
- "serde",
- "serde_json",
- "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "portugol-tela"
-version = "0.7.0"
-dependencies = [
- "portugol-formatos",
- "portugol-hir",
- "portugol-rs-frontend",
-]
-
-[[package]]
-name = "portugol-vm"
-version = "0.7.0"
-dependencies = [
- "ab_glyph",
- "image",
- "portugol-bytecode",
- "portugol-hir",
- "portugol-rs-frontend",
- "ttf-parser",
- "ureq",
-]
-
-[[package]]
-name = "portugol-wasm"
-version = "0.7.0"
-dependencies = [
- "portugol-bytecode",
- "portugol-hir",
- "portugol-rs-frontend",
- "portugol-rust",
- "portugol-vm",
 ]
 
 [[package]]

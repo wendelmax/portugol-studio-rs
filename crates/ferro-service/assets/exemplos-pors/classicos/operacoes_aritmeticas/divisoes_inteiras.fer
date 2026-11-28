@@ -1,0 +1,35 @@
+/* Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ * Adaptado para Ferro (.pors)
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *     Este exemplo pede ao usuário que informe um número inteiro. Logo após, calcula
+ *     e exibe:
+ *
+ *       a) O resultado da divisão inteira por 2
+ *       b) O resto da divisão inteira por 3 (mod)
+ *
+ * Autores:
+ *
+ *     Giordana Maria da Costa Valle
+ *     Carlos Alexandre Krueger
+ *
+ * Data: 01/06/2013
+ */
+
+funcao inicio() {
+    escreva("Digite um valor: ");
+    seja mutavel valor: inteiro = leia();
+
+    // Calcula a metade inteira do valor
+    seja metade_inteira: inteiro = valor / 2;
+    // Calcula o resto da divisão do valor por 3
+    seja resto: inteiro = valor % 3;
+
+    escreva("\nA metade inteira do número é: ", metade_inteira);
+    escreval("\nO resto (mod) da divisão por 3 é: ", resto);
+}

@@ -99,12 +99,12 @@ function createFakeDom() {
   return { doc, container };
 }
 
-test("renders canonical JSON from portugol-vm and dispatches click and input events", () => {
+test("renders canonical JSON from ferro-vm and dispatches click and input events", () => {
   const { container } = createFakeDom();
   const events = [];
   const controller = mountUiPreview(container, (event) => events.push(event));
 
-  // Payload exato emitido por `crates/portugol-vm/tests/ui_runtime.rs`
+  // Payload exato emitido por `crates/ferro-vm/tests/ui_runtime.rs`
   const json =
     '{"kind":"coluna","children":[{"kind":"texto","content":"contagem0"},{"kind":"botao","id":"inc","label":"+1"},{"kind":"entrada","id":"reset","value":"","placeholder":"digite 0"}]}';
   const parsed = controller.renderJson(json);

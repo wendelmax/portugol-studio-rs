@@ -6,5 +6,5 @@ variavel1 %= variavel2; // Equivalente a: variavel1 = variavel1 % variavel2;
 variavel1 &= variavel2; // Equivalente a: variavel1 = variavel1 & variavel2;
 variavel1 ^= variavel2; // Equivalente a: variavel1 = variavel1 ^ variavel2;
 variavel1 |= variavel2; // Equivalente a: variavel1 = variavel1 | variavel2;
-variavel1 += 1;         // Incremento em Portugol-RS (nao ha operador ++)
-variavel1 -= 1;         // Decremento em Portugol-RS (nao ha operador --)
+variavel1 += 1;         // Incremento em Ferro (nao ha operador ++)
+variavel1 -= 1;         // Decremento em Ferro (nao ha operador --)

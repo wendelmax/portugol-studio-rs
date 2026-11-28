@@ -1,31 +1,31 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/portugol-hir",
-    "crates/portugol-rs-frontend",
-    "crates/portugol-rust",
-    "crates/portugol-bytecode",
-    "crates/portugol-vm",
-    "crates/portugol-wasm",
-    "crates/portugol-service",
-    "crates/portugol-cli",
-    "crates/portugol-tela",
-    "crates/portugol-formatos",
+    "crates/ferro-hir",
+    "crates/ferro-frontend",
+    "crates/ferro-rust",
+    "crates/ferro-bytecode",
+    "crates/ferro-vm",
+    "crates/ferro-wasm",
+    "crates/ferro-service",
+    "crates/ferro-cli",
+    "crates/ferro-tela",
+    "crates/ferro-formatos",
     "apps/desktop/src-tauri",
 ]
 # A IDE depende de webkit2gtk/Tauri; fica fora do `cargo build`/`cargo test`
-# padrão. Use `-p portugol-desktop` ou `npm run tauri` em apps/desktop.
+# padrão. Use `-p ferro-desktop` ou `npm run tauri` em apps/desktop.
 default-members = [
-    "crates/portugol-hir",
-    "crates/portugol-rs-frontend",
-    "crates/portugol-bytecode",
-    "crates/portugol-vm",
-    "crates/portugol-wasm",
-    "crates/portugol-rust",
-    "crates/portugol-service",
-    "crates/portugol-cli",
-    "crates/portugol-tela",
-    "crates/portugol-formatos",
+    "crates/ferro-hir",
+    "crates/ferro-frontend",
+    "crates/ferro-bytecode",
+    "crates/ferro-vm",
+    "crates/ferro-wasm",
+    "crates/ferro-rust",
+    "crates/ferro-service",
+    "crates/ferro-cli",
+    "crates/ferro-tela",
+    "crates/ferro-formatos",
 ]
 
 [workspace.package]
@@ -42,5 +42,5 @@ codegen-units = 1
 # nos testes de regressão leva minutos sem isso.
 [profile.dev.package."*"]
 opt-level = 3
-[profile.dev.package.portugol-vm]
+[profile.dev.package.ferro-vm]
 opt-level = 3

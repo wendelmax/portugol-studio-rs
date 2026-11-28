@@ -46,7 +46,7 @@ export function deriveLanguageControls(
             ? "Depuração Rust ainda não está disponível."
             : "";
     const title = unavailableReason
-      || (pors && isRun ? "Executar na VM do Portugol-RS (Shift+F6)" : "")
+      || (pors && isRun ? "Executar na VM do Ferro (Shift+F6)" : "")
       || (rustFile && isRun && tab.cargoProject === true ? "Compilar e executar o projeto Cargo (scripts e dependências executam localmente)" : "")
       || (rustFile && isRun ? "Compilar e executar Rust 2021 com rustc (execução sem sandbox)" : "")
       || state.defaultTitles[id]
@@ -58,7 +58,7 @@ export function deriveLanguageControls(
     title: markupFile
       ? "Parâmetros de execução não se aplicam a arquivos de marcação."
       : pors
-      ? "Parâmetros ainda não são suportados em Portugol-RS."
+      ? "Parâmetros ainda não são suportados em Ferro."
       : rustFile
         ? "Espaços separam itens; aspas duplas agrupam. O programa recebe argv, sem shell."
         : "",
@@ -84,7 +84,7 @@ const PORS_LIBRARY_NAMES: ReadonlySet<string> = new Set([
         ? "Módulos PORS não se aplicam a arquivos de marcação."
         : porsAvailable
           ? `Inserir módulo PORS ${name}.`
-          : "Módulo indisponível em Portugol-RS.",
+          : "Módulo indisponível em Ferro.",
     }];
   }));
   const symbolActions = {

@@ -1,4 +1,4 @@
-// Renderizador DOM seguro para a árvore declarativa UiNode (ADR 0017 / crates/portugol-vm/src/ui.rs).
+// Renderizador DOM seguro para a árvore declarativa UiNode (ADR 0017 / crates/ferro-vm/src/ui.rs).
 // Usa exclusivamente createElement e textContent (sem HTML bruto) e preserva foco/cursor em entradas
 // durante re-renderizações MVU no WebView Tauri ou em páginas Web.
 
@@ -136,7 +136,7 @@ export function validateUiNode(value: unknown, limits?: Partial<UiRenderLimits>)
   return walk(value, 1);
 }
 
-/** Faz parse e valida o JSON canônico emitido por `portugol_vm::ui::UiNode::to_json`. */
+/** Faz parse e valida o JSON canônico emitido por `ferro_vm::ui::UiNode::to_json`. */
 export function parseUiNodeJson(raw: string, limits?: Partial<UiRenderLimits>): UiNode {
   let parsed: unknown;
   try {

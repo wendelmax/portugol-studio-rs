@@ -86,7 +86,7 @@ test("module buttons enforce running and Rust guards and fall back to status hin
   f.setTab({ id: 1, language: "portugol-rs" });
   f.controller.updateLibraryButtons([], "portugol-rs");
   f.libraryButtons[2].onclick();
-  assert.deepEqual(f.events, [["status", "Use Matematica.funcao(...) diretamente em Portugol-RS.", undefined]]);
+  assert.deepEqual(f.events, [["status", "Use Matematica.funcao(...) diretamente em Ferro.", undefined]]);
 });
 
 test("snippet buttons retain language guards, insertion, and new-program action", () => {

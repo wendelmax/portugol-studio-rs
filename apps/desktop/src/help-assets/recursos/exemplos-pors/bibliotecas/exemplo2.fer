@@ -1,5 +1,5 @@
 funcao inicio() {
-    // Em Portugol-RS, bibliotecas nativas ficam disponiveis diretamente
+    // Em Ferro, bibliotecas nativas ficam disponiveis diretamente
     seja resultado: real = Matematica.arredondar(Matematica.PI, 5);
     escreval(resultado);
     escreval(Texto.caixa_alta("texto"));

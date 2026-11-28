@@ -19,8 +19,8 @@ do gate em [`PORS_MIGRATION_MATRIX.md`](PORS_MIGRATION_MATRIX.md).
 - **Portugol clássico:** `portugol-syntax` → `portugol-semantics` → compilador
   bytecode/VM; mantém APIs públicas `check`, `start`, `inspect`, `export_rust`,
   CLI, corpus, bibliotecas e 54 exercícios XML `.pex`.
-- **PORS:** `portugol-rs-frontend` → HIR; geração Rust via `portugol-rust` para
-  execução normal; `portugol-bytecode::compile_pors` → VM compartilhada para
+- **PORS:** `ferro-frontend` → HIR; geração Rust via `ferro-rust` para
+  execução normal; `ferro-bytecode::compile_pors` → VM compartilhada para
   debugger. O frontend aceita entrypoint `funcao inicio()` sem parâmetros,
   cinco tipos primitivos, bindings explícitos, expressões, I/O, condições,
   loops, `pare` e `continue`. Não tem funções do usuário, coleções ou
@@ -39,7 +39,7 @@ do gate em [`PORS_MIGRATION_MATRIX.md`](PORS_MIGRATION_MATRIX.md).
 
 ## Dependências clássicas a portar ou retirar
 
-O parser/analisador/compiler clássico sustenta `portugol-service`, CLI,
+O parser/analisador/compiler clássico sustenta `ferro-service`, CLI,
 corpus/regressões, bibliotecas, exportador classic, ajuda e exemplos. Tauri,
 `workspace.rs`, `open_files.rs`, configuração de associação de arquivos e
 frontend também codificam `.por`/`.pex`. Catálogo de exemplos, ajuda e checker

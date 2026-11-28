@@ -6,8 +6,8 @@ const moduleUrl = new URL("../src/learning/trail.ts", import.meta.url);
 
 test("learning trail catalog is versioned and maps examples to PORS exercises", async () => {
   const { LEARNING_TRAIL_VERSION, LEARNING_TRAIL } = await import(moduleUrl.href);
-  const exampleDirectory = new URL("../../../crates/portugol-service/assets/exemplos-pors/", import.meta.url);
-  const exerciseDirectory = new URL("../../../crates/portugol-service/assets/exercicios-pors/", import.meta.url);
+  const exampleDirectory = new URL("../../../crates/ferro-service/assets/exemplos-pors/", import.meta.url);
+  const exerciseDirectory = new URL("../../../crates/ferro-service/assets/exercicios/", import.meta.url);
   const examples = new Set(await readdir(exampleDirectory));
   const exerciseFiles = new Set(await readdir(exerciseDirectory));
 
@@ -18,7 +18,7 @@ test("learning trail catalog is versioned and maps examples to PORS exercises", 
     assert.ok(stage.exercises.length > 0, `${stage.id} must include a PORS exercise`);
     for (const path of stage.examplePaths) assert.ok(examples.has(path), `Missing PORS example ${path}`);
     for (const exercise of stage.exercises) {
-      const filename = `${exercise.id.slice("pors-".length)}.pors.json`;
+      const filename = `${exercise.id.slice("pors-".length)}.licao`;
       assert.ok(exerciseFiles.has(filename), `Missing PORS exercise ${filename}`);
       const definition = JSON.parse(await readFile(new URL(filename, exerciseDirectory), "utf8"));
       assert.equal(definition.id, exercise.id);

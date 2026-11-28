@@ -36,7 +36,7 @@ export function createPausePresentation(dependencies: PausePresentationDependenc
     dependencies.showDebugPanel();
     if (dependencies.activeTabId() === runTabId) dependencies.goTo(info.position.offset);
     dependencies.setStatus(dependencies.runTab()?.language === "portugol-rs"
-      ? `VM Portugol-RS pausada na linha ${info.position.line}.`
+      ? `VM Ferro pausada na linha ${info.position.line}.`
       : `Pausado na linha ${info.position.line}.`);
   }
 

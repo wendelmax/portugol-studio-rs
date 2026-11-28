@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
 
-test("Portugol-RS routes leia through the console input IPC", async () => {
+test("Ferro routes leia through the console input IPC", async () => {
   const [main, shell, toolbar, api, backend, execution, runEvents] = await Promise.all([
     read("../src/main.ts"),
     read("../src/run/execution-controller-shell.ts"),

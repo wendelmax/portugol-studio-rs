@@ -61,7 +61,7 @@ test("shows debug panel and reports language-specific pause status", () => {
   f.present.setPaused(info);
   assert.ok(f.calls.some(([name, value]) => name === "utilities" && value === true));
   assert.ok(f.calls.some(([name]) => name === "debugPanel"));
-  assert.ok(f.calls.some(([name, message]) => name === "status" && message === "VM Portugol-RS pausada na linha 4."));
+  assert.ok(f.calls.some(([name, message]) => name === "status" && message === "VM Ferro pausada na linha 4."));
   f.setTabs([{ id: 1, language: "rust" }]);
   f.present.setPaused(info);
   assert.ok(f.calls.some(([name, message]) => name === "status" && message === "Pausado na linha 4."));
