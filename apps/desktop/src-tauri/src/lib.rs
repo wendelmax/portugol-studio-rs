@@ -890,49 +890,6 @@ fn write_file(path: String, text: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn ferro_ui_start(
-    ui_sessions: State<'_, Arc<ferro_service::FerroUiService>>,
-    source: String,
-    max_steps: Option<usize>,
-    max_nodes: Option<usize>,
-    max_depth: Option<usize>,
-) -> Result<String, String> {
-    let service = Arc::clone(ui_sessions.inner());
-    let budget = ferro_service::FerroUiBudgetRequest {
-        max_steps,
-        max_nodes,
-        max_depth,
-    };
-    tauri::async_runtime::spawn_blocking(move || service.start(source, budget))
-        .await
-        .map_err(|error| error.to_string())
-}
-
-#[tauri::command]
-async fn ferro_ui_dispatch(
-    ui_sessions: State<'_, Arc<ferro_service::FerroUiService>>,
-    session_id: u32,
-    kind: String,
-    target_id: String,
-    value: String,
-) -> Result<String, String> {
-    let service = Arc::clone(ui_sessions.inner());
-    tauri::async_runtime::spawn_blocking(move || {
-        service.dispatch(session_id, kind, target_id, value)
-    })
-    .await
-    .map_err(|error| error.to_string())
-}
-
-#[tauri::command]
-fn ferro_ui_cancel(
-    ui_sessions: State<'_, Arc<ferro_service::FerroUiService>>,
-    session_id: u32,
-) -> bool {
-    ui_sessions.cancel(session_id)
-}
-
-#[tauri::command]
 fn ferro_example_catalog() -> Vec<ferro_service::FerroExample> {
     ferro_service::ferro_examples().to_vec()
 }
@@ -966,14 +923,6 @@ fn inspect_ferro_exercise(raw_json: String) -> Result<ferro_service::FerroExerci
     ferro_service::inspect_ferro_exercise(&raw_json)
 }
 
-#[tauri::command]
-fn ferro_ui_close(
-    ui_sessions: State<'_, Arc<ferro_service::FerroUiService>>,
-    session_id: u32,
-) -> bool {
-    ui_sessions.close(session_id)
-}
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run_app() {
     tauri::Builder::default()
@@ -981,7 +930,6 @@ pub fn run_app() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_notification::init())
         .manage(Runs::default())
-        .manage(Arc::new(ferro_service::FerroUiService::new()))
         .manage(workspace::WorkspaceSession::default())
         .manage(open_files::PendingFiles::from_args())
         .manage(graphics::GraphicsWindows::default())
@@ -1012,10 +960,6 @@ pub fn run_app() {
             test_cargo_project,
             format_ferro_rs,
             format_code_behind,
-            ferro_ui_start,
-            ferro_ui_dispatch,
-            ferro_ui_cancel,
-            ferro_ui_close,
             ferro_example_catalog,
             ferro_exercise_catalog,
             check_ferro_exercise,

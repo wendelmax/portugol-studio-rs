@@ -19,7 +19,6 @@ mod rename;
 mod run;
 mod screen_bindings;
 mod screen_run;
-mod ui_session;
 
 use serde::Serialize;
 
@@ -67,7 +66,6 @@ pub use screen_run::{
     SCREEN_EVENT_STEP_BUDGET, ScreenEvent, ScreenHostFactory, ScreenRun, ScreenStartError,
     ScreenStep, ScreenValue,
 };
-pub use ui_session::{FerroUiBudgetRequest, FerroUiService};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]

@@ -8,7 +8,7 @@ import {
   filterFerroHelp,
 } from "../src/ferro-help.ts";
 
-test("FERRO help starts on a FERRO topic and covers all 16 FERRO libraries grouped into standard and visual", () => {
+test("FERRO help starts on a FERRO topic and covers all 15 FERRO libraries grouped into standard and visual", () => {
   assert.ok(FERRO_HELP_TOPICS.some((topic) => topic.id === FERRO_HELP_DEFAULT_TOPIC));
   const libNames = FERRO_HELP_LIBRARIES.map((lib) => lib.name);
   for (const expected of [
@@ -20,7 +20,6 @@ test("FERRO help starts on a FERRO topic and covers all 16 FERRO libraries group
     "Arquivos",
     "Json",
     "Internet",
-    "UI",
     "Graficos",
     "Teclado",
     "Mouse",
@@ -33,7 +32,8 @@ test("FERRO help starts on a FERRO topic and covers all 16 FERRO libraries group
   const standardLibs = FERRO_HELP_LIBRARIES.filter((lib) => lib.group === "standard");
   const visualLibs = FERRO_HELP_LIBRARIES.filter((lib) => lib.group === "visual");
   assert.equal(standardLibs.length, 8);
-  assert.equal(visualLibs.length, 8);
+  assert.equal(visualLibs.length, 7);
+  assert.ok(!libNames.includes("UI"), "UI.* saiu da linguagem");
 });
 
 test("FERRO help covers loops and typed functions alongside core topics", () => {

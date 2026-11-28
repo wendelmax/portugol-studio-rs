@@ -1,27 +1,23 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import {
-  PLAYGROUND_EXAMPLES,
-  createPlaygroundRuntime,
-  renderUiNodeTree,
-} from "../../web-playground/playground-core.mjs";
+import { PLAYGROUND_EXAMPLES, createPlaygroundRuntime } from "../../web-playground/playground-core.mjs";
 import { LESSON_SOLUTIONS } from "../../web-playground/lessons.mjs";
 
-test("web playground ships twelve organized .fer examples without innerHTML", () => {
-  assert.equal(PLAYGROUND_EXAMPLES.length, 12);
+test("web playground ships eleven organized .fer examples without innerHTML", () => {
+  assert.equal(PLAYGROUND_EXAMPLES.length, 11);
   for (const example of PLAYGROUND_EXAMPLES) {
     for (const field of ["id", "title", "file", "group", "mode", "input", "source"]) {
       assert.equal(typeof example[field], "string", `${example.id}: campo ${field} ausente`);
     }
-    assert.ok(["console", "ui"].includes(example.mode), `${example.id}: modo inválido`);
+    assert.equal(example.mode, "console", `${example.id}: modo inválido`);
+    assert.ok(!/\bUI\./.test(example.source), `${example.id}: UI.* saiu da linguagem`);
     assert.ok(example.source.trim().length > 0, `${example.id}: fonte vazia`);
   }
   assert.deepEqual(
     [...new Set(PLAYGROUND_EXAMPLES.map((example) => example.group))],
-    ["Básico", "Controle", "Dados", "Valores", "Visual", "Exercício"],
+    ["Básico", "Controle", "Dados", "Valores", "Exercício"],
   );
-  assert.ok(PLAYGROUND_EXAMPLES.some((ex) => ex.mode === "ui" && ex.source.includes("UI.coluna")));
 
   for (const file of [
     "index.html", "app.mjs", "playground-core.mjs", "ferro-language.mjs",
@@ -48,14 +44,15 @@ test("web playground is organized as an editor shell with sidebar, tabs and bott
   for (const id of [
     "pg-sidebar", "pg-file-list", "pg-example-list", "pg-lesson-list",
     "pg-tabs", "pg-active-file", "pg-panel-tabs", "pg-panel-terminal",
-    "pg-panel-ui", "pg-panel-rust", "pg-panel-syntax", "pg-new-file",
+    "pg-panel-rust", "pg-panel-syntax", "pg-new-file",
     "pg-open-file", "pg-save-file", "pg-lesson-check", "pg-lesson-progress",
     "pg-lesson-title", "pg-lesson-prompt", "pg-lesson-hint", "pg-lesson-bar",
     "pg-action", "pg-run", "pg-terminal-history", "pg-stdin",
   ]) {
     assert.match(html, new RegExp(`id="${id}"`), `id ${id} ausente`);
   }
-  for (const panel of ["terminal", "ui", "rust", "syntax"]) {
+  assert.doesNotMatch(html, /data-panel="ui"/, "UI.* saiu do playground");
+  for (const panel of ["terminal", "rust", "syntax"]) {
     assert.match(html, new RegExp(`data-panel="${panel}"`));
   }
   for (const [, ref] of html.matchAll(/aria-labelledby="([^"]+)"/g)) {
@@ -73,7 +70,7 @@ test("web playground is organized as an editor shell with sidebar, tabs and bott
 
 test("web playground CSS keeps elements with hidden attribute out of layout", () => {
   const css = readFileSync(new URL("../../web-playground/style.css", import.meta.url), "utf8");
-  // Painéis como .pg-ui-section definem `display: flex`, que vence a regra da UA
+  // Painéis como .pg-nested-section definem `display: flex`, que vence a regra da UA
   // para [hidden] sem uma declaração explícita com precedência.
   assert.match(css, /\[hidden\][^{}]*\{[^}]*display:\s*none\s*!important\s*;/);
 });
@@ -98,7 +95,7 @@ test("web playground exposes a persistent theme toggle and a safe syntax highlig
   assert.match(app, /document\.createTextNode\(/);
 });
 
-test("playground runtime encodes/decodes UTF-8 across linear memory for validate/run/ui", () => {
+test("playground runtime encodes/decodes UTF-8 across linear memory for validate/run", () => {
   const memory = new WebAssembly.Memory({ initial: 1 });
   let nextPtr = 64;
   let lastResultPtr = 0;
@@ -115,7 +112,6 @@ test("playground runtime encodes/decodes UTF-8 across linear memory for validate
   };
 
   const readUtf8 = (ptr, len) => decoder.decode(new Uint8Array(memory.buffer, ptr, len));
-  let closedSession = null;
 
   const runtime = createPlaygroundRuntime({
     memory,
@@ -144,242 +140,11 @@ test("playground runtime encodes/decodes UTF-8 across linear memory for validate
       const input = readUtf8(inPtr, inLen);
       return writeResponse({ ok: true, stdout: `${src.length}:${input.trim()}`, diagnostics: [] });
     },
-    ferro_ui_start() {
-      return writeResponse({
-        ok: true,
-        session: 7,
-        step: 0,
-        history_len: 1,
-        tree: { kind: "texto", content: "Olá" },
-        stdout: "",
-      });
-    },
-    ferro_ui_dispatch(sessionId, kPtr, kLen, tPtr, tLen, vPtr, vLen) {
-      return writeResponse({
-        ok: true,
-        session: sessionId,
-        step: 1,
-        history_len: 2,
-        tree: {
-          kind: "texto",
-          content: `${readUtf8(kPtr, kLen)}:${readUtf8(tPtr, tLen)}:${readUtf8(vPtr, vLen)}`,
-        },
-        stdout: "",
-      });
-    },
-    ferro_ui_snapshot() {
-      return writeResponse({ ok: true, session: 7, step: 1, tree: { kind: "texto", content: "ok" }, stdout: "" });
-    },
-    ferro_ui_close(sessionId) {
-      closedSession = sessionId;
-      return 1;
-    },
   });
 
   assert.equal(runtime.validate("funcao inicio() {}").ok, true);
   assert.equal(runtime.run("funcao inicio() {}", "Ada\n").stdout, "18:Ada");
   assert.equal(runtime.exportRust("funcao inicio() {}").code, "fn main() { /* 18 */ }");
-
-  const started = runtime.startUi("funcao iniciar() {}");
-  assert.equal(started.ok, true);
-  assert.equal(started.session, 7);
-
-  const dispatched = runtime.dispatchUi(7, { kind: "entrada_alterada", id: "nome", value: "Café" });
-  assert.equal(dispatched.tree.content, "entrada_alterada:nome:Café");
-
-  assert.equal(runtime.closeUi(7), true);
-  assert.equal(closedSession, 7);
-});
-
-test("renderUiNodeTree builds interactive DOM nodes safely via createElement and textContent", () => {
-  class FakeNode {
-    children = [];
-    dataset = {};
-    className = "";
-    textContent = "";
-    value = "";
-    placeholder = "";
-    listeners = new Map();
-    attributes = new Map();
-    constructor(tag) { this.tag = tag; }
-    append(...nodes) { this.children.push(...nodes); }
-    replaceChildren(...nodes) { this.children = nodes; }
-    setAttribute(k, v) { this.attributes.set(k, String(v)); }
-    addEventListener(type, fn) { this.listeners.set(type, fn); }
-  }
-
-  const doc = {
-    activeElement: null,
-    createElement: (tag) => new FakeNode(tag),
-  };
-  const container = new FakeNode("div");
-  const events = [];
-
-  renderUiNodeTree(
-    doc,
-    container,
-    {
-      kind: "coluna",
-      children: [
-        { kind: "texto", content: "<script>nao-executa</script>" },
-        { kind: "botao", id: "inc", label: "+1" },
-        { kind: "entrada", id: "nome", value: "Ada", placeholder: "Nome" },
-      ],
-    },
-    (event) => events.push(event),
-  );
-
-  const col = container.children[0];
-  assert.equal(col.className, "pg-ui-coluna");
-  assert.equal(col.children[0].textContent, "<script>nao-executa</script>");
-  col.children[1].listeners.get("click")();
-  col.children[2].value = "Lovelace";
-  col.children[2].listeners.get("input")();
-
-  assert.deepEqual(events, [
-    { kind: "clique", id: "inc" },
-    { kind: "entrada_alterada", id: "nome", value: "Lovelace" },
-  ]);
-});
-
-test("Prévia UI loads a visual example when the editor holds a console program", async () => {
-  class FakeElement {
-    children = [];
-    dataset = {};
-    attributes = new Map();
-    listeners = new Map();
-    textContent = "";
-    value = "";
-    hidden = false;
-    disabled = false;
-    className = "";
-    placeholder = "";
-    scrollTop = 0;
-    scrollLeft = 0;
-    constructor(tag) { this.tag = tag; }
-    append(...nodes) { this.children.push(...nodes); }
-    replaceChildren(...nodes) { this.children = nodes; }
-    setAttribute(key, value) { this.attributes.set(key, String(value)); }
-    addEventListener(type, fn) {
-      if (!this.listeners.has(type)) this.listeners.set(type, []);
-      this.listeners.get(type).push(fn);
-    }
-    fire(type) {
-      for (const fn of this.listeners.get(type) ?? []) fn({ preventDefault() {} });
-    }
-  }
-
-  const ids = [
-    "pg-status", "pg-status-text", "pg-theme", "pg-editor", "pg-highlight",
-    "pg-stdin", "pg-terminal-history", "pg-terminal-badge",
-    "pg-ui-container", "pg-ui-section", "pg-rust-section", "pg-rust-code", "pg-copy-rust",
-    "pg-action", "pg-run", "pg-completions",
-    "pg-syntax-search", "pg-syntax-list", "pg-syntax-empty",
-    "pg-sidebar", "pg-file-list", "pg-example-list", "pg-lesson-list", "pg-tabs",
-    "pg-active-file", "pg-cursor", "pg-panel-tabs", "pg-panel-terminal", "pg-panel-ui",
-    "pg-panel-rust", "pg-panel-syntax", "pg-new-file", "pg-open-file", "pg-save-file",
-    "pg-lesson-bar", "pg-lesson-title", "pg-lesson-prompt", "pg-lesson-hint",
-    "pg-lesson-check", "pg-lesson-progress",
-  ];
-  const elements = new Map(ids.map((id) => [id, new FakeElement("div")]));
-  const doc = {
-    documentElement: new FakeElement("html"),
-    activeElement: null,
-    getElementById: (id) => elements.get(id) ?? null,
-    createElement: (tag) => new FakeElement(tag),
-    createTextNode: (text) => ({ textContent: text }),
-    createDocumentFragment: () => new FakeElement("fragment"),
-  };
-
-  const memory = new WebAssembly.Memory({ initial: 1 });
-  const encoder = new TextEncoder();
-  let nextPtr = 1024;
-  let resultPtr = 2048;
-  let resultLen = 0;
-  const writeResult = (payload) => {
-    const bytes = encoder.encode(JSON.stringify(payload));
-    resultPtr = 2048;
-    resultLen = bytes.length;
-    new Uint8Array(memory.buffer, resultPtr, resultLen).set(bytes);
-    return resultLen;
-  };
-  const readUtf8 = (ptr, len) => new TextDecoder().decode(new Uint8Array(memory.buffer, ptr, len));
-  const exports = {
-    memory,
-    ferro_alloc(len) { const ptr = nextPtr; nextPtr += len; return ptr; },
-    ferro_dealloc() {},
-    ferro_result_ptr: () => resultPtr,
-    ferro_result_len: () => resultLen,
-    ferro_validate: () => writeResult({ ok: true, diagnostics: [] }),
-    ferro_format: () => writeResult({ ok: true, changed: false, formatted: "" }),
-    ferro_export_rust: () => writeResult({ ok: true, code: "", diagnostics: [] }),
-    ferro_run(ptr, len) {
-      return writeResult({ ok: true, stdout: readUtf8(ptr, len), diagnostics: [] });
-    },
-    ferro_ui_start: () => writeResult({
-      ok: true,
-      session: 1,
-      step: 0,
-      tree: { kind: "texto", content: "Prévia visual" },
-      stdout: "",
-    }),
-    ferro_ui_dispatch: () => writeResult({
-      ok: true,
-      session: 1,
-      step: 1,
-      tree: { kind: "texto", content: "Prévia visual" },
-      stdout: "",
-    }),
-    ferro_ui_snapshot: () => writeResult({ ok: true, session: 1, step: 0, tree: { kind: "texto", content: "" }, stdout: "" }),
-    ferro_ui_close: () => 1,
-  };
-
-  const globals = {
-    document: Object.getOwnPropertyDescriptor(globalThis, "document"),
-    CSS: Object.getOwnPropertyDescriptor(globalThis, "CSS"),
-    localStorage: Object.getOwnPropertyDescriptor(globalThis, "localStorage"),
-    navigator: Object.getOwnPropertyDescriptor(globalThis, "navigator"),
-    fetch: Object.getOwnPropertyDescriptor(globalThis, "fetch"),
-    instantiate: Object.getOwnPropertyDescriptor(WebAssembly, "instantiate"),
-  };
-  globalThis.document = doc;
-  globalThis.CSS = { escape: (value) => value };
-  globalThis.localStorage = { getItem: () => null, setItem() {} };
-  Object.defineProperty(globalThis, "navigator", { value: { clipboard: { writeText: async () => {} } }, configurable: true });
-  globalThis.fetch = async () => ({
-    ok: true,
-    clone() { throw new Error("stream indisponível no teste"); },
-    async arrayBuffer() { return new ArrayBuffer(8); },
-  });
-  Object.defineProperty(WebAssembly, "instantiate", {
-    value: async () => ({ instance: { exports } }),
-    configurable: true,
-    writable: true,
-  });
-
-  try {
-    await import("../../web-playground/app.mjs?ui-preview-regression");
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    const editor = elements.get("pg-editor");
-    assert.match(editor.value, /^funcao inicio\(\)/);
-
-    const action = elements.get("pg-action");
-    action.value = "ui";
-    action.fire("change");
-
-    assert.match(editor.value, /funcao iniciar\(/);
-    assert.equal(elements.get("pg-active-file").textContent, "ui-contador.fer");
-    assert.equal(elements.get("pg-tabs").children.length, 2);
-    assert.equal(elements.get("pg-ui-section").hidden, false);
-    assert.equal(elements.get("pg-ui-container").children.length, 1);
-  } finally {
-    for (const [key, descriptor] of Object.entries(globals)) {
-      const target = key === "instantiate" ? WebAssembly : globalThis;
-      if (descriptor) Object.defineProperty(target, key, descriptor);
-      else delete target[key];
-    }
-  }
 });
 
 class FakeElement {
@@ -816,10 +581,6 @@ test("web playground terminal shows stdin history and literal stdout with the ac
       stdout: "Olá\n<script>x</script>\n",
       diagnostics: [],
     }),
-    ferro_ui_start: () => writeResult({ ok: true, session: 1, step: 0, tree: { kind: "texto", content: "" }, stdout: "" }),
-    ferro_ui_dispatch: () => writeResult({ ok: true, session: 1, step: 1, tree: { kind: "texto", content: "" }, stdout: "" }),
-    ferro_ui_snapshot: () => writeResult({ ok: true, session: 1, step: 0, tree: { kind: "texto", content: "" }, stdout: "" }),
-    ferro_ui_close: () => 1,
   };
   const previous = {
     document: Object.getOwnPropertyDescriptor(globalThis, "document"),
@@ -997,24 +758,6 @@ function createEditorHarness(query, { wasm = false, lessons = null } = {}) {
         diagnostics: [],
       });
     },
-    ferro_ui_start: () => writeResult({
-      ok: true,
-      session: 1,
-      step: 0,
-      tree: { kind: "texto", content: "Prévia" },
-      stdout: "",
-    }),
-    ferro_ui_dispatch: () => writeResult({
-      ok: true,
-      session: 1,
-      step: 1,
-      tree: { kind: "texto", content: "Prévia" },
-      stdout: "",
-    }),
-    ferro_ui_snapshot: () => writeResult({
-      ok: true, session: 1, step: 0, tree: { kind: "texto", content: "" }, stdout: "",
-    }),
-    ferro_ui_close: () => 1,
   };
 
   const previous = {

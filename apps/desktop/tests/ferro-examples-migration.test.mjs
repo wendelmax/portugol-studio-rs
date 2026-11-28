@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { FERRO_STDLIB_CATALOG } from "../src/ferro-stdlib-catalog.ts";
 import { FERRO_HELP_LIBRARIES, FERRO_HELP_TOPICS } from "../src/ferro-help.ts";
-import { FERRO_UI_EXAMPLES } from "../src/ferro-ui-examples.ts";
 import { FERRO_TEMPLATE } from "../src/state/tabs.ts";
 import { PLAYGROUND_EXAMPLES } from "../../web-playground/playground-core.mjs";
 
@@ -167,10 +166,6 @@ function embeddedSources() {
     ...FERRO_HELP_TOPICS.filter((topic) => topic.example).map((topic) => ({
       path: `apps/desktop/src/ferro-help.ts#${topic.id}.example`,
       source: topic.example.source,
-    })),
-    ...FERRO_UI_EXAMPLES.map((example) => ({
-      path: `apps/desktop/src/ferro-ui-examples.ts#${example.id}.example`,
-      source: example.source,
     })),
     ...PLAYGROUND_EXAMPLES.map((example) => ({
       path: `apps/web-playground/playground-core.mjs#${example.id}.example`,

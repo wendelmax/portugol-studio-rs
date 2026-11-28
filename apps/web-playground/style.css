@@ -782,50 +782,6 @@ textarea.pg-stdin {
   line-height: 1.6;
 }
 
-.pg-ui-container {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.pg-ui-coluna {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.pg-ui-linha {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.pg-ui-texto {
-  margin: 0;
-}
-
-.pg-ui-botao {
-  min-height: 38px;
-  padding: 8px 14px;
-  border: 1px solid var(--pg-border-strong);
-  border-radius: 10px;
-  background: var(--pg-surface);
-  font-weight: 600;
-}
-
-.pg-ui-botao:hover {
-  border-color: var(--pg-accent);
-  color: var(--pg-accent);
-}
-
-.pg-ui-entrada {
-  min-height: 40px;
-  padding: 8px 12px;
-  border: 1px solid var(--pg-border-strong);
-  border-radius: 10px;
-  background: var(--pg-surface);
-}
-
 .pg-syntax-card {
   width: 100%;
 }

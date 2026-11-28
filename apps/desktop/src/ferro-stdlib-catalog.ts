@@ -30,7 +30,6 @@ export interface FerroStdlibModule {
 }
 
 export const FERRO_STDLIB_MODULES = [
-  "UI",
   "Matematica",
   "Texto",
   "Tipos",
@@ -410,26 +409,6 @@ export const FERRO_STDLIB_CATALOG: readonly FerroStdlibModule[] = [
       fn("obter_texto", "Internet.obter_texto(url: cadeia) -> Resultado<cadeia, cadeia>", "Executa HTTP GET com consentimento explícito, cancelamento cooperativo e limite de 1 MiB."),
       fn("enviar_json", "Internet.enviar_json(url: cadeia, corpo_json: cadeia) -> Resultado<cadeia, cadeia>", "Valida o JSON e envia via HTTP POST (`application/json`), retornando a resposta em `Resultado`."),
       fn("endereco_disponivel", "Internet.endereco_disponivel(url: cadeia) -> Resultado<logico, cadeia>", "Verifica se um endereço HTTP/HTTPS responde via HEAD com status 2xx/3xx."),
-    ],
-  },
-  {
-    id: "ferro-lib:UI",
-    module: "UI",
-    name: "UI",
-    group: "visual",
-    description: "Obsoleto (ADR 0021): o `UI.*` vai sair da linguagem. Crie interfaces como telas (`.design` + código) num projeto desktop; programas antigos ainda rodam, com um aviso.",
-    example: {
-      title: "Contador com UI.* (obsoleto; prefira uma tela)",
-      fileName: "exemplo-ui.fer",
-      source: `funcao iniciar() -> inteiro {\n    retorne 0;\n}\n\nfuncao atualizar(estado: inteiro, tipo: cadeia, alvo: cadeia) -> inteiro {\n    se (tipo == "clique" && alvo == "inc") {\n        retorne estado + 1;\n    }\n    retorne estado;\n}\n\nfuncao visualizar(estado: inteiro) -> inteiro {\n    retorne UI.coluna([\n        UI.texto("Contagem: ", estado),\n        UI.botao("inc", "+1")\n    ]);\n}\n`,
-    },
-    items: [
-      fn("texto", "UI.texto(valor, ...) -> inteiro", "Obsoleto: numa tela, use `<Rotulo Texto=\"...\" />`, com `{dados.campo}` para valores."),
-      fn("botao", "UI.botao(id: cadeia, rotulo: cadeia) -> inteiro", "Obsoleto: numa tela, use `<Botao Nome=\"btnInc\" Texto=\"+1\" AoClicar=\"btnInc_clicar\" />`."),
-      fn("entrada", "UI.entrada(id: cadeia, valor: cadeia, dica: cadeia) -> inteiro", "Obsoleto: numa tela, use `<CaixaTexto Nome=\"txtNome\" TextoVazio=\"dica\" />`."),
-      fn("coluna", "UI.coluna(filhos: vetor<inteiro>) -> inteiro", "Obsoleto: numa tela, use `<Pilha>`."),
-      fn("linha", "UI.linha(filhos: vetor<inteiro>) -> inteiro", "Obsoleto: numa tela, use `<Pilha Orientacao=\"Horizontal\">`."),
-      fn("lista", "UI.lista(itens: vetor<inteiro>) -> inteiro", "Obsoleto: numa tela, use `<Lista>` com `<Item>`, ou uma `<Pilha>`."),
     ],
   },
   {

@@ -13,8 +13,8 @@ Playground estático, sem dependências JavaScript externas, movido pelo crate
   contrário, baixa uma cópia. `Novo` cria `sem-titulo-N.fer`.
 - **Abas**: exemplos, arquivos e lições abertos viram abas. Trocar de aba
   preserva o texto editado; `×` fecha a aba.
-- **Exemplos**: doze programas organizados por grupo na lateral, incluindo
-  entrada tipada, vetores, `Resultado` e prévia visual MVU.
+- **Exemplos**: onze programas organizados por grupo na lateral, incluindo
+  entrada tipada, vetores e `Resultado`.
 - **Trilha**: seis lições curtas. `Verificar` compara a saída do seu programa
   com o esperado; o progresso fica no navegador. A entrada padrão é fixa nas
   lições.

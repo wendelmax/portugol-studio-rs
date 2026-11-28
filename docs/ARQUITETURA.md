@@ -46,7 +46,7 @@ crates/
   ferro-hir/          # representação intermediária tipada, spans e diagnósticos compartilhados
   ferro-frontend/  # lexer, parser, formatador e checagem do Ferro (.fer)
   ferro-bytecode/     # instruções e compilador HIR -> bytecode
-  ferro-vm/           # VM, depurador, protocolo gráfico, UI MVU, stdlib e bibliotecas FERRO
+  ferro-vm/           # VM, depurador, protocolo gráfico, stdlib e bibliotecas FERRO
   ferro-rust/         # geração de código Rust, projetos Cargo e source maps
   ferro-wasm/         # núcleo FERRO sem dependências externas para WebAssembly
   ferro-service/      # fachada da IDE (análise, execução, depuração, exemplos e exercícios .licao)

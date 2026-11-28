@@ -10,7 +10,6 @@ pub struct FerroExample {
     pub title: &'static str,
     pub file_name: &'static str,
     pub description: &'static str,
-    pub is_visual: bool,
     pub license: &'static str,
     pub source: &'static str,
 }
@@ -22,7 +21,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Olá e variáveis tipadas",
         file_name: "01-ola-variaveis.fer",
         description: "Demonstra seja, seja mutavel, tipos escalares e escrita com escreva.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/01-ola-variaveis.fer"),
     },
@@ -32,7 +30,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Condicionais com se/senao",
         file_name: "02-condicionais.fer",
         description: "Demonstra desvios condicionais com comparações e operador lógico &&.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/02-condicionais.fer"),
     },
@@ -42,7 +39,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Laço para com pare e continue",
         file_name: "03-lacos.fer",
         description: "Demonstra contagem com para, salto com continue e interrupção com pare.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/03-lacos.fer"),
     },
@@ -52,7 +48,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Função recursiva (fatorial)",
         file_name: "04-funcoes-recursao.fer",
         description: "Demonstra funções auxiliares tipadas com retorno explícito e recursão.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/04-funcoes-recursao.fer"),
     },
@@ -62,7 +57,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Vetores tipados e tamanho",
         file_name: "05-vetores.fer",
         description: "Demonstra vetor<inteiro>, leitura/escrita indexada, tamanho() e passagem por valor.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/05-vetores.fer"),
     },
@@ -72,7 +66,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Registros, enums e escolha exaustiva",
         file_name: "06-registros-enums.fer",
         description: "Demonstra registro nominal, enum com payload e escolha exaustiva.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/06-registros-enums.fer"),
     },
@@ -82,7 +75,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Entrada tipada com leia",
         file_name: "07-entrada-tipada.fer",
         description: "Demonstra leitura tipada de cadeia e inteiro pela entrada padrão.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/07-entrada-tipada.fer"),
     },
@@ -92,7 +84,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Opcao, Resultado e operador ?",
         file_name: "09-opcao-resultado.fer",
         description: "Demonstra Resultado<inteiro, cadeia>, escolha exaustiva e propagação segura com ?.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/09-opcao-resultado.fer"),
     },
@@ -102,7 +93,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Vetores dinâmicos e Texto.dividir",
         file_name: "10-vetores-dinamicos.fer",
         description: "Demonstra vetor vazio [], adicionar, remover, obter (Opcao<T>) e Texto.dividir.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/10-vetores-dinamicos.fer"),
     },
@@ -112,7 +102,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Matematica, Texto e Tipos com ?",
         file_name: "11-matematica-texto-tipos.fer",
         description: "Combina Matematica.PI, Texto.aparar/preencher_a_esquerda e Tipos.para_inteiro com ?.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/11-matematica-texto-tipos.fer"),
     },
@@ -122,7 +111,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Util e Calendario determinísticos",
         file_name: "12-util-calendario.fer",
         description: "Demonstra Util.definir_semente/sorteia e Calendario.eh_bissexto/dias_no_mes/nome_mes.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/12-util-calendario.fer"),
     },
@@ -132,7 +120,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Manipulação imutável de JSON",
         file_name: "13-json-dados.fer",
         description: "Demonstra Json.definir_* / Json.obter_* / Json.obter_lista_inteiro e propagação com ?.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/13-json-dados.fer"),
     },
@@ -142,7 +129,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Arquivos confinados ao workspace",
         file_name: "14-arquivos-notas.fer",
         description: "Demonstra Arquivos.escrever_texto, acrescentar_texto, ler_linhas e remover com Resultado.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/14-arquivos-notas.fer"),
     },
@@ -152,7 +138,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Olá Mundo",
         file_name: "ola_mundo.fer",
         description: "Este exemplo utiliza a saída de dados do pseudocódigo em português para exibir a mensagem \"Olá mundo\".",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/entrada_saida/ola_mundo.fer"),
     },
@@ -162,7 +147,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Número Digitado",
         file_name: "numero_digitado.fer",
         description: "Este exemplo utiliza a entrada de dados do pseudocódigo em português para ler e armazenar um número inteiro em uma variável. Logo após, utiliza a saída de dados para exibir o número digitado.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/entrada_saida/numero_digitado.fer"
@@ -174,7 +158,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Seu Nome",
         file_name: "seu_nome.fer",
         description: "Este exemplo utiliza a entrada de dados do pseudocódigo em português para obter e armazenar o nome do usuário em um variável. Logo após, utiliza a saída de dados para exibir o nome digitado.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/entrada_saida/seu_nome.fer"),
     },
@@ -184,7 +167,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Operações Simples",
         file_name: "operacoes_simples.fer",
         description: "Este exemplo pede ao usuário que informe dois números. Logo após, calcula e exibe: a) A soma entre os números b) A subtração entre os números c) A multiplicação entre os números d) A divisão entre os números",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/operacoes_aritmeticas/operacoes_simples.fer"
@@ -196,7 +178,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Prioridades",
         file_name: "prioridades.fer",
         description: "Este exemplo demonstra a prioridade das operações aritméticas no pseudocódigo em português. As operações de multiplicação (*), divisão (/) e módulo (%) têm prioridade sobre as operações de soma (+) e subtração (-). Além disso, o exemplo demonstra como os parênteses podem ser utilizados para alterar esta prioridade, fazendo com que uma operação de soma ocorra antes de uma operação de multiplicação.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/operacoes_aritmeticas/prioridades.fer"
@@ -208,7 +189,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Divisões Inteiras",
         file_name: "divisoes_inteiras.fer",
         description: "Este exemplo pede ao usuário que informe um número inteiro. Logo após, calcula e exibe: a) O resultado da divisão inteira por 2 b) O resto da divisão inteira por 3 (mod)",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/operacoes_aritmeticas/divisoes_inteiras.fer"
@@ -220,7 +200,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Potencia e Raiz",
         file_name: "potencia_raiz.fer",
         description: "Este exemplo pede ao usuário que informe um valor. Logo após, utiliza a biblioteca \"Matematica\" para calcular e exibir: a) O número elevado ao cubo b) A raiz quadrada do número",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/operacoes_aritmeticas/potencia_raiz.fer"
@@ -232,7 +211,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Troca Variáveis",
         file_name: "troca_variaveis.fer",
         description: "Este exemplo pede ao usuário que informe dois valores inteiros e os\tarmazena em duas variáveis. Logo após, o programa troca os valores contidos nas variáveis entre si e os exibe ao usuário.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/algoritmos_sequenciais/troca_variaveis.fer"
@@ -244,7 +222,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Maioridade Penal",
         file_name: "maioridade_penal.fer",
         description: "Este exemplo define qual o valor da maior Idade penal usando uma constante. Logo após, pede ao usuário que informe sua idade e calcula quantos anos faltam para ele atingir a maioridade.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/algoritmos_sequenciais/maioridade_penal.fer"
@@ -256,7 +233,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Altura média",
         file_name: "altura_media.fer",
         description: "Este exemplo pede ao usuário a altura de 3 pessoas. Logo após, calcula e exibe a média das alturas informadas.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/algoritmos_sequenciais/altura_media.fer"
@@ -268,7 +244,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Loja de Ferramentas",
         file_name: "loja_ferramentas.fer",
         description: "Este exemplo pede o nome do usuário e três valores inteiros, os quais representam a quantidade de porcas, parafusos e arruelas compradas. Após, exibe o nome do usuário seguido da quantidade de cada item comprado e o valor total a ser pago.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/algoritmos_sequenciais/loja_ferramentas.fer"
@@ -280,7 +255,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Quantos Dias",
         file_name: "quantos_dias.fer",
         description: "Este exemplo pede ao usuário que informe o ano atual. Logo após, calcula e exibe a quantidade de dias que se passaram desde o dia 01/01/0001 (ano 1 dc)\taté o dia 01/01 do ano atual.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/algoritmos_sequenciais/quantos_dias.fer"
@@ -292,7 +266,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Vogal",
         file_name: "vogal.fer",
         description: "Este exemplo pede ao usuário que informe uma letra (tipo caracter). Logo após verifica se a letra digitada é uma vogal ou uma consoante e exibe o resultado ao usuário.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/desvios_condicionais/vogal.fer"),
     },
@@ -302,7 +275,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Médias",
         file_name: "medias.fer",
         description: "Este exemplo pede ao usuário que informe três médias. Logo após, calcula e exibe a média final destas notas. Por último, verifica se alguma das médias parciais é menor que a média final e a exibe (caso exista).",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/desvios_condicionais/medias.fer"),
     },
@@ -312,7 +284,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Idade do Usuário",
         file_name: "idade.fer",
         description: "Este exemplo pede ao usuário que informa a sua idade. Logo após exibe uma mensagem informando se ele for maior ou menor de idade.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/desvios_condicionais/idade.fer"),
     },
@@ -322,7 +293,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Múltiplo de Cinco",
         file_name: "multiplo.fer",
         description: "Este exemplo pede ao usuário que informe um valor inteiro, logo após, exibe uma mensagem indicando se o número informado é múltiplo de 5 ou não.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/desvios_condicionais/multiplo.fer"
@@ -334,7 +304,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Números Iguais",
         file_name: "numeros_iguais.fer",
         description: "Este exemplo pede ao usuário que informe um valor de 0 a 6. Logo após, o programa sorteia um valor também de 0 a 6 e exibe uma mensagem informando se o número sorteado e o número digitado são iguais.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/desvios_condicionais/numeros_iguais.fer"
@@ -346,7 +315,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Média Final",
         file_name: "media_final.fer",
         description: "Este exemplo pede ao usuário que informe seu nome e três notas. Logo após, calcula a média final do usuário e exibe uma mensagem informando se ele foi aprovado ou reprovado.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/desvios_condicionais/media_final.fer"
@@ -358,7 +326,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Número Inteiro",
         file_name: "numero_inteiro.fer",
         description: "Este exemplo pede ao usuário que informe um número inteiro. Logo após, exibe uma mensagem indicando se o número informado é positivo, negativo ou igual a zero.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/desvios_condicionais/numero_inteiro.fer"
@@ -370,7 +337,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Tipo de Triângulo",
         file_name: "tipo_triangulo.fer",
         description: "Este exemplo pede ao usuário que informe o tamanho dos 3 lados de um triângulo. Logo após, compara os lados do triângulo e exibe ao usuário o tipo de triângulo informado.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/desvios_condicionais/tipo_triangulo.fer"
@@ -382,7 +348,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Mini Calculadora",
         file_name: "mini_calculadora.fer",
         description: "Este exemplo demonstra o uso do desvio condicional para criar uma mini calculadora. O programa pede ao usuário que informe dois números reais e a operação a ser executada entre estes números (soma, divisão, etc.). Por fim, é exibido o valor resultante da operação entre os dois números.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/desvios_condicionais/mini_calculadora.fer"
@@ -394,7 +359,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Escolha-Caso",
         file_name: "escolha_caso.fer",
         description: "Este exemplo ilustra o uso da instrução \"escolha\". Para isso, o programa pede ao usuário que escolha uma opção e exibe uma frase correspondente à opção escolhida.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/desvios_condicionais/escolha_caso.fer"
@@ -406,7 +370,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Contagem Regressiva",
         file_name: "contagem_regressiva.fer",
         description: "Este exemplo utiliza um laço de repetição e uma variável para exibir uma contagem regressiva na tela.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/lacos_repeticao/contagem_regressiva.fer"
@@ -418,7 +381,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Tabuada",
         file_name: "tabuada.fer",
         description: "Este exemplo pede ao usuário que informe um número inteiro. Logo após, utiliza um laço de repetição do tipo \"para\", para calcular e exibir a tabuada do número informado.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/lacos_repeticao/tabuada.fer"),
     },
@@ -428,7 +390,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Consistência",
         file_name: "consistencia.fer",
         description: "Este exemplo ilustra o uso de um laço de repetição do tipo \"faca-enquanto\" para\tvalidar a entrada dos dados informados pelo usuário.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/lacos_repeticao/consistencia.fer"),
     },
@@ -438,7 +399,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Média de Dez Números",
         file_name: "media_dez_numeros.fer",
         description: "Este exemplo pede ao usuário que informe 10 números. Logo após, calcula e\texibe a média dos números digitados. O exemplo utiliza um laço de repetição do tipo \"enquanto\" para determinar se todos os 10 valores já foram lidos.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/lacos_repeticao/media_dez_numeros.fer"
@@ -450,7 +410,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Soma de Um a X",
         file_name: "soma_um_x.fer",
         description: "Este exemplo pede ao usuário que informe um valor inteiro. Logo após, calcula e\texibe a soma dos números de 1 e até o número digitado.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/lacos_repeticao/soma_um_x.fer"),
     },
@@ -460,7 +419,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Fatorial",
         file_name: "fatorial.fer",
         description: "Este exemplo ilustra o uso do laço de repetição \"enquanto\". O exemplo pede ao usuario que informe um número, logo após, calcula e exibe o fatorial do número digitado.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/lacos_repeticao/fatorial.fer"),
     },
@@ -470,7 +428,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Eleição",
         file_name: "eleicao.fer",
         description: "Este exemplo ilustra o uso do laço \"faca-enquanto\", simulando uma eleição entre\tdois candidatos. O exemplo ilustra também o uso do comando \"escolha\" para contabilizar os votos de cada candidato.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/lacos_repeticao/eleicao.fer"),
     },
@@ -480,7 +437,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Preenche e Exibe Vetor",
         file_name: "preenche_vetor.fer",
         description: "Este exemplo cria e preenche um vetor com números aleatórios. Logo após exibe o vetor no console de duas formas diferentes: a) Na ordem em que os números foram preenchidos b) Na ordem inversa em que os números foram preenchidos",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/vetores_matrizes/preenche_vetor.fer"
@@ -492,7 +448,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Pesquisa Vetor",
         file_name: "pesquisa_vetor.fer",
         description: "Este exemplo ilustra o uso dos vetores na linguagem pseudocódigo em português. Neste exemplo, é criado um vetor com valores pré-definidos. Logo após, o programa pede ao usuário que informe um valor e percorre o vetor procurando pelo valor informado. Por último, o programa exibe uma mensagem informando se o valor informado foi encontrado dentro do vetor ou não.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/vetores_matrizes/pesquisa_vetor.fer"
@@ -504,7 +459,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Tabela de Dados",
         file_name: "tabela_dados.fer",
         description: "Este exemplo ilustra o uso dos vetores da linguagem pseudocódigo em português. Neste exemplo, são criados dois vetores. O primeiro, é do tipo cadeia e armazena os nomes de várias pessoas. O segundo, é do tipo real e armazena as alturas destas pessoas. O programa então percorre cada um dos vetores, montando no console uma tabela dos dados existentes. Cada nome é associado à sua respectiva altura.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/vetores_matrizes/tabela_dados.fer"
@@ -516,7 +470,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Diagonal Principal",
         file_name: "diagonal_principal.fer",
         description: "Este exemplo ilustra o uso das matrizes na linguagem pseudocódigo em português criando uma matriz e preenchendo sua diagonal principal. As matrizes nada mais são do que vetores de duas dimensões (bidimensionais). Em outras palavras, a matriz é um vetor aonde cada uma de suas posições (colunas) armazena um outro vetor (linhas).",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/vetores_matrizes/diagonal_principal.fer"
@@ -528,7 +481,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Exibe Matriz",
         file_name: "exibe_matriz.fer",
         description: "Este exemplo cria e exibe uma matriz para ilustrar o uso das matrizes na linguagem pseudocódigo em português.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/vetores_matrizes/exibe_matriz.fer"
@@ -540,7 +492,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Procedimento e Função",
         file_name: "procedimento_funcao.fer",
         description: "Este exemplo ilustra o uso das funções da linguagem pseudocódigo em português. Neste exemplo, foi criado um procedimento que formata uma mensagem qualquer e uma função que realiza um cálculo matemático entre dois números informados. Para saber mais sobre o fatorial, acesse: http://www.infoescola.com/matematica/fatorial/",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/subrotinas/procedimento_funcao.fer"
@@ -552,7 +503,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Animação",
         file_name: "lagarta.fer",
         description: "Este exemplo ilustra o uso das funções da linguagem pseudocódigo em português para criar uma animação no console.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/subrotinas/lagarta.fer"),
     },
@@ -562,7 +512,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Parâmetros por Referencia",
         file_name: "parametros_referencia.fer",
         description: "Este exemplo ilustra a passagem de parâmetros para uma função. O exemplo demonstra tanto a passagem de parâmetro por valor, quanto a passagem de parâmetro por referência. Quando um parâmetro é passado por valor, o seu valor é copiado para dentro da função. Desta forma, se a função altera o valor do parâmetro, o valor só é alterado dentro da função, mas é mantido o valor original fora dela. Por outro lado, quando um parâmetro é passado por referência, qualquer alteração dentro da função é imediatamente refletida na variável fora da função. Isto porque, na verdade, o que a função recebe não é uma cópia do valor contido na variável, mas sim, uma referência (um atalho) para a variável original. No pseudocódigo em português, a passagem de parâmetro por referência é representada pelo operador '&'. Caso não compreenda estes conceitos, experimente depurar o programa e visualizar como o valor das variáveis são alterados na árvore estrutural à esquerda. Se ainda assim tiver dificuldades, peça a ajuda de um professor ou alguém experiente em programação.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/subrotinas/parametros_referencia.fer"
@@ -574,7 +523,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Vetores por Parâmetros",
         file_name: "vetores_parametro.fer",
         description: "Este exemplo ilustra a passagem de parâmetros para uma função. O exemplo demonstra que vetores não precisam ser passados por referência, pois eles já fazem isso naturalmente.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/subrotinas/vetores_parametro.fer"),
     },
@@ -584,7 +532,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Fatorial Recursivo",
         file_name: "fatorial_recursivo.fer",
         description: "Este exemplo pede ao usuário que informe um número inteiro. Logo após, calcula e exibe o fatorial do número informado. Neste exemplo, o fatorial é calculado chamando recursivamente a função \"fatorial\" definida no programa. O fatorial de um número é calculado multiplicando todos os valores inteiros entre 1 e o próprio número.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/subrotinas/fatorial_recursivo.fer"
@@ -596,7 +543,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Fibonacci Recursivo",
         file_name: "fibonacci_recursivo.fer",
         description: "Este exemplo pede ao usuário que informe um número inteiro. Logo após, calcula e exibe todos os números da sequência de Fibonacci até a posição informada pelo usuário. Neste exemplo, os números da sequência de Fibonacci são calculados chamando recursivamente a função \"fibonacci\" definida no programa. A sequência de Fibonacci é uma sequência numérica especial, na qual cada elemento da sequência é calculado somando os dois elementos anteriores.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/subrotinas/fibonacci_recursivo.fer"
@@ -608,7 +554,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Ler arquivo",
         file_name: "ler_arquivo.fer",
         description: "Este exemplo mostra como ler um arquivo",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/arquivos/ler_arquivo.fer"
@@ -620,7 +565,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Ler linha",
         file_name: "ler_linha.fer",
         description: "Este exemplo mostra como ler uma linha",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/arquivos/ler_linha.fer"
@@ -632,7 +576,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Ler linhas em loop",
         file_name: "loop_linhas.fer",
         description: "Este exemplo mostra como ler uma linha em loop",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/arquivos/loop_linhas.fer"
@@ -644,7 +587,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Gravar arquivo",
         file_name: "gravar_arquivo.fer",
         description: "Este exemplo mostra como gravar uma linha em um arquivo",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/arquivos/gravar_arquivo.fer"
@@ -656,7 +598,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Selecionar e Ler Arquivo",
         file_name: "ler_selecionado.fer",
         description: "Este exemplo demonstra como abrir uma janela para permitir ao usuário selecionar um arquivo. Após abrir a janela de seleção, o programa abre o arquivo selecionado caso o usuário tenha selecionado um arquivo ou exibe uma mensagem caso o usuário não tenha selecionado nenhum arquivo",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/arquivos/ler_selecionado.fer"
@@ -668,7 +609,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "selecionar arquivo",
         file_name: "selecionar_arquivo.fer",
         description: "Exemplo selecionar arquivo portado para Ferro (.fer).",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/arquivos/selecionar_arquivo.fer"
@@ -680,7 +620,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "substituir arquivo",
         file_name: "substituir_arquivo.fer",
         description: "Exemplo substituir arquivo portado para Ferro (.fer).",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/arquivos/substituir_arquivo.fer"
@@ -692,7 +631,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "verificar",
         file_name: "verificar.fer",
         description: "Exemplo verificar portado para Ferro (.fer).",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/arquivos/verificar.fer"
@@ -704,7 +642,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Raiz de Um Número",
         file_name: "raiz.fer",
         description: "Este exemplo demonstra como obter a raiz de um número usando a função \"raiz\" da biblioteca \"Matematica\".",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/matematica/raiz.fer"),
     },
@@ -714,7 +651,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Potência Entre Dois Números",
         file_name: "potencia.fer",
         description: "Este exemplo demonstra como obter a potência de um número utilizando a função \"potencia\" da biblioteca \"Matematica\".",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/matematica/potencia.fer"
@@ -726,7 +662,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Logaritmo de Um Número",
         file_name: "logaritmo.fer",
         description: "Este exemplo utiliza a função \"logaritmo\" da biblioteca \"Matematica\" para calcular o logaritmo de um número para uma determinada base. Calcular o logaritmo de um número significa encontrar o expoente ao qual a base foi elevada para chegar ao número.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/matematica/logaritmo.fer"
@@ -738,7 +673,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Funções Trigonométricas",
         file_name: "funcoes_trigonometricas.fer",
         description: "Este exemplo demonstra o uso das funções trigonométricas \"seno\", \"cosseno\", e \"tangente\" da biblioteca \"Matematica\".",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/matematica/funcoes_trigonometricas.fer"
@@ -750,7 +684,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Maior Número",
         file_name: "maior_numero.fer",
         description: "Este exemplo demonstra como utilizar a função \"maior_numero\" da biblioteca \"Matematica\" para escolher o maior entre dois números.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/matematica/maior_numero.fer"
@@ -762,7 +695,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Menor Número",
         file_name: "menor_numero.fer",
         description: "Este exemplo demonstra como utilizar a função \"menor_numero\" da biblioteca \"Matematica\" para escolher o menor entre dois números.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/matematica/menor_numero.fer"
@@ -774,7 +706,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Valor Absoluto",
         file_name: "valor_absoluto.fer",
         description: "Este exemplo demonstra como utilizar a função \"valor_absoluto\" da biblioteca \"Matematica\" para obter o valor absoluto de um número.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/matematica/valor_absoluto.fer"
@@ -786,7 +717,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Arredondamento",
         file_name: "arredondamento.fer",
         description: "Este exemplo demonstra como utilizar a função \"arredondar\" da biblioteca \"Matematica\" para arredondar um número qualquer.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/matematica/arredondamento.fer"
@@ -798,7 +728,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Área da Circunferência",
         file_name: "area_circunferencia.fer",
         description: "Este exemplo demonstra o uso da constante \"PI\" da biblioteca \"Matematica\". Neste exemplo, a constante é utilizada para calcular a área de uma circunferência.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/matematica/area_circunferencia.fer"
@@ -810,7 +739,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Tamanho do Texto",
         file_name: "tamanho.fer",
         description: "Este exemplo demonstra como utilizar a função \"numero_caracteres\" da biblioteca \"Texto\" para descobrir o tamanho de um dado do tipo cadeia.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/texto/tamanho.fer"),
     },
@@ -820,7 +748,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Ler Caracteres",
         file_name: "caracteres.fer",
         description: "Este exemplo demonstra o uso da função \"obter_caracter\" da biblioteca \"Texto\" para obter um caractere específico dentro de um dado do tipo cadeia. Neste exemplo, o usuário deve informar um valor e o programa irá verificar se o valor digitado é um número binário válido.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/texto/caracteres.fer"),
     },
@@ -830,7 +757,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Pesquisar Texto",
         file_name: "pesquisar.fer",
         description: "Este exemplo demonstra o uso da função \"posicao_texto\" da biblioteca \"Texto\" para descobrir se um dado do tipo cadeia contém uma sequência de caracteres.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/texto/pesquisar.fer"),
     },
@@ -840,7 +766,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Extrair Texto",
         file_name: "subtexto.fer",
         description: "Este exemplo demonstra como utilizar a função \"extrair_subtexto\" da biblioteca \"Texto\" para obter uma parte de um texto armazenado em uma variável do tipo cadeia.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/texto/subtexto.fer"),
     },
@@ -850,7 +775,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Substituir Texto",
         file_name: "substituir.fer",
         description: "Este exemplo demonstra o uso da função \"substituir\" da biblioteca \"Texto\" para trocar uma sequência de caracteres por outra em um dado do tipo cadeia.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/texto/substituir.fer"),
     },
@@ -860,7 +784,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Caixa Alta",
         file_name: "caixa_alta.fer",
         description: "Este exemplo demonstra como utilizar a função \"caixa_alta\" da biblioteca \"Texto\" para transformar os caracteres de um dado do tipo cadeia em caracteres maiúsculos.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/texto/caixa_alta.fer"),
     },
@@ -870,7 +793,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Caixa Baixa",
         file_name: "caixa_baixa.fer",
         description: "Este exemplo demonstra como utilizar a função \"caixa_baixa\" da biblioteca \"Texto\" para transformar os caracteres de um dado do tipo cadeia em caracteres minúsculos.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/texto/caixa_baixa.fer"
@@ -882,7 +804,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Preencher Texto",
         file_name: "preencher.fer",
         description: "Este exemplo demonstra o uso da função \"preencher_a_esquerda\" da biblioteca \"Texto\" para inserir uma sequência de caracteres em um dado do tipo cadeia.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/texto/preencher.fer"),
     },
@@ -892,7 +813,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Aguardar Intervalo",
         file_name: "aguarde.fer",
         description: "Este exemplo ilustra o uso da função \"aguarde\" da biblioteca \"Util\" simulando uma contagem regressiva. O programa utiliza a função aguarde para fazer com que o programa espere 1 segundo antes de escrever o próximo número da contagem regressiva na tela.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/util/aguarde.fer"),
     },
@@ -902,7 +822,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Sorteio de Um Número",
         file_name: "sorteio.fer",
         description: "Este exemplo pede ao usuário que informe um valor inicial, um valor final e uma quantidade de sorteios a ser executada. Logo após, utiliza a função \"sorteia\" da biblioteca \"Util\" para sortear números entre os dois valores informados pelo usuário.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/util/sorteio.fer"),
     },
@@ -912,7 +831,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Tamanho do Vetor",
         file_name: "vetor.fer",
         description: "Este exemplo demonstra como descobrir dinamicamente o número de elementos contidos em um vetor. Para isto, o programa utiliza a função \"numero_elementos\" da biblioteca \"Matematica\".",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/util/vetor.fer"),
     },
@@ -922,7 +840,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Tamanho da Matriz",
         file_name: "matriz.fer",
         description: "Este exemplo demonstra como descobrir dinamicamente as dimensões de uma matriz, isto é, o número de linhas e colunas que ela possui. Para isto, o programa utiliza as funções \"numero_linhas\" e \"numero_colunas\" da biblioteca \"Util\".",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/util/matriz.fer"),
     },
@@ -932,7 +849,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Controle de Tempo",
         file_name: "tempo.fer",
         description: "Este exemplo ilustra como a função \"tempo_decorrido\" da biblioteca \"Util\" pode ser utilizada para realizar medição e controle de tempo em um algoritmo sem utilizar a função \"aguarde\".",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/util/tempo.fer"),
     },
@@ -942,7 +858,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Efeito de Onda",
         file_name: "onda.fer",
         description: "Este exemplo utiliza primitivas gráficas e cálculos de seno e cosseno para simular o movimento de uma onda na tela.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/graficos/onda.fer"),
     },
@@ -952,7 +867,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Curvas de Lissajous",
         file_name: "senoides.fer",
         description: "Este exemplo utiliza as funções de desenho da biblioteca gráfica para criar formas baseadas nas funções de seno e cosseno",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/graficos/senoides.fer"
@@ -964,7 +878,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Solar",
         file_name: "solar.fer",
         description: "Este exemplo utiliza as funções de desenho da biblioteca gráfica para apresentar as órbitas do sistema solar a partir de alguns cálculos com diâmetro e ângulo",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/graficos/solar.fer"),
     },
@@ -974,7 +887,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Salvar Imagem",
         file_name: "salvar_imagem.fer",
         description: "Este exemplo utiliza as funções de desenho da biblioteca gráfica para salvar uma imagem no computador",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/graficos/salvar_imagem.fer"
@@ -986,7 +898,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Esfera 3D",
         file_name: "sphere.fer",
         description: "Este exemplo renderiza 3d.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/graficos/sphere.fer"),
     },
@@ -996,7 +907,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Fractal de Fern",
         file_name: "fractal_fern.fer",
         description: "Este exemplo calcula e exibe um fractal de Fern na tela.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/graficos/fractal_fern.fer"
@@ -1008,7 +918,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Ferro Paint",
         file_name: "paint.fer",
         description: "Este exemplo utiliza as funções de desenho da biblioteca gráfica para criar um programa de paint simples.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/graficos/paint.fer"),
     },
@@ -1018,7 +927,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "iniciando",
         file_name: "iniciando.fer",
         description: "Exemplo iniciando portado para Ferro (.fer).",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/graficos/basico/iniciando.fer"
@@ -1030,7 +938,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "qr code",
         file_name: "qr_code.fer",
         description: "Exemplo qr code portado para Ferro (.fer).",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/graficos/qr_code.fer"),
     },
@@ -1040,7 +947,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "teste tela cheia",
         file_name: "teste_tela_cheia.fer",
         description: "Exemplo teste tela cheia portado para Ferro (.fer).",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/graficos/tela_cheia/teste_tela_cheia.fer"
@@ -1052,7 +958,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "varios",
         file_name: "varios.fer",
         description: "Exemplo varios portado para Ferro (.fer).",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/graficos/varios.fer"),
     },
@@ -1062,7 +967,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Relógio Analógico",
         file_name: "relogio_analogico.fer",
         description: "Este é um exemplo de utilização da biblioteca calendário que exibe um relógio analógico.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/calendario/relogio_analogico.fer"
@@ -1074,7 +978,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Relógio Digital",
         file_name: "relogio_digital.fer",
         description: "Este é um exemplo de utilização da biblioteca calendário que exibe um relógio digital.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/calendario/relogio_digital.fer"
@@ -1086,7 +989,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Obter html site",
         file_name: "obtertexto.fer",
         description: "Este é um exemplo de utilização da biblioteca internet que baixa o HTML de um site.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/internet/obtertexto.fer"
@@ -1098,7 +1000,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Robô Aleatorio",
         file_name: "robos.fer",
         description: "Este é um exemplo de utilização da biblioteca internet que exibe um robo aleatório sempre que executado.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/internet/robos.fer"),
     },
@@ -1108,7 +1009,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Frase gerada com imagens aleatórias de letras",
         file_name: "gerador_palavras.fer",
         description: "Este é um exemplo de utilização da biblioteca internet que gera uma imagem composta por imagens aleatórias de cada letra.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/internet/gerador_palavras.fer"
@@ -1120,7 +1020,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "ler tecla",
         file_name: "ler_tecla.fer",
         description: "Exemplo ler tecla portado para Ferro (.fer).",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/teclado/ler_tecla.fer"
@@ -1132,7 +1031,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "tecla pressionada",
         file_name: "tecla_pressionada.fer",
         description: "Exemplo tecla pressionada portado para Ferro (.fer).",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/teclado/tecla_pressionada.fer"
@@ -1144,7 +1042,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "caracter",
         file_name: "caracter.fer",
         description: "Exemplo caracter portado para Ferro (.fer).",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/tipos/caracter.fer"),
     },
@@ -1154,7 +1051,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "inteiro",
         file_name: "inteiro.fer",
         description: "Exemplo inteiro portado para Ferro (.fer).",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/tipos/inteiro.fer"),
     },
@@ -1164,7 +1060,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "logico",
         file_name: "logico.fer",
         description: "Exemplo logico portado para Ferro (.fer).",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/tipos/logico.fer"),
     },
@@ -1174,7 +1069,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "real",
         file_name: "real.fer",
         description: "Exemplo real portado para Ferro (.fer).",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/tipos/real.fer"),
     },
@@ -1184,7 +1078,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "botao pressionado",
         file_name: "botao_pressionado.fer",
         description: "Exemplo botao pressionado portado para Ferro (.fer).",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/mouse/botao_pressionado.fer"
@@ -1196,7 +1089,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "cursor",
         file_name: "cursor.fer",
         description: "Exemplo cursor portado para Ferro (.fer).",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/mouse/cursor.fer"),
     },
@@ -1206,7 +1098,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "ler botao",
         file_name: "ler_botao.fer",
         description: "Exemplo ler botao portado para Ferro (.fer).",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/mouse/ler_botao.fer"),
     },
@@ -1216,7 +1107,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "posicao mouse",
         file_name: "posicao_mouse.fer",
         description: "Exemplo posicao mouse portado para Ferro (.fer).",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/mouse/posicao_mouse.fer"
@@ -1228,7 +1118,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "interromper",
         file_name: "interromper.fer",
         description: "Exemplo interromper portado para Ferro (.fer).",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/bibliotecas/sons/interromper.fer"),
     },
@@ -1238,7 +1127,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "reproduzir um",
         file_name: "reproduzir_um.fer",
         description: "Exemplo reproduzir um portado para Ferro (.fer).",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/sons/reproduzir_um.fer"
@@ -1250,7 +1138,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "reproduzir varios",
         file_name: "reproduzir_varios.fer",
         description: "Exemplo reproduzir varios portado para Ferro (.fer).",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/bibliotecas/sons/reproduzir_varios.fer"
@@ -1262,7 +1149,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Bateria",
         file_name: "bateria.fer",
         description: "Este exemplo apresenta o novo motor de áudio do pseudocódigo em português em um jogo de criar batidas com instrumentos diferentes",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/musica/bateria.fer"),
     },
@@ -1272,7 +1158,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Player de Música",
         file_name: "player.fer",
         description: "Este exemplo apresenta um player de música criado com os recursos de reprodução de sons e música de Ferro. O exemplo também utiliza a biblioteca gráfica para criar um fundo animado e os botões de controle do player.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/musica/player.fer"),
     },
@@ -1282,7 +1167,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Colisão entre um ponto e um retângulo",
         file_name: "ex1_colisao_ponto_retangulo.fer",
         description: "Este exemplo demonstra como é detectada a colisão entre um ponto e um retângulo.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/jogos/colisoes/ex1_colisao_ponto_retangulo.fer"
@@ -1294,7 +1178,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Colisão entre um ponto e um círculo",
         file_name: "ex2_colisao_ponto_circulo.fer",
         description: "Este exemplo demonstra como é detectada a colisão entre um ponto e um círculo.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/jogos/colisoes/ex2_colisao_ponto_circulo.fer"
@@ -1306,7 +1189,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Colisão entre dois retângulos",
         file_name: "ex3_colisao_retangulos.fer",
         description: "Este exemplo demonstra como é detectada a colisão entre dois retângulos.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/jogos/colisoes/ex3_colisao_retangulos.fer"
@@ -1318,7 +1200,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Colisão entre dois círculos",
         file_name: "ex4_colisao_circulos.fer",
         description: "Este exemplo demonstra como é detectada a colisão entre dois círculos.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/jogos/colisoes/ex4_colisao_circulos.fer"
@@ -1330,7 +1211,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Colisão entre um círculo e um retângulo",
         file_name: "ex5_colisao_circulo_retangulo.fer",
         description: "Este exemplo demonstra como é detectada a colisão entre um círculo e um retângulo.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/jogos/colisoes/ex5_colisao_circulo_retangulo.fer"
@@ -1342,7 +1222,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Várias colisões",
         file_name: "ex6_colisao_todos.fer",
         description: "Este exemplo demonstra a detecção de vários tipos de colisão ao mesmo tempo.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/jogos/colisoes/ex6_colisao_todos.fer"
@@ -1354,7 +1233,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Moon Lander",
         file_name: "moon_lander.fer",
         description: "Este exemplo é um Jogo escrito em pseudocódigo em português no qual o jogador controla uma nave que deve pousar na lua o mais rápido possível. O exemplo demonstra como utilizar algumas\tdas bibliotecas existentes no pseudocódigo em português. Neste exemplo, também é possível ver algumas técnicas utilizadas na criação de jogos.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/jogos/moon_lander.fer"),
     },
@@ -1364,7 +1242,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Serpente",
         file_name: "serpente.fer",
         description: "Este exemplo é um Jogo da Serpente (Snake) escrito em pseudocódigo em português. O exemplo demonstra\tcomo utilizar algumas das bibliotecas existentes no pseudocódigo em português. Neste exemplo, também\té possível ver algumas técnicas utilizadas na criação de jogos.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/jogos/serpente.fer"),
     },
@@ -1374,7 +1251,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Corrida",
         file_name: "corrida.fer",
         description: "Este exemplo é um Jogo de corrida escrito em pseudocódigo em português (ainda em desenvolvimento). O exemplo demonstra\tcomo utilizar algumas das bibliotecas existentes no pseudocódigo em português. Neste exemplo, também\té possível ver algumas técnicas utilizadas na criação de jogos.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/jogos/corrida.fer"),
     },
@@ -1384,7 +1260,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Pong",
         file_name: "pong.fer",
         description: "Este exemplo é um Jogo de pong escrito em pseudocódigo em português (ainda em desenvolvimento). O exemplo demonstra\tcomo utilizar algumas das bibliotecas existentes no pseudocódigo em português. Neste exemplo, também\té possível ver algumas técnicas utilizadas na criação de jogos.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/jogos/pong.fer"),
     },
@@ -1394,7 +1269,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Sliding",
         file_name: "slide.fer",
         description: "Este exemplo é um Jogo de quebra-cabeça escrito em pseudocódigo em português. O exemplo demonstra\tcomo utilizar algumas das bibliotecas existentes no pseudocódigo em português. Neste exemplo, também\té possível ver algumas técnicas utilizadas na criação de jogos.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/jogos/slide.fer"),
     },
@@ -1404,7 +1278,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Crie personagem Medieval",
         file_name: "medieval.fer",
         description: "Este exemplo é um Jogo",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/jogos/medieval.fer"),
     },
@@ -1414,7 +1287,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "The Ball Saga",
         file_name: "theballsaga.fer",
         description: "Este exemplo é um Jogo de Habilidade (Bounce) escrito em pseudocódigo em português.. O exemplo demonstra como utilizar algumas\tdas bibliotecas existentes no pseudocódigo em português. Neste exemplo, também é possível ver algumas técnicas utilizadas na criação de jogos.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/jogos/theballsaga/theballsaga.fer"
@@ -1426,7 +1298,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Criador de Fases",
         file_name: "theballsagacriador.fer",
         description: "Este exemplo é um gerador de Fases para o game The Ball Saga, um Jogo de Habilidade (Bounce) escrito em pseudocódigo em português. O exemplo demonstra\tcomo utilizar algumas das bibliotecas existentes no pseudocódigo em português. Neste exemplo, também\té possível ver algumas técnicas utilizadas na criação de jogos.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/jogos/theballsaga/theballsagacriador.fer"
@@ -1438,7 +1309,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Programe",
         file_name: "programe.fer",
         description: "Este exemplo é um jogo de programar o caminho de um personagem escrito em pseudocódigo em português. O exemplo demonstra como utilizar algumas das bibliotecas existentes no pseudocódigo em português. Neste exemplo, também é possível ver algumas técnicas utilizadas na criação de jogos.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/jogos/programe/programe.fer"),
     },
@@ -1448,7 +1318,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "Criador de Fases",
         file_name: "criador_de_fases.fer",
         description: "Este exemplo é um gerador de Fases para o game Programe, um Jogo de programar escrito em pseudocódigo em português. O exemplo demonstra\tcomo utilizar algumas das bibliotecas existentes no pseudocódigo em português. Neste exemplo, também\té possível ver algumas técnicas utilizadas na criação de jogos.",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!(
             "../assets/exemplos-ferro/classicos/jogos/programe/criador_de_fases.fer"
@@ -1460,7 +1329,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "arkanoid",
         file_name: "arkanoid.fer",
         description: "Exemplo arkanoid portado para Ferro (.fer).",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/jogos/arkanoid.fer"),
     },
@@ -1470,7 +1338,6 @@ const EXAMPLES: &[FerroExample] = &[
         title: "slide",
         file_name: "slide.fer",
         description: "Exemplo slide portado para Ferro (.fer).",
-        is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-ferro/classicos/jogos/slide/slide.fer"),
     },
@@ -1487,10 +1354,7 @@ pub fn find_ferro_example(id: &str) -> Option<&'static FerroExample> {
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
-    use std::sync::Arc;
-    use std::sync::atomic::AtomicBool;
 
-    use ferro_vm::ui::{UiBudget, UiEvent, UiSession};
     use ferro_vm::{BufferIo, Vm, run};
 
     use super::*;
@@ -1603,21 +1467,7 @@ mod tests {
             let module = ferro_bytecode::compile_ferro(&program)
                 .unwrap_or_else(|err| panic!("exemplo {} falhou no bytecode: {err:?}", example.id));
 
-            if example.is_visual {
-                let mut io = BufferIo::default();
-                let mut session = UiSession::start(
-                    &module,
-                    &mut io,
-                    UiBudget::default(),
-                    Arc::new(AtomicBool::new(false)),
-                )
-                .expect("exemplo visual deve iniciar sessão MVU");
-                assert!(session.tree().to_json().contains("Contagem: 0"));
-                let updated = session
-                    .dispatch(UiEvent::Click { id: "inc".into() }, &mut io)
-                    .expect("clique no exemplo visual");
-                assert!(updated.tree.to_json().contains("Contagem: 1"));
-            } else if let Some((_, input, expected)) =
+            if let Some((_, input, expected)) =
                 expected_console.iter().find(|(id, _, _)| *id == example.id)
             {
                 let mut io = BufferIo::new(input);

@@ -31,12 +31,7 @@ test("ferro-stdlib-catalog covers 100% of stdlib functions defined in parser/std
     assert.equal(entry.kind, "function", `${mod}.${name} deve ter kind === "function"`);
   }
 
-  for (const uiFn of ["texto", "botao", "entrada", "coluna", "linha", "lista"]) {
-    compilerFunctions.add(`UI.${uiFn}`);
-    const entry = modules.get("UI")?.get(uiFn);
-    assert.ok(entry, `Componente UI.${uiFn} falta em ferro-stdlib-catalog.ts`);
-    assert.equal(entry.kind, "function");
-  }
+  assert.ok(!modules.has("UI"), "UI.* saiu da linguagem e do catálogo");
 
   assert.ok(compilerFunctions.size >= 180, `Esperava >= 180 funções no compilador, encontrou ${compilerFunctions.size}`);
 

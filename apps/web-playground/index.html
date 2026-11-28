@@ -39,7 +39,6 @@
             <option value="">Outras ações…</option>
             <option value="validate">Validar</option>
             <option value="format">Formatar</option>
-            <option value="ui">Prévia UI</option>
             <option value="rust">Ver Rust</option>
           </select>
         </label>
@@ -104,7 +103,6 @@
           <div class="pg-bottom">
             <div id="pg-panel-tabs" class="pg-panel-tabs" role="tablist" aria-label="Painéis de saída">
               <button type="button" data-panel="terminal" aria-selected="true">Terminal</button>
-              <button type="button" data-panel="ui" aria-selected="false">Prévia UI</button>
               <button type="button" data-panel="rust" aria-selected="false">Rust</button>
               <button type="button" data-panel="syntax" aria-selected="false">Referência</button>
             </div>
@@ -128,16 +126,6 @@
                   ></textarea>
                 </label>
               </div>
-            </section>
-
-            <section id="pg-panel-ui" class="pg-panel" aria-label="Prévia visual" hidden>
-              <section id="pg-ui-section" class="pg-nested-section" aria-labelledby="pg-ui-heading">
-                <div class="pg-section-heading">
-                  <h3 id="pg-ui-heading">Prévia visual MVU</h3>
-                  <span class="pg-badge">UI.*</span>
-                </div>
-                <div id="pg-ui-container" class="pg-ui-container"></div>
-              </section>
             </section>
 
             <section id="pg-panel-rust" class="pg-panel" aria-label="Rust gerado" hidden>

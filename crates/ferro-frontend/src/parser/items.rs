@@ -58,20 +58,14 @@ impl Parser {
         }
         append_unique(&mut diagnostics, self.resolve_external_fields(deferred));
         if self.require_entry && !self.signatures.contains_key("inicio") && diagnostics.is_empty() {
-            if self.has_mvu_entry_triple() {
-                if let Err(errors) = self.validate_mvu_entry_signatures() {
-                    append_unique(&mut diagnostics, errors);
-                }
-            } else {
-                append_unique(
-                    &mut diagnostics,
-                    vec![Diagnostic::error(
-                        "ferro.entry-function",
-                        "O programa precisa declarar uma função inicio()",
-                        self.current().span,
-                    )],
-                );
-            }
+            append_unique(
+                &mut diagnostics,
+                vec![Diagnostic::error(
+                    "ferro.entry-function",
+                    "O programa precisa declarar uma função inicio()",
+                    self.current().span,
+                )],
+            );
         }
         self.cursor = 0;
         diagnostics
@@ -176,89 +170,6 @@ impl Parser {
         self.function_has_syntax_error = false;
     }
 
-    pub(super) fn has_mvu_entry_triple(&self) -> bool {
-        self.signatures.contains_key("iniciar")
-            && self.signatures.contains_key("atualizar")
-            && self.signatures.contains_key("visualizar")
-    }
-
-    pub(super) fn validate_mvu_entry_signatures(&self) -> Result<(), Vec<Diagnostic>> {
-        let init = &self.signatures["iniciar"];
-        let Some(state_ty) = init.return_type else {
-            return self.fail(
-                "ferro.ui-entry-signature",
-                "A função `iniciar` precisa retornar o tipo de estado da interface",
-                init.span,
-            );
-        };
-        if !init.parameters.is_empty() {
-            return self.fail(
-                "ferro.ui-entry-signature",
-                "A função `iniciar` não deve receber parâmetros",
-                init.span,
-            );
-        }
-
-        let update = &self.signatures["atualizar"];
-        if !(2..=4).contains(&update.parameters.len()) {
-            return self.fail(
-                "ferro.ui-entry-signature",
-                "A função `atualizar` deve receber entre 2 e 4 parâmetros (estado e dados do evento)",
-                update.span,
-            );
-        }
-        if update.parameters[0].ty != state_ty {
-            return self.fail(
-                "ferro.ui-entry-signature",
-                "O primeiro parâmetro de `atualizar` precisa ter o mesmo tipo retornado por `iniciar`",
-                update.parameters[0].span,
-            );
-        }
-        for param in &update.parameters[1..] {
-            if param.ty != hir::Type::String {
-                return self.fail(
-                    "ferro.ui-entry-signature",
-                    format!(
-                        "O parâmetro `{}` de `atualizar` deve ter tipo `cadeia`",
-                        param.name
-                    ),
-                    param.span,
-                );
-            }
-        }
-        if update.return_type != Some(state_ty) {
-            return self.fail(
-                "ferro.ui-entry-signature",
-                "A função `atualizar` precisa retornar o mesmo tipo de estado de `iniciar`",
-                update.span,
-            );
-        }
-
-        let view = &self.signatures["visualizar"];
-        if view.parameters.len() != 1 {
-            return self.fail(
-                "ferro.ui-entry-signature",
-                "A função `visualizar` deve receber exatamente 1 parâmetro (o estado atual)",
-                view.span,
-            );
-        }
-        if view.parameters[0].ty != state_ty {
-            return self.fail(
-                "ferro.ui-entry-signature",
-                "O parâmetro de `visualizar` precisa ter o mesmo tipo retornado por `iniciar`",
-                view.parameters[0].span,
-            );
-        }
-        if view.return_type != Some(hir::Type::Integer) {
-            return self.fail(
-                "ferro.ui-entry-signature",
-                "A função `visualizar` deve retornar `inteiro` (identificador do nó raiz de UI)",
-                view.span,
-            );
-        }
-        Ok(())
-    }
-
     pub(super) fn function_header(
         &mut self,
     ) -> Result<(String, Span, FunctionSignature), Vec<Diagnostic>> {
@@ -319,7 +230,6 @@ impl Parser {
                 id: None,
                 parameters,
                 return_type,
-                span: header_span,
             },
         ))
     }

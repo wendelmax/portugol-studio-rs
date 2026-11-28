@@ -201,73 +201,6 @@ pub(super) fn map_type(ty: Type) -> crate::Ty {
     }
 }
 
-pub(super) fn render_ui_host_call(
-    name: &str,
-    arguments: &[Expr],
-    program: &Program,
-    ferro: bool,
-) -> Vec<ExpressionPart> {
-    match name {
-        "texto" => {
-            let mut parts = vec![ExpressionPart::Text("__ferro_ui::texto(&[".to_owned())];
-            for (index, argument) in arguments.iter().enumerate() {
-                if index > 0 {
-                    parts.push(ExpressionPart::Text(", ".to_owned()));
-                }
-                let rendered = render_expr(argument, program, ferro);
-                match argument.ty {
-                    Type::String => {
-                        parts.push(ExpressionPart::Text("(&(".to_owned()));
-                        parts.push(ExpressionPart::Nested(rendered));
-                        parts.push(ExpressionPart::Text(")).to_string()".to_owned()));
-                    }
-                    Type::Real => {
-                        parts.push(ExpressionPart::Text("__ferro_java_double(".to_owned()));
-                        parts.push(ExpressionPart::Nested(rendered));
-                        parts.push(ExpressionPart::Text(")".to_owned()));
-                    }
-                    Type::Boolean => {
-                        parts.push(ExpressionPart::Text("(if ".to_owned()));
-                        parts.push(ExpressionPart::Nested(rendered));
-                        parts.push(ExpressionPart::Text(
-                            " { \"verdadeiro\" } else { \"falso\" }).to_owned()".to_owned(),
-                        ));
-                    }
-                    _ => {
-                        parts.push(ExpressionPart::Text("(".to_owned()));
-                        parts.push(ExpressionPart::Nested(rendered));
-                        parts.push(ExpressionPart::Text(").to_string()".to_owned()));
-                    }
-                }
-            }
-            parts.push(ExpressionPart::Text("])".to_owned()));
-            parts
-        }
-        "botao" => vec![
-            ExpressionPart::Text("__ferro_ui::botao(&(".to_owned()),
-            ExpressionPart::Nested(render_expr(&arguments[0], program, ferro)),
-            ExpressionPart::Text("), &(".to_owned()),
-            ExpressionPart::Nested(render_expr(&arguments[1], program, ferro)),
-            ExpressionPart::Text("))".to_owned()),
-        ],
-        "entrada" => vec![
-            ExpressionPart::Text("__ferro_ui::entrada(&(".to_owned()),
-            ExpressionPart::Nested(render_expr(&arguments[0], program, ferro)),
-            ExpressionPart::Text("), &(".to_owned()),
-            ExpressionPart::Nested(render_expr(&arguments[1], program, ferro)),
-            ExpressionPart::Text("), &(".to_owned()),
-            ExpressionPart::Nested(render_expr(&arguments[2], program, ferro)),
-            ExpressionPart::Text("))".to_owned()),
-        ],
-        "coluna" | "linha" | "lista" => vec![
-            ExpressionPart::Text(format!("__ferro_ui::{name}(&(")),
-            ExpressionPart::Nested(render_expr(&arguments[0], program, ferro)),
-            ExpressionPart::Text("))".to_owned()),
-        ],
-        _ => vec![ExpressionPart::Text("0_i32".to_owned())],
-    }
-}
-
 pub(super) fn render_stdlib_host_call(
     rust_mod: &str,
     name: &str,
@@ -291,22 +224,6 @@ pub(super) fn render_stdlib_host_call(
     }
     parts.push(ExpressionPart::Text(")".to_owned()));
     parts
-}
-
-pub(super) fn mvu_entry_update_arity(program: &Program) -> Option<usize> {
-    let has_init = program
-        .functions
-        .iter()
-        .any(|f| f.source_name == "iniciar" && f.parameters.is_empty());
-    let has_view = program
-        .functions
-        .iter()
-        .any(|f| f.source_name == "visualizar" && f.parameters.len() == 1);
-    let update = program
-        .functions
-        .iter()
-        .find(|f| f.source_name == "atualizar" && (2..=4).contains(&f.parameters.len()))?;
-    (has_init && has_view).then_some(update.parameters.len())
 }
 
 pub(super) fn program_uses_host_module(program: &Program, target: &str) -> bool {

@@ -203,28 +203,18 @@ fn rejects_legacy_por_with_guidance_and_unknown_extensions() {
 }
 
 #[test]
-fn exports_visual_mvu_app_to_rust_and_cargo_project() {
+fn exports_program_to_rust_and_cargo_project() {
     let dir = TempDir::new();
     let app = dir.0.join("contador.fer");
     fs::write(
         &app,
-        r#"registro Estado { contagem: inteiro }
-funcao iniciar() -> Estado { retorne Estado { contagem: 0 }; }
-funcao atualizar(estado: Estado, alvo: cadeia) -> Estado {
-    se (alvo == "inc") { retorne Estado { contagem: estado.contagem + 1 }; }
-    retorne estado;
-}
-funcao visualizar(estado: Estado) -> inteiro {
-    retorne UI.coluna([UI.texto("Total: ", estado.contagem), UI.botao("inc", "+1")]);
-}
-"#,
+        "funcao inicio() {\n    escreva(\"Total: \", 1 + 1);\n}\n",
     )
     .unwrap();
 
     let rust = cli().args(["exportar-rust"]).arg(&app).output().unwrap();
     assert!(rust.status.success(), "{rust:?}");
     let rust_code = String::from_utf8_lossy(&rust.stdout);
-    assert!(rust_code.contains("mod __ferro_ui"));
     assert!(rust_code.contains("fn main()"));
 
     let cargo_dir = dir.0.join("contador-cargo");
@@ -419,18 +409,22 @@ fn validates_screen_code_behind_with_the_types_from_the_design() {
 }
 
 #[test]
-fn ui_obsoleto_aparece_como_aviso_sem_falhar() {
+fn ui_removido_e_erro_com_a_explicacao() {
     let dir = TempDir::new();
     let file = dir.0.join("contador.fer");
     fs::write(
         &file,
-        "funcao iniciar() -> inteiro {\n    retorne 0;\n}\n\nfuncao atualizar(estado: inteiro, tipo: cadeia, alvo: cadeia) -> inteiro {\n    retorne estado;\n}\n\nfuncao visualizar(estado: inteiro) -> inteiro {\n    retorne UI.texto(\"oi\");\n}\n",
+        "funcao inicio() {\n    seja no: inteiro = UI.texto(\"oi\");\n}\n",
     )
     .unwrap();
     let checked = cli().args(["valida"]).arg(&file).output().unwrap();
-    assert!(checked.status.success(), "{checked:?}");
-    let stdout = String::from_utf8_lossy(&checked.stdout);
-    assert!(stdout.contains("1 aviso(s)"), "{stdout}");
+    assert!(!checked.status.success(), "{checked:?}");
+    let output = format!(
+        "{}{}",
+        String::from_utf8_lossy(&checked.stdout),
+        String::from_utf8_lossy(&checked.stderr)
+    );
+    assert!(output.contains("ferro.ui-removido"), "{output}");
 }
 
 #[test]

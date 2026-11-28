@@ -37,7 +37,6 @@ import { createRunShell } from "./run/run-shell";
 import { loadLearningMode, type LearningMode } from "./learning-mode";
 import { createPaletteContext } from "./command-palette";
 import { markRustPreviewStale } from "./rust-preview-state";
-import { mountFerroUiPreviewShell } from "./ferro-ui-preview-shell";
 import * as api from "./api";
 import type { Tab } from "./state/tab";
 import { FERRO_TEMPLATE, tabName } from "./state/tabs";
@@ -840,13 +839,14 @@ const applyLearningMode = mountLearningModeShell({
   focusEditor: () => view.focus(),
 });
 
-mountFerroUiPreviewShell({
-  activeTab,
-  source: () => view.state.doc.toString(),
-  openExample: (source, fileName) => newTab(source, null, fileName, undefined, undefined, "ferro-rust"),
-  focusEditor: () => view.focus(),
-  isScreen: () => isScreenFile(screenFiles, activeTab()),
-  showScreen: async () => (await designer?.showScreen()) ?? false,
+// Prévia visual (ADR 0021): a interface é sempre uma tela, e a prévia é o
+// próprio designer.
+$<HTMLButtonElement>("btn-ui-preview").addEventListener("click", () => {
+  if (isScreenFile(screenFiles, activeTab())) {
+    void designer?.showScreen();
+  } else {
+    setStatus("A prévia visual é das telas: abra o .design ou o código de uma tela (ou crie um projeto desktop).", "error");
+  }
 });
 activityBarControls = mountActivityBar(document.querySelectorAll<HTMLButtonElement>("[data-activity]"), {
   setInspectorView,

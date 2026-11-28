@@ -195,7 +195,7 @@ function e2eHarnessScript(scenario, width, height, runId) {
         !overlaps(rect(editorOptionsSummary), rect(previewHeader)),
         "options=" + JSON.stringify(rect(editorOptionsSummary)) + " rustHeader=" + JSON.stringify(rect(previewHeader)));
       check("inspector-ferro-libraries-enabled",
-        libNames.includes("UI") && libNames.includes("Json") && !libNames.includes("Objetos") && libButtons.every((b) => !b.disabled),
+        !libNames.includes("UI") && libNames.includes("Dialogo") && libNames.includes("Json") && !libNames.includes("Objetos") && libButtons.every((b) => !b.disabled),
         libNames.join(","));
     } else {
       check("bridge-tabs-visible-compact", isVisible(document.getElementById("rust-comparison-tabs")));

@@ -4,7 +4,7 @@ use crate::{SourceMapQuality, SourceMapSegment, SourceRange, format_real, rust_i
 
 use super::types::{
     binary_operator, binding_info, ferro_clone_value, integer_method, read_target_label,
-    render_stdlib_host_call, render_ui_host_call, rust_enum_variant_path, rust_type,
+    render_stdlib_host_call, rust_enum_variant_path, rust_type,
 };
 
 #[derive(Debug)]
@@ -230,11 +230,6 @@ pub(super) fn render_expr(expr: &Expr, program: &Program, ferro: bool) -> Mapped
             parts.push(ExpressionPart::Text(")".to_owned()));
             parts
         }
-        ExprKind::HostCall {
-            module,
-            name,
-            arguments,
-        } if module == "UI" => render_ui_host_call(name, arguments, program, ferro),
         ExprKind::HostCall {
             module,
             name,
