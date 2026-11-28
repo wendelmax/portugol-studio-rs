@@ -290,6 +290,7 @@ impl Parser {
                         | "Dialogo"
                         | "AreaTransferencia"
                         | "Notificacao"
+                        | "Telas"
                 ) && self.lookup(keyword).is_none()
                 {
                     return self.stdlib_statement_call();

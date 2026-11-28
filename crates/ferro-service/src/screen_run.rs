@@ -17,7 +17,7 @@ use ferro_bytecode::Module;
 use ferro_hir::{self as hir, Type};
 use ferro_tela::codebehind::{FieldDef, FieldSource, FieldType, ScreenType, TypeDef, screen_type};
 use ferro_tela::{Document, Element, schema};
-use ferro_vm::{BufferIo, Host, Value, Vm};
+use ferro_vm::{BufferIo, Host, NoHost, ScreenRequest, Value, Vm};
 
 /// Cria o host de cada chamada: quem mostra os diálogos (`Dialogo`) da tela.
 pub type ScreenHostFactory = Box<dyn Fn() -> Box<dyn Host> + Send>;
@@ -28,23 +28,31 @@ fn denied(service: &str) -> String {
     )
 }
 
-/// Host que só deixa passar os serviços declarados em `Permissoes`.
-struct PermissionHost {
+/// Host de cada chamada: só deixa passar os serviços declarados em
+/// `Permissoes` e guarda os pedidos de `Telas`, atendidos quando o handler
+/// termina.
+struct CallHost {
     inner: Box<dyn Host>,
-    allowed: Vec<String>,
+    allowed: Option<Vec<String>>,
+    requests: Rc<RefCell<Vec<ScreenRequest>>>,
 }
 
-impl PermissionHost {
+impl CallHost {
     fn check(&self, service: &str) -> Result<(), String> {
-        if self.allowed.iter().any(|allowed| allowed == service) {
-            Ok(())
-        } else {
-            Err(denied(service))
+        match &self.allowed {
+            Some(allowed) if !allowed.iter().any(|allowed| allowed == service) => {
+                Err(denied(service))
+            }
+            _ => Ok(()),
         }
     }
 }
 
-impl Host for PermissionHost {
+impl Host for CallHost {
+    fn screen_request(&mut self, request: ScreenRequest) -> Result<(), String> {
+        self.requests.borrow_mut().push(request);
+        Ok(())
+    }
     fn show_message(&mut self, text: &str) -> Result<(), String> {
         self.check("Dialogo")?;
         self.inner.show_message(text)
@@ -159,6 +167,20 @@ pub struct ScreenEvent {
     pub value: Option<Json>,
 }
 
+/// `Telas.abrir` pedido no evento (ADR 0018, Emenda 5): quem conduz as
+/// janelas abre a tela por cima desta com [`ScreenRun::open`] e, quando ela
+/// fechar, entrega a resposta com [`ScreenRun::resume`].
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScreenOpen {
+    /// Nome da tela (o `.design` e o `.fer` com esse nome no projeto).
+    pub screen: String,
+    /// Função de retorno, chamada com a resposta.
+    pub callback: Option<String>,
+    #[serde(skip)]
+    data: Option<(ScreenValue, String)>,
+}
+
 /// Resultado de iniciar a tela ou tratar um evento.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -171,6 +193,57 @@ pub struct ScreenStep {
     pub output: String,
     /// Posição do estado no histórico.
     pub step: usize,
+    /// Tela a abrir por cima desta (`Telas.abrir`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub open: Option<ScreenOpen>,
+    /// Esta tela pediu para fechar: `Telas.concluir` (`true`, com resposta) ou
+    /// `Telas.fechar` (`false`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub close: Option<bool>,
+}
+
+/// Pedidos de `Telas` de uma chamada, já conferidos.
+#[derive(Default)]
+struct Requests {
+    open: Option<ScreenOpen>,
+    close: Option<bool>,
+}
+
+impl Requests {
+    fn from_vm(requests: Vec<ScreenRequest>) -> Result<Self, String> {
+        let mut result = Self::default();
+        for request in requests {
+            match request {
+                ScreenRequest::Open {
+                    screen,
+                    data,
+                    callback,
+                } => {
+                    if result.open.is_some() {
+                        return Err(
+                            "`Telas.abrir` foi chamado mais de uma vez no mesmo evento: abra uma tela por vez.".into(),
+                        );
+                    }
+                    let data = match data {
+                        Some((value, shape)) => Some((ScreenValue::from_vm(&value)?, shape)),
+                        None => None,
+                    };
+                    result.open = Some(ScreenOpen {
+                        screen,
+                        callback,
+                        data,
+                    });
+                }
+                ScreenRequest::Close { accept } => result.close = Some(accept),
+            }
+        }
+        if result.open.is_some() && result.close.is_some() {
+            return Err(
+                "No mesmo evento, a tela pediu para abrir outra e para fechar: use `Telas.abrir` ou `Telas.concluir`/`Telas.fechar`.".into(),
+            );
+        }
+        Ok(result)
+    }
 }
 
 /// Por que a tela não pôde iniciar.
@@ -280,6 +353,88 @@ impl ScreenRun {
         design_source: &str,
         code_source: &str,
     ) -> Result<(Self, ScreenStep), ScreenStartError> {
+        Self::start_with(design_source, code_source, None)
+    }
+
+    /// Abre a tela pedida por `Telas.abrir` (ADR 0018, Emenda 5), a partir do
+    /// `.design` e do código dela: os dados entregues viram o `dados` inicial,
+    /// antes do `AoAbrir`. A tela aberta herda as permissões e a pasta do
+    /// projeto; o host é de quem conduz a janela nova.
+    pub fn open(
+        &self,
+        request: &ScreenOpen,
+        design_source: &str,
+        code_source: &str,
+    ) -> Result<(Self, ScreenStep), ScreenStartError> {
+        let data = request
+            .data
+            .as_ref()
+            .map(|(value, shape)| (value, shape.as_str(), request.screen.as_str()));
+        let (run, step) = Self::start_inner(design_source, code_source, data, &|run| {
+            run.permissions = self.permissions.clone();
+            run.project_dir = self.project_dir.clone();
+        })?;
+        if run.document.root.control_name().map(|n| n.value.as_str()) != Some(&request.screen) {
+            return Err(ScreenStartError::Invalid(format!(
+                "A janela de `{}.design` precisa se chamar `{}` (`Nome=\"{}\"`).",
+                request.screen, request.screen, request.screen
+            )));
+        }
+        Ok((run, step))
+    }
+
+    /// A tela aberta por `request` fechou: chama a função de retorno com
+    /// `Opcao::Algum(dados)` (`Telas.concluir`) ou `Opcao::Nenhum`. Sem função
+    /// de retorno, nada muda.
+    pub fn resume(
+        &mut self,
+        request: &ScreenOpen,
+        answer: Option<ScreenValue>,
+    ) -> Result<ScreenStep, String> {
+        let Some(callback) = &request.callback else {
+            return Ok(self.current_step());
+        };
+        let answer = match answer {
+            Some(value) => ScreenValue::List(vec![ScreenValue::Int(0), value]),
+            None => ScreenValue::List(vec![ScreenValue::Int(1)]),
+        };
+        let before = self.state.clone();
+        let (output, requests) = match self.call(callback, vec![answer.to_vm()]) {
+            Ok(result) => result,
+            Err(error) => {
+                self.state = before;
+                return Err(error);
+            }
+        };
+        self.remember(&before);
+        Ok(self.step_with(Some(callback.clone()), output, requests))
+    }
+
+    /// Os `dados` atuais, que `Telas.concluir` entrega a quem abriu a tela.
+    pub fn data(&self) -> Option<ScreenValue> {
+        let slot = self
+            .screen
+            .window
+            .fields
+            .iter()
+            .position(|f| f.source == FieldSource::Data)?;
+        self.state.list()?.get(slot).cloned()
+    }
+
+    fn start_with(
+        design_source: &str,
+        code_source: &str,
+        data: Option<(&ScreenValue, &str, &str)>,
+    ) -> Result<(Self, ScreenStep), ScreenStartError> {
+        Self::start_inner(design_source, code_source, data, &|_| {})
+    }
+
+    fn start_inner(
+        design_source: &str,
+        code_source: &str,
+        data: Option<(&ScreenValue, &str, &str)>,
+        configure: &dyn Fn(&mut Self),
+    ) -> Result<(Self, ScreenStep), ScreenStartError> {
         let analysis = ferro_tela::analyze(design_source);
         let document = match analysis.document {
             Some(document) if !analysis.has_errors() => document,
@@ -317,7 +472,12 @@ impl ScreenRun {
             permissions: None,
             project_dir: None,
         };
+        configure(&mut run);
         run.state = run.initial_window();
+        if let Some((value, shape, name)) = data {
+            run.receive(value, shape, name)
+                .map_err(ScreenStartError::Invalid)?;
+        }
         run.sync_bound();
         run.history.push(run.state.clone());
         let opening = run
@@ -327,12 +487,58 @@ impl ScreenRun {
             .map(|a| a.value.trim().to_owned())
             .filter(|h| !h.is_empty());
         let mut output = String::new();
+        let mut requests = Requests::default();
         if let Some(handler) = &opening {
-            output = run.call(handler).map_err(ScreenStartError::Runtime)?;
+            (output, requests) = run
+                .call(handler, Vec::new())
+                .map_err(ScreenStartError::Runtime)?;
             run.history.push(run.state.clone());
         }
-        let step = run.step(opening, output);
+        let step = run.step_with(opening, output, requests);
         Ok((run, step))
+    }
+
+    /// Põe os dados entregues por `Telas.abrir` no `dados` da janela, se o
+    /// registro tiver a mesma forma nas duas telas.
+    fn receive(&mut self, value: &ScreenValue, shape: &str, name: &str) -> Result<(), String> {
+        let slot = self
+            .screen
+            .window
+            .fields
+            .iter()
+            .position(|f| f.source == FieldSource::Data);
+        let target = slot.and_then(|slot| match &self.screen.window.fields[slot].ty {
+            FieldType::Named(record) => self.record_by_name(record),
+            _ => None,
+        });
+        let (Some(slot), Some(record)) = (slot, target) else {
+            return Err(format!(
+                "A tela `{name}` não tem `Dados`: para receber os dados de `Telas.abrir`, acrescente `Dados=\"...\"` na `<Janela>` dela."
+            ));
+        };
+        let expected = hir::type_shape(
+            Type::Record(record.id),
+            &self.record_types,
+            &self.enum_types,
+        );
+        if expected != shape {
+            return Err(format!(
+                "A tela `{name}` recebe `{expected}`, mas `Telas.abrir` entregou `{shape}`: declare o mesmo registro, com os mesmos campos e tipos, nas duas telas."
+            ));
+        }
+        if let Some(target) = self.state.list_mut().and_then(|w| w.get_mut(slot)) {
+            *target = value.clone();
+        }
+        Ok(())
+    }
+
+    fn remember(&mut self, before: &ScreenValue) {
+        if self.state != *before {
+            self.history.push(self.state.clone());
+            if self.history.len() > MAX_HISTORY {
+                self.history.remove(0);
+            }
+        }
     }
 
     /// Host das chamadas dos eventos (a janela da tela, com os diálogos do
@@ -468,20 +674,20 @@ impl ScreenRun {
 
     /// Chama um handler com a janela atual e guarda a janela devolvida. Em
     /// erro, o estado continua o de antes.
-    fn call(&mut self, handler: &str) -> Result<String, String> {
+    fn call(&mut self, handler: &str, extra: Vec<Value>) -> Result<(String, Requests), String> {
         let mut io = BufferIo::default();
+        let requests = Rc::new(RefCell::new(Vec::new()));
         let result = {
             let mut vm = Vm::new(&self.module, &mut io);
-            if let Some(factory) = &self.host {
-                let host = factory();
-                vm = vm.with_host(match &self.permissions {
-                    Some(allowed) => Box::new(PermissionHost {
-                        inner: host,
-                        allowed: allowed.clone(),
-                    }),
-                    None => host,
-                });
-            }
+            let inner: Box<dyn Host> = match &self.host {
+                Some(factory) => factory(),
+                None => Box::new(NoHost),
+            };
+            vm = vm.with_host(Box::new(CallHost {
+                inner,
+                allowed: self.host.as_ref().and(self.permissions.clone()),
+                requests: Rc::clone(&requests),
+            }));
             #[cfg(not(target_arch = "wasm32"))]
             if self.allows("Arquivos") {
                 if let Some(dir) = &self.project_dir {
@@ -490,16 +696,19 @@ impl ScreenRun {
             } else {
                 vm = vm.with_ferro_workspace_denied(denied("Arquivos"));
             }
-            vm.call_function(handler, vec![self.state.to_vm()], self.step_budget)
+            let mut arguments = vec![self.state.to_vm()];
+            arguments.extend(extra);
+            vm.call_function(handler, arguments, self.step_budget)
         };
         let value = result.map_err(|error| format!("Erro em `{handler}`: {}", error.message))?;
         let next = ScreenValue::from_vm(&value)?;
         if next.list().map(<[ScreenValue]>::len) != self.state.list().map(<[ScreenValue]>::len) {
             return Err(format!("`{handler}` não devolveu a janela"));
         }
+        let requests = Requests::from_vm(requests.take())?;
         self.state = next;
         self.sync_bound();
-        Ok(io.output)
+        Ok((io.output, requests))
     }
 
     /// Índices de `dados.a.b` dentro da janela: a posição de `dados` e, depois,
@@ -716,28 +925,23 @@ impl ScreenRun {
             .attribute(&event.event)
             .map(|a| a.value.trim().to_owned())
             .filter(|h| !h.is_empty());
-        let output = match &handler {
-            Some(name) => match self.call(name) {
-                Ok(output) => output,
+        let (output, requests) = match &handler {
+            Some(name) => match self.call(name, Vec::new()) {
+                Ok(result) => result,
                 Err(error) => {
                     self.state = before;
                     return Err(error);
                 }
             },
-            None => String::new(),
+            None => (String::new(), Requests::default()),
         };
-        if self.state != before {
-            self.history.push(self.state.clone());
-            if self.history.len() > MAX_HISTORY {
-                self.history.remove(0);
-            }
-        }
-        Ok(self.step(handler, output))
+        self.remember(&before);
+        Ok(self.step_with(handler, output, requests))
     }
 
     /// O estado atual, sem chamar função (a janela pede ao abrir).
     pub fn current_step(&self) -> ScreenStep {
-        self.step(None, String::new())
+        self.step_with(None, String::new(), Requests::default())
     }
 
     /// Estados guardados, do inicial ao atual.
@@ -750,12 +954,14 @@ impl ScreenRun {
         self.history.get(index).map(|state| self.snapshot(state))
     }
 
-    fn step(&self, handler: Option<String>, output: String) -> ScreenStep {
+    fn step_with(&self, handler: Option<String>, output: String, requests: Requests) -> ScreenStep {
         ScreenStep {
             snapshot: self.snapshot(&self.state),
             handler,
             output,
             step: self.history.len().saturating_sub(1),
+            open: requests.open,
+            close: requests.close,
         }
     }
 

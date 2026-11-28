@@ -23,7 +23,7 @@ pub mod stdlib;
 pub mod value;
 pub mod vm;
 
-pub use host::{FileFilter, Host, NoHost, Sound};
+pub use host::{FileFilter, Host, NoHost, ScreenRequest, Sound};
 pub use io::{BufferIo, Io, StdIo};
 pub use value::Value;
 pub use vm::{HostNativeHandler, RuntimeError, RuntimeLimitReason, Status, Vm, run};

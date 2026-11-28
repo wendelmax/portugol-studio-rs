@@ -31,7 +31,33 @@ pub trait Sound {
     fn set_gain(&mut self, gain: f32);
 }
 
+/// Pedido de `Telas` (ADR 0018, Emenda 5). Só é atendido quando o handler
+/// termina, com a janela que ele devolveu.
+#[derive(Debug, Clone)]
+pub enum ScreenRequest {
+    /// `Telas.abrir`: a tela, os dados entregues e a função de retorno, com a
+    /// forma do tipo dos dados (`Conta{nome:cadeia}`) para conferir a outra
+    /// tela.
+    Open {
+        screen: String,
+        data: Option<(crate::Value, String)>,
+        callback: Option<String>,
+    },
+    /// `Telas.concluir` (`true`) ou `Telas.fechar` (`false`).
+    Close { accept: bool },
+}
+
 pub trait Host {
+    /// `Telas.abrir`, `Telas.concluir` e `Telas.fechar`.
+    fn screen_request(&mut self, request: ScreenRequest) -> Result<(), String> {
+        let name = match request {
+            ScreenRequest::Open { .. } => "Telas.abrir",
+            ScreenRequest::Close { accept: true } => "Telas.concluir",
+            ScreenRequest::Close { accept: false } => "Telas.fechar",
+        };
+        Err(screen_only(name))
+    }
+
     /// Decodifica um clipe a partir de um caminho já resolvido pelo Ferro.
     fn load_sound(&mut self, path: &Path) -> Result<Box<dyn Sound>, String> {
         let _ = path;

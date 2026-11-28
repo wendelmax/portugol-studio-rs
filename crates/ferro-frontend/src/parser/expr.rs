@@ -223,6 +223,7 @@ impl Parser {
                         | "Dialogo"
                         | "AreaTransferencia"
                         | "Notificacao"
+                        | "Telas"
                         | "Json"
                         | "Internet"
                         | "Graficos"

@@ -63,8 +63,8 @@ pub use run::{
     RunObserver, RunOptions, RunOutcome, start_ferro_rs, start_ferro_rs_with_host,
 };
 pub use screen_run::{
-    SCREEN_EVENT_STEP_BUDGET, ScreenEvent, ScreenHostFactory, ScreenRun, ScreenStartError,
-    ScreenStep, ScreenValue,
+    SCREEN_EVENT_STEP_BUDGET, ScreenEvent, ScreenHostFactory, ScreenOpen, ScreenRun,
+    ScreenStartError, ScreenStep, ScreenValue,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

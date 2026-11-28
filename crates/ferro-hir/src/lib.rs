@@ -423,3 +423,83 @@ pub enum ExprKind {
 
 #[cfg(test)]
 mod tests;
+
+/// Forma de um tipo, com os nomes e os campos dos registros e enums
+/// (`Conta{nome:cadeia,saldo:real}`). Duas telas compiladas à parte trocam
+/// dados (ADR 0018, Emenda 5) quando a forma dos tipos é a mesma.
+pub fn type_shape(ty: Type, records: &[RecordDef], enums: &[EnumDef]) -> String {
+    fn go(ty: Type, records: &[RecordDef], enums: &[EnumDef], depth: usize, out: &mut String) {
+        let record = |id: TypeId| records.iter().find(|r| r.id == id);
+        let enumeration = |id: TypeId| enums.iter().find(|e| e.id == id);
+        match ty {
+            Type::Unit => out.push_str("vazio"),
+            Type::Integer => out.push_str("inteiro"),
+            Type::Real => out.push_str("real"),
+            Type::Boolean => out.push_str("logico"),
+            Type::String => out.push_str("cadeia"),
+            Type::Character => out.push_str("caracter"),
+            Type::VectorInteger => out.push_str("vetor<inteiro>"),
+            Type::VectorReal => out.push_str("vetor<real>"),
+            Type::VectorBoolean => out.push_str("vetor<logico>"),
+            Type::VectorString => out.push_str("vetor<cadeia>"),
+            Type::VectorCharacter => out.push_str("vetor<caracter>"),
+            Type::VectorRecord(id) => {
+                out.push_str("vetor<");
+                go(Type::Record(id), records, enums, depth, out);
+                out.push('>');
+            }
+            Type::VectorEnum(id) => {
+                out.push_str("vetor<");
+                go(Type::Enum(id), records, enums, depth, out);
+                out.push('>');
+            }
+            Type::Record(id) => match record(id) {
+                Some(definition) => {
+                    out.push_str(&definition.name);
+                    if depth < 16 {
+                        out.push('{');
+                        for (index, field) in definition.fields.iter().enumerate() {
+                            if index > 0 {
+                                out.push(',');
+                            }
+                            out.push_str(&field.name);
+                            out.push(':');
+                            go(field.ty, records, enums, depth + 1, out);
+                        }
+                        out.push('}');
+                    }
+                }
+                None => out.push('?'),
+            },
+            Type::Enum(id) => match enumeration(id) {
+                Some(definition) => {
+                    out.push_str(&definition.name);
+                    if depth < 16 {
+                        out.push('{');
+                        for (index, variant) in definition.variants.iter().enumerate() {
+                            if index > 0 {
+                                out.push(',');
+                            }
+                            out.push_str(&variant.name);
+                            if !variant.payload_types.is_empty() {
+                                out.push('(');
+                                for (i, payload) in variant.payload_types.iter().enumerate() {
+                                    if i > 0 {
+                                        out.push(',');
+                                    }
+                                    go(*payload, records, enums, depth + 1, out);
+                                }
+                                out.push(')');
+                            }
+                        }
+                        out.push('}');
+                    }
+                }
+                None => out.push('?'),
+            },
+        }
+    }
+    let mut out = String::new();
+    go(ty, records, enums, 0, &mut out);
+    out
+}

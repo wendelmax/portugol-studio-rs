@@ -112,6 +112,9 @@ impl Parser {
         if module == "Dialogo" {
             return self.dialogo_call(member, member_span, arguments, whole_span);
         }
+        if module == "Telas" {
+            return self.telas_call(member, member_span, arguments, whole_span);
+        }
 
         use StdlibReturn::{Option as RetOpt, ResultString as RetRes, Scalar as Ret};
         use hir::Type::{Boolean as B, Character as C, Integer as I, Real as R, String as S};
@@ -477,6 +480,150 @@ impl Parser {
             }
         };
         Ok(dialogo_expr(member, arguments, ty, whole_span))
+    }
+
+    /// `Telas` (ADR 0018, Emenda 5): `abrir("Tela")`, `abrir("Tela", dados,
+    /// "funcao")`, `concluir()` e `fechar()`. Os nomes são textos literais para
+    /// que a análise confira a função de retorno; a chamada leva também a forma
+    /// do tipo dos dados, que a execução compara com o `Dados` da outra tela.
+    fn telas_call(
+        &mut self,
+        member: String,
+        member_span: Span,
+        mut arguments: Vec<hir::Expr>,
+        whole_span: Span,
+    ) -> Result<hir::Expr, Vec<Diagnostic>> {
+        let arity = |parser: &Self, expected: &str| -> Result<hir::Expr, Vec<Diagnostic>> {
+            parser.fail(
+                "ferro.stdlib-call-arity",
+                format!("`Telas.{member}` espera {expected}"),
+                whole_span,
+            )
+        };
+        let expr = |name: &str, arguments: Vec<hir::Expr>| hir::Expr {
+            kind: hir::ExprKind::HostCall {
+                module: "Telas".into(),
+                name: name.into(),
+                arguments,
+            },
+            ty: hir::Type::Unit,
+            span: to_hir_span(whole_span),
+        };
+        // Os pares `("Telas", "...")` seguem o formato da tabela da biblioteca
+        // padrão, que o teste de paridade do catálogo da IDE lê.
+        match ("Telas", member.as_str()) {
+            ("Telas", "concluir") => {
+                if !arguments.is_empty() {
+                    return arity(self, "nenhum argumento");
+                }
+                Ok(expr(&member, arguments))
+            }
+            ("Telas", "fechar") => {
+                if !arguments.is_empty() {
+                    return arity(self, "nenhum argumento");
+                }
+                Ok(expr(&member, arguments))
+            }
+            ("Telas", "abrir") => {
+                if arguments.len() != 1 && arguments.len() != 3 {
+                    return arity(
+                        self,
+                        "o nome da tela, ou o nome, os dados e a função de retorno: `Telas.abrir(\"Outra\", t.dados, \"aoFechar\")`",
+                    );
+                }
+                if literal_text(&arguments[0]).is_none_or(|name| name.trim().is_empty()) {
+                    return self.fail(
+                        "ferro.stdlib-call-type-mismatch",
+                        "O nome da tela em `Telas.abrir` é um texto entre aspas, como `\"EditarConta\"`",
+                        syntax_span(arguments[0].span),
+                    );
+                }
+                if arguments.len() == 1 {
+                    return Ok(expr("abrir", arguments));
+                }
+                let data_ty = arguments[1].ty;
+                if !matches!(data_ty, hir::Type::Record(_)) {
+                    return self.fail(
+                        "ferro.stdlib-call-type-mismatch",
+                        format!(
+                            "Os dados de `Telas.abrir` são um registro (o `Dados` da outra tela), recebeu `{}`",
+                            type_label(data_ty)
+                        ),
+                        syntax_span(arguments[1].span),
+                    );
+                }
+                let Some(callback) = literal_text(&arguments[2]).map(str::to_owned) else {
+                    return self.fail(
+                        "ferro.stdlib-call-type-mismatch",
+                        "A função de retorno de `Telas.abrir` é o nome dela entre aspas, como `\"edicao_terminou\"`",
+                        syntax_span(arguments[2].span),
+                    );
+                };
+                let answer =
+                    self.intern_builtin_enum(hir::BuiltinEnum::Option(data_ty), whole_span);
+                let expected = |parser: &Self| {
+                    let record = |ty: hir::Type| match ty {
+                        hir::Type::Record(id) => parser
+                            .record_types
+                            .iter()
+                            .find(|r| r.id == id)
+                            .map_or("J".to_owned(), |r| r.name.clone()),
+                        _ => "J".to_owned(),
+                    };
+                    format!(
+                        "`funcao {callback}(tela: J, resposta: Opcao<{}>) -> J`, com `J` a janela",
+                        record(data_ty)
+                    )
+                };
+                let fits = self.signatures.get(&callback).map(|signature| {
+                    signature.parameters.len() == 2
+                        && matches!(signature.parameters[0].ty, hir::Type::Record(_))
+                        && signature.return_type == Some(signature.parameters[0].ty)
+                        && signature.parameters[1].ty == answer
+                });
+                match fits {
+                    None => {
+                        return self.fail(
+                            "ferro.unknown-function",
+                            format!(
+                                "A função de retorno `{callback}` não existe: crie {}",
+                                expected(self)
+                            ),
+                            syntax_span(arguments[2].span),
+                        );
+                    }
+                    Some(false) => {
+                        return self.fail(
+                            "ferro.stdlib-call-type-mismatch",
+                            format!("A função de retorno deve ser {}", expected(self)),
+                            syntax_span(arguments[2].span),
+                        );
+                    }
+                    Some(true) => {}
+                }
+                let shape = hir::type_shape(data_ty, &self.record_types, &self.enum_types);
+                arguments.push(hir::Expr {
+                    kind: hir::ExprKind::String(shape),
+                    ty: hir::Type::String,
+                    span: arguments[2].span,
+                });
+                Ok(expr("abrir", arguments))
+            }
+            _ => self.fail(
+                "ferro.unknown-stdlib-function",
+                format!(
+                    "Função desconhecida: Telas.{member}. Use `abrir`, `concluir` ou `fechar`."
+                ),
+                member_span,
+            ),
+        }
+    }
+}
+
+fn literal_text(expr: &hir::Expr) -> Option<&str> {
+    match &expr.kind {
+        hir::ExprKind::String(text) => Some(text),
+        _ => None,
     }
 }
 

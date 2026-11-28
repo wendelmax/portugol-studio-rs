@@ -1244,7 +1244,10 @@ impl<'a> Vm<'a> {
                     }
                     if matches!(
                         native_ref.library.as_str(),
-                        "FerroDialogo" | "FerroAreaTransferencia" | "FerroNotificacao"
+                        "FerroDialogo"
+                            | "FerroAreaTransferencia"
+                            | "FerroNotificacao"
+                            | "FerroTelas"
                     ) {
                         #[cfg(feature = "stdlib")]
                         {
