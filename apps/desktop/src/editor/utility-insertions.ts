@@ -37,14 +37,14 @@ export function createUtilityInsertions(dependencies: UtilityInsertionsDependenc
     for (const name of dependencies.porsLibraries) {
       const button = dependencies.createButton();
       button.textContent = name;
-      button.title = `Inserir módulo PORS ${name}.`;
+      button.title = `Inserir biblioteca Ferro ${name}.`;
       button.onclick = () => {
         const tab = dependencies.activeTab();
         if (!tab || tab.language !== "portugol-rs" || dependencies.isRunning(tab)) return;
         if (dependencies.insertText) {
           dependencies.insertText(`${name}.`);
           dependencies.focusEditor();
-          dependencies.setStatus(`Módulo PORS inserido: ${name}. (use Ctrl+Espaço para completar).`, "ok");
+          dependencies.setStatus(`Biblioteca Ferro inserida: ${name}. (use Ctrl+Espaço para completar).`, "ok");
         } else {
           dependencies.setStatus(`Use ${name}.funcao(...) diretamente em Ferro.`);
         }
@@ -89,7 +89,7 @@ export function createUtilityInsertions(dependencies: UtilityInsertionsDependenc
     const porsMode = language === "portugol-rs";
     for (const [name, button] of libraryButtons) {
       button.disabled = !porsMode;
-      button.title = porsMode ? `Inserir módulo PORS ${name}.` : "Módulos PORS não se aplicam a Rust.";
+      button.title = porsMode ? `Inserir biblioteca Ferro ${name}.` : "Bibliotecas Ferro não se aplicam a Rust.";
     }
   }
 

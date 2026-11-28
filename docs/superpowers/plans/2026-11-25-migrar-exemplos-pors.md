@@ -8,7 +8,7 @@
 
 **Tecnologias:** Rust, Tauri 2, TypeScript, Vite, testes Node e suíte de integração do `portugol-service`.
 
-**Especificação:** issue [#225](https://github.com/wendelmax/portugol-studio-rs/issues/225), [ADR 0016](../../adr/0016-pors-como-linguagem-autoral-e-retirada-do-por.md), [plano PORS-only](../pors-only-migration.md) e [matriz de migração](../research/PORS_MIGRATION_MATRIX.md).
+**Especificação:** issue [#225](https://github.com/wendelmax/ferro-studio/issues/225), [ADR 0016](../../adr/0016-pors-como-linguagem-autoral-e-retirada-do-por.md), [plano PORS-only](../pors-only-migration.md) e [matriz de migração](../research/PORS_MIGRATION_MATRIX.md).
 
 ## Restrições globais
 

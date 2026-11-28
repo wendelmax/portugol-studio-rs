@@ -5,7 +5,7 @@ use semver::Version;
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
-const LATEST: &str = "https://api.github.com/repos/wendelmax/portugol-studio-rs/releases/latest";
+const LATEST: &str = "https://api.github.com/repos/wendelmax/ferro-studio/releases/latest";
 
 #[derive(Deserialize)]
 struct Release {

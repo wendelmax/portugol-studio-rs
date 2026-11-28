@@ -10,7 +10,7 @@
 - Extensão `.pors`: definida como extensão proposta, ainda não registrada em abrir/salvar/associação do Tauri, CodeMirror ou CLI. O subset ainda não é uma integração de arquivo end-to-end.
 - Testes executados:
   - `cargo test -p portugol-rs-frontend -p portugol-rust --offline --locked` — PASS (36 testes; inclui execução de Rust gerado pelo exemplo `idade`, que imprime `17`).
-  - `CARGO_TARGET_DIR=/home/wendel/.codex/worktrees/fb26/portugol-studio-rs/target cargo test --offline --locked` — PASS nos membros padrão, inclui corpus clássico, frontend e exportador.
+  - `CARGO_TARGET_DIR=/home/wendel/.codex/worktrees/fb26/ferro-studio/target cargo test --offline --locked` — PASS nos membros padrão, inclui corpus clássico, frontend e exportador.
   - `cargo clippy -p portugol-rs-frontend -p portugol-rust --offline --all-targets -- -D warnings` — PASS.
   - `cargo fmt --all --check` e `git diff --check` — PASS.
   - `cargo test --workspace` incluindo Tauri — não executado nesta fatia; neste ambiente falta `javascriptcoregtk-4.1.pc`/WebKitGTK 4.1, limitação confirmada na fatia anterior. A CI do PR fará o gate completo.

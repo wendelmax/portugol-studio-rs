@@ -66,7 +66,7 @@ test("module buttons insert PORS module prefix and focus editor", () => {
   assert.deepEqual(inserted, ["Json."]);
   assert.deepEqual(f.events, [
     ["focus"],
-    ["status", "Módulo PORS inserido: Json. (use Ctrl+Espaço para completar).", "ok"],
+    ["status", "Biblioteca Ferro inserida: Json. (use Ctrl+Espaço para completar).", "ok"],
   ]);
 });
 

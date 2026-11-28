@@ -11,13 +11,13 @@
 
 ## Evidências
 
-- `CARGO_TARGET_DIR=/home/wendel/Projetos/portugol-studio-rs/target cargo test -p portugol-service --test rust_format --offline --locked -- --test-threads=1` — PASS, 4 testes com rustfmt real (Unicode e literal longo, sintaxe inválida e limite de fonte).
+- `CARGO_TARGET_DIR=/home/wendel/Projetos/ferro-studio/target cargo test -p portugol-service --test rust_format --offline --locked -- --test-threads=1` — PASS, 4 testes com rustfmt real (Unicode e literal longo, sintaxe inválida e limite de fonte).
 - `npm test --prefix apps/desktop` — PASS, 27 arquivos de teste.
-- `CARGO_TARGET_DIR=/home/wendel/Projetos/portugol-studio-rs/target cargo check -p portugol-desktop --offline --locked` — PASS.
+- `CARGO_TARGET_DIR=/home/wendel/Projetos/ferro-studio/target cargo check -p portugol-desktop --offline --locked` — PASS.
 - `cargo fmt --all --check` e `git diff --check` — PASS.
-- `CARGO_TARGET_DIR=/home/wendel/Projetos/portugol-studio-rs/target cargo test --workspace --offline --locked -- --test-threads=1` — PASS após liberar rede ao teste existente de serviços Internet.
-- `CARGO_TARGET_DIR=/home/wendel/Projetos/portugol-studio-rs/target cargo clippy --workspace --all-targets --offline --locked -- -D warnings` — PASS.
-- `CARGO_TARGET_DIR=/home/wendel/Projetos/portugol-studio-rs/target cargo fmt --all --check`, `git diff --check` e `cargo check -p portugol-desktop --offline --locked` — PASS.
+- `CARGO_TARGET_DIR=/home/wendel/Projetos/ferro-studio/target cargo test --workspace --offline --locked -- --test-threads=1` — PASS após liberar rede ao teste existente de serviços Internet.
+- `CARGO_TARGET_DIR=/home/wendel/Projetos/ferro-studio/target cargo clippy --workspace --all-targets --offline --locked -- -D warnings` — PASS.
+- `CARGO_TARGET_DIR=/home/wendel/Projetos/ferro-studio/target cargo fmt --all --check`, `git diff --check` e `cargo check -p portugol-desktop --offline --locked` — PASS.
 - `npm run build --prefix apps/desktop` — PASS; Vite mantém aviso do chunk principal acima de 500 kB.
 - CI multiplataforma — pendente.
 - E2E visual no Tauri — NOT_RUN; o workspace não tem runner para clicar no editor.

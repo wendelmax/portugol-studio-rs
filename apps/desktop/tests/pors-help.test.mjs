@@ -12,20 +12,20 @@ test("PORS help starts on a PORS topic and covers all 14 PORS libraries grouped 
   assert.ok(PORS_HELP_TOPICS.some((topic) => topic.id === PORS_HELP_DEFAULT_TOPIC));
   const libNames = PORS_HELP_LIBRARIES.map((lib) => lib.name);
   for (const expected of [
-    "PORS: Matematica",
-    "PORS: Texto",
-    "PORS: Tipos",
-    "PORS: Util",
-    "PORS: Calendario",
-    "PORS: Arquivos",
-    "PORS: Json",
-    "PORS: Internet",
-    "PORS: UI",
-    "PORS: Graficos",
-    "PORS: Teclado",
-    "PORS: Mouse",
-    "PORS: Sons",
-    "PORS: Dialogo",
+    "Matematica",
+    "Texto",
+    "Tipos",
+    "Util",
+    "Calendario",
+    "Arquivos",
+    "Json",
+    "Internet",
+    "UI",
+    "Graficos",
+    "Teclado",
+    "Mouse",
+    "Sons",
+    "Dialogo",
   ]) {
     assert.ok(libNames.includes(expected), `esperava biblioteca ${expected} na ajuda PORS`);
   }

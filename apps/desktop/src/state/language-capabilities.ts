@@ -78,11 +78,11 @@ const PORS_LIBRARY_NAMES: ReadonlySet<string> = new Set(PORS_STDLIB_MODULES);
     return [name, {
       disabled: rustFile || !porsAvailable,
       title: rustFile
-        ? "Módulos PORS não se aplicam a Rust."
+        ? "Bibliotecas Ferro não se aplicam a Rust."
         : markupFile
-        ? "Módulos PORS não se aplicam a arquivos de marcação."
+        ? "Bibliotecas Ferro não se aplicam a arquivos de marcação."
         : porsAvailable
-          ? `Inserir módulo PORS ${name}.`
+          ? `Inserir biblioteca Ferro ${name}.`
           : "Módulo indisponível em Ferro.",
     }];
   }));

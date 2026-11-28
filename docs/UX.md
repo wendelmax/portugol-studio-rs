@@ -147,15 +147,15 @@ experiência:
 
 | Issue | Escopo | Estado |
 | --- | --- | --- |
-| [#132](https://github.com/wendelmax/portugol-studio-rs/issues/132) | Executar `.fer` na VM sem exigir Rust instalado | Entregue |
-| [#133](https://github.com/wendelmax/portugol-studio-rs/issues/133) | Barra de status com linguagem, modo e diagnósticos | Aberta |
-| [#134](https://github.com/wendelmax/portugol-studio-rs/issues/134) | Condicionais encadeadas `senao se` | Entregue |
-| [#135](https://github.com/wendelmax/portugol-studio-rs/issues/135) | Recuperação de erros no parser | Aberta |
-| [#136](https://github.com/wendelmax/portugol-studio-rs/issues/136) | Tokens, contraste, movimento reduzido e alto contraste | Aberta; depende de #140 |
-| [#137](https://github.com/wendelmax/portugol-studio-rs/issues/137) | Trilha visível de aprendizagem | Aberta |
-| [#138](https://github.com/wendelmax/portugol-studio-rs/issues/138) | Comparação lado a lado com Rust gerado | Aberta; depende de #139 |
-| [#139](https://github.com/wendelmax/portugol-studio-rs/issues/139) | Modularização do shell da IDE | Aberta/em andamento |
-| [#140](https://github.com/wendelmax/portugol-studio-rs/issues/140) | Separação de estilos e tokens | Aberta/em andamento |
+| [#132](https://github.com/wendelmax/ferro-studio/issues/132) | Executar `.fer` na VM sem exigir Rust instalado | Entregue |
+| [#133](https://github.com/wendelmax/ferro-studio/issues/133) | Barra de status com linguagem, modo e diagnósticos | Aberta |
+| [#134](https://github.com/wendelmax/ferro-studio/issues/134) | Condicionais encadeadas `senao se` | Entregue |
+| [#135](https://github.com/wendelmax/ferro-studio/issues/135) | Recuperação de erros no parser | Aberta |
+| [#136](https://github.com/wendelmax/ferro-studio/issues/136) | Tokens, contraste, movimento reduzido e alto contraste | Aberta; depende de #140 |
+| [#137](https://github.com/wendelmax/ferro-studio/issues/137) | Trilha visível de aprendizagem | Aberta |
+| [#138](https://github.com/wendelmax/ferro-studio/issues/138) | Comparação lado a lado com Rust gerado | Aberta; depende de #139 |
+| [#139](https://github.com/wendelmax/ferro-studio/issues/139) | Modularização do shell da IDE | Aberta/em andamento |
+| [#140](https://github.com/wendelmax/ferro-studio/issues/140) | Separação de estilos e tokens | Aberta/em andamento |
 
 As decisões de produto relacionadas são os ADRs
 [0015](adr/0015-evolucao-visual-orientada-a-aprendizagem.md),

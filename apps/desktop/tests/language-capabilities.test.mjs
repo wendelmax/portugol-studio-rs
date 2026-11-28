@@ -50,7 +50,7 @@ test("Rust without detected Cargo shows a discovery message and locks execution"
   assert.equal(controls.buttons["btn-run"].description, "Verificando se este arquivo pertence a um projeto Cargo.");
   assert.equal(controls.buttons["btn-debug"].disabled, true);
   assert.equal(controls.arguments.disabled, false);
-  assert.equal(controls.libraries.Matematica.title, "Módulos PORS não se aplicam a Rust.");
+  assert.equal(controls.libraries.Matematica.title, "Bibliotecas Ferro não se aplicam a Rust.");
 });
 
 test("Rust reports missing tools, formatter, and unsupported symbol actions", () => {
@@ -102,7 +102,7 @@ test("desktop markup only formats: no run, debug, arguments, PORS modules or sym
   );
   assert.equal(controls.arguments.disabled, true);
   assert.equal(controls.libraries.Texto.disabled, true);
-  assert.equal(controls.libraries.Texto.title, "Módulos PORS não se aplicam a arquivos de marcação.");
+  assert.equal(controls.libraries.Texto.title, "Bibliotecas Ferro não se aplicam a arquivos de marcação.");
   assert.equal(controls.symbolActions.disabled, true);
   assert.equal(controls.format.disabled, false);
 });

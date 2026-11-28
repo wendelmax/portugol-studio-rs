@@ -109,7 +109,7 @@ export function mountProjectDialogs(info: { version: string; license: string }) 
       await api.openProjectPage("bug_report");
       reportDialog.close();
     } catch {
-      reportError.textContent = "Não foi possível abrir o navegador. Use github.com/wendelmax/portugol-studio-rs/issues/new.";
+      reportError.textContent = "Não foi possível abrir o navegador. Use github.com/wendelmax/ferro-studio/issues/new.";
       reportError.hidden = false;
     } finally {
       button.disabled = false;

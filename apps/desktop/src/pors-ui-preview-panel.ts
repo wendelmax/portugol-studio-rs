@@ -212,7 +212,7 @@ export function mountPorsUiPreviewPanel(
     step = 0;
     busy = true;
     preview.setDisabled(true);
-    setStatus("Iniciando preview visual PORS…", false);
+    setStatus("Iniciando prévia visual…", false);
     syncButtons();
 
     try {

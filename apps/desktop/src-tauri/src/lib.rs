@@ -627,9 +627,9 @@ enum ProjectPage {
 #[tauri::command]
 async fn open_project_page(page: ProjectPage) -> Result<(), String> {
     let url = match page {
-        ProjectPage::BugReport => "https://github.com/wendelmax/portugol-studio-rs/issues/new",
-        ProjectPage::Releases => "https://github.com/wendelmax/portugol-studio-rs/releases",
-        ProjectPage::Contribute => "https://github.com/wendelmax/portugol-studio-rs",
+        ProjectPage::BugReport => "https://github.com/wendelmax/ferro-studio/issues/new",
+        ProjectPage::Releases => "https://github.com/wendelmax/ferro-studio/releases",
+        ProjectPage::Contribute => "https://github.com/wendelmax/ferro-studio",
     };
     let mut command;
     #[cfg(target_os = "linux")]

@@ -106,7 +106,7 @@ const PORS_TOP_LEVEL_DOCS: Record<string, PorsDocEntry> = {
 export const PORS_SNIPPETS: Completion[] = [
   snippetCompletion("funcao ${nome}(${param}: ${inteiro}) -> ${inteiro} {\n    ${}\n}", {
     label: "funcao",
-    detail: "declaração de função PORS",
+    detail: "declaração de função Ferro",
     type: "keyword",
   }),
   snippetCompletion("seja ${nome} = ${0};", {
@@ -141,7 +141,7 @@ export const PORS_SNIPPETS: Completion[] = [
   }),
   snippetCompletion("para (seja mutavel ${i} = 0; ${i} < ${n}; ${i} += 1) {\n    ${}\n}", {
     label: "para",
-    detail: "laço contado PORS",
+    detail: "laço contado Ferro",
     type: "keyword",
   }),
   snippetCompletion("registro ${Nome} {\n    ${campo}: ${inteiro}\n}", {

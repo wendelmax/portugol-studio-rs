@@ -60,8 +60,8 @@ estiver aberto na pasta principal:
 
 ```bash
 git fetch origin issue/<número>
-git worktree add ../portugol-studio-rs-issue-<número> issue/<número>
-cd ../portugol-studio-rs-issue-<número>
+git worktree add ../ferro-studio-issue-<número> issue/<número>
+cd ../ferro-studio-issue-<número>
 ```
 
 - Mantenha o escopo da issue. Achou outro problema? Abra uma issue nova.
@@ -105,7 +105,7 @@ documentação não disparam build nem testes.
    pelo `Closes #<número>`.
 4. Depois do merge, rode `scripts/issue.sh atualizar`: issues que dependiam da
    sua passam de `bloqueada` para `pronta`.
-5. Remova a worktree: `git worktree remove ../portugol-studio-rs-issue-<número>`.
+5. Remova a worktree: `git worktree remove ../ferro-studio-issue-<número>`.
 
 ## 4. Criar issues
 

@@ -86,7 +86,7 @@
 ### Task 4: Document the install and runtime contract
 
 **Files:**
-- Modify: `docs/PORTUGOL-RUST.md`
+- Modify: `docs/FERRO-RUST.md`
 - Modify: `docs/DISTRIBUICAO.md`
 - Create: `docs/reports/FEAT-RUST-SOURCE-EXECUTION.md`
 

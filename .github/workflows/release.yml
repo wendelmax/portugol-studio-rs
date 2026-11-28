@@ -149,7 +149,7 @@ jobs:
         shell: pwsh
         run: |
           cargo install trusted-signing-cli --locked
-          $cmd = "trusted-signing-cli -e $env:AZURE_SIGNING_ENDPOINT_SECRET -a $env:AZURE_SIGNING_ACCOUNT_SECRET -c $env:AZURE_CERTIFICATE_PROFILE_SECRET -d Portugol-Studio %1"
+          $cmd = "trusted-signing-cli -e $env:AZURE_SIGNING_ENDPOINT_SECRET -a $env:AZURE_SIGNING_ACCOUNT_SECRET -c $env:AZURE_CERTIFICATE_PROFILE_SECRET -d Ferro-Studio %1"
           $config = @{ bundle = @{ windows = @{ signCommand = $cmd } } } | ConvertTo-Json -Depth 5 -Compress
           Set-Content -Path apps/desktop/src-tauri/tauri.assinatura.json -Value $config
           "TAURI_SIGN_CONFIG=--config src-tauri/tauri.assinatura.json" | Out-File -FilePath $env:GITHUB_ENV -Append

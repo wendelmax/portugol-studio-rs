@@ -5,13 +5,13 @@ Playground estático, sem dependências JavaScript externas, movido pelo crate
 `wasm32-unknown-unknown`.
 
 Versão online publicada automaticamente via GitHub Pages:
-[wendelmax.github.io/portugol-studio-rs](https://wendelmax.github.io/portugol-studio-rs/).
+[wendelmax.github.io/ferro-studio](https://wendelmax.github.io/ferro-studio/).
 
 ## Recursos
 
 - Validação instantânea de código `.fer` com diagnósticos em português;
 - Formatação canônica UTF-16;
-- Execução na VM PORS em memória linear com suporte a `leia` e orçamentos de
+- Execução na VM Ferro em memória linear com suporte a `leia` e orçamentos de
   passos, saída e memória de cadeias;
 - Prévia visual interativa para apps declarativos MVU (`UI.*` com
   `iniciar`/`atualizar`/`visualizar`), renderizados sem `innerHTML`;

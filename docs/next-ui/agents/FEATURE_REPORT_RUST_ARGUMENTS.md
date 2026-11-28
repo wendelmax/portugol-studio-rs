@@ -15,9 +15,9 @@
 
 - `cd apps/desktop && npm test` — PASS, 26 suítes.
 - `cd apps/desktop && npm run build` — PASS; Vite avisa que o chunk principal excede 500 kB.
-- `CARGO_TARGET_DIR=/home/wendel/Projetos/portugol-studio-rs/target cargo test --workspace --offline --locked` — PASS com acesso de rede autorizado; um teste de bibliotecas Internet/serviços web não pode passar no sandbox sem rede.
-- `CARGO_TARGET_DIR=/home/wendel/Projetos/portugol-studio-rs/target cargo test -p portugol-service --test rust_source_runner --offline --locked` — PASS, 12 testes, incluindo `argv` literal e rejeição de limites.
-- `CARGO_TARGET_DIR=/home/wendel/Projetos/portugol-studio-rs/target cargo check -p portugol-desktop --offline --locked` — PASS.
+- `CARGO_TARGET_DIR=/home/wendel/Projetos/ferro-studio/target cargo test --workspace --offline --locked` — PASS com acesso de rede autorizado; um teste de bibliotecas Internet/serviços web não pode passar no sandbox sem rede.
+- `CARGO_TARGET_DIR=/home/wendel/Projetos/ferro-studio/target cargo test -p portugol-service --test rust_source_runner --offline --locked` — PASS, 12 testes, incluindo `argv` literal e rejeição de limites.
+- `CARGO_TARGET_DIR=/home/wendel/Projetos/ferro-studio/target cargo check -p portugol-desktop --offline --locked` — PASS.
 - `cargo fmt --all --check`, `git diff --check` e `cargo clippy --workspace --all-targets --offline --locked -- -D warnings` — PASS.
 - E2E visual/interação na janela Tauri — NOT_RUN; sem runner para preencher o campo.
 

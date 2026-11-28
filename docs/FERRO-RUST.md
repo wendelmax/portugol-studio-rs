@@ -6,15 +6,15 @@ O botão **Rust** no editor mostra uma tradução local do programa ativo. O pai
 
 A versão inicial gera Rust para `funcao inicio()` sem parâmetros, declarações locais escalares, expressões tipadas, atribuições, `escreva`, `se` e `senao`. Tipos `inteiro`, `real`, `logico`, `cadeia` e `caracter` são aceitos quando a operação preserva a semântica.
 
-`inteiro` continua sendo de 32 bits, como no Portugol; o Rust gerado usa `i32` e operações wrapping. A cadeia vira `String`, literais são escapados e a concatenação gera uma expressão que não move o valor original. `escreva` não adiciona quebra de linha.
+`inteiro` continua sendo de 32 bits, na linguagem Ferro; o Rust gerado usa `i32` e operações wrapping. A cadeia vira `String`, literais são escapados e a concatenação gera uma expressão que não move o valor original. `escreva` não adiciona quebra de linha.
 
-O exportador prefixa nomes de variáveis com `pt_` para evitar palavras reservadas e colisões com auxiliares Rust. Variáveis sem inicializador recebem os valores padrão do interpretador. A saída de `logico` e `real` conserva a grafia e a formatação do Portugol.
+O exportador prefixa nomes de variáveis com `pt_` para evitar palavras reservadas e colisões com auxiliares Rust. Variáveis sem inicializador recebem os valores padrão do interpretador. A saída de `logico` e `real` conserva a grafia e a formatação da linguagem Ferro.
 
-Quando o código usa recursos fora desse subconjunto — por exemplo `leia`, laços, bibliotecas, vetores, matrizes, funções auxiliares ou conversões implícitas — a prévia explica o primeiro recurso sem suporte e sua posição. Nenhum código parcial é apresentado como tradução válida. Editar e executar o programa original continuam usando o compilador e a VM de Portugol.
+Quando o código usa recursos fora desse subconjunto — por exemplo `leia`, laços, bibliotecas, vetores, matrizes, funções auxiliares ou conversões implícitas — a prévia explica o primeiro recurso sem suporte e sua posição. Nenhum código parcial é apresentado como tradução válida. Editar e executar o programa original continuam usando o compilador e a VM do Ferro.
 
 ## Ferro (`.fer`)
 
-Ferro é um dialeto didático implementado separadamente da prévia do Portugol clássico. O subset atual inclui variáveis escalares tipadas, funções auxiliares com parâmetros e retorno tipados, chamadas (incluindo recursão), expressões aritméticas, comparações, lógica `&&`/`||`, condicionais, laços `enquanto` e `para`, `pare`, `continue`, concatenação de cadeias e `leia` tipado. O editor oferece outline, navegação e renomeação semântica para funções e bindings PORS. Recursos fora da gramática atual, como operadores bit a bit, vetores e bibliotecas, recebem diagnósticos em português com posição de origem.
+Ferro é uma linguagem de pseudocódigo em português cuja prévia mostra a evolução do programa para Rust. O subset atual inclui variáveis escalares tipadas, funções auxiliares com parâmetros e retorno tipados, chamadas (incluindo recursão), expressões aritméticas, comparações, lógica `&&`/`||`, condicionais, laços `enquanto` e `para`, `pare`, `continue`, concatenação de cadeias e `leia` tipado. O editor oferece outline, navegação e renomeação semântica para funções e vínculos da linguagem Ferro. Recursos fora da gramática atual, como operadores bit a bit, vetores e bibliotecas, recebem diagnósticos em português com posição de origem.
 
 Executar e depurar um `.fer` usam a VM educacional, sem exigir Rust instalado; `Arquivos.*` fica restrito à pasta do programa. A opção **Executar como Rust**, na paleta de comandos, compila o Rust gerado com `rustc` quando a toolchain está disponível. A depuração mostra os valores da VM. A depuração não representa execução, ownership ou borrowing do Rust. O laboratório de ownership continua sendo conteúdo editorial baseado em cenários, não uma análise do buffer do aluno.
 

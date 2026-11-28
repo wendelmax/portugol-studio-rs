@@ -80,7 +80,7 @@ funcao visualizar(estado: Estado) -> inteiro {
 funcao iniciar() -> Estado {
     retorne Estado {
         rascunho: "",
-        tarefa1: "Estudar PORS",
+        tarefa1: "Estudar Ferro",
         concluida1: falso,
         tarefa2: "Testar UI declarativa",
         concluida2: verdadeiro
@@ -137,7 +137,7 @@ funcao rotulo_tarefa(texto: cadeia, feita: logico) -> cadeia {
 
 funcao visualizar(estado: Estado) -> inteiro {
     retorne UI.coluna([
-        UI.texto("Lista de tarefas PORS"),
+        UI.texto("Lista de tarefas Ferro"),
         UI.linha([
             UI.entrada("rascunho", estado.rascunho, "Nova tarefa..."),
             UI.botao("salvar", "Adicionar")

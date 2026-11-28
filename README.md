@@ -1,14 +1,14 @@
 # Ferro Studio
 
-Ambiente educacional para programar em português, criar apps desktop e jogos 2D
-e evoluir para Rust real, construído em Rust
-(repositório `portugol-studio-rs`).
+Ambiente educacional para aprender lógica com pseudocódigo em português, usando
+Rust como inspiração e como próxima etapa na evolução do aprendizado.
 
-O programa reúne editor, console, depurador, designer visual, ajuda, exemplos e
-exercícios corrigidos automaticamente com foco em **Ferro (`.fer`)** — um
-dialeto didático em português com tipos explícitos, imutabilidade por padrão,
-registros, enumerações e tratamento de erros inspirados em Rust — além de suporte
-direto a arquivos **Rust (`.rs`)** e projetos Cargo. O código `.fer` pode ser
+O Ferro Studio reúne editor, console, depurador, designer visual, ajuda, exemplos
+e exercícios corrigidos automaticamente. **Ferro (`.fer`)** é uma linguagem de
+pseudocódigo em português, com tipos explícitos, imutabilidade por padrão,
+registros, enumerações e tratamento de erros. Rust inspira seus conceitos e é
+apresentado como caminho de evolução do aprendizado, com suporte direto a arquivos
+**Rust (`.rs`)** e projetos Cargo. O código `.fer` pode ser
 visualizado lado a lado em Rust e exportado como projeto Cargo, permitindo ao
 aluno avançar do pseudocódigo em português para uma linguagem usada
 profissionalmente.
@@ -32,12 +32,12 @@ profissionalmente.
 ## Instalação
 
 > **Experimente no navegador sem instalar:** acesse o
-> [**Ferro Studio Web Playground (WASM)**](https://wendelmax.github.io/portugol-studio-rs/)
+> [**Ferro Studio Web Playground (WASM)**](https://wendelmax.github.io/ferro-studio/)
 > para validar, formatar e executar programas `.fer` e apps visuais `UI.*`
 > diretamente no navegador.
 
 Baixe o instalador da sua plataforma na página de
-[Releases](https://github.com/wendelmax/portugol-studio-rs/releases):
+[Releases](https://github.com/wendelmax/ferro-studio/releases):
 
 | Sistema | Arquivo |
 |---|---|
@@ -45,7 +45,7 @@ Baixe o instalador da sua plataforma na página de
 | Linux (x86_64 e ARM64) | `.deb`, `.rpm`, `.AppImage` ou `.pkg.tar.zst` (Arch Linux) |
 | macOS (Apple Silicon ARM64 e Intel x86_64) | `.dmg` |
 
-No **Arch Linux**, você pode instalar o pacote `.pkg.tar.zst` da página de Releases com `sudo pacman -U portugol-studio-rs-*.pkg.tar.zst` ou compilar localmente a partir do repositório com `bash packaging/arch/build-package.sh`.
+No **Arch Linux**, você pode instalar o pacote `.pkg.tar.zst` da página de Releases com `sudo pacman -U ferro-studio-*.pkg.tar.zst` ou compilar localmente a partir do repositório com `bash packaging/arch/build-package.sh`.
 
 Os instaladores ainda não são assinados. No Windows, o SmartScreen pode exibir
 "O Windows protegeu o seu computador": clique em **Mais informações** e depois
@@ -60,13 +60,13 @@ partir de um `.fer`.
 
 ## O que a IDE oferece
 
-- Interface desktop proprietária (Tauri v2 + CodeMirror 6) com barra superior de projeto/modo/execução, `ActivityRail`, `Explorer`, `Inspector` (`Aprender`, `Bibliotecas`/`Modelos` PORS, árvore estrutural e variáveis) e diálogo dedicado de `Configurações` (`Ctrl+,`) com restauração de layout.
-- Editor com realce de sintaxe para Ferro (`.fer`) e Rust (`.rs`), autocompletar de palavras, funções e módulos PORS, dicas ao passar o mouse, dobramento de código, busca, renomeação de símbolos e formatação automática.
+- Interface desktop proprietária (Tauri v2 + CodeMirror 6) com barra superior de projeto/modo/execução, `ActivityRail`, `Explorer`, `Inspector` (`Aprender`, `Bibliotecas`/`Modelos` Ferro, árvore estrutural e variáveis) e diálogo dedicado de `Configurações` (`Ctrl+,`) com restauração de layout.
+- Editor com realce de sintaxe para Ferro (`.fer`) e Rust (`.rs`), autocompletar de palavras, funções e módulos Ferro, dicas ao passar o mouse, dobramento de código, busca, renomeação de símbolos e formatação automática.
 - Erros e avisos em português enquanto você digita, com indicação da linha.
 - Console com entrada de dados (`leia`) e parâmetros de execução.
 - Depurador com pontos de parada, execução passo a passo, pilha de chamadas e inspeção de variáveis, vetores, registros e enums.
 - Janela gráfica para programas que usam `Graficos`, `Teclado` e `Mouse`, reprodução de áudio com `Sons` e prévia visual declarativa para apps `UI.*`.
-- Ajuda integrada 100% PORS, catálogo de 119+ exemplos `.fer`, 8 dicas ilustradas da IDE e 14 exercícios `.licao` com correção automática.
+- Ajuda integrada em português, catálogo de 119+ exemplos `.fer`, 8 dicas ilustradas da IDE e 14 exercícios `.licao` com correção automática.
 - Ponte lado a lado Ferro ↔ Rust com mapeamento de origem (`MappingGutter`), diff de traduções e desvinculação segura para editar `.rs` independente.
 - Execução de arquivos Rust avulsos e projetos Cargo (`cargo check` / `cargo test` / `cargo run`).
 - Temas padronizados com contraste WCAG AA (`>= 4,5:1`): `Sistema` automático (VS Code Light/Dark Modern), `IntelliJ Rust Dark/Light`, `GitHub`, `One Dark Pro`, `Dracula`, `Catppuccin Mocha`, `Night Owl`, `Alto contraste` e editor de temas personalizados.
@@ -101,7 +101,7 @@ programação com palavras-chave em português e transição natural para Rust:
 - `registro` e `enum` com `escolha` exaustivo;
 - `Opcao<T>` e `Resultado<T, E>` com o operador `?`;
 - vetores dinâmicos (`adicionar`, `remover`, `obter`, `tamanho`);
-- bibliotecas padrão e multimídia PORS: `Matematica`, `Texto`, `Tipos`, `Util`,
+- bibliotecas padrão e multimídia do Ferro: `Matematica`, `Texto`, `Tipos`, `Util`,
   `Calendario`, `Arquivos`, `Json`, `Internet`, `UI`, `Graficos`, `Teclado`,
   `Mouse` e `Sons`;
 - interfaces visuais declarativas com `UI.*` no modelo
@@ -131,15 +131,13 @@ funcao inicio() {
 ```
 
 Programas `.fer` podem ser exportados como um arquivo Rust ou como um projeto
-Cargo completo. Os exemplos comentados ficam em
-[`crates/ferro-service/assets/exemplos-pors`](crates/ferro-service/assets/exemplos-pors)
-e aparecem no menu de exemplos da IDE. Detalhes sobre a exportação e a execução
-de Rust estão em [`docs/PORTUGOL-RUST.md`](docs/PORTUGOL-RUST.md).
+Cargo completo. Os exemplos comentados aparecem no menu de exemplos da IDE. Detalhes sobre a
+exportação e a execução de Rust estão em [`docs/FERRO-RUST.md`](docs/FERRO-RUST.md).
 
 ## Linha de comando
 
-O executável `portugol` valida, formata, executa, depura e exporta programas
-`.fer` sem abrir a IDE. Com o repositório clonado:
+O comando de linha de comando atual valida, formata, executa, depura e exporta
+programas `.fer` sem abrir a IDE. Com o repositório clonado:
 
 ```bash
 cargo run -p ferro-cli -- programa.fer                       # valida (também aceita pastas)
@@ -174,7 +172,7 @@ code-behind). `formatar` também aceita `.design` e `.ferproj`.
 | `crates/ferro-wasm` | núcleo do Ferro compilado para WebAssembly (`wasm32-unknown-unknown`) |
 | `crates/ferro-service` | camada usada pela IDE: verificar, executar, depurar, exemplos e exercícios `.licao` |
 | `crates/ferro-tela` | formato `.design` das telas desktop (pseudo-XAML) e manifesto `.ferproj`: parser, esquema, validação, formatação e modelo de projeto |
-| `crates/ferro-cli` | executável `portugol` |
+| `crates/ferro-cli` | ferramentas de linha de comando do Ferro |
 | `apps/desktop` | IDE em Tauri v2 com frontend TypeScript e CodeMirror 6 |
 | `apps/web-playground` | playground web estático sem dependências usando `ferro-wasm` (`scripts/build-web-playground.sh`) |
 | `docs` | arquitetura, design e distribuição |
@@ -225,7 +223,7 @@ diretamente.
   trabalhar em paralelo sem conflito e entregar o PR.
 - [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md): estrutura do compilador, da VM
   e da IDE.
-- [`docs/PORTUGOL-RUST.md`](docs/PORTUGOL-RUST.md): exportação para Rust,
+- [`docs/FERRO-RUST.md`](docs/FERRO-RUST.md): exportação para Rust,
   execução de `.rs` e projetos Cargo, limites de execução.
 - [`docs/DISTRIBUICAO.md`](docs/DISTRIBUICAO.md): como gerar e assinar os
   instaladores.

@@ -156,7 +156,7 @@ Para não gerar conflitos com as entregas paralelas do designer `.design` (ADRs
       `docs/DISTRIBUICAO.md` e `docs/UX.md`;
   - planejamento da transição de identificadores/pacotes (`br.ferro.studio` e
     pacote Arch `ferro-studio` com `replaces`/`conflicts`), mantendo o slug
-    antigo `portugol-studio-rs` livre na conta do GitHub para preservar os
+    antigo `ferro-studio` livre na conta do GitHub para preservar os
     redirecionamentos automáticos de clones, links e verificação de
     atualizações em instalações anteriores (como a `v0.7.0`).
 
@@ -271,6 +271,6 @@ continua distinguindo os dois projetos claramente.
   para `wendelmax/ferro-studio`, Web Playground, `README.md` e empacotamento)
   será executada em PRs próprios após o fechamento das fases principais do
   `.design` (ADR 0018/0021).
-- Ao renomear o repositório no GitHub, o slug `portugol-studio-rs` deve
+- Ao renomear o repositório no GitHub, o slug `ferro-studio` deve
   permanecer sem novo repositório na mesma conta para que os redirecionamentos
   automáticos do GitHub continuem válidos para usuários existentes.

@@ -667,9 +667,9 @@ export function mountHelp(optionsOrOpen: MountHelpOptions | ((source: string, fi
 
     navigation.replaceChildren();
     for (const [label, entriesList, defaultOpen] of [
-      ["Primeiros passos (PORS)", porsTopics, true],
-      ["Bibliotecas padrão (PORS)", standardLibraries, true],
-      ["UI e Multimídia (PORS)", visualLibraries, Boolean(query)],
+      ["Primeiros passos com Ferro", porsTopics, true],
+      ["Bibliotecas padrão", standardLibraries, true],
+      ["UI e multimídia", visualLibraries, Boolean(query)],
       ["Referência da sintaxe (.fer)", language, Boolean(query)],
     ] as const) {
       if (!entriesList.childNodes.length) continue;

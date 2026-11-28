@@ -22,7 +22,7 @@
 - **arch:** adicionar empacotamento PKGBUILD e job no CI/Release (#251)
 - publicar Web Playground WASM no GitHub Pages e atualizar actions para v7 (#241)
 
-Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v0.6.0...v0.7.0
+Comparação completa: https://github.com/wendelmax/ferro-studio/compare/v0.6.0...v0.7.0
 
 ## 0.6.0 (2026-11-26)
 
@@ -51,7 +51,7 @@ Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v
 - endurece backend, alinha docs e modulariza núcleo PORS (#227)
 - Unificar a linguagem visual do shell do editor (#224)
 
-Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v0.5.0...v0.6.0
+Comparação completa: https://github.com/wendelmax/ferro-studio/compare/v0.5.0...v0.6.0
 
 ## 0.5.0 (2026-11-25)
 
@@ -62,7 +62,7 @@ Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v
 - Comandos de depuração indisponíveis para .pors na paleta e no botão Pausar (#220)
 - Trilha de aprendizado visível no painel Aprender (#219)
 
-Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v0.4.0...v0.5.0
+Comparação completa: https://github.com/wendelmax/ferro-studio/compare/v0.4.0...v0.5.0
 
 ## 0.4.0 (2026-11-25)
 
@@ -154,7 +154,7 @@ Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v
 - **ide:** extrai tema e decorações do editor do main.ts (#144)
 - **ide:** extrai layout de painéis e arquivos recentes do main.ts (#143)
 
-Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v0.3.0...v0.4.0
+Comparação completa: https://github.com/wendelmax/ferro-studio/compare/v0.3.0...v0.4.0
 
 ## 0.3.0 (2026-11-24)
 
@@ -167,7 +167,7 @@ Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v
 
 - remove LICENSE.md duplicado (#128)
 
-Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v0.2.0...v0.3.0
+Comparação completa: https://github.com/wendelmax/ferro-studio/compare/v0.2.0...v0.3.0
 
 ## 0.2.0 (2026-11-24)
 
@@ -320,4 +320,4 @@ Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v
 - Integra a ajuda original de linguagem e bibliotecas
 - Aproxima a IDE do Portugol Studio e adiciona início da depuração
 
-Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v0.1.0...v0.2.0
+Comparação completa: https://github.com/wendelmax/ferro-studio/compare/v0.1.0...v0.2.0

@@ -328,8 +328,8 @@ export function mountRustPreview(host: RustPreviewHost) {
       button.dataset.quality = link.quality;
       button.textContent = `L${link.sourceLine} ↔ L${link.generatedLine}`;
       button.title = link.quality === "approximate"
-        ? `Localização aproximada: linha ${link.sourceLine} em Portugol para linha ${link.generatedLine} em Rust`
-        : `Ir da linha ${link.sourceLine} em Portugol para a linha ${link.generatedLine} em Rust`;
+        ? `Localização aproximada: linha ${link.sourceLine} em Ferro para linha ${link.generatedLine} em Rust`
+        : `Ir da linha ${link.sourceLine} em Ferro para a linha ${link.generatedLine} em Rust`;
       button.setAttribute("aria-label", button.title);
       button.onclick = () => focusRustMapping(link);
       links.append(button);
@@ -367,7 +367,7 @@ export function mountRustPreview(host: RustPreviewHost) {
   $<HTMLButtonElement>("rust-export-cargo").onclick = async () => {
     const code = generatedRustEditor.state.doc.toString();
     const tab = activeTab();
-    const rawName = tab?.path?.split(/[\\/]/).pop() ?? tab?.exampleName ?? "programa_portugol";
+    const rawName = tab?.path?.split(/[\\/]/).pop() ?? tab?.exampleName ?? "programa_ferro";
     try {
       const exported = await api.exportCargoProject(rawName, code);
       if (!exported) return;
@@ -390,7 +390,7 @@ export function mountRustPreview(host: RustPreviewHost) {
 
     const snapshot = { tab: sourceTab, document: view.state.doc, artifact };
     const accepted = await ask(
-      "O código Rust será copiado para uma nova aba independente. Alterações futuras no Portugol não atualizarão essa cópia. A origem e a prévia vinculada continuarão preservadas. Deseja continuar?",
+      "O código Rust será copiado para uma nova aba independente. Alterações futuras no Ferro não atualizarão essa cópia. A origem e a prévia vinculada continuarão preservadas. Deseja continuar?",
       { title: "Desvincular código Rust gerado", kind: "warning", okLabel: "Desvincular e editar", cancelLabel: "Cancelar" },
     );
     if (!accepted) return;

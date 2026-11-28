@@ -46,7 +46,7 @@ export function nextCommandIndex(count: number, current: number, direction: "Arr
 export const TAB_COMMANDS: ReadonlySet<string> = new Set([
   "Executar", "Depurar", "Interromper", "Pausar", "Continuar", "Próxima instrução",
   "Entrar na função", "Sair da função", "Renomear símbolo", "Formatar código-fonte", "Analisar projeto Cargo", "Testar projeto Cargo",
-  "Executar como Rust", "Alternar prévia Rust", "Alternar Preview Visual PORS",
+  "Executar como Rust", "Alternar prévia Rust", "Alternar prévia visual",
   "Abrir painel Aprender", "Abrir Console", "Abrir Mensagens", "Abrir Testes", "Abrir Depuração",
   "Limpar console", "Copiar saída do console",
   "Salvar", "Salvar como", "Parâmetros de execução", "Fechar aba", "Fechar todas as abas", "Localizar e substituir",
@@ -59,7 +59,7 @@ export const TAB_COMMANDS: ReadonlySet<string> = new Set([
 export const RUST_UNSUPPORTED_COMMANDS: ReadonlySet<string> = new Set([
   "Executar", "Depurar", "Interromper", "Pausar", "Continuar", "Próxima instrução",
   "Entrar na função", "Sair da função", "Renomear símbolo", "Formatar código-fonte",
-  "Alternar prévia Rust", "Alternar Preview Visual PORS",
+  "Alternar prévia Rust", "Alternar prévia visual",
   "Buscar na estrutura", "Filtrar variável", "Filtrar vetor", "Filtrar matriz", "Filtrar função",
   "Filtrar constante", "Mostrar todos os tipos", "Filtrar tipo inteiro", "Filtrar tipo caracter",
   "Filtrar tipo real", "Filtrar tipo cadeia", "Filtrar tipo logico", "Filtrar tipo vazio",
@@ -69,7 +69,7 @@ export const RUST_UNSUPPORTED_COMMANDS: ReadonlySet<string> = new Set([
 export const MARKUP_UNSUPPORTED_COMMANDS: ReadonlySet<string> = new Set([
   "Executar", "Depurar", "Interromper", "Pausar", "Continuar", "Próxima instrução",
   "Entrar na função", "Sair da função", "Renomear símbolo", "Parâmetros de execução",
-  "Alternar prévia Rust", "Alternar Preview Visual PORS",
+  "Alternar prévia Rust", "Alternar prévia visual",
   "Filtrar variável", "Filtrar vetor", "Filtrar matriz", "Filtrar função",
   "Filtrar constante", "Mostrar todos os tipos", "Filtrar tipo inteiro", "Filtrar tipo caracter",
   "Filtrar tipo real", "Filtrar tipo cadeia", "Filtrar tipo logico", "Filtrar tipo vazio",

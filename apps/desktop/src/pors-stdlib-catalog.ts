@@ -134,7 +134,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
   {
     id: "pors-lib:Matematica",
     module: "Matematica",
-    name: "PORS: Matematica",
+    name: "Matematica",
     group: "standard",
     description: "Constantes (`PI`, `E`) e 16 funções matemáticas tipadas sem coerção implícita (VM mínima, WASM e Rust).",
     example: {
@@ -166,7 +166,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
   {
     id: "pors-lib:Texto",
     module: "Texto",
-    name: "PORS: Texto",
+    name: "Texto",
     group: "standard",
     description: "13 operações Unicode-safe indexadas por `char`, com busca via `Opcao<T>`, fatiamento via `Resultado` e orçamento de memória.",
     example: {
@@ -193,7 +193,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
   {
     id: "pors-lib:Tipos",
     module: "Tipos",
-    name: "PORS: Tipos",
+    name: "Tipos",
     group: "standard",
     description: "19 conversões explícitas e predicados de validação com `Resultado<T, cadeia>` para parses falíveis.",
     example: {
@@ -226,7 +226,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
   {
     id: "pors-lib:Util",
     module: "Util",
-    name: "PORS: Util",
+    name: "Util",
     group: "standard",
     description: "4 utilitários determinísticos e canceláveis (VM mínima, WASM e Rust).",
     example: {
@@ -244,7 +244,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
   {
     id: "pors-lib:Calendario",
     module: "Calendario",
-    name: "PORS: Calendario",
+    name: "Calendario",
     group: "standard",
     description: "Contrato UTC gregoriano determinístico com 19 constantes (`DIA_*`, `MES_*`) e 15 funções.",
     example: {
@@ -292,7 +292,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
   {
     id: "pors-lib:Arquivos",
     module: "Arquivos",
-    name: "PORS: Arquivos",
+    name: "Arquivos",
     group: "standard",
     description: "7 operações de leitura e escrita UTF-8 confinadas ao workspace (bloqueia caminhos absolutos, `..` e symlinks; limite de 2 MiB).",
     example: {
@@ -313,7 +313,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
   {
     id: "pors-lib:Dialogo",
     module: "Dialogo",
-    name: "PORS: Dialogo",
+    name: "Dialogo",
     group: "visual",
     description: "Caixas do sistema para as telas desktop: aviso, confirmação e escolha de arquivo. Fora de uma tela, cada função explica onde funciona.",
     example: {
@@ -331,7 +331,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
   {
     id: "pors-lib:Json",
     module: "Json",
-    name: "PORS: Json",
+    name: "Json",
     group: "standard",
     description: "19 operações JSON (RFC 8259) puras e zero-dependência para validar, consultar, construir e formatar objetos JSON (VM mínima, WASM e Rust).",
     example: {
@@ -364,7 +364,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
   {
     id: "pors-lib:Internet",
     module: "Internet",
-    name: "PORS: Internet",
+    name: "Internet",
     group: "standard",
     description: "4 operações HTTP/HTTPS com consentimento explícito (negado por padrão), timeout (100..30000 ms), cancelamento no debugger e limite de 1 MiB.",
     example: {
@@ -382,7 +382,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
   {
     id: "pors-lib:UI",
     module: "UI",
-    name: "PORS: UI",
+    name: "UI",
     group: "visual",
     description: "6 componentes declarativos MVU (`iniciar`, `atualizar`, `visualizar`) para interfaces gráficas interativas na IDE, WASM e Rust.",
     example: {
@@ -402,7 +402,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
   {
     id: "pors-lib:Graficos",
     module: "Graficos",
-    name: "PORS: Graficos",
+    name: "Graficos",
     group: "visual",
     description: "17 constantes (`COR_*`, `GRADIENTE_*`, `CANAL_*`) e 54 funções para janela gráfica 2D, cores, formas, texto, imagens e GIFs na VM.",
     example: {
@@ -487,7 +487,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
   {
     id: "pors-lib:Teclado",
     module: "Teclado",
-    name: "PORS: Teclado",
+    name: "Teclado",
     group: "visual",
     description: "4 funções de leitura e estado de teclas na janela gráfica + constantes `TECLA_*` (também aceita `TECLA_A`..`TECLA_Z`, `TECLA_0`..`TECLA_9`, `TECLA_F1`..`TECLA_F24` e `TECLA_0_NUM`..`TECLA_9_NUM`).",
     example: {
@@ -506,7 +506,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
   {
     id: "pors-lib:Mouse",
     module: "Mouse",
-    name: "PORS: Mouse",
+    name: "Mouse",
     group: "visual",
     description: "3 constantes (`BOTAO_*`) e 7 funções para posição, clique e cursor do mouse na janela gráfica.",
     example: {
@@ -530,7 +530,7 @@ export const PORS_STDLIB_CATALOG: readonly PorsStdlibModule[] = [
   {
     id: "pors-lib:Sons",
     module: "Sons",
-    name: "PORS: Sons",
+    name: "Sons",
     group: "visual",
     description: "12 funções de carregamento de áudio confinado ao workspace, reprodução em loop, busca temporal e volume na VM.",
     example: {

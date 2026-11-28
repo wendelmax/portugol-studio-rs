@@ -169,12 +169,12 @@ export function mountLearningPanel(host: LearningPanelHost) {
     practiceButton.dataset.exerciseId = concept.practicePorsExerciseId ?? "";
     const active = host.activeTab();
     $("learning-mode-description").textContent = learningMode === "bridge"
-      ? "Ponte didática: compare os conceitos de Portugol com exemplos Rust editoriais."
+      ? "Compare os conceitos do pseudocódigo em português com exemplos Rust."
       : learningMode === "rust"
         ? active?.language === "rust"
           ? "Nível Rust: o arquivo .rs ativo é editado e executado com a toolchain Rust instalada."
           : "Nível Rust: abra ou crie um arquivo .rs para programar em Rust. O arquivo atual permanece intacto."
-        : "Fundamentos de lógica e programação em Portugol.";
+        : "Fundamentos de lógica e programação com Ferro.";
     $("learning-title").textContent = concept.title;
     $("learning-provenance").textContent = topicPinned
       ? "Tópico fixado — escolha manual nesta aba"

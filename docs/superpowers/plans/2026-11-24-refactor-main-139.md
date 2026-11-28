@@ -8,7 +8,7 @@
 
 **Tech Stack:** TypeScript, Tauri 2, CodeMirror 6, Node's built-in test runner, Vite.
 
-**Spec:** [Issue #139](https://github.com/wendelmax/portugol-studio-rs/issues/139)
+**Spec:** [Issue #139](https://github.com/wendelmax/ferro-studio/issues/139)
 
 ## Global Constraints
 
