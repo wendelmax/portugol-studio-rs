@@ -3,7 +3,7 @@
  * "Envolver em", e o painel de propriedades com as abas *Propriedades* e
  * *Eventos*. Cada mudança vira edição estrutural, como no canvas.
  */
-import type { DesignEdit, DesignNode, DesignSchema } from "../api.ts";
+import type { DataField, DesignEdit, DesignNode, DesignSchema } from "../api.ts";
 import { nodeAt, pathFromKey, type DefaultSizes } from "./canvas-model.ts";
 import {
   WRAPPERS,
@@ -13,6 +13,8 @@ import {
   planWrap,
   propertyEdit,
   propertyRows,
+  sampleEdit,
+  sampleRows,
   type EventRow,
   type PropertyRow,
 } from "./properties-model.ts";
@@ -24,6 +26,8 @@ export interface SidePanelHost {
   selected: () => string | null;
   select: (path: string | null, moveCursor: boolean) => void;
   apply: (plan: { edits: DesignEdit[]; select: number[] | null }) => Promise<boolean>;
+  /** Campos do registro de `Dados`, lidos do code-behind; `null` enquanto carregam ou sem código. */
+  dataFields?: () => DataField[] | null;
 }
 
 type Tab = "properties" | "events";
@@ -154,6 +158,61 @@ export function mountSidePanel(container: HTMLElement, host: SidePanelHost) {
     return list;
   }
 
+  /** Valores de exemplo dos campos de `Dados` (`<DadosExemplo>`), só para o designer. */
+  function samples(tree: DesignNode): HTMLElement {
+    const section = element("section", "design-samples");
+    section.append(element("h3", "design-side-subtitle", "Dados de exemplo"));
+    const data = tree.attributes.find((attribute) => attribute.name === "Dados")?.value;
+    if (!data) {
+      section.append(element("p", "design-side-empty", "Declare `Dados` na janela para mostrar valores de exemplo nos vínculos."));
+      return section;
+    }
+    const fields = host.dataFields?.() ?? null;
+    if (!fields || fields.length === 0) {
+      section.append(element("p", "design-side-empty", `Os campos aparecem quando o código da tela declara \`registro ${data}\`.`));
+      return section;
+    }
+    const list = element("div", "design-property-list");
+    for (const row of sampleRows(tree, fields)) {
+      const id = `design-sample-${++uid}`;
+      const label = element("label", "design-property-name", row.name);
+      label.htmlFor = id;
+      label.title = `${row.name}: ${row.type}`;
+      let editor: HTMLInputElement | HTMLSelectElement;
+      if (row.type === "logico") {
+        const select = element("select");
+        for (const [value, text] of [["", "(sem exemplo)"], ["verdadeiro", "verdadeiro"], ["falso", "falso"]]) {
+          const option = element("option", undefined, text);
+          option.value = value;
+          select.append(option);
+        }
+        select.value = row.value;
+        editor = select;
+      } else {
+        const input = element("input");
+        input.type = row.type === "inteiro" || row.type === "real" ? "number" : "text";
+        if (row.type === "real") input.step = "any";
+        input.value = row.value;
+        input.placeholder = row.editable ? row.type : `${row.type} (sem exemplo)`;
+        input.disabled = !row.editable;
+        input.spellcheck = false;
+        input.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") input.blur();
+        });
+        editor = input;
+      }
+      editor.id = id;
+      editor.dataset.property = `sample:${row.name}`;
+      editor.addEventListener("change", () => {
+        const edits = sampleEdit(tree, row.name, editor.value);
+        if (edits) void host.apply({ edits, select: [] });
+      });
+      list.append(label, editor);
+    }
+    section.append(list);
+    return section;
+  }
+
   function structure(tree: DesignNode, selected: string | null): HTMLElement {
     const section = element("section", "design-structure");
     section.append(element("h2", "design-side-title", "Estrutura"));
@@ -215,6 +274,7 @@ export function mountSidePanel(container: HTMLElement, host: SidePanelHost) {
       tabs.append(button);
     }
     body.append(tab === "properties" ? propertiesList(propertyRows(schema, tree, path), path) : eventsList(eventRows(schema, tree, path), path));
+    if (tab === "properties" && path.length === 0) body.append(samples(tree));
     section.append(tabs, body);
     return section;
   }

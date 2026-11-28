@@ -279,3 +279,41 @@ fn nomes_novos_no_estilo_windows_forms() {
     let document = parse(&source).unwrap();
     assert_eq!(next_control_name(&document, "Botao"), "botao2");
 }
+
+#[test]
+fn insere_dados_de_exemplo_uma_vez_e_so_na_janela() {
+    let out = edit_source(
+        BASE,
+        &[Edit::Insert {
+            parent: vec![],
+            index: 2,
+            tag: "DadosExemplo".into(),
+            attributes: vec![("nome".into(), "Ana".into())],
+        }],
+    )
+    .unwrap();
+    assert!(
+        out.contains("    <DadosExemplo nome=\"Ana\" />\n</Janela>"),
+        "{out}"
+    );
+    let twice = edit_source(
+        &out,
+        &[Edit::Insert {
+            parent: vec![],
+            index: 0,
+            tag: "DadosExemplo".into(),
+            attributes: vec![],
+        }],
+    );
+    assert!(twice.is_err());
+    let inside = edit_source(
+        BASE,
+        &[Edit::Insert {
+            parent: vec![1],
+            index: 0,
+            tag: "DadosExemplo".into(),
+            attributes: vec![],
+        }],
+    );
+    assert!(inside.is_err());
+}

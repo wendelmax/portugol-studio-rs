@@ -312,6 +312,11 @@
   text-decoration: underline;
 }
 
+.design-sample {
+  color: var(--design-binding);
+  font-style: italic;
+}
+
 .design-binding {
   color: var(--design-binding);
   font-family: var(--mono);
@@ -459,4 +464,16 @@
   grid-column: 1 / -1;
   margin: 0;
   color: var(--muted);
+}
+
+.design-samples {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.design-side-subtitle {
+  margin: 0 0 6px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
 }

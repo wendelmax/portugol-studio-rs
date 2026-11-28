@@ -34,8 +34,8 @@ pub use cargo_project::{
     test_cargo_project_with_cancel,
 };
 pub use designer::{
-    AttributeInfo, DesignAttribute, DesignEdit, DesignNode, DesignSchema, ElementInfo,
-    design_schema, design_tree, edit_design,
+    AttributeInfo, DataField, DesignAttribute, DesignEdit, DesignNode, DesignSchema, ElementInfo,
+    design_schema, design_tree, edit_design, screen_data_fields,
 };
 pub use ferro_vm::{FileFilter, Host, Sound, graphics};
 pub use markup::{CodeBehind, MarkupKind, format_markup, inspect_markup, inspect_markup_with_code};

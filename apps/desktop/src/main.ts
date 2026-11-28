@@ -69,7 +69,7 @@ import { mountDesignerShell, textChange } from "./designer/designer-shell";
 import { mountCanvasInteractions } from "./designer/interactions";
 import { mountSidePanel } from "./designer/side-panel";
 import { renderToolbox } from "./designer/toolbox";
-import { inspectMarkupFile, inspectSource, isScreenFile, type ScreenFilesHost } from "./designer/screen-files";
+import { inspectMarkupFile, inspectSource, isScreenFile, screenCodeFor, screenFileSource, type ScreenFilesHost } from "./designer/screen-files";
 import { createScreenExecution } from "./designer/screen-execution";
 import { createEditorActionsShell } from "./editor/actions-shell";
 import {
@@ -415,6 +415,11 @@ designer = mountDesignerShell({
         side.refresh();
       },
     };
+  },
+  dataFields: async (tab, designSource) => {
+    const code = screenCodeFor(screenFiles, tab);
+    const codeSource = code && tab.workspaceId ? await screenFileSource(screenFiles, tab.workspaceId, code) : null;
+    return codeSource === null ? [] : api.screenDataFields(designSource, codeSource);
   },
   undo: () => undo(view),
   redo: () => redo(view),

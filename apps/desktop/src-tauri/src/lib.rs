@@ -251,6 +251,12 @@ fn edit_design(source: String, edits: Vec<ferro_service::DesignEdit>) -> Result<
     ferro_service::edit_design(&source, edits)
 }
 
+/// Campos do registro de `Dados` de uma tela, para os dados de exemplo.
+#[tauri::command]
+fn screen_data_fields(design_source: String, code_source: String) -> Vec<ferro_service::DataField> {
+    ferro_service::screen_data_fields(&design_source, &code_source)
+}
+
 /// Controles e atributos do formato `.design`, para a caixa de ferramentas.
 #[tauri::command]
 fn design_schema() -> ferro_service::DesignSchema {
@@ -948,6 +954,7 @@ pub fn run_app() {
             design_tree,
             edit_design,
             design_schema,
+            screen_data_fields,
             export_portugol_rs,
             format_rust_source,
             rustfmt_available,

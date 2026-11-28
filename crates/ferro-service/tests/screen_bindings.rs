@@ -209,3 +209,25 @@ fn mao_dupla_na_execucao() {
     );
     assert_eq!(saved.snapshot["controles"]["lbl"]["texto"], "Olá, !");
 }
+
+#[test]
+fn campos_de_dados_para_os_exemplos() {
+    let fields = ferro_service::screen_data_fields(&design(""), CODE);
+    let summary: Vec<_> = fields
+        .iter()
+        .map(|f| (f.name.as_str(), f.ty.as_str(), f.editable))
+        .collect();
+    assert_eq!(
+        summary,
+        [
+            ("nome", "cadeia", true),
+            ("idade", "inteiro", true),
+            ("pode_salvar", "logico", true),
+            ("escolha", "inteiro", true),
+            ("aceito", "logico", true),
+            ("pessoa", "Pessoa", false),
+            ("mensagem", "cadeia", true),
+        ]
+    );
+    assert!(ferro_service::screen_data_fields(&design(""), "funcao quebrada(").is_empty());
+}

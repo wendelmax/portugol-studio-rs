@@ -10,7 +10,7 @@
  * desenha e seleciona; arrastar, redimensionar e o painel de propriedades vêm
  * nos próximos PRs.
  */
-import type { DesignEdit, DesignNode, DesignSchema } from "../api.ts";
+import type { DataField, DesignEdit, DesignNode, DesignSchema } from "../api.ts";
 import { acceptedExtensions, fileExtension, fileKind, stripFileExtension } from "../file-formats.ts";
 import type { Tab } from "../state/tab.ts";
 import { buildCanvasModel, nodeAt, pathAtOffset, pathFromKey, pathKey, type DefaultSizes } from "./canvas-model.ts";
@@ -27,6 +27,7 @@ export type DesignView = "design" | "split" | "text";
 export type DesignerHost = CanvasInteractionHost & {
   schema: () => DesignSchema | null;
   sizes: () => DefaultSizes;
+  dataFields: () => DataField[] | null;
 };
 
 export interface DesignerShellDependencies {
@@ -49,6 +50,8 @@ export interface DesignerShellDependencies {
   replaceSource: (source: string) => void;
   /** Arrastar, redimensionar e teclado no canvas; opcional para testes sem DOM. */
   mountInteractions?: (host: DesignerHost) => { refresh: () => void };
+  /** Campos do registro de `Dados` da tela, lidos do code-behind (para os dados de exemplo). */
+  dataFields?: (tab: Tab, designSource: string) => Promise<DataField[]>;
   /** Desfazer e refazer do editor: o designer só muda o texto, então o histórico é um só. */
   undo?: () => boolean;
   redo?: () => boolean;
@@ -126,6 +129,7 @@ export function mountDesignerShell(dependencies: DesignerShellDependencies) {
   let tree: DesignNode | null = null;
   let sizes: DefaultSizes = {};
   let schema: DesignSchema | null = null;
+  let dataFields: DataField[] | null = null;
   let timer: unknown = null;
   let renderGeneration = 0;
   let interactions: { refresh: () => void } | null = null;
@@ -199,6 +203,14 @@ export function mountDesignerShell(dependencies: DesignerShellDependencies) {
     selections.set(tab.id, selected);
     canvas.paint(next, sizes, selected);
     interactions?.refresh();
+    if (dependencies.dataFields) {
+      const source = dependencies.source();
+      void dependencies.dataFields(tab, source).then((fields) => {
+        if (generation !== renderGeneration || dependencies.activeTab() !== tab) return;
+        dataFields = fields;
+        interactions?.refresh();
+      }).catch(() => undefined);
+    }
   }
 
   /** Aplica edições do designer, troca o texto e redesenha já, sem esperar o atraso da digitação. */
@@ -282,6 +294,7 @@ export function mountDesignerShell(dependencies: DesignerShellDependencies) {
     const tab = dependencies.activeTab();
     applyView(tab);
     tree = null;
+    dataFields = null;
     dependencies.viewport.replaceChildren();
     if (tab && isDesignTab(tab) && viewOf(tab) !== "text") refresh();
   }
@@ -304,6 +317,7 @@ export function mountDesignerShell(dependencies: DesignerShellDependencies) {
     setStatus: dependencies.setStatus,
     schema: () => schema,
     sizes: () => sizes,
+    dataFields: () => dataFields,
   }) ?? null;
 
   function history(direction: "undo" | "redo") {
