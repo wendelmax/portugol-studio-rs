@@ -274,3 +274,16 @@ test("a IDE monta as vistas da tela e o atalho F7", () => {
   const shortcuts = readFileSync(new URL("../src/commands/ide-shortcuts.ts", import.meta.url), "utf8");
   assert.match(shortcuts, /label: "F7", command: "Alternar desenho e código da tela"/);
 });
+
+test("a prévia visual numa tela abre o designer: Design no .design, e o .design a partir do código", async () => {
+  const files = ["App/JanelaPrincipal.design", "App/JanelaPrincipal.fer"];
+  const { shell, area, opened, setActive } = setup({ files, tab: designTab });
+  shell.sync();
+  assert.equal(await shell.showScreen(), true);
+  assert.equal(area.dataset.designView, "design");
+  setActive({ id: 4, workspaceId: "w", workspacePath: "App/JanelaPrincipal.fer", path: "/p/App/JanelaPrincipal.fer" });
+  assert.equal(await shell.showScreen(), true);
+  assert.deepEqual(opened, ["App/JanelaPrincipal.design"]);
+  setActive({ id: 5, workspaceId: "w", workspacePath: "solto.fer", path: "/p/solto.fer" });
+  assert.equal(await shell.showScreen(), false);
+});

@@ -9,10 +9,22 @@ export interface FerroUiPreviewShellDependencies {
   source: () => string;
   openExample: (source: string, fileName: string) => void;
   focusEditor: () => void;
+  /** Numa tela, a prévia visual é o próprio designer; devolve falso fora de telas. */
+  showScreen?: () => Promise<boolean>;
+  /** Se a aba ativa é o `.design` ou o código de uma tela. */
+  isScreen?: () => boolean;
 }
 
 /** Monta a prévia visual FERRO com elementos e comandos da aplicação desktop. */
 export function mountFerroUiPreviewShell(dependencies: FerroUiPreviewShellDependencies) {
+  // Registrado antes do painel: numa tela, o botão abre o designer e o painel
+  // do UI.* (obsoleto) não abre.
+  const toggle = $<HTMLButtonElement>("btn-ui-preview");
+  toggle.addEventListener("click", (event) => {
+    if (!dependencies.isScreen?.()) return;
+    event.stopImmediatePropagation();
+    void dependencies.showScreen?.();
+  });
   return mountFerroUiPreviewPanel({
     elements: {
       panel: $<HTMLElement>("ferro-ui-preview"),
