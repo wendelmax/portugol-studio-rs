@@ -2,8 +2,7 @@
 
 Ambiente educacional para programar em português, criar apps desktop e jogos 2D
 e evoluir para Rust real, construído em Rust
-(repositório `portugol-studio-rs`, conforme o
-[ADR 0023](docs/adr/0023-identidade-e-marca-ferro-studio.md)).
+(repositório `portugol-studio-rs`).
 
 O programa reúne editor, console, depurador, designer visual, ajuda, exemplos e
 exercícios corrigidos automaticamente com foco em **Ferro (`.fer`)** — um
@@ -13,15 +12,6 @@ direto a arquivos **Rust (`.rs`)** e projetos Cargo. O código `.fer` pode ser
 visualizado lado a lado em Rust e exportado como projeto Cargo, permitindo ao
 aluno avançar do pseudocódigo em português para uma linguagem usada
 profissionalmente.
-
-> **Arquivos `.por` e `.pex` legados:** conforme o
-> [ADR 0016](docs/adr/0016-pors-como-linguagem-autoral-e-retirada-do-por.md), o
-> Ferro Studio não abre nem converte esses formatos automaticamente. Use
-> arquivos `.fer` e exercícios `.licao`.
-
-> **Extensões antigas do Ferro:** `.pors` e `.pors.json` não são mais abertas
-> como código ou lições. Renomeie manualmente arquivos de código para `.fer` e
-> lições JSON para `.licao`; o conteúdo das lições não precisa ser convertido.
 
 ## Para quem é
 
@@ -159,14 +149,13 @@ cargo run -p ferro-cli -- novo exercicio.fer                 # cria um arquivo i
 cargo run -p ferro-cli -- formatar programa.fer              # formata (--check só confere)
 cargo run -p ferro-cli -- exportar-rust programa.fer         # imprime o Rust gerado
 cargo run -p ferro-cli -- exportar-cargo programa.fer pasta  # gera um projeto Cargo
-cargo run -p ferro-cli -- novo --desktop "Meu App"            # cria um projeto desktop PORS
+cargo run -p ferro-cli -- novo --desktop "Meu App"            # cria um projeto desktop Ferro
 cargo run -p ferro-cli -- "Meu App"                           # valida .fer, .design e .ferproj
 ```
 
-Projetos desktop PORS ([ADR 0018](docs/adr/0018-projetos-desktop-pors-com-designer-visual.md))
-têm um manifesto `.ferproj` e uma tela por par `Nome.design` (o desenho, em
-pseudo-XAML) + `Nome.fer` (o code-behind). `formatar` também aceita `.design`
-e `.ferproj`.
+Cada projeto desktop Ferro tem um manifesto `.ferproj` e telas descritas por
+pares de arquivos: `Nome.design` (o desenho em pseudo-XAML) e `Nome.fer` (o
+code-behind). `formatar` também aceita `.design` e `.ferproj`.
 
 `executar --bytecode` mostra as instruções geradas para a máquina virtual,
 útil para quem estuda compiladores. `--quiet` lista apenas os arquivos com erro.
@@ -188,7 +177,7 @@ e `.ferproj`.
 | `crates/ferro-cli` | executável `portugol` |
 | `apps/desktop` | IDE em Tauri v2 com frontend TypeScript e CodeMirror 6 |
 | `apps/web-playground` | playground web estático sem dependências usando `ferro-wasm` (`scripts/build-web-playground.sh`) |
-| `docs` | arquitetura, decisões técnicas (`docs/adr`) e distribuição |
+| `docs` | arquitetura, design e distribuição |
 
 A IDE usa Tauri porque o produto depende de um editor de código completo
 (seleção, desfazer, busca, autocompletar, entrada de acentos). Com a webview, o
@@ -236,13 +225,10 @@ diretamente.
   trabalhar em paralelo sem conflito e entregar o PR.
 - [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md): estrutura do compilador, da VM
   e da IDE.
-- [`docs/PARIDADE.md`](docs/PARIDADE.md): inventário histórico de comparação
-  com recursos clássicos de programação educacional.
 - [`docs/PORTUGOL-RUST.md`](docs/PORTUGOL-RUST.md): exportação para Rust,
   execução de `.rs` e projetos Cargo, limites de execução.
 - [`docs/DISTRIBUICAO.md`](docs/DISTRIBUICAO.md): como gerar e assinar os
   instaladores.
-- [`docs/adr`](docs/adr): registro das decisões de arquitetura.
 
 ## Segurança
 
