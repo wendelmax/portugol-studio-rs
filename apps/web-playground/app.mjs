@@ -3,6 +3,7 @@ import {
   loadPlaygroundRuntime,
   renderUiNodeTree,
 } from "./playground-core.mjs";
+import { FERRO_SYNTAX_ENTRIES, completeFerro, wordRangeAt } from "./ferro-language.mjs";
 
 const byId = (id) => document.getElementById(id);
 
@@ -11,25 +12,25 @@ const statusTextEl = byId("pg-status-text");
 const themeButton = byId("pg-theme");
 const exampleSelect = byId("pg-example");
 const editorEl = byId("pg-editor");
+const completionsEl = byId("pg-completions");
 const highlightEl = byId("pg-highlight");
+const syntaxSearchEl = byId("pg-syntax-search");
+const syntaxListEl = byId("pg-syntax-list");
+const syntaxEmptyEl = byId("pg-syntax-empty");
 const stdinEl = byId("pg-stdin");
-const outputEl = byId("pg-output");
-const outputEmptyEl = byId("pg-output-empty");
-const outputBadgeEl = byId("pg-output-badge");
-const diagnosticsEl = byId("pg-diagnostics");
+const terminalHistoryEl = byId("pg-terminal-history");
+const terminalBadgeEl = byId("pg-terminal-badge");
 const uiContainerEl = byId("pg-ui-container");
 const uiSectionEl = byId("pg-ui-section");
 const rustSectionEl = byId("pg-rust-section");
 const rustCodeEl = byId("pg-rust-code");
 const btnCopyRust = byId("pg-copy-rust");
-const btnValidate = byId("pg-validate");
-const btnFormat = byId("pg-format");
+const actionSelect = byId("pg-action");
 const btnRun = byId("pg-run");
-const btnUi = byId("pg-run-ui");
-const btnExportRust = byId("pg-export-rust");
 
 let runtime = null;
 let activeUiSession = null;
+let completionState = null;
 
 const THEME_STORAGE_KEY = "pg-theme";
 const TOKEN_NAMES = ["comment", "string", "interpolation", "number", "keyword", "type", "builtin"];
@@ -130,40 +131,143 @@ function setEditorValue(value) {
   renderHighlight(value);
 }
 
-function syncOutput(text) {
-  const value = text ?? "";
-  outputEl.textContent = value;
-  outputEmptyEl.hidden = value.length > 0;
+function closeCompletions() {
+  completionState = null;
+  completionsEl.replaceChildren();
+  completionsEl.hidden = true;
+}
+
+function renderCompletions(entries, activeIndex, range) {
+  completionState = { entries, activeIndex, range };
+  const fragment = document.createDocumentFragment();
+  entries.forEach((entry, index) => {
+    const item = document.createElement("li");
+    item.className = "pg-completion-item";
+    item.setAttribute("role", "option");
+    item.setAttribute("aria-selected", String(index === activeIndex));
+    item.textContent = entry.label;
+    item.addEventListener("mousedown", (event) => event.preventDefault());
+    item.addEventListener("click", () => applyCompletion(index));
+    fragment.append(item);
+  });
+  completionsEl.replaceChildren(fragment);
+  completionsEl.hidden = false;
+}
+
+function applyCompletion(index) {
+  const state = completionState;
+  const entry = state?.entries[index];
+  if (!entry) return;
+  const { start, end } = state.range;
+  const caret = start + entry.insertText.length;
+  setEditorValue(`${editorEl.value.slice(0, start)}${entry.insertText}${editorEl.value.slice(end)}`);
+  editorEl.selectionStart = editorEl.selectionEnd = caret;
+  closeCompletions();
+  editorEl.focus();
+}
+
+function updateCompletions() {
+  const caret = editorEl.selectionStart ?? editorEl.value.length;
+  const entries = completeFerro(editorEl.value, caret);
+  if (entries.length === 0) {
+    closeCompletions();
+    return;
+  }
+  renderCompletions(entries, 0, wordRangeAt(editorEl.value, caret));
+}
+
+function insertSyntaxEntry(entry) {
+  const caret = editorEl.selectionStart ?? editorEl.value.length;
+  const { start, end } = wordRangeAt(editorEl.value, caret);
+  const nextCaret = start + entry.insertText.length;
+  setEditorValue(`${editorEl.value.slice(0, start)}${entry.insertText}${editorEl.value.slice(end)}`);
+  editorEl.selectionStart = editorEl.selectionEnd = nextCaret;
+  closeCompletions();
+  editorEl.focus();
+}
+
+function renderSyntaxPanel(filter = "") {
+  const query = filter.trim().toLocaleLowerCase("pt-BR");
+  const matching = query
+    ? FERRO_SYNTAX_ENTRIES.filter((entry) =>
+        `${entry.label} ${entry.group} ${entry.signature} ${entry.description}`
+          .toLocaleLowerCase("pt-BR")
+          .includes(query),
+      )
+    : FERRO_SYNTAX_ENTRIES;
+  const groups = new Map();
+  for (const entry of matching) {
+    if (!groups.has(entry.group)) groups.set(entry.group, []);
+    groups.get(entry.group).push(entry);
+  }
+  syntaxListEl.replaceChildren();
+  syntaxEmptyEl.hidden = matching.length > 0;
+  for (const [name, entries] of groups) {
+    const group = document.createElement("section");
+    group.className = "pg-syntax-group";
+    const heading = document.createElement("h3");
+    heading.textContent = name;
+    group.append(heading);
+    for (const entry of entries) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "pg-syntax-item";
+      for (const [className, text] of [
+        ["pg-syntax-label", entry.label],
+        ["pg-syntax-signature", entry.signature],
+        ["pg-syntax-description", entry.description],
+        ["pg-syntax-example", entry.example],
+      ]) {
+        const part = document.createElement("span");
+        part.className = className;
+        part.textContent = text;
+        button.append(part);
+      }
+      button.addEventListener("click", () => insertSyntaxEntry(entry));
+      group.append(button);
+    }
+    syntaxListEl.append(group);
+  }
+}
+
+function terminalLines(value) {
+  if (!value) return [];
+  const lines = String(value).split("\n");
+  if (lines.length > 1 && lines.at(-1) === "") lines.pop();
+  return lines;
+}
+
+function renderTerminal(stdin, stdout, diagnostics) {
+  const entries = [
+    ["input", terminalLines(stdin)],
+    ["output", terminalLines(stdout)],
+    ["error", (diagnostics ?? []).map((diag) => `[${diag.code}] ${diag.message}`)],
+  ];
+  terminalHistoryEl.replaceChildren();
+  for (const [kind, lines] of entries) {
+    for (const text of lines) {
+      const line = document.createElement("div");
+      line.className = "pg-terminal-line";
+      line.dataset.kind = kind;
+      line.textContent = text;
+      terminalHistoryEl.append(line);
+    }
+  }
+  if (terminalHistoryEl.children.length === 0) {
+    const line = document.createElement("div");
+    line.className = "pg-terminal-line";
+    line.dataset.kind = "empty";
+    line.textContent = "Execute para ver entrada e saída aqui.";
+    terminalHistoryEl.append(line);
+  }
+  const count = diagnostics?.length ?? 0;
+  terminalBadgeEl.textContent = count > 0 ? `${count} diagnóstico${count === 1 ? "" : "s"}` : "Terminal";
+  terminalBadgeEl.dataset.tone = count > 0 ? "error" : "info";
 }
 
 function setControlsEnabled(enabled) {
-  btnValidate.disabled = !enabled;
-  btnFormat.disabled = !enabled;
   btnRun.disabled = !enabled;
-  btnUi.disabled = !enabled;
-  btnExportRust.disabled = !enabled;
-}
-
-function renderDiagnostics(diagnostics) {
-  diagnosticsEl.replaceChildren();
-  const count = diagnostics?.length ?? 0;
-  outputBadgeEl.textContent = count > 0 ? `${count} diagnóstico${count === 1 ? "" : "s"}` : "Console";
-  outputBadgeEl.dataset.tone = count > 0 ? "error" : "info";
-  if (count === 0) {
-    diagnosticsEl.hidden = true;
-    return;
-  }
-  diagnosticsEl.hidden = false;
-  for (const diag of diagnostics) {
-    const li = document.createElement("li");
-    li.className = "pg-diag-item";
-    const code = document.createElement("strong");
-    code.textContent = `[${diag.code}] `;
-    const msg = document.createElement("span");
-    msg.textContent = diag.message;
-    li.append(code, msg);
-    diagnosticsEl.append(li);
-  }
+  actionSelect.disabled = !enabled;
 }
 
 function closeActiveUi() {
@@ -179,10 +283,10 @@ function loadExample(id) {
   const example = PLAYGROUND_EXAMPLES.find((item) => item.id === id) ?? PLAYGROUND_EXAMPLES[0];
   if (!example) return;
   closeActiveUi();
+  closeCompletions();
   setEditorValue(example.source);
   stdinEl.value = example.input;
-  syncOutput("");
-  renderDiagnostics([]);
+  renderTerminal(stdinEl.value, "", []);
   if (runtime) {
     if (example.mode === "ui") {
       runUiSession();
@@ -195,7 +299,7 @@ function loadExample(id) {
 function runValidate() {
   if (!runtime) return;
   const result = runtime.validate(editorEl.value);
-  renderDiagnostics(result.diagnostics);
+  renderTerminal(stdinEl.value, "", result.diagnostics);
   if (result.ok) {
     setStatus("Código .fer válido sem diagnósticos.", "ok");
   } else {
@@ -205,13 +309,14 @@ function runValidate() {
 
 function runFormat() {
   if (!runtime) return;
+  closeCompletions();
   const result = runtime.format(editorEl.value);
   if (result.ok) {
     setEditorValue(result.formatted);
-    renderDiagnostics([]);
+    renderTerminal(stdinEl.value, "", []);
     setStatus(result.changed ? "Código formatado." : "O código já está formatado.", "ok");
   } else {
-    renderDiagnostics(result.diagnostics ?? []);
+    renderTerminal(stdinEl.value, "", result.diagnostics ?? []);
     setStatus(result.error, "error");
   }
 }
@@ -220,8 +325,7 @@ function runConsole() {
   if (!runtime) return;
   closeActiveUi();
   const result = runtime.run(editorEl.value, stdinEl.value);
-  renderDiagnostics(result.diagnostics ?? []);
-  syncOutput(result.stdout ?? "");
+  renderTerminal(stdinEl.value, result.stdout ?? "", result.diagnostics ?? []);
   if (result.ok) {
     setStatus("Execução concluída na VM WebAssembly.", "ok");
   } else {
@@ -231,14 +335,12 @@ function runConsole() {
 
 function applyUiResult(result) {
   if (!result.ok) {
-    renderDiagnostics(result.diagnostics ?? []);
-    syncOutput(result.stdout ?? "");
+    renderTerminal(stdinEl.value, result.stdout ?? "", result.diagnostics ?? []);
     setStatus(result.error, "error");
     return;
   }
   activeUiSession = result.session;
-  renderDiagnostics([]);
-  syncOutput(result.stdout ?? "");
+  renderTerminal(stdinEl.value, result.stdout ?? "", []);
   uiSectionEl.hidden = false;
   renderUiNodeTree(document, uiContainerEl, result.tree, (event) => {
     if (!runtime || activeUiSession === null) return;
@@ -250,7 +352,7 @@ function applyUiResult(result) {
 function runUiSession() {
   if (!runtime) return;
   // O playground abre com um exemplo de console. Sem um programa MVU carregado,
-  // o botão apenas reportaria a ausência de "iniciar" e não mostraria prévia.
+  // a ação apenas reportaria a ausência de "iniciar" e não mostraria prévia.
   if (!UI_START_RE.test(editorEl.value)) {
     const uiExample = PLAYGROUND_EXAMPLES.find((item) => item.mode === "ui");
     if (uiExample) {
@@ -267,12 +369,12 @@ function runExportRust(announce = true) {
   if (!runtime) return;
   const result = runtime.exportRust(editorEl.value);
   if (result.ok) {
-    renderDiagnostics([]);
+    renderTerminal(stdinEl.value, "", []);
     rustCodeEl.textContent = result.code;
     rustSectionEl.hidden = false;
     if (announce) setStatus("Código Rust gerado em WebAssembly.", "ok");
   } else {
-    renderDiagnostics(result.diagnostics ?? []);
+    renderTerminal(stdinEl.value, "", result.diagnostics ?? []);
     rustSectionEl.hidden = true;
     rustCodeEl.textContent = "";
     if (announce) setStatus(result.error, "error");
@@ -291,6 +393,7 @@ themeButton.addEventListener("click", () => {
   const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
   applyTheme(next);
 });
+syntaxSearchEl.addEventListener("input", () => renderSyntaxPanel(syntaxSearchEl.value));
 
 exampleSelect.addEventListener("change", () => {
   const rustWasOpen = !rustSectionEl.hidden && runtime !== null;
@@ -298,11 +401,18 @@ exampleSelect.addEventListener("change", () => {
   // A troca de exemplo já atualiza o status com a execução do novo código.
   if (rustWasOpen) runExportRust(false);
 });
-btnValidate.addEventListener("click", runValidate);
-btnFormat.addEventListener("click", runFormat);
 btnRun.addEventListener("click", runConsole);
-btnUi.addEventListener("click", runUiSession);
-btnExportRust.addEventListener("click", () => runExportRust());
+const ACTION_HANDLERS = {
+  validate: runValidate,
+  format: runFormat,
+  ui: runUiSession,
+  rust: () => runExportRust(),
+};
+actionSelect.addEventListener("change", () => {
+  const action = ACTION_HANDLERS[actionSelect.value];
+  actionSelect.value = "";
+  if (action) action();
+});
 btnCopyRust.addEventListener("click", async () => {
   if (!rustCodeEl.textContent) return;
   try {
@@ -313,10 +423,15 @@ btnCopyRust.addEventListener("click", async () => {
   }
 });
 
-editorEl.addEventListener("input", () => renderHighlight(editorEl.value));
+editorEl.addEventListener("input", () => {
+  renderHighlight(editorEl.value);
+  updateCompletions();
+});
 editorEl.addEventListener("scroll", syncHighlightScroll);
+editorEl.addEventListener("blur", closeCompletions);
 editorEl.addEventListener("keydown", (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+    closeCompletions();
     event.preventDefault();
     const current = PLAYGROUND_EXAMPLES.find((item) => item.id === exampleSelect.value);
     if (current?.mode === "ui" || editorEl.value.includes("funcao visualizar(")) {
@@ -324,13 +439,32 @@ editorEl.addEventListener("keydown", (event) => {
     } else {
       runConsole();
     }
+    return;
+  }
+  const state = completionState;
+  if (!state) return;
+  if (event.key === "Escape") {
+    event.preventDefault();
+    closeCompletions();
+  } else if (event.key === "ArrowDown") {
+    event.preventDefault();
+    const next = (state.activeIndex + 1) % state.entries.length;
+    renderCompletions(state.entries, next, state.range);
+  } else if (event.key === "ArrowUp") {
+    event.preventDefault();
+    const next = (state.activeIndex - 1 + state.entries.length) % state.entries.length;
+    renderCompletions(state.entries, next, state.range);
+  } else if (event.key === "Enter" || event.key === "Tab") {
+    event.preventDefault();
+    applyCompletion(state.activeIndex);
   }
 });
 
 setControlsEnabled(false);
 setEditorValue(PLAYGROUND_EXAMPLES[0].source);
 stdinEl.value = PLAYGROUND_EXAMPLES[0].input;
-syncOutput("");
+renderTerminal(stdinEl.value, "", []);
+renderSyntaxPanel();
 
 loadPlaygroundRuntime("./ferro_wasm.wasm")
   .then((loaded) => {

@@ -44,13 +44,17 @@
             <span>Exemplo</span>
             <select id="pg-example" aria-label="Selecionar exemplo Ferro"></select>
           </label>
-          <div class="pg-actions" role="toolbar" aria-label="Ações do playground">
-            <button id="pg-validate" type="button">Validar</button>
-            <button id="pg-format" type="button">Formatar</button>
-            <button id="pg-run" type="button" class="pg-primary">Executar <span class="pg-shortcut" aria-hidden="true">Ctrl+Enter</span></button>
-            <button id="pg-run-ui" type="button">Prévia UI</button>
-            <button id="pg-export-rust" type="button">Ver Rust</button>
-          </div>
+          <label class="pg-select-wrap pg-action-wrap" for="pg-action">
+            <span>Ação</span>
+            <select id="pg-action" aria-label="Outras ações do playground">
+              <option value="">Outras ações…</option>
+              <option value="validate">Validar</option>
+              <option value="format">Formatar</option>
+              <option value="ui">Prévia UI</option>
+              <option value="rust">Ver Rust</option>
+            </select>
+          </label>
+          <button id="pg-run" type="button" class="pg-primary">Executar <span class="pg-shortcut" aria-hidden="true">Ctrl+Enter</span></button>
         </div>
 
         <div id="pg-status" class="pg-status" role="status" aria-live="polite" data-tone="info">
@@ -74,32 +78,34 @@
                 class="pg-editor"
                 spellcheck="false"
                 aria-label="Editor de código Ferro"
+                aria-autocomplete="list"
+                aria-controls="pg-completions"
               ></textarea>
+              <ul id="pg-completions" class="pg-completions" role="listbox" aria-label="Sugestões de sintaxe Ferro" hidden></ul>
             </div>
-            <label class="pg-stdin-label" for="pg-stdin">
-              <span class="pg-stdin-title">Entrada padrão <small>uma linha por leitura (<code>leia</code>)</small></span>
-              <textarea
-                id="pg-stdin"
-                class="pg-stdin"
-                rows="3"
-                spellcheck="false"
-                aria-label="Entrada padrão do programa"
-              ></textarea>
-            </label>
           </section>
 
           <section class="pg-card pg-output-card" aria-labelledby="pg-output-heading">
             <header class="pg-card-header">
               <div>
-                <p class="pg-eyebrow">Resultado</p>
-                <h2 id="pg-output-heading">Saída e diagnósticos</h2>
+                <p class="pg-eyebrow">Execução</p>
+                <h2 id="pg-output-heading">Terminal</h2>
               </div>
-              <span id="pg-output-badge" class="pg-badge" data-tone="info">Console</span>
+              <span id="pg-terminal-badge" class="pg-badge" data-tone="info">Terminal</span>
             </header>
-            <ul id="pg-diagnostics" class="pg-diagnostics" aria-label="Diagnósticos do compilador" hidden></ul>
-            <div class="pg-output-wrap">
-              <pre id="pg-output" class="pg-output" aria-label="Saída do console" tabindex="0"></pre>
-              <p id="pg-output-empty" class="pg-empty">A saída do programa aparece aqui.</p>
+            <div class="pg-terminal">
+              <div id="pg-terminal-history" class="pg-terminal-history" role="log" aria-live="polite" aria-label="Histórico do terminal"></div>
+              <label class="pg-terminal-input" for="pg-stdin">
+                <span aria-hidden="true">&gt;</span>
+                <textarea
+                  id="pg-stdin"
+                  class="pg-stdin"
+                  rows="2"
+                  spellcheck="false"
+                  aria-label="Entrada padrão do programa"
+                  placeholder="Uma linha por leitura (leia). Pressione Executar para rodar."
+                ></textarea>
+              </label>
             </div>
             <section id="pg-ui-section" class="pg-nested-section" aria-labelledby="pg-ui-heading" hidden>
               <div class="pg-section-heading">
@@ -117,6 +123,22 @@
             </section>
           </section>
         </div>
+
+        <section id="pg-syntax-panel" class="pg-card pg-syntax-card" aria-labelledby="pg-syntax-heading">
+          <header class="pg-card-header">
+            <div>
+              <p class="pg-eyebrow">Referência</p>
+              <h2 id="pg-syntax-heading">Sintaxe e instruções Ferro</h2>
+            </div>
+            <span class="pg-badge">.fer</span>
+          </header>
+          <label class="pg-syntax-search" for="pg-syntax-search">
+            <span>Buscar instrução</span>
+            <input id="pg-syntax-search" type="search" placeholder="enquanto, Resultado::Ok, ??…" />
+          </label>
+          <div id="pg-syntax-list" class="pg-syntax-list"></div>
+          <p id="pg-syntax-empty" class="pg-empty" hidden>Nenhuma instrução encontrada.</p>
+        </section>
       </div>
     </main>
 

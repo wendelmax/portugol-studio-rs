@@ -12,10 +12,29 @@ test("web playground ships console and visual MVU .fer examples without innerHTM
   assert.ok(PLAYGROUND_EXAMPLES.some((ex) => ex.mode === "console"));
   assert.ok(PLAYGROUND_EXAMPLES.some((ex) => ex.mode === "ui" && ex.source.includes("UI.coluna")));
 
-  for (const file of ["index.html", "app.mjs", "playground-core.mjs"]) {
+  for (const file of ["index.html", "app.mjs", "playground-core.mjs", "ferro-language.mjs"]) {
     const content = readFileSync(new URL(`../../web-playground/${file}`, import.meta.url), "utf8");
     assert.ok(!/\.innerHTML\b/.test(content), `${file} não deve usar innerHTML`);
   }
+});
+
+test("web playground ships a searchable Ferro syntax reference panel", () => {
+  const html = readFileSync(new URL("../../web-playground/index.html", import.meta.url), "utf8");
+  assert.match(html, /id="pg-syntax-panel"/);
+  assert.match(html, /id="pg-syntax-search"[^>]*type="search"/);
+  assert.match(html, /id="pg-syntax-list"/);
+  assert.match(html, /id="pg-syntax-empty"/);
+});
+
+test("web playground replaces action buttons with a single command combobox and a terminal", () => {
+  const html = readFileSync(new URL("../../web-playground/index.html", import.meta.url), "utf8");
+  for (const id of ["pg-validate", "pg-format", "pg-run-ui", "pg-export-rust", "pg-output"]) {
+    assert.doesNotMatch(html, new RegExp(`id="${id}"`));
+  }
+  assert.match(html, /id="pg-action"/);
+  assert.match(html, /<option value="validate">Validar<\/option>/);
+  assert.match(html, /id="pg-terminal-history"/);
+  assert.match(html, /id="pg-stdin"/);
 });
 
 test("web playground CSS keeps elements with hidden attribute out of layout", () => {
@@ -218,9 +237,10 @@ test("Prévia UI loads a visual example when the editor holds a console program"
 
   const ids = [
     "pg-status", "pg-status-text", "pg-theme", "pg-example", "pg-editor", "pg-highlight",
-    "pg-stdin", "pg-output", "pg-output-empty", "pg-output-badge", "pg-diagnostics",
+    "pg-stdin", "pg-terminal-history", "pg-terminal-badge",
     "pg-ui-container", "pg-ui-section", "pg-rust-section", "pg-rust-code", "pg-copy-rust",
-    "pg-validate", "pg-format", "pg-run", "pg-run-ui", "pg-export-rust",
+    "pg-action", "pg-run", "pg-completions",
+    "pg-syntax-search", "pg-syntax-list", "pg-syntax-empty",
   ];
   const elements = new Map(ids.map((id) => [id, new FakeElement("div")]));
   const doc = {
@@ -305,7 +325,9 @@ test("Prévia UI loads a visual example when the editor holds a console program"
     const editor = elements.get("pg-editor");
     assert.match(editor.value, /^funcao saudar\(/);
 
-    elements.get("pg-run-ui").fire("click");
+    const action = elements.get("pg-action");
+    action.value = "ui";
+    action.fire("change");
 
     assert.match(editor.value, /funcao iniciar\(/);
     assert.equal(elements.get("pg-example").value, "ui-contador");
@@ -456,5 +478,377 @@ test("web playground highlights interpolated strings and escreval builtins", asy
     assert.ok(!appSource.includes(".innerHTML"));
   } finally {
     globalThis.document = previousDocument;
+  }
+});
+
+test("web playground autocomplete suggests Ferro words and supports keyboard selection", async () => {
+  class CompletionFakeElement {
+    children = [];
+    dataset = {};
+    attributes = new Map();
+    listeners = new Map();
+    _text = null;
+    value = "";
+    hidden = false;
+    disabled = false;
+    className = "";
+    placeholder = "";
+    scrollTop = 0;
+    scrollLeft = 0;
+    selectionStart = 0;
+    selectionEnd = 0;
+    isFragment = false;
+    constructor(tag) { this.tag = tag; }
+    append(...nodes) { this.children.push(...nodes); }
+    replaceChildren(...nodes) {
+      this.children = [];
+      for (const node of nodes) {
+        if (node?.isFragment) this.children.push(...node.children);
+        else this.children.push(node);
+      }
+    }
+    setAttribute(key, value) { this.attributes.set(key, String(value)); }
+    addEventListener(type, fn) {
+      if (!this.listeners.has(type)) this.listeners.set(type, []);
+      this.listeners.get(type).push(fn);
+    }
+    fire(type, event = {}) {
+      for (const fn of this.listeners.get(type) ?? []) fn(event);
+    }
+    focus() {}
+    get textContent() {
+      if (this._text !== null) return this._text;
+      return this.children.map((child) => child.textContent).join("");
+    }
+    set textContent(text) { this._text = String(text); }
+  }
+
+  const elements = new Map();
+  const getElement = (id) => {
+    if (!elements.has(id)) elements.set(id, new CompletionFakeElement("div"));
+    return elements.get(id);
+  };
+  const previous = {
+    document: Object.getOwnPropertyDescriptor(globalThis, "document"),
+    CSS: Object.getOwnPropertyDescriptor(globalThis, "CSS"),
+    localStorage: Object.getOwnPropertyDescriptor(globalThis, "localStorage"),
+    fetch: Object.getOwnPropertyDescriptor(globalThis, "fetch"),
+  };
+  globalThis.document = {
+    documentElement: new CompletionFakeElement("html"),
+    activeElement: null,
+    getElementById: getElement,
+    createElement: (tag) => new CompletionFakeElement(tag),
+    createTextNode: (text) => {
+      const node = new CompletionFakeElement("#text");
+      node.textContent = text;
+      return node;
+    },
+    createDocumentFragment: () => {
+      const fragment = new CompletionFakeElement("#fragment");
+      fragment.isFragment = true;
+      return fragment;
+    },
+  };
+  globalThis.CSS = { escape: (value) => value };
+  globalThis.localStorage = { getItem: () => null, setItem() {} };
+  globalThis.fetch = async () => ({ ok: false, status: 404 });
+
+  try {
+    await import("../../web-playground/app.mjs?autocomplete");
+
+    const editor = getElement("pg-editor");
+    const list = getElement("pg-completions");
+
+    editor.value = "escr";
+    editor.selectionStart = editor.selectionEnd = 4;
+    editor.fire("input");
+    assert.equal(list.hidden, false);
+    assert.ok(list.children.some((child) => child.textContent === "escreval"));
+
+    editor.fire("keydown", { key: "ArrowDown", ctrlKey: false, metaKey: false, preventDefault() {} });
+    editor.fire("keydown", { key: "Enter", ctrlKey: false, metaKey: false, preventDefault() {} });
+    assert.equal(editor.value, "escreval");
+    assert.equal(list.hidden, true);
+
+    editor.value = "escr";
+    editor.selectionStart = editor.selectionEnd = 4;
+    editor.fire("input");
+    const item = list.children.find((child) => child.textContent === "escreval");
+    assert.ok(item, "escreval deve estar na lista");
+    let defaultPrevented = false;
+    item.fire("mousedown", { preventDefault() { defaultPrevented = true; } });
+    if (!defaultPrevented) editor.fire("blur");
+    item.fire("click");
+    assert.equal(editor.value, "escreval");
+
+    editor.value = "// escr";
+    editor.selectionStart = editor.selectionEnd = 7;
+    editor.fire("input");
+    assert.equal(list.hidden, true);
+  } finally {
+    for (const [key, descriptor] of Object.entries(previous)) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else delete globalThis[key];
+    }
+  }
+});
+
+test("web playground syntax panel filters entries and inserts the selected snippet", async () => {
+  class SyntaxFakeElement {
+    children = [];
+    dataset = {};
+    attributes = new Map();
+    listeners = new Map();
+    _text = null;
+    value = "";
+    hidden = false;
+    disabled = false;
+    className = "";
+    placeholder = "";
+    scrollTop = 0;
+    scrollLeft = 0;
+    selectionStart = 0;
+    selectionEnd = 0;
+    isFragment = false;
+    constructor(tag) { this.tag = tag; }
+    append(...nodes) { this.children.push(...nodes); }
+    replaceChildren(...nodes) {
+      this.children = [];
+      for (const node of nodes) {
+        if (node?.isFragment) this.children.push(...node.children);
+        else this.children.push(node);
+      }
+    }
+    setAttribute(key, value) { this.attributes.set(key, String(value)); }
+    addEventListener(type, fn) {
+      if (!this.listeners.has(type)) this.listeners.set(type, []);
+      this.listeners.get(type).push(fn);
+    }
+    fire(type, event = {}) {
+      for (const fn of this.listeners.get(type) ?? []) fn(event);
+    }
+    focus() {}
+    get textContent() {
+      if (this._text !== null) return this._text;
+      return this.children.map((child) => child.textContent).join("");
+    }
+    set textContent(text) { this._text = String(text); }
+  }
+
+  const elements = new Map();
+  const getElement = (id) => {
+    if (!elements.has(id)) elements.set(id, new SyntaxFakeElement("div"));
+    return elements.get(id);
+  };
+  const findItem = (node) => {
+    if (node.className === "pg-syntax-item" && node.textContent.includes("escreval")) return node;
+    for (const child of node.children ?? []) {
+      const found = findItem(child);
+      if (found) return found;
+    }
+    return null;
+  };
+  const previous = {
+    document: Object.getOwnPropertyDescriptor(globalThis, "document"),
+    CSS: Object.getOwnPropertyDescriptor(globalThis, "CSS"),
+    localStorage: Object.getOwnPropertyDescriptor(globalThis, "localStorage"),
+    fetch: Object.getOwnPropertyDescriptor(globalThis, "fetch"),
+  };
+  globalThis.document = {
+    documentElement: new SyntaxFakeElement("html"),
+    activeElement: null,
+    getElementById: getElement,
+    createElement: (tag) => new SyntaxFakeElement(tag),
+    createTextNode: (text) => {
+      const node = new SyntaxFakeElement("#text");
+      node.textContent = text;
+      return node;
+    },
+    createDocumentFragment: () => {
+      const fragment = new SyntaxFakeElement("#fragment");
+      fragment.isFragment = true;
+      return fragment;
+    },
+  };
+  globalThis.CSS = { escape: (value) => value };
+  globalThis.localStorage = { getItem: () => null, setItem() {} };
+  globalThis.fetch = async () => ({ ok: false, status: 404 });
+
+  try {
+    await import("../../web-playground/app.mjs?syntax-panel");
+
+    const list = getElement("pg-syntax-list");
+    const empty = getElement("pg-syntax-empty");
+    const search = getElement("pg-syntax-search");
+    const editor = getElement("pg-editor");
+    assert.ok(list.children.length > 0);
+
+    search.value = "inexistente";
+    search.fire("input");
+    assert.equal(list.children.length, 0);
+    assert.equal(empty.hidden, false);
+
+    search.value = "escreval";
+    search.fire("input");
+    const item = findItem(list);
+    assert.ok(item, "item escreval deve estar na lista filtrada");
+    item.fire("click");
+    assert.ok(editor.value.includes("escreval"));
+  } finally {
+    for (const [key, descriptor] of Object.entries(previous)) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else delete globalThis[key];
+    }
+  }
+});
+
+test("web playground terminal shows stdin history and literal stdout with the action combobox", async () => {
+  class TerminalFakeElement {
+    children = [];
+    dataset = {};
+    attributes = new Map();
+    listeners = new Map();
+    _text = null;
+    value = "";
+    hidden = false;
+    disabled = false;
+    className = "";
+    placeholder = "";
+    scrollTop = 0;
+    scrollLeft = 0;
+    selectionStart = 0;
+    selectionEnd = 0;
+    isFragment = false;
+    constructor(tag) { this.tag = tag; }
+    append(...nodes) { this.children.push(...nodes); }
+    replaceChildren(...nodes) {
+      this.children = [];
+      for (const node of nodes) {
+        if (node?.isFragment) this.children.push(...node.children);
+        else this.children.push(node);
+      }
+    }
+    setAttribute(key, value) { this.attributes.set(key, String(value)); }
+    addEventListener(type, fn) {
+      if (!this.listeners.has(type)) this.listeners.set(type, []);
+      this.listeners.get(type).push(fn);
+    }
+    fire(type, event = {}) {
+      for (const fn of this.listeners.get(type) ?? []) fn(event);
+    }
+    focus() {}
+    get textContent() {
+      if (this._text !== null) return this._text;
+      return this.children.map((child) => child.textContent).join("");
+    }
+    set textContent(text) { this._text = String(text); }
+  }
+
+  const elements = new Map();
+  const getElement = (id) => {
+    if (!elements.has(id)) elements.set(id, new TerminalFakeElement("div"));
+    return elements.get(id);
+  };
+  const memory = new WebAssembly.Memory({ initial: 1 });
+  const encoder = new TextEncoder();
+  let nextPtr = 1024;
+  let resultPtr = 2048;
+  let resultLen = 0;
+  const writeResult = (payload) => {
+    const bytes = encoder.encode(JSON.stringify(payload));
+    resultPtr = 2048;
+    resultLen = bytes.length;
+    new Uint8Array(memory.buffer, resultPtr, resultLen).set(bytes);
+    return resultLen;
+  };
+  const exports = {
+    memory,
+    pors_alloc(len) { const ptr = nextPtr; nextPtr += len; return ptr; },
+    pors_dealloc() {},
+    pors_result_ptr: () => resultPtr,
+    pors_result_len: () => resultLen,
+    pors_validate: () => writeResult({ ok: true, diagnostics: [] }),
+    pors_format: () => writeResult({ ok: true, changed: false, formatted: "" }),
+    pors_export_rust: () => writeResult({ ok: true, code: "", diagnostics: [] }),
+    pors_run: () => writeResult({
+      ok: true,
+      stdout: "Olá\n<script>x</script>\n",
+      diagnostics: [],
+    }),
+    pors_ui_start: () => writeResult({ ok: true, session: 1, step: 0, tree: { kind: "texto", content: "" }, stdout: "" }),
+    pors_ui_dispatch: () => writeResult({ ok: true, session: 1, step: 1, tree: { kind: "texto", content: "" }, stdout: "" }),
+    pors_ui_snapshot: () => writeResult({ ok: true, session: 1, step: 0, tree: { kind: "texto", content: "" }, stdout: "" }),
+    pors_ui_close: () => 1,
+  };
+  const previous = {
+    document: Object.getOwnPropertyDescriptor(globalThis, "document"),
+    CSS: Object.getOwnPropertyDescriptor(globalThis, "CSS"),
+    localStorage: Object.getOwnPropertyDescriptor(globalThis, "localStorage"),
+    navigator: Object.getOwnPropertyDescriptor(globalThis, "navigator"),
+    fetch: Object.getOwnPropertyDescriptor(globalThis, "fetch"),
+    instantiate: Object.getOwnPropertyDescriptor(WebAssembly, "instantiate"),
+  };
+  globalThis.document = {
+    documentElement: new TerminalFakeElement("html"),
+    activeElement: null,
+    getElementById: getElement,
+    createElement: (tag) => new TerminalFakeElement(tag),
+    createTextNode: (text) => {
+      const node = new TerminalFakeElement("#text");
+      node.textContent = text;
+      return node;
+    },
+    createDocumentFragment: () => {
+      const fragment = new TerminalFakeElement("#fragment");
+      fragment.isFragment = true;
+      return fragment;
+    },
+  };
+  globalThis.CSS = { escape: (value) => value };
+  globalThis.localStorage = { getItem: () => null, setItem() {} };
+  Object.defineProperty(globalThis, "navigator", { value: { clipboard: { writeText: async () => {} } }, configurable: true });
+  globalThis.fetch = async () => ({
+    ok: true,
+    clone() { throw new Error("stream indisponível no teste"); },
+    async arrayBuffer() { return new ArrayBuffer(8); },
+  });
+  Object.defineProperty(WebAssembly, "instantiate", {
+    value: async () => ({ instance: { exports } }),
+    configurable: true,
+    writable: true,
+  });
+
+  try {
+    await import("../../web-playground/app.mjs?terminal-contract");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const stdin = getElement("pg-stdin");
+    const history = getElement("pg-terminal-history");
+    stdin.value = "Ada\n\n";
+    getElement("pg-run").fire("click");
+
+    const lines = history.children.map((child) => ({
+      kind: child.dataset.kind,
+      text: child.textContent,
+    }));
+    assert.deepEqual(lines, [
+      { kind: "input", text: "Ada" },
+      { kind: "input", text: "" },
+      { kind: "output", text: "Olá" },
+      { kind: "output", text: "<script>x</script>" },
+    ]);
+
+    const action = getElement("pg-action");
+    action.value = "validate";
+    action.fire("change");
+    assert.match(getElement("pg-status-text").textContent, /válido/);
+    assert.equal(action.value, "");
+  } finally {
+    for (const [key, descriptor] of Object.entries(previous)) {
+      const target = key === "instantiate" ? WebAssembly : globalThis;
+      if (descriptor) Object.defineProperty(target, key, descriptor);
+      else delete target[key];
+    }
   }
 });
