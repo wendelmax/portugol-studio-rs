@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "screen",
+  "description": "Janelas das telas em execução: recebem o estado novo quando uma tela aberta por cima fecha",
+  "windows": [
+    "screen-*"
+  ],
+  "permissions": [
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}

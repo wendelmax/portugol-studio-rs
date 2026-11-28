@@ -1,7 +1,10 @@
 // Janela de uma tela desktop em execução (ADR 0018, seção 5). Pede o estado
 // ao abrir, desenha a tela com controles de verdade e manda cada evento para a
-// sessão; a resposta traz a janela atualizada pela função do aluno.
+// sessão; a resposta traz a janela atualizada pela função do aluno. Quando uma
+// tela aberta por cima com `Telas.abrir` fecha, o estado novo chega pelo evento
+// `screen-run:step` (ADR 0018, Emenda 5).
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { DesignNode } from "./api";
 import { buildCanvasModel } from "./designer/canvas-model";
 import { applySnapshot, type ScreenSnapshot } from "./designer/live-tree";
@@ -61,4 +64,12 @@ async function start() {
   }
 }
 
+const current = getCurrentWebviewWindow();
+void current.listen<ScreenStep>("screen-run:step", (event) => {
+  queue = queue.then(() => {
+    showError(null);
+    render(event.payload.snapshot);
+  });
+});
+void current.listen<string>("screen-run:error", (event) => showError(event.payload));
 void start();
