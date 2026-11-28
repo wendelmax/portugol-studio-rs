@@ -427,7 +427,7 @@ fn ui_obsoleto_aparece_como_aviso_sem_falhar() {
         "funcao iniciar() -> inteiro {\n    retorne 0;\n}\n\nfuncao atualizar(estado: inteiro, tipo: cadeia, alvo: cadeia) -> inteiro {\n    retorne estado;\n}\n\nfuncao visualizar(estado: inteiro) -> inteiro {\n    retorne UI.texto(\"oi\");\n}\n",
     )
     .unwrap();
-    let checked = cli().arg(&file).output().unwrap();
+    let checked = cli().args(["valida"]).arg(&file).output().unwrap();
     assert!(checked.status.success(), "{checked:?}");
     let stdout = String::from_utf8_lossy(&checked.stdout);
     assert!(stdout.contains("1 aviso(s)"), "{stdout}");
