@@ -44,6 +44,10 @@ export type CanvasBox = {
   items: string[];
   checked: boolean;
   disabled: boolean;
+  /** `Visivel="falso"`: esmaecido no designer, escondido na execução. */
+  hidden: boolean;
+  /** Item escolhido de `Lista` e `Combo` (`-1` para nenhum). */
+  selected: number;
   children: CanvasBox[];
 };
 
@@ -208,6 +212,8 @@ function box(node: DesignNode, kind: CanvasKind, style: CanvasStyle): CanvasBox 
     items: [],
     checked: attrs.get("Marcado") === "verdadeiro",
     disabled: attrs.get("Habilitado") === "falso",
+    hidden: attrs.get("Visivel") === "falso",
+    selected: integer(attrs.get("Selecionado")) ?? -1,
     children: [],
   };
 }
@@ -354,6 +360,8 @@ function dock(nodes: DesignNode[], sizes: DefaultSizes): CanvasBox {
     items: [],
     checked: false,
     disabled: false,
+    hidden: false,
+    selected: -1,
     children: [],
   };
   const [first, ...others] = nodes;

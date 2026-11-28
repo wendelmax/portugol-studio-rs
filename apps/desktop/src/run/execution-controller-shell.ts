@@ -37,6 +37,8 @@ export interface ExecutionControllerShellDependencies {
   setStatus: (message: string, kind?: "error" | "ok") => void;
   clearConsole: () => void;
   appendConsole: (text: string) => void;
+  /** Execução das telas desktop numa janela própria (ADR 0018). */
+  screenExecution?: import("./dispatcher").RunDispatcherDependencies["screenExecution"];
   appendProcessOutput: (result: api.PortugolRsRunResult | api.CargoProjectRunResult | api.RustSourceRunResult) => void;
   renderMessages: () => void;
   renderExerciseTests: () => void;
@@ -162,6 +164,7 @@ export function createExecutionControllerShell(dependencies: ExecutionController
     debugContinue: () => runPresentation.debugCommand(api.debugContinue),
     debugStepOver: () => runPresentation.debugCommand(api.debugStepOver),
     stop: () => runPresentation.debuggerCommands.stopProgram(),
+    screenExecution: dependencies.screenExecution,
   });
 
   const cargoProjectController = createCargoProjectController({

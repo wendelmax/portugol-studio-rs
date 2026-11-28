@@ -21,6 +21,7 @@ mod graphics;
 
 mod alerts;
 mod open_files;
+mod screen_window;
 mod updates;
 mod workspace;
 
@@ -950,6 +951,7 @@ pub fn run_app() {
         .manage(workspace::WorkspaceSession::default())
         .manage(open_files::PendingFiles::from_args())
         .manage(graphics::GraphicsWindows::default())
+        .manage(screen_window::ScreenWindows::default())
         .invoke_handler(tauri::generate_handler![
             inspect_portugol_rs,
             inspect_markup,
@@ -996,6 +998,9 @@ pub fn run_app() {
             debug_step_into,
             debug_step_out,
             debug_set_breakpoints,
+            screen_window::screen_run_start,
+            screen_window::screen_run_state,
+            screen_window::screen_run_dispatch,
             graphics::graphics_next,
             graphics::graphics_reply,
             graphics::graphics_input,

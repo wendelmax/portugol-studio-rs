@@ -70,6 +70,7 @@ import { mountCanvasInteractions } from "./designer/interactions";
 import { mountSidePanel } from "./designer/side-panel";
 import { renderToolbox } from "./designer/toolbox";
 import { inspectMarkupFile, inspectSource, isScreenFile, type ScreenFilesHost } from "./designer/screen-files";
+import { createScreenExecution } from "./designer/screen-execution";
 import { createEditorActionsShell } from "./editor/actions-shell";
 import {
   editorPreferenceExtensions,
@@ -474,7 +475,16 @@ const runShell = createRunShell({
   debugStepOut: api.debugStepOut,
   renderMessages,
   renderExerciseTests,
+  screenExecution: createScreenExecution({
+    files: screenFiles,
+    start: api.startScreenRun,
+    setStatus,
+    appendConsole,
+    showConsole: () => showPanel("console"),
+  }),
 });
+void api.listenScreenOutput((output) => appendConsole(output.text, output.error ? "error" : undefined));
+$("design-run").onclick = () => void runShell.runProgram();
 const {
   runState,
   syncBreakpoints,

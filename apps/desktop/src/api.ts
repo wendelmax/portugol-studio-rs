@@ -184,6 +184,12 @@ export const designTree = (source: string) => invoke<DesignNode | null>("design_
 /** Novo texto do `.design`; rejeita com a mensagem quando a edição não vale. */
 export const editDesign = (source: string, edits: DesignEdit[]) => invoke<string>("edit_design", { source, edits });
 export const designSchema = () => invoke<DesignSchema>("design_schema");
+/** Executa uma tela numa janela própria; devolve o rótulo da janela. */
+export const startScreenRun = (designSource: string, codeSource: string) =>
+  invoke<string>("screen_run_start", { designSource, codeSource });
+/** Saída de `escreva` e erros das telas em execução, para o console. */
+export const listenScreenOutput = (handler: (output: { label: string; text: string; error: boolean }) => void) =>
+  listen<{ label: string; text: string; error: boolean }>("screen-run:output", (event) => handler(event.payload));
 /** Diagnósticos e estrutura de um `.design` ou `.ferproj`; o tipo vem da extensão de `path`. */
 /**
  * Com `checkCode`, um `.design` também confere as ligações de eventos com o

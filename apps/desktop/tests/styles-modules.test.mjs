@@ -13,7 +13,7 @@ const EXPECTED_MODULES = [
   "styles/dialogs.css",
   "styles/home.css",
 ];
-const OTHER_STYLES = ["graphics-window.css"];
+const OTHER_STYLES = ["graphics-window.css", "screen-window.css"];
 
 const RUNTIME_CSS_VARS = new Set([
   "--editor-font",

@@ -1,0 +1,117 @@
+@import "./styles/tokens.css";
+
+/* Janela de uma tela desktop em execução (ADR 0018): o aplicativo do aluno,
+   com as mesmas cores fixas da janela desenhada no designer. */
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background: var(--design-window-bg);
+  color: var(--design-window-text);
+  font: 13px var(--font-sans);
+}
+
+#screen-root {
+  min-height: 100%;
+}
+
+.live-window {
+  box-sizing: border-box;
+  position: relative;
+  min-width: 100%;
+  min-height: 100%;
+}
+
+.live-el {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.live-el > button,
+.live-el > input,
+.live-el > select {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  font: inherit;
+}
+
+.live-el > button {
+  border: 1px solid var(--design-border);
+  border-radius: 4px;
+  background: var(--design-button-bg);
+  color: inherit;
+}
+
+.live-el > button:active:not(:disabled) {
+  filter: brightness(0.94);
+}
+
+.live-el > input,
+.live-el > select {
+  border: 1px solid var(--design-border);
+  border-radius: 4px;
+  background: var(--design-control-bg);
+  color: inherit;
+  padding: 0 6px;
+}
+
+.live-el > select[size] {
+  padding: 2px;
+}
+
+.live-checkbox > label,
+.live-radio > label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+}
+
+.live-label > span {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  white-space: pre;
+}
+
+.live-image > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  border: 1px dashed var(--design-border);
+  color: var(--design-muted);
+}
+
+.live-panel-title {
+  position: absolute;
+  top: -9px;
+  left: 8px;
+  padding: 0 4px;
+  background: var(--design-window-bg);
+  font-size: 12px;
+}
+
+.design-access-key {
+  text-decoration: underline;
+}
+
+#screen-error {
+  position: fixed;
+  inset: auto 0 0;
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--graphics-error-bg);
+  color: var(--graphics-text);
+}
+
+.live-el > button:disabled,
+.live-el > input:disabled,
+.live-el > select:disabled,
+.live-el > label:has(input:disabled) {
+  opacity: 0.55;
+  cursor: default;
+}

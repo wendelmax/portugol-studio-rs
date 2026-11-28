@@ -16,6 +16,8 @@ export interface RunDispatcherDependencies {
   debugContinue: () => Promise<void>;
   debugStepOver: () => Promise<void>;
   stop: () => Promise<void>;
+  /** Telas desktop (ADR 0018): o `.design` ou o code-behind dele rodam numa janela própria. */
+  screenExecution?: { handles: (tab: Tab) => boolean; run: (tab: Tab) => Promise<void> };
 }
 
 /** Routes IDE run commands to the controller for the active source language. */
@@ -24,7 +26,12 @@ export function createRunDispatcher(dependencies: RunDispatcherDependencies) {
     if (dependencies.isBusy()) return;
     const tab = dependencies.activeTab();
     if (!tab) return;
-    // Marcação (.design, .ferproj) não executa; a tela roda pelo projeto (ADR 0018, Fase 3).
+    // Uma tela roda numa janela própria, a partir do .design ou do código dela.
+    if (dependencies.screenExecution?.handles(tab)) {
+      await dependencies.screenExecution.run(tab);
+      return;
+    }
+    // Outra marcação (.ferproj, .design fora de um workspace) não executa.
     if (tab.language === "markup") return;
     if (tab.language === "rust") {
       await dependencies.rustExecution.run(pauseOnStart);
