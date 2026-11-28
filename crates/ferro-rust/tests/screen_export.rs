@@ -122,7 +122,70 @@ fn erros_e_recursos_fora_da_exportacao_explicam() {
     let error = export_screen_cargo_project(&design, "registro Estado { contagem: inteiro ", "x")
         .unwrap_err();
     assert!(error.contains("JanelaPrincipal.fer:"), "{error}");
-    let dialog = "registro Estado { contagem: inteiro }\nfuncao btnInc_clicar(tela: JanelaPrincipal) -> JanelaPrincipal {\n    Dialogo.mensagem(\"oi\");\n    retorne tela;\n}\n";
-    let error = export_screen_cargo_project(&design, dialog, "x").unwrap_err();
-    assert!(error.contains("Dialogo.mensagem"), "{error}");
+}
+
+const SERVICOS_DESIGN: &str = r#"<Janela Nome="J" Titulo="Serviços" Largura="300" Altura="200" Dados="Estado">
+    <Botao Nome="btnOk" X="8" Y="8" Texto="Ok" AoClicar="btnOk_clicar" />
+    <DialogoArquivo Nome="dlgAbrir" Titulo="Abrir" Filtro="*.txt" />
+</Janela>
+"#;
+
+const SERVICOS_CODE: &str = r#"registro Estado {
+    ok: logico,
+    caminho: cadeia,
+    colado: cadeia
+}
+
+funcao btnOk_clicar(tela: J) -> J {
+    seja mutavel t: J = tela;
+    Dialogo.mensagem("Olá");
+    t.dados.ok = Dialogo.confirmar("Continuar?");
+    escolha Dialogo.abrir_arquivo(t.dlgAbrir) {
+        caso Opcao::Algum(caminho) => { t.dados.caminho = caminho; }
+        caso Opcao::Nenhum => { }
+    }
+    AreaTransferencia.copiar("x");
+    escolha AreaTransferencia.colar() {
+        caso Opcao::Algum(texto) => { t.dados.colado = texto; }
+        caso Opcao::Nenhum => { }
+    }
+    Notificacao.mostrar("Pronto", "Feito");
+    retorne t;
+}
+"#;
+
+#[test]
+fn servicos_do_sistema_trazem_o_codigo_e_a_dependencia() {
+    let project = export_screen_cargo_project(SERVICOS_DESIGN, SERVICOS_CODE, "servicos").unwrap();
+    let file = |name: &str| {
+        project
+            .files
+            .iter()
+            .find(|(p, _)| p == name)
+            .unwrap()
+            .1
+            .clone()
+    };
+    let cargo = file("Cargo.toml");
+    for dependency in ["rfd = \"0.15\"", "arboard = \"3\"", "notify-rust = \"4\""] {
+        assert!(cargo.contains(dependency), "{cargo}");
+    }
+    let main = file("src/main.rs");
+    assert!(main.contains("__ferro_dialogo::mensagem(&("), "{main}");
+    assert!(main.contains("__ferro_dialogo::abrir_arquivo(&("), "{main}");
+    assert!(main.contains("mod __ferro_notificacao {"), "{main}");
+    if let Ok(dir) = std::env::var("FERRO_EXPORTAR_EM") {
+        write(&project, &std::path::Path::new(&dir).join("servicos"));
+    }
+
+    let (design, code) = counter();
+    let plain = export_screen_cargo_project(&design, &code, "x").unwrap();
+    let cargo = &plain.files[0].1;
+    assert!(
+        !cargo.contains("rfd") && !cargo.contains("arboard"),
+        "só o que a tela usa: {cargo}"
+    );
+    let comment = format!("// Dialogo.mensagem só no comentário\n{code}");
+    let commented = export_screen_cargo_project(&design, &comment, "x").unwrap();
+    assert!(!commented.files[0].1.contains("rfd"));
 }

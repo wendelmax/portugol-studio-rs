@@ -291,6 +291,23 @@ pub(super) fn render_expr(expr: &Expr, program: &Program, ferro: bool) -> Mapped
         } if module == "Internet" => {
             render_stdlib_host_call("__ferro_internet", name, arguments, program, ferro)
         }
+        // Serviços das telas: o projeto exportado da tela traz estes módulos.
+        ExprKind::HostCall {
+            module,
+            name,
+            arguments,
+        } if matches!(
+            module.as_str(),
+            "Dialogo" | "AreaTransferencia" | "Notificacao"
+        ) =>
+        {
+            let rust_mod = match module.as_str() {
+                "Dialogo" => "__ferro_dialogo",
+                "AreaTransferencia" => "__ferro_area_transferencia",
+                _ => "__ferro_notificacao",
+            };
+            render_stdlib_host_call(rust_mod, name, arguments, program, ferro)
+        }
         ExprKind::HostCall { .. } => vec![ExpressionPart::Text("0_i32".to_owned())],
         ExprKind::Integer(value) if *value == i32::MIN => {
             vec![ExpressionPart::Text("i32::MIN".to_owned())]
