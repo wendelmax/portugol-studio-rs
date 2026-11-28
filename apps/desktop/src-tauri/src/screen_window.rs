@@ -2,12 +2,17 @@
 //! uma sessão [`ScreenRun`] guardada pelo rótulo da janela (`screen-N`); a
 //! janela pede o estado ao abrir e manda cada evento, e a saída de `escreva`
 //! e os erros vão para o console da IDE pelo evento `screen-run:output`.
+//!
+//! `Telas.abrir` (ADR 0018, Emenda 5) abre a outra tela do projeto numa janela
+//! filha, que bloqueia a que a abriu até fechar; a resposta volta para a janela
+//! de baixo pelo evento `screen-run:step`.
 
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use ferro_service::{DesignNode, FileFilter, Host, ScreenEvent, ScreenRun, ScreenStep};
+use ferro_service::{DesignNode, FileFilter, Host, ScreenEvent, ScreenOpen, ScreenRun, ScreenStep};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_clipboard_manager::ClipboardExt;
@@ -132,6 +137,10 @@ struct Session {
     run: ScreenRun,
     design: String,
     title: String,
+    /// Pasta do projeto, de onde `Telas.abrir` lê as outras telas.
+    folder: Option<PathBuf>,
+    /// A janela que abriu esta com `Telas.abrir`, e o pedido dela.
+    opener: Option<(String, ScreenOpen)>,
 }
 
 #[derive(Default)]
@@ -216,6 +225,7 @@ pub async fn screen_run_start(
     .await
     .map_err(|error| error.to_string())?
     .map_err(|error| error.to_string())?;
+    let folder = project.as_ref().map(|(folder, _)| folder.clone());
     if let Some((folder, Some(manifest))) = project {
         let permissions = ferro_tela::project::analyze_manifest(&manifest)
             .manifest
@@ -223,7 +233,29 @@ pub async fn screen_run_start(
             .unwrap_or_default();
         run.set_project(permissions, Some(folder));
     }
+    let label = show_screen(&app, run, design, step.clone(), folder, None)?;
+    after_step(&app, &label, &step);
+    Ok(label)
+}
 
+fn sessions(app: &AppHandle) -> std::sync::MutexGuard<'_, HashMap<String, Session>> {
+    app.state::<ScreenWindows>()
+        .inner()
+        .sessions
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+}
+
+/// Guarda a sessão e abre a janela dela; com `opener`, a janela fica presa à
+/// que a abriu, que não recebe cliques até esta fechar.
+fn show_screen(
+    app: &AppHandle,
+    mut run: ScreenRun,
+    design: String,
+    step: ScreenStep,
+    folder: Option<PathBuf>,
+    opener: Option<(String, ScreenOpen)>,
+) -> Result<String, String> {
     let manager = app.state::<ScreenWindows>();
     let label = format!("screen-{}", manager.next.fetch_add(1, Ordering::Relaxed));
     let host_app = app.clone();
@@ -236,51 +268,154 @@ pub async fn screen_run_start(
     }));
     let title = title_of(&step);
     let (width, height) = size_of(&step);
-    emit_output(&app, &label, step.output.clone(), false);
-    manager
-        .sessions
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
-        .insert(
-            label.clone(),
-            Session {
-                run,
-                design,
-                title: title.clone(),
-            },
-        );
+    emit_output(app, &label, step.output.clone(), false);
+    let parent = opener
+        .as_ref()
+        .and_then(|(parent, _)| app.get_webview_window(parent));
+    sessions(app).insert(
+        label.clone(),
+        Session {
+            run,
+            design,
+            title: title.clone(),
+            folder,
+            opener,
+        },
+    );
 
     let url = WebviewUrl::App(format!("screen.html?sessao={label}").into());
-    let window = WebviewWindowBuilder::new(&app, &label, url)
+    let mut builder = WebviewWindowBuilder::new(app, &label, url)
         .title(&title)
         .inner_size(width, height)
-        .resizable(true)
-        .build();
-    let window = match window {
+        .resizable(true);
+    if let Some(parent) = &parent {
+        builder = builder
+            .parent(parent)
+            .map_err(|error| error.to_string())?
+            .center();
+    }
+    let window = match builder.build() {
         Ok(window) => window,
         Err(error) => {
-            manager
-                .sessions
-                .lock()
-                .unwrap_or_else(|e| e.into_inner())
-                .remove(&label);
+            sessions(app).remove(&label);
             return Err(error.to_string());
         }
     };
+    if let Some(parent) = &parent {
+        let _ = parent.set_enabled(false);
+    }
     let closing_app = app.clone();
     let closing_label = label.clone();
     window.on_window_event(move |event| {
         if matches!(event, WindowEvent::Destroyed) {
-            closing_app
-                .state::<ScreenWindows>()
-                .sessions
-                .lock()
-                .unwrap_or_else(|e| e.into_inner())
-                .remove(&closing_label);
-            let _ = closing_app.emit_to("main", "screen-run:closed", closing_label.clone());
+            // Fechada pelo botão da janela: quem a abriu recebe `Opcao::Nenhum`.
+            let app = closing_app.clone();
+            let label = closing_label.clone();
+            tauri::async_runtime::spawn(async move {
+                close_screen(&app, &label, false);
+                let _ = app.emit_to("main", "screen-run:closed", label);
+            });
         }
     });
     Ok(label)
+}
+
+/// Atende os pedidos de `Telas` de um passo: abre a tela pedida ou fecha esta.
+fn after_step(app: &AppHandle, label: &str, step: &ScreenStep) {
+    if let Some(open) = &step.open {
+        if let Err(error) = open_screen(app, label, open) {
+            emit_output(app, label, format!("{error}\n"), true);
+            let _ = app.emit_to(label, "screen-run:error", error);
+        }
+    } else if let Some(accept) = step.close {
+        close_screen(app, label, accept);
+    }
+}
+
+/// Nome de tela que pode virar nome de arquivo: letras, dígitos e `_`.
+fn screen_file_name(name: &str) -> Option<&str> {
+    let valid = !name.is_empty() && name.chars().all(|c| c.is_alphanumeric() || c == '_');
+    valid.then_some(name)
+}
+
+fn open_screen(app: &AppHandle, parent: &str, open: &ScreenOpen) -> Result<(), String> {
+    let (folder, child, step) = {
+        let sessions = sessions(app);
+        let session = sessions
+            .get(parent)
+            .ok_or_else(|| "A execução desta tela já terminou.".to_string())?;
+        let folder = session.folder.clone().ok_or_else(|| {
+            "`Telas.abrir` abre as telas do projeto: abra a pasta do projeto e execute a tela por ela.".to_string()
+        })?;
+        let name = screen_file_name(&open.screen)
+            .ok_or_else(|| format!("`{}` não é um nome de tela.", open.screen))?;
+        let design = std::fs::read_to_string(folder.join(format!("{name}.design")))
+            .map_err(|_| format!("O projeto não tem a tela `{name}` ({name}.design)."))?;
+        let code = std::fs::read_to_string(folder.join(format!("{name}.fer"))).unwrap_or_default();
+        let (run, step) = session
+            .run
+            .open(open, &design, &code)
+            .map_err(|error| error.to_string())?;
+        (folder, (run, design), step)
+    };
+    let (run, design) = child;
+    let label = show_screen(
+        app,
+        run,
+        design,
+        step.clone(),
+        Some(folder),
+        Some((parent.to_owned(), open.clone())),
+    )?;
+    after_step(app, &label, &step);
+    Ok(())
+}
+
+/// Fecha a tela; quem a abriu recebe os dados dela (`Telas.concluir`) ou
+/// `Opcao::Nenhum` na função de retorno, e volta a receber cliques.
+fn close_screen(app: &AppHandle, label: &str, accept: bool) {
+    let Some(session) = sessions(app).remove(label) else {
+        return;
+    };
+    if let Some(window) = app.get_webview_window(label) {
+        let _ = window.destroy();
+    }
+    let Some((parent, open)) = session.opener else {
+        return;
+    };
+    let answer = if accept { session.run.data() } else { None };
+    if let Some(window) = app.get_webview_window(&parent) {
+        let _ = window.set_enabled(true);
+        let _ = window.set_focus();
+    }
+    let result = {
+        let mut sessions = sessions(app);
+        match sessions.get_mut(&parent) {
+            Some(session) => session.run.resume(&open, answer).map(|step| {
+                let title = title_of(&step);
+                let renamed = (title != session.title).then(|| {
+                    session.title = title.clone();
+                    title
+                });
+                (step, renamed)
+            }),
+            None => return,
+        }
+    };
+    match result {
+        Ok((step, renamed)) => {
+            emit_output(app, &parent, step.output.clone(), false);
+            if let (Some(title), Some(window)) = (renamed, app.get_webview_window(&parent)) {
+                let _ = window.set_title(&title);
+            }
+            let _ = app.emit_to(&parent, "screen-run:step", &step);
+            after_step(app, &parent, &step);
+        }
+        Err(error) => {
+            emit_output(app, &parent, format!("{error}\n"), true);
+            let _ = app.emit_to(&parent, "screen-run:error", error);
+        }
+    }
 }
 
 /// Estado inicial pedido pela janela da tela quando ela carrega.
@@ -331,6 +466,7 @@ pub async fn screen_run_dispatch(
             if let (Some(title), Some(window)) = (renamed, app.get_webview_window(&label)) {
                 let _ = window.set_title(&title);
             }
+            after_step(&app, &label, &step);
             Ok(step)
         }
         Err(error) => {
