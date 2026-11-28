@@ -100,3 +100,34 @@ test("tela sem código roda com código vazio; erro ao iniciar vai para o consol
   assert.deepEqual(console, [['Não foi possível executar a tela J.design: sem handler ("")\n', "error"]]);
   assert.equal(shown, true);
 });
+
+test("exportar a tela usa os dois textos; cancelar não mostra nada; erro vai para o console", async () => {
+  const calls = [];
+  const statuses = [];
+  const console = [];
+  let answer = { packageName: "app", projectDir: "/saida" };
+  const host = {
+    files: files({ present: ["App/J.design", "App/J.fer"], disk: { "App/J.design": "<Janela />", "App/J.fer": "codigo" } }),
+    start: async () => "screen-0",
+    exportCargo: async (...args) => {
+      calls.push(args);
+      if (answer instanceof Error) throw answer;
+      return answer;
+    },
+    setStatus: (message, kind) => statuses.push([message, kind]),
+    appendConsole: (text, kind) => console.push([text, kind]),
+    showConsole: () => {},
+  };
+  const execution = createScreenExecution(host);
+  const code = { id: 2, workspaceId: "w", workspacePath: "App/J.fer" };
+  await execution.exportCargo(code);
+  assert.deepEqual(calls, [["<Janela />", "codigo", "w", "App/J.design"]]);
+  assert.deepEqual(statuses.at(-1), ['Projeto Cargo "app" com a tela em Slint exportado em /saida', "ok"]);
+  answer = null;
+  await execution.exportCargo(code);
+  assert.equal(statuses.length, 1, "cancelar a pasta não muda o status");
+  answer = new Error("A tela liga o evento a `f`, mas o code-behind não tem essa função.");
+  await execution.exportCargo(code);
+  assert.equal(statuses.at(-1)[1], "error");
+  assert.match(console[0][0], /code-behind não tem essa função/);
+});
