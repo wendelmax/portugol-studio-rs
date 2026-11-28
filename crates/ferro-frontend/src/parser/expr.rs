@@ -220,6 +220,7 @@ impl Parser {
                         | "Util"
                         | "Calendario"
                         | "Arquivos"
+                        | "Dialogo"
                         | "Json"
                         | "Internet"
                         | "Graficos"

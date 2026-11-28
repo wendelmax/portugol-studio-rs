@@ -930,6 +930,7 @@ fn pors_vm_module(module: &str) -> &str {
         "Util" => "PorsUtil",
         "Calendario" => "PorsCalendario",
         "Arquivos" => "PorsArquivos",
+        "Dialogo" => "PorsDialogo",
         "Json" => "PorsJson",
         "Internet" => "PorsInternet",
         "Graficos" => "PorsGraficos",

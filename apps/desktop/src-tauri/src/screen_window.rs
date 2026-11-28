@@ -7,9 +7,92 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use ferro_service::{DesignNode, ScreenEvent, ScreenRun, ScreenStep};
+use ferro_service::{DesignNode, FileFilter, Host, ScreenEvent, ScreenRun, ScreenStep};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
+
+/// Diálogos do sistema (`Dialogo`) presos à janela da tela. É chamado da
+/// thread que trata o evento, nunca da thread principal.
+struct ScreenHost {
+    app: AppHandle,
+    label: String,
+}
+
+impl ScreenHost {
+    fn window_title(&self) -> String {
+        self.app
+            .get_webview_window(&self.label)
+            .and_then(|window| window.title().ok())
+            .unwrap_or_else(|| "Tela".to_owned())
+    }
+
+    fn message(&self, text: &str) -> tauri_plugin_dialog::MessageDialogBuilder<tauri::Wry> {
+        let dialog = self.app.dialog().message(text).title(self.window_title());
+        match self.app.get_webview_window(&self.label) {
+            Some(window) => dialog.parent(&window),
+            None => dialog,
+        }
+    }
+}
+
+impl Host for ScreenHost {
+    fn show_message(&mut self, text: &str) -> Result<(), String> {
+        self.message(text)
+            .kind(MessageDialogKind::Info)
+            .buttons(MessageDialogButtons::OkCustom("OK".into()))
+            .blocking_show();
+        Ok(())
+    }
+
+    fn confirm(&mut self, text: &str) -> Result<bool, String> {
+        Ok(self
+            .message(text)
+            .kind(MessageDialogKind::Warning)
+            .buttons(MessageDialogButtons::OkCancelCustom(
+                "Sim".into(),
+                "Não".into(),
+            ))
+            .blocking_show())
+    }
+
+    fn file_dialog(
+        &mut self,
+        save: bool,
+        title: &str,
+        filters: &[FileFilter],
+    ) -> Result<Option<String>, String> {
+        let default_title = if save {
+            "Salvar arquivo"
+        } else {
+            "Abrir arquivo"
+        };
+        let mut dialog = self
+            .app
+            .dialog()
+            .file()
+            .set_title(if title.trim().is_empty() {
+                default_title
+            } else {
+                title
+            });
+        if let Some(window) = self.app.get_webview_window(&self.label) {
+            dialog = dialog.set_parent(&window);
+        }
+        for filter in filters {
+            let extensions: Vec<&str> = filter.extensions.iter().map(String::as_str).collect();
+            dialog = dialog.add_filter(&filter.description, &extensions);
+        }
+        let chosen = if save {
+            dialog.blocking_save_file()
+        } else {
+            dialog.blocking_pick_file()
+        };
+        Ok(chosen
+            .and_then(|path| path.into_path().ok())
+            .map(|path| path.display().to_string()))
+    }
+}
 
 struct Session {
     run: ScreenRun,
@@ -82,7 +165,7 @@ pub async fn screen_run_start(
     code_source: String,
 ) -> Result<String, String> {
     let design = design_source.clone();
-    let (run, step) = tauri::async_runtime::spawn_blocking(move || {
+    let (mut run, step) = tauri::async_runtime::spawn_blocking(move || {
         ScreenRun::start(&design_source, &code_source)
     })
     .await
@@ -91,6 +174,14 @@ pub async fn screen_run_start(
 
     let manager = app.state::<ScreenWindows>();
     let label = format!("screen-{}", manager.next.fetch_add(1, Ordering::Relaxed));
+    let host_app = app.clone();
+    let host_label = label.clone();
+    run.set_host(Box::new(move || {
+        Box::new(ScreenHost {
+            app: host_app.clone(),
+            label: host_label.clone(),
+        })
+    }));
     let title = title_of(&step);
     let (width, height) = size_of(&step);
     emit_output(&app, &label, step.output.clone(), false);

@@ -48,6 +48,35 @@ pub trait Host {
         Err(unavailable("a seleção de arquivos"))
     }
 
+    /// `Dialogo.mensagem`: aviso com um botão OK. Só as telas desktop
+    /// (ADR 0018) têm uma janela para mostrar a caixa.
+    fn show_message(&mut self, text: &str) -> Result<(), String> {
+        let _ = text;
+        Err(screen_only("Dialogo.mensagem"))
+    }
+
+    /// `Dialogo.confirmar`: pergunta com Sim e Não.
+    fn confirm(&mut self, text: &str) -> Result<bool, String> {
+        let _ = text;
+        Err(screen_only("Dialogo.confirmar"))
+    }
+
+    /// `Dialogo.abrir_arquivo` e `Dialogo.salvar_arquivo`. `Ok(None)` quando o
+    /// usuário cancela.
+    fn file_dialog(
+        &mut self,
+        save: bool,
+        title: &str,
+        filters: &[FileFilter],
+    ) -> Result<Option<String>, String> {
+        let _ = (title, filters);
+        Err(screen_only(if save {
+            "Dialogo.salvar_arquivo"
+        } else {
+            "Dialogo.abrir_arquivo"
+        }))
+    }
+
     /// Abre (ou mostra de novo) a janela gráfica com a área de desenho no
     /// tamanho dado.
     fn graphics_open(&mut self, width: i32, height: i32) -> Result<(), String> {
@@ -92,6 +121,12 @@ pub trait Host {
     fn input(&mut self) -> Option<Arc<InputState>> {
         None
     }
+}
+
+fn screen_only(function: &str) -> String {
+    format!(
+        "`{function}` só funciona numa tela desktop (um projeto com `.design`); num programa de console, use `escreva` e `leia`."
+    )
 }
 
 pub(crate) fn unavailable(what: &str) -> String {

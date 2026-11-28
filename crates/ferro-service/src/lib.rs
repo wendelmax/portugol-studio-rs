@@ -64,7 +64,8 @@ pub use run::{
     RunObserver, RunOptions, RunOutcome, start_portugol_rs, start_portugol_rs_with_host,
 };
 pub use screen_run::{
-    SCREEN_EVENT_STEP_BUDGET, ScreenEvent, ScreenRun, ScreenStartError, ScreenStep, ScreenValue,
+    SCREEN_EVENT_STEP_BUDGET, ScreenEvent, ScreenHostFactory, ScreenRun, ScreenStartError,
+    ScreenStep, ScreenValue,
 };
 pub use ui_session::{PorsUiBudgetRequest, PorsUiService};
 

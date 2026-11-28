@@ -9,6 +9,8 @@
 
 mod arquivos;
 mod calendario;
+#[cfg(feature = "stdlib")]
+pub(crate) mod dialogo;
 mod internet;
 mod json;
 mod matematica;
