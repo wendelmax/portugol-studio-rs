@@ -6,13 +6,27 @@ import {
   createPlaygroundRuntime,
   renderUiNodeTree,
 } from "../../web-playground/playground-core.mjs";
+import { LESSON_SOLUTIONS } from "../../web-playground/lessons.mjs";
 
-test("web playground ships console and visual MVU .fer examples without innerHTML", () => {
-  assert.ok(PLAYGROUND_EXAMPLES.length >= 4);
-  assert.ok(PLAYGROUND_EXAMPLES.some((ex) => ex.mode === "console"));
+test("web playground ships twelve organized .fer examples without innerHTML", () => {
+  assert.equal(PLAYGROUND_EXAMPLES.length, 12);
+  for (const example of PLAYGROUND_EXAMPLES) {
+    for (const field of ["id", "title", "file", "group", "mode", "input", "source"]) {
+      assert.equal(typeof example[field], "string", `${example.id}: campo ${field} ausente`);
+    }
+    assert.ok(["console", "ui"].includes(example.mode), `${example.id}: modo inválido`);
+    assert.ok(example.source.trim().length > 0, `${example.id}: fonte vazia`);
+  }
+  assert.deepEqual(
+    [...new Set(PLAYGROUND_EXAMPLES.map((example) => example.group))],
+    ["Básico", "Controle", "Dados", "Valores", "Visual", "Exercício"],
+  );
   assert.ok(PLAYGROUND_EXAMPLES.some((ex) => ex.mode === "ui" && ex.source.includes("UI.coluna")));
 
-  for (const file of ["index.html", "app.mjs", "playground-core.mjs", "ferro-language.mjs"]) {
+  for (const file of [
+    "index.html", "app.mjs", "playground-core.mjs", "ferro-language.mjs",
+    "file-system.mjs", "lessons.mjs",
+  ]) {
     const content = readFileSync(new URL(`../../web-playground/${file}`, import.meta.url), "utf8");
     assert.ok(!/\.innerHTML\b/.test(content), `${file} não deve usar innerHTML`);
   }
@@ -26,15 +40,35 @@ test("web playground ships a searchable Ferro syntax reference panel", () => {
   assert.match(html, /id="pg-syntax-empty"/);
 });
 
-test("web playground replaces action buttons with a single command combobox and a terminal", () => {
+test("web playground is organized as an editor shell with sidebar, tabs and bottom panels", () => {
   const html = readFileSync(new URL("../../web-playground/index.html", import.meta.url), "utf8");
-  for (const id of ["pg-validate", "pg-format", "pg-run-ui", "pg-export-rust", "pg-output"]) {
-    assert.doesNotMatch(html, new RegExp(`id="${id}"`));
+  for (const id of ["pg-validate", "pg-format", "pg-run-ui", "pg-export-rust", "pg-output", "pg-example"]) {
+    assert.doesNotMatch(html, new RegExp(`id="${id}"`), `${id} não deve existir`);
   }
-  assert.match(html, /id="pg-action"/);
-  assert.match(html, /<option value="validate">Validar<\/option>/);
-  assert.match(html, /id="pg-terminal-history"/);
-  assert.match(html, /id="pg-stdin"/);
+  for (const id of [
+    "pg-sidebar", "pg-file-list", "pg-example-list", "pg-lesson-list",
+    "pg-tabs", "pg-active-file", "pg-panel-tabs", "pg-panel-terminal",
+    "pg-panel-ui", "pg-panel-rust", "pg-panel-syntax", "pg-new-file",
+    "pg-open-file", "pg-save-file", "pg-lesson-check", "pg-lesson-progress",
+    "pg-lesson-title", "pg-lesson-prompt", "pg-lesson-hint", "pg-lesson-bar",
+    "pg-action", "pg-run", "pg-terminal-history", "pg-stdin",
+  ]) {
+    assert.match(html, new RegExp(`id="${id}"`), `id ${id} ausente`);
+  }
+  for (const panel of ["terminal", "ui", "rust", "syntax"]) {
+    assert.match(html, new RegExp(`data-panel="${panel}"`));
+  }
+  for (const [, ref] of html.matchAll(/aria-labelledby="([^"]+)"/g)) {
+    assert.match(html, new RegExp(`id="${ref}"`), `aria-labelledby ${ref} sem alvo`);
+  }
+
+  const css = readFileSync(new URL("../../web-playground/style.css", import.meta.url), "utf8");
+  assert.match(css, /\.pg-workspace\s*\{[^}]*grid-template-columns:\s*240px minmax\(0, 1fr\)/);
+  assert.match(css, /\[aria-selected="true"\]/);
+  assert.doesNotMatch(css, /\[data-active=/);
+  for (const width of [980, 720, 420]) {
+    assert.match(css, new RegExp(`@media \\(max-width: ${width}px\\)`));
+  }
 });
 
 test("web playground CSS keeps elements with hidden attribute out of layout", () => {
@@ -236,11 +270,16 @@ test("Prévia UI loads a visual example when the editor holds a console program"
   }
 
   const ids = [
-    "pg-status", "pg-status-text", "pg-theme", "pg-example", "pg-editor", "pg-highlight",
+    "pg-status", "pg-status-text", "pg-theme", "pg-editor", "pg-highlight",
     "pg-stdin", "pg-terminal-history", "pg-terminal-badge",
     "pg-ui-container", "pg-ui-section", "pg-rust-section", "pg-rust-code", "pg-copy-rust",
     "pg-action", "pg-run", "pg-completions",
     "pg-syntax-search", "pg-syntax-list", "pg-syntax-empty",
+    "pg-sidebar", "pg-file-list", "pg-example-list", "pg-lesson-list", "pg-tabs",
+    "pg-active-file", "pg-cursor", "pg-panel-tabs", "pg-panel-terminal", "pg-panel-ui",
+    "pg-panel-rust", "pg-panel-syntax", "pg-new-file", "pg-open-file", "pg-save-file",
+    "pg-lesson-bar", "pg-lesson-title", "pg-lesson-prompt", "pg-lesson-hint",
+    "pg-lesson-check", "pg-lesson-progress",
   ];
   const elements = new Map(ids.map((id) => [id, new FakeElement("div")]));
   const doc = {
@@ -323,14 +362,15 @@ test("Prévia UI loads a visual example when the editor holds a console program"
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     const editor = elements.get("pg-editor");
-    assert.match(editor.value, /^funcao saudar\(/);
+    assert.match(editor.value, /^funcao inicio\(\)/);
 
     const action = elements.get("pg-action");
     action.value = "ui";
     action.fire("change");
 
     assert.match(editor.value, /funcao iniciar\(/);
-    assert.equal(elements.get("pg-example").value, "ui-contador");
+    assert.equal(elements.get("pg-active-file").textContent, "ui-contador.fer");
+    assert.equal(elements.get("pg-tabs").children.length, 2);
     assert.equal(elements.get("pg-ui-section").hidden, false);
     assert.equal(elements.get("pg-ui-container").children.length, 1);
   } finally {
@@ -850,5 +890,405 @@ test("web playground terminal shows stdin history and literal stdout with the ac
       if (descriptor) Object.defineProperty(target, key, descriptor);
       else delete target[key];
     }
+  }
+});
+
+class EditorFakeElement {
+  children = [];
+  dataset = {};
+  attributes = new Map();
+  listeners = new Map();
+  _text = null;
+  value = "";
+  hidden = false;
+  disabled = false;
+  className = "";
+  placeholder = "";
+  scrollTop = 0;
+  scrollLeft = 0;
+  selectionStart = 0;
+  selectionEnd = 0;
+  isFragment = false;
+  constructor(tag) { this.tag = tag; }
+  append(...nodes) { this.children.push(...nodes); }
+  replaceChildren(...nodes) {
+    this.children = [];
+    for (const node of nodes) {
+      if (node?.isFragment) this.children.push(...node.children);
+      else this.children.push(node);
+    }
+  }
+  setAttribute(key, value) { this.attributes.set(key, String(value)); }
+  getAttribute(key) { return this.attributes.get(key) ?? null; }
+  addEventListener(type, fn) {
+    if (!this.listeners.has(type)) this.listeners.set(type, []);
+    this.listeners.get(type).push(fn);
+  }
+  remove() { this.removed = true; }
+  fire(type, event = {}) {
+    for (const fn of this.listeners.get(type) ?? []) {
+      fn({ preventDefault() {}, stopPropagation() {}, ...event });
+    }
+  }
+  click() { this.fire("click"); }
+  focus() {}
+  get textContent() {
+    if (this._text !== null) return this._text;
+    return this.children.map((child) => child.textContent).join("");
+  }
+  set textContent(text) { this._text = String(text); }
+}
+
+function createEditorHarness(query, { wasm = false, lessons = null } = {}) {
+  const elements = new Map();
+  const created = [];
+  const storage = new Map();
+  if (lessons !== null) storage.set("pg-lessons", JSON.stringify(lessons));
+
+  const getElement = (id) => {
+    if (!elements.has(id)) elements.set(id, new EditorFakeElement("div"));
+    return elements.get(id);
+  };
+  const findAll = (root, predicate) => {
+    const found = [];
+    const visit = (node) => {
+      if (predicate(node)) found.push(node);
+      for (const child of node.children ?? []) visit(child);
+    };
+    visit(root);
+    return found;
+  };
+  const findByDataset = (root, key, value) =>
+    findAll(root, (node) => node.dataset?.[key] === value)[0] ?? null;
+
+  const memory = new WebAssembly.Memory({ initial: 1 });
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  const runCalls = [];
+  const control = { failRuns: false };
+  let nextPtr = 1024;
+  let resultPtr = 2048;
+  let resultLen = 0;
+  const writeResult = (payload) => {
+    const bytes = encoder.encode(JSON.stringify(payload));
+    resultPtr = 2048;
+    resultLen = bytes.length;
+    new Uint8Array(memory.buffer, resultPtr, resultLen).set(bytes);
+    return resultLen;
+  };
+  const readUtf8 = (ptr, len) => decoder.decode(new Uint8Array(memory.buffer, ptr, len));
+  const exports = {
+    memory,
+    ferro_alloc(len) { const ptr = nextPtr; nextPtr += len; return ptr; },
+    ferro_dealloc() {},
+    ferro_result_ptr: () => resultPtr,
+    ferro_result_len: () => resultLen,
+    ferro_validate: () => writeResult({ ok: true, diagnostics: [] }),
+    ferro_format: () => writeResult({ ok: true, changed: false, formatted: "" }),
+    ferro_export_rust: () => writeResult({ ok: true, code: "", diagnostics: [] }),
+    ferro_run(srcPtr, srcLen, inPtr, inLen) {
+      if (control.failRuns) throw new Error("WASM falhou");
+      const source = readUtf8(srcPtr, srcLen);
+      const stdin = readUtf8(inPtr, inLen);
+      runCalls.push({ source, stdin });
+      return writeResult({
+        ok: true,
+        stdout: source.includes("Ada") ? "Olá, Ada!\n" : "sem Ada\n",
+        diagnostics: [],
+      });
+    },
+    ferro_ui_start: () => writeResult({
+      ok: true,
+      session: 1,
+      step: 0,
+      tree: { kind: "texto", content: "Prévia" },
+      stdout: "",
+    }),
+    ferro_ui_dispatch: () => writeResult({
+      ok: true,
+      session: 1,
+      step: 1,
+      tree: { kind: "texto", content: "Prévia" },
+      stdout: "",
+    }),
+    ferro_ui_snapshot: () => writeResult({
+      ok: true, session: 1, step: 0, tree: { kind: "texto", content: "" }, stdout: "",
+    }),
+    ferro_ui_close: () => 1,
+  };
+
+  const previous = {
+    document: Object.getOwnPropertyDescriptor(globalThis, "document"),
+    CSS: Object.getOwnPropertyDescriptor(globalThis, "CSS"),
+    localStorage: Object.getOwnPropertyDescriptor(globalThis, "localStorage"),
+    navigator: Object.getOwnPropertyDescriptor(globalThis, "navigator"),
+    window: Object.getOwnPropertyDescriptor(globalThis, "window"),
+    fetch: Object.getOwnPropertyDescriptor(globalThis, "fetch"),
+    instantiate: Object.getOwnPropertyDescriptor(WebAssembly, "instantiate"),
+    createObjectURL: Object.getOwnPropertyDescriptor(URL, "createObjectURL"),
+    revokeObjectURL: Object.getOwnPropertyDescriptor(URL, "revokeObjectURL"),
+  };
+
+  const documentFake = {
+    documentElement: new EditorFakeElement("html"),
+    body: new EditorFakeElement("body"),
+    activeElement: null,
+    getElementById: getElement,
+    createElement: (tag) => {
+      const node = new EditorFakeElement(tag);
+      created.push(node);
+      return node;
+    },
+    createTextNode: (text) => {
+      const node = new EditorFakeElement("#text");
+      node.textContent = text;
+      return node;
+    },
+    createDocumentFragment: () => {
+      const fragment = new EditorFakeElement("#fragment");
+      fragment.isFragment = true;
+      return fragment;
+    },
+  };
+  globalThis.document = documentFake;
+  globalThis.CSS = { escape: (value) => value };
+  globalThis.localStorage = {
+    getItem: (key) => storage.get(key) ?? null,
+    setItem: (key, value) => storage.set(key, String(value)),
+  };
+  Object.defineProperty(globalThis, "navigator", {
+    value: { clipboard: { writeText: async () => {} } }, configurable: true,
+  });
+  globalThis.window = {};
+  URL.createObjectURL = () => "blob:fer";
+  URL.revokeObjectURL = () => {};
+  globalThis.fetch = wasm
+    ? async () => ({
+        ok: true,
+        clone() { throw new Error("stream indisponível no teste"); },
+        async arrayBuffer() { return new ArrayBuffer(8); },
+      })
+    : async () => ({ ok: false, status: 404 });
+  Object.defineProperty(WebAssembly, "instantiate", {
+    value: async () => ({ instance: { exports } }), configurable: true, writable: true,
+  });
+
+  return {
+    get: getElement,
+    created,
+    storage,
+    runCalls,
+    control,
+    findAll,
+    findByDataset,
+    async load() {
+      await import(`../../web-playground/app.mjs?${query}`);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    },
+    restore() {
+      for (const [key, descriptor] of Object.entries(previous)) {
+        const target = key === "instantiate"
+          ? WebAssembly
+          : ["createObjectURL", "revokeObjectURL"].includes(key)
+            ? URL
+            : globalThis;
+        if (descriptor) Object.defineProperty(target, key, descriptor);
+        else delete target[key];
+      }
+    },
+  };
+}
+
+function setEditorSource(editor, source) {
+  editor.value = source;
+  editor.selectionStart = editor.selectionEnd = source.length;
+  editor.fire("input");
+}
+
+test("playground opens examples as tabs and preserves edited buffers", async () => {
+  const h = createEditorHarness("tabs-contract", { wasm: true });
+  try {
+    await h.load();
+    const editor = h.get("pg-editor");
+    const tabs = h.get("pg-tabs");
+    assert.equal(h.get("pg-active-file").textContent, "boas-vindas.fer");
+    assert.equal(tabs.children.length, 1);
+
+    h.findByDataset(h.get("pg-example-list"), "exampleId", "vetores").fire("click");
+    assert.equal(h.get("pg-active-file").textContent, "vetores.fer");
+    assert.equal(tabs.children.length, 2);
+
+    setEditorSource(editor, "funcao inicio() { escreval(42); }");
+    h.findByDataset(tabs, "tabId", "boas-vindas.fer").fire("click");
+    assert.notEqual(editor.value, "funcao inicio() { escreval(42); }");
+    assert.equal(h.get("pg-stdin").value, "");
+
+    h.findByDataset(tabs, "tabId", "vetores.fer").fire("click");
+    assert.equal(editor.value, "funcao inicio() { escreval(42); }");
+  } finally {
+    h.restore();
+  }
+});
+
+test("playground activates an open file and closes tabs", async () => {
+  const h = createEditorHarness("file-tabs-contract", { wasm: true });
+  try {
+    await h.load();
+    h.findByDataset(h.get("pg-example-list"), "exampleId", "vetores").fire("click");
+    h.findByDataset(h.get("pg-file-list"), "fileTabId", "boas-vindas.fer").fire("click");
+    assert.equal(h.get("pg-active-file").textContent, "boas-vindas.fer");
+    assert.equal(
+      h.findByDataset(h.get("pg-file-list"), "fileTabId", "boas-vindas.fer").attributes.get("aria-selected"),
+      "true",
+    );
+
+    h.findByDataset(h.get("pg-tabs"), "closeTabId", "vetores.fer").fire("click");
+    const ids = h.findAll(h.get("pg-tabs"), (node) => node.dataset.tabId).map((node) => node.dataset.tabId);
+    assert.deepEqual(ids, ["boas-vindas.fer"]);
+  } finally {
+    h.restore();
+  }
+});
+
+test("playground lesson locks stdin and records progress after a check", async () => {
+  const h = createEditorHarness("lesson-contract", { wasm: true });
+  try {
+    await h.load();
+    h.findByDataset(h.get("pg-lesson-list"), "lessonId", "variaveis").fire("click");
+
+    assert.equal(h.get("pg-stdin").disabled, true);
+    assert.equal(h.get("pg-lesson-bar").hidden, false);
+    assert.match(h.get("pg-lesson-title").textContent, /Variáveis/);
+
+    setEditorSource(h.get("pg-editor"), LESSON_SOLUTIONS.variaveis);
+    h.get("pg-lesson-check").fire("click");
+    assert.deepEqual(JSON.parse(h.storage.get("pg-lessons")), ["variaveis"]);
+    assert.match(
+      h.findByDataset(h.get("pg-lesson-list"), "lessonId", "variaveis").textContent,
+      /✓/,
+    );
+
+    h.findByDataset(h.get("pg-tabs"), "tabId", "boas-vindas.fer").fire("click");
+    assert.equal(h.get("pg-stdin").disabled, false);
+    assert.equal(h.get("pg-lesson-bar").hidden, true);
+  } finally {
+    h.restore();
+  }
+});
+
+test("playground panel tabs switch between terminal and reference", async () => {
+  const h = createEditorHarness("panels-contract");
+  try {
+    await h.load();
+    assert.equal(h.get("pg-panel-terminal").hidden, false);
+    assert.equal(h.get("pg-panel-syntax").hidden, true);
+
+    h.findByDataset(h.get("pg-panel-tabs"), "panel", "syntax").fire("click");
+    assert.equal(h.get("pg-panel-syntax").hidden, false);
+    assert.equal(h.get("pg-panel-terminal").hidden, true);
+    assert.equal(
+      h.findByDataset(h.get("pg-panel-tabs"), "panel", "syntax").attributes.get("aria-selected"),
+      "true",
+    );
+  } finally {
+    h.restore();
+  }
+});
+
+test("playground save button downloads the active buffer and clears the dirty mark", async () => {
+  const h = createEditorHarness("save-contract");
+  try {
+    await h.load();
+    setEditorSource(h.get("pg-editor"), "funcao inicio() { escreval(7); }");
+    assert.match(
+      h.findByDataset(h.get("pg-tabs"), "tabId", "boas-vindas.fer").textContent,
+      /\*/,
+    );
+
+    h.get("pg-save-file").fire("click");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const anchors = h.created.filter((node) => node.tag === "a");
+    assert.equal(anchors.length, 1);
+    assert.equal(anchors[0].download, "boas-vindas.fer");
+    assert.match(h.get("pg-status-text").textContent, /baixado|salvo/i);
+    assert.doesNotMatch(
+      h.findByDataset(h.get("pg-tabs"), "tabId", "boas-vindas.fer").textContent,
+      /\*/,
+    );
+  } finally {
+    h.restore();
+  }
+});
+
+test("playground reports cursor line while editing", async () => {
+  const h = createEditorHarness("cursor-contract");
+  try {
+    await h.load();
+    const editor = h.get("pg-editor");
+    setEditorSource(editor, "funcao inicio() {\n    escreval(1);\n}");
+    editor.selectionStart = editor.selectionEnd = 25;
+    editor.fire("keyup");
+    assert.match(h.get("pg-cursor").textContent, /linha 2/);
+  } finally {
+    h.restore();
+  }
+});
+
+test("playground passes the typed-input example as real stdin lines", async () => {
+  const h = createEditorHarness("stdin-lines-contract", { wasm: true });
+  try {
+    await h.load();
+    const example = PLAYGROUND_EXAMPLES.find((item) => item.id === "entrada");
+    assert.deepEqual(example.input.split("\n"), ["Ada", "17", ""]);
+
+    h.findByDataset(h.get("pg-example-list"), "exampleId", "entrada").fire("click");
+    assert.equal(h.get("pg-stdin").value, "Ada\n17\n");
+    assert.equal(h.runCalls.at(-1).stdin, "Ada\n17\n");
+  } finally {
+    h.restore();
+  }
+});
+
+test("playground executes the accepted autocomplete suggestion and marks both lists dirty", async () => {
+  const h = createEditorHarness("completion-commit-contract", { wasm: true });
+  try {
+    await h.load();
+    const editor = h.get("pg-editor");
+    setEditorSource(editor, "escr");
+    editor.selectionStart = editor.selectionEnd = 4;
+    editor.fire("input");
+    assert.equal(h.get("pg-completions").hidden, false);
+
+    editor.fire("keydown", { key: "ArrowDown", ctrlKey: false, metaKey: false });
+    editor.fire("keydown", { key: "Enter", ctrlKey: false, metaKey: false });
+    assert.equal(editor.value, "escreval");
+
+    h.get("pg-run").fire("click");
+    assert.equal(h.runCalls.at(-1).source, "escreval");
+    assert.match(
+      h.findByDataset(h.get("pg-tabs"), "tabId", "boas-vindas.fer").textContent,
+      /\*/,
+    );
+    assert.match(
+      h.findByDataset(h.get("pg-file-list"), "fileTabId", "boas-vindas.fer").textContent,
+      /\*/,
+    );
+  } finally {
+    h.restore();
+  }
+});
+
+test("playground reports a failed lesson check instead of throwing", async () => {
+  const h = createEditorHarness("lesson-error-contract", { wasm: true });
+  try {
+    await h.load();
+    h.findByDataset(h.get("pg-lesson-list"), "lessonId", "variaveis").fire("click");
+    h.control.failRuns = true;
+    h.get("pg-lesson-check").fire("click");
+    assert.match(h.get("pg-status-text").textContent, /verificar/i);
+  } finally {
+    h.restore();
   }
 });

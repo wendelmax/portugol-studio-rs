@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Ferro Studio no navegador: valide, formate e execute programas em português com WebAssembly e veja o Rust equivalente." />
+  <meta name="description" content="Ferro Studio no navegador: abra arquivos .fer, execute com WebAssembly e veja o Rust equivalente." />
   <title>Ferro Studio — Playground Web</title>
   <link rel="stylesheet" href="./style.css" />
   <script>
@@ -27,117 +27,147 @@
         <div class="pg-brand-copy">
           <p class="pg-eyebrow">Ferro Studio</p>
           <h1>Playground Web</h1>
-          <p class="pg-tagline">Programe em português, valide e veja o Rust equivalente — tudo no navegador, com WebAssembly.</p>
         </div>
       </div>
       <div class="pg-topbar-actions">
+        <button id="pg-new-file" type="button" class="pg-file-button">Novo</button>
+        <button id="pg-open-file" type="button" class="pg-file-button">Abrir .fer</button>
+        <button id="pg-save-file" type="button" class="pg-file-button">Salvar</button>
+        <label class="pg-select-wrap pg-action-wrap" for="pg-action">
+          <span>Ação</span>
+          <select id="pg-action" aria-label="Outras ações do playground">
+            <option value="">Outras ações…</option>
+            <option value="validate">Validar</option>
+            <option value="format">Formatar</option>
+            <option value="ui">Prévia UI</option>
+            <option value="rust">Ver Rust</option>
+          </select>
+        </label>
+        <button id="pg-run" type="button" class="pg-primary">Executar <span class="pg-shortcut" aria-hidden="true">Ctrl+Enter</span></button>
         <button id="pg-theme" class="pg-theme-toggle" type="button" aria-pressed="false">Tema: claro</button>
-        <a class="pg-download-link" href="https://github.com/wendelmax/ferro-studio/releases" target="_blank" rel="noopener noreferrer">Baixar IDE</a>
-        <a class="pg-repo-link" href="https://github.com/wendelmax/ferro-studio" target="_blank" rel="noopener noreferrer">Ver no GitHub</a>
+        <a class="pg-repo-link" href="https://github.com/wendelmax/ferro-studio" target="_blank" rel="noopener noreferrer">GitHub</a>
       </div>
     </header>
 
     <main class="pg-main">
       <div class="pg-workspace">
-        <div class="pg-controls">
-          <label class="pg-select-wrap" for="pg-example">
-            <span>Exemplo</span>
-            <select id="pg-example" aria-label="Selecionar exemplo Ferro"></select>
-          </label>
-          <label class="pg-select-wrap pg-action-wrap" for="pg-action">
-            <span>Ação</span>
-            <select id="pg-action" aria-label="Outras ações do playground">
-              <option value="">Outras ações…</option>
-              <option value="validate">Validar</option>
-              <option value="format">Formatar</option>
-              <option value="ui">Prévia UI</option>
-              <option value="rust">Ver Rust</option>
-            </select>
-          </label>
-          <button id="pg-run" type="button" class="pg-primary">Executar <span class="pg-shortcut" aria-hidden="true">Ctrl+Enter</span></button>
-        </div>
+        <aside id="pg-sidebar" class="pg-sidebar" aria-label="Arquivos, exemplos e trilha">
+          <section class="pg-sidebar-section">
+            <h2>Arquivos</h2>
+            <div id="pg-file-list" class="pg-sidebar-list"></div>
+          </section>
+          <section class="pg-sidebar-section">
+            <h2>Exemplos</h2>
+            <div id="pg-example-list" class="pg-sidebar-list"></div>
+          </section>
+          <section class="pg-sidebar-section">
+            <h2>Trilha</h2>
+            <div id="pg-lesson-list" class="pg-sidebar-list"></div>
+            <p id="pg-lesson-progress" class="pg-sidebar-note">0 de 6 lições concluídas.</p>
+          </section>
+        </aside>
 
-        <div id="pg-status" class="pg-status" role="status" aria-live="polite" data-tone="info">
-          <span class="pg-status-dot" aria-hidden="true"></span>
-          <span id="pg-status-text">Carregando módulo WebAssembly…</span>
-        </div>
+        <section class="pg-editor-area" aria-label="Editor Ferro">
+          <div class="pg-editor-toolbar">
+            <div id="pg-tabs" class="pg-tabs" role="tablist" aria-label="Arquivos abertos"></div>
+            <span class="pg-badge" id="pg-active-file"></span>
+            <span class="pg-cursor" id="pg-cursor" aria-label="Posição do cursor">linha 1 · coluna 1</span>
+          </div>
 
-        <div class="pg-panels">
-          <section class="pg-card pg-editor-card" aria-labelledby="pg-editor-heading">
-            <header class="pg-card-header">
-              <div>
-                <p class="pg-eyebrow">Editor</p>
-                <h2 id="pg-editor-heading">Código Ferro</h2>
-              </div>
-              <span class="pg-badge">.fer</span>
-            </header>
-            <div class="pg-editor-wrap">
-              <pre id="pg-highlight" class="pg-highlight" aria-hidden="true"></pre>
-              <textarea
-                id="pg-editor"
-                class="pg-editor"
-                spellcheck="false"
-                aria-label="Editor de código Ferro"
-                aria-autocomplete="list"
-                aria-controls="pg-completions"
-              ></textarea>
-              <ul id="pg-completions" class="pg-completions" role="listbox" aria-label="Sugestões de sintaxe Ferro" hidden></ul>
+          <section id="pg-lesson-bar" class="pg-lesson-bar" aria-labelledby="pg-lesson-title" hidden>
+            <div class="pg-lesson-copy">
+              <strong id="pg-lesson-title"></strong>
+              <span id="pg-lesson-prompt"></span>
+              <span id="pg-lesson-hint" class="pg-lesson-hint"></span>
             </div>
+            <button id="pg-lesson-check" type="button" class="pg-primary">Verificar</button>
           </section>
 
-          <section class="pg-card pg-output-card" aria-labelledby="pg-output-heading">
-            <header class="pg-card-header">
-              <div>
-                <p class="pg-eyebrow">Execução</p>
-                <h2 id="pg-output-heading">Terminal</h2>
-              </div>
-              <span id="pg-terminal-badge" class="pg-badge" data-tone="info">Terminal</span>
-            </header>
-            <div class="pg-terminal">
-              <div id="pg-terminal-history" class="pg-terminal-history" role="log" aria-live="polite" aria-label="Histórico do terminal"></div>
-              <label class="pg-terminal-input" for="pg-stdin">
-                <span aria-hidden="true">&gt;</span>
-                <textarea
-                  id="pg-stdin"
-                  class="pg-stdin"
-                  rows="2"
-                  spellcheck="false"
-                  aria-label="Entrada padrão do programa"
-                  placeholder="Uma linha por leitura (leia). Pressione Executar para rodar."
-                ></textarea>
-              </label>
-            </div>
-            <section id="pg-ui-section" class="pg-nested-section" aria-labelledby="pg-ui-heading" hidden>
-              <div class="pg-section-heading">
-                <h3 id="pg-ui-heading">Prévia visual MVU</h3>
-                <span class="pg-badge">UI.*</span>
-              </div>
-              <div id="pg-ui-container" class="pg-ui-container"></div>
-            </section>
-            <section id="pg-rust-section" class="pg-nested-section" aria-labelledby="pg-rust-heading" hidden>
-              <div class="pg-section-heading">
-                <h3 id="pg-rust-heading">Rust gerado</h3>
-                <button id="pg-copy-rust" type="button" class="pg-copy-button">Copiar Rust</button>
-              </div>
-              <pre class="pg-rust-pre" aria-label="Código Rust gerado a partir do Ferro"><code id="pg-rust-code"></code></pre>
-            </section>
-          </section>
-        </div>
+          <div id="pg-status" class="pg-status" role="status" aria-live="polite" data-tone="info">
+            <span class="pg-status-dot" aria-hidden="true"></span>
+            <span id="pg-status-text">Carregando módulo WebAssembly…</span>
+          </div>
 
-        <section id="pg-syntax-panel" class="pg-card pg-syntax-card" aria-labelledby="pg-syntax-heading">
-          <header class="pg-card-header">
-            <div>
-              <p class="pg-eyebrow">Referência</p>
-              <h2 id="pg-syntax-heading">Sintaxe e instruções Ferro</h2>
+          <div class="pg-editor-wrap">
+            <pre id="pg-highlight" class="pg-highlight" aria-hidden="true"></pre>
+            <textarea
+              id="pg-editor"
+              class="pg-editor"
+              spellcheck="false"
+              aria-label="Editor de código Ferro"
+              aria-autocomplete="list"
+              aria-controls="pg-completions"
+            ></textarea>
+            <ul id="pg-completions" class="pg-completions" role="listbox" aria-label="Sugestões de sintaxe Ferro" hidden></ul>
+          </div>
+
+          <div class="pg-bottom">
+            <div id="pg-panel-tabs" class="pg-panel-tabs" role="tablist" aria-label="Painéis de saída">
+              <button type="button" data-panel="terminal" aria-selected="true">Terminal</button>
+              <button type="button" data-panel="ui" aria-selected="false">Prévia UI</button>
+              <button type="button" data-panel="rust" aria-selected="false">Rust</button>
+              <button type="button" data-panel="syntax" aria-selected="false">Referência</button>
             </div>
-            <span class="pg-badge">.fer</span>
-          </header>
-          <label class="pg-syntax-search" for="pg-syntax-search">
-            <span>Buscar instrução</span>
-            <input id="pg-syntax-search" type="search" placeholder="enquanto, Resultado::Ok, ??…" />
-          </label>
-          <div id="pg-syntax-list" class="pg-syntax-list"></div>
-          <p id="pg-syntax-empty" class="pg-empty" hidden>Nenhuma instrução encontrada.</p>
+
+            <section id="pg-panel-terminal" class="pg-panel" aria-label="Terminal">
+              <header class="pg-panel-header">
+                <h2>Terminal</h2>
+                <span id="pg-terminal-badge" class="pg-badge" data-tone="info">Terminal</span>
+              </header>
+              <div class="pg-terminal">
+                <div id="pg-terminal-history" class="pg-terminal-history" role="log" aria-live="polite" aria-label="Histórico do terminal"></div>
+                <label class="pg-terminal-input" for="pg-stdin">
+                  <span aria-hidden="true">&gt;</span>
+                  <textarea
+                    id="pg-stdin"
+                    class="pg-stdin"
+                    rows="2"
+                    spellcheck="false"
+                    aria-label="Entrada padrão do programa"
+                    placeholder="Uma linha por leitura (leia). Pressione Executar para rodar."
+                  ></textarea>
+                </label>
+              </div>
+            </section>
+
+            <section id="pg-panel-ui" class="pg-panel" aria-label="Prévia visual" hidden>
+              <section id="pg-ui-section" class="pg-nested-section" aria-labelledby="pg-ui-heading">
+                <div class="pg-section-heading">
+                  <h3 id="pg-ui-heading">Prévia visual MVU</h3>
+                  <span class="pg-badge">UI.*</span>
+                </div>
+                <div id="pg-ui-container" class="pg-ui-container"></div>
+              </section>
+            </section>
+
+            <section id="pg-panel-rust" class="pg-panel" aria-label="Rust gerado" hidden>
+              <section id="pg-rust-section" class="pg-nested-section" aria-labelledby="pg-rust-heading">
+                <div class="pg-section-heading">
+                  <h3 id="pg-rust-heading">Rust gerado</h3>
+                  <button id="pg-copy-rust" type="button" class="pg-copy-button">Copiar Rust</button>
+                </div>
+                <pre class="pg-rust-pre" aria-label="Código Rust gerado a partir do Ferro"><code id="pg-rust-code"></code></pre>
+              </section>
+            </section>
+
+            <section id="pg-panel-syntax" class="pg-panel" aria-label="Referência de sintaxe" hidden>
+              <section id="pg-syntax-panel" class="pg-syntax-card" aria-labelledby="pg-syntax-heading">
+                <header class="pg-card-header">
+                  <div>
+                    <p class="pg-eyebrow">Referência</p>
+                    <h2 id="pg-syntax-heading">Sintaxe e instruções Ferro</h2>
+                  </div>
+                  <span class="pg-badge">.fer</span>
+                </header>
+                <label class="pg-syntax-search" for="pg-syntax-search">
+                  <span>Buscar instrução</span>
+                  <input id="pg-syntax-search" type="search" placeholder="enquanto, Resultado::Ok, escreval…" />
+                </label>
+                <div id="pg-syntax-list" class="pg-syntax-list"></div>
+                <p id="pg-syntax-empty" class="pg-empty" hidden>Nenhuma instrução encontrada.</p>
+              </section>
+            </section>
+          </div>
         </section>
       </div>
     </main>
