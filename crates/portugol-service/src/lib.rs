@@ -17,6 +17,7 @@ mod pors_run;
 mod position;
 mod rename;
 mod run;
+mod screen_run;
 mod ui_session;
 
 use serde::Serialize;
@@ -60,6 +61,9 @@ pub use rename::{
 pub use run::{
     DebugFrameInfo, DebugInfo, DebugMappingInfo, DebugVarInfo, RunHandle, RunLimitReason,
     RunObserver, RunOptions, RunOutcome, start_portugol_rs, start_portugol_rs_with_host,
+};
+pub use screen_run::{
+    SCREEN_EVENT_STEP_BUDGET, ScreenEvent, ScreenRun, ScreenStartError, ScreenStep, ScreenValue,
 };
 pub use ui_session::{PorsUiBudgetRequest, PorsUiService};
 
