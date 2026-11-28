@@ -139,6 +139,8 @@ impl std::fmt::Display for ScreenStartError {
 
 pub struct ScreenRun {
     module: Module,
+    /// Propriedades com `{dados.campo}`, reavaliadas a cada evento.
+    bound: Vec<crate::screen_bindings::BoundProperty>,
     document: Document,
     screen: ScreenType,
     record_types: Vec<hir::RecordDef>,
@@ -242,6 +244,7 @@ impl ScreenRun {
         })?;
         let (screen, _) = screen_type(&document);
         let mut run = Self {
+            bound: crate::screen_bindings::bound_properties(&document),
             module,
             state: ScreenValue::List(Vec::new()),
             history: Vec::new(),
@@ -252,6 +255,7 @@ impl ScreenRun {
             step_budget: SCREEN_EVENT_STEP_BUDGET,
         };
         run.state = run.initial_window();
+        run.sync_bound();
         run.history.push(run.state.clone());
         let opening = run
             .document
@@ -389,7 +393,120 @@ impl ScreenRun {
             return Err(format!("`{handler}` não devolveu a janela"));
         }
         self.state = next;
+        self.sync_bound();
         Ok(io.output)
+    }
+
+    /// Índices de `dados.a.b` dentro da janela: a posição de `dados` e, depois,
+    /// a de cada campo.
+    fn data_path(&self, path: &[String]) -> Option<Vec<usize>> {
+        let slot = self
+            .screen
+            .window
+            .fields
+            .iter()
+            .position(|f| f.source == FieldSource::Data)?;
+        let FieldType::Named(name) = &self.screen.window.fields[slot].ty else {
+            return None;
+        };
+        let mut ty = Type::Record(self.record_by_name(name)?.id);
+        let mut indices = vec![slot];
+        for field in path.iter().skip(1) {
+            let record = self.record_def(ty)?;
+            let index = record.fields.iter().position(|f| f.name == *field)?;
+            ty = record.fields[index].ty;
+            indices.push(index);
+        }
+        Some(indices)
+    }
+
+    fn value_at(&self, indices: &[usize]) -> Option<&ScreenValue> {
+        let mut current = &self.state;
+        for &index in indices {
+            current = current.list()?.get(index)?;
+        }
+        Some(current)
+    }
+
+    fn set_at(&mut self, indices: &[usize], value: ScreenValue) {
+        let mut current = &mut self.state;
+        for &index in indices {
+            let Some(next) = current.list_mut().and_then(|items| items.get_mut(index)) else {
+                return;
+            };
+            current = next;
+        }
+        *current = value;
+    }
+
+    /// Texto de um valor simples, como `escreva` mostraria.
+    fn display(value: &ScreenValue) -> String {
+        match value {
+            ScreenValue::Text(text) => text.clone(),
+            other => other.to_vm().display(),
+        }
+    }
+
+    /// Reavalia as propriedades vinculadas a partir de `dados`: texto com os
+    /// valores interpolados, e o valor do campo nos outros atributos.
+    fn sync_bound(&mut self) {
+        for index in 0..self.bound.len() {
+            let property = self.bound[index].clone();
+            let value = if property.is_text() {
+                let mut text = String::new();
+                for part in &property.parts {
+                    match part {
+                        portugol_tela::value::TextPart::Literal(literal) => text.push_str(literal),
+                        portugol_tela::value::TextPart::Binding { path, .. } => {
+                            if let Some(value) =
+                                self.data_path(path).and_then(|i| self.value_at(&i))
+                            {
+                                text.push_str(&Self::display(value));
+                            }
+                        }
+                    }
+                }
+                ScreenValue::Text(text)
+            } else {
+                let Some(value) = property
+                    .single_path()
+                    .and_then(|path| self.data_path(path))
+                    .and_then(|indices| self.value_at(&indices).cloned())
+                else {
+                    continue;
+                };
+                value
+            };
+            let field = portugol_tela::value::field_name(property.attribute);
+            match &property.control {
+                Some(control) => self.set_control_field(control, &field, value),
+                None => {
+                    if let Some(slot) = Self::field_index(&self.screen.window.fields, &field)
+                        && let Some(target) = self.state.list_mut().and_then(|w| w.get_mut(slot))
+                    {
+                        *target = value;
+                    }
+                }
+            }
+        }
+    }
+
+    /// Muda uma propriedade de um controle por causa do usuário: se a
+    /// marcação a vincula em mão dupla, o valor vai para `dados`.
+    fn set_property(&mut self, control: &str, attribute: &str, value: ScreenValue) {
+        let two_way = self
+            .bound
+            .iter()
+            .find(|p| {
+                p.control.as_deref() == Some(control) && p.attribute == attribute && p.is_two_way()
+            })
+            .and_then(|p| p.single_path().map(<[String]>::to_vec));
+        match two_way.and_then(|path| self.data_path(&path)) {
+            Some(indices) => self.set_at(&indices, value),
+            None => {
+                self.set_control_field(control, &portugol_tela::value::field_name(attribute), value)
+            }
+        }
     }
 
     fn field_index(fields: &[FieldDef], name: &str) -> Option<usize> {
@@ -431,10 +548,10 @@ impl ScreenRun {
     fn apply_input(&mut self, element: &Element, control: &str, value: &Json) {
         match (element.name.text.as_str(), value) {
             ("CaixaTexto", Json::String(text)) => {
-                self.set_control_field(control, "texto", ScreenValue::Text(text.clone()))
+                self.set_property(control, "Texto", ScreenValue::Text(text.clone()))
             }
             ("CaixaSelecao", Json::Bool(checked)) => {
-                self.set_control_field(control, "marcado", ScreenValue::Bool(*checked))
+                self.set_property(control, "Marcado", ScreenValue::Bool(*checked))
             }
             ("BotaoOpcao", Json::Bool(checked)) => {
                 if *checked {
@@ -458,17 +575,18 @@ impl ScreenRun {
                         .filter(|name| name != control)
                         .collect();
                     for other in others {
-                        self.set_control_field(&other, "marcado", ScreenValue::Bool(false));
+                        self.set_property(&other, "Marcado", ScreenValue::Bool(false));
                     }
                 }
-                self.set_control_field(control, "marcado", ScreenValue::Bool(*checked));
+                self.set_property(control, "Marcado", ScreenValue::Bool(*checked));
             }
             ("Lista" | "Combo", Json::Number(index)) => {
                 let index = index.as_i64().unwrap_or(-1).clamp(-1, i32::MAX as i64) as i32;
-                self.set_control_field(control, "selecionado", ScreenValue::Int(index));
+                self.set_property(control, "Selecionado", ScreenValue::Int(index));
             }
             _ => {}
         }
+        self.sync_bound();
     }
 
     /// Trata um evento. Sem função ligada, só o valor digitado ou marcado
