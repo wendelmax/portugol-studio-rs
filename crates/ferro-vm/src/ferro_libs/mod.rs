@@ -56,6 +56,10 @@ pub(crate) struct FerroRuntime {
     clock: FerroClock,
     #[cfg(not(target_arch = "wasm32"))]
     pub(super) workspace_dir: Option<PathBuf>,
+    /// Mensagem de `Arquivos` quando não há pasta porque o host a negou (por
+    /// exemplo, um projeto sem a permissão `Arquivos`).
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(super) workspace_denied: Option<String>,
     #[cfg(not(target_arch = "wasm32"))]
     pub(super) network_enabled: bool,
     #[cfg(not(target_arch = "wasm32"))]
@@ -84,6 +88,8 @@ impl FerroRuntime {
             #[cfg(not(target_arch = "wasm32"))]
             workspace_dir: None,
             #[cfg(not(target_arch = "wasm32"))]
+            workspace_denied: None,
+            #[cfg(not(target_arch = "wasm32"))]
             network_enabled: false,
             #[cfg(not(target_arch = "wasm32"))]
             http_timeout_ms: DEFAULT_HTTP_TIMEOUT_MS,
@@ -93,6 +99,12 @@ impl FerroRuntime {
     #[cfg(not(target_arch = "wasm32"))]
     pub(crate) fn set_workspace_dir(&mut self, dir: PathBuf) {
         self.workspace_dir = Some(dir);
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn deny_workspace(&mut self, message: String) {
+        self.workspace_dir = None;
+        self.workspace_denied = Some(message);
     }
 
     #[cfg(not(target_arch = "wasm32"))]

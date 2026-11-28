@@ -88,6 +88,28 @@ mod tests {
     }
 
     #[test]
+    fn finds_the_project_folder_and_manifest_of_a_screen() {
+        let temp = TempDir::new();
+        fs::create_dir_all(temp.0.join("App")).unwrap();
+        fs::write(temp.0.join("App/JanelaPrincipal.design"), "<Janela />").unwrap();
+        fs::write(
+            temp.0.join("App/app.ferproj"),
+            "<Projeto Permissoes=\"Dialogo\" />",
+        )
+        .unwrap();
+        fs::write(temp.0.join("Solta.design"), "<Janela />").unwrap();
+        let session = WorkspaceSession::default();
+        let id = session.register(temp.0.clone()).unwrap();
+        let (folder, manifest) =
+            super::screen_project(&session, &id, "App/JanelaPrincipal.design").unwrap();
+        assert!(folder.ends_with("App"));
+        assert!(manifest.unwrap().contains("Permissoes"));
+        let (_, none) = super::screen_project(&session, &id, "Solta.design").unwrap();
+        assert!(none.is_none(), "tela fora de um projeto não tem manifesto");
+        assert!(super::screen_project(&session, &id, "../fora.design").is_err());
+    }
+
+    #[test]
     fn creates_the_counter_example_project() {
         let temp = TempDir::new();
         let folder =
@@ -1001,6 +1023,41 @@ struct WorkspaceState {
 
 #[derive(Default, Clone)]
 pub struct WorkspaceSession(Arc<Mutex<WorkspaceState>>);
+
+/// Pasta do projeto de uma tela e o texto do `.ferproj` dela, quando houver,
+/// a partir do caminho do `.design` no workspace (ADR 0018, permissões).
+pub(crate) fn screen_project(
+    session: &WorkspaceSession,
+    workspace_id: &str,
+    design_path: &str,
+) -> Result<(PathBuf, Option<String>), String> {
+    let root = fs::canonicalize(session.root(workspace_id)?)
+        .map_err(|_| "A pasta aberta não está mais disponível.".to_string())?;
+    let design = checked_file(&root, Path::new(design_path), false)?;
+    let folder = design
+        .parent()
+        .ok_or_else(|| "A tela não está numa pasta.".to_string())?
+        .to_path_buf();
+    let mut manifests: Vec<PathBuf> = fs::read_dir(&folder)
+        .map_err(|error| format!("Não foi possível ler a pasta da tela: {error}"))?
+        .flatten()
+        .map(|entry| entry.path())
+        .filter(|path| {
+            path.is_file()
+                && ferro_formatos::classify_path(path)
+                    .is_some_and(|m| m.kind() == ferro_formatos::Kind::Manifest)
+        })
+        .collect();
+    manifests.sort();
+    let manifest = match manifests.first() {
+        Some(path) => Some(
+            fs::read_to_string(path)
+                .map_err(|error| format!("Não foi possível ler o manifesto: {error}"))?,
+        ),
+        None => None,
+    };
+    Ok((folder, manifest))
+}
 
 impl WorkspaceSession {
     fn register(&self, root: PathBuf) -> Result<String, String> {

@@ -4,7 +4,7 @@
 - **Data:** 2026-11-27
 - **Responsável:** mantenedor do produto
 - **Relacionados:** [ADR 0015](0015-evolucao-visual-orientada-a-aprendizagem.md), [ADR 0016](0016-ferro-como-linguagem-autoral-e-retirada-do-por.md), [ADR 0017](0017-modelo-execucao-e-estado-ui-visual-ferro.md), [ADR 0020](0020-ajustes-pedagogicos-da-sintaxe-ferro.md), [ADR 0021](0021-tela-como-forma-unica-de-interface-ferro.md)
-- **Emendas:** Emendas 1, 2 e 3 (2026-11-27)
+- **Emendas:** Emendas 1, 2 e 3 (2026-11-27); Emenda 4 (2026-11-28)
 
 > **Emenda 1 (2026-11-27).** O formato da tela passa a usar uma marcação de tags no
 > estilo XAML (pseudo-XAML) em vez da sintaxe de chaves da versão inicial. O
@@ -33,6 +33,11 @@
 > junto do campo e diálogos entre telas ficam para depois. Eventos roteados,
 > *templates* de controle, *triggers*, animações, conversores e `ICommand` não
 > serão adotados. Ver a seção 8.
+
+> **Emenda 4 (2026-11-28).** Define o formato das permissões dos serviços do
+> sistema: o atributo `Permissoes` do `<Projeto>` no `.ferproj`, com os
+> serviços separados por vírgula (`Permissoes="Dialogo,AreaTransferencia"`),
+> no mesmo estilo de `Ancora="Cima,Esquerda"`. Ver a seção 5.
 
 > **Nota (2026-11-27, [ADR 0023](0023-identidade-e-marca-ferro-studio.md)
 > Emenda 1).** O manifesto passa a usar a extensão `.ferproj`. Como o
@@ -392,6 +397,22 @@ funcao btnSomar_clicar(tela: JanelaPrincipal) -> JanelaPrincipal {
   confirmação), `Arquivos` (restrito à pasta do projeto, como hoje),
   `AreaTransferencia` e `Notificacao`. O comportamento observável de cada
   serviço é especificado para que a VM e o Rust exportado se comportem igual.
+- **Permissões** *(Emenda 4)*: o `<Projeto>` declara os serviços que as telas
+  usam no atributo `Permissoes`, separados por vírgula:
+
+  ```xml
+  <Projeto Nome="Notas" JanelaInicial="JanelaPrincipal" Permissoes="Dialogo,Arquivos" />
+  ```
+
+  - Serviços aceitos: `Arquivos`, `Dialogo`, `AreaTransferencia` e
+    `Notificacao`. Nome desconhecido é erro, com sugestão quando parece um
+    serviço (`dialogo` → `Dialogo`); repetição é aviso.
+  - Na execução, um serviço não declarado não roda: o erro diz o que
+    acrescentar ("acrescente `Dialogo` em `Permissoes` no .ferproj"). O
+    `Arquivos` só recebe a pasta do projeto quando está entre as permissões.
+  - Uma tela fora de um projeto (sem `.ferproj` na pasta) não tem restrição.
+  - Foi preferido a um elemento filho por serviço (`<Permissao Nome="..." />`)
+    por ser uma linha só e seguir o estilo das listas da marcação.
 
 ### 6. Exportação para Rust com Slint
 

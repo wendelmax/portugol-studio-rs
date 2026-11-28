@@ -456,6 +456,14 @@ impl<'a> Vm<'a> {
         self
     }
 
+    /// Nega `Arquivos.*` com uma explicação própria (por exemplo, a permissão
+    /// que falta no projeto); as funções devolvem `Resultado::Erro` com ela.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn with_ferro_workspace_denied(mut self, message: impl Into<String>) -> Self {
+        self.ferro_runtime.deny_workspace(message.into());
+        self
+    }
+
     /// Autoriza (ou revoga) explicitamente chamadas de `Internet.*` em FERRO (negado por padrão).
     #[cfg(not(target_arch = "wasm32"))]
     pub fn with_ferro_network_enabled(mut self, enabled: bool) -> Self {

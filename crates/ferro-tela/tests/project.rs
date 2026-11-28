@@ -210,3 +210,38 @@ fn exemplo_do_contador_e_um_projeto_valido() {
     );
     assert!(project::example_template("contador", "   ").is_err());
 }
+
+#[test]
+fn permissoes_do_projeto() {
+    let manifest = analyze_manifest(
+        "<Projeto Nome=\"A\" JanelaInicial=\"J\" Permissoes=\"Dialogo, AreaTransferencia\" />",
+    )
+    .manifest
+    .unwrap();
+    assert_eq!(manifest.permissions, ["Dialogo", "AreaTransferencia"]);
+    let none = analyze_manifest("<Projeto Nome=\"A\" JanelaInicial=\"J\" />")
+        .manifest
+        .unwrap();
+    assert!(none.permissions.is_empty());
+
+    let wrong = analyze_manifest(
+        "<Projeto Nome=\"A\" JanelaInicial=\"J\" Permissoes=\"dialogo,Camera\" />",
+    );
+    let codes: Vec<_> = wrong.diagnostics.iter().map(|d| d.code).collect();
+    assert_eq!(
+        codes,
+        ["projeto.unknown-permission", "projeto.unknown-permission"]
+    );
+    assert!(
+        wrong.diagnostics[0]
+            .help
+            .as_deref()
+            .unwrap()
+            .starts_with("Quis dizer `Dialogo`?")
+    );
+    let repeated = analyze_manifest(
+        "<Projeto Nome=\"A\" JanelaInicial=\"J\" Permissoes=\"Dialogo,Dialogo\" />",
+    );
+    assert_eq!(repeated.diagnostics[0].code, "projeto.duplicate-permission");
+    assert_eq!(repeated.manifest.unwrap().permissions, ["Dialogo"]);
+}
