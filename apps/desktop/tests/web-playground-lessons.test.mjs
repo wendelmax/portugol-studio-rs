@@ -8,6 +8,7 @@ test("trilha tem seis lições completas com soluções distintas do ponto de pa
     ["variaveis", "decisoes", "lacos", "vetores", "cadeias", "resultado"],
   );
   assert.deepEqual(Object.keys(LESSON_SOLUTIONS), LESSONS.map((lesson) => lesson.id));
+  assert.match(LESSONS[0].prompt, /Olá, Ada!/);
 
   for (const lesson of LESSONS) {
     for (const field of ["id", "title", "prompt", "hint", "starter", "stdin", "expected"]) {

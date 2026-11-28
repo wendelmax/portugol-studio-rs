@@ -23,7 +23,10 @@ test("web playground ships twelve organized .fer examples without innerHTML", ()
   );
   assert.ok(PLAYGROUND_EXAMPLES.some((ex) => ex.mode === "ui" && ex.source.includes("UI.coluna")));
 
-  for (const file of ["index.html", "app.mjs", "playground-core.mjs", "ferro-language.mjs"]) {
+  for (const file of [
+    "index.html", "app.mjs", "playground-core.mjs", "ferro-language.mjs",
+    "file-system.mjs", "lessons.mjs",
+  ]) {
     const content = readFileSync(new URL(`../../web-playground/${file}`, import.meta.url), "utf8");
     assert.ok(!/\.innerHTML\b/.test(content), `${file} não deve usar innerHTML`);
   }
@@ -55,9 +58,14 @@ test("web playground is organized as an editor shell with sidebar, tabs and bott
   for (const panel of ["terminal", "ui", "rust", "syntax"]) {
     assert.match(html, new RegExp(`data-panel="${panel}"`));
   }
+  for (const [, ref] of html.matchAll(/aria-labelledby="([^"]+)"/g)) {
+    assert.match(html, new RegExp(`id="${ref}"`), `aria-labelledby ${ref} sem alvo`);
+  }
 
   const css = readFileSync(new URL("../../web-playground/style.css", import.meta.url), "utf8");
   assert.match(css, /\.pg-workspace\s*\{[^}]*grid-template-columns:\s*240px minmax\(0, 1fr\)/);
+  assert.match(css, /\[aria-selected="true"\]/);
+  assert.doesNotMatch(css, /\[data-active=/);
   for (const width of [980, 720, 420]) {
     assert.match(css, new RegExp(`@media \\(max-width: ${width}px\\)`));
   }
@@ -956,6 +964,8 @@ function createEditorHarness(query, { wasm = false, lessons = null } = {}) {
   const memory = new WebAssembly.Memory({ initial: 1 });
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
+  const runCalls = [];
+  const control = { failRuns: false };
   let nextPtr = 1024;
   let resultPtr = 2048;
   let resultLen = 0;
@@ -976,8 +986,11 @@ function createEditorHarness(query, { wasm = false, lessons = null } = {}) {
     ferro_validate: () => writeResult({ ok: true, diagnostics: [] }),
     ferro_format: () => writeResult({ ok: true, changed: false, formatted: "" }),
     ferro_export_rust: () => writeResult({ ok: true, code: "", diagnostics: [] }),
-    ferro_run(srcPtr, srcLen) {
+    ferro_run(srcPtr, srcLen, inPtr, inLen) {
+      if (control.failRuns) throw new Error("WASM falhou");
       const source = readUtf8(srcPtr, srcLen);
+      const stdin = readUtf8(inPtr, inLen);
+      runCalls.push({ source, stdin });
       return writeResult({
         ok: true,
         stdout: source.includes("Ada") ? "Olá, Ada!\n" : "sem Ada\n",
@@ -1064,6 +1077,8 @@ function createEditorHarness(query, { wasm = false, lessons = null } = {}) {
     get: getElement,
     created,
     storage,
+    runCalls,
+    control,
     findAll,
     findByDataset,
     async load() {
@@ -1122,6 +1137,10 @@ test("playground activates an open file and closes tabs", async () => {
     h.findByDataset(h.get("pg-example-list"), "exampleId", "vetores").fire("click");
     h.findByDataset(h.get("pg-file-list"), "fileTabId", "boas-vindas.fer").fire("click");
     assert.equal(h.get("pg-active-file").textContent, "boas-vindas.fer");
+    assert.equal(
+      h.findByDataset(h.get("pg-file-list"), "fileTabId", "boas-vindas.fer").attributes.get("aria-selected"),
+      "true",
+    );
 
     h.findByDataset(h.get("pg-tabs"), "closeTabId", "vetores.fer").fire("click");
     const ids = h.findAll(h.get("pg-tabs"), (node) => node.dataset.tabId).map((node) => node.dataset.tabId);
@@ -1198,6 +1217,77 @@ test("playground save button downloads the active buffer and clears the dirty ma
       h.findByDataset(h.get("pg-tabs"), "tabId", "boas-vindas.fer").textContent,
       /\*/,
     );
+  } finally {
+    h.restore();
+  }
+});
+
+test("playground reports cursor line while editing", async () => {
+  const h = createEditorHarness("cursor-contract");
+  try {
+    await h.load();
+    const editor = h.get("pg-editor");
+    setEditorSource(editor, "funcao inicio() {\n    escreval(1);\n}");
+    editor.selectionStart = editor.selectionEnd = 25;
+    editor.fire("keyup");
+    assert.match(h.get("pg-cursor").textContent, /linha 2/);
+  } finally {
+    h.restore();
+  }
+});
+
+test("playground passes the typed-input example as real stdin lines", async () => {
+  const h = createEditorHarness("stdin-lines-contract", { wasm: true });
+  try {
+    await h.load();
+    const example = PLAYGROUND_EXAMPLES.find((item) => item.id === "entrada");
+    assert.deepEqual(example.input.split("\n"), ["Ada", "17", ""]);
+
+    h.findByDataset(h.get("pg-example-list"), "exampleId", "entrada").fire("click");
+    assert.equal(h.get("pg-stdin").value, "Ada\n17\n");
+    assert.equal(h.runCalls.at(-1).stdin, "Ada\n17\n");
+  } finally {
+    h.restore();
+  }
+});
+
+test("playground executes the accepted autocomplete suggestion and marks both lists dirty", async () => {
+  const h = createEditorHarness("completion-commit-contract", { wasm: true });
+  try {
+    await h.load();
+    const editor = h.get("pg-editor");
+    setEditorSource(editor, "escr");
+    editor.selectionStart = editor.selectionEnd = 4;
+    editor.fire("input");
+    assert.equal(h.get("pg-completions").hidden, false);
+
+    editor.fire("keydown", { key: "ArrowDown", ctrlKey: false, metaKey: false });
+    editor.fire("keydown", { key: "Enter", ctrlKey: false, metaKey: false });
+    assert.equal(editor.value, "escreval");
+
+    h.get("pg-run").fire("click");
+    assert.equal(h.runCalls.at(-1).source, "escreval");
+    assert.match(
+      h.findByDataset(h.get("pg-tabs"), "tabId", "boas-vindas.fer").textContent,
+      /\*/,
+    );
+    assert.match(
+      h.findByDataset(h.get("pg-file-list"), "fileTabId", "boas-vindas.fer").textContent,
+      /\*/,
+    );
+  } finally {
+    h.restore();
+  }
+});
+
+test("playground reports a failed lesson check instead of throwing", async () => {
+  const h = createEditorHarness("lesson-error-contract", { wasm: true });
+  try {
+    await h.load();
+    h.findByDataset(h.get("pg-lesson-list"), "lessonId", "variaveis").fire("click");
+    h.control.failRuns = true;
+    h.get("pg-lesson-check").fire("click");
+    assert.match(h.get("pg-status-text").textContent, /verificar/i);
   } finally {
     h.restore();
   }

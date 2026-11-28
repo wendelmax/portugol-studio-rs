@@ -39,19 +39,34 @@ export async function openFerFile(host) {
   }
 
   if (!doc?.createElement) throw new Error("Não há seletor de arquivos disponível neste navegador.");
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const input = doc.createElement("input");
+    const parent = doc.body ?? doc.documentElement;
     input.type = "file";
     input.accept = ".fer,text/plain";
+    parent.append(input);
+    let settled = false;
+    const finish = (value, error) => {
+      if (settled) return;
+      settled = true;
+      if (typeof input.remove === "function") input.remove();
+      else parent.removeChild(input);
+      if (error) reject(error);
+      else resolve(value);
+    };
     input.addEventListener("change", async () => {
-      const file = input.files?.[0];
-      if (!file) {
-        resolve(null);
-        return;
+      try {
+        const file = input.files?.[0];
+        if (!file) {
+          finish(null);
+          return;
+        }
+        finish({ name: file.name, content: await file.text(), handle: null });
+      } catch (error) {
+        finish(null, error);
       }
-      resolve({ name: file.name, content: await file.text(), handle: null });
     });
-    input.addEventListener("cancel", () => resolve(null));
+    input.addEventListener("cancel", () => finish(null));
     input.click();
   });
 }

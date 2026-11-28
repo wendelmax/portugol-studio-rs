@@ -14,7 +14,7 @@ export const PLAYGROUND_EXAMPLES = [
     file: "entrada.fer",
     group: "Básico",
     mode: "console",
-    input: "Ada\\n17\\n",
+    input: "Ada\n17\n",
     source: "funcao inicio() {\n    seja mutavel nome = leia();\n    seja mutavel idade: inteiro = leia();\n    escreva(\"Olá, \", nome, \"! Próxima idade: \", idade + 1);\n}\n",
   },
   {

@@ -5,7 +5,7 @@ export const LESSONS = [
   {
     id: "variaveis",
     title: "Variáveis",
-    prompt: "Imprima `Olá, Ada`.",
+    prompt: "Imprima `Olá, Ada!`.",
     hint: "Troque `???` por `Ada`.",
     starter: `funcao inicio() {
     seja nome: cadeia = "???";

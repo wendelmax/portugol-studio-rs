@@ -263,7 +263,7 @@ a {
 }
 
 .pg-sidebar-item:hover:not(:disabled),
-.pg-sidebar-item[data-active="true"] {
+.pg-sidebar-item[aria-selected="true"] {
   border-color: var(--pg-accent);
   background: var(--pg-accent-soft);
   color: var(--pg-accent);
@@ -307,7 +307,7 @@ a {
   font-size: 0.82rem;
 }
 
-.pg-tab[data-active="true"] {
+.pg-tab[aria-selected="true"] {
   border-color: var(--pg-accent);
   background: var(--pg-accent-soft);
   color: var(--pg-accent);

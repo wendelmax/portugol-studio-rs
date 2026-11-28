@@ -21,6 +21,7 @@ const lessonListEl = byId("pg-lesson-list");
 const lessonProgressEl = byId("pg-lesson-progress");
 const tabsEl = byId("pg-tabs");
 const activeFileEl = byId("pg-active-file");
+const cursorEl = byId("pg-cursor");
 const lessonBarEl = byId("pg-lesson-bar");
 const lessonTitleEl = byId("pg-lesson-title");
 const lessonPromptEl = byId("pg-lesson-prompt");
@@ -164,6 +165,14 @@ function syncHighlightScroll() {
   highlightEl.scrollLeft = editorEl.scrollLeft;
 }
 
+function updateCursor() {
+  const caret = editorEl.selectionStart ?? editorEl.value.length;
+  const before = editorEl.value.slice(0, caret);
+  const line = before.split("\n").length;
+  const column = before.length - before.lastIndexOf("\n");
+  cursorEl.textContent = `linha ${line} · coluna ${column}`;
+}
+
 function setEditorValue(value) {
   editorEl.value = value;
   renderHighlight(value);
@@ -200,6 +209,7 @@ function applyCompletion(index) {
   const caret = start + entry.insertText.length;
   setEditorValue(`${editorEl.value.slice(0, start)}${entry.insertText}${editorEl.value.slice(end)}`);
   editorEl.selectionStart = editorEl.selectionEnd = caret;
+  commitEditorChange();
   closeCompletions();
   editorEl.focus();
 }
@@ -214,15 +224,23 @@ function updateCompletions() {
   renderCompletions(entries, 0, wordRangeAt(editorEl.value, caret));
 }
 
+function commitEditorChange() {
+  const tab = activeTab();
+  if (!tab) return;
+  tab.source = editorEl.value;
+  tab.dirty = true;
+  updateCursor();
+  renderTabs();
+  renderFileList();
+}
+
 function insertSyntaxEntry(entry) {
   const caret = editorEl.selectionStart ?? editorEl.value.length;
   const { start, end } = wordRangeAt(editorEl.value, caret);
   const nextCaret = start + entry.insertText.length;
   setEditorValue(`${editorEl.value.slice(0, start)}${entry.insertText}${editorEl.value.slice(end)}`);
   editorEl.selectionStart = editorEl.selectionEnd = nextCaret;
-  activeTab().source = editorEl.value;
-  activeTab().dirty = true;
-  renderTabs();
+  commitEditorChange();
   closeCompletions();
   editorEl.focus();
 }
@@ -390,6 +408,8 @@ function renderFileList() {
     button.className = "pg-sidebar-item";
     button.dataset.fileTabId = tab.id;
     button.textContent = `${tab.dirty ? "*" : ""}${tab.name}`;
+    button.setAttribute("role", "tab");
+    button.setAttribute("aria-selected", String(tab.id === activeTabId));
     button.addEventListener("click", () => activateTab(tab.id));
     fileListEl.append(button);
   }
@@ -427,6 +447,7 @@ function renderLessonList() {
     button.className = "pg-sidebar-item";
     button.dataset.lessonId = lesson.id;
     button.textContent = completedLessons.has(lesson.id) ? `✓ ${lesson.title}` : lesson.title;
+    button.setAttribute("aria-selected", String(activeTab()?.lessonId === lesson.id));
     button.addEventListener("click", () => startLesson(lesson.id));
     lessonListEl.append(button);
   }
@@ -464,9 +485,11 @@ function activateTab(id, { run = true } = {}) {
   stdinEl.value = tab.stdin;
   activeFileEl.textContent = tab.name;
   updateLessonBar(tab);
+  updateCursor();
   renderTerminal(tab.stdin, "", []);
   renderTabs();
   renderFileList();
+  renderLessonList();
   if (run && runtime) {
     if (tab.mode === "ui" || UI_START_RE.test(tab.source)) runUiSession();
     else runConsole();
@@ -571,7 +594,13 @@ function checkCurrentLesson() {
   if (!runtime || !tab?.lessonId) return;
   const lesson = LESSONS.find((item) => item.id === tab.lessonId);
   if (!lesson) return;
-  const result = checkLesson(runtime, lesson, editorEl.value);
+  let result;
+  try {
+    result = checkLesson(runtime, lesson, editorEl.value);
+  } catch (error) {
+    setStatus(`Falha ao verificar: ${error instanceof Error ? error.message : String(error)}`, "error");
+    return;
+  }
   renderTerminal(tab.stdin, result.actual.join("\n"), result.diagnostics);
   if (result.ok) {
     completedLessons.add(lesson.id);
@@ -730,13 +759,7 @@ btnCopyRust.addEventListener("click", async () => {
 });
 
 editorEl.addEventListener("input", () => {
-  const tab = activeTab();
-  if (tab) {
-    tab.source = editorEl.value;
-    tab.dirty = true;
-    renderTabs();
-    renderFileList();
-  }
+  commitEditorChange();
   renderHighlight(editorEl.value);
   updateCompletions();
 });
@@ -744,6 +767,8 @@ stdinEl.addEventListener("input", () => {
   const tab = activeTab();
   if (tab) tab.stdin = stdinEl.value;
 });
+editorEl.addEventListener("click", updateCursor);
+editorEl.addEventListener("keyup", updateCursor);
 editorEl.addEventListener("scroll", syncHighlightScroll);
 editorEl.addEventListener("blur", closeCompletions);
 editorEl.addEventListener("keydown", (event) => {
