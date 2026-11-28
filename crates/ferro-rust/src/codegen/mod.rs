@@ -17,9 +17,8 @@ use runtime::{
 };
 use stmt::render_statements;
 use types::{
-    binding_info, expression_has_read, mvu_entry_update_arity, pors_clone_value,
-    program_uses_host_module, rust_enum_type_name, rust_enum_variant_path, rust_type,
-    statements_have_read,
+    binding_info, mvu_entry_update_arity, pors_clone_value, program_uses_host_module,
+    rust_enum_type_name, rust_enum_variant_path, rust_type,
 };
 
 pub(crate) fn render_pors_with_map(program: &Program) -> GeneratedRust {
@@ -27,11 +26,6 @@ pub(crate) fn render_pors_with_map(program: &Program) -> GeneratedRust {
 }
 
 fn render(program: &Program, pors: bool) -> GeneratedRust {
-    let has_read = statements_have_read(&program.body)
-        || program.functions.iter().any(|f| {
-            statements_have_read(&f.body)
-                || f.tail_expression.as_ref().is_some_and(expression_has_read)
-        });
     let uses_ui = pors && program_uses_host_module(program, "UI");
     let uses_matematica = pors && program_uses_host_module(program, "Matematica");
     let uses_texto = pors && program_uses_host_module(program, "Texto");
@@ -46,14 +40,7 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
     } else {
         None
     };
-    let mut output = String::from("use std::io::{self, Write};\n\n");
-    output.push_str(JAVA_DOUBLE_HELPER);
-    if has_read {
-        output.push_str("\nuse std::str::FromStr;\nfn __portugol_read_line(expected: &str) -> String {\n    if std::env::var_os(\"PORTUGOL_STUDIO_INPUT_PROTOCOL\").is_some() { print!(\"\\u{1e}PORTUGOL_INPUT:{expected}\\u{1e}\\n\"); let _ = io::stdout().flush(); }\n    let mut line = String::new();\n    if io::stdin().read_line(&mut line).is_err() { eprintln!(\"Não foi possível ler a entrada.\"); std::process::exit(1); }\n    line.trim_end_matches(['\\r', '\\n']).to_owned()\n}\nfn __portugol_parse<T: FromStr>(input: &str, expected: &str) -> T {\n    input.trim().parse().unwrap_or_else(|_| { eprintln!(\"Entrada inválida: esperado {expected}.\"); std::process::exit(1); })\n}\n");
-    }
-    if pors {
-        output.push_str("\nthread_local! { static __PORS_STRING_BYTES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) }; }\nfn __pors_account(len: usize) { __PORS_STRING_BYTES.with(|used| { let next = used.get().saturating_add(len); if next > 16 * 1024 * 1024 { std::process::exit(78); } used.set(next); }); }\nfn __pors_string(value: &str) -> String { __pors_account(value.len()); value.to_owned() }\nfn __pors_vec_string_clone(value: &[String]) -> Vec<String> { value.iter().map(|item| __pors_string(item)).collect() }\nfn __pors_index(index: i32, len: usize) -> usize { if index < 0 || index as usize >= len { eprintln!(\"Erro de execução: índice de vetor fora do intervalo ({index}).\"); std::process::exit(1); } index as usize }\nfn __pors_char(value: char) -> String { __pors_account(value.len_utf8()); value.to_string() }\nfn __pors_concat(left: &str, right: &str) -> String { let len = left.len().saturating_add(right.len()); __pors_account(len); let mut value = String::with_capacity(len); value.push_str(left); value.push_str(right); value }\n");
-    }
+    let mut output = String::new();
     if uses_ui || mvu_update_arity.is_some() {
         output.push_str(PORS_UI_RUNTIME);
     }
@@ -99,7 +86,7 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
         output.push_str("}\n");
         if pors {
             output.push_str(&format!(
-                "fn __pors_clone_{}(value: &{}) -> {} {{ {} {{\n",
+                "fn __ferro_clone_{}(value: &{}) -> {} {{ {} {{\n",
                 definition.id.0,
                 rust_ident(&definition.name),
                 rust_ident(&definition.name),
@@ -108,13 +95,13 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
             for field in &definition.fields {
                 let name = rust_ident(&field.name);
                 let clone = match field.ty {
-                    Type::String => format!("__pors_string(&value.{name})"),
-                    Type::VectorString => format!("__pors_vec_string_clone(&value.{name})"),
+                    Type::String => format!("__ferro_string(&value.{name})"),
+                    Type::VectorString => format!("__ferro_vec_string_clone(&value.{name})"),
                     Type::Record(id) => program
                         .record_types
                         .iter()
                         .find(|item| item.id == id)
-                        .map(|item| format!("__pors_clone_{}(&value.{name})", item.id.0))
+                        .map(|item| format!("__ferro_clone_{}(&value.{name})", item.id.0))
                         .unwrap_or_else(|| format!("value.{name}.clone()")),
                     Type::VectorRecord(id) => program
                         .record_types
@@ -122,13 +109,13 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
                         .find(|item| item.id == id)
                         .map(|item| {
                             format!(
-                                "value.{name}.iter().map(|item| __pors_clone_{}(item)).collect()",
+                                "value.{name}.iter().map(|item| __ferro_clone_{}(item)).collect()",
                                 item.id.0
                             )
                         })
                         .unwrap_or_else(|| format!("value.{name}.clone()")),
-                    Type::Enum(id) => program.enum_types.iter().find(|item| item.id == id).map(|item| format!("__pors_clone_enum_{}(&value.{name})", item.id.0)).unwrap_or_else(|| format!("value.{name}.clone()")),
-                    Type::VectorEnum(id) => program.enum_types.iter().find(|item| item.id == id).map(|item| format!("value.{name}.iter().map(|item| __pors_clone_enum_{}(item)).collect()", item.id.0)).unwrap_or_else(|| format!("value.{name}.clone()")),
+                    Type::Enum(id) => program.enum_types.iter().find(|item| item.id == id).map(|item| format!("__ferro_clone_enum_{}(&value.{name})", item.id.0)).unwrap_or_else(|| format!("value.{name}.clone()")),
+                    Type::VectorEnum(id) => program.enum_types.iter().find(|item| item.id == id).map(|item| format!("value.{name}.iter().map(|item| __ferro_clone_enum_{}(item)).collect()", item.id.0)).unwrap_or_else(|| format!("value.{name}.clone()")),
                     ty if ty.is_vector() => format!("value.{name}.clone()"),
                     _ => format!("value.{name}"),
                 };
@@ -161,7 +148,7 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
         if pors {
             let enum_ty = rust_enum_type_name(definition, program);
             output.push_str(&format!(
-                "fn __pors_clone_enum_{}(value: &{enum_ty}) -> {enum_ty} {{ match value {{\n",
+                "fn __ferro_clone_enum_{}(value: &{enum_ty}) -> {enum_ty} {{ match value {{\n",
                 definition.id.0
             ));
             for (variant_index, variant) in definition.variants.iter().enumerate() {
@@ -255,7 +242,7 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
             _ => format!("{update_fn}(estado, tipo, alvo, valor)"),
         };
         output.push_str(&format!(
-            "    use std::io::BufRead;\n    let mut estado = {init_fn}();\n    let mut step: u64 = 0;\n    __pors_ui::begin_frame();\n    let root = {view_fn}(estado.clone());\n    println!(\"{{{{\\\"step\\\":{{step}},\\\"tree\\\":{{}}}}}}\", __pors_ui::finish_frame(root).to_json());\n    let _ = io::stdout().flush();\n    let stdin = io::stdin();\n    for line in stdin.lock().lines() {{\n        let Ok(line) = line else {{ break }};\n        let trimmed = line.trim();\n        if trimmed.is_empty() {{\n            continue;\n        }}\n        let Some((tipo, alvo, valor)) = __pors_ui::parse_event_line(trimmed) else {{\n            eprintln!(\"Evento inválido: {{trimmed}}\");\n            continue;\n        }};\n        let _ = (&tipo, &valor);\n        estado = {update_call};\n        step += 1;\n        __pors_ui::begin_frame();\n        let root = {view_fn}(estado.clone());\n        println!(\"{{{{\\\"step\\\":{{step}},\\\"tree\\\":{{}}}}}}\", __pors_ui::finish_frame(root).to_json());\n        let _ = io::stdout().flush();\n    }}\n"
+            "    use std::io::BufRead;\n    let mut estado = {init_fn}();\n    let mut step: u64 = 0;\n    __ferro_ui::begin_frame();\n    let root = {view_fn}(estado.clone());\n    println!(\"{{{{\\\"step\\\":{{step}},\\\"tree\\\":{{}}}}}}\", __ferro_ui::finish_frame(root).to_json());\n    let _ = io::stdout().flush();\n    let stdin = io::stdin();\n    for line in stdin.lock().lines() {{\n        let Ok(line) = line else {{ break }};\n        let trimmed = line.trim();\n        if trimmed.is_empty() {{\n            continue;\n        }}\n        let Some((tipo, alvo, valor)) = __ferro_ui::parse_event_line(trimmed) else {{\n            eprintln!(\"Evento inválido: {{trimmed}}\");\n            continue;\n        }};\n        let _ = (&tipo, &valor);\n        estado = {update_call};\n        step += 1;\n        __ferro_ui::begin_frame();\n        let root = {view_fn}(estado.clone());\n        println!(\"{{{{\\\"step\\\":{{step}},\\\"tree\\\":{{}}}}}}\", __ferro_ui::finish_frame(root).to_json());\n        let _ = io::stdout().flush();\n    }}\n"
         ));
     } else {
         render_statements(
@@ -296,9 +283,87 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
             quality: SourceMapQuality::GeneratedOnly,
         });
     }
+    let prelude = render_shared_runtime(&output, pors);
+    let prelude_len = prelude.len() as u32;
+    for mapping in &mut mappings {
+        mapping.generated.start += prelude_len;
+        mapping.generated.end += prelude_len;
+    }
+    if prelude_len > 0 {
+        mappings.push(SourceMapSegment {
+            generated: SourceRange {
+                start: 0,
+                end: prelude_len,
+            },
+            source: None,
+            quality: SourceMapQuality::GeneratedOnly,
+        });
+    }
     mappings.sort_by_key(|mapping| (mapping.generated.start, mapping.generated.end));
     GeneratedRust {
-        code: output,
+        code: format!("{prelude}{output}"),
         mappings,
     }
+}
+
+fn render_shared_runtime(code: &str, pors: bool) -> String {
+    let uses_read_line = code.contains("__ferro_read_line(");
+    let uses_parse = code.contains("__ferro_parse::<");
+    let uses_java_double = code.contains("__ferro_java_double(");
+    let uses_vec_string_clone = code.contains("__ferro_vec_string_clone(");
+    let uses_string = code.contains("__ferro_string(") || uses_vec_string_clone;
+    let uses_index = code.contains("__ferro_index(");
+    let uses_char = code.contains("__ferro_char(");
+    let uses_concat = code.contains("__ferro_concat(");
+    let uses_account = code.contains("__ferro_account(") || uses_string || uses_char || uses_concat;
+
+    let mut output = String::new();
+    if uses_read_line || code.contains("io::stdout") || code.contains("io::stdin") {
+        output.push_str("use std::io::{self, Write};\n\n");
+    }
+    if uses_read_line {
+        output.push_str(
+            "fn __ferro_read_line(expected: &str) -> String {\n    if std::env::var_os(\"FERRO_STUDIO_INPUT_PROTOCOL\").is_some() {\n        print!(\"\\u{1e}FERRO_INPUT:{expected}\\u{1e}\\n\");\n        let _ = io::stdout().flush();\n    }\n    let mut line = String::new();\n    if io::stdin().read_line(&mut line).is_err() {\n        eprintln!(\"Não foi possível ler a entrada.\");\n        std::process::exit(1);\n    }\n    line.trim_end_matches(['\\r', '\\n']).to_owned()\n}\n\n",
+        );
+    }
+    if uses_parse {
+        output.push_str(
+            "use std::str::FromStr;\nfn __ferro_parse<T: FromStr>(input: &str, expected: &str) -> T {\n    input.trim().parse().unwrap_or_else(|_| {\n        eprintln!(\"Entrada inválida: esperado {expected}.\");\n        std::process::exit(1);\n    })\n}\n\n",
+        );
+    }
+    if uses_java_double {
+        output.push_str(JAVA_DOUBLE_HELPER);
+        output.push_str("\n\n");
+    }
+    if pors && uses_account {
+        output.push_str(
+            "thread_local! {\n    static __FERRO_STRING_BYTES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };\n}\nfn __ferro_account(len: usize) {\n    __FERRO_STRING_BYTES.with(|used| {\n        let next = used.get().saturating_add(len);\n        if next > 16 * 1024 * 1024 {\n            std::process::exit(78);\n        }\n        used.set(next);\n    });\n}\n\n",
+        );
+    }
+    if pors && uses_string {
+        output.push_str(
+            "fn __ferro_string(value: &str) -> String {\n    __ferro_account(value.len());\n    value.to_owned()\n}\n\n",
+        );
+    }
+    if pors && uses_vec_string_clone {
+        output.push_str(
+            "fn __ferro_vec_string_clone(value: &[String]) -> Vec<String> {\n    value.iter().map(|item| __ferro_string(item)).collect()\n}\n\n",
+        );
+    }
+    if pors && uses_index {
+        output.push_str(
+            "fn __ferro_index(index: i32, len: usize) -> usize {\n    if index < 0 || index as usize >= len {\n        eprintln!(\"Erro de execução: índice de vetor fora do intervalo ({index}).\");\n        std::process::exit(1);\n    }\n    index as usize\n}\n\n",
+        );
+    }
+    if pors && uses_char {
+        output.push_str(
+            "fn __ferro_char(value: char) -> String {\n    __ferro_account(value.len_utf8());\n    value.to_string()\n}\n\n",
+        );
+    }
+    if pors && uses_concat {
+        output.push_str(
+            "fn __ferro_concat(left: &str, right: &str) -> String {\n    let len = left.len().saturating_add(right.len());\n    __ferro_account(len);\n    let mut value = String::with_capacity(len);\n    value.push_str(left);\n    value.push_str(right);\n    value\n}\n\n",
+        );
+    }
+    output
 }

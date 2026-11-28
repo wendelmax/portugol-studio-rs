@@ -76,7 +76,7 @@ export function learningContextAtSelection(input: {
       ? (/\bVec<|\bvec!\[|\bVec::new\(/.test(rustSnippet) ? "collections" : "mutability")
       : /^if\b/.test(rustSnippet)
         ? "conditionals"
-        : /^while\b/.test(rustSnippet) || /^\{\n[\s\S]*?'pors_for_\d+: while\b/.test(rustSnippet)
+        : /^while\b/.test(rustSnippet) || /^\{\n[\s\S]*?'ferro_for_\d+: while\b/.test(rustSnippet)
           ? "loops"
           : /^match\b|\b(?:Option|Result)::(?:Some|None|Ok|Err)\b/.test(rustSnippet)
             ? "option-result"

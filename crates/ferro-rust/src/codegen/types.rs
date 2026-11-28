@@ -46,57 +46,6 @@ pub(super) fn binding_info(program: &Program, id: BindingId) -> &ferro_hir::Bind
     &program.bindings[id.0 as usize]
 }
 
-pub(super) fn statements_have_read(statements: &[Stmt]) -> bool {
-    statements
-        .iter()
-        .any(|statement| statement_has_read(&statement.kind))
-}
-
-fn statement_has_read(kind: &StmtKind) -> bool {
-    use StmtKind as S;
-    match kind {
-        S::Read { .. } => true,
-        S::Declare { initializer, .. } => initializer.as_ref().is_some_and(expression_has_read),
-        S::Assign { value, .. } | S::FieldAssign { value, .. } => expression_has_read(value),
-        S::Choose { value, arms } => {
-            expression_has_read(value) || arms.iter().any(|arm| statements_have_read(&arm.body))
-        }
-        S::Call { arguments, .. } | S::HostCall { arguments, .. } => {
-            arguments.iter().any(expression_has_read)
-        }
-        S::Write(arguments) => arguments.iter().any(expression_has_read),
-        S::If {
-            condition,
-            then_branch,
-            else_branch,
-        } => {
-            expression_has_read(condition)
-                || statements_have_read(then_branch)
-                || else_branch.as_deref().is_some_and(statements_have_read)
-        }
-        S::While { condition, body } | S::DoWhile { condition, body } => {
-            expression_has_read(condition) || statements_have_read(body)
-        }
-        S::For {
-            initializer,
-            condition,
-            step,
-            body,
-        } => {
-            expression_has_read(condition)
-                || statement_has_read(&initializer.kind)
-                || statement_has_read(&step.kind)
-                || statements_have_read(body)
-        }
-        S::Return { value } => value.as_ref().is_some_and(expression_has_read),
-        S::IndexAssign { index, value, .. } => {
-            expression_has_read(index) || expression_has_read(value)
-        }
-        S::VectorPush { value, .. } => expression_has_read(value),
-        S::LoopControl { .. } | S::VectorPop { .. } => false,
-    }
-}
-
 pub(super) fn read_target_label(target: Option<Type>) -> &'static str {
     match target {
         Some(Type::Integer) => "inteiro",
@@ -108,50 +57,15 @@ pub(super) fn read_target_label(target: Option<Type>) -> &'static str {
     }
 }
 
-pub(super) fn expression_has_read(expr: &Expr) -> bool {
-    use ExprKind as E;
-    match &expr.kind {
-        E::Read { .. } => true,
-        E::Call { arguments, .. }
-        | E::HostCall { arguments, .. }
-        | E::VectorLiteral(arguments)
-        | E::RecordLiteral {
-            fields: arguments, ..
-        }
-        | E::EnumConstructor {
-            payload: arguments, ..
-        } => arguments.iter().any(expression_has_read),
-        E::Field { value, .. }
-        | E::Index { index: value, .. }
-        | E::VectorGet { index: value, .. }
-        | E::Parenthesized(value)
-        | E::Try { operand: value }
-        | E::Unary { operand: value, .. } => expression_has_read(value),
-        E::InterpolatedString { parts } => parts.iter().any(|part| match part {
-            ferro_hir::StringPart::Literal(_, _) => false,
-            ferro_hir::StringPart::Expression(value, _) => expression_has_read(value),
-        }),
-        E::Binary { left, right, .. } => expression_has_read(left) || expression_has_read(right),
-        E::Binding(_)
-        | E::Length { .. }
-        | E::VectorPop { .. }
-        | E::Integer(_)
-        | E::Real(_)
-        | E::Boolean(_)
-        | E::String(_)
-        | E::Character(_) => false,
-    }
-}
-
 pub(super) fn pors_clone_value(ty: Type, value: &str, program: &Program) -> String {
     match ty {
-        Type::String => format!("__pors_string({value})"),
-        Type::VectorString => format!("__pors_vec_string_clone({value})"),
+        Type::String => format!("__ferro_string({value})"),
+        Type::VectorString => format!("__ferro_vec_string_clone({value})"),
         Type::Record(id) => program
             .record_types
             .iter()
             .find(|item| item.id == id)
-            .map(|item| format!("__pors_clone_{}({value})", item.id.0))
+            .map(|item| format!("__ferro_clone_{}({value})", item.id.0))
             .unwrap_or_else(|| format!("(*{value}).clone()")),
         Type::VectorRecord(id) => program
             .record_types
@@ -159,7 +73,7 @@ pub(super) fn pors_clone_value(ty: Type, value: &str, program: &Program) -> Stri
             .find(|item| item.id == id)
             .map(|item| {
                 format!(
-                    "{value}.iter().map(|item| __pors_clone_{}(item)).collect()",
+                    "{value}.iter().map(|item| __ferro_clone_{}(item)).collect()",
                     item.id.0
                 )
             })
@@ -168,7 +82,7 @@ pub(super) fn pors_clone_value(ty: Type, value: &str, program: &Program) -> Stri
             .enum_types
             .iter()
             .find(|item| item.id == id)
-            .map(|item| format!("__pors_clone_enum_{}({value})", item.id.0))
+            .map(|item| format!("__ferro_clone_enum_{}({value})", item.id.0))
             .unwrap_or_else(|| format!("(*{value}).clone()")),
         Type::VectorEnum(id) => program
             .enum_types
@@ -176,7 +90,7 @@ pub(super) fn pors_clone_value(ty: Type, value: &str, program: &Program) -> Stri
             .find(|item| item.id == id)
             .map(|item| {
                 format!(
-                    "{value}.iter().map(|item| __pors_clone_enum_{}(item)).collect()",
+                    "{value}.iter().map(|item| __ferro_clone_enum_{}(item)).collect()",
                     item.id.0
                 )
             })
@@ -295,7 +209,7 @@ pub(super) fn render_ui_host_call(
 ) -> Vec<ExpressionPart> {
     match name {
         "texto" => {
-            let mut parts = vec![ExpressionPart::Text("__pors_ui::texto(&[".to_owned())];
+            let mut parts = vec![ExpressionPart::Text("__ferro_ui::texto(&[".to_owned())];
             for (index, argument) in arguments.iter().enumerate() {
                 if index > 0 {
                     parts.push(ExpressionPart::Text(", ".to_owned()));
@@ -308,7 +222,7 @@ pub(super) fn render_ui_host_call(
                         parts.push(ExpressionPart::Text(")).to_string()".to_owned()));
                     }
                     Type::Real => {
-                        parts.push(ExpressionPart::Text("__portugol_java_double(".to_owned()));
+                        parts.push(ExpressionPart::Text("__ferro_java_double(".to_owned()));
                         parts.push(ExpressionPart::Nested(rendered));
                         parts.push(ExpressionPart::Text(")".to_owned()));
                     }
@@ -330,14 +244,14 @@ pub(super) fn render_ui_host_call(
             parts
         }
         "botao" => vec![
-            ExpressionPart::Text("__pors_ui::botao(&(".to_owned()),
+            ExpressionPart::Text("__ferro_ui::botao(&(".to_owned()),
             ExpressionPart::Nested(render_expr(&arguments[0], program, pors)),
             ExpressionPart::Text("), &(".to_owned()),
             ExpressionPart::Nested(render_expr(&arguments[1], program, pors)),
             ExpressionPart::Text("))".to_owned()),
         ],
         "entrada" => vec![
-            ExpressionPart::Text("__pors_ui::entrada(&(".to_owned()),
+            ExpressionPart::Text("__ferro_ui::entrada(&(".to_owned()),
             ExpressionPart::Nested(render_expr(&arguments[0], program, pors)),
             ExpressionPart::Text("), &(".to_owned()),
             ExpressionPart::Nested(render_expr(&arguments[1], program, pors)),
@@ -346,7 +260,7 @@ pub(super) fn render_ui_host_call(
             ExpressionPart::Text("))".to_owned()),
         ],
         "coluna" | "linha" | "lista" => vec![
-            ExpressionPart::Text(format!("__pors_ui::{name}(&(")),
+            ExpressionPart::Text(format!("__ferro_ui::{name}(&(")),
             ExpressionPart::Nested(render_expr(&arguments[0], program, pors)),
             ExpressionPart::Text("))".to_owned()),
         ],
