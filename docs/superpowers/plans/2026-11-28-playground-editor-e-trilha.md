@@ -52,7 +52,7 @@ Commits sem `Co-Authored-By` e sem menção a IA/Claude/Anthropic.
 | `ui-contador` | `ui-contador.fer` | Visual | ui | `08-ui-contador.fer` |
 | `exercicio` | `exercicio.fer` | Exercício | console | novo starter com comentário curto e `funcao inicio() { ... }` |
 
-Copiar o `source` dos arquivos de `crates/ferro-service/assets/exemplos-pors/` literalmente (template strings com crase; escapar `\\` e `${` quando existirem). `input: ""` salvo onde indicado.
+Copiar o `source` dos arquivos de `crates/ferro-service/assets/exemplos-ferro/` literalmente (`JSON.stringify` para escapar quebras e aspas). `input: ""` salvo onde indicado.
 
 **Verificação:** `node --test apps/desktop/tests/web-playground.test.mjs` (a primeira asserção passa; as demais ainda podem falhar até as Tasks 4–6).
 

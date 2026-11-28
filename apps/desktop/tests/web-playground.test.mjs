@@ -7,9 +7,19 @@ import {
   renderUiNodeTree,
 } from "../../web-playground/playground-core.mjs";
 
-test("web playground ships console and visual MVU .fer examples without innerHTML", () => {
-  assert.ok(PLAYGROUND_EXAMPLES.length >= 4);
-  assert.ok(PLAYGROUND_EXAMPLES.some((ex) => ex.mode === "console"));
+test("web playground ships twelve organized .fer examples without innerHTML", () => {
+  assert.equal(PLAYGROUND_EXAMPLES.length, 12);
+  for (const example of PLAYGROUND_EXAMPLES) {
+    for (const field of ["id", "title", "file", "group", "mode", "input", "source"]) {
+      assert.equal(typeof example[field], "string", `${example.id}: campo ${field} ausente`);
+    }
+    assert.ok(["console", "ui"].includes(example.mode), `${example.id}: modo inválido`);
+    assert.ok(example.source.trim().length > 0, `${example.id}: fonte vazia`);
+  }
+  assert.deepEqual(
+    [...new Set(PLAYGROUND_EXAMPLES.map((example) => example.group))],
+    ["Básico", "Controle", "Dados", "Valores", "Visual", "Exercício"],
+  );
   assert.ok(PLAYGROUND_EXAMPLES.some((ex) => ex.mode === "ui" && ex.source.includes("UI.coluna")));
 
   for (const file of ["index.html", "app.mjs", "playground-core.mjs", "ferro-language.mjs"]) {
@@ -323,7 +333,7 @@ test("Prévia UI loads a visual example when the editor holds a console program"
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     const editor = elements.get("pg-editor");
-    assert.match(editor.value, /^funcao saudar\(/);
+    assert.match(editor.value, /^funcao inicio\(\)/);
 
     const action = elements.get("pg-action");
     action.value = "ui";

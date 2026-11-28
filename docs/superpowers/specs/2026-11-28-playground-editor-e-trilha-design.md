@@ -32,7 +32,7 @@ Dar ao playground web noção de arquivo, abas e sequência de aprendizado. O us
 - Abas em memória (não reabertas automaticamente); progresso da trilha em `localStorage` sob `pg-lessons`.
 - Primeira abertura: `boas-vindas.fer`, o exemplo de saudação do catálogo, já como aba ativa; trilha visível na lateral. Escolher outro exemplo ou arquivo abre uma aba nova, ou ativa a existente — nunca substitui a aba atual.
 - Testes Node usam exports WASM falsos, como os atuais; a validação dos exemplos oficiais continua nos testes Rust existentes. Nenhum build de WASM é adicionado ao `node --test`.
-- Exemplos: 12, escolhidos do catálogo oficial `crates/ferro-service/assets/exemplos-pors` (já cobertos por teste Rust de compilação): saudação, entrada, tipos, decisão, laços, funções, vetores, registro, Opção/Resultado, bibliotecas, UI e exercício aberto.
+- Exemplos: 12, escolhidos do catálogo oficial `crates/ferro-service/assets/exemplos-ferro` (já cobertos por teste Rust de compilação): saudação, entrada, tipos, decisão, laços, funções, vetores, registro, Opção/Resultado, bibliotecas, UI e exercício aberto.
 - Trilha: definições separadas em `lessons.mjs` (variáveis, decisões, laços, vetores, cadeias, Resultado), com `starter` próprio, `stdin` fixo e `expected` de stdout. Não são os exemplos prontos e não entram na contagem dos 12.
 - Verificação de lição: usa o buffer atual do editor e o `stdin` fixo da lição; o campo de entrada fica bloqueado durante a lição. Compara linhas de stdout (sem contar `\n` final); erro de compilação conta como não aprovado. Sem novo export WASM.
 - Navegação da trilha é livre: lições anteriores não são trancadas; o progresso só marca conclusão.
