@@ -3,6 +3,7 @@
 - **Status:** Aceita
 - **Data:** 2026-11-27
 - **Responsável:** mantenedor do produto
+- **Andamento:** Etapas A, B e C concluídas (2026-11-28); a Etapa C foi antecipada, ver a nota abaixo
 - **Substitui parcialmente:** [ADR 0017](0017-modelo-execucao-e-estado-ui-visual-ferro.md), decisão 1 (interface declarativa por componentes `UI.*`)
 - **Relacionados:** [ADR 0018](0018-projetos-desktop-ferro-com-designer-visual.md) (Emendas 1 e 2), [ADR 0020](0020-ajustes-pedagogicos-da-sintaxe-ferro.md)
 
@@ -84,6 +85,14 @@ execução de telas na IDE e na prévia WASM):
 - Saem o runtime `FERRO_UI_RUNTIME` do `ferro-rust`, os construtores de nós
   `UI.*` da VM e os testes que só existem para eles.
 - Os testes do runtime de sessão visual continuam, reescritos sobre telas.
+
+> **Nota (2026-11-28): Etapa C antecipada.** Por decisão do mantenedor, a
+> Etapa C entrou sem esperar uma versão publicada com o aviso da Etapa B
+> (a v0.7.0 saiu antes do aviso). Também saiu o modo visual do playground Web
+> (`ferro_ui_*` no `ferro-wasm`), que dependia do `UI.*`: o playground fica só
+> com programas de console até ganhar as abas de telas da Etapa B. O uso de
+> `UI.*` gera o erro `ferro.ui-removido`, com a tabela da seção 4 na ajuda, e
+> a entrada `iniciar`/`atualizar`/`visualizar` deixou de substituir `inicio`.
 
 ### 4. Correspondência para a migração
 

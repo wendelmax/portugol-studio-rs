@@ -13,12 +13,12 @@ use expr::push_expr;
 use runtime::{
     FERRO_ARQUIVOS_RUNTIME, FERRO_CALENDARIO_RUNTIME, FERRO_CLOCK_RUNTIME, FERRO_INTERNET_RUNTIME,
     FERRO_JSON_RUNTIME, FERRO_MATEMATICA_RUNTIME, FERRO_TEXTO_RUNTIME, FERRO_TIPOS_RUNTIME,
-    FERRO_UI_RUNTIME, FERRO_UTIL_RUNTIME,
+    FERRO_UTIL_RUNTIME,
 };
 use stmt::render_statements;
 use types::{
-    binding_info, ferro_clone_value, mvu_entry_update_arity, program_uses_host_module,
-    rust_enum_type_name, rust_enum_variant_path, rust_type,
+    binding_info, ferro_clone_value, program_uses_host_module, rust_enum_type_name,
+    rust_enum_variant_path, rust_type,
 };
 
 pub(crate) fn render_ferro_with_map(program: &Program) -> GeneratedRust {
@@ -26,7 +26,6 @@ pub(crate) fn render_ferro_with_map(program: &Program) -> GeneratedRust {
 }
 
 fn render(program: &Program, ferro: bool) -> GeneratedRust {
-    let uses_ui = ferro && program_uses_host_module(program, "UI");
     let uses_matematica = ferro && program_uses_host_module(program, "Matematica");
     let uses_texto = ferro && program_uses_host_module(program, "Texto");
     let uses_tipos = ferro && program_uses_host_module(program, "Tipos");
@@ -35,15 +34,7 @@ fn render(program: &Program, ferro: bool) -> GeneratedRust {
     let uses_arquivos = ferro && program_uses_host_module(program, "Arquivos");
     let uses_json = ferro && program_uses_host_module(program, "Json");
     let uses_internet = ferro && program_uses_host_module(program, "Internet");
-    let mvu_update_arity = if ferro && program.body.is_empty() {
-        mvu_entry_update_arity(program)
-    } else {
-        None
-    };
     let mut output = String::new();
-    if uses_ui || mvu_update_arity.is_some() {
-        output.push_str(FERRO_UI_RUNTIME);
-    }
     if uses_matematica {
         output.push_str(FERRO_MATEMATICA_RUNTIME);
     }
@@ -232,29 +223,15 @@ fn render(program: &Program, ferro: bool) -> GeneratedRust {
     }
     output.push_str("\nfn main() {\n");
     let body_start = output.len();
-    if let Some(update_arity) = mvu_update_arity {
-        let init_fn = rust_ident("iniciar");
-        let update_fn = rust_ident("atualizar");
-        let view_fn = rust_ident("visualizar");
-        let update_call = match update_arity {
-            2 => format!("{update_fn}(estado, alvo)"),
-            3 => format!("{update_fn}(estado, tipo, alvo)"),
-            _ => format!("{update_fn}(estado, tipo, alvo, valor)"),
-        };
-        output.push_str(&format!(
-            "    use std::io::BufRead;\n    let mut estado = {init_fn}();\n    let mut step: u64 = 0;\n    __ferro_ui::begin_frame();\n    let root = {view_fn}(estado.clone());\n    println!(\"{{{{\\\"step\\\":{{step}},\\\"tree\\\":{{}}}}}}\", __ferro_ui::finish_frame(root).to_json());\n    let _ = io::stdout().flush();\n    let stdin = io::stdin();\n    for line in stdin.lock().lines() {{\n        let Ok(line) = line else {{ break }};\n        let trimmed = line.trim();\n        if trimmed.is_empty() {{\n            continue;\n        }}\n        let Some((tipo, alvo, valor)) = __ferro_ui::parse_event_line(trimmed) else {{\n            eprintln!(\"Evento inválido: {{trimmed}}\");\n            continue;\n        }};\n        let _ = (&tipo, &valor);\n        estado = {update_call};\n        step += 1;\n        __ferro_ui::begin_frame();\n        let root = {view_fn}(estado.clone());\n        println!(\"{{{{\\\"step\\\":{{step}},\\\"tree\\\":{{}}}}}}\", __ferro_ui::finish_frame(root).to_json());\n        let _ = io::stdout().flush();\n    }}\n"
-        ));
-    } else {
-        render_statements(
-            &program.body,
-            program,
-            1,
-            &mut output,
-            &mut mappings,
-            ferro,
-            None,
-        );
-    }
+    render_statements(
+        &program.body,
+        program,
+        1,
+        &mut output,
+        &mut mappings,
+        ferro,
+        None,
+    );
     let body_end = output.len();
     output.push_str("}\n");
     let generated_prefix_end = mappings

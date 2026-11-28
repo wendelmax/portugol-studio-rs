@@ -23,7 +23,7 @@
         <button id="btn-stop" class="titlebar-action-btn titlebar-stop-btn" data-testid="stop" title="Interromper a execução ou depuração (Shift+F7)" aria-label="Interromper" disabled><span data-icon="square"></span><span>Parar</span></button>
         <span class="titlebar-divider" aria-hidden="true"></span>
         <button id="btn-rust" class="titlebar-pill-btn" title="Comparar e exportar este programa para Rust" aria-label="Ver tradução para Rust" aria-pressed="false">Rust</button>
-        <button id="btn-ui-preview" class="titlebar-pill-btn" title="Prévia visual: numa tela, abre o designer; programas UI.* (obsoleto) usam o painel antigo" aria-label="Prévia visual" aria-pressed="false">UI</button>
+        <button id="btn-ui-preview" class="titlebar-pill-btn" title="Prévia da tela: abre o designer do .design aberto" aria-label="Prévia da tela" aria-pressed="false">UI</button>
       </nav>
       <div class="window-controls" role="group" aria-label="Controles da janela">
         <button id="window-min" title="Minimizar" aria-label="Minimizar"><span data-icon="window-min"></span></button>
@@ -177,24 +177,6 @@
             <p id="rust-status" role="status" aria-live="polite">Preparando tradução…</p>
             <div id="rust-output" class="rust-generated-editor"></div>
             <div id="rust-diff-output" class="rust-diff-output" aria-label="Diferenças entre traduções Rust" hidden></div>
-          </aside>
-          <aside id="ferro-ui-preview" class="ferro-ui-preview" aria-label="Prévia visual" hidden>
-            <header>
-              <h2>Prévia visual</h2>
-              <div>
-                <button id="ferro-ui-run" type="button">Executar</button>
-                <button id="ferro-ui-restart" type="button" disabled>Reiniciar</button>
-                <button id="ferro-ui-cancel" type="button" disabled>Cancelar</button>
-                <button id="ferro-ui-close" type="button" aria-label="Fechar prévia visual">×</button>
-              </div>
-            </header>
-            <div class="ferro-ui-examples-bar">
-              <label for="ferro-ui-example-select">Exemplo visual</label>
-              <select id="ferro-ui-example-select"></select>
-              <button id="ferro-ui-load-example" type="button">Carregar exemplo</button>
-            </div>
-            <p id="ferro-ui-status" role="status" aria-live="polite">Abra um programa .fer visual ou carregue um exemplo.</p>
-            <div id="ferro-ui-canvas" class="ferro-ui-canvas"></div>
           </aside>
           <aside class="error-strip" aria-label="Diagnósticos por linha"><div id="error-strip"></div></aside>
           <details id="editor-options" class="options editor-options">

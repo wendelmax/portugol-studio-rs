@@ -47,7 +47,7 @@ pub fn export_ferro_rs(source: &str) -> Result<String, Vec<Diagnostic>> {
     export_ferro_rs_with_map(source).map(|generated| generated.code)
 }
 
-/// Projeto Cargo pronto gerado a partir de um programa `.fer` (console ou visual MVU).
+/// Projeto Cargo pronto gerado a partir de um programa `.fer`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExportedCargoProject {
     pub package_name: String,
@@ -95,25 +95,18 @@ fn export_with(
 }
 
 /// Gera um projeto Cargo completo (Edition 2024, sem dependências externas) a partir
-/// de um programa `.fer`, incluindo apps visuais declarativos (`UI.*` / MVU).
+/// de um programa `.fer`.
 pub fn export_ferro_rs_cargo_project(
     source: &str,
     requested_name: &str,
 ) -> Result<ExportedCargoProject, Vec<Diagnostic>> {
     let generated = export_ferro_rs_with_map(source)?;
     let package_name = sanitize_cargo_package_name(requested_name);
-    let is_visual = generated.code.contains("mod __ferro_ui");
     let cargo_toml =
         format!("[package]\nname = \"{package_name}\"\nversion = \"0.1.0\"\nedition = \"2024\"\n");
-    let readme_md = if is_visual {
-        format!(
-            "# {package_name}\n\nProjeto Rust gerado a partir de Ferro (`.fer`) com UI declarativa MVU.\n\n## Como executar\n\n```bash\ncargo run\n```\n\nO programa imprime o snapshot JSON inicial (`step: 0`) e lê eventos pela entrada padrão, um por linha:\n\n- `clique:<id>` ou `{{\"kind\":\"clique\",\"id\":\"<id>\"}}`\n- `entrada_alterada:<id>:<valor>` ou `{{\"kind\":\"entrada_alterada\",\"id\":\"<id>\",\"value\":\"<valor>\"}}`\n"
-        )
-    } else {
-        format!(
-            "# {package_name}\n\nProjeto Rust gerado a partir de Ferro (`.fer`).\n\n## Como executar\n\n```bash\ncargo run\n```\n"
-        )
-    };
+    let readme_md = format!(
+        "# {package_name}\n\nProjeto Rust gerado a partir de Ferro (`.fer`).\n\n## Como executar\n\n```bash\ncargo run\n```\n"
+    );
     Ok(ExportedCargoProject {
         package_name,
         cargo_toml,
@@ -223,7 +216,7 @@ fn find_host_call_in_stmts<'a>(
             } => {
                 if !matches!(
                     module.as_str(),
-                    "UI" | "Matematica"
+                    "Matematica"
                         | "Texto"
                         | "Tipos"
                         | "Util"
@@ -292,7 +285,7 @@ fn find_host_call_in_expr<'a>(
         } => {
             if !matches!(
                 module.as_str(),
-                "UI" | "Matematica"
+                "Matematica"
                     | "Texto"
                     | "Tipos"
                     | "Util"
@@ -674,117 +667,6 @@ mod tests {
     }
 
     #[test]
-    fn exports_and_runs_visual_mvu_ferro_apps_as_standalone_rust_and_cargo_projects() {
-        use std::io::Write;
-        use std::process::Stdio;
-
-        let counter_source = r#"
-enum Humor {
-    Neutro,
-    Animado
-}
-
-registro Estado {
-    contagem: inteiro,
-    nome: cadeia,
-    humor: Humor
-}
-
-funcao iniciar() -> Estado {
-    retorne Estado { contagem: 0, nome: "Visitante", humor: Humor::Neutro };
-}
-
-funcao atualizar(estado: Estado, tipo: cadeia, alvo: cadeia, valor: cadeia) -> Estado {
-    se (tipo == "clique" && alvo == "inc") {
-        retorne Estado { contagem: estado.contagem + 1, nome: estado.nome, humor: Humor::Animado };
-    }
-    se (tipo == "clique" && alvo == "zerar") {
-        retorne Estado { contagem: 0, nome: estado.nome, humor: Humor::Neutro };
-    }
-    se (tipo == "entrada_alterada" && alvo == "nome") {
-        retorne Estado { contagem: estado.contagem, nome: valor, humor: estado.humor };
-    }
-    retorne estado;
-}
-
-funcao visualizar(estado: Estado) -> inteiro {
-    seja mutavel selo: cadeia = "Neutro";
-    escolha estado.humor {
-        caso Humor::Neutro => { selo = "Neutro"; }
-        caso Humor::Animado => { selo = "Animado"; }
-    }
-    retorne UI.coluna([
-        UI.texto("Olá, ", estado.nome, "!"),
-        UI.texto("Contagem: ", estado.contagem, " (", selo, ")"),
-        UI.linha([
-            UI.botao("inc", "+1"),
-            UI.botao("zerar", "Zerar")
-        ]),
-        UI.entrada("nome", estado.nome, "Digite seu nome"),
-        UI.lista([UI.texto("Passo ", estado.contagem)])
-    ]);
-}
-"#;
-        let project =
-            crate::export_ferro_rs_cargo_project(counter_source, "123 Contador Visual!").unwrap();
-        assert_eq!(project.package_name, "ferro-123-contador-visual");
-        assert!(project.cargo_toml.contains("edition = \"2024\""));
-        assert!(project.readme_md.contains("UI declarativa MVU"));
-
-        let dir = std::env::temp_dir().join(format!("ferro-rust-ui-{}", std::process::id()));
-        crate::write_cargo_project(&project, &dir).unwrap();
-        let binary = dir.join(format!("counter{}", std::env::consts::EXE_SUFFIX));
-        let compilation = Command::new("rustc")
-            .arg("--edition=2024")
-            .arg(dir.join("src/main.rs"))
-            .arg("-o")
-            .arg(&binary)
-            .output()
-            .unwrap();
-        assert!(
-            compilation.status.success(),
-            "{}",
-            String::from_utf8_lossy(&compilation.stderr)
-        );
-
-        let mut child = Command::new(&binary)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .unwrap();
-        child
-            .stdin
-            .take()
-            .unwrap()
-            .write_all(
-                b"clique:inc\nentrada_alterada:nome:Ada\n{\"kind\":\"clique\",\"id\":\"zerar\"}\n",
-            )
-            .unwrap();
-        let output = child.wait_with_output().unwrap();
-        assert!(output.status.success(), "{output:?}");
-        let lines: Vec<&str> = std::str::from_utf8(&output.stdout)
-            .unwrap()
-            .lines()
-            .collect();
-        assert_eq!(lines.len(), 4, "{lines:?}");
-        assert!(lines[0].contains("\"step\":0"));
-        assert!(lines[0].contains("\"content\":\"Contagem: 0 (Neutro)\""));
-        assert!(lines[1].contains("\"step\":1"));
-        assert!(lines[1].contains("\"content\":\"Contagem: 1 (Animado)\""));
-        assert!(lines[1].contains(
-            "\"kind\":\"lista\",\"items\":[{\"kind\":\"texto\",\"content\":\"Passo 1\"}]"
-        ));
-        assert!(lines[2].contains("\"step\":2"));
-        assert!(lines[2].contains("\"content\":\"Olá, Ada!\""));
-        assert!(lines[2].contains("\"value\":\"Ada\""));
-        assert!(lines[3].contains("\"step\":3"));
-        assert!(lines[3].contains("\"content\":\"Contagem: 0 (Neutro)\""));
-
-        std::fs::remove_dir_all(dir).unwrap();
-    }
-
-    #[test]
     fn exports_and_executes_builtin_option_result_and_try_as_native_rust() {
         let source = r#"
 registro Item { valor: inteiro }
@@ -924,7 +806,6 @@ funcao inicio() {
         assert!(generated.contains("mod __ferro_matematica"));
         assert!(generated.contains("mod __ferro_texto"));
         assert!(generated.contains("mod __ferro_tipos"));
-        assert!(!generated.contains("mod __ferro_ui"));
         assert_rust_output(
             generated,
             "3.14|8.0|9.0|7|9|5|OLÁ 🦀|oi 🦀|00042|🦀|4|olá|ERR|42|ERR|2.5|FF|verdadeiro|verdadeiro",

@@ -1,32 +1,29 @@
-//! Fachada WebAssembly sem dependências externas para o núcleo FERRO mínimo e
-//! o runtime declarativo MVU de UI (ADR 0017).
+//! Fachada WebAssembly sem dependências externas para o núcleo FERRO mínimo.
 //!
 //! Compila nativamente para `wasm32-unknown-unknown` usando `ferro-vm` sem
 //! a feature `stdlib`, expondo:
 //! - validação (`ferro_validate`), formatação canônica (`ferro_format`) e execução
 //!   com orçamentos de passos/memória/saída (`ferro_run`) de programas `.fer`;
-//! - gerenciamento de sessões MVU (`ferro_ui_start`, `ferro_ui_dispatch`,
-//!   `ferro_ui_snapshot`, `ferro_ui_close`) sobre [`UiSession`];
 //! - respostas em JSON determinístico (RFC 8259) alocadas em memória linear via
 //!   buffer reutilizável por thread (`ferro_result_ptr` / `ferro_result_len`).
 
 use std::alloc::{Layout, alloc, dealloc};
 use std::cell::RefCell;
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::VecDeque;
 use std::fmt::Write as _;
 use std::slice;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use ferro_bytecode::{Module, ValueType};
+use ferro_bytecode::ValueType;
 use ferro_frontend::WhitespaceEdit;
 use ferro_hir::Diagnostic;
-use ferro_vm::ui::{DEFAULT_MAX_STRING_BYTES, UiBudget, UiError, UiEvent, UiSession};
 use ferro_vm::{Io, RuntimeLimitReason, Status, Vm};
 
 pub const DEFAULT_RUN_MAX_STEPS: usize = 1_000_000;
 pub const DEFAULT_RUN_MAX_OUTPUT_BYTES: usize = 1024 * 1024;
-pub const DEFAULT_UI_MAX_OUTPUT_BYTES: usize = 256 * 1024;
+/// Limite de bytes de uma cadeia na VM do playground.
+pub const DEFAULT_MAX_STRING_BYTES: usize = 16 * 1024 * 1024;
 
 /// Limites explícitos para execução de programas `.fer` no host WASM.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -43,123 +40,6 @@ impl Default for RunBudget {
             max_string_bytes: DEFAULT_MAX_STRING_BYTES,
             max_output_bytes: DEFAULT_RUN_MAX_OUTPUT_BYTES,
         }
-    }
-}
-
-/// Registro de sessões MVU ativas em um host persistente (WASM ou testes).
-#[derive(Default)]
-pub struct SessionStore {
-    next_id: u32,
-    sessions: BTreeMap<u32, UiSession<'static>>,
-}
-
-impl SessionStore {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Inicia uma sessão MVU a partir de um [`Module`] compilado e retorna a
-    /// resposta JSON canônica com o identificador da sessão e a árvore inicial.
-    pub fn start_module(&mut self, module: Module, budget: UiBudget) -> String {
-        let interrupt = Arc::new(AtomicBool::new(false));
-        let mut io = BoundedBufferIo::new("", DEFAULT_UI_MAX_OUTPUT_BYTES, Arc::clone(&interrupt));
-        match UiSession::start_owned(module, &mut io, budget, interrupt) {
-            Ok(session) => {
-                self.next_id = self.next_id.wrapping_add(1).max(1);
-                while self.sessions.contains_key(&self.next_id) {
-                    self.next_id = self.next_id.wrapping_add(1).max(1);
-                }
-                let id = self.next_id;
-                let step = session.step();
-                let tree_json = session.tree().to_json();
-                let history_len = session.history().len();
-                self.sessions.insert(id, session);
-                session_ok_json(id, step, history_len, &tree_json, &io.output)
-            }
-            Err(error) => ui_error_json(&error, &io.output, io.truncated),
-        }
-    }
-
-    /// Compila um fonte `.fer` e inicia uma sessão MVU com o orçamento informado.
-    pub fn start_ferro(&mut self, source: &str, budget: UiBudget) -> String {
-        let program = match ferro_frontend::lower(source) {
-            Ok(program) => program,
-            Err(diagnostics) => return diagnostics_error_json(&diagnostics),
-        };
-        let module = match ferro_bytecode::compile_ferro(&program) {
-            Ok(module) => module,
-            Err(error) => {
-                return simple_error_json(
-                    &error.message,
-                    Some("compile"),
-                    Some(error.span.start),
-                    Some(error.span.end),
-                );
-            }
-        };
-        self.start_module(module, budget)
-    }
-
-    /// Despacha um evento (`clique` ou `entrada_alterada`) para a sessão indicada.
-    pub fn dispatch(
-        &mut self,
-        session_id: u32,
-        kind: &str,
-        target_id: &str,
-        value: &str,
-    ) -> String {
-        let event = match parse_ui_event(kind, target_id, value) {
-            Ok(event) => event,
-            Err(message) => return simple_error_json(&message, Some("invalid_event"), None, None),
-        };
-        let Some(session) = self.sessions.get_mut(&session_id) else {
-            return simple_error_json(
-                &format!("Sessão visual {session_id} não encontrada."),
-                Some("session_not_found"),
-                None,
-                None,
-            );
-        };
-        let interrupt = session.interrupt_handle();
-        interrupt.store(false, Ordering::Relaxed);
-        let mut io = BoundedBufferIo::new("", DEFAULT_UI_MAX_OUTPUT_BYTES, interrupt);
-        match session.dispatch(event, &mut io) {
-            Ok(snapshot) => {
-                let step = snapshot.step;
-                let tree_json = snapshot.tree.to_json();
-                let history_len = session.history().len();
-                session_ok_json(session_id, step, history_len, &tree_json, &io.output)
-            }
-            Err(error) => ui_error_json(&error, &io.output, io.truncated),
-        }
-    }
-
-    /// Retorna o snapshot JSON atual da sessão, sem disparar novos eventos.
-    pub fn snapshot(&self, session_id: u32) -> String {
-        let Some(session) = self.sessions.get(&session_id) else {
-            return simple_error_json(
-                &format!("Sessão visual {session_id} não encontrada."),
-                Some("session_not_found"),
-                None,
-                None,
-            );
-        };
-        session_ok_json(
-            session_id,
-            session.step(),
-            session.history().len(),
-            &session.tree().to_json(),
-            "",
-        )
-    }
-
-    /// Encerra e libera a sessão indicada.
-    pub fn close(&mut self, session_id: u32) -> bool {
-        self.sessions.remove(&session_id).is_some()
-    }
-
-    pub fn active_count(&self) -> usize {
-        self.sessions.len()
     }
 }
 
@@ -328,21 +208,6 @@ impl Io for BoundedBufferIo {
     }
 }
 
-fn parse_ui_event(kind: &str, target_id: &str, value: &str) -> Result<UiEvent, String> {
-    match kind {
-        "clique" => Ok(UiEvent::Click {
-            id: target_id.into(),
-        }),
-        "entrada_alterada" => Ok(UiEvent::InputChanged {
-            id: target_id.into(),
-            value: value.into(),
-        }),
-        other => Err(format!(
-            "Tipo de evento de UI desconhecido: \"{other}\". Use \"clique\" ou \"entrada_alterada\"."
-        )),
-    }
-}
-
 fn apply_utf16_edits(source: &str, edits: &[WhitespaceEdit]) -> Option<String> {
     let mut units: Vec<u16> = source.encode_utf16().collect();
     for edit in edits.iter().rev() {
@@ -359,55 +224,6 @@ fn limit_reason_name(reason: RuntimeLimitReason) -> &'static str {
         RuntimeLimitReason::Time => "time",
         RuntimeLimitReason::StringMemory => "string_memory",
     }
-}
-
-fn session_ok_json(
-    session_id: u32,
-    step: u64,
-    history_len: usize,
-    tree_json: &str,
-    stdout: &str,
-) -> String {
-    let mut out = String::new();
-    let _ = write!(
-        out,
-        "{{\"ok\":true,\"session\":{session_id},\"step\":{step},\"history_len\":{history_len},\"tree\":{tree_json},\"stdout\":"
-    );
-    write_json_string(stdout, &mut out);
-    out.push('}');
-    out
-}
-
-fn ui_error_json(error: &UiError, stdout: &str, output_truncated: bool) -> String {
-    let code = if output_truncated {
-        "output"
-    } else {
-        match error {
-            UiError::Runtime(runtime) => runtime.limit.map(limit_reason_name).unwrap_or("runtime"),
-            UiError::NodeLimitExceeded { .. } => "node_limit",
-            UiError::DepthLimitExceeded { .. } => "depth_limit",
-            UiError::InvalidNodeHandle(_) => "invalid_node_handle",
-            UiError::InvalidRootValue(_) => "invalid_root_value",
-            UiError::MissingFunction(_) => "missing_function",
-            UiError::UnsupportedArity { .. } => "unsupported_arity",
-            UiError::Cancelled => "cancelled",
-        }
-    };
-    let message = if output_truncated {
-        format!(
-            "Limite máximo de {DEFAULT_UI_MAX_OUTPUT_BYTES} bytes de saída excedido durante a sessão visual."
-        )
-    } else {
-        error.to_string()
-    };
-    let mut out = String::from("{\"ok\":false,\"error\":");
-    write_json_string(&message, &mut out);
-    out.push_str(",\"code\":");
-    write_json_string(code, &mut out);
-    out.push_str(",\"stdout\":");
-    write_json_string(stdout, &mut out);
-    out.push('}');
-    out
 }
 
 fn run_error_json(message: &str, limit: Option<&str>, stdout: &str) -> String {
@@ -497,7 +313,6 @@ fn write_json_string(value: &str, out: &mut String) {
 
 thread_local! {
     static RESULT_BUFFER: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
-    static SESSIONS: RefCell<SessionStore> = RefCell::new(SessionStore::new());
 }
 
 fn store_result(json: String) -> usize {
@@ -646,80 +461,4 @@ pub unsafe extern "C" fn ferro_run(
         }
     };
     store_result(json)
-}
-
-/// Inicia uma sessão MVU a partir de um fonte `.fer` (`0` aplica orçamento padrão).
-///
-/// # Safety
-/// `src_ptr` deve apontar para `src_len` bytes válidos na memória linear.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn ferro_ui_start(
-    src_ptr: *const u8,
-    src_len: usize,
-    max_steps: usize,
-    max_nodes: usize,
-    max_depth: usize,
-) -> usize {
-    let json = match unsafe { read_utf8_arg(src_ptr, src_len) } {
-        Ok(source) => {
-            let mut budget = UiBudget::default();
-            if max_steps > 0 {
-                budget.max_steps_per_event = max_steps;
-            }
-            if max_nodes > 0 {
-                budget.max_nodes = max_nodes;
-            }
-            if max_depth > 0 {
-                budget.max_depth = max_depth;
-            }
-            SESSIONS.with(|store| store.borrow_mut().start_ferro(source, budget))
-        }
-        Err(message) => simple_error_json(&message, Some("invalid_utf8"), None, None),
-    };
-    store_result(json)
-}
-
-/// Despacha um evento (`clique` ou `entrada_alterada`) para uma sessão MVU ativa.
-///
-/// # Safety
-/// Os ponteiros e comprimentos fornecidos devem representar fatias válidas.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn ferro_ui_dispatch(
-    session_id: u32,
-    kind_ptr: *const u8,
-    kind_len: usize,
-    target_ptr: *const u8,
-    target_len: usize,
-    value_ptr: *const u8,
-    value_len: usize,
-) -> usize {
-    let json = match (
-        unsafe { read_utf8_arg(kind_ptr, kind_len) },
-        unsafe { read_utf8_arg(target_ptr, target_len) },
-        unsafe { read_utf8_arg(value_ptr, value_len) },
-    ) {
-        (Ok(kind), Ok(target_id), Ok(value)) => SESSIONS.with(|store| {
-            store
-                .borrow_mut()
-                .dispatch(session_id, kind, target_id, value)
-        }),
-        (Err(message), _, _) | (_, Err(message), _) | (_, _, Err(message)) => {
-            simple_error_json(&message, Some("invalid_utf8"), None, None)
-        }
-    };
-    store_result(json)
-}
-
-/// Lê o snapshot atual de uma sessão MVU ativa.
-#[unsafe(no_mangle)]
-pub extern "C" fn ferro_ui_snapshot(session_id: u32) -> usize {
-    let json = SESSIONS.with(|store| store.borrow().snapshot(session_id));
-    store_result(json)
-}
-
-/// Encerra uma sessão MVU ativa. Retorna `1` se existia, `0` caso contrário.
-#[unsafe(no_mangle)]
-pub extern "C" fn ferro_ui_close(session_id: u32) -> u32 {
-    let closed = SESSIONS.with(|store| store.borrow_mut().close(session_id));
-    u32::from(closed)
 }

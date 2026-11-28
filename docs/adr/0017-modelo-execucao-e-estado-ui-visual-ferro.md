@@ -6,7 +6,7 @@
 - **Relacionados:** [ADR 0015](0015-evolucao-visual-orientada-a-aprendizagem.md), [ADR 0016](0016-ferro-como-linguagem-autoral-e-retirada-do-por.md), [plano de migração FERRO](../plans/ferro-only-migration.md), [matriz de migração FERRO](../research/ferro_MIGRATION_MATRIX.md)
 - **Substituída parcialmente por:** [ADR 0021](0021-tela-como-forma-unica-de-interface-ferro.md)
 
-> **Revisão (ADR 0021):** a decisão 1, interface declarativa com `UI.*`, foi substituída: interfaces em FERRO passam a ser criadas somente com telas, um `.design` com o code-behind `.fer` (ADR 0018), e o `UI.*` é aposentado em etapas. As decisões 2 a 5 (estado puro, VM em WASM, orçamento por evento e preservação de contratos) continuam valendo.
+> **Revisão (ADR 0021):** a decisão 1, interface declarativa com `UI.*`, foi substituída: interfaces em FERRO passam a ser criadas somente com telas, um `.design` com o code-behind `.fer` (ADR 0018), e o `UI.*` foi aposentado em etapas, concluídas em 2026-11-28 (o uso agora é o erro `ferro.ui-removido`). As decisões 2 a 5 (estado puro, VM em WASM, orçamento por evento e preservação de contratos) continuam valendo.
 
 ## Contexto
 

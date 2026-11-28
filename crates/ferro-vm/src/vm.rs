@@ -549,7 +549,7 @@ impl<'a> Vm<'a> {
     }
 
     /// Invoca uma função do módulo pelo nome com orçamento explícito de instruções,
-    /// devolvendo o valor retornado. Ideal para ciclos orientados a eventos (MVU)
+    /// devolvendo o valor retornado. Ideal para ciclos orientados a eventos (as funções das telas)
     /// em Desktop e WASM sem depender de timeout fixo de janela.
     pub fn call_function(
         &mut self,

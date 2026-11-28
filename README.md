@@ -20,7 +20,7 @@ profissionalmente.
   a passo.
 - **Professores** que buscam uma trilha progressiva de lógica até Rust, com
   ajuda integrada, catálogo de 119+ exemplos `.fer`, janela gráfica/áudio,
-  interfaces declarativas (`UI.*`) e exercícios `.licao` com correção
+  telas desktop com designer visual e exercícios `.licao` com correção
   automática.
 - **Quem quer chegar ao Rust**: o Ferro ensina conceitos essenciais do
   Rust (variáveis imutáveis por padrão, `Opcao`, `Resultado`, `escolha`
@@ -33,8 +33,7 @@ profissionalmente.
 
 > **Experimente no navegador sem instalar:** acesse o
 > [**Ferro Studio Web Playground (WASM)**](https://wendelmax.github.io/ferro-studio/)
-> para validar, formatar e executar programas `.fer` e apps visuais `UI.*`
-> diretamente no navegador.
+> para validar, formatar e executar programas `.fer` diretamente no navegador.
 
 Baixe o instalador da sua plataforma na página de
 [Releases](https://github.com/wendelmax/ferro-studio/releases):
@@ -65,7 +64,7 @@ partir de um `.fer`.
 - Erros e avisos em português enquanto você digita, com indicação da linha.
 - Console com entrada de dados (`leia`) e parâmetros de execução.
 - Depurador com pontos de parada, execução passo a passo, pilha de chamadas e inspeção de variáveis, vetores, registros e enums.
-- Janela gráfica para programas que usam `Graficos`, `Teclado` e `Mouse`, reprodução de áudio com `Sons` e prévia visual declarativa para apps `UI.*`.
+- Janela gráfica para programas que usam `Graficos`, `Teclado` e `Mouse`, reprodução de áudio com `Sons` e telas desktop (`.design` + código) com designer visual.
 - Ajuda integrada em português, catálogo de 119+ exemplos `.fer`, 8 dicas ilustradas da IDE e 14 exercícios `.licao` com correção automática.
 - Ponte lado a lado Ferro ↔ Rust com mapeamento de origem (`MappingGutter`), diff de traduções e desvinculação segura para editar `.rs` independente.
 - Execução de arquivos Rust avulsos e projetos Cargo (`cargo check` / `cargo test` / `cargo run`).
@@ -102,10 +101,10 @@ programação com palavras-chave em português e transição natural para Rust:
 - `Opcao<T>` e `Resultado<T, E>` com o operador `?`;
 - vetores dinâmicos (`adicionar`, `remover`, `obter`, `tamanho`);
 - bibliotecas padrão e multimídia do Ferro: `Matematica`, `Texto`, `Tipos`, `Util`,
-  `Calendario`, `Arquivos`, `Json`, `Internet`, `UI`, `Graficos`, `Teclado`,
+  `Calendario`, `Arquivos`, `Json`, `Internet`, `Graficos`, `Teclado`,
   `Mouse` e `Sons`;
-- interfaces visuais declarativas com `UI.*` no modelo
-  `iniciar`/`atualizar`/`visualizar`.
+- interfaces como telas: um `.design` desenhado no designer visual e o código
+  dele (`.fer`), num projeto desktop (ADR 0018).
 
 ```
 funcao dividir(a: inteiro, b: inteiro) -> Resultado<inteiro, cadeia> {
@@ -176,7 +175,7 @@ com erro. O CLI deste build ainda não cria projetos de jogo `.ferproj`.
 | `crates/ferro-hir` | representação intermediária tipada, spans e diagnósticos compartilhados |
 | `crates/ferro-frontend` | lexer, parser, formatador e verificação de tipos do Ferro (`.fer`) |
 | `crates/ferro-bytecode` | conjunto de instruções e compilador HIR → bytecode |
-| `crates/ferro-vm` | máquina virtual, bibliotecas padrão/multimídia, protocolo gráfico, UI MVU e depurador |
+| `crates/ferro-vm` | máquina virtual, bibliotecas padrão/multimídia, protocolo gráfico e depurador |
 | `crates/ferro-rust` | geração de código Rust, projetos Cargo e source maps |
 | `crates/ferro-wasm` | núcleo do Ferro compilado para WebAssembly (`wasm32-unknown-unknown`) |
 | `crates/ferro-service` | camada usada pela IDE: verificar, executar, depurar, exemplos e exercícios `.licao` |

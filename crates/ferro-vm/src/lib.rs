@@ -1,7 +1,7 @@
 //! Máquina virtual do Ferro.
 //!
 //! Executa um [`ferro_bytecode::Module`] compilado a partir da HIR tipada
-//! com suporte a depuração, bibliotecas padrão, multimídia e UI declarativa MVU.
+//! com suporte a depuração, bibliotecas padrão e multimídia.
 //!
 //! ```no_run
 //! use ferro_vm::{BufferIo, run};
@@ -20,7 +20,6 @@ pub mod host;
 pub mod io;
 #[cfg(feature = "stdlib")]
 pub mod stdlib;
-pub mod ui;
 pub mod value;
 pub mod vm;
 

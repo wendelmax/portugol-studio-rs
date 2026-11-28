@@ -454,8 +454,9 @@ exportação.
 
 A tela (`.design` com code-behind `.fer`) é a **única** forma de criar
 interfaces em FERRO. O
-`UI.*` do ADR 0017 é aposentado em etapas, conforme o
-[ADR 0021](0021-tela-como-forma-unica-de-interface-ferro.md). Do ADR 0017
+`UI.*` do ADR 0017 foi aposentado em etapas, conforme o
+[ADR 0021](0021-tela-como-forma-unica-de-interface-ferro.md), e saiu da
+linguagem em 2026-11-28. Do ADR 0017
 permanecem o modelo de estado puro, o orçamento por evento, o histórico e a VM
 em WASM para a prévia. Nada aqui antecipa os gates de retirada de `.por`/`.pex`
 do ADR 0016.

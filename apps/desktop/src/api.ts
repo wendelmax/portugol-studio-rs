@@ -2,8 +2,6 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import type { FerroUiBudget, FerroUiResult } from "./ferro-wasm-host";
-import type { UiEvent } from "./ui-preview-renderer";
 import type { WorkspaceEntry } from "./workspace-explorer";
 
 export interface Position {
@@ -431,29 +429,6 @@ export const exportCargoProject = (packageName: string, rustCode: string) =>
 export type CatalogEntry =
   | { kind: "folder"; name: string; entries: CatalogEntry[] }
   | { kind: "file"; name: string; file: string; description: string; preview: string | null };
-
-export async function ferroUiStart(source: string, budget?: FerroUiBudget): Promise<FerroUiResult> {
-  const raw = await invoke<string>("ferro_ui_start", {
-    source,
-    maxSteps: budget?.maxSteps ?? null,
-    maxNodes: budget?.maxNodes ?? null,
-    maxDepth: budget?.maxDepth ?? null,
-  });
-  return JSON.parse(raw) as FerroUiResult;
-}
-
-export async function ferroUiDispatch(sessionId: number, event: UiEvent): Promise<FerroUiResult> {
-  const raw = await invoke<string>("ferro_ui_dispatch", {
-    sessionId,
-    kind: event.kind,
-    targetId: event.id,
-    value: event.kind === "entrada_alterada" ? event.value : "",
-  });
-  return JSON.parse(raw) as FerroUiResult;
-}
-
-export const ferroUiCancel = (sessionId: number) => invoke<boolean>("ferro_ui_cancel", { sessionId });
-export const ferroUiClose = (sessionId: number) => invoke<boolean>("ferro_ui_close", { sessionId });
 
 export interface FerroExampleInfo {
   id: string;

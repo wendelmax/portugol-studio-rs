@@ -123,17 +123,13 @@ export const FERRO_HELP_TOPICS: readonly FerroHelpTopic[] = [
   },
   {
     id: "ferro:ui-mvu",
-    title: "UI.* (obsoleto)",
-    summary: "O `UI.*` vai sair da linguagem (ADR 0021). Programas antigos ainda rodam, com o aviso `ferro.ui-obsoleto`; para interfaces novas, use telas.",
+    title: "Do UI.* às telas",
+    summary: "O `UI.*` saiu da linguagem (ADR 0021): o uso dá o erro `ferro.ui-removido`. Interfaces são telas, num projeto desktop.",
     paragraphs: [
       "O `UI.*` montava a interface em código, com `iniciar`, `atualizar` e `visualizar` e eventos identificados por cadeias. As telas fazem o mesmo com um designer visual e eventos verificados.",
       "Equivalências: `UI.coluna` → `<Pilha>`; `UI.linha` → `<Pilha Orientacao=\"Horizontal\">`; `UI.texto` → `<Rotulo>` (com `{dados.campo}`); `UI.botao(\"inc\", \"+1\")` → `<Botao Nome=\"btnInc\" Texto=\"+1\" AoClicar=\"btnInc_clicar\" />`; `UI.entrada` → `<CaixaTexto>`; `UI.lista` → `<Lista>`. Em vez de `atualizar(estado, alvo)` com `se (alvo == ...)`, uma função para cada evento.",
+      "O registro do estado vira o registro de `Dados=\"...\"` da `<Janela>`. Para começar, crie um projeto desktop com o exemplo do contador e compare.",
     ],
-    example: {
-      title: "Contador com UI.* (obsoleto)",
-      fileName: "guia-ferro-ui.fer",
-      source: `funcao iniciar() -> inteiro {\n    retorne 0;\n}\n\nfuncao atualizar(estado: inteiro, tipo: cadeia, alvo: cadeia) -> inteiro {\n    se (tipo == "clique" && alvo == "inc") {\n        retorne estado + 1;\n    }\n    retorne estado;\n}\n\nfuncao visualizar(estado: inteiro) -> inteiro {\n    retorne UI.coluna([\n        UI.texto("Contagem: ", estado),\n        UI.botao("inc", "+1")\n    ]);\n}\n`,
-    },
   },
   {
     id: "ferro:ponte-rust",

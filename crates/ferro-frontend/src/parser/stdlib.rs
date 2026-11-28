@@ -6,137 +6,12 @@ use super::constants::*;
 use crate::lexer::Kind;
 
 impl Parser {
+    /// `UI.*` saiu da linguagem (ADR 0021, Etapa C): o uso é erro, com a
+    /// mesma explicação do aviso da Etapa B.
     pub(super) fn ui_host_call(&mut self, start: Span) -> Result<hir::Expr, Vec<Diagnostic>> {
         self.advance(); // '.'
-        let (component, component_span) = self.identifier()?;
-        if !self.warnings.iter().any(|w| w.code == "ferro.ui-obsoleto") {
-            self.warnings
-                .push(ui_obsolete_warning(start.join(component_span)));
-        }
-        self.expect(Kind::LParen, "Esperado `(` após componente de UI")?;
-        let mut arguments = Vec::new();
-        if !matches!(self.current().kind, Kind::RParen) {
-            loop {
-                arguments.push(self.expression(0)?);
-                if !self.eat(&Kind::Comma) {
-                    break;
-                }
-            }
-        }
-        let close = self.expect(Kind::RParen, "Esperado `)` após argumentos de UI")?;
-        let whole_span = start.join(close.span);
-
-        match component.as_str() {
-            "texto" => {
-                if arguments.is_empty() {
-                    return self.fail(
-                        "ferro.ui-call-arity",
-                        "`UI.texto` espera pelo menos 1 argumento",
-                        whole_span,
-                    );
-                }
-                for argument in &arguments {
-                    if !matches!(
-                        argument.ty,
-                        hir::Type::String
-                            | hir::Type::Integer
-                            | hir::Type::Real
-                            | hir::Type::Boolean
-                            | hir::Type::Character
-                    ) {
-                        return self.fail(
-                            "ferro.ui-call-type-mismatch",
-                            format!(
-                                "`UI.texto` espera valores escalares (cadeia, inteiro, real, logico ou caracter), recebeu `{}`",
-                                type_label(argument.ty)
-                            ),
-                            syntax_span(argument.span),
-                        );
-                    }
-                }
-            }
-            "botao" => {
-                if arguments.len() != 2 {
-                    return self.fail(
-                        "ferro.ui-call-arity",
-                        format!(
-                            "`UI.botao` espera 2 argumentos (id, rotulo), recebeu {}",
-                            arguments.len()
-                        ),
-                        whole_span,
-                    );
-                }
-                for (index, label) in [(0, "id"), (1, "rotulo")] {
-                    if arguments[index].ty != hir::Type::String {
-                        return self.fail(
-                            "ferro.ui-call-type-mismatch",
-                            format!("O argumento `{label}` de `UI.botao` deve ter tipo `cadeia`"),
-                            syntax_span(arguments[index].span),
-                        );
-                    }
-                }
-            }
-            "entrada" => {
-                if arguments.len() != 3 {
-                    return self.fail(
-                        "ferro.ui-call-arity",
-                        format!(
-                            "`UI.entrada` espera 3 argumentos (id, valor, dica), recebeu {}",
-                            arguments.len()
-                        ),
-                        whole_span,
-                    );
-                }
-                for (index, label) in [(0, "id"), (1, "valor"), (2, "dica")] {
-                    if arguments[index].ty != hir::Type::String {
-                        return self.fail(
-                            "ferro.ui-call-type-mismatch",
-                            format!("O argumento `{label}` de `UI.entrada` deve ter tipo `cadeia`"),
-                            syntax_span(arguments[index].span),
-                        );
-                    }
-                }
-            }
-            "coluna" | "linha" | "lista" => {
-                if arguments.len() != 1 {
-                    return self.fail(
-                        "ferro.ui-call-arity",
-                        format!(
-                            "`UI.{component}` espera 1 argumento (vetor<inteiro>), recebeu {}",
-                            arguments.len()
-                        ),
-                        whole_span,
-                    );
-                }
-                if arguments[0].ty != hir::Type::VectorInteger {
-                    return self.fail(
-                        "ferro.ui-call-type-mismatch",
-                        format!(
-                            "`UI.{component}` espera `vetor<inteiro>`, recebeu `{}`",
-                            type_label(arguments[0].ty)
-                        ),
-                        syntax_span(arguments[0].span),
-                    );
-                }
-            }
-            _ => {
-                return self.fail(
-                    "ferro.unknown-ui-component",
-                    format!("Componente visual desconhecido: UI.{component}"),
-                    component_span,
-                );
-            }
-        }
-
-        Ok(hir::Expr {
-            kind: hir::ExprKind::HostCall {
-                module: "UI".into(),
-                name: component,
-                arguments,
-            },
-            ty: hir::Type::Integer,
-            span: to_hir_span(whole_span),
-        })
+        let (_, component_span) = self.identifier()?;
+        Err(vec![ui_removed_error(start.join(component_span))])
     }
 
     pub(super) fn stdlib_statement_call(&mut self) -> Result<hir::Stmt, Vec<Diagnostic>> {
@@ -617,12 +492,12 @@ fn dialogo_expr(name: String, arguments: Vec<hir::Expr>, ty: hir::Type, span: Sp
     }
 }
 
-/// Aviso do ADR 0021 (Etapa B): o `UI.*` ainda roda, mas vai sair da
-/// linguagem; a ajuda traz a tabela de equivalência com as telas.
-fn ui_obsolete_warning(span: Span) -> Diagnostic {
-    Diagnostic::warning(
-        "ferro.ui-obsoleto",
-        "`UI.*` está obsoleto e vai sair da linguagem: crie a interface como uma tela (`.design` + código)",
+/// Erro do ADR 0021 (Etapa C): `UI.*` saiu da linguagem; a ajuda traz a
+/// tabela de equivalência com as telas.
+fn ui_removed_error(span: Span) -> Diagnostic {
+    Diagnostic::error(
+        "ferro.ui-removido",
+        "`UI.*` saiu da linguagem: crie a interface como uma tela (`.design` + código)",
         span,
     )
     .with_help(

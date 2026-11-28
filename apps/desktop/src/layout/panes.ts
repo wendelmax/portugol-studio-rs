@@ -103,9 +103,8 @@ export function mountPaneLayout(options: PaneLayoutOptions) {
   function paneChromeWidth() {
     const rail = $("code").querySelector<HTMLElement>(".activity-rail")?.getBoundingClientRect().width || 56;
     const mappingGutter = $("rust-mapping-gutter").hidden ? 0 : ($("rust-mapping-gutter").getBoundingClientRect().width || 76);
-    const uiPreview = $("ferro-ui-preview").hidden ? 0 : Math.max(260, $("ferro-ui-preview").getBoundingClientRect().width || 260);
     const editorMinimum = $("rust-preview").hidden ? 100 : 360;
-    return rail + mappingGutter + uiPreview + editorMinimum;
+    return rail + mappingGutter + editorMinimum;
   }
 
   function sideMinimums(available: number) {

@@ -39,10 +39,9 @@ test("FERRO highlighting recognizes records, enums, Opcao, Resultado, modules an
   assert.ok(builtins.includes("escreva"));
 });
 
-test("FERRO completes members of UI, Matematica, Texto and Tipos after dot", async () => {
+test("FERRO completes members of Matematica, Texto and Tipos after dot, and not UI", async () => {
   const ui = await completeAt("UI.");
-  assert.ok(ui.options.some((o) => o.label === "coluna" && o.apply === "coluna("));
-  assert.ok(ui.options.some((o) => o.label === "botao" && o.detail.includes("UI.botao")));
+  assert.ok(!ui?.options?.some((o) => o.label === "coluna"), "UI.* saiu da linguagem");
 
   const math = await completeAt("Matematica.");
   assert.ok(math.options.some((o) => o.label === "PI" && o.type === "constant" && !o.apply));
@@ -114,7 +113,7 @@ test("FERRO top-level completions include snippets and locals without leaking cl
   const result = await completeAt(doc);
   const labels = result.options.map((o) => o.label);
 
-  for (const expected of ["seja", "seja mutavel", "registro", "enum", "escolha", "Opcao", "Resultado", "UI", "Matematica", "Texto", "Tipos", "Util", "Calendario", "Arquivos", "Json", "Internet", "Graficos", "Teclado", "Mouse", "Sons", "adicionar", "remover", "obter", "Aluno", "dobrar", "nota"]) {
+  for (const expected of ["seja", "seja mutavel", "registro", "enum", "escolha", "Opcao", "Resultado", "Matematica", "Texto", "Tipos", "Util", "Calendario", "Arquivos", "Json", "Internet", "Graficos", "Teclado", "Mouse", "Sons", "adicionar", "remover", "obter", "Aluno", "dobrar", "nota"]) {
     assert.ok(labels.includes(expected), `esperava sugestão FERRO '${expected}'`);
   }
   for (const forbidden of ["programa", "inclua", "biblioteca", "contrario", "limpa", "sorteia", "ServicosWeb", "Objetos"]) {
@@ -122,7 +121,7 @@ test("FERRO top-level completions include snippets and locals without leaking cl
   }
 });
 
-test("ferroHoverInfo resolves signatures and docs for stdlib, UI, enums and keywords", () => {
+test("ferroHoverInfo resolves signatures and docs for stdlib, enums and keywords", () => {
   const doc = "seja x: Opcao<inteiro> = Texto.obter_caracter(\"oi\", 0); seja p: real = Matematica.PI; seja r: Resultado<inteiro, cadeia> = Tipos.para_inteiro(\"42\"); seja e: Opcao<inteiro> = Opcao::Algum(1);";
 
   const textoCall = ferroHoverInfo(doc, doc.indexOf("obter_caracter") + 3);

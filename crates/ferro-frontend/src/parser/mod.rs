@@ -52,7 +52,6 @@ struct FunctionSignature {
     id: Option<hir::FunctionId>,
     parameters: Vec<FunctionParameter>,
     return_type: Option<hir::Type>,
-    span: Span,
 }
 
 #[derive(Clone, Copy)]
@@ -236,7 +235,7 @@ impl Parser {
         }
         let (bindings, body) = match (bindings, body) {
             (Some(bindings), Some(body)) => (bindings, body),
-            _ if self.has_mvu_entry_triple() || !self.require_entry => (Vec::new(), Vec::new()),
+            _ if !self.require_entry => (Vec::new(), Vec::new()),
             _ => {
                 return Err(vec![Diagnostic::error(
                     "ferro.entry-function",

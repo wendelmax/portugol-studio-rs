@@ -90,15 +90,6 @@ export const PLAYGROUND_EXAMPLES = [
     source: "funcao inicio() {\n    Util.definir_semente(42);\n    seja ano: inteiro = 2024;\n    seja bissexto: logico = Calendario.eh_bissexto(ano);\n    escolha Calendario.dias_no_mes(ano, Calendario.MES_FEVEREIRO) {\n        caso Resultado::Ok(dias) => {\n            escolha Calendario.nome_mes(Calendario.MES_FEVEREIRO) {\n                caso Resultado::Ok(mes) => {\n                    escolha Util.sorteia(1, 6) {\n                        caso Resultado::Ok(dado) => {\n                            escreva(mes, \"/\", ano, \"=\", dias, \" bissexto=\", bissexto, \" dado_valido=\", dado >= 1 && dado <= 6);\n                        }\n                        caso Resultado::Erro(e) => {\n                            escreva(e);\n                        }\n                    }\n                }\n                caso Resultado::Erro(e) => {\n                    escreva(e);\n                }\n            }\n        }\n        caso Resultado::Erro(e) => {\n            escreva(e);\n        }\n    }\n}\n",
   },
   {
-    id: "ui-contador",
-    title: "Contador visual MVU",
-    file: "ui-contador.fer",
-    group: "Visual",
-    mode: "ui",
-    input: "",
-    source: "registro Estado {\n    contagem: inteiro\n}\n\nfuncao iniciar() -> Estado {\n    retorne Estado { contagem: 0 };\n}\n\nfuncao atualizar(estado: Estado, alvo: cadeia) -> Estado {\n    se (alvo == \"inc\") {\n        retorne Estado { contagem: estado.contagem + 1 };\n    }\n    retorne estado;\n}\n\nfuncao visualizar(estado: Estado) -> inteiro {\n    retorne UI.coluna([\n        UI.texto(\"Contagem: \", estado.contagem),\n        UI.botao(\"inc\", \"+1\")\n    ]);\n}\n",
-  },
-  {
     id: "exercicio",
     title: "Exercício aberto",
     file: "exercicio.fer",
@@ -118,10 +109,6 @@ const REQUIRED_EXPORTS = [
   "ferro_validate",
   "ferro_format",
   "ferro_run",
-  "ferro_ui_start",
-  "ferro_ui_dispatch",
-  "ferro_ui_snapshot",
-  "ferro_ui_close",
 ];
 
 function sanitizeBudget(value) {
@@ -143,7 +130,6 @@ export function createPlaygroundRuntime(rawExports) {
 
   const encoder = new TextEncoder();
   const decoder = new TextDecoder("utf-8", { fatal: true });
-  const openSessions = new Set();
 
   function withUtf8(text, fn) {
     const encoded = encoder.encode(text);
@@ -165,12 +151,6 @@ export function createPlaygroundRuntime(rawExports) {
     const len = actualLen === expectedLen ? actualLen : expectedLen;
     const raw = decoder.decode(new Uint8Array(rawExports.memory.buffer, ptr, len));
     return JSON.parse(raw);
-  }
-
-  function closeUi(sessionId) {
-    const closed = rawExports.ferro_ui_close(sessionId) === 1;
-    openSessions.delete(sessionId);
-    return closed;
   }
 
   return {
@@ -207,35 +187,6 @@ export function createPlaygroundRuntime(rawExports) {
         ),
       );
     },
-    startUi(source, budget = {}) {
-      const result = withUtf8(source, (srcPtr, srcLen) =>
-        readJson(
-          rawExports.ferro_ui_start(
-            srcPtr,
-            srcLen,
-            sanitizeBudget(budget.maxSteps),
-            sanitizeBudget(budget.maxNodes),
-            sanitizeBudget(budget.maxDepth),
-          ),
-        ),
-      );
-      if (result.ok) openSessions.add(result.session);
-      return result;
-    },
-    dispatchUi(sessionId, event) {
-      const value = event.kind === "entrada_alterada" ? event.value : "";
-      return withUtf8(event.kind, (kPtr, kLen) =>
-        withUtf8(event.id, (tPtr, tLen) =>
-          withUtf8(value, (vPtr, vLen) =>
-            readJson(rawExports.ferro_ui_dispatch(sessionId, kPtr, kLen, tPtr, tLen, vPtr, vLen)),
-          ),
-        ),
-      );
-    },
-    closeUi,
-    closeAllUiSessions() {
-      for (const id of [...openSessions]) closeUi(id);
-    },
   };
 }
 
@@ -256,86 +207,4 @@ export async function loadPlaygroundRuntime(urlOrResponse) {
   const bytes = await response.arrayBuffer();
   const instantiated = await WebAssembly.instantiate(bytes, {});
   return createPlaygroundRuntime(instantiated.instance.exports);
-}
-
-/** Renderiza uma árvore `UiNode` usando exclusivamente DOM seguro (`createElement`/`textContent`). */
-export function renderUiNodeTree(doc, container, node, onEvent) {
-  const active = doc.activeElement;
-  const focusedId = active?.dataset?.uiInputId ?? null;
-  const selStart = typeof active?.selectionStart === "number" ? active.selectionStart : null;
-  const selEnd = typeof active?.selectionEnd === "number" ? active.selectionEnd : null;
-
-  function build(current, depth) {
-    if (depth > 32) {
-      const err = doc.createElement("p");
-      err.className = "pg-ui-error";
-      err.textContent = "Limite de profundidade da árvore visual excedido.";
-      return err;
-    }
-    switch (current.kind) {
-      case "coluna":
-      case "linha": {
-        const box = doc.createElement("div");
-        box.className = `pg-ui-${current.kind}`;
-        for (const child of current.children ?? []) {
-          box.append(build(child, depth + 1));
-        }
-        return box;
-      }
-      case "texto": {
-        const p = doc.createElement("p");
-        p.className = "pg-ui-texto";
-        p.textContent = current.content ?? "";
-        return p;
-      }
-      case "botao": {
-        const btn = doc.createElement("button");
-        btn.type = "button";
-        btn.className = "pg-ui-botao";
-        btn.textContent = current.label ?? current.id;
-        btn.addEventListener("click", () => onEvent({ kind: "clique", id: current.id }));
-        return btn;
-      }
-      case "entrada": {
-        const input = doc.createElement("input");
-        input.type = "text";
-        input.className = "pg-ui-entrada";
-        input.dataset.uiInputId = current.id;
-        input.value = current.value ?? "";
-        input.placeholder = current.placeholder ?? "";
-        input.setAttribute("aria-label", current.placeholder || current.id);
-        input.addEventListener("input", () =>
-          onEvent({ kind: "entrada_alterada", id: current.id, value: input.value }),
-        );
-        return input;
-      }
-      case "lista": {
-        const ul = doc.createElement("ul");
-        ul.className = "pg-ui-lista";
-        for (const item of current.items ?? []) {
-          const li = doc.createElement("li");
-          li.append(build(item, depth + 1));
-          ul.append(li);
-        }
-        return ul;
-      }
-      default: {
-        const fallback = doc.createElement("span");
-        fallback.textContent = `[nó desconhecido: ${String(current.kind)}]`;
-        return fallback;
-      }
-    }
-  }
-
-  container.replaceChildren(build(node, 0));
-
-  if (focusedId && typeof container.querySelector === "function") {
-    const restored = container.querySelector(`[data-ui-input-id="${CSS.escape(focusedId)}"]`);
-    if (restored && typeof restored.focus === "function") {
-      restored.focus();
-      if (selStart !== null && selEnd !== null && typeof restored.setSelectionRange === "function") {
-        restored.setSelectionRange(selStart, selEnd);
-      }
-    }
-  }
 }

@@ -1,8 +1,4 @@
-import {
-  PLAYGROUND_EXAMPLES,
-  loadPlaygroundRuntime,
-  renderUiNodeTree,
-} from "./playground-core.mjs";
+import { PLAYGROUND_EXAMPLES, loadPlaygroundRuntime } from "./playground-core.mjs";
 import { FERRO_SYNTAX_ENTRIES, completeFerro, wordRangeAt } from "./ferro-language.mjs";
 import { openFerFile, saveFerFile } from "./file-system.mjs";
 import { LESSONS, checkLesson } from "./lessons.mjs";
@@ -33,7 +29,6 @@ const saveFileButton = byId("pg-save-file");
 const panelTabsEl = byId("pg-panel-tabs");
 const panelEls = {
   terminal: byId("pg-panel-terminal"),
-  ui: byId("pg-panel-ui"),
   rust: byId("pg-panel-rust"),
   syntax: byId("pg-panel-syntax"),
 };
@@ -43,8 +38,6 @@ const syntaxEmptyEl = byId("pg-syntax-empty");
 const stdinEl = byId("pg-stdin");
 const terminalHistoryEl = byId("pg-terminal-history");
 const terminalBadgeEl = byId("pg-terminal-badge");
-const uiContainerEl = byId("pg-ui-container");
-const uiSectionEl = byId("pg-ui-section");
 const rustSectionEl = byId("pg-rust-section");
 const rustCodeEl = byId("pg-rust-code");
 const btnCopyRust = byId("pg-copy-rust");
@@ -52,7 +45,6 @@ const actionSelect = byId("pg-action");
 const btnRun = byId("pg-run");
 
 let runtime = null;
-let activeUiSession = null;
 let completionState = null;
 let activeTabId = null;
 let newFileCounter = 1;
@@ -60,11 +52,10 @@ const tabs = [];
 
 const THEME_STORAGE_KEY = "pg-theme";
 const LESSONS_STORAGE_KEY = "pg-lessons";
-const PANEL_NAMES = ["terminal", "ui", "rust", "syntax"];
+const PANEL_NAMES = ["terminal", "rust", "syntax"];
 const TOKEN_NAMES = ["comment", "string", "interpolation", "number", "keyword", "type", "builtin"];
 const FERRO_TOKEN_RE =
-  /(?<comment>\/\/[^\n]*|\/\*[\s\S]*?\*\/)|(?<string>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(?<number>\b\d+(?:\.\d+)?\b)|(?<keyword>\b(?:funcao|retorne|se|senao|senao_se|seja|mutavel|enquanto|faca_enquanto|para|escolha|caso|registro|enum|verdadeiro|falso|nulo|e|ou|nao)\b)|(?<type>\b(?:inteiro|real|logico|cadeia|caracter|vetor|Resultado|Opcao)\b)|(?<builtin>\b(?:UI|Matematica|Texto|Tipos|Util|Calendario|Arquivos|Json|Internet|Graficos|Teclado|Mouse|Sons|escreva|escreval|leia|adicionar|remover|obter|tamanho)\b)/g;
-const UI_START_RE = /\bfuncao\s+iniciar\s*\(/;
+  /(?<comment>\/\/[^\n]*|\/\*[\s\S]*?\*\/)|(?<string>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(?<number>\b\d+(?:\.\d+)?\b)|(?<keyword>\b(?:funcao|retorne|se|senao|senao_se|seja|mutavel|enquanto|faca_enquanto|para|escolha|caso|registro|enum|verdadeiro|falso|nulo|e|ou|nao)\b)|(?<type>\b(?:inteiro|real|logico|cadeia|caracter|vetor|Resultado|Opcao)\b)|(?<builtin>\b(?:Matematica|Texto|Tipos|Util|Calendario|Arquivos|Json|Internet|Graficos|Teclado|Mouse|Sons|escreva|escreval|leia|adicionar|remover|obter|tamanho)\b)/g;
 
 function completedLessonIds() {
   try {
@@ -329,15 +320,6 @@ function setControlsEnabled(enabled) {
   actionSelect.disabled = !enabled;
 }
 
-function closeActiveUi() {
-  if (runtime && activeUiSession !== null) {
-    runtime.closeUi(activeUiSession);
-    activeUiSession = null;
-  }
-  uiSectionEl.hidden = true;
-  uiContainerEl.replaceChildren();
-}
-
 function activatePanel(name) {
   for (const button of panelTabsEl.children) {
     button.setAttribute("aria-selected", String(button.dataset.panel === name));
@@ -349,7 +331,6 @@ function renderPanelTabs() {
   panelTabsEl.replaceChildren();
   for (const [name, label] of [
     ["terminal", "Terminal"],
-    ["ui", "Prévia UI"],
     ["rust", "Rust"],
     ["syntax", "Referência"],
   ]) {
@@ -477,7 +458,6 @@ function activateTab(id, { run = true } = {}) {
   const tab = tabs.find((item) => item.id === id);
   if (!tab) return;
   const rustWasOpen = !rustSectionEl.hidden && runtime !== null;
-  closeActiveUi();
   closeCompletions();
   activatePanel("terminal");
   activeTabId = id;
@@ -491,8 +471,7 @@ function activateTab(id, { run = true } = {}) {
   renderFileList();
   renderLessonList();
   if (run && runtime) {
-    if (tab.mode === "ui" || UI_START_RE.test(tab.source)) runUiSession();
-    else runConsole();
+    runConsole();
   }
   if (rustWasOpen) runExportRust(false);
 }
@@ -655,7 +634,6 @@ function runConsole() {
   if (!runtime) return;
   const tab = activeTab();
   if (!tab) return;
-  closeActiveUi();
   activatePanel("terminal");
   tab.stdin = stdinEl.value;
   const result = runtime.run(tab.source, stdinEl.value);
@@ -665,40 +643,6 @@ function runConsole() {
   } else {
     setStatus(result.error, "error");
   }
-}
-
-function applyUiResult(result) {
-  if (!result.ok) {
-    activatePanel("terminal");
-    renderTerminal(stdinEl.value, result.stdout ?? "", result.diagnostics ?? []);
-    setStatus(result.error, "error");
-    return;
-  }
-  activeUiSession = result.session;
-  activatePanel("ui");
-  renderTerminal(stdinEl.value, result.stdout ?? "", []);
-  uiSectionEl.hidden = false;
-  renderUiNodeTree(document, uiContainerEl, result.tree, (event) => {
-    if (!runtime || activeUiSession === null) return;
-    applyUiResult(runtime.dispatchUi(activeUiSession, event));
-  });
-  setStatus(`Sessão visual MVU ativa (passo ${result.step}).`, "ok");
-}
-
-function runUiSession() {
-  if (!runtime) return;
-  const tab = activeTab();
-  if (!tab) return;
-  if (!UI_START_RE.test(tab.source)) {
-    const uiExample = PLAYGROUND_EXAMPLES.find((item) => item.id === "ui-contador")
-      ?? PLAYGROUND_EXAMPLES.find((item) => item.mode === "ui");
-    if (uiExample) {
-      openExample(uiExample.id);
-      return;
-    }
-  }
-  closeActiveUi();
-  applyUiResult(runtime.startUi(tab.source));
 }
 
 function runExportRust(announce = true) {
@@ -740,7 +684,6 @@ btnRun.addEventListener("click", runConsole);
 const ACTION_HANDLERS = {
   validate: runValidate,
   format: runFormat,
-  ui: runUiSession,
   rust: () => runExportRust(),
 };
 actionSelect.addEventListener("change", () => {
@@ -777,8 +720,7 @@ editorEl.addEventListener("keydown", (event) => {
     event.preventDefault();
     const tab = activeTab();
     if (!tab) return;
-    if (tab.mode === "ui" || tab.source.includes("funcao visualizar(")) runUiSession();
-    else runConsole();
+    runConsole();
     return;
   }
   const state = completionState;
