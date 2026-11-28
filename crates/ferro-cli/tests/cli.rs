@@ -397,6 +397,52 @@ fn creates_the_counter_example_and_it_validates() {
 }
 
 #[test]
+fn exports_a_screen_as_a_slint_cargo_project() {
+    let dir = TempDir::new();
+    let project = dir.0.join("Contador");
+    let created = cli()
+        .args(["novo", "--desktop"])
+        .arg(&project)
+        .args(["--exemplo", "contador"])
+        .output()
+        .unwrap();
+    assert!(created.status.success(), "{created:?}");
+    let target = dir.0.join("contador-slint");
+    let exported = cli()
+        .args(["exportar-cargo"])
+        .arg(project.join("JanelaPrincipal.design"))
+        .arg(&target)
+        .output()
+        .unwrap();
+    assert!(exported.status.success(), "{exported:?}");
+    assert!(
+        String::from_utf8_lossy(&exported.stdout)
+            .contains("\"contador\" gerado com a tela em Slint")
+    );
+    for file in [
+        "Cargo.toml",
+        "build.rs",
+        "ui/JanelaPrincipal.slint",
+        "src/main.rs",
+        "README.md",
+    ] {
+        assert!(target.join(file).is_file(), "{file}");
+    }
+    let main = fs::read_to_string(target.join("src/main.rs")).unwrap();
+    assert!(main.contains("ui.on_btnInc_clicar(move || {"));
+
+    fs::remove_file(project.join("JanelaPrincipal.fer")).unwrap();
+    let missing = cli()
+        .args(["exportar-cargo"])
+        .arg(project.join("JanelaPrincipal.design"))
+        .arg(dir.0.join("outro"))
+        .output()
+        .unwrap();
+    assert!(!missing.status.success());
+    assert!(String::from_utf8_lossy(&missing.stderr).contains("código da tela"));
+}
+
+#[test]
 fn formats_screen_code_behind_using_the_design() {
     let dir = TempDir::new();
     fs::write(

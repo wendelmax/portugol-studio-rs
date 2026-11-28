@@ -1,6 +1,9 @@
 //! Conversão verificada de programas Ferro (`.fer`) em Rust compilável.
 
 mod codegen;
+mod screen;
+
+pub use screen::{ScreenCargoProject, export_screen_cargo_project};
 
 use ferro_hir::Diagnostic;
 
@@ -56,7 +59,17 @@ pub struct ExportedCargoProject {
 
 /// Gera Rust para Ferro e preserva os spans HIR de origem.
 pub fn export_ferro_rs_with_map(source: &str) -> Result<GeneratedRust, Vec<Diagnostic>> {
-    let hir = ferro_frontend::lower(source)?;
+    export_ferro_rs_with_options(source, &ferro_frontend::LowerOptions::default())
+}
+
+/// Como [`export_ferro_rs_with_map`], com opções do frontend: por exemplo, o
+/// code-behind de uma tela, com os registros externos da janela e sem `inicio`
+/// (o `main` gerado fica vazio).
+pub fn export_ferro_rs_with_options(
+    source: &str,
+    options: &ferro_frontend::LowerOptions,
+) -> Result<GeneratedRust, Vec<Diagnostic>> {
+    let hir = ferro_frontend::lower_with(source, options)?;
     if let Some((module, name, span)) = find_first_unsupported_host_call(&hir) {
         return Err(vec![Diagnostic::error(
             "ferro-rust.host-call-unsupported",
@@ -109,6 +122,17 @@ pub fn write_cargo_project(
     std::fs::write(src_dir.join("main.rs"), &project.main_rs)?;
     std::fs::write(dir.join("README.md"), &project.readme_md)?;
     Ok(())
+}
+
+/// Nome Rust gerado para um registro, campo ou função FERRO (`pt_nome`), para
+/// quem escreve código que conversa com o gerado.
+pub fn rust_name(name: &str) -> String {
+    rust_ident(name)
+}
+
+/// Nome de pacote Cargo válido a partir do nome do projeto.
+pub fn cargo_package_name(raw: &str) -> String {
+    sanitize_cargo_package_name(raw)
 }
 
 fn sanitize_cargo_package_name(raw: &str) -> String {

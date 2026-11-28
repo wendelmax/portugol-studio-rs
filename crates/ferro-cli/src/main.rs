@@ -315,12 +315,15 @@ fn export_rust_command(args: &[String]) -> ExitCode {
 
 fn export_cargo_command(args: &[String]) -> ExitCode {
     if args.len() != 2 || args.iter().any(|arg| arg == "-h" || arg == "--help") {
-        eprintln!("uso: ferro exportar-cargo <arquivo.fer> <pasta-destino>");
+        eprintln!("uso: ferro exportar-cargo <arquivo.fer|tela.design> <pasta-destino>");
         return ExitCode::FAILURE;
     }
     let file = &args[0];
     let target_dir = Path::new(&args[1]);
     let path = Path::new(file);
+    if ferro_formatos::kind_of(path, &[Kind::Design]).is_some() {
+        return export_screen_command(path, target_dir);
+    }
     if !is_ferro_file(path) {
         report_unsupported_extension(path);
         return ExitCode::FAILURE;
@@ -371,6 +374,81 @@ fn export_cargo_command(args: &[String]) -> ExitCode {
     }
 }
 
+/// `exportar-cargo` de uma tela: o `.design` e o code-behind ao lado dele
+/// viram um projeto Cargo com Slint (ADR 0018, seção 6).
+fn export_screen_command(design_path: &Path, target_dir: &Path) -> ExitCode {
+    if target_dir.join("Cargo.toml").exists() {
+        eprintln!(
+            "{}: já existe um Cargo.toml na pasta de destino",
+            target_dir.display()
+        );
+        return ExitCode::FAILURE;
+    }
+    let code_path = design_path.with_extension("fer");
+    let (design, code) = match (read_source(design_path), read_source(&code_path)) {
+        (Ok(design), Ok(code)) => (design, code),
+        (Err(error), _) => {
+            eprintln!("{}: não foi possível ler: {error}", design_path.display());
+            return ExitCode::FAILURE;
+        }
+        (_, Err(error)) => {
+            eprintln!(
+                "{}: não foi possível ler o código da tela: {error}",
+                code_path.display()
+            );
+            return ExitCode::FAILURE;
+        }
+    };
+    let name = design_path
+        .parent()
+        .and_then(|folder| folder.file_name())
+        .and_then(|name| name.to_str())
+        .or_else(|| design_path.file_stem().and_then(|stem| stem.to_str()))
+        .unwrap_or("tela-ferro");
+    let project = match ferro_rust::export_screen_cargo_project(&design, &code, name) {
+        Ok(project) => project,
+        Err(message) => {
+            eprintln!("{message}");
+            return ExitCode::FAILURE;
+        }
+    };
+    let folder = design_path.parent().unwrap_or(Path::new("."));
+    let written = (|| -> std::io::Result<()> {
+        for (relative, content) in &project.files {
+            let target = target_dir.join(relative);
+            if let Some(parent) = target.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            std::fs::write(target, content)?;
+        }
+        for image in &project.images {
+            let target = target_dir.join("ui").join(image);
+            if let Some(parent) = target.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            std::fs::copy(folder.join(image), target)?;
+        }
+        Ok(())
+    })();
+    match written {
+        Ok(()) => {
+            println!(
+                "{}: projeto Cargo \"{}\" gerado com a tela em Slint",
+                target_dir.display(),
+                project.package_name
+            );
+            ExitCode::SUCCESS
+        }
+        Err(error) => {
+            eprintln!(
+                "{}: não foi possível gravar projeto Cargo: {error}",
+                target_dir.display()
+            );
+            ExitCode::FAILURE
+        }
+    }
+}
+
 fn apply_utf16_edits(source: &str, edits: Vec<(usize, usize, String)>) -> Result<String, String> {
     let mut units: Vec<u16> = source.encode_utf16().collect();
     for (from, to, insert) in edits.into_iter().rev() {
@@ -391,6 +469,7 @@ fn print_usage() {
            ferro formatar [--check] <arquivo>                 formata .fer, .design ou .ferproj\n\
            ferro exportar-rust <arquivo.fer>                  imprime o Rust gerado\n\
            ferro exportar-cargo <arquivo.fer> <pasta>         gera um projeto Cargo pronto\n\
+           ferro exportar-cargo <tela.design> <pasta>         gera um projeto Cargo com a tela em Slint\n\
            ferro executar [--bytecode] <arquivo.fer>          executa um programa na VM\n\
            ferro depurar [--ponto <linha>]... <arquivo.fer>   depura um programa interativamente\n\
          \n\
