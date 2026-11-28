@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Excluir arquivos `.por`, `.pors` e `.pex` do Explorer sem sair do workspace nem perder buffers sem escolha explícita.
+**Goal:** Excluir arquivos `.por`, `.fer` e `.pex` do Explorer sem sair do workspace nem perder buffers sem escolha explícita.
 
 **Architecture:** Reutilizar `WorkspaceSession` e validação scoped do serviço Rust. Retornar árvore e caminho apagado; frontend usa confirmação acessível, protege abas sujas e só altera árvore/abas/recents depois do sucesso backend.
 

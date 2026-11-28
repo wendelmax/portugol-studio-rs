@@ -1,10 +1,10 @@
 [
   {
-    "id": "pors-inicio",
+    "id": "ferro-inicio",
     "badge": "Linguagem",
     "title": "Comece direto em Ferro (.fer)",
     "shortcut": "Ctrl+N",
-    "visual": "pors",
+    "visual": "ferro",
     "description": "Novos arquivos já nascem em Ferro (.fer), com variáveis imutáveis por padrão (seja), tipos explícitos, registros, enums e execução imediata na máquina virtual — sem precisar instalar o compilador Rust."
   },
   {

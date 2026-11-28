@@ -1,11 +1,11 @@
 //! Bytecode do Ferro: conjunto de instruções ([`op`]) e compilador a
-//! partir da HIR tipada ([`pors`]).
+//! partir da HIR tipada ([`ferro`]).
 
+pub mod ferro;
 pub mod op;
-pub mod pors;
 
+pub use ferro::{FerroCompileError, compile_ferro};
 pub use op::{
-    Function, GlobalInfo, InstructionMapping, LocalInfo, Module, NativeRef, Op, PorsDebugField,
-    PorsDebugShape, PorsDebugType, PorsDebugVariant, ValueType,
+    FerroDebugField, FerroDebugShape, FerroDebugType, FerroDebugVariant, Function, GlobalInfo,
+    InstructionMapping, LocalInfo, Module, NativeRef, Op, ValueType,
 };
-pub use pors::{PorsCompileError, compile_pors};

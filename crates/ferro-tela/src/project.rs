@@ -1,5 +1,5 @@
-//! Projeto desktop PORS: o manifesto `.ferproj` e o modelo *Aplicativo
-//! Desktop PORS* (ADR 0018, seção 1).
+//! Projeto desktop Ferro: o manifesto `.ferproj` e o modelo *Aplicativo
+//! Desktop FERRO* (ADR 0018, seção 1).
 //!
 //! O manifesto usa a mesma marcação do `.design`, como o `.csproj` do Visual
 //! Studio:
@@ -319,17 +319,17 @@ pub struct TemplateFile {
     pub content: String,
 }
 
-/// Arquivos e pastas que o modelo *Aplicativo Desktop PORS* cria.
+/// Arquivos e pastas que o modelo *Aplicativo Desktop FERRO* cria.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Template {
     pub files: Vec<TemplateFile>,
     pub directories: Vec<String>,
 }
 
-/// Monta o modelo *Aplicativo Desktop PORS* para um projeto com este nome.
+/// Monta o modelo *Aplicativo Desktop FERRO* para um projeto com este nome.
 ///
 /// O modelo cria o manifesto, a tela inicial e a pasta de recursos. O
-/// code-behind `.pors` não é criado: uma tela sem `.pors` é uma tela sem
+/// code-behind `.fer` não é criado: uma tela sem `.fer` é uma tela sem
 /// comportamento, e o designer cria o arquivo no primeiro duplo clique num
 /// controle (ADR 0018, Emenda 2).
 pub fn desktop_template(name: &str) -> Result<Template, String> {

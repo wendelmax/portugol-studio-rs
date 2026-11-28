@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use ferro_service::{
     DebugInfo, Host, Level, RunObserver, RunOptions, RunOutcome, SymbolKind, graphics,
-    inspect_portugol_rs, start_portugol_rs, start_portugol_rs_with_host,
+    inspect_ferro_rs, start_ferro_rs, start_ferro_rs_with_host,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -62,13 +62,17 @@ fn collect_until_finished(rx: &mpsc::Receiver<Event>) -> Vec<Event> {
 }
 
 #[test]
-fn inspect_portugol_rs_devolve_posicoes_utf16_do_editor() {
+fn inspect_ferro_rs_devolve_posicoes_utf16_do_editor() {
     let source = "funcao inicio() {\n  escreva(\"ação😀\", x);\n}";
-    let inspection = inspect_portugol_rs(source);
+    let inspection = inspect_ferro_rs(source);
     assert_eq!(inspection.diagnostics.len(), 1);
     let d = &inspection.diagnostics[0];
     assert_eq!(d.severity, Level::Error);
-    assert!(d.code.starts_with("pors."), "código inesperado: {}", d.code);
+    assert!(
+        d.code.starts_with("ferro."),
+        "código inesperado: {}",
+        d.code
+    );
     assert_eq!((d.start.line, d.start.column), (2, 20));
     let utf16: Vec<u16> = source.encode_utf16().collect();
     assert_eq!(utf16[d.start.offset as usize], 'x' as u16);
@@ -78,7 +82,7 @@ fn inspect_portugol_rs_devolve_posicoes_utf16_do_editor() {
 #[test]
 fn executa_com_leia_e_saida() {
     let (observer, rx) = recorder();
-    let handle = start_portugol_rs(
+    let handle = start_ferro_rs(
         r#"funcao inicio() {
             escreva("n? ");
             seja mutavel n: inteiro = leia();
@@ -105,7 +109,7 @@ fn executa_com_leia_e_saida() {
 #[test]
 fn parar_laco_infinito_e_leia() {
     let (observer, rx) = recorder();
-    let handle = start_portugol_rs(
+    let handle = start_ferro_rs(
         "funcao inicio() { enquanto (verdadeiro) { } }",
         RunOptions::default(),
         observer,
@@ -117,7 +121,7 @@ fn parar_laco_infinito_e_leia() {
     handle.join();
 
     let (observer, rx) = recorder();
-    let handle = start_portugol_rs(
+    let handle = start_ferro_rs(
         "funcao inicio() { seja s = leia(); }",
         RunOptions::default(),
         observer,
@@ -131,7 +135,7 @@ fn parar_laco_infinito_e_leia() {
 #[test]
 fn erro_de_execucao_tem_posicao_e_pilha() {
     let (observer, rx) = recorder();
-    start_portugol_rs(
+    start_ferro_rs(
         "funcao inicio() {\n  seja z: inteiro = 0;\n  escreva(1 / z);\n}",
         RunOptions::default(),
         observer,
@@ -160,7 +164,7 @@ fn depurador_pausa_continua_e_termina() {
         breakpoints: vec![3], // a linha do escreva
         ..RunOptions::default()
     };
-    let handle = start_portugol_rs(source, options, observer).expect("compilar");
+    let handle = start_ferro_rs(source, options, observer).expect("compilar");
 
     let Event::Paused(info) = next(&rx) else {
         panic!("esperava uma pausa no depurador");
@@ -193,20 +197,20 @@ fn depurador_pausa_continua_e_termina() {
 #[test]
 fn programa_com_erro_nao_executa() {
     let (observer, _rx) = recorder();
-    let Err(errors) = start_portugol_rs(
+    let Err(errors) = start_ferro_rs(
         "funcao inicio() { x = 1; }",
         RunOptions::default(),
         observer,
     ) else {
         panic!("não deveria executar");
     };
-    assert!(errors[0].code.starts_with("pors."));
+    assert!(errors[0].code.starts_with("ferro."));
 }
 
 #[test]
 fn depuracao_inicia_pausada_sem_ponto_de_parada() {
     let (observer, rx) = recorder();
-    let handle = start_portugol_rs(
+    let handle = start_ferro_rs(
         "funcao inicio() { escreva(42); }",
         RunOptions {
             pause_on_start: true,
@@ -254,7 +258,7 @@ fn executa_graficos_com_o_host_da_ide() {
     let (observer, rx) = recorder();
     let operations = Arc::new(Mutex::new(Vec::new()));
     let host_operations = Arc::clone(&operations);
-    start_portugol_rs_with_host(
+    start_ferro_rs_with_host(
         r"funcao inicio() {
             Graficos.iniciar_modo_grafico(falso);
             Graficos.desenhar_ponto(2, 3);
@@ -283,7 +287,7 @@ fn arvore_estrutural_inclui_funcoes_parametros_e_posicoes_utf16() {
         seja resultado: cadeia = saudacao("Ferro");
         escreva(resultado);
     }"#;
-    let result = inspect_portugol_rs(source);
+    let result = inspect_ferro_rs(source);
     assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
     let helper = result
         .symbols

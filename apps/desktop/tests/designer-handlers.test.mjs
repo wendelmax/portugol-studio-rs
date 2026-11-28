@@ -61,7 +61,7 @@ test("texto do irmão vem da aba aberta antes do disco", async () => {
 test("code-behind usa os tipos do .design; programa solto continua comum", async () => {
   const calls = [];
   const inspectors = {
-    inspectPortugolRs: async (source) => (calls.push(["pors", source]), { diagnostics: [], symbols: [] }),
+    inspectFerroRust: async (source) => (calls.push(["ferro", source]), { diagnostics: [], symbols: [] }),
     inspectCodeBehind: async (source, design) => (calls.push(["tela", source, design]), { diagnostics: [], symbols: [] }),
     inspectMarkup: async (...args) => (calls.push(["marcacao", ...args]), { diagnostics: [], symbols: [] }),
   };
@@ -73,7 +73,7 @@ test("code-behind usa os tipos do .design; programa solto continua comum", async
   await inspectMarkupFile(h, inspectors, "<Projeto />", { id: 5, workspaceId: "w", workspacePath: "App/app.ferproj" });
   assert.deepEqual(calls, [
     ["tela", "codigo", "<Janela />"],
-    ["pors", "solto"],
+    ["ferro", "solto"],
     ["marcacao", "<Janela />", "App/J.design", true, "codigo"],
     ["marcacao", "<Projeto />", "App/app.ferproj"],
   ]);
@@ -84,7 +84,7 @@ test("code-behind usa os tipos do .design; programa solto continua comum", async
 test("tela sem code-behind confere os eventos como ausentes", async () => {
   const calls = [];
   const inspectors = {
-    inspectPortugolRs: async () => ({ diagnostics: [], symbols: [] }),
+    inspectFerroRust: async () => ({ diagnostics: [], symbols: [] }),
     inspectCodeBehind: async () => ({ diagnostics: [], symbols: [] }),
     inspectMarkup: async (...args) => (calls.push(args), { diagnostics: [], symbols: [] }),
   };

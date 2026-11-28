@@ -1,4 +1,4 @@
-import type { DiagnosticInfo, PortugolRsCompileDiagnostic, SourceMapInfo } from "./api";
+import type { DiagnosticInfo, FerroRustCompileDiagnostic, SourceMapInfo } from "./api";
 
 export interface SourceMapLink {
   sourceLine: number;
@@ -48,7 +48,7 @@ export function sourceMapLinks(mappings: SourceMapInfo[]): SourceMapLink[] {
   );
 }
 
-export function sourceDiagnostic(diagnostic: PortugolRsCompileDiagnostic): DiagnosticInfo | null {
+export function sourceDiagnostic(diagnostic: FerroRustCompileDiagnostic): DiagnosticInfo | null {
   if (!diagnostic.sourceStart || !diagnostic.sourceEnd) return null;
   const approximate = diagnostic.quality === "approximate";
   return {

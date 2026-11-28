@@ -134,7 +134,7 @@ impl Parser {
                 append_unique(
                     &mut diagnostics,
                     vec![Diagnostic::error(
-                        "pors.invalid-function",
+                        "ferro.invalid-function",
                         format!("A função `{name}` não pôde ser analisada"),
                         header_span,
                     )],
@@ -162,7 +162,7 @@ impl Parser {
                     append_unique(
                         &mut diagnostics,
                         vec![Diagnostic::error(
-                            "pors.implicit-return-without-type",
+                            "ferro.implicit-return-without-type",
                             "Função sem tipo de retorno não pode terminar em expressão",
                             syntax_span(tail.span),
                         )],
@@ -174,7 +174,7 @@ impl Parser {
                     append_unique(
                         &mut diagnostics,
                         vec![Diagnostic::error(
-                            "pors.return-type-mismatch",
+                            "ferro.return-type-mismatch",
                             "A expressão final não corresponde ao tipo de retorno declarado",
                             syntax_span(tail.span),
                         )],
@@ -189,7 +189,7 @@ impl Parser {
                 append_unique(
                     &mut diagnostics,
                     vec![Diagnostic::error(
-                        "pors.missing-return",
+                        "ferro.missing-return",
                         format!("A função `{name}` precisa retornar um valor em todos os caminhos"),
                         body_span,
                     )],
@@ -227,7 +227,7 @@ impl Parser {
             _ if self.has_mvu_entry_triple() || !self.require_entry => (Vec::new(), Vec::new()),
             _ => {
                 return Err(vec![Diagnostic::error(
-                    "pors.entry-function",
+                    "ferro.entry-function",
                     "O programa precisa declarar uma única função inicio()",
                     self.current().span,
                 )]);
@@ -266,7 +266,7 @@ impl Parser {
             Ok(())
         } else {
             self.fail(
-                "pors.expected-keyword",
+                "ferro.expected-keyword",
                 format!("Esperado `{word}`"),
                 self.current().span,
             )
@@ -277,14 +277,14 @@ impl Parser {
         if let Kind::Ident(name) = token.kind {
             Ok((name, token.span))
         } else {
-            self.fail("pors.expected-identifier", "Esperado nome", token.span)
+            self.fail("ferro.expected-identifier", "Esperado nome", token.span)
         }
     }
     fn expect(&mut self, expected: Kind, message: &str) -> Result<Token, Vec<Diagnostic>> {
         if std::mem::discriminant(&self.current().kind) == std::mem::discriminant(&expected) {
             Ok(self.advance())
         } else {
-            self.fail("pors.unexpected-token", message, self.current().span)
+            self.fail("ferro.unexpected-token", message, self.current().span)
         }
     }
     fn eat(&mut self, expected: &Kind) -> bool {

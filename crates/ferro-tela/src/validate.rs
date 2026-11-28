@@ -3,7 +3,7 @@
 //! Esta etapa confere a estrutura: elementos e atributos conhecidos, tipos dos
 //! valores, onde cada atributo pode aparecer, nomes e a forma dos vínculos. Se
 //! os campos de `{dados.campo}` existem no registro e se os handlers existem
-//! no code-behind é verificado pelo frontend PORS, que conhece o `.pors`.
+//! no code-behind é verificado pelo frontend FERRO, que conhece o `.fer`.
 
 use std::collections::{HashMap, HashSet};
 
@@ -122,7 +122,7 @@ impl Validator {
                     span,
                 )
                 .with_help(
-                    "Acrescente `Dados=\"NomeDoRegistro\"` à `<Janela>`, com o registro PORS que guarda o estado.",
+                    "Acrescente `Dados=\"NomeDoRegistro\"` à `<Janela>`, com o registro do pseudocódigo em português que guarda o estado.",
                 ),
             );
         }
@@ -725,7 +725,7 @@ impl Validator {
         }
     }
 
-    /// Nomes viram identificadores em PORS, Rust e Slint; por isso só aceitam
+    /// Nomes viram identificadores em FERRO, Rust e Slint; por isso só aceitam
     /// letras sem acento, dígitos e `_`.
     fn identifier(&mut self, name: &str, span: Span, what: &str) -> bool {
         if !value::is_identifier(name) {

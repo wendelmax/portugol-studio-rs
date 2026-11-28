@@ -7,7 +7,7 @@
 - Atualização automática, assinatura e distribuição atual.
 
 ## Requisitos
-1. Ao executar Portugol, usar interpreter já existente quando possível; não ligar conversão Rust a execução clássica sem decisão explícita.
+1. Ao executar Ferro, usar interpreter já existente quando possível; não ligar conversão Rust a execução clássica sem decisão explícita.
 2. Para Rust real: invocar toolchain validada; delimitar arquivos no workspace/sandbox, inputs controlados e timeout. Não assumir que um subprocesso Rust é sandbox de segurança.
 3. Interromper árvore de subprocessos no cancelamento/timeout onde a plataforma permitir; remover arquivos temporários apenas depois de confirmar término.
 4. Tamanho máximo de logs; backpressure para stdout/stderr; UI não deve congelar em loop de impressão.

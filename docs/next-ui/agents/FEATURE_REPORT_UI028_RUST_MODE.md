@@ -1,12 +1,12 @@
 # Relatório de implementação — FEAT-LEARN-003
 
-- Branch / base: `feat/portugol-rust-learning-mode` / `264d11c`.
+- Branch / base: `feat/ferro-rust-learning-mode` / `264d11c`.
 - Escopo: UI-028/023/024/027; UC-05/13/15; FT-02/05/07.
 - Estado anterior: `LearningMode` era só `beginner | bridge` e o seletor afirmava que editor e compilador Rust não estavam configurados. A IDE já tinha CodeMirror Rust, abrir/salvar `.rs`, `rust_toolchain_available` e execução real `run_rust_source` com consentimento.
 - Arquivos alterados: `apps/desktop/index.html`, `src/main.ts`, `src/learning-mode.ts`, `src/learning-content.ts`, testes de modo e conteúdo, `docs/PARIDADE.md`, matriz de rastreabilidade, gap report, discovery e este relatório.
 - Contratos IPC/Rust/Tauri: nenhum contrato ou comando novo. Consome `rust_toolchain_available`, `register_rust_source_run` e `run_rust_source` existentes.
 - Permissões/capabilities alteradas: não.
-- Compatibilidade: valores desconhecidos de preferência continuam no Beginner; modo Rust só habilita com toolchain detectada. Alternar modo não edita nem troca o arquivo. `.por` e `.pors` preservam o comportamento anterior.
+- Compatibilidade: valores desconhecidos de preferência continuam no Beginner; modo Rust só habilita com toolchain detectada. Alternar modo não edita nem troca o arquivo. `.por` e `.fer` preservam o comportamento anterior.
 - Interface: modo Rust mostra conceitos de mutabilidade, ownership e borrowing. Em `.rs`, explica o caminho de execução real; em outro tipo de arquivo, orienta abrir/criar `.rs` sem alterar o documento. Exemplos são selecionados manualmente e identificados como editoriais. O laboratório segue rotulado como simulação didática verificada.
 - Segurança: o fluxo de execução `.rs` existente continua solicitando consentimento por sessão e informa que não há sandbox; limites de processo permanecem iguais.
 

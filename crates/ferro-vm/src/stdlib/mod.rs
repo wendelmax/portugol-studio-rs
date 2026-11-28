@@ -1,8 +1,8 @@
 //! Bibliotecas multimídia da VM (`Graficos`, `Teclado`, `Mouse`, `Sons`)
-//! e contexto nativo de host compartilhado pela execução PORS.
+//! e contexto nativo de host compartilhado pela execução FERRO.
 //!
-//! As bibliotecas de console PORS (`Matematica`, `Texto`, `Tipos`, `Util`,
-//! `Calendario`, `Arquivos`, `Json`, `Internet`) vivem em [`crate::pors_libs`].
+//! As bibliotecas de console FERRO (`Matematica`, `Texto`, `Tipos`, `Util`,
+//! `Calendario`, `Arquivos`, `Json`, `Internet`) vivem em [`crate::ferro_libs`].
 
 mod fontes;
 mod graficos;

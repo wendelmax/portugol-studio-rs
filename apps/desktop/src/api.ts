@@ -2,7 +2,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import type { PorsUiBudget, PorsUiResult } from "./pors-wasm-host";
+import type { FerroUiBudget, FerroUiResult } from "./ferro-wasm-host";
 import type { UiEvent } from "./ui-preview-renderer";
 import type { WorkspaceEntry } from "./workspace-explorer";
 
@@ -81,8 +81,8 @@ export interface Inspection {
   symbols: SymbolInfo[];
 }
 
-export const formatPortugolRs = (source: string) =>
-  invoke<{ from: number; to: number; insert: string }[] | null>("format_portugol_rs", { source });
+export const formatFerroRust = (source: string) =>
+  invoke<{ from: number; to: number; insert: string }[] | null>("format_ferro_rs", { source });
 
 export interface Exercise {
   id: number;
@@ -97,14 +97,14 @@ export interface ExerciseCheckResult {
   hints: string[];
 }
 
-export const renameTargetPortugolRs = (source: string, offset: number) =>
-  invoke<{ name: string; occurrences: number }>("rename_target_portugol_rs", { source, offset });
+export const renameTargetFerroRust = (source: string, offset: number) =>
+  invoke<{ name: string; occurrences: number }>("rename_target_ferro_rs", { source, offset });
 
-export const renameSymbolPortugolRs = (source: string, offset: number, name: string) =>
-  invoke<{ from: number; to: number; insert: string }[]>("rename_symbol_portugol_rs", { source, offset, name });
+export const renameSymbolFerroRust = (source: string, offset: number, name: string) =>
+  invoke<{ from: number; to: number; insert: string }[]>("rename_symbol_ferro_rs", { source, offset, name });
 
-export const resolveSymbolPortugolRs = (source: string, offset: number) =>
-  invoke<SymbolLocation>("resolve_symbol_portugol_rs", { source, offset });
+export const resolveSymbolFerroRust = (source: string, offset: number) =>
+  invoke<SymbolLocation>("resolve_symbol_ferro_rs", { source, offset });
 
 export const openProjectPage = (page: "bug_report" | "releases" | "contribute") =>
   invoke<void>("open_project_page", { page });
@@ -133,7 +133,7 @@ export interface RustExport {
   sourceMap: SourceMapInfo[];
 }
 
-export const inspectPortugolRs = (source: string) => invoke<Inspection>("inspect_portugol_rs", { source });
+export const inspectFerroRust = (source: string) => invoke<Inspection>("inspect_ferro_rs", { source });
 /** Elemento de um `.design` como o designer visual o recebe (ADR 0018). */
 export type DesignNode = {
   tag: string;
@@ -207,8 +207,8 @@ export const inspectCodeBehind = (source: string, designSource: string) =>
 /** Formata um `.design` ou `.ferproj`; `null` quando há erro de sintaxe. */
 export const formatMarkup = (source: string) =>
   invoke<{ from: number; to: number; insert: string }[] | null>("format_markup", { source });
-export const exportPortugolRs = (source: string) => invoke<RustExport>("export_portugol_rs", { source });
-export interface PortugolRsCompileDiagnostic {
+export const exportFerroRust = (source: string) => invoke<RustExport>("export_ferro_rs", { source });
+export interface FerroRustCompileDiagnostic {
   severity: string;
   code: string | null;
   message: string;
@@ -220,7 +220,7 @@ export interface PortugolRsCompileDiagnostic {
   quality: SourceMapInfo["quality"];
 }
 
-export type PortugolRsRunResult =
+export type FerroRustRunResult =
   | {
       status: "executed";
       stdout: string;
@@ -229,7 +229,7 @@ export type PortugolRsRunResult =
     }
   | {
       status: "compile_error";
-      diagnostics: PortugolRsCompileDiagnostic[];
+      diagnostics: FerroRustCompileDiagnostic[];
       stderr: string;
     }
   | { status: "compile_limit"; stderr: string; reason: "time" | "output" }
@@ -298,9 +298,9 @@ export const rustfmtAvailable = () => invoke<boolean>("rustfmt_available");
 export const formatRustSource = (source: string) => invoke<string>("format_rust_source", { source });
 export const checkRustSource = (source: string) =>
   invoke<RustSourceCompileDiagnostic[]>("check_rust_source", { source });
-export const registerPortugolRsRun = () => invoke<number>("register_portugol_rs_run");
-export const runPortugolRs = (id: number, source: string) =>
-  invoke<PortugolRsRunResult>("run_portugol_rs", { id, source });
+export const registerFerroRustRun = () => invoke<number>("register_ferro_rs_run");
+export const runFerroRust = (id: number, source: string) =>
+  invoke<FerroRustRunResult>("run_ferro_rs", { id, source });
 
 export interface RustSourceCompileDiagnostic {
   severity: string;
@@ -323,12 +323,12 @@ export const runRustSource = (id: number, source: string, args: string[] = []) =
   invoke<RustSourceRunResult>("run_rust_source", { id, source, args });
 
 /** Executa Ferro na VM educacional; não depende de `rustc`. */
-export const startPortugolRsVm = (
+export const startFerroRustVm = (
   source: string,
   breakpoints: number[] = [],
   pauseOnStart = false,
   path: string | null = null,
-) => invoke<number>("debug_portugol_rs", { source, breakpoints, pauseOnStart, path });
+) => invoke<number>("debug_ferro_rs", { source, breakpoints, pauseOnStart, path });
 
 export const sendInput = (id: number, line: string) => invoke<void>("send_input", { id, line });
 
@@ -385,7 +385,7 @@ export interface CargoScaffoldExportResult {
 }
 
 export const openWorkspace = () => invoke<WorkspaceListing | null>("workspace_open");
-/** Projeto desktop PORS criado pelo modelo e já aberto como workspace (ADR 0018). */
+/** Projeto Ferro criado pelo modelo e já aberto como workspace (ADR 0018). */
 export interface DesktopProjectCreated {
   listing: WorkspaceListing;
   /** Tela inicial, relativa à pasta do projeto. */
@@ -420,30 +420,30 @@ export type CatalogEntry =
   | { kind: "folder"; name: string; entries: CatalogEntry[] }
   | { kind: "file"; name: string; file: string; description: string; preview: string | null };
 
-export async function porsUiStart(source: string, budget?: PorsUiBudget): Promise<PorsUiResult> {
-  const raw = await invoke<string>("pors_ui_start", {
+export async function ferroUiStart(source: string, budget?: FerroUiBudget): Promise<FerroUiResult> {
+  const raw = await invoke<string>("ferro_ui_start", {
     source,
     maxSteps: budget?.maxSteps ?? null,
     maxNodes: budget?.maxNodes ?? null,
     maxDepth: budget?.maxDepth ?? null,
   });
-  return JSON.parse(raw) as PorsUiResult;
+  return JSON.parse(raw) as FerroUiResult;
 }
 
-export async function porsUiDispatch(sessionId: number, event: UiEvent): Promise<PorsUiResult> {
-  const raw = await invoke<string>("pors_ui_dispatch", {
+export async function ferroUiDispatch(sessionId: number, event: UiEvent): Promise<FerroUiResult> {
+  const raw = await invoke<string>("ferro_ui_dispatch", {
     sessionId,
     kind: event.kind,
     targetId: event.id,
     value: event.kind === "entrada_alterada" ? event.value : "",
   });
-  return JSON.parse(raw) as PorsUiResult;
+  return JSON.parse(raw) as FerroUiResult;
 }
 
-export const porsUiCancel = (sessionId: number) => invoke<boolean>("pors_ui_cancel", { sessionId });
-export const porsUiClose = (sessionId: number) => invoke<boolean>("pors_ui_close", { sessionId });
+export const ferroUiCancel = (sessionId: number) => invoke<boolean>("ferro_ui_cancel", { sessionId });
+export const ferroUiClose = (sessionId: number) => invoke<boolean>("ferro_ui_close", { sessionId });
 
-export interface PorsExampleInfo {
+export interface FerroExampleInfo {
   id: string;
   category: string;
   title: string;
@@ -454,7 +454,7 @@ export interface PorsExampleInfo {
   source: string;
 }
 
-export interface PorsExerciseSummary {
+export interface FerroExerciseSummary {
   schema_version: number;
   id: string;
   title: string;
@@ -464,14 +464,14 @@ export interface PorsExerciseSummary {
   cases: number;
 }
 
-export type PorsExerciseStatus =
+export type FerroExerciseStatus =
   | "passed"
   | "failed"
   | "compile_error"
   | "runtime_error"
   | "limit_exceeded";
 
-export interface PorsExerciseCaseOutcome {
+export interface FerroExerciseCaseOutcome {
   name: string;
   passed: boolean;
   expected_output: string;
@@ -479,27 +479,27 @@ export interface PorsExerciseCaseOutcome {
   error: string | null;
 }
 
-export interface PorsExerciseEvaluation {
+export interface FerroExerciseEvaluation {
   schema_version: number;
   exercise_id: string;
-  status: PorsExerciseStatus;
+  status: FerroExerciseStatus;
   total: number;
   passed: number;
-  cases: PorsExerciseCaseOutcome[];
+  cases: FerroExerciseCaseOutcome[];
   diagnostics: string[];
   hints: string[];
 }
 
-export const listPorsExamples = () => invoke<PorsExampleInfo[]>("pors_example_catalog");
-export const listPorsExercises = () => invoke<PorsExerciseSummary[]>("pors_exercise_catalog");
-export const checkPorsExercise = (id: string | null, source: string, exerciseJson?: string) =>
-  invoke<PorsExerciseEvaluation>("check_pors_exercise", {
+export const listFerroExamples = () => invoke<FerroExampleInfo[]>("ferro_example_catalog");
+export const listFerroExercises = () => invoke<FerroExerciseSummary[]>("ferro_exercise_catalog");
+export const checkFerroExercise = (id: string | null, source: string, exerciseJson?: string) =>
+  invoke<FerroExerciseEvaluation>("check_ferro_exercise", {
     id,
     source,
     exerciseJson: exerciseJson ?? null,
   });
-export const inspectPorsExercise = (rawJson: string) =>
-  invoke<PorsExerciseSummary>("inspect_pors_exercise", { rawJson });
+export const inspectFerroExercise = (rawJson: string) =>
+  invoke<FerroExerciseSummary>("inspect_ferro_exercise", { rawJson });
 
 export interface RunEvents {
   output(id: number, text: string): void;

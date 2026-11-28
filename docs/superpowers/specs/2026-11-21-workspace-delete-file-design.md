@@ -1,11 +1,11 @@
 # Excluir arquivos do workspace — desenho
 
-**Status:** aprovado pelo escopo contínuo do Portugol Studio Next e pelo contrato UI-009/FL-05
+**Status:** aprovado pelo escopo contínuo do Ferro Studio Next e pelo contrato UI-009/FL-05
 **Rastreabilidade:** UI-009 `ExplorerFileActions`; UC-03; AC-14; contrato Tauri de workspace
 
 ## Intenção
 
-Permitir excluir arquivos `.por`, `.pors` e `.pex` pela árvore do workspace, com confirmação explícita, escopo validado no Rust e proteção dos buffers abertos.
+Permitir excluir arquivos `.por`, `.fer` e `.pex` pela árvore do workspace, com confirmação explícita, escopo validado no Rust e proteção dos buffers abertos.
 
 ## Objetivos
 
@@ -36,7 +36,7 @@ Permitir excluir arquivos `.por`, `.pors` e `.pex` pela árvore do workspace, co
 
 ## Critérios de aceite
 
-- `.por`, `.pors` e `.pex` podem ser excluídos com o conteúdo e a árvore atualizados; arquivos irmãos permanecem intactos.
+- `.por`, `.fer` e `.pex` podem ser excluídos com o conteúdo e a árvore atualizados; arquivos irmãos permanecem intactos.
 - Traversal, symlink, arquivo ausente, diretório e extensão não suportada são rejeitados.
 - Colisão/race ou erro de permissão não descarta abas nem remove estado local.
 - Cancelar preserva arquivo e buffers; falha ao salvar mantém arquivo; escolha explícita “excluir e descartar” só remove abas depois do comando bem-sucedido.

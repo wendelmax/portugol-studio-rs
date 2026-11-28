@@ -2,8 +2,8 @@
 
 - **Data:** 2026-11-27
 - **Status:** Aceita
-- **Relacionados:** [ADR 0019](../../adr/0019-contrato-minimo-de-tipos-pors.md), [RFC 001](2026-11-27-rfc-001-inferencia-em-seja.md), [design de evolução sintática inicial do PORS](2026-11-26-pors-syntax-evolution-design.md)
-- **Revisada por:** [ADR 0020](../../adr/0020-ajustes-pedagogicos-da-sintaxe-pors.md)
+- **Relacionados:** [ADR 0019](../../adr/0019-contrato-minimo-de-tipos-ferro.md), [RFC 001](2026-11-27-rfc-001-inferencia-em-seja.md), [design de evolução sintática inicial do FERRO](2026-11-26-ferro-syntax-evolution-design.md)
+- **Revisada por:** [ADR 0020](../../adr/0020-ajustes-pedagogicos-da-sintaxe-ferro.md)
 
 > **Revisão (ADR 0020):** Revisada pela decisão 3 do ADR 0020. A regra "tipo fixo `cadeia`" vale só sem destino tipado; com destino declarado (inicializador anotado, atribuição, argumento de parâmetro e `retorne`), a entrada é convertida com as regras da forma com variável-alvo. Os exemplos inválidos com destino `inteiro` desta RFC passam a ser válidos.
 
@@ -11,10 +11,10 @@
 
 Hoje `leia` só é aceito como comando: a forma com variável-alvo gera
 `StmtKind::Read` e usa o valor lido para atualizar a variável. O bytecode já tem
-`Op::Read(ValueType)` em `crates/portugol-bytecode/src/op.rs:166-167`, que
-empilha o valor lido, e o exportador Rust já emite `__portugol_read_line` em
-`crates/portugol-rust/src/codegen/mod.rs:50`, que anuncia
-`PORTUGOL_INPUT:{expected}` quando o protocolo de entrada está ativo. Falta
+`Op::Read(ValueType)` em `crates/ferro-bytecode/src/op.rs:166-167`, que
+empilha o valor lido, e o exportador Rust já emite `__ferro_read_line` em
+`crates/ferro-rust/src/codegen/mod.rs:50`, que anuncia
+`FERRO_INPUT:{expected}` quando o protocolo de entrada está ativo. Falta
 expor a leitura como expressão sem quebrar o comando legado.
 
 O ADR 0019 registra o contrato revisado: `leia()` infere o tipo do contexto e
@@ -40,7 +40,7 @@ há tipo esperado, não por causa do `seja`.
    diagnóstico novo. Nos exemplos migrados ela fica reservada à compatibilidade
    e a laços com leitura repetida.
 4. `leia` com argumento em posição de expressão não é reinterpretado como
-   comando nem como leitura tipada: gera `pors.read-arguments-unsupported` no
+   comando nem como leitura tipada: gera `ferro.read-arguments-unsupported` no
    span da chamada. A conversão de tipo é implícita na própria leitura, não
    escrita como argumento.
 
@@ -68,10 +68,10 @@ há tipo esperado, não por causa do `seja`.
    dentro de uma expressão.
 2. A varredura de `has_read` no exportador Rust passa a enxergar
    `ExprKind::Read` dentro de expressões, inclusive aninhadas, para que o
-   helper `__portugol_read_line` seja emitido mesmo quando `leia()` não aparece
+   helper `__ferro_read_line` seja emitido mesmo quando `leia()` não aparece
    como comando.
-3. O helper continua anunciando `PORTUGOL_INPUT:{expected}` antes de ler a
-   linha quando `PORTUGOL_STUDIO_INPUT_PROTOCOL` está ativo; `{expected}` é o
+3. O helper continua anunciando `FERRO_INPUT:{expected}` antes de ler a
+   linha quando `FERRO_STUDIO_INPUT_PROTOCOL` está ativo; `{expected}` é o
    tipo inferido (`cadeia` na ausência de contexto). A conversão observável é a
    do tipo esperado; não há campo JSON ou nova API na fachada WASM.
 
@@ -97,7 +97,7 @@ válida, mas é descrita em prosa para não reintroduzir a grafia antiga nos
 exemplos publicados; ela fica reservada à compatibilidade e a laços com leitura
 repetida, conforme o design de migração.
 
-```pors
+```ferro
 funcao saudar(nome: cadeia) -> cadeia {
     retorne nome;
 }
@@ -114,8 +114,8 @@ Exemplos inválidos:
 | Trecho (coluna 0) | Diagnóstico |
 | --- | --- |
 | `seja café: inteiro = leia();` com entrada não numérica | erro de execução, não diagnóstico estático; `é` ocupa 2 bytes no span |
-| `leia` com argumento em inicializador sem anotação | `pors.read-arguments-unsupported` no span da chamada |
-| `leia` com argumento textual dentro de `escreval` | `pors.read-arguments-unsupported` no span da chamada |
+| `leia` com argumento em inicializador sem anotação | `ferro.read-arguments-unsupported` no span da chamada |
+| `leia` com argumento textual dentro de `escreval` | `ferro.read-arguments-unsupported` no span da chamada |
 
 ### Escopo adiado e fronteiras
 

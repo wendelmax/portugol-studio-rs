@@ -37,8 +37,8 @@ dados densos (como o Sniffnet), não para um editor de código completo.
 
 ## 2. Workspace
 
-> **Migração concluída (ADR 0016):** os crates do dialeto clássico (`portugol-syntax`,
-> `portugol-semantics`) e `tests/corpus/` foram removidos na Fase 6. Spans e
+> **Migração concluída (ADR 0016):** os crates do dialeto clássico (`ferro-syntax`,
+> `ferro-semantics`) e `tests/corpus/` foram removidos na Fase 6. Spans e
 > diagnósticos agora vivem em `ferro-hir`.
 
 ```
@@ -46,11 +46,11 @@ crates/
   ferro-hir/          # representação intermediária tipada, spans e diagnósticos compartilhados
   ferro-frontend/  # lexer, parser, formatador e checagem do Ferro (.fer)
   ferro-bytecode/     # instruções e compilador HIR -> bytecode
-  ferro-vm/           # VM, depurador, protocolo gráfico, UI MVU, stdlib e bibliotecas PORS
+  ferro-vm/           # VM, depurador, protocolo gráfico, UI MVU, stdlib e bibliotecas FERRO
   ferro-rust/         # geração de código Rust, projetos Cargo e source maps
-  ferro-wasm/         # núcleo PORS sem dependências externas para WebAssembly
+  ferro-wasm/         # núcleo FERRO sem dependências externas para WebAssembly
   ferro-service/      # fachada da IDE (análise, execução, depuração, exemplos e exercícios .licao)
-  ferro-cli/          # executável `portugol`
+  ferro-cli/          # executável `ferro`
 apps/
   desktop/
     src-tauri/           # comandos e eventos Tauri v2, workspace (cap-std), áudio/gráficos
@@ -86,10 +86,10 @@ Saída atual: `Vec<Diagnostic>` com códigos `sem.*`, reutilizando o tipo da
 sintaxe. A HIR anotada com tipos fica para a fase 3, quando o compilador de
 bytecode precisar dela.
 
-Implementação (`crates/portugol-semantics`):
+Implementação (`crates/ferro-semantics`):
 
 - `types.rs`: `Ty`, tabelas de compatibilidade (atribuição, binária, unária,
-  composta) portadas de `TabelaCompatibilidadeTiposPortugol.java`;
+  composta) portadas de `TabelaCompatibilidadeTiposFerro.java`;
 - `symbols.rs`: `Symbol`, `FunctionInfo`, `ScopeTable` com escopos léxicos;
 - `analyzer.rs`: passagem única na ordem do Java — includes → pré-registro de
   funções → globais → corpos de funções → comandos soltos no topo.
@@ -121,7 +121,7 @@ Isso também melhora desempenho e isola o runtime do parser.
 
 #### Como está implementado (fase 3)
 
-O original não interpreta: ele traduz o Portugol para Java
+O original não interpreta: ele traduz o Ferro para Java
 (`execucao/gerador/GeradorCodigoJava.java`) e roda na JVM. A semântica de
 execução a reproduzir é, portanto, a do Java gerado.
 
@@ -208,7 +208,7 @@ Tauri traduz isso em comandos `debug_*` e no evento `run:paused`.
 
 - **Vite + TypeScript** (sem framework pesado; estado e painéis organizados em módulos/shells).
 - **CodeMirror 6**:
-  - destaque de sintaxe para Portugol clássico, Ferro (`.fer`) e Rust (`@codemirror/lang-rust`);
+  - destaque de sintaxe para pseudocódigo clássico, Ferro (`.fer`) e Rust (`@codemirror/lang-rust`);
   - `@codemirror/lint` para diagnósticos do backend;
   - autocomplete via catálogo/serviço;
   - busca, dobramento e multi-cursor nativos.

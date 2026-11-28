@@ -5,7 +5,7 @@
 
 ## Contexto
 
-O seletor Beginner/Bridge/Rust salva uma única preferência global no `localStorage`. O design do produto pede que cada workspace lembre o modo do próprio projeto; um exemplo de Rust e uma aula de Portugol podem coexistir em abas sem trocar a fonte.
+O seletor Beginner/Bridge/Rust salva uma única preferência global no `localStorage`. O design do produto pede que cada workspace lembre o modo do próprio projeto; um exemplo de Rust e uma aula de Ferro podem coexistir em abas sem trocar a fonte.
 
 ## Decisão proposta
 

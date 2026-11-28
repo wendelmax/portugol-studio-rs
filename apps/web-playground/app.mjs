@@ -33,7 +33,7 @@ let activeUiSession = null;
 
 const THEME_STORAGE_KEY = "pg-theme";
 const TOKEN_NAMES = ["comment", "string", "interpolation", "number", "keyword", "type", "builtin"];
-const PORS_TOKEN_RE =
+const FERRO_TOKEN_RE =
   /(?<comment>\/\/[^\n]*|\/\*[\s\S]*?\*\/)|(?<string>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(?<number>\b\d+(?:\.\d+)?\b)|(?<keyword>\b(?:funcao|retorne|se|senao|senao_se|seja|mutavel|enquanto|faca_enquanto|para|escolha|caso|registro|enum|verdadeiro|falso|nulo|e|ou|nao)\b)|(?<type>\b(?:inteiro|real|logico|cadeia|caracter|vetor|Resultado|Opcao)\b)|(?<builtin>\b(?:UI|Matematica|Texto|Tipos|Util|Calendario|Arquivos|Json|Internet|Graficos|Teclado|Mouse|Sons|escreva|escreval|leia|adicionar|remover|obter|tamanho)\b)/g;
 const UI_START_RE = /\bfuncao\s+iniciar\s*\(/;
 
@@ -106,7 +106,7 @@ function appendStringTokens(fragment, literal) {
 function renderHighlight(source) {
   const fragment = document.createDocumentFragment();
   let cursor = 0;
-  for (const match of source.matchAll(PORS_TOKEN_RE)) {
+  for (const match of source.matchAll(FERRO_TOKEN_RE)) {
     if (match.index > cursor) {
       fragment.append(document.createTextNode(source.slice(cursor, match.index)));
     }

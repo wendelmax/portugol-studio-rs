@@ -51,7 +51,7 @@
               <details id="home-new-menu" class="home-new-menu" data-testid="home-new-menu">
                 <summary id="home-new-menu-toggle" aria-label="Criar arquivo em outra linguagem" aria-controls="home-new-menu-items" title="Criar arquivo em outra linguagem"><span aria-hidden="true">▾</span></summary>
                 <div id="home-new-menu-items" class="home-new-menu-items" aria-label="Outras linguagens">
-                  <button id="home-new-pors" type="button" data-home-new-language="portugol-rs" title="Novo arquivo Ferro (.fer)">Novo Ferro (.fer)</button>
+                  <button id="home-new-ferro" type="button" data-home-new-language="ferro-rust" title="Novo arquivo Ferro (.fer)">Novo Ferro (.fer)</button>
                   <button id="home-new-rust" type="button" data-home-new-language="rust" title="Novo arquivo Rust (.rs)">Novo Rust (.rs)</button>
                 </div>
               </details>
@@ -177,23 +177,23 @@
             <div id="rust-output" class="rust-generated-editor"></div>
             <div id="rust-diff-output" class="rust-diff-output" aria-label="Diferenças entre traduções Rust" hidden></div>
           </aside>
-          <aside id="pors-ui-preview" class="pors-ui-preview" aria-label="Prévia visual" hidden>
+          <aside id="ferro-ui-preview" class="ferro-ui-preview" aria-label="Prévia visual" hidden>
             <header>
               <h2>Prévia visual</h2>
               <div>
-                <button id="pors-ui-run" type="button">Executar</button>
-                <button id="pors-ui-restart" type="button" disabled>Reiniciar</button>
-                <button id="pors-ui-cancel" type="button" disabled>Cancelar</button>
-                <button id="pors-ui-close" type="button" aria-label="Fechar prévia visual">×</button>
+                <button id="ferro-ui-run" type="button">Executar</button>
+                <button id="ferro-ui-restart" type="button" disabled>Reiniciar</button>
+                <button id="ferro-ui-cancel" type="button" disabled>Cancelar</button>
+                <button id="ferro-ui-close" type="button" aria-label="Fechar prévia visual">×</button>
               </div>
             </header>
-            <div class="pors-ui-examples-bar">
-              <label for="pors-ui-example-select">Exemplo visual</label>
-              <select id="pors-ui-example-select"></select>
-              <button id="pors-ui-load-example" type="button">Carregar exemplo</button>
+            <div class="ferro-ui-examples-bar">
+              <label for="ferro-ui-example-select">Exemplo visual</label>
+              <select id="ferro-ui-example-select"></select>
+              <button id="ferro-ui-load-example" type="button">Carregar exemplo</button>
             </div>
-            <p id="pors-ui-status" role="status" aria-live="polite">Abra um programa .fer visual ou carregue um exemplo.</p>
-            <div id="pors-ui-canvas" class="pors-ui-canvas"></div>
+            <p id="ferro-ui-status" role="status" aria-live="polite">Abra um programa .fer visual ou carregue um exemplo.</p>
+            <div id="ferro-ui-canvas" class="ferro-ui-canvas"></div>
           </aside>
           <aside class="error-strip" aria-label="Diagnósticos por linha"><div id="error-strip"></div></aside>
           <details id="editor-options" class="options editor-options">
@@ -308,10 +308,10 @@
                 </section>
               </div>
               <div class="learning-examples">
-                <section id="learning-portugol-example">
+                <section id="learning-ferro-example">
                   <h4>Pseudocódigo em português</h4>
-                  <p id="learning-portugol-caption"></p>
-                  <pre><code id="learning-portugol-code"></code></pre>
+                  <p id="learning-ferro-caption"></p>
+                  <pre><code id="learning-ferro-code"></code></pre>
                 </section>
                 <section id="learning-rust-example" hidden>
                   <h4 id="learning-rust-heading">Rust — comparação didática</h4>

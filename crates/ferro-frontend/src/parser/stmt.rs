@@ -21,7 +21,7 @@ impl Parser {
         for parameter in &signature.parameters {
             if self.scopes[0].contains_key(&parameter.name) {
                 return self.fail(
-                    "pors.redeclared",
+                    "ferro.redeclared",
                     format!("`{}` já foi declarado nesta função", parameter.name),
                     parameter.span,
                 );
@@ -69,7 +69,7 @@ impl Parser {
             if let Some(expression) = self.try_tail()? {
                 if !allow_tail {
                     return self.fail(
-                        "pors.implicit-return-without-type",
+                        "ferro.implicit-return-without-type",
                         "Expressão final sem `;` só é retorno no corpo de uma função",
                         syntax_span(expression.span),
                     );
@@ -308,7 +308,7 @@ impl Parser {
                 } = expression.kind
                 else {
                     return self.fail(
-                        "pors.expected-statement",
+                        "ferro.expected-statement",
                         "Esperada chamada de função",
                         syntax_span(expression.span),
                     );
@@ -323,7 +323,7 @@ impl Parser {
             }
         }
         self.fail(
-            "pors.expected-statement",
+            "ferro.expected-statement",
             "Esperada declaração, atribuição, escreva ou se",
             self.current().span,
         )
@@ -336,7 +336,7 @@ impl Parser {
         let (name, name_span) = self.identifier()?;
         if is_reserved(&name) {
             return self.fail(
-                "pors.reserved-name",
+                "ferro.reserved-name",
                 format!("`{name}` é reservado e não pode ser usado como nome"),
                 name_span,
             );
@@ -354,7 +354,7 @@ impl Parser {
             && initializer.ty != ty
         {
             return self.fail(
-                "pors.type-mismatch",
+                "ferro.type-mismatch",
                 format!(
                     "O valor inicial de `{name}` não corresponde ao tipo `{}`",
                     type_label(ty)
@@ -366,7 +366,7 @@ impl Parser {
         let semi = self.expect(Kind::Semicolon, "Esperado `;` após declaração")?;
         if self.scopes.last().unwrap().contains_key(&name) {
             return self.fail(
-                "pors.redeclared",
+                "ferro.redeclared",
                 format!("`{name}` já foi declarado neste bloco"),
                 name_span,
             );
@@ -406,14 +406,14 @@ impl Parser {
         let (name, name_span) = self.identifier()?;
         let symbol = self.lookup(&name).ok_or_else(|| {
             vec![Diagnostic::error(
-                "pors.unknown-name",
+                "ferro.unknown-name",
                 format!("Nome não declarado: {name}"),
                 name_span,
             )]
         })?;
         let hir::Type::Record(mut type_id) = symbol.ty else {
             return self.fail(
-                "pors.field-non-record",
+                "ferro.field-non-record",
                 "Atribuição de campo exige um registro",
                 name_span,
             );
@@ -438,7 +438,7 @@ impl Parser {
                 .map(|(index, field)| (index, field.ty))
             else {
                 return self.fail(
-                    "pors.unknown-field",
+                    "ferro.unknown-field",
                     format!(
                         "Campo `{field_name}` não existe no registro `{}`",
                         definition.name
@@ -455,7 +455,7 @@ impl Parser {
             }
             let hir::Type::Record(inner) = ty else {
                 return self.fail(
-                    "pors.field-non-record",
+                    "ferro.field-non-record",
                     format!("`{path}` não é um registro; não tem campos"),
                     field_span,
                 );
@@ -475,7 +475,7 @@ impl Parser {
             Kind::CaretEq => hir::AssignOp::Xor,
             _ => {
                 return self.fail(
-                    "pors.expected-assignment",
+                    "ferro.expected-assignment",
                     "Esperado operador de atribuição",
                     op_token.span,
                 );
@@ -485,14 +485,14 @@ impl Parser {
         let value = self.expression_with_expected(0, expected)?;
         if value.ty != field_ty {
             return self.fail(
-                "pors.type-mismatch",
+                "ferro.type-mismatch",
                 format!("Atribuição incompatível para `{path}`"),
                 syntax_span(value.span),
             );
         }
         if symbol.mutability == hir::Mutability::Immutable {
             return self.fail(
-                "pors.immutable-assignment",
+                "ferro.immutable-assignment",
                 format!("`{name}` é imutável; declare com `seja mutavel` para alterar seus campos"),
                 name_span,
             );
@@ -513,14 +513,14 @@ impl Parser {
         let (name, name_span) = self.identifier()?;
         let symbol = self.lookup(&name).ok_or_else(|| {
             vec![Diagnostic::error(
-                "pors.unknown-name",
+                "ferro.unknown-name",
                 format!("Nome não declarado: {name}"),
                 name_span,
             )]
         })?;
         let Some(element_type) = symbol.ty.vector_element() else {
             return self.fail(
-                "pors.index-non-vector",
+                "ferro.index-non-vector",
                 format!("`{name}` não é um vetor"),
                 name_span,
             );
@@ -529,7 +529,7 @@ impl Parser {
         let index = self.expression(0)?;
         if index.ty != hir::Type::Integer {
             return self.fail(
-                "pors.index-type",
+                "ferro.index-type",
                 "O índice do vetor deve ter tipo inteiro",
                 syntax_span(index.span),
             );
@@ -542,7 +542,7 @@ impl Parser {
         let value = self.expression_with_expected(0, Some(element_type))?;
         if value.ty != element_type {
             return self.fail(
-                "pors.vector-element-type",
+                "ferro.vector-element-type",
                 "O valor atribuído não corresponde ao tipo dos elementos do vetor",
                 syntax_span(value.span),
             );
@@ -550,7 +550,7 @@ impl Parser {
         let end = self.expect(Kind::Semicolon, "Esperado `;` após atribuição")?;
         if symbol.mutability == hir::Mutability::Immutable {
             return self.fail(
-                "pors.immutable-assignment",
+                "ferro.immutable-assignment",
                 format!(
                     "`{name}` é imutável; declare com `seja mutavel` para alterar seus elementos"
                 ),
@@ -574,7 +574,7 @@ impl Parser {
         let (name, name_span) = self.identifier()?;
         let symbol = self.lookup(&name).ok_or_else(|| {
             vec![Diagnostic::error(
-                "pors.unknown-name",
+                "ferro.unknown-name",
                 format!("Nome não declarado: {name}"),
                 name_span,
             )]
@@ -592,7 +592,7 @@ impl Parser {
             Kind::CaretEq => hir::AssignOp::Xor,
             _ => {
                 return self.fail(
-                    "pors.expected-assignment",
+                    "ferro.expected-assignment",
                     "Esperado operador de atribuição",
                     op_token.span,
                 );
@@ -608,7 +608,7 @@ impl Parser {
         };
         if symbol.mutability == hir::Mutability::Immutable {
             return self.fail(
-                "pors.immutable-assignment",
+                "ferro.immutable-assignment",
                 format!(
                     "`{name}` é imutável; declare com `seja mutavel` para permitir atribuições"
                 ),
@@ -617,7 +617,7 @@ impl Parser {
         }
         if symbol.ty != value.ty {
             return self.fail(
-                "pors.type-mismatch",
+                "ferro.type-mismatch",
                 format!("Atribuição incompatível para `{name}`"),
                 syntax_span(value.span),
             );
@@ -638,7 +638,7 @@ impl Parser {
         };
         if !valid {
             return self.fail(
-                "pors.invalid-assignment-operator",
+                "ferro.invalid-assignment-operator",
                 "Este operador não é válido para o tipo da variável",
                 op_token.span,
             );
@@ -662,20 +662,20 @@ impl Parser {
                 let value = self.expression(0)?;
                 if value.ty == hir::Type::Unit {
                     return self.fail(
-                        "pors.void-value",
+                        "ferro.void-value",
                         "Uma função sem retorno não pode ser usada como valor",
                         syntax_span(value.span),
                     );
                 }
                 if value.ty.is_vector() {
                     return self.fail(
-                        "pors.vector-value",
+                        "ferro.vector-value",
                         "Um vetor precisa ser acessado por índice antes de ser escrito",
                         syntax_span(value.span),
                     );
                 }
                 if matches!(value.ty, hir::Type::Record(_) | hir::Type::Enum(_)) {
-                    return self.fail("pors.compound-value", "Registro ou enum precisa ser acessado por campos ou escolha antes de ser escrito", syntax_span(value.span));
+                    return self.fail("ferro.compound-value", "Registro ou enum precisa ser acessado por campos ou escolha antes de ser escrito", syntax_span(value.span));
                 }
                 values.push(value);
                 if !self.eat(&Kind::Comma) {
@@ -708,7 +708,7 @@ impl Parser {
         let end = self.expect(Kind::Semicolon, "Esperado `;` após retorne")?;
         if !self.in_function {
             return self.fail(
-                "pors.return-outside-function",
+                "ferro.return-outside-function",
                 "`retorne` só pode ser usado dentro de uma função",
                 start,
             );
@@ -717,21 +717,21 @@ impl Parser {
             (Some(expected), Some(actual)) if expected == actual.ty => {}
             (Some(_), Some(actual)) => {
                 return self.fail(
-                    "pors.return-type-mismatch",
+                    "ferro.return-type-mismatch",
                     "O valor retornado não corresponde ao tipo da função",
                     syntax_span(actual.span),
                 );
             }
             (Some(_), None) => {
                 return self.fail(
-                    "pors.return-value-required",
+                    "ferro.return-value-required",
                     "Esta função precisa retornar um valor",
                     start,
                 );
             }
             (None, Some(actual)) => {
                 return self.fail(
-                    "pors.unexpected-return-value",
+                    "ferro.unexpected-return-value",
                     "Esta função não declara tipo de retorno",
                     syntax_span(actual.span),
                 );
@@ -750,21 +750,21 @@ impl Parser {
         let (name, name_span) = self.identifier()?;
         let symbol = self.lookup(&name).ok_or_else(|| {
             vec![Diagnostic::error(
-                "pors.unknown-name",
+                "ferro.unknown-name",
                 format!("A variável `{name}` não foi declarada"),
                 name_span,
             )]
         })?;
         if symbol.ty.is_vector() {
             return self.fail(
-                "pors.read-vector-unsupported",
+                "ferro.read-vector-unsupported",
                 "A entrada direta de um vetor ainda não é suportada; leia cada elemento por índice",
                 name_span,
             );
         }
         if symbol.mutability != hir::Mutability::Mutable {
             return self.fail(
-                "pors.immutable-assignment",
+                "ferro.immutable-assignment",
                 format!("A variável `{name}` é imutável e não pode receber entrada"),
                 name_span,
             );
@@ -786,21 +786,21 @@ impl Parser {
         let (name, name_span) = self.identifier()?;
         let symbol = self.lookup(&name).ok_or_else(|| {
             vec![Diagnostic::error(
-                "pors.unknown-name",
+                "ferro.unknown-name",
                 format!("Nome não declarado: {name}"),
                 name_span,
             )]
         })?;
         let Some(element_type) = symbol.ty.vector_element() else {
             return self.fail(
-                "pors.vector-operation-type",
+                "ferro.vector-operation-type",
                 format!("`adicionar` espera um vetor, mas `{name}` não é um vetor"),
                 name_span,
             );
         };
         if symbol.mutability != hir::Mutability::Mutable {
             return self.fail(
-                "pors.immutable-assignment",
+                "ferro.immutable-assignment",
                 format!("`{name}` é imutável; declare com `seja mutavel` para adicionar elementos"),
                 name_span,
             );
@@ -812,7 +812,7 @@ impl Parser {
         let value = self.expression_with_expected(0, Some(element_type))?;
         if value.ty != element_type {
             return self.fail(
-                "pors.vector-element-type",
+                "ferro.vector-element-type",
                 "O valor adicionado não corresponde ao tipo dos elementos do vetor",
                 syntax_span(value.span),
             );
@@ -834,21 +834,21 @@ impl Parser {
         let (name, name_span) = self.identifier()?;
         let symbol = self.lookup(&name).ok_or_else(|| {
             vec![Diagnostic::error(
-                "pors.unknown-name",
+                "ferro.unknown-name",
                 format!("Nome não declarado: {name}"),
                 name_span,
             )]
         })?;
         if !symbol.ty.is_vector() {
             return self.fail(
-                "pors.vector-operation-type",
+                "ferro.vector-operation-type",
                 format!("`remover` espera um vetor, mas `{name}` não é um vetor"),
                 name_span,
             );
         }
         if symbol.mutability != hir::Mutability::Mutable {
             return self.fail(
-                "pors.immutable-assignment",
+                "ferro.immutable-assignment",
                 format!("`{name}` é imutável; declare com `seja mutavel` para remover elementos"),
                 name_span,
             );
@@ -867,7 +867,7 @@ impl Parser {
         let value = self.expression(0)?;
         let hir::Type::Enum(type_id) = value.ty else {
             return self.fail(
-                "pors.choose-type",
+                "ferro.choose-type",
                 "`escolha` exige um valor enum",
                 syntax_span(value.span),
             );
@@ -887,7 +887,7 @@ impl Parser {
             self.advance();
             if has_wildcard {
                 return self.fail(
-                    "pors.unreachable-case",
+                    "ferro.unreachable-case",
                     "Este caso é inalcançável após o ramo coringa `_`",
                     arm_start,
                 );
@@ -896,7 +896,7 @@ impl Parser {
             if enum_name == "_" && !matches!(self.current().kind, Kind::ColonColon) {
                 if seen.len() == definition.variants.len() {
                     return self.fail(
-                        "pors.unreachable-case",
+                        "ferro.unreachable-case",
                         "O ramo coringa `_` é inalcançável porque todas as variantes já foram tratadas",
                         enum_span,
                     );
@@ -916,7 +916,7 @@ impl Parser {
             }
             if enum_name != definition.name {
                 return self.fail(
-                    "pors.choose-enum-mismatch",
+                    "ferro.choose-enum-mismatch",
                     format!("Esperada variante de `{}`", definition.name),
                     enum_span,
                 );
@@ -931,7 +931,7 @@ impl Parser {
                 .map(|(index, variant)| (index, variant.clone()))
             else {
                 return self.fail(
-                    "pors.unknown-variant",
+                    "ferro.unknown-variant",
                     format!(
                         "Variante `{variant_name}` não existe em `{}`",
                         definition.name
@@ -941,7 +941,7 @@ impl Parser {
             };
             if seen.insert(variant_index, ()).is_some() {
                 return self.fail(
-                    "pors.duplicate-case",
+                    "ferro.duplicate-case",
                     format!("A variante `{variant_name}` aparece mais de uma vez"),
                     variant_span,
                 );
@@ -960,7 +960,7 @@ impl Parser {
             }
             if payload_names.len() != variant.payload_types.len() {
                 return self.fail(
-                    "pors.case-payload-arity",
+                    "ferro.case-payload-arity",
                     format!(
                         "A variante `{variant_name}` exige {} binding(s) de payload",
                         variant.payload_types.len()
@@ -978,7 +978,7 @@ impl Parser {
                 if self.scopes.last().unwrap().contains_key(&name) || is_reserved(&name) {
                     self.scopes.pop();
                     return self.fail(
-                        "pors.redeclared",
+                        "ferro.redeclared",
                         format!("Binding de payload inválido: `{name}`"),
                         name_span,
                     );
@@ -1017,7 +1017,7 @@ impl Parser {
                 (0..definition.variants.len()).find(|index| !seen.contains_key(index))
         {
             return self.fail(
-                "pors.non-exhaustive-choice",
+                "ferro.non-exhaustive-choice",
                 format!(
                     "A variante `{}` não foi contemplada",
                     definition.variants[missing].name
@@ -1038,7 +1038,7 @@ impl Parser {
         self.expect(Kind::RParen, "Esperado `)` após condição")?;
         if condition.ty != hir::Type::Boolean {
             return self.fail(
-                "pors.condition-type",
+                "ferro.condition-type",
                 "A condição de se deve ser logica",
                 syntax_span(condition.span),
             );
@@ -1075,7 +1075,7 @@ impl Parser {
         };
         if self.loop_depth == 0 {
             return self.fail(
-                "pors.loop-control-outside-loop",
+                "ferro.loop-control-outside-loop",
                 format!("`{keyword}` só pode ser usado dentro de enquanto, faca-enquanto ou para"),
                 token.span,
             );
@@ -1099,7 +1099,7 @@ impl Parser {
         self.expect(Kind::RParen, "Esperado `)` após condição")?;
         if condition.ty != hir::Type::Boolean {
             return self.fail(
-                "pors.condition-type",
+                "ferro.condition-type",
                 "A condição de enquanto deve ser logica",
                 syntax_span(condition.span),
             );
@@ -1118,7 +1118,7 @@ impl Parser {
         self.expect(Kind::RParen, "Esperado `)` após condição")?;
         if condition.ty != hir::Type::Boolean {
             return self.fail(
-                "pors.condition-type",
+                "ferro.condition-type",
                 "A condição de enquanto deve ser logica",
                 syntax_span(condition.span),
             );
@@ -1144,7 +1144,7 @@ impl Parser {
         };
         if !matches!(control.ty, hir::Type::Integer | hir::Type::Real) {
             return self.fail(
-                "pors.for-control-type",
+                "ferro.for-control-type",
                 "O controle de para deve ter tipo inteiro ou real",
                 syntax_span(control.span),
             );
@@ -1153,7 +1153,7 @@ impl Parser {
         let condition = self.expression(0)?;
         if condition.ty != hir::Type::Boolean {
             return self.fail(
-                "pors.condition-type",
+                "ferro.condition-type",
                 "A condição de para deve ser logica",
                 syntax_span(condition.span),
             );
@@ -1166,14 +1166,14 @@ impl Parser {
         };
         if step_binding != control.id {
             return self.fail(
-                "pors.for-step-binding",
+                "ferro.for-step-binding",
                 "A atualização de para deve alterar a variável declarada no inicializador",
                 syntax_span(step.span),
             );
         }
         if step_op == hir::AssignOp::Set {
             return self.fail(
-                "pors.for-step-operator",
+                "ferro.for-step-operator",
                 "Use um operador composto para atualizar o controle de para (por exemplo, `+= 1`)",
                 syntax_span(step.span),
             );

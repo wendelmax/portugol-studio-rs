@@ -18,7 +18,7 @@ pub const BOLD: u8 = 2;
 pub const UNDERLINE: u8 = 4;
 
 /// Nome da família embutida, como a janela gráfica a registra.
-pub const BUILTIN_FAMILY: &str = "PortugolSans";
+pub const BUILTIN_FAMILY: &str = "FerroSans";
 
 static BUILTIN: [(&[u8], u8); 4] = [
     (

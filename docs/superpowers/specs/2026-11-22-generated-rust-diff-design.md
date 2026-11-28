@@ -2,7 +2,7 @@
 
 ## Intenção
 
-Ao editar Portugol em modo Bridge, a pessoa precisa entender o que mudou na tradução. A prévia atual mostra apenas a versão mais recente e descarta visualmente o conteúdo anterior.
+Ao editar Ferro em modo Bridge, a pessoa precisa entender o que mudou na tradução. A prévia atual mostra apenas a versão mais recente e descarta visualmente o conteúdo anterior.
 
 ## Objetivos
 

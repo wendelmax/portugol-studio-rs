@@ -9,7 +9,7 @@
 5. **BDD feature tests**: arquivos `.feature` fornecidos são critérios; ligar steps ao runner existente ou escolher runner mediante ADR.
 6. **E2E desktop Tauri**: usar infraestrutura do projeto; testar WebView/plataformas suportadas. Testes browser-only não substituem IPC real.
 7. **Visual regression**: screenshots por viewport e tema, com baseline revisado; nunca aceitar diffs automaticamente.
-8. **Compatibilidade**: corpus de códigos do Portugol antigo e regressões de formatos.
+8. **Compatibilidade**: corpus de códigos do Ferro antigo e regressões de formatos.
 9. **Segurança**: path traversal, cancelamento, timeout, flooding stdout, build com permissões mínimas.
 10. **Acessibilidade**: teclado, foco, nomeação e contraste verificáveis.
 

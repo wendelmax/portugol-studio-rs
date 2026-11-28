@@ -64,7 +64,7 @@ test("closing or editing a tab while its check is pending prevents progress writ
   assert.equal(outcome.current, false);
   assert.equal(outcome.progress.recorded, false);
   assert.equal(progress.hasPassed("exercise:4"), false);
-  assert.equal(storage.getItem("portugol.exercise-progress.v1"), null);
+  assert.equal(storage.getItem("ferro.exercise-progress.v1"), null);
 });
 
 test("newer evaluation of the same exercise prevents an older result from replacing progress", async () => {

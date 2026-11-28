@@ -1,6 +1,6 @@
 //! Vínculos `{dados.campo}` de uma tela (ADR 0018, nível 3 e Fase 4).
 //!
-//! A sintaxe é conferida pelo `portugol-tela`; aqui fica o que depende do
+//! A sintaxe é conferida pelo `ferro-tela`; aqui fica o que depende do
 //! code-behind: o campo existe no registro de `Dados` e tem o tipo do
 //! atributo, os `<DadosExemplo>` combinam com o registro e o código não
 //! atribui a uma propriedade que a marcação vincula (a tela tem uma única

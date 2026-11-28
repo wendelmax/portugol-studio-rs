@@ -53,9 +53,9 @@ export function isCurrentExerciseTestRequest(
 
 export function exerciseTestStatus(
   state: ExerciseTestPanelState,
-  language?: "portugol-rs",
+  language?: "ferro-rust",
 ): string {
-  const tag = language === "portugol-rs" ? " (.fer)" : "";
+  const tag = language === "ferro-rust" ? " (.fer)" : "";
   switch (state.kind) {
     case "empty": return "Nenhum teste configurado para este arquivo.";
     case "no-cases": return "Este exercício não possui casos de execução configurados.";

@@ -11,65 +11,65 @@ use crate::{
 
 use expr::push_expr;
 use runtime::{
-    PORS_ARQUIVOS_RUNTIME, PORS_CALENDARIO_RUNTIME, PORS_CLOCK_RUNTIME, PORS_INTERNET_RUNTIME,
-    PORS_JSON_RUNTIME, PORS_MATEMATICA_RUNTIME, PORS_TEXTO_RUNTIME, PORS_TIPOS_RUNTIME,
-    PORS_UI_RUNTIME, PORS_UTIL_RUNTIME,
+    FERRO_ARQUIVOS_RUNTIME, FERRO_CALENDARIO_RUNTIME, FERRO_CLOCK_RUNTIME, FERRO_INTERNET_RUNTIME,
+    FERRO_JSON_RUNTIME, FERRO_MATEMATICA_RUNTIME, FERRO_TEXTO_RUNTIME, FERRO_TIPOS_RUNTIME,
+    FERRO_UI_RUNTIME, FERRO_UTIL_RUNTIME,
 };
 use stmt::render_statements;
 use types::{
-    binding_info, mvu_entry_update_arity, pors_clone_value, program_uses_host_module,
+    binding_info, ferro_clone_value, mvu_entry_update_arity, program_uses_host_module,
     rust_enum_type_name, rust_enum_variant_path, rust_type,
 };
 
-pub(crate) fn render_pors_with_map(program: &Program) -> GeneratedRust {
+pub(crate) fn render_ferro_with_map(program: &Program) -> GeneratedRust {
     render(program, true)
 }
 
-fn render(program: &Program, pors: bool) -> GeneratedRust {
-    let uses_ui = pors && program_uses_host_module(program, "UI");
-    let uses_matematica = pors && program_uses_host_module(program, "Matematica");
-    let uses_texto = pors && program_uses_host_module(program, "Texto");
-    let uses_tipos = pors && program_uses_host_module(program, "Tipos");
-    let uses_util = pors && program_uses_host_module(program, "Util");
-    let uses_calendario = pors && program_uses_host_module(program, "Calendario");
-    let uses_arquivos = pors && program_uses_host_module(program, "Arquivos");
-    let uses_json = pors && program_uses_host_module(program, "Json");
-    let uses_internet = pors && program_uses_host_module(program, "Internet");
-    let mvu_update_arity = if pors && program.body.is_empty() {
+fn render(program: &Program, ferro: bool) -> GeneratedRust {
+    let uses_ui = ferro && program_uses_host_module(program, "UI");
+    let uses_matematica = ferro && program_uses_host_module(program, "Matematica");
+    let uses_texto = ferro && program_uses_host_module(program, "Texto");
+    let uses_tipos = ferro && program_uses_host_module(program, "Tipos");
+    let uses_util = ferro && program_uses_host_module(program, "Util");
+    let uses_calendario = ferro && program_uses_host_module(program, "Calendario");
+    let uses_arquivos = ferro && program_uses_host_module(program, "Arquivos");
+    let uses_json = ferro && program_uses_host_module(program, "Json");
+    let uses_internet = ferro && program_uses_host_module(program, "Internet");
+    let mvu_update_arity = if ferro && program.body.is_empty() {
         mvu_entry_update_arity(program)
     } else {
         None
     };
     let mut output = String::new();
     if uses_ui || mvu_update_arity.is_some() {
-        output.push_str(PORS_UI_RUNTIME);
+        output.push_str(FERRO_UI_RUNTIME);
     }
     if uses_matematica {
-        output.push_str(PORS_MATEMATICA_RUNTIME);
+        output.push_str(FERRO_MATEMATICA_RUNTIME);
     }
     if uses_texto {
-        output.push_str(PORS_TEXTO_RUNTIME);
+        output.push_str(FERRO_TEXTO_RUNTIME);
     }
     if uses_tipos {
-        output.push_str(PORS_TIPOS_RUNTIME);
+        output.push_str(FERRO_TIPOS_RUNTIME);
     }
     if uses_util || uses_calendario {
-        output.push_str(PORS_CLOCK_RUNTIME);
+        output.push_str(FERRO_CLOCK_RUNTIME);
     }
     if uses_util {
-        output.push_str(PORS_UTIL_RUNTIME);
+        output.push_str(FERRO_UTIL_RUNTIME);
     }
     if uses_calendario {
-        output.push_str(PORS_CALENDARIO_RUNTIME);
+        output.push_str(FERRO_CALENDARIO_RUNTIME);
     }
     if uses_arquivos {
-        output.push_str(PORS_ARQUIVOS_RUNTIME);
+        output.push_str(FERRO_ARQUIVOS_RUNTIME);
     }
     if uses_json {
-        output.push_str(PORS_JSON_RUNTIME);
+        output.push_str(FERRO_JSON_RUNTIME);
     }
     if uses_internet {
-        output.push_str(PORS_INTERNET_RUNTIME);
+        output.push_str(FERRO_INTERNET_RUNTIME);
     }
     for definition in &program.record_types {
         output.push_str(&format!(
@@ -84,7 +84,7 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
             ));
         }
         output.push_str("}\n");
-        if pors {
+        if ferro {
             output.push_str(&format!(
                 "fn __ferro_clone_{}(value: &{}) -> {} {{ {} {{\n",
                 definition.id.0,
@@ -145,7 +145,7 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
             }
             output.push_str("}\n");
         }
-        if pors {
+        if ferro {
             let enum_ty = rust_enum_type_name(definition, program);
             output.push_str(&format!(
                 "fn __ferro_clone_enum_{}(value: &{enum_ty}) -> {enum_ty} {{ match value {{\n",
@@ -164,7 +164,7 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
                         .payload_types
                         .iter()
                         .zip(&bindings)
-                        .map(|(ty, binding)| pors_clone_value(*ty, binding, program))
+                        .map(|(ty, binding)| ferro_clone_value(*ty, binding, program))
                         .collect::<Vec<_>>()
                         .join(", ");
                     output.push_str(&format!(
@@ -213,7 +213,7 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
             1,
             &mut output,
             &mut mappings,
-            pors,
+            ferro,
             None,
         );
         if let Some(tail) = &function.tail_expression {
@@ -224,7 +224,7 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
                 tail,
                 &function_program,
                 true,
-                pors,
+                ferro,
             );
             output.push_str(";\n");
         }
@@ -251,7 +251,7 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
             1,
             &mut output,
             &mut mappings,
-            pors,
+            ferro,
             None,
         );
     }
@@ -283,7 +283,7 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
             quality: SourceMapQuality::GeneratedOnly,
         });
     }
-    let prelude = render_shared_runtime(&output, pors);
+    let prelude = render_shared_runtime(&output, ferro);
     let prelude_len = prelude.len() as u32;
     for mapping in &mut mappings {
         mapping.generated.start += prelude_len;
@@ -306,7 +306,7 @@ fn render(program: &Program, pors: bool) -> GeneratedRust {
     }
 }
 
-fn render_shared_runtime(code: &str, pors: bool) -> String {
+fn render_shared_runtime(code: &str, ferro: bool) -> String {
     let uses_read_line = code.contains("__ferro_read_line(");
     let uses_parse = code.contains("__ferro_parse::<");
     let uses_java_double = code.contains("__ferro_java_double(");
@@ -335,32 +335,32 @@ fn render_shared_runtime(code: &str, pors: bool) -> String {
         output.push_str(JAVA_DOUBLE_HELPER);
         output.push_str("\n\n");
     }
-    if pors && uses_account {
+    if ferro && uses_account {
         output.push_str(
             "thread_local! {\n    static __FERRO_STRING_BYTES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };\n}\nfn __ferro_account(len: usize) {\n    __FERRO_STRING_BYTES.with(|used| {\n        let next = used.get().saturating_add(len);\n        if next > 16 * 1024 * 1024 {\n            std::process::exit(78);\n        }\n        used.set(next);\n    });\n}\n\n",
         );
     }
-    if pors && uses_string {
+    if ferro && uses_string {
         output.push_str(
             "fn __ferro_string(value: &str) -> String {\n    __ferro_account(value.len());\n    value.to_owned()\n}\n\n",
         );
     }
-    if pors && uses_vec_string_clone {
+    if ferro && uses_vec_string_clone {
         output.push_str(
             "fn __ferro_vec_string_clone(value: &[String]) -> Vec<String> {\n    value.iter().map(|item| __ferro_string(item)).collect()\n}\n\n",
         );
     }
-    if pors && uses_index {
+    if ferro && uses_index {
         output.push_str(
             "fn __ferro_index(index: i32, len: usize) -> usize {\n    if index < 0 || index as usize >= len {\n        eprintln!(\"Erro de execução: índice de vetor fora do intervalo ({index}).\");\n        std::process::exit(1);\n    }\n    index as usize\n}\n\n",
         );
     }
-    if pors && uses_char {
+    if ferro && uses_char {
         output.push_str(
             "fn __ferro_char(value: char) -> String {\n    __ferro_account(value.len_utf8());\n    value.to_string()\n}\n\n",
         );
     }
-    if pors && uses_concat {
+    if ferro && uses_concat {
         output.push_str(
             "fn __ferro_concat(left: &str, right: &str) -> String {\n    let len = left.len().saturating_add(right.len());\n    __ferro_account(len);\n    let mut value = String::with_capacity(len);\n    value.push_str(left);\n    value.push_str(right);\n    value\n}\n\n",
         );

@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Sem novo framework, serviço Tauri, dependência ou mudança de CSS.
-- Manter compatibilidade com `portugol.pane-layout.v1` e limites em `pane-layout.ts`.
+- Manter compatibilidade com `ferro.pane-layout.v1` e limites em `pane-layout.ts`.
 - A preferência deve seguir a aba ativa, sem alterar editor, execução ou modo de aprendizagem.
 
 ## Review Focus
@@ -29,7 +29,7 @@
 **Files:** `apps/desktop/src/pane-layout.ts`, `apps/desktop/tests/pane-layout.test.mjs`.
 
 - [ ] Test-first: provar persistência independente, fallback global, chave legado standalone, valor inválido e erro de storage.
-- [ ] Adicionar parâmetro opcional `preferenceKey` a `loadPaneLayout` e `savePaneLayout`, com chave `portugol.pane-layout.v1.workspace.${encodeURIComponent(preferenceKey)}`.
+- [ ] Adicionar parâmetro opcional `preferenceKey` a `loadPaneLayout` e `savePaneLayout`, com chave `ferro.pane-layout.v1.workspace.${encodeURIComponent(preferenceKey)}`.
 - [ ] Rodar `node --experimental-strip-types --test tests/pane-layout.test.mjs` e confirmar sucesso.
 
 ### Task 2: Integração com abas e resize

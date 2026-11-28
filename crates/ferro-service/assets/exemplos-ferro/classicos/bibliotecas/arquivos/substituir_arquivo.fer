@@ -1,0 +1,72 @@
+/*
+ * Copyright (C) 2018 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ * 	Exemplo de como substituir texto dentro de um arquivo por outro utilizando
+ * 	"Arquivos.ler_texto", "Texto.substituir" e "Arquivos.escrever_texto".
+ *
+ * Autores:
+ *
+ * 	Adson Marques da Silva Esteves (shinadson@gmail.com)
+ *
+ * Data: 30/01/2018
+ * Adaptado para Ferro (.fer)
+ */
+
+funcao substituir_primeira(texto: cadeia, busca: cadeia, troca: cadeia) -> Resultado < cadeia, cadeia > {
+    escolha Texto.posicao_texto(busca, texto, 0) {
+        caso Opcao::Algum(pos) => {
+            seja tam_busca: inteiro = Texto.numero_caracteres(busca);
+            seja tam_total: inteiro = Texto.numero_caracteres(texto);
+            seja antes: cadeia = Texto.extrair_subtexto(texto, 0, pos)?;
+            seja depois: cadeia = Texto.extrair_subtexto(texto, pos + tam_busca, tam_total)?;
+            retorne Resultado::Ok(antes + troca + depois);
+        }
+        caso Opcao::Nenhum => {
+            retorne Resultado::Ok(texto);
+        }
+    }
+}
+
+funcao executar_substituicao(caminho: cadeia) -> Resultado < logico, cadeia > {
+    // Primeiro escreve um arquivo de texto de exemplo
+    seja texto_inicial: cadeia = "O ferro é uma IDE muito maneira\n"
+    + "O ferro contém vários exemplos interessantes\n"
+    + "O ferro é realizado no LITE\n";
+    seja _w1: logico = Arquivos.escrever_texto(caminho, texto_inicial)?;
+
+    // Lê e exibe o texto original
+    seja original: cadeia = Arquivos.ler_texto(caminho)?;
+    escreval("\nTexto original:");
+    escreva(original);
+
+    // Substitui todas as ocorrências de "ferro" por "Ferro Studio"
+    seja passo1: cadeia = Texto.substituir(original, "ferro", "Ferro Studio");
+
+    // Substitui apenas a primeira ocorrência de "é" por "retrata"
+    seja modificado: cadeia = substituir_primeira(passo1, "é", "retrata")?;
+
+    // Salva o texto modificado no arquivo
+    seja _w2: logico = Arquivos.escrever_texto(caminho, modificado)?;
+
+    // Lê novamente e exibe o resultado final
+    seja final_lido: cadeia = Arquivos.ler_texto(caminho)?;
+    escreval("\nTexto modificado:");
+    escreva(final_lido);
+
+    retorne Resultado::Ok(verdadeiro);
+}
+
+funcao inicio() {
+    escolha executar_substituicao("dummyText.txt") {
+        caso Resultado::Ok(_) => {}
+        caso Resultado::Erro(erro) => {
+            escreval("Erro ao processar arquivo: ", erro);
+        }
+    }
+}

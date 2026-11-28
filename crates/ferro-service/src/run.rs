@@ -25,9 +25,9 @@ use crate::{DiagnosticInfo, describe};
 const FLUSH_INTERVAL: Duration = Duration::from_millis(30);
 /// Acima disso o lote é entregue na hora, sem esperar o intervalo.
 const MAX_BUFFER: usize = 64 * 1024;
-const PORS_DEBUG_RUNTIME_LIMIT: Duration = Duration::from_secs(3);
-const PORS_DEBUG_OUTPUT_LIMIT: usize = 1_048_576;
-const PORS_DEBUG_STRING_LIMIT: usize = 16 * 1024 * 1024;
+const FERRO_DEBUG_RUNTIME_LIMIT: Duration = Duration::from_secs(3);
+const FERRO_DEBUG_OUTPUT_LIMIT: usize = 1_048_576;
+const FERRO_DEBUG_STRING_LIMIT: usize = 16 * 1024 * 1024;
 
 /// Variável exposta no inspetor, já com posições para a interface.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -213,13 +213,13 @@ impl RunHandle {
 
 /// Lower, compila e inicia uma sessão de depuração Ferro na VM.
 /// A execução normal do dialeto continua usando o backend Rust (`rustc`).
-pub fn start_portugol_rs(
+pub fn start_ferro_rs(
     source: &str,
     options: RunOptions,
     observer: Arc<dyn RunObserver>,
 ) -> Result<RunHandle, Vec<DiagnosticInfo>> {
     let host_observer = Arc::clone(&observer);
-    start_portugol_rs_with_host(source, options, observer, move |_| {
+    start_ferro_rs_with_host(source, options, observer, move |_| {
         Box::new(ServiceHost {
             observer: host_observer,
         })
@@ -227,7 +227,7 @@ pub fn start_portugol_rs(
 }
 
 /// Variante com host próprio para manter a integração gráfica/arquivos da IDE.
-pub fn start_portugol_rs_with_host(
+pub fn start_ferro_rs_with_host(
     source: &str,
     options: RunOptions,
     observer: Arc<dyn RunObserver>,
@@ -240,18 +240,18 @@ pub fn start_portugol_rs_with_host(
             .map(|diagnostic| describe(&index, diagnostic))
             .collect::<Vec<_>>()
     })?;
-    let module = ferro_bytecode::compile_pors(&program).map_err(|error| {
+    let module = ferro_bytecode::compile_ferro(&program).map_err(|error| {
         let span = Span {
             start: error.span.start,
             end: error.span.end,
         };
-        let diagnostic = Diagnostic::error("pors.debug-compile", error.message, span);
+        let diagnostic = Diagnostic::error("ferro.debug-compile", error.message, span);
         vec![describe(&index, &diagnostic)]
     })?;
     let uses_multimedia = module.natives.iter().any(|native| {
         matches!(
             native.library.as_str(),
-            "PorsGraficos" | "PorsTeclado" | "PorsMouse" | "PorsSons"
+            "FerroGraficos" | "FerroTeclado" | "FerroMouse" | "FerroSons"
         )
     });
     start_module(
@@ -261,9 +261,9 @@ pub fn start_portugol_rs_with_host(
         make_host,
         module,
         Some(VmLimits {
-            runtime: (!uses_multimedia).then_some(PORS_DEBUG_RUNTIME_LIMIT),
-            output_bytes: PORS_DEBUG_OUTPUT_LIMIT,
-            string_bytes: PORS_DEBUG_STRING_LIMIT,
+            runtime: (!uses_multimedia).then_some(FERRO_DEBUG_RUNTIME_LIMIT),
+            output_bytes: FERRO_DEBUG_OUTPUT_LIMIT,
+            string_bytes: FERRO_DEBUG_STRING_LIMIT,
         }),
     )
 }

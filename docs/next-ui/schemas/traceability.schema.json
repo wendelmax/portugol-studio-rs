@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Portugol Studio Next Traceability Matrix",
+  "title": "Ferro Studio Next Traceability Matrix",
   "type": "object",
   "required": [
     "schemaVersion",

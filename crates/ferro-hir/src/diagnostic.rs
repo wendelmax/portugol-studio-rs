@@ -22,7 +22,7 @@ impl fmt::Display for Severity {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Diagnostic {
     pub severity: Severity,
-    /// Código estável, útil para testes e para a UI (ex.: `pors.expected-token`).
+    /// Código estável, útil para testes e para a UI (ex.: `ferro.expected-token`).
     pub code: &'static str,
     pub message: String,
     pub span: Span,

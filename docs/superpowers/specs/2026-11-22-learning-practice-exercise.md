@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Permitir iniciar uma prática real a partir do inspetor Aprender quando o catálogo possui um exercício Portugol explicitamente relacionado ao conceito.
+Permitir iniciar uma prática real a partir do inspetor Aprender quando o catálogo possui um exercício Ferro explicitamente relacionado ao conceito.
 
 ## Comportamento
 

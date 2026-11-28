@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "id": "pors-01-dobro",
+  "id": "ferro-01-dobro",
   "title": "Dobro de um número",
   "statement": "Leia um número inteiro da entrada padrão e escreva o dobro dele.",
   "starter_code": "funcao inicio() {\n    seja mutavel numero: inteiro = leia();\n    escreva(numero);\n}\n",

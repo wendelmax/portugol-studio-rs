@@ -6,7 +6,7 @@
 //! um registro com as propriedades que o code-behind pode ler e mudar
 //! (`Texto` → `texto`, `TextoVazio` → `texto_vazio`).
 //!
-//! Este módulo só descreve os tipos; o frontend PORS os registra antes de
+//! Este módulo só descreve os tipos; o frontend FERRO os registra antes de
 //! analisar o `.fer` da tela. Nada é escrito em disco.
 
 use ferro_hir::{Diagnostic, Span};
@@ -216,7 +216,7 @@ pub fn screen_type(document: &Document) -> (ScreenType, Vec<Diagnostic>) {
     )
 }
 
-/// Opções do frontend PORS para analisar o code-behind de uma tela: os
+/// Opções do frontend FERRO para analisar o code-behind de uma tela: os
 /// registros da tela (controles antes da janela) e sem exigir `inicio`. Com
 /// erro de sintaxe no `.design`, os tipos da tela ficam de fora.
 #[cfg(feature = "frontend")]

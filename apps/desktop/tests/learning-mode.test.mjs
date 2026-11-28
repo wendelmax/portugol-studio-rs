@@ -29,7 +29,7 @@ test("valor desconhecido ou armazenamento indisponível retorna beginner sem lan
 
 test("workspace modes persist independently and fall back to the global legacy preference", async () => {
   const { loadLearningMode, saveLearningMode } = await import(moduleUrl.href);
-  const values = new Map([["portugol.learningMode", "bridge"]]);
+  const values = new Map([["ferro.learningMode", "bridge"]]);
   const storage = {
     getItem: (key) => values.get(key) ?? null,
     setItem: (key, value) => values.set(key, value),
@@ -41,7 +41,7 @@ test("workspace modes persist independently and fall back to the global legacy p
   assert.equal(loadLearningMode(storage, "workspace-a"), "rust");
   assert.equal(loadLearningMode(storage, "workspace-b"), "beginner");
   assert.equal(loadLearningMode(storage), "bridge");
-  assert.equal(values.get("portugol.learningMode.workspace.workspace-a"), "rust");
+  assert.equal(values.get("ferro.learningMode.workspace.workspace-a"), "rust");
 });
 
 test("workspace tabs carry their stable preference key and restore mode on activation", () => {

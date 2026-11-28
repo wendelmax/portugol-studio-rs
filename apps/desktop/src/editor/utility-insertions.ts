@@ -6,8 +6,8 @@ import type { Tab } from "../state/tab";
 type EditorButton = HTMLButtonElement;
 
 export interface UtilityInsertionsDependencies {
-  porsLibraries: readonly string[];
-  porsSnippets: readonly Completion[];
+  ferroLibraries: readonly string[];
+  ferroSnippets: readonly Completion[];
   createButton: () => EditorButton;
   clearLibraryButtons?: () => void;
   clearSnippetButtons?: () => void;
@@ -25,7 +25,7 @@ export interface UtilityInsertionsDependencies {
   utilityPanel: (name: "libraries" | "models") => Pick<HTMLElement, "hidden">;
 }
 
-/** Wires PORS module, snippet, and tab controls for the editor utilities panel. */
+/** Wires FERRO module, snippet, and tab controls for the editor utilities panel. */
 export function createUtilityInsertions(dependencies: UtilityInsertionsDependencies) {
   const libraryButtons = new Map<string, EditorButton>();
 
@@ -34,13 +34,13 @@ export function createUtilityInsertions(dependencies: UtilityInsertionsDependenc
     dependencies.clearLibraryButtons?.();
     dependencies.clearSnippetButtons?.();
 
-    for (const name of dependencies.porsLibraries) {
+    for (const name of dependencies.ferroLibraries) {
       const button = dependencies.createButton();
       button.textContent = name;
       button.title = `Inserir biblioteca Ferro ${name}.`;
       button.onclick = () => {
         const tab = dependencies.activeTab();
-        if (!tab || tab.language !== "portugol-rs" || dependencies.isRunning(tab)) return;
+        if (!tab || tab.language !== "ferro-rust" || dependencies.isRunning(tab)) return;
         if (dependencies.insertText) {
           dependencies.insertText(`${name}.`);
           dependencies.focusEditor();
@@ -53,13 +53,13 @@ export function createUtilityInsertions(dependencies: UtilityInsertionsDependenc
       libraryButtons.set(name, button);
     }
 
-    for (const snippet of dependencies.porsSnippets) {
+    for (const snippet of dependencies.ferroSnippets) {
       const button = dependencies.createButton();
       button.textContent = snippet.label;
       button.title = snippet.detail ?? snippet.label;
       button.onclick = () => {
         const tab = dependencies.activeTab();
-        if (!tab || tab.language !== "portugol-rs" || dependencies.isRunning(tab)) return;
+        if (!tab || tab.language !== "ferro-rust" || dependencies.isRunning(tab)) return;
         if (snippet.label === "programa") {
           dependencies.createProgramTab();
           return;
@@ -86,10 +86,10 @@ export function createUtilityInsertions(dependencies: UtilityInsertionsDependenc
   }
 
   function updateLibraryButtons(_symbols: SymbolInfo[], language: SourceLanguage | undefined) {
-    const porsMode = language === "portugol-rs";
+    const ferroMode = language === "ferro-rust";
     for (const [name, button] of libraryButtons) {
-      button.disabled = !porsMode;
-      button.title = porsMode ? `Inserir biblioteca Ferro ${name}.` : "Bibliotecas Ferro não se aplicam a Rust.";
+      button.disabled = !ferroMode;
+      button.title = ferroMode ? `Inserir biblioteca Ferro ${name}.` : "Bibliotecas Ferro não se aplicam a Rust.";
     }
   }
 

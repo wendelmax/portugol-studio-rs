@@ -30,7 +30,7 @@
 
 - [x] Testar que cada conceito de beginner, bridge e rust tem `whatChanged`, `whyItMatters`, `practice` não vazios; observar falha antes da implementação.
 - [x] Adicionar conteúdo editorial específico aos conceitos existentes.
-- [x] Executar teste focado e conferir a distinção Portugol/Rust em mutabilidade, ownership e borrowing.
+- [x] Executar teste focado e conferir a distinção Ferro/Rust em mutabilidade, ownership e borrowing.
 
 ### Task 2: renderização acessível
 
@@ -39,7 +39,7 @@
 - [x] Testar três regiões nomeadas no cartão e que `main.ts` preenche os conteúdos com `textContent`.
 - [x] Renderizar seções para o conceito resolvido, incluindo contexto mapeado e pin válido sem mudar a proveniência existente.
 - [x] Estilizar hierarquia/espacamento sem fixar altura nem esconder texto no painel estreito.
-- [x] Rodar `npm test` (184/184), `npm run build`, `cargo test -p portugol-service --offline --locked` (57 testes), `cargo fmt --all --check` e `git diff --check`.
+- [x] Rodar `npm test` (184/184), `npm run build`, `cargo test -p ferro-service --offline --locked` (57 testes), `cargo fmt --all --check` e `git diff --check`.
 
 ### Task 3: integração
 

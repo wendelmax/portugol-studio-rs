@@ -1,7 +1,7 @@
 import type { SourceLanguage } from "./document-language";
 
-export type SemanticSymbolLanguage = Extract<SourceLanguage, "portugol-rs">;
+export type SemanticSymbolLanguage = Extract<SourceLanguage, "ferro-rust">;
 
 export function semanticSymbolLanguage(language: SourceLanguage): SemanticSymbolLanguage | null {
-  return language === "portugol-rs" ? language : null;
+  return language === "ferro-rust" ? language : null;
 }

@@ -19,7 +19,7 @@ mod tests {
     impl TempDir {
         fn new() -> Self {
             let path = std::env::temp_dir().join(format!(
-                "portugol-workspace-test-{}-{}",
+                "ferro-workspace-test-{}-{}",
                 std::process::id(),
                 NEXT_DIR.fetch_add(1, Ordering::Relaxed)
             ));
@@ -539,7 +539,7 @@ mod tests {
     }
 
     #[test]
-    fn creates_empty_portugol_rs_and_rust_files_exclusively() {
+    fn creates_empty_ferro_rs_and_rust_files_exclusively() {
         let temp = TempDir::new();
 
         create_source_file(&temp.0, "ponte.fer").unwrap();
@@ -932,10 +932,7 @@ mod tests {
             "programa_123_teste"
         );
         assert_eq!(super::sanitize_cargo_package_name("match"), "match_app");
-        assert_eq!(
-            super::sanitize_cargo_package_name("   "),
-            "programa_portugol"
-        );
+        assert_eq!(super::sanitize_cargo_package_name("   "), "programa_ferro");
     }
 
     #[test]
@@ -1052,7 +1049,7 @@ pub struct WorkspaceListing {
     entries: Vec<WorkspaceEntry>,
 }
 
-/// Projeto criado pelo modelo *Aplicativo Desktop PORS* e já aberto.
+/// Projeto criado pelo modelo *Aplicativo Desktop FERRO* e já aberto.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DesktopProjectCreated {
@@ -2072,7 +2069,7 @@ fn sanitize_cargo_package_name(raw: &str) -> String {
     let trimmed = raw.trim();
     let without_ext = trimmed
         .strip_suffix(".fer")
-        .or_else(|| trimmed.strip_suffix(".PORS"))
+        .or_else(|| trimmed.strip_suffix(".fer"))
         .or_else(|| trimmed.strip_suffix(".rs"))
         .or_else(|| trimmed.strip_suffix(".RS"))
         .unwrap_or(trimmed);
@@ -2095,7 +2092,7 @@ fn sanitize_cargo_package_name(raw: &str) -> String {
         sanitized.pop();
     }
     if sanitized.is_empty() {
-        return "programa_portugol".to_string();
+        return "programa_ferro".to_string();
     }
     if sanitized
         .chars()
@@ -2335,7 +2332,7 @@ pub async fn workspace_open(
     .map_err(|error| format!("Não foi possível abrir a pasta do projeto: {error}"))?
 }
 
-/// Cria um projeto desktop PORS numa pasta escolhida pelo usuário e abre o
+/// Cria um projeto desktop FERRO numa pasta escolhida pelo usuário e abre o
 /// projeto como workspace. Devolve `None` se o usuário cancelar a escolha.
 #[tauri::command]
 pub async fn workspace_create_desktop_project(

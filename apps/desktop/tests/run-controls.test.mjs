@@ -5,7 +5,7 @@ import { createRunControls } from "../src/run/controls.ts";
 function fixture(overrides = {}) {
   const state = { disabled: {}, inputHidden: false, debugVarsHidden: false, inspectorEmptyHidden: true, inspectorText: "" };
   const dependencies = {
-    activeLanguage: () => "portugol-rs",
+    activeLanguage: () => "ferro-rust",
     canRun: () => true,
     canDebug: () => true,
     rustcAvailable: () => true,
@@ -60,7 +60,7 @@ test("stopped run hides input and explains that the inspector needs a pause", ()
   assert.equal(state.inspectorText, "Pause a execução para inspecionar as variáveis.");
 });
 
-test("native rustc execution disables debug pause even on a portugol-rs tab", () => {
+test("native rustc execution disables debug pause even on a ferro-rust tab", () => {
   const { controls, state } = fixture({ canPause: () => false });
 
   controls.setRunning(true);

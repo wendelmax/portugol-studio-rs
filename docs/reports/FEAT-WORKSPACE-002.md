@@ -2,7 +2,7 @@
 
 ## Entregue
 
-- Diálogo acessível para criar Portugol clássico (`.por`) ou Portugol-RS (`.pors`) na raiz do workspace aberto.
+- Diálogo acessível para criar pseudocódigo clássico (`.por`) ou Ferro (`.fer`) na raiz do workspace aberto.
 - O arquivo aparece na árvore e abre em uma nova aba, usando o fluxo de salvamento já existente.
 - Nome vazio, separadores de caminho, extensões incompatíveis, formatos não suportados e colisões são rejeitados.
 - Rust cria exclusivamente; arquivo existente e symlink nunca são truncados nem seguidos.

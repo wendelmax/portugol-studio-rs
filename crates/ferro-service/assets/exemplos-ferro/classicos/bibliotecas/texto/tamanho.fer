@@ -1,0 +1,29 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ * 	Este exemplo demonstra como utilizar a função "numero_caracteres" da biblioteca "Texto"
+ * 	para descobrir o tamanho de um dado do tipo cadeia.
+ *
+ * Autores:
+ *
+ * 	Luiz Fernando Noschang (noschang@univali.br)
+ *
+ * Data: 18/07/2014
+ * Adaptado para Ferro (.fer)
+ */
+
+funcao inicio() {
+    escreva("Digite seu nome: ");
+    seja mutavel nome = leia();
+
+    // Obtém o número de caracteres armazenados na variável
+    seja comprimento: inteiro = Texto.numero_caracteres(nome);
+
+    escreval("Seu nome possui ", comprimento, " caracteres");
+}

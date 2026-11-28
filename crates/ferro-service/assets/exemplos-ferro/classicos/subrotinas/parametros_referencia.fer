@@ -1,0 +1,62 @@
+/* Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ * Adaptado para Ferro (.fer)
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *     Este exemplo ilustra a passagem de parâmetros e o retorno de valores em funções
+ *     no Ferro.
+ *
+ *     No Ferro, todos os parâmetros são passados por valor: a função recebe uma
+ *     cópia do valor original. Mesmo quando o parâmetro é marcado como `mutavel`,
+ *     alterações feitas nele afetam apenas a cópia local e não alteram a variável fora
+ *     da função.
+ *
+ *     Para devolver um novo valor ao chamador (substituindo o antigo parâmetro por
+ *     referência `&` do pseudocódigo clássico), a função retorna explicitamente o valor
+ *     atualizado.
+ *
+ * Autores:
+ *
+ *     Giordana Maria da Costa Valle
+ *     Carlos Alexandre Krueger
+ *
+ * Data: 01/06/2013
+ */
+
+// Sorteia e retorna um novo valor inteiro para atualizar a variável do chamador
+funcao preencher() -> inteiro {
+    escolha Util.sorteia(1, 100) {
+        caso Resultado::Ok(valor) => {
+            retorne valor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne 1;
+        }
+    }
+}
+
+// Exibe o valor recebido por parâmetro (passagem por valor)
+funcao exibe(mutavel v: inteiro) {
+    escreva(v, " ");
+
+    // O valor é alterado apenas na cópia local dentro da função;
+    // fora da função a variável original permanece inalterada.
+    v = 5;
+}
+
+funcao inicio() {
+    // Atualiza a variável recebendo o valor retornado pela função preencher()
+    seja valor: inteiro = preencher();
+
+    escreval("Variável antes:");
+    exibe(valor);
+
+    escreval("\n\nVariável após:");
+    exibe(valor);
+
+    escreval();
+}

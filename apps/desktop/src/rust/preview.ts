@@ -1,4 +1,4 @@
-// Prévia do Rust gerado a partir do Portugol: tradução versionada por aba,
+// Prévia do Rust gerado a partir do Ferro: tradução versionada por aba,
 // editor somente leitura, diferenças entre traduções, gutter de mapeamento
 // entre linhas e as ações copiar, salvar e desvincular.
 
@@ -101,7 +101,7 @@ export function mountRustPreview(host: RustPreviewHost) {
   let rustMappingState: MappingState = "idle";
   let comparisonBasis = 44;
   try {
-    const savedBasis = Number(localStorage.getItem("portugol.rust-comparison-basis"));
+    const savedBasis = Number(localStorage.getItem("ferro.rust-comparison-basis"));
     if (Number.isFinite(savedBasis) && savedBasis >= 25 && savedBasis <= 68) comparisonBasis = savedBasis;
   } catch { /* Preferências indisponíveis não impedem a comparação. */ }
 
@@ -124,7 +124,7 @@ export function mountRustPreview(host: RustPreviewHost) {
     const width = Math.max(1, comparisonSplitter.parentElement?.clientWidth ?? window.innerWidth);
     const move = (event: PointerEvent) => setComparisonBasis(initial - (event.clientX - origin) / width * 100);
     const finish = () => {
-      try { localStorage.setItem("portugol.rust-comparison-basis", String(comparisonBasis)); } catch { /* Ignore storage errors. */ }
+      try { localStorage.setItem("ferro.rust-comparison-basis", String(comparisonBasis)); } catch { /* Ignore storage errors. */ }
       comparisonSplitter.removeEventListener("pointermove", move);
       comparisonSplitter.removeEventListener("pointerup", finish);
       comparisonSplitter.removeEventListener("pointercancel", finish);
@@ -144,7 +144,7 @@ export function mountRustPreview(host: RustPreviewHost) {
     if (next === null) return;
     event.preventDefault();
     setComparisonBasis(next);
-    try { localStorage.setItem("portugol.rust-comparison-basis", String(comparisonBasis)); } catch { /* Ignore storage errors. */ }
+    try { localStorage.setItem("ferro.rust-comparison-basis", String(comparisonBasis)); } catch { /* Ignore storage errors. */ }
   });
 
   function selectComparisonPane(pane: "source" | "generated") {
@@ -188,7 +188,7 @@ export function mountRustPreview(host: RustPreviewHost) {
 
   function scheduleRustExport() {
     const tab = activeTab();
-    if (!tab || tab.language !== "portugol-rs") {
+    if (!tab || tab.language !== "ferro-rust") {
       rustExportGeneration++;
       return;
     }
@@ -201,7 +201,7 @@ export function mountRustPreview(host: RustPreviewHost) {
     rustExportTimer = window.setTimeout(async () => {
       let result: api.RustExport;
       try {
-        result = await api.exportPortugolRs(source);
+        result = await api.exportFerroRust(source);
       } catch (error) {
         if (generation !== rustExportGeneration || activeTab()?.id !== tabId || view.state.doc.toString() !== source) return;
         tab.rustPreview = failRustPreview(tab.rustPreview ?? { pending: false, stale: false }, "Falha ao solicitar a tradução: " + String(error));
@@ -288,7 +288,7 @@ export function mountRustPreview(host: RustPreviewHost) {
     const comparisonTabs = $<HTMLElement>("rust-comparison-tabs");
     const splitter = $<HTMLElement>("rust-comparison-splitter");
     const tab = activeTab();
-    const visible = Boolean(tab && tab.language === "portugol-rs" && host.learningMode() === "bridge" && !preview.hidden);
+    const visible = Boolean(tab && tab.language === "ferro-rust" && host.learningMode() === "bridge" && !preview.hidden);
     gutter.hidden = !visible;
     splitter.hidden = !visible;
     comparisonTabs.hidden = !visible;
@@ -386,7 +386,7 @@ export function mountRustPreview(host: RustPreviewHost) {
     const sourceTab = activeTab();
     const previewState = sourceTab?.rustPreview;
     const artifact = previewState?.artifact;
-    if (!sourceTab || sourceTab.language !== "portugol-rs" || !artifact || previewState.pending || previewState.stale) return;
+    if (!sourceTab || sourceTab.language !== "ferro-rust" || !artifact || previewState.pending || previewState.stale) return;
 
     const snapshot = { tab: sourceTab, document: view.state.doc, artifact };
     const accepted = await ask(
@@ -420,7 +420,7 @@ export function mountRustPreview(host: RustPreviewHost) {
     renderMappingGutter,
     /** Restaura a largura padrão da comparação lado a lado com Rust. */
     resetComparisonBasis() {
-      try { localStorage.removeItem("portugol.rust-comparison-basis"); } catch { /* Ignore storage errors. */ }
+      try { localStorage.removeItem("ferro.rust-comparison-basis"); } catch { /* Ignore storage errors. */ }
       setComparisonBasis(44);
     },
   };

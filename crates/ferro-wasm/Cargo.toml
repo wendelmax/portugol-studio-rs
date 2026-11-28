@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Fachada WebAssembly sem dependências externas para validar, formatar, exportar Rust e executar PORS e sessões MVU de UI"
+description = "Fachada WebAssembly sem dependências externas para validar, formatar, exportar Rust e executar FERRO e sessões MVU de UI"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

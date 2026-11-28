@@ -89,7 +89,7 @@ export interface PaletteContext {
   canRunAsRust: boolean;
   runActive: boolean;
   paused: boolean;
-  porsRunPending: boolean;
+  ferroRunPending: boolean;
 }
 
 export type PaletteLanguage = Exclude<SourceLanguage, null>;
@@ -100,7 +100,7 @@ export interface PaletteContextDependencies {
   rustcAvailable: boolean | null;
   runActive: boolean;
   paused: boolean;
-  porsRunPending: boolean;
+  ferroRunPending: boolean;
   canRunAsRust: (language: PaletteLanguage, rustcAvailable: boolean | null) => boolean;
 }
 
@@ -114,7 +114,7 @@ export function createPaletteContext(dependencies: PaletteContextDependencies): 
     canRunAsRust: tab !== undefined && dependencies.canRunAsRust(tab.language, dependencies.rustcAvailable),
     runActive: dependencies.runActive,
     paused: dependencies.paused,
-    porsRunPending: dependencies.porsRunPending,
+    ferroRunPending: dependencies.ferroRunPending,
   };
 }
 
@@ -123,12 +123,12 @@ export function isPaletteCommandAvailable(command: string, context: PaletteConte
   if (command === "Sobre (fora do editor); ir à declaração (no editor)") return false;
   const hasTab = context.language !== null;
   if (TAB_COMMANDS.has(command) && !hasTab) return false;
-  const idle = !context.runActive && !context.porsRunPending;
+  const idle = !context.runActive && !context.ferroRunPending;
   if (command === "Executar como Rust") return hasTab && context.canRunAsRust && idle;
   if (command === "Analisar projeto Cargo" || command === "Testar projeto Cargo") {
     return context.language === "rust" && context.cargoProject && context.cargoAvailable && idle;
   }
-  if (command === "Parâmetros de execução" && context.language === "portugol-rs") return false;
+  if (command === "Parâmetros de execução" && context.language === "ferro-rust") return false;
   if (context.language === "rust" && RUST_UNSUPPORTED_COMMANDS.has(command)) return false;
   if (context.language === "markup" && MARKUP_UNSUPPORTED_COMMANDS.has(command)) return false;
   if (DEBUG_COMMANDS.has(command) && !isDebugCommandAvailable(command, context.language, context.runActive, context.paused)) {

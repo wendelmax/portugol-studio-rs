@@ -2,7 +2,7 @@
 
 > **For agentic workers:** execute the steps in order and keep each change testable.
 
-**Goal:** Create a blank `.por` or `.pors` at the opened workspace root and open it in the existing editor.
+**Goal:** Create a blank `.por` or `.fer` at the opened workspace root and open it in the existing editor.
 
 **Architecture:** Keep the existing Tauri workspace boundary. Normalize the displayed filename in the frontend; independently validate and exclusively create it in Rust, then return the refreshed listing to the existing explorer state.
 
@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- `.por` is Portugol classic; `.pors` is Portugol-RS.
+- `.por` is Ferro classic; `.fer` is Ferro.
 - Workspace I/O stays scoped by workspace ID and relative path.
 - Never overwrite an existing file or follow symlinks.
 - Preserve current tabs, dirty buffers, keyboard access, and native individual-file flows.
@@ -31,7 +31,7 @@
 
 **Files:** `apps/desktop/src/workspace-explorer.ts`, `apps/desktop/tests/workspace-explorer.test.mjs`
 
-- [x] Add tests for appended `.por`/`.pors`, matching extension, conflicting extension, empty name, and path separator.
+- [x] Add tests for appended `.por`/`.fer`, matching extension, conflicting extension, empty name, and path separator.
 - [x] Run the targeted test and confirm failure because the helper is absent.
 - [x] Add `workspaceSourceFileName(name, language)` returning a filename or a Portuguese validation error.
 - [x] Run the targeted test and full `npm test`.
@@ -40,7 +40,7 @@
 
 **Files:** `apps/desktop/src-tauri/src/workspace.rs`, `apps/desktop/src-tauri/src/lib.rs`
 
-- [x] Add unit tests for `.por`/`.pors` creation, invalid names/extensions, collisions preserving bytes, and symlink collisions preserving target bytes.
+- [x] Add unit tests for `.por`/`.fer` creation, invalid names/extensions, collisions preserving bytes, and symlink collisions preserving target bytes.
 - [x] Attempt the workspace module tests locally; record the missing WebKitGTK 4.1 and use CI as the first executable Rust validation.
 - [x] Add exclusive root-only creation and `workspace_create_file`, returning an updated `WorkspaceListing`.
 - [x] Register the command; formatting passed locally and desktop tests/Clippy passed in cross-platform CI.

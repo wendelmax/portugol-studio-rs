@@ -27,11 +27,11 @@ pub(super) fn can_start_expression(kind: &Kind) -> bool {
 pub(super) fn is_recoverable_syntax(code: &str) -> bool {
     matches!(
         code,
-        "pors.expected-expression"
-            | "pors.expected-identifier"
-            | "pors.expected-keyword"
-            | "pors.expected-statement"
-            | "pors.unexpected-token"
+        "ferro.expected-expression"
+            | "ferro.expected-identifier"
+            | "ferro.expected-keyword"
+            | "ferro.expected-statement"
+            | "ferro.unexpected-token"
     )
 }
 

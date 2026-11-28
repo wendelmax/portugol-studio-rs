@@ -3,7 +3,7 @@ name = "ferro-rust"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Lowering didático de Ferro (.pors) para Rust"
+description = "Lowering didático de Ferro (.fer) para Rust"
 
 [dependencies]
 

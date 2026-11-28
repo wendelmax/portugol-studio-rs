@@ -9,11 +9,11 @@ use std::process::ExitCode;
 
 use ferro_hir::{Diagnostic, Severity};
 
-const PORS_STARTER: &str = "funcao inicio() {\n    seja mutavel idade: inteiro = 16;\n    idade += 1;\n    escreva(idade);\n}\n";
+const FERRO_STARTER: &str = "funcao inicio() {\n    seja mutavel idade: inteiro = 16;\n    idade += 1;\n    escreva(idade);\n}\n";
 
 use ferro_formatos::Kind;
 
-pub(crate) fn is_pors_file(path: &Path) -> bool {
+pub(crate) fn is_ferro_file(path: &Path) -> bool {
     ferro_formatos::kind_of(path, &[Kind::Source]).is_some()
 }
 
@@ -67,7 +67,7 @@ fn main() -> ExitCode {
 
     let mut files = Vec::new();
     for path in paths {
-        if !path.is_dir() && !is_pors_file(&path) && !desktop::is_markup_file(&path) {
+        if !path.is_dir() && !is_ferro_file(&path) && !desktop::is_markup_file(&path) {
             report_unsupported_extension(&path);
             return ExitCode::FAILURE;
         }
@@ -158,7 +158,7 @@ fn new_command(args: &[String]) -> ExitCode {
     }
     if args.len() != 1 || args[0] == "-h" || args[0] == "--help" {
         eprintln!(
-            "uso: portugol novo <arquivo.fer>\n     portugol novo --desktop <pasta> [--nome \"Nome do aplicativo\"]"
+            "uso: ferro novo <arquivo.fer>\n     ferro novo --desktop <pasta> [--nome \"Nome do aplicativo\"]"
         );
         return ExitCode::FAILURE;
     }
@@ -166,7 +166,7 @@ fn new_command(args: &[String]) -> ExitCode {
     if path.extension().is_none() {
         path.set_extension(ferro_formatos::extension(Kind::Source));
     }
-    if !is_pors_file(&path) {
+    if !is_ferro_file(&path) {
         eprintln!(
             "{}: o comando `novo` cria apenas arquivos {}",
             path.display(),
@@ -185,7 +185,7 @@ fn new_command(args: &[String]) -> ExitCode {
         eprintln!("{}: não foi possível criar pasta: {error}", path.display());
         return ExitCode::FAILURE;
     }
-    match fs::write(&path, PORS_STARTER) {
+    match fs::write(&path, FERRO_STARTER) {
         Ok(()) => {
             println!("{}: criado", path.display());
             ExitCode::SUCCESS
@@ -211,7 +211,7 @@ fn format_command(args: &[String]) -> ExitCode {
         }
     }
     let Some(file) = file else {
-        eprintln!("uso: portugol formatar [--check] <arquivo.fer | .design | .ferproj>");
+        eprintln!("uso: ferro formatar [--check] <arquivo.fer | .design | .ferproj>");
         return ExitCode::FAILURE;
     };
     let path = Path::new(file);
@@ -224,7 +224,7 @@ fn format_command(args: &[String]) -> ExitCode {
             }
         };
     }
-    if !is_pors_file(path) {
+    if !is_ferro_file(path) {
         report_unsupported_extension(path);
         return ExitCode::FAILURE;
     }
@@ -278,12 +278,12 @@ fn format_command(args: &[String]) -> ExitCode {
 
 fn export_rust_command(args: &[String]) -> ExitCode {
     if args.len() != 1 || args[0] == "-h" || args[0] == "--help" {
-        eprintln!("uso: portugol exportar-rust <arquivo.fer>");
+        eprintln!("uso: ferro exportar-rust <arquivo.fer>");
         return ExitCode::FAILURE;
     }
     let file = &args[0];
     let path = Path::new(file);
-    if !is_pors_file(path) {
+    if !is_ferro_file(path) {
         report_unsupported_extension(path);
         return ExitCode::FAILURE;
     }
@@ -295,7 +295,7 @@ fn export_rust_command(args: &[String]) -> ExitCode {
         }
     };
 
-    match ferro_rust::export_portugol_rs(&source) {
+    match ferro_rust::export_ferro_rs(&source) {
         Ok(code) => {
             print!("{code}");
             ExitCode::SUCCESS
@@ -311,13 +311,13 @@ fn export_rust_command(args: &[String]) -> ExitCode {
 
 fn export_cargo_command(args: &[String]) -> ExitCode {
     if args.len() != 2 || args.iter().any(|arg| arg == "-h" || arg == "--help") {
-        eprintln!("uso: portugol exportar-cargo <arquivo.fer> <pasta-destino>");
+        eprintln!("uso: ferro exportar-cargo <arquivo.fer> <pasta-destino>");
         return ExitCode::FAILURE;
     }
     let file = &args[0];
     let target_dir = Path::new(&args[1]);
     let path = Path::new(file);
-    if !is_pors_file(path) {
+    if !is_ferro_file(path) {
         report_unsupported_extension(path);
         return ExitCode::FAILURE;
     }
@@ -338,8 +338,8 @@ fn export_cargo_command(args: &[String]) -> ExitCode {
     let package_name = path
         .file_stem()
         .and_then(|stem| stem.to_str())
-        .unwrap_or("programa-pors");
-    let project = match ferro_rust::export_portugol_rs_cargo_project(&source, package_name) {
+        .unwrap_or("programa-ferro");
+    let project = match ferro_rust::export_ferro_rs_cargo_project(&source, package_name) {
         Ok(project) => project,
         Err(diagnostics) => {
             for diagnostic in diagnostics {
@@ -377,17 +377,17 @@ fn apply_utf16_edits(source: &str, edits: Vec<(usize, usize, String)>) -> Result
 
 fn print_usage() {
     println!(
-        "portugol {}\n\
+        "ferro {}\n\
          \n\
          Uso:\n\
-           portugol [opções] <arquivo | diretório>...            valida .fer, .design e .ferproj\n\
-           portugol novo <arquivo.fer>                           cria um modelo .fer\n\
-           portugol novo --desktop <pasta> [--nome <nome>]       cria um projeto desktop\n\
-           portugol formatar [--check] <arquivo>                 formata .fer, .design ou .ferproj\n\
-           portugol exportar-rust <arquivo.fer>                  imprime o Rust gerado\n\
-           portugol exportar-cargo <arquivo.fer> <pasta>         gera um projeto Cargo pronto\n\
-           portugol executar [--bytecode] <arquivo.fer>          executa um programa na VM\n\
-           portugol depurar [--ponto <linha>]... <arquivo.fer>   depura um programa interativamente\n\
+           ferro [opções] <arquivo | diretório>...            valida .fer, .design e .ferproj\n\
+           ferro novo <arquivo.fer>                           cria um modelo .fer\n\
+           ferro novo --desktop <pasta> [--nome <nome>]       cria um projeto desktop\n\
+           ferro formatar [--check] <arquivo>                 formata .fer, .design ou .ferproj\n\
+           ferro exportar-rust <arquivo.fer>                  imprime o Rust gerado\n\
+           ferro exportar-cargo <arquivo.fer> <pasta>         gera um projeto Cargo pronto\n\
+           ferro executar [--bytecode] <arquivo.fer>          executa um programa na VM\n\
+           ferro depurar [--ponto <linha>]... <arquivo.fer>   depura um programa interativamente\n\
          \n\
          Opções da validação:\n\
            -q, --quiet   só mostra arquivos com erro\n\
@@ -404,7 +404,7 @@ fn collect_files(path: &Path, files: &mut Vec<PathBuf>) {
         for entry in entries.flatten() {
             collect_files(&entry.path(), files);
         }
-    } else if is_pors_file(path) || desktop::is_markup_file(path) {
+    } else if is_ferro_file(path) || desktop::is_markup_file(path) {
         files.push(path.to_path_buf());
     }
 }

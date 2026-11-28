@@ -1,7 +1,7 @@
 // Lógica pura de navegação da Ajuda: histórico Voltar/Avançar, árvore hierárquica,
-// ajuda contextual sob o cursor (F1), formatação de código inline e realce sintático PORS.
+// ajuda contextual sob o cursor (F1), formatação de código inline e realce sintático FERRO.
 
-import { PORS_STDLIB_CATALOG, PORS_STDLIB_MODULES } from "./pors-stdlib-catalog.ts";
+import { FERRO_STDLIB_CATALOG, FERRO_STDLIB_MODULES } from "./ferro-stdlib-catalog.ts";
 
 export interface HelpHistory {
   current: () => string;
@@ -171,7 +171,7 @@ export function buildSyntaxTopicTree(topics: readonly HelpTopicSummary[]): HelpT
     });
   }
 
-  const rootDir = "topicos/linguagem_portugol";
+  const rootDir = "topicos/linguagem_ferro";
   const rootIndex = indexByDir.get(rootDir);
   const rootChildren = buildDir(rootDir);
   if (rootIndex) {
@@ -181,47 +181,47 @@ export function buildSyntaxTopicTree(topics: readonly HelpTopicSummary[]): HelpT
 }
 
 const CONTEXTUAL_TOPIC_MAP: Readonly<Record<string, string>> = {
-  seja: "topicos/linguagem_portugol/declaracoes/variavel.html",
-  mutavel: "topicos/linguagem_portugol/declaracoes/variavel.html",
-  funcao: "pors:funcoes",
-  inicio: "pors:visao-geral",
-  retorne: "pors:funcoes",
-  se: "pors:condicionais",
-  senao: "pors:condicionais",
-  enquanto: "topicos/linguagem_portugol/estruturas_controle/repeticao/enquanto.html",
-  faca: "topicos/linguagem_portugol/estruturas_controle/repeticao/faca_enquanto.html",
-  para: "pors:lacos",
-  pare: "pors:lacos",
-  continue: "pors:lacos",
-  escolha: "topicos/linguagem_portugol/estruturas_controle/desvio/escolha_caso.html",
-  caso: "topicos/linguagem_portugol/estruturas_controle/desvio/escolha_caso.html",
-  Opcao: "pors:opcao-resultado",
-  Resultado: "pors:opcao-resultado",
-  registro: "pors:colecoes-tipos-compostos",
-  enum: "pors:colecoes-tipos-compostos",
-  vetor: "pors:colecoes-tipos-compostos",
-  tamanho: "pors:colecoes-tipos-compostos",
-  adicionar: "pors:colecoes-tipos-compostos",
-  remover: "pors:colecoes-tipos-compostos",
-  obter: "pors:colecoes-tipos-compostos",
-  escreva: "topicos/linguagem_portugol/entrada_saida/escreva.html",
-  escreval: "topicos/linguagem_portugol/entrada_saida/escreva.html",
-  leia: "topicos/linguagem_portugol/entrada_saida/leia.html",
-  inteiro: "topicos/linguagem_portugol/tipos/inteiro.html",
-  real: "topicos/linguagem_portugol/tipos/real.html",
-  logico: "topicos/linguagem_portugol/tipos/logico.html",
-  verdadeiro: "topicos/linguagem_portugol/tipos/logico.html",
-  falso: "topicos/linguagem_portugol/tipos/logico.html",
-  cadeia: "topicos/linguagem_portugol/tipos/cadeia.html",
-  caracter: "topicos/linguagem_portugol/tipos/caracter.html",
-  iniciar: "pors:ui-mvu",
-  atualizar: "pors:ui-mvu",
-  visualizar: "pors:ui-mvu",
+  seja: "topicos/linguagem_ferro/declaracoes/variavel.html",
+  mutavel: "topicos/linguagem_ferro/declaracoes/variavel.html",
+  funcao: "ferro:funcoes",
+  inicio: "ferro:visao-geral",
+  retorne: "ferro:funcoes",
+  se: "ferro:condicionais",
+  senao: "ferro:condicionais",
+  enquanto: "topicos/linguagem_ferro/estruturas_controle/repeticao/enquanto.html",
+  faca: "topicos/linguagem_ferro/estruturas_controle/repeticao/faca_enquanto.html",
+  para: "ferro:lacos",
+  pare: "ferro:lacos",
+  continue: "ferro:lacos",
+  escolha: "topicos/linguagem_ferro/estruturas_controle/desvio/escolha_caso.html",
+  caso: "topicos/linguagem_ferro/estruturas_controle/desvio/escolha_caso.html",
+  Opcao: "ferro:opcao-resultado",
+  Resultado: "ferro:opcao-resultado",
+  registro: "ferro:colecoes-tipos-compostos",
+  enum: "ferro:colecoes-tipos-compostos",
+  vetor: "ferro:colecoes-tipos-compostos",
+  tamanho: "ferro:colecoes-tipos-compostos",
+  adicionar: "ferro:colecoes-tipos-compostos",
+  remover: "ferro:colecoes-tipos-compostos",
+  obter: "ferro:colecoes-tipos-compostos",
+  escreva: "topicos/linguagem_ferro/entrada_saida/escreva.html",
+  escreval: "topicos/linguagem_ferro/entrada_saida/escreva.html",
+  leia: "topicos/linguagem_ferro/entrada_saida/leia.html",
+  inteiro: "topicos/linguagem_ferro/tipos/inteiro.html",
+  real: "topicos/linguagem_ferro/tipos/real.html",
+  logico: "topicos/linguagem_ferro/tipos/logico.html",
+  verdadeiro: "topicos/linguagem_ferro/tipos/logico.html",
+  falso: "topicos/linguagem_ferro/tipos/logico.html",
+  cadeia: "topicos/linguagem_ferro/tipos/cadeia.html",
+  caracter: "topicos/linguagem_ferro/tipos/caracter.html",
+  iniciar: "ferro:ui-mvu",
+  atualizar: "ferro:ui-mvu",
+  visualizar: "ferro:ui-mvu",
 };
 
-const MODULE_SET: ReadonlySet<string> = new Set(PORS_STDLIB_MODULES);
+const MODULE_SET: ReadonlySet<string> = new Set(FERRO_STDLIB_MODULES);
 const MODULE_MEMBERS_SET = new Map<string, ReadonlySet<string>>(
-  PORS_STDLIB_CATALOG.map((lib) => [lib.module, new Set(lib.items.map((item) => item.name))]),
+  FERRO_STDLIB_CATALOG.map((lib) => [lib.module, new Set(lib.items.map((item) => item.name))]),
 );
 
 /** Resolve o ID do tópico da Ajuda correspondente ao símbolo sob o cursor no editor `.fer`. */
@@ -245,9 +245,9 @@ export function resolveHelpTopicForEditor(doc: string, pos: number): string | nu
     const modName = doc.slice(modStart, start - 1);
     if (MODULE_SET.has(modName)) {
       if (MODULE_MEMBERS_SET.get(modName)?.has(word)) {
-        return `pors-lib:${modName}.${word}`;
+        return `ferro-lib:${modName}.${word}`;
       }
-      return `pors-lib:${modName}`;
+      return `ferro-lib:${modName}`;
     }
   }
 
@@ -257,11 +257,11 @@ export function resolveHelpTopicForEditor(doc: string, pos: number): string | nu
     while (enumStart > 0 && isIdent(doc[enumStart - 1])) enumStart -= 1;
     const enumName = doc.slice(enumStart, start - 2);
     if (enumName === "Opcao" || enumName === "Resultado") {
-      return "pors:opcao-resultado";
+      return "ferro:opcao-resultado";
     }
   }
 
-  if (MODULE_SET.has(word)) return `pors-lib:${word}`;
+  if (MODULE_SET.has(word)) return `ferro-lib:${word}`;
   return CONTEXTUAL_TOPIC_MAP[word] ?? null;
 }
 
@@ -292,10 +292,10 @@ export function parseInlineCodeRuns(text: string): InlineCodeRun[] {
   return runs;
 }
 
-export type PorsTokenKind = "keyword" | "type" | "function" | "string" | "number" | "comment" | "operator" | "plain";
+export type FerroTokenKind = "keyword" | "type" | "function" | "string" | "number" | "comment" | "operator" | "plain";
 
-export interface PorsCodeToken {
-  readonly kind: PorsTokenKind;
+export interface FerroCodeToken {
+  readonly kind: FerroTokenKind;
   readonly text: string;
 }
 
@@ -306,15 +306,15 @@ const HIGHLIGHT_KEYWORDS = new Set([
 ]);
 const HIGHLIGHT_TYPES = new Set([
   "inteiro", "real", "logico", "cadeia", "caracter", "vetor", "Opcao", "Resultado",
-  ...PORS_STDLIB_MODULES,
+  ...FERRO_STDLIB_MODULES,
 ]);
 const HIGHLIGHT_BUILTINS = new Set(["escreva", "leia", "tamanho", "adicionar", "remover", "obter"]);
 
 /** Tokenizador leve de Ferro para realce sintático nos exemplos da Ajuda. */
-export function tokenizePorsCode(source: string): PorsCodeToken[] {
-  const tokens: PorsCodeToken[] = [];
+export function tokenizeFerroCode(source: string): FerroCodeToken[] {
+  const tokens: FerroCodeToken[] = [];
   let i = 0;
-  const push = (kind: PorsTokenKind, text: string) => {
+  const push = (kind: FerroTokenKind, text: string) => {
     const last = tokens[tokens.length - 1];
     if (last && last.kind === kind) {
       tokens[tokens.length - 1] = { kind, text: last.text + text };

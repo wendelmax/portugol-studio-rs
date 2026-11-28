@@ -1,7 +1,7 @@
 schemaVersion: '1.0'
 status: active
 updatedAt: '2026-11-25'
-# Matriz completa de rastreabilidade UI-001..UI-035 do Portugol Studio RS.
+# Matriz completa de rastreabilidade UI-001..UI-035 do Ferro Studio RS.
 features:
   - id: FEAT-SHELL-001
     title: Shell da IDE, seletor de projeto, ActivityRail e layout persistente com reset
@@ -25,20 +25,20 @@ features:
     tauriIpc: [workspace_read_file, workspace_write_file, workspace_create_file, workspace_rename_file, workspace_delete_file, workspace_export_files]
     scenarios: [FT-01, FT-08, FT-10]
     acceptance:
-      - "Criar, renomear e excluir arquivos .pors/.rs/.por/.pex com proteção de alterações não salvas"
+      - "Criar, renomear e excluir arquivos .fer/.rs/.por/.pex com proteção de alterações não salvas"
       - "Exportação local copia apenas arquivos selecionados sem alegar upload em nuvem"
     implementationStatus: implemented
     testStatus: unit_and_integration_passing
 
   - id: FEAT-EDITOR-001
-    title: Abas, CodeMirror 6 multi-linguagem (.pors/.rs/.por), diagnósticos e exemplos
+    title: Abas, CodeMirror 6 multi-linguagem (.fer/.rs/.por), diagnósticos e exemplos
     ui: [UI-010, UI-011, UI-012, UI-022, UI-029, UI-030, UI-034]
     useCases: [UC-04, UC-05, UC-12, UC-16, UC-17, UC-19]
     backend: [LanguageService, DiagnosticStore, ExampleCatalog]
-    tauriIpc: [inspect_portugol_rs, inspect, check_rust_source, list_pors_examples]
+    tauriIpc: [inspect_ferro_rs, inspect, check_rust_source, list_ferro_examples]
     scenarios: [FT-01, FT-02, FT-08, FT-09]
     acceptance:
-      - "Catálogo inicial e ajuda 100% migrados para .pors"
+      - "Catálogo inicial e ajuda 100% migrados para .fer"
       - "Paleta de comandos (Ctrl+Shift+P), StatusBar derivada e navegação por diagnósticos"
     implementationStatus: implemented
     testStatus: unit_and_integration_passing
@@ -48,7 +48,7 @@ features:
     ui: [UI-003, UI-004, UI-005, UI-018, UI-019, UI-020, UI-021, UI-026, UI-032, UI-033]
     useCases: [UC-06, UC-09, UC-10, UC-11]
     backend: [ExecutionPort, DebugPort, TestPort]
-    tauriIpc: [run_portugol_rs, run_rust_source, run_program, stop_program, debug_pause, debug_continue, debug_step_over, debug_step_into, debug_step_out, cargo_check_workspace, cargo_test_workspace]
+    tauriIpc: [run_ferro_rs, run_rust_source, run_program, stop_program, debug_pause, debug_continue, debug_step_over, debug_step_into, debug_step_out, cargo_check_workspace, cargo_test_workspace]
     scenarios: [FT-03, FT-06, FT-07]
     acceptance:
       - "Executa a revisão capturada e identifica o motor real no console"
@@ -62,7 +62,7 @@ features:
     ui: [UI-013, UI-014, UI-015, UI-016, UI-017]
     useCases: [UC-07, UC-08]
     backend: [TranslationPort]
-    tauriIpc: [export_portugol_rs, export_rust]
+    tauriIpc: [export_ferro_rs, export_rust]
     scenarios: [FT-04]
     acceptance:
       - "Rust gerado é somente leitura com marcação de desatualizado e descarte de respostas obsoletas"
@@ -72,7 +72,7 @@ features:
     testStatus: unit_and_integration_passing
 
   - id: FEAT-LEARN-001
-    title: Modos de aprendizagem, LearningInspector contextual PORS→Rust, trilha e laboratório de ownership
+    title: Modos de aprendizagem, LearningInspector contextual FERRO→Rust, trilha e laboratório de ownership
     ui: [UI-023, UI-024, UI-025, UI-027, UI-028]
     useCases: [UC-05, UC-13, UC-15]
     backend: [LearningService, ProgressStore, MemoryModel]

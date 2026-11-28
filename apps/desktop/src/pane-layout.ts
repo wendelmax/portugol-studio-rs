@@ -1,4 +1,4 @@
-export const PANE_LAYOUT_KEY = "portugol.pane-layout.v1";
+export const PANE_LAYOUT_KEY = "ferro.pane-layout.v1";
 
 function workspaceStorageKey(preferenceKey: string): string {
   return `${PANE_LAYOUT_KEY}.workspace.${encodeURIComponent(preferenceKey)}`;

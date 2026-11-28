@@ -3,7 +3,7 @@ name = "ferro-desktop"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "IDE desktop do Portugol (Tauri v2)"
+description = "IDE desktop do Ferro (Tauri v2)"
 
 [lib]
 name = "ferro_desktop_lib"

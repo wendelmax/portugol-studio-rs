@@ -6,7 +6,7 @@ Oferecer mais opções visuais aplicáveis à IDE, mantendo a escolha local e di
 
 ## Objetivos
 
-- Manter Portugol, Dark, Sistema e perfis personalizados.
+- Manter Ferro, Dark, Sistema e perfis personalizados.
 - Adicionar GitHub Light, GitHub Dark, One Dark Pro, Dracula, Catppuccin Mocha e Night Owl como presets instalados.
 - Aplicar a paleta ao editor, moldura, início, painéis, console e demais componentes que usam as variáveis de tema.
 - Persistir a seleção com o mecanismo atual e manter a edição de perfis personalizados.
@@ -41,5 +41,5 @@ Oferecer mais opções visuais aplicáveis à IDE, mantendo a escolha local e di
 ## Aceitação
 
 - Cada um dos seis presets pode ser selecionado, aparece de ponta a ponta na IDE e persiste após reiniciar.
-- Portugol, Dark, Sistema e temas personalizados continuam aplicáveis.
+- Ferro, Dark, Sistema e temas personalizados continuam aplicáveis.
 - Os testes validam nomes, base e cobertura de cores de todos os presets; o build e a inspeção visual do app passam.

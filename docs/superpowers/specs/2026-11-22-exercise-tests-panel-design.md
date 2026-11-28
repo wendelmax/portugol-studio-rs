@@ -22,7 +22,7 @@ Tornar o painel **Testes** útil para arquivos de exercício `.pex`, reutilizand
 
 - Sem novo comando Tauri, runner, dependência, ou mudança na VM.
 - O caminho do botão existente de correção do exercício continua disponível.
-- Não habilitar testes genéricos de Rust ou Portugol sem contratos reais.
+- Não habilitar testes genéricos de Rust ou Ferro sem contratos reais.
 
 ## Validação
 

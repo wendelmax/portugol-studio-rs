@@ -7,7 +7,7 @@ use std::process::ExitCode;
 use ferro_hir::{Diagnostic, Span};
 use ferro_vm::{StdIo, Vm};
 
-use crate::{is_pors_file, read_source, report_unsupported_extension};
+use crate::{is_ferro_file, read_source, report_unsupported_extension};
 
 pub fn main(args: &[String]) -> ExitCode {
     let (args, program_args) = match args.iter().position(|a| a == "--") {
@@ -27,12 +27,12 @@ pub fn main(args: &[String]) -> ExitCode {
         }
     }
     let Some(file) = file else {
-        eprintln!("uso: portugol executar [--bytecode] <arquivo.fer>");
+        eprintln!("uso: ferro executar [--bytecode] <arquivo.fer>");
         return ExitCode::FAILURE;
     };
 
     let path = Path::new(file);
-    if !is_pors_file(path) {
+    if !is_ferro_file(path) {
         report_unsupported_extension(path);
         return ExitCode::FAILURE;
     }
@@ -60,11 +60,11 @@ pub fn main(args: &[String]) -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    let module = match ferro_bytecode::compile_pors(&program) {
+    let module = match ferro_bytecode::compile_ferro(&program) {
         Ok(module) => module,
         Err(error) => {
             let span = Span::new(error.span.start, error.span.end);
-            let diagnostic = Diagnostic::error("pors.compile-error", error.message, span);
+            let diagnostic = Diagnostic::error("ferro.compile-error", error.message, span);
             eprintln!("{}", diagnostic.render(&source, file));
             return ExitCode::FAILURE;
         }

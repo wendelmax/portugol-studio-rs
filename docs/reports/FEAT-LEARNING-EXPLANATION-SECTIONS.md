@@ -12,6 +12,6 @@
 - GREEN: mesmo comando após implementação — PASS, 2/2.
 - `npm test --prefix apps/desktop` — PASS, 184/184.
 - `npm run build --prefix apps/desktop` — PASS; Vite reporta o aviso preexistente de chunk acima de 500 kB.
-- `cargo test -p portugol-service --offline --locked` — PASS, 57 testes.
+- `cargo test -p ferro-service --offline --locked` — PASS, 57 testes.
 - `cargo fmt --all --check` e `git diff --check` — PASS.
 - Interação visual/E2E Tauri: NOT_RUN até existir runner dedicado no projeto.

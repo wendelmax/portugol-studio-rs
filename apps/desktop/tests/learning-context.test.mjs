@@ -77,7 +77,7 @@ test("maps exact conditionals and loops to their learning concepts", () => {
     assert.equal(result?.conceptId, conceptId);
     assert.equal(result?.sourceSnippet, source);
     assert.equal(result?.rustSnippet, rust);
-    assert.match(explainMappedConcept(result, "portugol-rs"), conceptId === "conditionals" ? /decisão/ : /repetição/);
+    assert.match(explainMappedConcept(result, "ferro-rust"), conceptId === "conditionals" ? /decisão/ : /repetição/);
   }
 });
 
@@ -170,11 +170,11 @@ test("chooses the narrowest overlapping exact mapping that identifies a binding"
 
 test("explains mapped mutability for Ferro", () => {
   const mapped = context();
-  assert.match(explainMappedConcept(mapped, "portugol-rs"), /Ferro/);
-  assert.match(explainMappedConcept(mapped, "portugol-rs"), /let mut/);
+  assert.match(explainMappedConcept(mapped, "ferro-rust"), /Ferro/);
+  assert.match(explainMappedConcept(mapped, "ferro-rust"), /let mut/);
 });
 
-test("maps exact PORS functions, match/Option/Result, Vec collections, and struct/enum declarations", () => {
+test("maps exact FERRO functions, match/Option/Result, Vec collections, and struct/enum declarations", () => {
   const cases = [
     {
       conceptId: "functions",
@@ -212,6 +212,6 @@ test("maps exact PORS functions, match/Option/Result, Vec collections, and struc
     });
     assert.equal(result?.conceptId, item.conceptId);
     assert.equal(result?.provenance, "source-map");
-    assert.match(explainMappedConcept(result, "portugol-rs"), item.explanation);
+    assert.match(explainMappedConcept(result, "ferro-rust"), item.explanation);
   }
 });

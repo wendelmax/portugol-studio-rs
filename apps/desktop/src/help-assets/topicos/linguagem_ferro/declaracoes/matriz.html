@@ -1,0 +1,44 @@
+<title>Matrizes com Vetores</title>
+<body>
+<div>
+            <h1>Matrizes com Vetores</h1>
+            <p>Uma matriz organiza valores homogêneos em formato tabular com linhas e colunas — por exemplo, 3 notas para cada um de 4 alunos:</p>
+            <table>
+                    <tr>
+                        <th>Linha \ Coluna</th>
+                        <th>0</th>
+                        <th>1</th>
+                        <th>2</th>
+                    </tr>
+                    <tr>
+                        <td><b>0</b></td>
+                        <td>10</td>
+                        <td>9</td>
+                        <td>6.7</td>
+                    </tr>
+                    <tr>
+                        <td><b>1</b></td>
+                        <td>6</td>
+                        <td>8</td>
+                        <td>10</td>
+                    </tr>
+                    <tr>
+                        <td><b>2</b></td>
+                        <td>8</td>
+                        <td>7</td>
+                        <td>4.5</td>
+                    </tr>
+                    <tr>
+                        <td><b>3</b></td>
+                        <td>5.2</td>
+                        <td>3.3</td>
+                        <td>0.3</td>
+                    </tr>
+                </table>
+            <p>Em Ferro, grades bidimensionais são representadas de forma linear sobre <code>vetor&lt;Tipo&gt;</code> (como um buffer contíguo em Rust): guardamos <code>linhas * colunas</code> elementos e acessamos a célula <code>(linha, coluna)</code> pelo índice <code>linha * colunas + coluna</code>.</p>
+            <div class="codigo-ferro" data-type='sintaxe' data-title="Exemplo de Sintaxe" data-file="../../../recursos/exemplos-ferro/declaracoes/matriz/exemplo1.fer"></div>
+            <p>Essa representação evita estruturas irregulares e garante verificação de limites tanto no acesso direto <code>matriz[indice]</code> quanto via <code>obter(matriz, indice)</code>.</p>
+            <p>Para melhor compreensão deste conceito, confira o exemplo abaixo.</p>
+            <div class="codigo-ferro" data-type='exemplo' data-title="Exemplo" data-file="../../../recursos/exemplos-ferro/declaracoes/matriz/exemplo2.fer"></div>
+        </div>
+</body>

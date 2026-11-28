@@ -40,7 +40,7 @@ function fixture() {
 
 test("applies derived language controls and remembers button default titles", () => {
   const f = fixture();
-  const tab = { language: "portugol-rs", symbols: [] };
+  const tab = { language: "ferro-rust", symbols: [] };
 
   f.view.sync(tab);
 
@@ -57,7 +57,7 @@ test("applies derived language controls and remembers button default titles", ()
 test("refreshes controls when the active tab becomes Rust with missing tools", () => {
   const f = fixture();
   const run = f.buttons.get("btn-run");
-  f.view.sync({ language: "portugol-rs", symbols: [] });
+  f.view.sync({ language: "ferro-rust", symbols: [] });
   f.state.rustcAvailable = false;
   f.state.rustfmtAvailable = false;
 

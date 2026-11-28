@@ -1,9 +1,9 @@
 # Descoberta atual do repositório
 
 Snapshot: `main` em `660a779` (22/11/2026), após PR #95. A direção atual é o
-[ADR 0016](../adr/0016-pors-como-linguagem-autoral-e-retirada-do-por.md):
-PORS/Rust como produto, sem renomear a aplicação; `.por`/`.pex` só saem depois
-do gate em [`PORS_MIGRATION_MATRIX.md`](PORS_MIGRATION_MATRIX.md).
+[ADR 0016](../adr/0016-ferro-como-linguagem-autoral-e-retirada-do-por.md):
+FERRO/Rust como produto, sem renomear a aplicação; `.por`/`.pex` só saem depois
+do gate em [`ferro_MIGRATION_MATRIX.md`](ferro_MIGRATION_MATRIX.md).
 
 ## Arquitetura observada
 
@@ -11,16 +11,16 @@ do gate em [`PORS_MIGRATION_MATRIX.md`](PORS_MIGRATION_MATRIX.md).
   `apps/desktop/src-tauri/`. O produto permanece desktop; Vite serve ao bundle
   frontend.
 - **Frontend:** HTML/CSS/TypeScript sem framework SPA, Vite, CodeMirror 6 e
-  Node `node:test`. Editor e workspace já distinguem `.por`, `.pors`, `.rs` e
+  Node `node:test`. Editor e workspace já distinguem `.por`, `.fer`, `.rs` e
   `.pex` em vários fluxos.
 - **Núcleo Rust:** workspace edition 2024 com crates de syntax, HIR, semântica,
-  bytecode, VM, geração Rust e service. Dependências clássicas e PORS convivem
+  bytecode, VM, geração Rust e service. Dependências clássicas e FERRO convivem
   neste snapshot.
-- **Portugol clássico:** `portugol-syntax` → `portugol-semantics` → compilador
+- **pseudocódigo clássico:** `ferro-syntax` → `ferro-semantics` → compilador
   bytecode/VM; mantém APIs públicas `check`, `start`, `inspect`, `export_rust`,
   CLI, corpus, bibliotecas e 54 exercícios XML `.pex`.
-- **PORS:** `ferro-frontend` → HIR; geração Rust via `ferro-rust` para
-  execução normal; `ferro-bytecode::compile_pors` → VM compartilhada para
+- **FERRO:** `ferro-frontend` → HIR; geração Rust via `ferro-rust` para
+  execução normal; `ferro-bytecode::compile_ferro` → VM compartilhada para
   debugger. O frontend aceita entrypoint `funcao inicio()` sem parâmetros,
   cinco tipos primitivos, bindings explícitos, expressões, I/O, condições,
   loops, `pare` e `continue`. Não tem funções do usuário, coleções ou
@@ -43,9 +43,9 @@ O parser/analisador/compiler clássico sustenta `ferro-service`, CLI,
 corpus/regressões, bibliotecas, exportador classic, ajuda e exemplos. Tauri,
 `workspace.rs`, `open_files.rs`, configuração de associação de arquivos e
 frontend também codificam `.por`/`.pex`. Catálogo de exemplos, ajuda e checker
-de exercícios refletem o produto Java. Detalhes e ordem estão na matriz PORS.
+de exercícios refletem o produto Java. Detalhes e ordem estão na matriz FERRO.
 
-A VM não é exclusivamente clássica: `compile_pors` usa `Module`/`Vm` para o
+A VM não é exclusivamente clássica: `compile_ferro` usa `Module`/`Vm` para o
 debugger. A remoção deverá procurar consumidores e deixar esse caminho intacto.
 
 ## Lacunas de migração prioritárias
@@ -53,9 +53,9 @@ debugger. A remoção deverá procurar consumidores e deixar esse caminho intact
 1. Funções, parâmetros/retornos, chamadas e política de recursão.
 2. Coleções, indexação, tipos compostos, controle/matching e conceitos
    ownership/borrowing verificáveis.
-3. Bibliotecas e contratos para execução PORS e debugger.
-4. Conteúdo, ajuda e exercícios PORS/Rust; avaliador próprio versionado.
-5. CLI PORS e fluxos PORS/Rust sem fallback implícito para linguagem clássica.
+3. Bibliotecas e contratos para execução FERRO e debugger.
+4. Conteúdo, ajuda e exercícios FERRO/Rust; avaliador próprio versionado.
+5. CLI FERRO e fluxos FERRO/Rust sem fallback implícito para linguagem clássica.
 6. Retirada `.por`/`.pex` apenas após todos os gates da matriz.
 
 ## Evidência recente
@@ -67,7 +67,7 @@ debugger. A remoção deverá procurar consumidores e deixar esse caminho intact
   rejeição semântica de incompatibilidade de tipos.
 - PRs #93–#95 passaram CI de núcleo e Tauri em Linux, Windows e macOS. Consulte
   os checks de cada PR para logs; não extrapolar esta evidência a recursos
-  PORS ainda não implementados.
+  FERRO ainda não implementados.
 
 ## Registro de auditoria de worktrees
 

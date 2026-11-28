@@ -27,7 +27,7 @@ impl Parser {
                 let (name, span, signature) = self.function_header()?;
                 if self.signatures.contains_key(&name) {
                     return self.fail(
-                        "pors.function-redeclared",
+                        "ferro.function-redeclared",
                         format!("A função `{name}` já foi declarada"),
                         span,
                     );
@@ -35,7 +35,7 @@ impl Parser {
                 let id = if name == "inicio" {
                     if !signature.parameters.is_empty() || signature.return_type.is_some() {
                         return self.fail(
-                            "pors.entry-signature",
+                            "ferro.entry-signature",
                             "A função inicio deve ser declarada sem parâmetros e sem retorno",
                             span,
                         );
@@ -66,7 +66,7 @@ impl Parser {
                 append_unique(
                     &mut diagnostics,
                     vec![Diagnostic::error(
-                        "pors.entry-function",
+                        "ferro.entry-function",
                         "O programa precisa declarar uma função inicio()",
                         self.current().span,
                     )],
@@ -141,7 +141,7 @@ impl Parser {
             match ty {
                 Some(ty) => self.record_types[record].fields[field].ty = ty,
                 None => diagnostics.push(Diagnostic::error(
-                    "pors.external-type-missing",
+                    "ferro.external-type-missing",
                     format!(
                         "O registro `{name}`, usado em `{}.{}`, não foi declarado neste arquivo",
                         self.record_types[record].name,
@@ -186,14 +186,14 @@ impl Parser {
         let init = &self.signatures["iniciar"];
         let Some(state_ty) = init.return_type else {
             return self.fail(
-                "pors.ui-entry-signature",
+                "ferro.ui-entry-signature",
                 "A função `iniciar` precisa retornar o tipo de estado da interface",
                 init.span,
             );
         };
         if !init.parameters.is_empty() {
             return self.fail(
-                "pors.ui-entry-signature",
+                "ferro.ui-entry-signature",
                 "A função `iniciar` não deve receber parâmetros",
                 init.span,
             );
@@ -202,14 +202,14 @@ impl Parser {
         let update = &self.signatures["atualizar"];
         if !(2..=4).contains(&update.parameters.len()) {
             return self.fail(
-                "pors.ui-entry-signature",
+                "ferro.ui-entry-signature",
                 "A função `atualizar` deve receber entre 2 e 4 parâmetros (estado e dados do evento)",
                 update.span,
             );
         }
         if update.parameters[0].ty != state_ty {
             return self.fail(
-                "pors.ui-entry-signature",
+                "ferro.ui-entry-signature",
                 "O primeiro parâmetro de `atualizar` precisa ter o mesmo tipo retornado por `iniciar`",
                 update.parameters[0].span,
             );
@@ -217,7 +217,7 @@ impl Parser {
         for param in &update.parameters[1..] {
             if param.ty != hir::Type::String {
                 return self.fail(
-                    "pors.ui-entry-signature",
+                    "ferro.ui-entry-signature",
                     format!(
                         "O parâmetro `{}` de `atualizar` deve ter tipo `cadeia`",
                         param.name
@@ -228,7 +228,7 @@ impl Parser {
         }
         if update.return_type != Some(state_ty) {
             return self.fail(
-                "pors.ui-entry-signature",
+                "ferro.ui-entry-signature",
                 "A função `atualizar` precisa retornar o mesmo tipo de estado de `iniciar`",
                 update.span,
             );
@@ -237,21 +237,21 @@ impl Parser {
         let view = &self.signatures["visualizar"];
         if view.parameters.len() != 1 {
             return self.fail(
-                "pors.ui-entry-signature",
+                "ferro.ui-entry-signature",
                 "A função `visualizar` deve receber exatamente 1 parâmetro (o estado atual)",
                 view.span,
             );
         }
         if view.parameters[0].ty != state_ty {
             return self.fail(
-                "pors.ui-entry-signature",
+                "ferro.ui-entry-signature",
                 "O parâmetro de `visualizar` precisa ter o mesmo tipo retornado por `iniciar`",
                 view.parameters[0].span,
             );
         }
         if view.return_type != Some(hir::Type::Integer) {
             return self.fail(
-                "pors.ui-entry-signature",
+                "ferro.ui-entry-signature",
                 "A função `visualizar` deve retornar `inteiro` (identificador do nó raiz de UI)",
                 view.span,
             );
@@ -267,7 +267,7 @@ impl Parser {
         let (name, name_span) = self.identifier()?;
         if name != "inicio" && is_reserved(&name) {
             return self.fail(
-                "pors.reserved-name",
+                "ferro.reserved-name",
                 format!("`{name}` é reservado e não pode ser usado como nome de função"),
                 name_span,
             );
@@ -280,7 +280,7 @@ impl Parser {
                 let (parameter_name, parameter_span) = self.identifier()?;
                 if is_reserved(&parameter_name) {
                     return self.fail(
-                        "pors.reserved-name",
+                        "ferro.reserved-name",
                         format!("`{parameter_name}` é reservado e não pode ser usado como nome"),
                         parameter_span,
                     );
@@ -307,7 +307,7 @@ impl Parser {
         let header_span = start.join(return_type.map_or(close.span, |_| self.previous_span()));
         if name == "inicio" && (!parameters.is_empty() || return_type.is_some()) {
             return self.fail(
-                "pors.entry-signature",
+                "ferro.entry-signature",
                 "A função inicio deve ser declarada sem parâmetros e sem retorno",
                 name_span.join(header_span),
             );
@@ -408,7 +408,7 @@ impl Parser {
             let close_span = self.expect_type_close("Esperado `>` após o tipo do vetor")?;
             return hir::Type::vector_of(element).ok_or_else(|| {
                 vec![Diagnostic::error(
-                    "pors.vector-element-type",
+                    "ferro.vector-element-type",
                     "O tipo de elemento não pode ser um vetor",
                     span.join(close_span),
                 )]
@@ -439,7 +439,7 @@ impl Parser {
             .or_else(|| self.enum_ids.get(&name).copied().map(hir::Type::Enum))
             .ok_or_else(|| {
                 vec![Diagnostic::error(
-                    "pors.unknown-type",
+                    "ferro.unknown-type",
                     format!("Tipo desconhecido: {name}"),
                     span,
                 )]
@@ -450,14 +450,14 @@ impl Parser {
         let (name, name_span) = self.identifier()?;
         if is_reserved(&name) {
             return self.fail(
-                "pors.reserved-name",
+                "ferro.reserved-name",
                 format!("`{name}` é reservado e não pode ser usado como nome de registro"),
                 name_span,
             );
         }
         if self.declared_types.contains_key(&name) {
             return self.fail(
-                "pors.type-redeclared",
+                "ferro.type-redeclared",
                 format!("O tipo `{name}` já foi declarado"),
                 name_span,
             );
@@ -470,7 +470,7 @@ impl Parser {
             let (field_name, span) = self.identifier()?;
             if field_names.insert(field_name.clone(), ()).is_some() {
                 return self.fail(
-                    "pors.field-redeclared",
+                    "ferro.field-redeclared",
                     format!("O campo `{field_name}` já foi declarado"),
                     span,
                 );
@@ -515,7 +515,7 @@ impl Parser {
                 Token {
                     kind: Kind::Eof,
                     span,
-                } => return self.fail("pors.unclosed-record", "Registro não foi fechado", span),
+                } => return self.fail("ferro.unclosed-record", "Registro não foi fechado", span),
                 _ => {}
             }
         }
@@ -526,14 +526,14 @@ impl Parser {
         let (name, name_span) = self.identifier()?;
         if is_reserved(&name) {
             return self.fail(
-                "pors.reserved-name",
+                "ferro.reserved-name",
                 format!("`{name}` é reservado e não pode ser usado como nome de enum"),
                 name_span,
             );
         }
         if self.declared_types.contains_key(&name) {
             return self.fail(
-                "pors.type-redeclared",
+                "ferro.type-redeclared",
                 format!("O tipo `{name}` já foi declarado"),
                 name_span,
             );
@@ -546,7 +546,7 @@ impl Parser {
             let (variant_name, span) = self.identifier()?;
             if variant_names.insert(variant_name.clone(), ()).is_some() {
                 return self.fail(
-                    "pors.variant-redeclared",
+                    "ferro.variant-redeclared",
                     format!("A variante `{variant_name}` já foi declarada"),
                     span,
                 );
@@ -604,7 +604,7 @@ impl Parser {
                 Token {
                     kind: Kind::Eof,
                     span,
-                } => return self.fail("pors.unclosed-enum", "Enum não foi fechado", span),
+                } => return self.fail("ferro.unclosed-enum", "Enum não foi fechado", span),
                 _ => {}
             }
         }
@@ -617,7 +617,7 @@ impl Parser {
         while depth > 0 {
             if is_top_level_start(&self.current().kind) {
                 return self.fail(
-                    "pors.unexpected-token",
+                    "ferro.unexpected-token",
                     "Bloco não foi fechado com `}` antes da próxima declaração",
                     self.current().span,
                 );
@@ -634,7 +634,7 @@ impl Parser {
                     span,
                 } => {
                     return self.fail(
-                        "pors.unexpected-token",
+                        "ferro.unexpected-token",
                         "Bloco não foi fechado com `}`",
                         span,
                     );

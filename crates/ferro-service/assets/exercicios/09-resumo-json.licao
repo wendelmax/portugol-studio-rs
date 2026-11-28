@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "id": "pors-09-resumo-json",
+  "id": "ferro-09-resumo-json",
   "title": "Extrair e atualizar JSON",
   "statement": "Leia uma linha JSON representando um objeto com os campos \"nome\" (cadeia) e \"idade\" (inteiro). Escreva \"<nome>:<idade + 1>\" (ex.: Ada:37). Se o JSON for inválido ou faltar algum campo do tipo esperado, escreva \"invalido\".",
   "starter_code": "funcao processar(texto: cadeia) -> Resultado<cadeia, cadeia> {\n    seja nome: cadeia = Json.obter_cadeia(texto, \"nome\")?;\n    seja idade: inteiro = Json.obter_inteiro(texto, \"idade\")?;\n    retorne Resultado::Ok(nome + \":\" + Tipos.inteiro_para_cadeia(idade + 1));\n}\n\nfuncao inicio() {\n    seja mutavel linha = leia();\n    // Trate o Resultado com escolha\n}\n",

@@ -24,11 +24,11 @@ impl Drop for TempDir {
 }
 
 fn cli() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_portugol"))
+    Command::new(env!("CARGO_BIN_EXE_ferro"))
 }
 
 #[test]
-fn creates_validates_formats_exports_and_executes_pors_files() {
+fn creates_validates_formats_exports_and_executes_ferro_files() {
     let dir = TempDir::new();
     let starter = dir.0.join("ola.fer");
 
@@ -77,7 +77,7 @@ fn creates_validates_formats_exports_and_executes_pors_files() {
 }
 
 #[test]
-fn formats_unformatted_pors_and_runs_interactive_input_and_vectors() {
+fn formats_unformatted_ferro_and_runs_interactive_input_and_vectors() {
     let dir = TempDir::new();
     let program = dir.0.join("app.fer");
     fs::write(
@@ -196,7 +196,7 @@ funcao visualizar(estado: Estado) -> inteiro {
 }
 
 #[test]
-fn debugs_pors_program_interactively_with_breakpoints_steps_and_variables() {
+fn debugs_ferro_program_interactively_with_breakpoints_steps_and_variables() {
     let dir = TempDir::new();
     let program = dir.0.join("passo.fer");
     fs::write(
@@ -315,7 +315,7 @@ fn creates_validates_and_formats_desktop_projects() {
 }
 
 #[test]
-fn novo_sem_extensao_cria_arquivo_fer_e_executa_normalmente() {
+fn novo_sem_extensao_cria_arquivo_ferro_e_executa_normalmente() {
     let dir = TempDir::new();
     let base = dir.0.join("saudacao");
     let expected = dir.0.join("saudacao.fer");
@@ -330,9 +330,9 @@ fn novo_sem_extensao_cria_arquivo_fer_e_executa_normalmente() {
 }
 
 #[test]
-fn rejeita_extensao_antiga_pors_como_nao_suportada() {
+fn rejects_unknown_extension() {
     let dir = TempDir::new();
-    let old = dir.0.join("antigo.pors");
+    let old = dir.0.join("antigo.zzz");
     fs::write(&old, "funcao inicio() { escreva(1); }").unwrap();
 
     let rejected = cli().arg(&old).output().unwrap();

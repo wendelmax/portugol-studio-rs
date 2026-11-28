@@ -2,12 +2,12 @@
 
 ## Intenção
 
-Dar ao aluno um painel curto de consulta dentro do editor: no modo Beginner, conceitos básicos de Portugol; no Bridge, os mesmos fundamentos junto de explicações explícitas sobre mutabilidade e ownership em Rust. O painel é aberto por escolha do aluno e não afirma inferir conceitos da seleção do código.
+Dar ao aluno um painel curto de consulta dentro do editor: no modo Beginner, conceitos básicos de Ferro; no Bridge, os mesmos fundamentos junto de explicações explícitas sobre mutabilidade e ownership em Rust. O painel é aberto por escolha do aluno e não afirma inferir conceitos da seleção do código.
 
 ## Objetivos e limites
 
 - Implementar UI-023/024 e UC-13 como um catálogo local e pequeno, vinculado ao modo de aprendizagem já persistido.
-- Mostrar um conceito escolhido manualmente, com definição, exemplo de Portugol e, quando pertinente, exemplo Rust editorial.
+- Mostrar um conceito escolhido manualmente, com definição, exemplo de Ferro e, quando pertinente, exemplo Rust editorial.
 - Identificar a origem como seleção manual e os exemplos Bridge como didáticos, nunca como resultado de tradução ou compilação.
 - Não criar progresso, resolver AST, alterar fonte, introduzir serviço/IPC ou runtime Rust.
 
@@ -22,7 +22,7 @@ Dar ao aluno um painel curto de consulta dentro do editor: no modo Beginner, con
 - Beginner oferece variáveis, condicionais e repetições.
 - Bridge oferece esses conceitos e mutabilidade/ownership.
 - Trocar modo atualiza a lista; se a escolha anterior não existir no novo modo, seleciona o primeiro conceito disponível. Voltar ao modo anterior pode escolher novamente o conceito desejado.
-- Ownership diferencia claramente o Portugol atual do modelo Rust. O exemplo Rust explica move; não será apresentado como código gerado pela aba ativa.
+- Ownership diferencia claramente o Ferro atual do modelo Rust. O exemplo Rust explica move; não será apresentado como código gerado pela aba ativa.
 - Nenhum conceito atribuído automaticamente; painel declara `Conceito selecionado manualmente`.
 - A abertura/troca de cartão não registra progresso.
 

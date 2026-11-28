@@ -2,12 +2,12 @@
 
 ## Goal
 
-In Bridge mode, relate a selected Portugol or Portugol-RS construct to the generated Rust when the current export provides an exact source map. Extend the existing mutability explanation to conditionals and loops without making claims from stale, approximate, or generated-only mappings.
+In Bridge mode, relate a selected Ferro or Ferro construct to the generated Rust when the current export provides an exact source map. Extend the existing mutability explanation to conditionals and loops without making claims from stale, approximate, or generated-only mappings.
 
 ## Design
 
 - Keep the shared `learningContextAtSelection` API and existing exact-range/stale guards.
-- Classify a mapped snippet only when it clearly represents a Rust `let` binding, `if` conditional, `while` repetition, or the Portugol-RS generated counted-loop label.
+- Classify a mapped snippet only when it clearly represents a Rust `let` binding, `if` conditional, `while` repetition, or the Ferro generated counted-loop label.
 - Use the existing concept catalog IDs (`mutability`, `conditionals`, `loops`).
 - Render the selected source and mapped Rust snippet; use a concept-specific Portuguese explanation.
 - Leave manual concept selection and all three learning mode catalogs unchanged.

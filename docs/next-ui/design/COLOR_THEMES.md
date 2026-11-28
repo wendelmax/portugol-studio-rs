@@ -1,8 +1,8 @@
-# Paletas Padronizadas de Cores — Portugol Studio RS
+# Paletas Padronizadas de Cores — Ferro Studio RS
 
-Este documento define o sistema de cores do **Portugol Studio RS**.
+Este documento define o sistema de cores do **Ferro Studio RS**.
 
-> **Separação entre UI/UX e cores:** a proposta **Portugol Studio Next** ([`DESIGN_AS_CODE.md`](DESIGN_AS_CODE.md) e [`UI_FUNCTIONAL_CONTRACT.md`](../product/UI_FUNCTIONAL_CONTRACT.md)) orienta a **UI e UX** (arquitetura de informação, layout, painéis, fluxo de aprendizagem e dual-language), **não** impõe uma paleta fixa própria. As cores padrão da IDE seguem o tema do sistema operacional com referência **VS Code Light Modern** e **VS Code Dark Modern**, oferecendo também **IntelliJ Rust (RustRover)** e os temas claro e escuro mais usados do **VS Code**.
+> **Separação entre UI/UX e cores:** a proposta **Ferro Studio Next** ([`DESIGN_AS_CODE.md`](DESIGN_AS_CODE.md) e [`UI_FUNCTIONAL_CONTRACT.md`](../product/UI_FUNCTIONAL_CONTRACT.md)) orienta a **UI e UX** (arquitetura de informação, layout, painéis, fluxo de aprendizagem e dual-language), **não** impõe uma paleta fixa própria. As cores padrão da IDE seguem o tema do sistema operacional com referência **VS Code Light Modern** e **VS Code Dark Modern**, oferecendo também **IntelliJ Rust (RustRover)** e os temas claro e escuro mais usados do **VS Code**.
 
 ## Regras de Arquitetura e Acessibilidade
 

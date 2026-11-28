@@ -1,0 +1,491 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *   Jogo de corrida em rodovia de múltiplas faixas: conduza seu veículo até a
+ *   linha de chegada gerenciando combustível, evitando colisões com outros carros
+ *   e coletando galões de combustível e pontos de reparo pela pista.
+ *
+ *   Mecânicas fiéis ao clássico:
+ *     - Bater na traseira de outro carro causa dano e reduz velocidade.
+ *     - Ser atingido por trás por outro carro causa dano, mas impulsiona o jogador!
+ *     - Passe sobre galões verdes para abastecer e cruzes azuis para reparar danos.
+ *
+ *   Controles:
+ *     - Seta Acima / W: acelerar
+ *     - Setas Esquerda/Direita ou A/D: trocar de faixa
+ *     - ESPACO / Seta Abaixo / S: frear
+ *     - R / ENTER: reiniciar corrida
+ *     - ESC: encerrar o jogo
+ *
+ * Autor (versão original):
+ *
+ *   Luiz Fernando Noschang (noschang@univali.br)
+ *
+ * Data original: 07/12/2013
+ * Adaptado para Ferro (.fer)
+ */
+
+enum EstadoCorrida {
+    Jogando,
+    Vitoria,
+    SemCombustivel,
+    Destruido,
+}
+
+registro CarroTraffic {
+    x: real,
+    y: real,
+    vel: real,
+    cor_tipo: inteiro,
+}
+
+registro ItemPista {
+    x: real,
+    y: real,
+    eh_reparo: logico,
+    ativo: logico,
+}
+
+registro JogoCorrida {
+    estado: EstadoCorrida,
+    jogador_x: real,
+    jogador_y: real,
+    velocidade: real,
+    combustivel: real,
+    danos: real,
+    distancia: real,
+    extensao_pista: real,
+    deslocamento_faixa: real,
+    carros: vetor < CarroTraffic >,
+    itens: vetor < ItemPista >,
+    tecla_r_estava: logico,
+}
+
+funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
+    escolha Graficos.criar_cor(r, g, b) {
+        caso Resultado::Ok(cor) => {
+            retorne cor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne Graficos.COR_BRANCO;
+        }
+    }
+}
+
+funcao sortear_entre(minimo: inteiro, maximo: inteiro) -> inteiro {
+    escolha Util.sorteia(minimo, maximo) {
+        caso Resultado::Ok(v) => {
+            retorne v;
+        }
+        caso Resultado::Erro(_) => {
+            retorne minimo;
+        }
+    }
+}
+
+funcao x_da_faixa(faixa: inteiro) -> real {
+    // 4 faixas dentro da pista (x = 190..610)
+    retorne Tipos.inteiro_para_real(220 + faixa * 100);
+}
+
+funcao criar_corrida() -> JogoCorrida {
+    seja mutavel carros: vetor < CarroTraffic > = [];
+    para (seja mutavel i = 0; i < 5; i += 1) {
+        seja faixa: inteiro = sortear_entre(0, 3);
+        adicionar(carros, CarroTraffic {
+            x: x_da_faixa(faixa),
+            y: Tipos.inteiro_para_real(-120 - i * 210),
+            vel: Tipos.inteiro_para_real(sortear_entre(4, 8)),
+            cor_tipo: i % 4,
+        }
+        );
+    }
+
+    seja mutavel itens: vetor < ItemPista > = [];
+    adicionar(itens, ItemPista {
+        x: x_da_faixa(1), y: - 420.0, eh_reparo: falso, ativo: verdadeiro
+    }
+    );
+    adicionar(itens, ItemPista {
+        x: x_da_faixa(2), y: - 980.0, eh_reparo: verdadeiro, ativo: verdadeiro
+    }
+    );
+
+    retorne JogoCorrida {
+        estado: EstadoCorrida::Jogando,
+        jogador_x: x_da_faixa(1),
+        jogador_y: 445.0,
+        velocidade: 4.0,
+        combustivel: 100.0,
+        danos: 0.0,
+        distancia: 0.0,
+        extensao_pista: 20000.0,
+        deslocamento_faixa: 0.0,
+        carros: carros,
+        itens: itens,
+        tecla_r_estava: falso,
+    }
+    ;
+}
+
+funcao colidem_retangulos(ax: real, ay: real, al: real, aa: real, bx: real, by: real, bl: real, ba: real) -> logico {
+    retorne ax < bx + bl && ax + al > bx && ay < by + ba && ay + aa > by;
+}
+
+funcao atualizar(jogo: JogoCorrida) -> JogoCorrida {
+    seja mutavel j: JogoCorrida = jogo;
+
+    seja r_agora: logico = Teclado.tecla_pressionada(Teclado.TECLA_R) || Teclado.tecla_pressionada(Teclado.TECLA_ENTER);
+    se (r_agora && !j.tecla_r_estava) {
+        j = criar_corrida();
+        j.tecla_r_estava = verdadeiro;
+        retorne j;
+    }
+    j.tecla_r_estava = r_agora;
+
+    escolha j.estado {
+        caso EstadoCorrida::Jogando => {}
+        caso _ => {
+            retorne j;
+        }
+    }
+
+    // Aceleração, freio e atrito
+    se (j.combustivel > 0.0 && (Teclado.tecla_pressionada(Teclado.TECLA_SETA_ACIMA) || Teclado.tecla_pressionada(Teclado.TECLA_W))) {
+        j.velocidade += 0.14;
+        j.combustivel -= 0.055;
+    } senao se (Teclado.tecla_pressionada(Teclado.TECLA_ESPACO) || Teclado.tecla_pressionada(Teclado.TECLA_SETA_ABAIXO) || Teclado.tecla_pressionada(Teclado.TECLA_S)) {
+        j.velocidade -= 0.24;
+    } senao {
+        j.velocidade -= 0.045;
+    }
+
+    se (j.combustivel > 0.0 && j.velocidade > 0.5) {
+        j.combustivel -= 0.015;
+    }
+    se (j.combustivel < 0.0) {
+        j.combustivel = 0.0;
+    }
+
+    se (j.velocidade < 0.0) {
+        j.velocidade = 0.0;
+    }
+    se (j.velocidade > 13.0) {
+        j.velocidade = 13.0;
+    }
+
+    // Direção lateral proporcional à velocidade
+    se (j.velocidade > 0.3) {
+        seja passo_lat: real = 5.4;
+        se (Teclado.tecla_pressionada(Teclado.TECLA_SETA_ESQUERDA) || Teclado.tecla_pressionada(Teclado.TECLA_A)) {
+            j.jogador_x -= passo_lat;
+        }
+        se (Teclado.tecla_pressionada(Teclado.TECLA_SETA_DIREITA) || Teclado.tecla_pressionada(Teclado.TECLA_D)) {
+            j.jogador_x += passo_lat;
+        }
+    }
+
+    se (j.jogador_x < 198.0) {
+        j.jogador_x = 198.0;
+    }
+    se (j.jogador_x > 554.0) {
+        j.jogador_x = 554.0;
+    }
+
+    // Avança a estrada
+    j.distancia += j.velocidade * 1.4;
+    j.deslocamento_faixa += j.velocidade * 1.8;
+    se (j.deslocamento_faixa >= 60.0) {
+        j.deslocamento_faixa -= 60.0;
+    }
+
+    // Atualiza carros do tráfego
+    seja mutavel carros: vetor < CarroTraffic > = j.carros;
+    seja total_carros: inteiro = tamanho(carros);
+    para (seja mutavel i = 0; i < total_carros; i += 1) {
+        seja mutavel c: CarroTraffic = carros[i];
+        c.y += (j.velocidade - c.vel) * 1.4;
+
+        // Colisão com o jogador (carros 44 x 82)
+        se (colidem_retangulos(j.jogador_x, j.jogador_y, 44.0, 82.0, c.x, c.y, 44.0, 82.0)) {
+            seja impacto: real = Matematica.valor_absoluto(j.velocidade - c.vel) * 2.8 + 6.0;
+            j.danos += impacto;
+            se (c.y < j.jogador_y) {
+                // Jogador bateu na traseira do outro carro
+                j.velocidade = Matematica.maior_numero(0.0, j.velocidade * 0.4);
+                c.y -= 45.0;
+            } senao {
+                // Outro carro bateu na traseira do jogador (impulso)
+                j.velocidade = Matematica.menor_numero(13.0, j.velocidade + 3.5);
+                c.y += 55.0;
+            }
+        }
+
+        // Recicla carros fora da tela
+        se (c.y > 740.0 || c.y < -950.0) {
+            c.x = x_da_faixa(sortear_entre(0, 3));
+            se (j.velocidade >= 5.0) {
+                c.y = Tipos.inteiro_para_real(-sortear_entre(140, 420));
+            } senao {
+                c.y = Tipos.inteiro_para_real(sortear_entre(640, 720));
+            }
+            c.vel = Tipos.inteiro_para_real(sortear_entre(4, 9));
+        }
+        carros[i] = c;
+    }
+    j.carros = carros;
+
+    // Atualiza itens (galões e reparos)
+    seja mutavel itens: vetor < ItemPista > = j.itens;
+    seja total_itens: inteiro = tamanho(itens);
+    para (seja mutavel k = 0; k < total_itens; k += 1) {
+        seja mutavel it: ItemPista = itens[k];
+        it.y += j.velocidade * 1.4;
+
+        se (it.ativo && colidem_retangulos(j.jogador_x, j.jogador_y, 44.0, 82.0, it.x, it.y, 32.0, 32.0)) {
+            se (it.eh_reparo) {
+                j.danos = Matematica.maior_numero(0.0, j.danos - 30.0);
+            } senao {
+                j.combustivel = Matematica.menor_numero(100.0, j.combustivel + 35.0);
+            }
+            it.ativo = falso;
+        }
+
+        se (it.y > 680.0) {
+            it.x = x_da_faixa(sortear_entre(0, 3)) + 6.0;
+            se (it.eh_reparo) {
+                it.y = Tipos.inteiro_para_real(-sortear_entre(900, 1500));
+            } senao {
+                it.y = Tipos.inteiro_para_real(-sortear_entre(450, 850));
+            }
+            it.ativo = verdadeiro;
+        }
+        itens[k] = it;
+    }
+    j.itens = itens;
+
+    // Condições de término
+    se (j.danos >= 100.0) {
+        j.danos = 100.0;
+        j.estado = EstadoCorrida::Destruido;
+    } senao se (j.distancia >= j.extensao_pista) {
+        j.distancia = j.extensao_pista;
+        j.estado = EstadoCorrida::Vitoria;
+    } senao se (j.combustivel <= 0.0 && j.velocidade <= 0.1) {
+        j.estado = EstadoCorrida::SemCombustivel;
+    }
+
+    retorne j;
+}
+
+funcao desenhar_carro(x: inteiro, y: inteiro, cor_carro: inteiro, eh_jogador: logico) {
+    // Rodas
+    Graficos.definir_cor(cor_rgb(22, 22, 26));
+    Graficos.desenhar_retangulo(x - 3, y + 10, 6, 16, verdadeiro, verdadeiro);
+    Graficos.desenhar_retangulo(x + 41, y + 10, 6, 16, verdadeiro, verdadeiro);
+    Graficos.desenhar_retangulo(x - 3, y + 54, 6, 16, verdadeiro, verdadeiro);
+    Graficos.desenhar_retangulo(x + 41, y + 54, 6, 16, verdadeiro, verdadeiro);
+
+    // Carroceria
+    Graficos.definir_cor(cor_carro);
+    Graficos.desenhar_retangulo(x, y, 44, 82, verdadeiro, verdadeiro);
+
+    // Para-brisa e teto
+    Graficos.definir_cor(cor_rgb(40, 56, 76));
+    Graficos.desenhar_retangulo(x + 6, y + 18, 32, 16, verdadeiro, verdadeiro);
+    Graficos.desenhar_retangulo(x + 8, y + 54, 28, 12, verdadeiro, verdadeiro);
+
+    // Faróis
+    se (eh_jogador) {
+        Graficos.definir_cor(cor_rgb(255, 245, 160));
+        Graficos.desenhar_retangulo(x + 5, y + 2, 9, 4, falso, verdadeiro);
+        Graficos.desenhar_retangulo(x + 30, y + 2, 9, 4, falso, verdadeiro);
+    }
+}
+
+funcao cor_trafego(tipo: inteiro) -> inteiro {
+    se (tipo == 0) {
+        retorne cor_rgb(72, 165, 240);
+    } senao se (tipo == 1) {
+        retorne cor_rgb(245, 200, 66);
+    } senao se (tipo == 2) {
+        retorne cor_rgb(185, 110, 235);
+    } senao {
+        retorne cor_rgb(235, 130, 60);
+    }
+}
+
+funcao desenhar(jogo: JogoCorrida) {
+    // Gramado lateral
+    Graficos.definir_cor(cor_rgb(46, 116, 56));
+    Graficos.limpar();
+
+    // Acostamento e asfalto
+    Graficos.definir_cor(cor_rgb(165, 155, 130));
+    Graficos.desenhar_retangulo(176, 0, 448, 600, falso, verdadeiro);
+    Graficos.definir_cor(cor_rgb(52, 56, 64));
+    Graficos.desenhar_retangulo(190, 0, 420, 600, falso, verdadeiro);
+
+    // Bordas brancas da pista
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.desenhar_retangulo(194, 0, 5, 600, falso, verdadeiro);
+    Graficos.desenhar_retangulo(601, 0, 5, 600, falso, verdadeiro);
+
+    // Faixas tracejadas em movimento
+    seja desloc: inteiro = Tipos.real_para_inteiro(jogo.deslocamento_faixa);
+    Graficos.definir_cor(cor_rgb(235, 215, 95));
+    para (seja mutavel faixa: inteiro = 1; faixa <= 3; faixa += 1) {
+        seja fx: inteiro = 190 + faixa * 105;
+        para (seja mutavel y: inteiro = -60 + desloc; y < 620; y += 60) {
+            Graficos.desenhar_retangulo(fx - 2, y, 4, 30, falso, verdadeiro);
+        }
+    }
+
+    // Itens da pista
+    seja itens: vetor < ItemPista > = jogo.itens;
+    seja total_it: inteiro = tamanho(itens);
+    para (seja mutavel k = 0; k < total_it; k += 1) {
+        seja it: ItemPista = itens[k];
+        se (it.ativo && it.y > -40.0 && it.y < 620.0) {
+            seja ix: inteiro = Tipos.real_para_inteiro(it.x);
+            seja iy: inteiro = Tipos.real_para_inteiro(it.y);
+            se (it.eh_reparo) {
+                Graficos.definir_cor(cor_rgb(60, 165, 255));
+                Graficos.desenhar_retangulo(ix, iy, 32, 32, verdadeiro, verdadeiro);
+                Graficos.definir_cor(Graficos.COR_BRANCO);
+                Graficos.desenhar_retangulo(ix + 13, iy + 6, 6, 20, falso, verdadeiro);
+                Graficos.desenhar_retangulo(ix + 6, iy + 13, 20, 6, falso, verdadeiro);
+            } senao {
+                Graficos.definir_cor(cor_rgb(66, 200, 96));
+                Graficos.desenhar_retangulo(ix, iy, 32, 32, verdadeiro, verdadeiro);
+                Graficos.definir_cor(cor_rgb(20, 40, 24));
+                Graficos.definir_tamanho_texto(14.0);
+                Graficos.desenhar_texto(ix + 10, iy + 8, "G");
+            }
+        }
+    }
+
+    // Tráfego
+    seja carros: vetor < CarroTraffic > = jogo.carros;
+    seja total_c: inteiro = tamanho(carros);
+    para (seja mutavel i = 0; i < total_c; i += 1) {
+        seja c: CarroTraffic = carros[i];
+        se (c.y > -100.0 && c.y < 640.0) {
+            desenhar_carro(Tipos.real_para_inteiro(c.x), Tipos.real_para_inteiro(c.y), cor_trafego(c.cor_tipo), falso);
+        }
+    }
+
+    // Carro do jogador
+    desenhar_carro(Tipos.real_para_inteiro(jogo.jogador_x), Tipos.real_para_inteiro(jogo.jogador_y), cor_rgb(235, 58, 58), verdadeiro);
+
+    // Painel lateral esquerdo (HUD)
+    Graficos.definir_cor(cor_rgb(22, 26, 36));
+    Graficos.desenhar_retangulo(10, 14, 156, 248, verdadeiro, verdadeiro);
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.definir_tamanho_texto(15.0);
+    Graficos.desenhar_texto(22, 26, "CORRIDA");
+
+    seja kmh: inteiro = Tipos.real_para_inteiro(jogo.velocidade * 16.0);
+    Graficos.definir_tamanho_texto(13.0);
+    Graficos.desenhar_texto(22, 58, "Vel: " + Tipos.inteiro_para_cadeia(kmh) + " km/h");
+
+    // Barra de combustível
+    Graficos.desenhar_texto(22, 92, "Combustivel:");
+    Graficos.definir_cor(cor_rgb(56, 62, 76));
+    Graficos.desenhar_retangulo(22, 112, 130, 14, verdadeiro, verdadeiro);
+    Graficos.definir_cor(cor_rgb(76, 215, 110));
+    Graficos.desenhar_retangulo(22, 112, Tipos.real_para_inteiro(jogo.combustivel * 1.3), 14, verdadeiro, verdadeiro);
+
+    // Barra de integridade (100 - danos)
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.desenhar_texto(22, 140, "Integridade:");
+    Graficos.definir_cor(cor_rgb(56, 62, 76));
+    Graficos.desenhar_retangulo(22, 160, 130, 14, verdadeiro, verdadeiro);
+    seja integridade: real = 100.0 - jogo.danos;
+    Graficos.definir_cor(cor_rgb(70, 175, 255));
+    Graficos.desenhar_retangulo(22, 160, Tipos.real_para_inteiro(integridade * 1.3), 14, verdadeiro, verdadeiro);
+
+    // Progresso até chegada
+    seja prog_pct: inteiro = Tipos.real_para_inteiro((jogo.distancia / jogo.extensao_pista) * 100.0);
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.desenhar_texto(22, 190, "Meta: " + Tipos.inteiro_para_cadeia(prog_pct) + "%");
+    Graficos.definir_cor(cor_rgb(56, 62, 76));
+    Graficos.desenhar_retangulo(22, 210, 130, 14, verdadeiro, verdadeiro);
+    Graficos.definir_cor(cor_rgb(255, 210, 70));
+    Graficos.desenhar_retangulo(22, 210, Tipos.real_para_inteiro((jogo.distancia / jogo.extensao_pista) * 130.0), 14, verdadeiro, verdadeiro);
+
+    // Legenda de controles no painel direito
+    Graficos.definir_cor(cor_rgb(22, 26, 36));
+    Graficos.desenhar_retangulo(634, 14, 156, 176, verdadeiro, verdadeiro);
+    Graficos.definir_cor(cor_rgb(210, 218, 232));
+    Graficos.definir_tamanho_texto(12.0);
+    Graficos.desenhar_texto(646, 26, "CONTROLES:");
+    Graficos.desenhar_texto(646, 48, "[W/Seta Cima] Acel.");
+    Graficos.desenhar_texto(646, 68, "[A/D/Setas] Faixa");
+    Graficos.desenhar_texto(646, 88, "[ESPACO] Frear");
+    Graficos.desenhar_texto(646, 108, "[R] Reiniciar");
+    Graficos.desenhar_texto(646, 128, "[ESC] Sair");
+    Graficos.definir_cor(cor_rgb(76, 215, 110));
+    Graficos.desenhar_texto(646, 152, "[G] Combustivel");
+    Graficos.definir_cor(cor_rgb(70, 175, 255));
+    Graficos.desenhar_texto(646, 170, "[+] Reparo");
+
+    // Sobreposições de fim de corrida
+    escolha jogo.estado {
+        caso EstadoCorrida::Vitoria => {
+            Graficos.definir_cor(cor_rgb(16, 48, 30));
+            Graficos.desenhar_retangulo(200, 225, 400, 140, verdadeiro, verdadeiro);
+            Graficos.definir_cor(cor_rgb(110, 245, 145));
+            Graficos.definir_tamanho_texto(26.0);
+            Graficos.desenhar_texto(258, 252, "LINHA DE CHEGADA!");
+            Graficos.definir_cor(Graficos.COR_BRANCO);
+            Graficos.definir_tamanho_texto(15.0);
+            Graficos.desenhar_texto(250, 306, "Pressione [R] ou [ENTER] para correr de novo");
+        }
+        caso EstadoCorrida::SemCombustivel => {
+            Graficos.definir_cor(cor_rgb(56, 36, 14));
+            Graficos.desenhar_retangulo(200, 225, 400, 140, verdadeiro, verdadeiro);
+            Graficos.definir_cor(cor_rgb(255, 200, 70));
+            Graficos.definir_tamanho_texto(26.0);
+            Graficos.desenhar_texto(266, 252, "SEM COMBUSTIVEL!");
+            Graficos.definir_cor(Graficos.COR_BRANCO);
+            Graficos.definir_tamanho_texto(15.0);
+            Graficos.desenhar_texto(256, 306, "Pressione [R] ou [ENTER] para reiniciar");
+        }
+        caso EstadoCorrida::Destruido => {
+            Graficos.definir_cor(cor_rgb(56, 18, 20));
+            Graficos.desenhar_retangulo(200, 225, 400, 140, verdadeiro, verdadeiro);
+            Graficos.definir_cor(cor_rgb(255, 100, 100));
+            Graficos.definir_tamanho_texto(26.0);
+            Graficos.desenhar_texto(262, 252, "VEICULO AVARIADO!");
+            Graficos.definir_cor(Graficos.COR_BRANCO);
+            Graficos.definir_tamanho_texto(15.0);
+            Graficos.desenhar_texto(256, 306, "Pressione [R] ou [ENTER] para reiniciar");
+        }
+        caso EstadoCorrida::Jogando => {}
+    }
+
+    Graficos.renderizar();
+}
+
+funcao inicio() {
+    Graficos.iniciar_modo_grafico(verdadeiro);
+    Graficos.definir_dimensoes_janela(800, 600);
+    Graficos.definir_titulo_janela("Corrida - Ferro");
+
+    seja mutavel jogo: JogoCorrida = criar_corrida();
+
+    enquanto (!Teclado.tecla_pressionada(Teclado.TECLA_ESC)) {
+        jogo = atualizar(jogo);
+        desenhar(jogo);
+        Util.aguarde(16);
+    }
+
+    Graficos.encerrar_modo_grafico();
+}

@@ -19,7 +19,7 @@ export interface ScreenFilesHost {
 }
 
 export interface ScreenInspectors {
-  inspectPortugolRs: (source: string) => Promise<Inspection>;
+  inspectFerroRust: (source: string) => Promise<Inspection>;
   inspectCodeBehind: (source: string, designSource: string) => Promise<Inspection>;
   inspectMarkup: (source: string, path: string, checkCode?: boolean, codeSource?: string | null) => Promise<Inspection>;
 }
@@ -39,7 +39,7 @@ export function screenDesignFor(host: ScreenFilesHost, tab: Tab | undefined): st
   return design && host.hasFile(tab.workspaceId, design) ? design : null;
 }
 
-/** Code-behind existente de um `.design` (`.fer`, ou `.pors` antigo). */
+/** Code-behind existente de um `.design` (`.fer`, ou `.fer` antigo). */
 export function screenCodeFor(host: ScreenFilesHost, tab: Tab): string | null {
   if (!tab.workspaceId || !tab.workspacePath) return null;
   return codeBehindCandidates(tab.workspacePath).find((path) => host.hasFile(tab.workspaceId, path)) ?? null;
@@ -58,7 +58,7 @@ export async function inspectSource(host: ScreenFilesHost, inspectors: ScreenIns
     const designSource = await screenFileSource(host, tab.workspaceId, design);
     if (designSource !== null) return inspectors.inspectCodeBehind(source, designSource);
   }
-  return inspectors.inspectPortugolRs(source);
+  return inspectors.inspectFerroRust(source);
 }
 
 /** Inspeção de marcação: um `.design` de workspace confere os eventos com o code-behind. */

@@ -12,8 +12,8 @@ principal de aprendizagem; arquivos Rust (`.rs`) permitem avançar para a
 linguagem e a toolchain reais. A interface deve ser familiar para quem aprende
 programação e evoluir em função desses fluxos.
 
-O suporte a Portugol clássico (`.por`/`.pex`) foi retirado na Fase 6 do
-[ADR 0016](adr/0016-pors-como-linguagem-autoral-e-retirada-do-por.md). Quando o
+O suporte a pseudocódigo clássico (`.por`/`.pex`) foi retirado na Fase 6 do
+[ADR 0016](adr/0016-ferro-como-linguagem-autoral-e-retirada-do-por.md). Quando o
 usuário tenta abrir um arquivo `.por` ou `.pex`, a interface e a CLI informam
 que o formato não é suportado, sem converter nem modificar o arquivo.
 
@@ -58,7 +58,7 @@ que o formato não é suportado, sem converter nem modificar o arquivo.
 - Abrir arquivo ou pasta inicia trabalho existente em `.fer`, `.rs` ou
   `.licao`; arquivos recentes e o catálogo 100% `.fer` de exemplos ajudam
   a retomar ou explorar programas.
-- Exercícios `.licao`, Ajuda PORS, Dicas de interface, Atalhos, Alertas e
+- Exercícios `.licao`, Ajuda FERRO, Dicas de interface, Atalhos, Alertas e
   Sobre ficam acessíveis a partir da tela inicial.
 
 ### Espaço de trabalho
@@ -69,16 +69,16 @@ que o formato não é suportado, sem converter nem modificar o arquivo.
   edição. O conteúdo e a extensão da aba ativa determinam a linguagem do
   documento.
 - **Editor e comandos:** edição central, salvar, executar, depurar, interromper,
-  abrir ajuda, inspecionar a tradução Rust e abrir a prévia visual PORS quando
+  abrir ajuda, inspecionar a tradução Rust e abrir a prévia visual FERRO quando
   aplicável.
 - **Painel inferior:** Console, Testes, Mensagens e Depuração. Diagnósticos
   apontam para o código; o depurador apresenta estado real da VM para
   linguagens suportadas.
-- **Inspector (`Aprender` e utilitários PORS):** explicações contextuais mapeadas por source map (mutabilidade, decisões, laços, funções, `Opcao`/`Resultado`, vetores, registros/enums), prática vinculada diretamente a lições `.licao`, 13 módulos PORS e 11 modelos `.fer`, estrutura do programa e inspetor de variáveis.
+- **Inspector (`Aprender` e utilitários FERRO):** explicações contextuais mapeadas por source map (mutabilidade, decisões, laços, funções, `Opcao`/`Resultado`, vetores, registros/enums), prática vinculada diretamente a lições `.licao`, 13 módulos FERRO e 11 modelos `.fer`, estrutura do programa e inspetor de variáveis.
 - **Prévia Rust:** mostra Rust gerado, estado da tradução, mapeamentos de
   origem e diferenças. O usuário pode copiar, salvar ou desvincular para editar
   um arquivo `.rs` independente.
-- **Prévia Visual PORS:** executa uma prévia interativa dos programas visuais
+- **Prévia Visual FERRO:** executa uma prévia interativa dos programas visuais
   suportados; seus estados, limitações e ações de cancelar/reiniciar são
   explícitos.
 - **Paletas de cores padronizadas:** `Sistema` como padrão (alternando entre VS Code Light Modern e VS Code Dark Modern em `tokens.css`), `IntelliJ Rust Dark/Light`, temas populares do VS Code e `Alto contraste`, todos verificados em WCAG AA (`>= 4,5:1`) — ver [`docs/next-ui/design/COLOR_THEMES.md`](next-ui/design/COLOR_THEMES.md).
@@ -87,10 +87,10 @@ que o formato não é suportado, sem converter nem modificar o arquivo.
 
 | Documento | Comportamento apresentado ao usuário |
 | --- | --- |
-| `.fer` | Linguagem principal; análise, execução e depuração na VM PORS, além de prévia/exportação Rust. Executar o fonte não exige `rustc`. |
+| `.fer` | Linguagem principal; análise, execução e depuração na VM FERRO, além de prévia/exportação Rust. Executar o fonte não exige `rustc`. |
 | `.rs` | Código Rust real. Análise, formatação, compilação e execução dependem das ferramentas Rust correspondentes instaladas; a IDE informa quando uma capacidade não está disponível. |
 | `.licao` | Exercício estruturado Ferro avaliado no serviço local com casos de teste reais. |
-| `.pors` / `.pors.json` | Extensões retiradas. Não são abertas como código ou lições; renomear para `.fer` ou `.licao` mantém o conteúdo. |
+| `.fer` / `.fer` | Extensões retiradas. Não são abertas como código ou lições; renomear para `.fer` ou `.licao` mantém o conteúdo. |
 | `.por` / `.pex` | Não suportados (Fase 6 / ADR 0016). A IDE e a CLI rejeitam a abertura com aviso claro, sem alterar nem converter o arquivo. |
 
 O Rust gerado é um artefato de tradução do Ferro, não uma promessa de
@@ -159,13 +159,13 @@ experiência:
 
 As decisões de produto relacionadas são os ADRs
 [0015](adr/0015-evolucao-visual-orientada-a-aprendizagem.md),
-[0016](adr/0016-pors-como-linguagem-autoral-e-retirada-do-por.md),
-[0017](adr/0017-modelo-execucao-e-estado-ui-visual-pors.md),
-[0018](adr/0018-projetos-desktop-pors-com-designer-visual.md),
-[0019](adr/0019-contrato-minimo-de-tipos-pors.md),
-[0020](adr/0020-ajustes-pedagogicos-da-sintaxe-pors.md) e
-[0021](adr/0021-tela-como-forma-unica-de-interface-pors.md). Eles definem,
-respectivamente, a direção visual, a evolução de `.por` para PORS, o modelo
-para programas visuais PORS, os projetos desktop com designer visual, o
+[0016](adr/0016-ferro-como-linguagem-autoral-e-retirada-do-por.md),
+[0017](adr/0017-modelo-execucao-e-estado-ui-visual-ferro.md),
+[0018](adr/0018-projetos-desktop-ferro-com-designer-visual.md),
+[0019](adr/0019-contrato-minimo-de-tipos-ferro.md),
+[0020](adr/0020-ajustes-pedagogicos-da-sintaxe-ferro.md) e
+[0021](adr/0021-tela-como-forma-unica-de-interface-ferro.md). Eles definem,
+respectivamente, a direção visual, a evolução de `.por` para FERRO, o modelo
+para programas visuais FERRO, os projetos desktop com designer visual, o
 contrato mínimo de tipos, os ajustes pedagógicos da sintaxe e as telas
 (`.design` + `.fer`) como forma única de interface.

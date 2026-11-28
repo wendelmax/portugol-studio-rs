@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "id": "pors-12-saudacao-cadeia",
+  "id": "ferro-12-saudacao-cadeia",
   "title": "Saudação com cadeia",
   "statement": "Leia o nome de uma pessoa em uma variável cadeia e escreva \"Ola, \" seguido do nome lido.",
   "starter_code": "funcao inicio() {\n    seja mutavel nome = leia();\n    escreva(nome);\n}\n",

@@ -11,7 +11,7 @@ pub(super) fn render_statements(
     depth: usize,
     output: &mut String,
     mappings: &mut Vec<SourceMapSegment>,
-    pors: bool,
+    ferro: bool,
     for_label: Option<u32>,
 ) {
     let indent = "    ".repeat(depth);
@@ -35,7 +35,7 @@ pub(super) fn render_statements(
                 ));
                 let initializer = initializer.as_ref().map(|value| {
                     output.push_str(" = ");
-                    push_expr(output, mappings, value, program, true, pors);
+                    push_expr(output, mappings, value, program, true, ferro);
                 });
                 if initializer.is_none() {
                     if declaration.ty.is_vector() {
@@ -64,21 +64,21 @@ pub(super) fn render_statements(
                     };
                     if let Some(method) = method {
                         output.push_str(&format!("{indent}{name} = ({name}).{method}("));
-                        push_expr(output, mappings, value, program, false, pors);
+                        push_expr(output, mappings, value, program, false, ferro);
                         output.push_str(");\n");
                         record_statement_mapping(mappings, start, output.len(), statement);
                         continue;
                     }
                 }
                 if ty == Type::String && *op == AssignOp::Add {
-                    if pors {
+                    if ferro {
                         output.push_str(&format!("{indent}{name} = __ferro_concat(&{name}, "));
-                        push_expr(output, mappings, value, program, false, pors);
+                        push_expr(output, mappings, value, program, false, ferro);
                         output.push_str(".as_str());\n");
                     } else {
                         output
                             .push_str(&format!("{indent}{name} = format!(\"{{}}{{}}\", {name}, "));
-                        push_expr(output, mappings, value, program, true, pors);
+                        push_expr(output, mappings, value, program, true, ferro);
                         output.push_str(");\n");
                     }
                     record_statement_mapping(mappings, start, output.len(), statement);
@@ -96,7 +96,14 @@ pub(super) fn render_statements(
                     AssignOp::BitOr => "|=",
                 };
                 output.push_str(&format!("{indent}{name} {assignment_op} "));
-                push_expr(output, mappings, value, program, *op == AssignOp::Set, pors);
+                push_expr(
+                    output,
+                    mappings,
+                    value,
+                    program,
+                    *op == AssignOp::Set,
+                    ferro,
+                );
                 output.push_str(";\n");
             }
             StmtKind::FieldAssign {
@@ -138,15 +145,15 @@ pub(super) fn render_statements(
                     };
                     if let Some(method) = method {
                         output.push_str(&format!("{indent}{place} = ({place}).{method}("));
-                        push_expr(output, mappings, value, program, false, pors);
+                        push_expr(output, mappings, value, program, false, ferro);
                         output.push_str(");\n");
                         record_statement_mapping(mappings, start, output.len(), statement);
                         continue;
                     }
                 }
-                if field_ty == Type::String && *op == AssignOp::Add && pors {
+                if field_ty == Type::String && *op == AssignOp::Add && ferro {
                     output.push_str(&format!("{indent}{place} = __ferro_concat(&{place}, "));
-                    push_expr(output, mappings, value, program, false, pors);
+                    push_expr(output, mappings, value, program, false, ferro);
                     output.push_str(".as_str());\n");
                 } else {
                     let assignment_op = match op {
@@ -161,7 +168,14 @@ pub(super) fn render_statements(
                         AssignOp::BitOr => "|=",
                     };
                     output.push_str(&format!("{indent}{place} {assignment_op} "));
-                    push_expr(output, mappings, value, program, *op == AssignOp::Set, pors);
+                    push_expr(
+                        output,
+                        mappings,
+                        value,
+                        program,
+                        *op == AssignOp::Set,
+                        ferro,
+                    );
                     output.push_str(";\n");
                 }
             }
@@ -173,17 +187,17 @@ pub(super) fn render_statements(
                 let name = rust_ident(&binding_info(program, *binding).source_name);
                 let checked_index = format!("__ferro_index_{}", statement.span.start);
                 output.push_str(&format!("{indent}let {checked_index} = __ferro_index("));
-                push_expr(output, mappings, index, program, false, pors);
+                push_expr(output, mappings, index, program, false, ferro);
                 output.push_str(&format!(
                     ", {name}.len());\n{indent}{name}[{checked_index}] = "
                 ));
-                push_expr(output, mappings, value, program, true, pors);
+                push_expr(output, mappings, value, program, true, ferro);
                 output.push_str(";\n");
             }
             StmtKind::VectorPush { binding, value } => {
                 let name = rust_ident(&binding_info(program, *binding).source_name);
                 output.push_str(&format!("{indent}{name}.push("));
-                push_expr(output, mappings, value, program, true, pors);
+                push_expr(output, mappings, value, program, true, ferro);
                 output.push_str(");\n");
             }
             StmtKind::VectorPop { binding } => {
@@ -198,7 +212,7 @@ pub(super) fn render_statements(
                     .collect();
                 for (temp, value) in temps.iter().zip(values) {
                     output.push_str(&format!("{indent}let {temp} = "));
-                    push_expr(output, mappings, value, program, true, pors);
+                    push_expr(output, mappings, value, program, true, ferro);
                     output.push_str(";\n");
                 }
                 for (temp, value) in temps.iter().zip(values) {
@@ -237,7 +251,7 @@ pub(super) fn render_statements(
                     "{indent}let {input} = __ferro_read_line(\"{label}\");\n"
                 ));
                 match declaration.ty {
-                    Type::String if pors => output.push_str(&format!("{indent}{name} = __ferro_string(&{input});\n")),
+                    Type::String if ferro => output.push_str(&format!("{indent}{name} = __ferro_string(&{input});\n")),
                     Type::Boolean => output.push_str(&format!("{indent}{name} = match {input}.trim() {{ \"verdadeiro\" | \"true\" => true, \"falso\" | \"false\" => false, _ => {{ eprintln!(\"Entrada inválida: esperado lógico.\"); std::process::exit(1); }} }};\n")),
                     _ => output.push_str(&format!("{indent}{name} = __ferro_parse::<{}>(&{input}, \"{label}\");\n", rust_type(declaration.ty, program))),
                 }
@@ -260,7 +274,7 @@ pub(super) fn render_statements(
                     },
                     program,
                     false,
-                    pors,
+                    ferro,
                 );
                 output.push_str(";\n");
             }
@@ -284,7 +298,7 @@ pub(super) fn render_statements(
                     },
                     program,
                     false,
-                    pors,
+                    ferro,
                 );
                 output.push_str(";\n");
             }
@@ -298,7 +312,7 @@ pub(super) fn render_statements(
                         value,
                         program,
                         matches!(value.ty, Type::Record(_) | Type::Enum(_)),
-                        pors,
+                        ferro,
                     );
                 }
                 output.push_str(";\n");
@@ -313,7 +327,7 @@ pub(super) fn render_statements(
                     .find(|definition| definition.id == type_id)
                     .expect("enum existe");
                 output.push_str(&format!("{indent}match "));
-                push_expr(output, mappings, value, program, true, pors);
+                push_expr(output, mappings, value, program, true, ferro);
                 output.push_str(" {\n");
                 for arm in arms {
                     if let Some(variant_index) = arm.variant_index {
@@ -332,7 +346,7 @@ pub(super) fn render_statements(
                         output.push_str(&format!("{indent}    _"));
                     }
                     output.push_str(" => {\n");
-                    render_statements(&arm.body, program, depth + 2, output, mappings, pors, None);
+                    render_statements(&arm.body, program, depth + 2, output, mappings, ferro, None);
                     output.push_str(&format!("{indent}    }},\n"));
                 }
                 output.push_str(&format!("{indent}}}\n"));
@@ -343,7 +357,7 @@ pub(super) fn render_statements(
                 else_branch,
             } => {
                 output.push_str(&format!("{indent}if "));
-                push_expr(output, mappings, condition, program, false, pors);
+                push_expr(output, mappings, condition, program, false, ferro);
                 output.push_str(" {\n");
                 render_statements(
                     then_branch,
@@ -351,7 +365,7 @@ pub(super) fn render_statements(
                     depth + 1,
                     output,
                     mappings,
-                    pors,
+                    ferro,
                     for_label,
                 );
                 output.push_str(&format!("{indent}}}"));
@@ -363,7 +377,7 @@ pub(super) fn render_statements(
                         depth + 1,
                         output,
                         mappings,
-                        pors,
+                        ferro,
                         for_label,
                     );
                     output.push_str(&format!("{indent}}}"));
@@ -372,19 +386,19 @@ pub(super) fn render_statements(
             }
             StmtKind::While { condition, body } => {
                 output.push_str(&format!("{indent}while "));
-                push_expr(output, mappings, condition, program, false, pors);
+                push_expr(output, mappings, condition, program, false, ferro);
                 output.push_str(" {\n");
-                render_statements(body, program, depth + 1, output, mappings, pors, None);
+                render_statements(body, program, depth + 1, output, mappings, ferro, None);
                 output.push_str(&format!("{indent}}}\n"));
             }
             StmtKind::DoWhile { body, condition } => {
                 let flag = format!("__ferro_do_{}", statement.span.start);
                 output.push_str(&format!("{indent}let mut {flag} = true;\n"));
                 output.push_str(&format!("{indent}while {flag} || ("));
-                push_expr(output, mappings, condition, program, false, pors);
+                push_expr(output, mappings, condition, program, false, ferro);
                 output.push_str(") {\n");
                 output.push_str(&format!("{indent}    {flag} = false;\n"));
-                render_statements(body, program, depth + 1, output, mappings, pors, None);
+                render_statements(body, program, depth + 1, output, mappings, ferro, None);
                 output.push_str(&format!("{indent}}}\n"));
             }
             StmtKind::For {
@@ -401,12 +415,12 @@ pub(super) fn render_statements(
                     depth + 1,
                     output,
                     mappings,
-                    pors,
+                    ferro,
                     None,
                 );
                 let loop_indent = "    ".repeat(depth + 1);
                 output.push_str(&format!("{loop_indent}'ferro_for_{label}: while "));
-                push_expr(output, mappings, condition, program, false, pors);
+                push_expr(output, mappings, condition, program, false, ferro);
                 output.push_str(" {\n");
                 let body_scope_indent = "    ".repeat(depth + 2);
                 output.push_str(&format!("{body_scope_indent}'ferro_body_{label}: {{\n"));
@@ -416,7 +430,7 @@ pub(super) fn render_statements(
                     depth + 3,
                     output,
                     mappings,
-                    pors,
+                    ferro,
                     Some(label),
                 );
                 output.push_str(&format!("{body_scope_indent}}}\n"));
@@ -426,7 +440,7 @@ pub(super) fn render_statements(
                     depth + 2,
                     output,
                     mappings,
-                    pors,
+                    ferro,
                     None,
                 );
                 output.push_str(&format!("{loop_indent}}}\n{indent}}}\n"));

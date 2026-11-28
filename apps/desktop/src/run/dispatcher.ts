@@ -9,7 +9,7 @@ export interface RunDispatcherDependencies {
   argumentsText: () => string;
   breakpointLines: (state: EditorState) => number[];
   rustExecution: { run: (pauseOnStart: boolean) => Promise<void> };
-  portugolRsExecution: {
+  ferroRustExecution: {
     run: (tab: Tab, document: Text, breakpoints: number[], pauseOnStart: boolean, asRust: boolean) => Promise<void>;
   };
   isPaused: () => boolean;
@@ -39,13 +39,13 @@ export function createRunDispatcher(dependencies: RunDispatcherDependencies) {
     }
     const document = dependencies.currentDocument();
     const breakpoints = dependencies.breakpointLines(dependencies.editorState());
-    await dependencies.portugolRsExecution.run(tab, document, breakpoints, pauseOnStart, asRust);
+    await dependencies.ferroRustExecution.run(tab, document, breakpoints, pauseOnStart, asRust);
   }
 
   return {
     runProgram,
     runOrContinue: () => dependencies.isPaused() ? dependencies.debugContinue() : runProgram(),
-    stepOrStart: () => dependencies.isPaused() ? dependencies.debugStepOver() : runProgram(true),
+    stepDebugOrStart: () => dependencies.isPaused() ? dependencies.debugStepOver() : runProgram(true),
     stopProgram: () => dependencies.stop(),
   };
 }

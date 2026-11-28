@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Antes de transformar Rust gerado em uma aba `.rs` independente, explicar que a nova aba deixa de acompanhar a tradução e pedir confirmação. A origem Portugol e a prévia vinculada permanecem intactas.
+Antes de transformar Rust gerado em uma aba `.rs` independente, explicar que a nova aba deixa de acompanhar a tradução e pedir confirmação. A origem Ferro e a prévia vinculada permanecem intactas.
 
 ## Abordagens
 

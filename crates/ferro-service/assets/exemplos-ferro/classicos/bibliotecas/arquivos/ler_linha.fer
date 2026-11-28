@@ -1,0 +1,64 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ * 	Este exemplo utiliza a biblioteca "Arquivos" para ler apenas as primeiras linhas
+ * 	de um arquivo de texto contendo o placar de um jogo e exibi-las ao usuário.
+ *
+ * Autores:
+ *
+ * 	Luiz Fernando Noschang (noschang@univali.br)
+ *
+ * Data: 10/02/2016
+ * Adaptado para Ferro (.fer)
+ */
+
+funcao garantir_placar_exemplo(caminho: cadeia) -> Resultado < logico, cadeia > {
+    seja ja_existe: logico = Arquivos.existe(caminho)?;
+    se (!ja_existe) {
+        seja conteudo: cadeia = "  1| João    | 1250 pontos\n"
+        + "  2| Julia   | 1157 pontos\n"
+        + "  3| Rafael  |  981 pontos\n"
+        + "  4| Alisson |  965 pontos\n"
+        + "  5| Marcos  |  810 pontos\n";
+        seja _ok: logico = Arquivos.escrever_texto(caminho, conteudo)?;
+    }
+    retorne Resultado::Ok(verdadeiro);
+}
+
+funcao ler_linhas_placar(caminho: cadeia) -> Resultado < vetor < cadeia >, cadeia > {
+    seja _pronto: logico = garantir_placar_exemplo(caminho)?;
+    retorne Arquivos.ler_linhas(caminho);
+}
+
+funcao exibir_linha(linhas: vetor < cadeia >, indice: inteiro) {
+    // Usa "obter" para acessar o índice com segurança por meio de Opcao<cadeia>
+    escolha obter(linhas, indice) {
+        caso Opcao::Algum(texto) => {
+            escreval("Linha ", indice + 1, ": ", texto);
+        }
+        caso Opcao::Nenhum => {
+            escreval("Linha ", indice + 1, ": (inexistente)");
+        }
+    }
+}
+
+funcao inicio() {
+    seja caminho_do_arquivo: cadeia = "placar.txt";
+
+    escolha ler_linhas_placar(caminho_do_arquivo) {
+        caso Resultado::Ok(linhas) => {
+            exibir_linha(linhas, 0);
+            exibir_linha(linhas, 1);
+            exibir_linha(linhas, 2);
+        }
+        caso Resultado::Erro(erro) => {
+            escreval("Erro ao ler arquivo: ", erro);
+        }
+    }
+}

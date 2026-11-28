@@ -1,0 +1,24 @@
+enum Situacao {
+    Ativo,
+    Concluido(inteiro)
+}
+
+registro Tarefa {
+    titulo: cadeia,
+    situacao: Situacao
+}
+
+funcao inicio() {
+    seja tarefa: Tarefa = Tarefa {
+        titulo: "Estudar Ferro",
+        situacao: Situacao::Concluido(100)
+    };
+    escolha tarefa.situacao {
+        caso Situacao::Ativo => {
+            escreva(tarefa.titulo, ": em andamento");
+        }
+        caso Situacao::Concluido(pontos) => {
+            escreva(tarefa.titulo, ": concluída (", pontos, "%)");
+        }
+    }
+}

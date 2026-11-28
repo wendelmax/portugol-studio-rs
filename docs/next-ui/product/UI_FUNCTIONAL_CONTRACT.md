@@ -1,4 +1,4 @@
-# Portugol Studio Next — UI ↔ Funcionalidade ↔ Testes
+# Ferro Studio Next — UI ↔ Funcionalidade ↔ Testes
 
 > Versão 0.2.0 · Status: especificação proposta · Idioma: pt-BR · Complementa `DESIGN_AS_CODE.md` v0.1.0
 > Público: agentes de implementação, engenharia, QA, design, docentes.
@@ -26,7 +26,7 @@ Este documento não presume framework, bibliotecas, formatos legados ou capacida
 | UI-001 `AppShell` | raiz `ide-shell` | UC-01 abrir workspace | workspace → layout e estado restaurado | WorkspaceStore, LayoutStore | FT-01, FT-09 |
 | UI-002 `TitleBar/WorkspaceSelector` | topo `workspace-selector` | UC-01 trocar projeto | clique/seleção → troca com guarda de arquivos não salvos | WorkspaceService | FT-01, FT-08 |
 | UI-003 `RunButton` | topo `run-button` | UC-06 executar | clique/F5 → request com engine e revisão capturada | ExecutionService | FT-03 |
-| UI-004 `RuntimeSelector` | topo `runtime-selector` | UC-06 escolher motor | selecionar `portugol`/`rust` → engine persistido/validado | CapabilityService | FT-03, FT-06 |
+| UI-004 `RuntimeSelector` | topo `runtime-selector` | UC-06 escolher motor | selecionar `ferro`/`rust` → engine persistido/validado | CapabilityService | FT-03, FT-06 |
 | UI-005 `DebugButton` | topo `debug-button` | UC-09 iniciar debug | clique → sessão real ou controle indisponível | DebugService | FT-07 |
 | UI-006 `ShareButton` | topo `share-button` | UC-14 compartilhar/exportar | clique → exportação local, ou compartilhamento somente com integração habilitada | ExportService | FT-10 |
 | UI-007 `ActivityRail` | esquerda `activity-rail` | UC-02 trocar perspectiva | selecionar projeto/aprender/exemplos/depurar/config. → view ativa | NavigationStore | FT-01, FT-05 |
@@ -34,7 +34,7 @@ Este documento não presume framework, bibliotecas, formatos legados ou capacida
 | UI-009 `ExplorerFileActions` | árvore `file-actions` | UC-03 criar/renomear/excluir | ação → confirmação/persistência/erro | FileService | FT-08 |
 | UI-010 `EditorTabs` | central `editor-tabs` | UC-04 gerenciar abas | seleção/fechar → editor correto e prompt se `dirty` | DocumentStore | FT-01, FT-08 |
 | UI-011 `SourceEditor` | central `source-editor` | UC-04 editar origem | digitação → buffer, revisão, dirty, diagnósticos | EditorAdapter, LanguageService | FT-02, FT-08 |
-| UI-012 `SourceLanguageBadge` | editor `source-language` | UC-05 reconhecer dialeto | arquivo → `portugol`/`portugol-rs`/`rust` com origem verificável | LanguageService | FT-02 |
+| UI-012 `SourceLanguageBadge` | editor `source-language` | UC-05 reconhecer dialeto | arquivo → `ferro`/`ferro-rust`/`rust` com origem verificável | LanguageService | FT-02 |
 | UI-013 `DualEditorToggle` | editor `dual-editor-toggle` | UC-07 comparar | alternar → mostrar/ocultar segundo editor sem modificar fonte | UI Store | FT-04 |
 | UI-014 `MappingGutter` | meio `mapping-gutter` | UC-08 vincular trechos | selecionar AST span → ranges correlatos ou `sem correspondência` | TranslationService | FT-04 |
 | UI-015 `GeneratedRustEditor` | editor `generated-rust-editor` | UC-07 visualizar Rust | tradução → conteúdo com revisão/proveniência e bloqueio de edição | TranslationService | FT-04 |
@@ -63,10 +63,10 @@ Este documento não presume framework, bibliotecas, formatos legados ou capacida
 
 | Região | `beginner` | `bridge` | `rust` |
 |---|---|---|---|
-| Editor principal | Portugol | Portugol/Ferro, conforme arquivo | Rust |
+| Editor principal | Ferro | Ferro/Ferro, conforme arquivo | Rust |
 | Editor paralelo | oculto por padrão | Rust gerado, se disponível | comparação opcional |
 | Inspector | dicas básicas | explicar tradução/`mut`/tipos | ownership/borrowing e recursos avançados |
-| Motor padrão | interpretador Portugol | escolha explícita; preservar escolha válida | rustc/Cargo, se configurado |
+| Motor padrão | interpretador Ferro | escolha explícita; preservar escolha válida | rustc/Cargo, se configurado |
 | Status | não apresentar Rust como obrigatório | indicar origem e estado da tradução | edição Rust/toolchain |
 
 **Trocar modo NÃO modifica fonte, linguagem do arquivo ou motor implicitamente sem validação.** Se arquivo ativo incompatível com modo, manter aberto e apresentar orientação sem apagar nada.
@@ -75,8 +75,8 @@ Este documento não presume framework, bibliotecas, formatos legados ou capacida
 
 ```ts
 // Tipos de referência; adaptar à linguagem real do frontend e do backend.
-type Language = 'portugol' | 'portugol-rs' | 'rust';
-type Engine = 'portugol' | 'rust';
+type Language = 'ferro' | 'ferro-rust' | 'rust';
+type Engine = 'ferro' | 'rust';
 type LearningMode = 'beginner' | 'bridge' | 'rust';
 type JobStatus = 'idle' | 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled';
 type TranslationStatus = 'idle' | 'generating' | 'ready' | 'stale' | 'partial' | 'error';
@@ -261,11 +261,11 @@ Exemplo obrigatório `UI-003 RunButton`:
 ```gherkin
 Cenário: executar o arquivo ativo
   Dado que há um documento válido aberto na revisão 7
-  E que o motor Portugol está disponível
+  E que o motor Ferro está disponível
   Quando pressiono F5
   Então uma solicitação de execução usa o arquivo ativo e a revisão 7
   E o botão Executar indica execução em andamento
-  E o terminal identifica o motor Portugol
+  E o terminal identifica o motor Ferro
   Quando o processo termina com código 0
   Então o estado passa para concluído com sucesso
 
@@ -304,7 +304,7 @@ DesktopApp
 ## 9. Estratégia de entrega para agentes
 
 1. **Auditoria:** mapear classes reais existentes para `UI-*`, `UC-*` e `*Port`. Entregar `IMPLEMENTATION_GAP_REPORT.md` antes de alterar fundações. Não introduzir stack nova sem justificativa.
-2. **Vertical slice 1:** abrir/editar/salvar/executar Portugol com observabilidade e testes FT-01/02/03/08.
+2. **Vertical slice 1:** abrir/editar/salvar/executar Ferro com observabilidade e testes FT-01/02/03/08.
 3. **Vertical slice 2:** alternar modo e exibir explicações com FT-02/05.
 4. **Vertical slice 3:** tradução versionada, comparação, mapeamento, detach com FT-04.
 5. **Vertical slice 4:** testes e diagnósticos FT-06; debugger com capability detection FT-07.

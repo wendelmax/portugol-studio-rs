@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Keep classic Portugol and Portugol-RS formatting behavior unchanged.
+- Keep classic Ferro and Ferro formatting behavior unchanged.
 - Never run a shell, Cargo, student-provided command, or file path.
 - Format only the active `.rs` buffer using Rust 2021 and a deterministic empty rustfmt config.
 - Apply formatted text only after successful formatting and only if tab/document identity is unchanged.
@@ -31,7 +31,7 @@
 
 ### Task 1: Rust service formatter
 
-**Files:** modify `crates/portugol-service/src/pors_run.rs` and `crates/portugol-service/src/lib.rs`; create/update `crates/portugol-service/tests/rust_format.rs`.
+**Files:** modify `crates/ferro-service/src/ferro_run.rs` and `crates/ferro-service/src/lib.rs`; create/update `crates/ferro-service/tests/rust_format.rs`.
 
 **Interfaces:** add `rustfmt_available() -> bool` and `format_rust_source(source: &str) -> Result<String, String>`.
 
@@ -46,7 +46,7 @@
 
 **Interfaces:** Tauri commands `rustfmt_available` and async `format_rust_source(source) -> Result<String, String>`; typed frontend wrappers of the same names; `canFormatSource(language, rustfmtAvailable)`.
 
-- [x] Test that classic Portugol remains formattable, `.rs` depends on rustfmt, and Portugol-RS remains unavailable.
+- [x] Test that classic Ferro remains formattable, `.rs` depends on rustfmt, and Ferro remains unavailable.
 - [x] Run the new capability test and confirm it fails before implementation.
 - [x] Add command adapters and asynchronously refresh `.rs` format availability with a clear unavailable reason.
 - [x] Route Rust formatting through service output, preserve the active tab/document stale check, apply one undoable full-document transaction, and preserve classic formatter response handling.
@@ -54,7 +54,7 @@
 
 ### Task 3: Traceability and evidence
 
-**Files:** modify `docs/PARIDADE.md` and the integration kit traceability/gap report; add `docs/portugol-studio-next-integration/docs/agents/FEATURE_REPORT_RUST_FORMAT.md`.
+**Files:** modify `docs/PARIDADE.md` and the integration kit traceability/gap report; add `docs/ferro-studio-next-integration/docs/agents/FEATURE_REPORT_RUST_FORMAT.md`.
 
 - [x] Record `FEAT-RUSTFMT-001`, platform/toolchain constraints, rollback, actual test commands, and E2E status.
 - [x] Run workspace tests, app tests/build, fmt, Clippy, Tauri check, and `git diff --check`.

@@ -2,7 +2,7 @@
 //!
 //! CLI, serviço, Tauri e IDE perguntam aqui o que é cada arquivo, em vez de
 //! comparar extensões por conta própria. `.fer` e `.licao` são as extensões
-//! canônicas; `.pors` e `.pors.json` não são reconhecidas.
+//! canônicas; `.fer` e `.fer` não são reconhecidas.
 //!
 //! A IDE recebe a mesma tabela no arquivo gerado
 //! `apps/desktop/src/file-formats.generated.ts`. O teste `ts_table_is_current`
@@ -306,15 +306,15 @@ mod tests {
     fn classifica_pela_extensao_ignorando_maiusculas() {
         let kind = |path| classify(path).map(|m| m.kind());
         assert_eq!(kind("principal.fer"), Some(Kind::Source));
-        assert_eq!(kind("principal.pors"), None);
+        assert_eq!(kind("principal.zzz"), None);
         assert_eq!(kind("C:\\aulas\\Main.RS"), Some(Kind::Rust));
         assert_eq!(kind("aulas/01-dobro.licao"), Some(Kind::Lesson));
-        assert_eq!(kind("aulas/01-dobro.pors.json"), None);
+        assert_eq!(kind("aulas/01-dobro.zzz"), None);
         assert_eq!(kind("App/JanelaPrincipal.design"), Some(Kind::Design));
         assert_eq!(kind("meu-app.FERPROJ"), Some(Kind::Manifest));
         assert_eq!(classify("dados.json"), None);
         assert_eq!(classify("sem-extensao"), None);
-        assert_eq!(classify(".fer"), None);
+        assert_eq!(classify(".zzz"), None);
         assert_eq!(classify(".licao"), None);
         assert_eq!(classify("pasta.fer/arquivo"), None);
         assert_eq!(classify("programa.por"), None);
@@ -323,19 +323,15 @@ mod tests {
     }
 
     #[test]
-    fn extensao_antiga_e_aceita_e_marcada() {
+    fn extensao_nao_catalogada_nao_e_aceita() {
         static TEST: &[Format] = &[Format {
             kind: Kind::Source,
             extension: "fer",
-            legacy: &["pors"],
+            legacy: &[],
             label: "Ferro",
             mime: "text/x-ferro",
         }];
-        let old = classify_in(TEST, "principal.pors").unwrap();
-        assert_eq!(
-            (old.kind(), old.extension, old.legacy),
-            (Kind::Source, "pors", true)
-        );
+        assert!(classify_in(TEST, "principal.zzz").is_none());
         let new = classify_in(TEST, "principal.FER").unwrap();
         assert_eq!((new.extension, new.legacy), ("fer", false));
     }
@@ -344,7 +340,7 @@ mod tests {
     fn extensoes_retiradas() {
         assert!(is_retired("antigo.POR"));
         assert!(is_retired("pacote.pex"));
-        assert!(!is_retired("programa.pors"));
+        assert!(!is_retired("programa.fer"));
         assert!(!is_retired("por"));
     }
 
@@ -365,7 +361,7 @@ mod tests {
     #[test]
     fn caminho_canonico_retorna_none_sem_extensoes_legadas() {
         assert_eq!(canonical_name("aula.fer"), None);
-        assert_eq!(canonical_name("aula.pors"), None);
+        assert_eq!(canonical_name("aula.fer"), None);
         assert_eq!(canonical_path(Path::new("pasta/app.fer")), None);
     }
 

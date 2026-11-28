@@ -9,7 +9,7 @@ O backend associa um identificador e um token atômico à execução. O supervis
 ## Escopo
 
 - Incluído: compilação/executação de arquivos `.rs` standalone, cancelamento via toolbar e Shift+F7, resultado tipado com fase `compilation` ou `runtime`.
-- Não incluído: cancelar `.pors`, cancelar execução da VM clássica, depuração de Rust, sandbox ou mudança nas permissões concedidas ao processo.
+- Não incluído: cancelar `.fer`, cancelar execução da VM clássica, depuração de Rust, sandbox ou mudança nas permissões concedidas ao processo.
 - O cancelamento é cooperativo entre ciclos curtos do supervisor (até aproximadamente 5 ms, além do tempo de encerramento/recolha do sistema operacional).
 
 ## Validação executada
@@ -17,8 +17,8 @@ O backend associa um identificador e um token atômico à execução. O supervis
 Na worktree `feat/rust-execution-cancel`:
 
 - `cargo fmt --all`
-- `cargo test -p portugol-service --offline --locked` — 30 unitários, 9 testes PORS, 8 testes Rust standalone e 10 de integração passaram.
-- `cargo test -p portugol-desktop --lib --offline --locked` — 35 testes passaram.
+- `cargo test -p ferro-service --offline --locked` — 30 unitários, 9 testes FERRO, 8 testes Rust standalone e 10 de integração passaram.
+- `cargo test -p ferro-desktop --lib --offline --locked` — 35 testes passaram.
 - `cd apps/desktop && npm test` — 135 testes passaram.
 - `cd apps/desktop && npm run build` — build concluído; Vite emitiu o aviso existente de bundle principal acima de 500 kB.
 - `git diff --check`
@@ -27,4 +27,4 @@ O teste Rust standalone cobre cancelamento de um processo infinito após início
 
 ## Pendências após esta entrega
 
-Executar manualmente no app desktop nos três sistemas suportados; confirmar botão, Shift+F7, compilação interrompida, saída parcial e encerramento de subprocessos. Cancelamento de `.pors` permanece uma lacuna separada da paridade.
+Executar manualmente no app desktop nos três sistemas suportados; confirmar botão, Shift+F7, compilação interrompida, saída parcial e encerramento de subprocessos. Cancelamento de `.fer` permanece uma lacuna separada da paridade.

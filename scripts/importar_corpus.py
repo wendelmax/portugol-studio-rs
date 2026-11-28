@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Copia exemplos clássicos de Portugol para tests/corpus.
+"""Copia exemplos clássicos de Ferro para tests/corpus.
 
-Uso: python3 scripts/importar_corpus.py <caminho do Portugol-Studio>
+Uso: python3 scripts/importar_corpus.py <caminho do Ferro-Studio>
 
 Os .por originais estão em ISO-8859-1 (alguns em UTF-8) e são gravados em
 UTF-8. Os demais arquivos (imagens, sons, fontes, fases de jogos) são copiados

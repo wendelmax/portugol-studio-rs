@@ -1,0 +1,60 @@
+/* Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ * Adaptado para Ferro (.fer)
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *     Este exemplo pede o nome do usuário e três valores inteiros, os quais
+ *     representam a quantidade de porcas, parafusos e arruelas compradas.
+ *     Após, exibe o nome do usuário seguido da quantidade de cada item comprado
+ *     e o valor total a ser pago.
+ *
+ * Autores:
+ *
+ *     Giordana Maria da Costa Valle
+ *     Carlos Alexandre Krueger
+ *
+ * Data: 01/06/2013
+ */
+
+funcao inicio() {
+    // Os preços dos produtos são definidos em variáveis imutáveis (constantes)
+    seja PRECO_PARAFUSO: real = 1.50;
+    seja PRECO_ARRUELA: real = 2.00;
+    seja PRECO_PORCA: real = 2.50;
+
+
+    escreva("Digite seu nome: ");
+    seja mutavel nome = leia();
+
+    escreva("\nDigite a quantidade de parafusos que deseja comprar: ");
+    seja mutavel quantidade_parafusos: inteiro = leia();
+
+    escreva("Digite a quantidade de arruelas que deseja comprar: ");
+    seja mutavel quantidade_arruelas: inteiro = leia();
+
+    escreva("Digite a quantidade de porcas que deseja comprar: ");
+    seja mutavel quantidade_porcas: inteiro = leia();
+
+    /*
+     * Cálculo dos valores a serem pagos. O cálculo é feito multiplicando
+     * a quantidade de itens vendidos pelo preço de cada item.
+     */
+    seja total_parafusos: real = PRECO_PARAFUSO * Tipos.inteiro_para_real(quantidade_parafusos);
+    seja total_arruelas: real = PRECO_ARRUELA * Tipos.inteiro_para_real(quantidade_arruelas);
+    seja total_porcas: real = PRECO_PORCA * Tipos.inteiro_para_real(quantidade_porcas);
+
+    seja total_pagar: real = total_parafusos + total_porcas + total_arruelas;
+
+    escreval();
+    escreval("Cliente: ", nome);
+    escreval("===============================");
+    escreval("Parafusos: ", quantidade_parafusos);
+    escreval("Arruelas: ", quantidade_arruelas);
+    escreval("Porcas: ", quantidade_porcas);
+    escreval("===============================");
+    escreval("Total a pagar: R$ ", total_pagar);
+}

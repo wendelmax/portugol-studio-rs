@@ -11,7 +11,7 @@ Evoluir o cartão estático de ownership da aba Aprender para uma aula navegáve
 - Cada passo apresenta trecho Rust, variável/owner/referência, alocação quando aplicável, explicação em português e posição do passo.
 - Move inválido aparece como rejeição de compilação, não como execução que continua.
 - O painel identifica permanentemente **Simulação didática — não é execução nem trace de memória Rust**.
-- Não analisar o buffer do aluno, executar código vindo da UI, alterar a VM/debugger Portugol, trocar o modo de aprendizado ou registrar progresso.
+- Não analisar o buffer do aluno, executar código vindo da UI, alterar a VM/debugger Ferro, trocar o modo de aprendizado ou registrar progresso.
 - Nenhum novo processo de produção, comando Tauri, permissão ou dependência.
 
 ## Abordagens consideradas
@@ -53,7 +53,7 @@ As snapshots representam passos pedagógicos verificados, não instruções obse
 - Fixtures shared/mutable/scope compilam e produzem saída esperada; fixture move falha por uso depois de move.
 - Navegação teclado/mouse e estados primeiro/último passo são acessíveis e claros.
 - A proveniência da simulação continua visível em todos os cenários e passos.
-- Exercícios, progresso, preview de exportação e debugger Portugol continuam inalterados.
+- Exercícios, progresso, preview de exportação e debugger Ferro continuam inalterados.
 
 ## Riscos e rollback
 

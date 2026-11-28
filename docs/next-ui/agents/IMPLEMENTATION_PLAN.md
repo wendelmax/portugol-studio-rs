@@ -16,7 +16,7 @@
 - Acessibilidade e regressão visual; layouts responsivos de desktop.
 - Feature flag para painéis ainda não suportados.
 
-## Fase 3: ponte Portugol–Rust
+## Fase 3: ponte Ferro–Rust
 - Contrato semântico e fixtures primeiro; tradutor por AST/IR.
 - UI lado a lado, source maps, estado stale e detach.
 - Testes de equivalência Rust onde há toolchain.

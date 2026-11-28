@@ -5,7 +5,7 @@
 
 ## Objetivo
 
-Permitir renomear arquivos `.por`, `.pors` e `.pex` diretamente na árvore, preservando abas abertas e protegendo edições não salvas.
+Permitir renomear arquivos `.por`, `.fer` e `.pex` diretamente na árvore, preservando abas abertas e protegendo edições não salvas.
 
 ## Experiência
 
@@ -19,12 +19,12 @@ Permitir renomear arquivos `.por`, `.pors` e `.pex` diretamente na árvore, pres
 
 - Rust recebe o ID de workspace, o caminho relativo atual e um novo nome-base.
 - O backend valida que origem e destino são arquivos diretos do mesmo diretório, dentro da raiz autorizada, sem symlinks ou traversal.
-- A operação não sobrescreve destino existente. A extensão do destino deve coincidir com `.por`, `.pors` ou `.pex` da origem.
+- A operação não sobrescreve destino existente. A extensão do destino deve coincidir com `.por`, `.fer` ou `.pex` da origem.
 - Nenhum comando de shell ou permissão ampla de filesystem é introduzido.
 
 ## Critérios de aceite
 
-- `.por`, `.pors` e `.pex` podem ser renomeados sem alterar bytes do conteúdo.
+- `.por`, `.fer` e `.pex` podem ser renomeados sem alterar bytes do conteúdo.
 - Nome vazio, separador, extensão alterada, arquivo inexistente, origem por symlink e destino existente são rejeitados sem perda de dados.
 - Uma origem igual ao destino é tratada como operação sem alteração.
 - Aba limpa aberta mantém seu buffer e passa a salvar no novo caminho.

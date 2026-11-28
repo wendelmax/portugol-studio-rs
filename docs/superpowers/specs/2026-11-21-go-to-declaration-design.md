@@ -2,11 +2,11 @@
 
 ## Intenção
 
-Deixar quem lê um programa navegar de qualquer uso de variável, parâmetro, constante ou função até a declaração que o analisador já associou àquele uso. Isso reduz atrito em programas maiores e reforça o modelo real de escopos do Portugol.
+Deixar quem lê um programa navegar de qualquer uso de variável, parâmetro, constante ou função até a declaração que o analisador já associou àquele uso. Isso reduz atrito em programas maiores e reforça o modelo real de escopos do Ferro.
 
 ## Estado atual
 
-- `portugol-service::rename::bindings` usa `symbol_bindings` para mapear índices de tokens de uso para os tokens de declaração, respeitando resolução semântica e escopos.
+- `ferro-service::rename::bindings` usa `symbol_bindings` para mapear índices de tokens de uso para os tokens de declaração, respeitando resolução semântica e escopos.
 - `rename_target` e `rename_symbol` usam esse mapa, mas não expõem a declaração resolvida.
 - `SymbolInfo.position` alimenta a árvore estrutural, cujo clique navega apenas para declarações já listadas.
 - O editor usa CodeMirror 6. F12 abre Sobre por um listener global; há menu editorial para renomear símbolo. Não existe navegação de uma referência até sua declaração.
@@ -29,7 +29,7 @@ Deixar quem lê um programa navegar de qualquer uso de variável, parâmetro, co
 ## Abordagens consideradas
 
 1. Procurar o mesmo texto no frontend e escolher a ocorrência mais próxima. É simples, mas falha com shadowing, parâmetros e escopos; rejeitada.
-2. Expor do serviço `portugol-service` o token de declaração já encontrado por `symbol_bindings`. Recomendada: reaproveita resolução testada pela renomeação, preserva arquitetura e fornece offset Unicode correto para o CodeMirror.
+2. Expor do serviço `ferro-service` o token de declaração já encontrado por `symbol_bindings`. Recomendada: reaproveita resolução testada pela renomeação, preserva arquitetura e fornece offset Unicode correto para o CodeMirror.
 3. Adicionar um resolvedor de navegação independente à análise semântica. Não é necessário: duplicaria regras e aumentaria o risco de divergir da renomeação.
 
 ## Comportamento proposto
@@ -42,8 +42,8 @@ Deixar quem lê um programa navegar de qualquer uso de variável, parâmetro, co
 
 ## Arquivos previstos
 
-- `crates/portugol-service/src/rename.rs`: tipo e resolução de localização usando os bindings atuais; testes unitários.
-- `crates/portugol-service/src/lib.rs`: exportar tipo e função.
+- `crates/ferro-service/src/rename.rs`: tipo e resolução de localização usando os bindings atuais; testes unitários.
+- `crates/ferro-service/src/lib.rs`: exportar tipo e função.
 - `apps/desktop/src-tauri/src/lib.rs`: comando Tauri tipado e registro.
 - `apps/desktop/src/api.ts`: contrato IPC.
 - `apps/desktop/src/main.ts`: navegação do editor, F12 contextual, Ctrl/Cmd+clique, atualização da lista de atalhos.
@@ -57,7 +57,7 @@ Deixar quem lê um programa navegar de qualquer uso de variável, parâmetro, co
 - F12 no editor navega; F12 fora dele ainda abre Sobre.
 - Ctrl/Cmd+clique navega apenas para um símbolo real e não quebra seleção normal nos demais pontos.
 - Resposta atrasada não navega uma aba/documento diferente.
-- `cargo test -p portugol-service`, frontend tests/build e quality gates disponíveis passam.
+- `cargo test -p ferro-service`, frontend tests/build e quality gates disponíveis passam.
 - Nenhuma mudança em semântica de programas, execução, arquivos, IPC não relacionado ou permissões.
 
 ## Rollback

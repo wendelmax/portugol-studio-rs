@@ -6,12 +6,12 @@
 ## Tarefa 1 — lowering tipado e geração Rust no serviço
 
 - Criar um crate dedicado dependente de syntax e semantics, com HIR mínima contendo tipos/span e falhas estáveis de suporte.
-- Validar semântica Portugol antes do lowering.
+- Validar semântica Ferro antes do lowering.
 - Implementar geração do subconjunto da spec sem conversão textual de tokens.
 - Testes unitários RED→GREEN para literais, escopo, atribuição, expressões, escrita, condicionais, falhas, spans e escaping.
 - Teste de integração compila e executa programas gerados com `rustc`, comparando saída.
 
-**Esperado:** `portugol-service` expõe `export_rust(source)` com código ou diagnósticos; fonte clássica continua sem mudanças.
+**Esperado:** `ferro-service` expõe `export_rust(source)` com código ou diagnósticos; fonte clássica continua sem mudanças.
 
 ## Tarefa 2 — comando desktop e prévia sincronizada
 
@@ -21,7 +21,7 @@
 - Adicionar copiar e salvar `.rs`; o painel não executa código.
 - Cobrir API/estado e construir o frontend.
 
-**Esperado:** fluxo visível de Portugol para Rust com erro explícito para código não suportado.
+**Esperado:** fluxo visível de Ferro para Rust com erro explícito para código não suportado.
 
 ## Tarefa 3 — documentação e validação de integração
 
@@ -33,7 +33,7 @@
 
 ## Restrições
 
-- Não alterar resultados, parser, bytecode ou VM do Portugol clássico.
+- Não alterar resultados, parser, bytecode ou VM do pseudocódigo clássico.
 - Não dizer que o subconjunto implementa Rust completo ou faz análise de ownership.
 - Não misturar conteúdo GPL do benchmark.
 

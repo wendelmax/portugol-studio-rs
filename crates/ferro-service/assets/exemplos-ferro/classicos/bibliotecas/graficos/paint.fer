@@ -1,0 +1,515 @@
+/*
+ * Exemplo clássico do Ferro Studio adaptado para Ferro (.fer)
+ *
+ * Descrição:
+ *
+ *   Aplicativo de desenho estilo Paint utilizando Graficos, Mouse e Teclado.
+ *   Recursos:
+ *   - Paleta com 28 cores (botão esquerdo escolhe cor de frente; botão direito escolhe cor de fundo)
+ *   - Três ferramentas: Pincel, Borracha e Spray
+ *   - Ajuste da espessura do traço com as teclas + e -
+ *   - Tecla ESC para encerrar
+ */
+
+enum Ferramenta {
+    Pincel,
+    Borracha,
+    Spray
+}
+
+registro EstadoPaint {
+    tamanho_traco: inteiro,
+    ferramenta: Ferramenta,
+    cor_frente: inteiro,
+    cor_fundo: inteiro,
+    imagem_ferramentas: Opcao < inteiro >
+}
+
+funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
+    escolha Graficos.criar_cor(r, g, b) {
+        caso Resultado::Ok(cor) => {
+            retorne cor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne Graficos.COR_PRETO;
+        }
+    }
+}
+
+funcao sortear_intervalo(minimo: inteiro, maximo: inteiro) -> inteiro {
+    escolha Util.sorteia(minimo, maximo) {
+        caso Resultado::Ok(valor) => {
+            retorne valor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne minimo;
+        }
+    }
+}
+
+funcao limitar(valor: inteiro, minimo: inteiro, maximo: inteiro) -> inteiro {
+    se (valor < minimo) {
+        retorne minimo;
+    } senao se (valor > maximo) {
+        retorne maximo;
+    }
+    retorne valor;
+}
+
+funcao criar_paleta() -> vetor < inteiro > {
+    retorne [
+    // Linha 0 (cores vivas e escuras)
+    cor_rgb(0, 0, 0),
+    cor_rgb(70, 70, 70),
+    cor_rgb(120, 120, 120),
+    cor_rgb(152, 0, 48),
+    cor_rgb(236, 28, 36),
+    cor_rgb(255, 126, 0),
+    cor_rgb(255, 193, 14),
+    cor_rgb(255, 241, 0),
+    cor_rgb(167, 229, 29),
+    cor_rgb(34, 176, 76),
+    cor_rgb(0, 182, 238),
+    cor_rgb(77, 109, 242),
+    cor_rgb(47, 54, 152),
+    cor_rgb(111, 49, 151),
+    // Linha 1 (cores claras e pastéis)
+    cor_rgb(255, 255, 255),
+    cor_rgb(219, 219, 219),
+    cor_rgb(179, 179, 179),
+    cor_rgb(155, 90, 60),
+    cor_rgb(255, 162, 176),
+    cor_rgb(228, 169, 122),
+    cor_rgb(244, 227, 155),
+    cor_rgb(255, 248, 188),
+    cor_rgb(210, 248, 187),
+    cor_rgb(156, 186, 97),
+    cor_rgb(152, 216, 233),
+    cor_rgb(112, 153, 208),
+    cor_rgb(84, 109, 141),
+    cor_rgb(180, 164, 212)
+    ];
+}
+
+funcao indice_ferramenta(f: Ferramenta) -> inteiro {
+    escolha f {
+        caso Ferramenta::Pincel => {
+            retorne 0;
+        }
+        caso Ferramenta::Borracha => {
+            retorne 1;
+        }
+        caso Ferramenta::Spray => {
+            retorne 2;
+        }
+    }
+}
+
+funcao ferramenta_por_indice(indice: inteiro) -> Ferramenta {
+    se (indice == 0) {
+        retorne Ferramenta::Pincel;
+    } senao se (indice == 1) {
+        retorne Ferramenta::Borracha;
+    }
+    retorne Ferramenta::Spray;
+}
+
+funcao eh_borracha(f: Ferramenta) -> logico {
+    escolha f {
+        caso Ferramenta::Borracha => {
+            retorne verdadeiro;
+        }
+        caso _ => {
+            retorne falso;
+        }
+    }
+}
+
+funcao botao_esquerdo_exclusivo() -> logico {
+    retorne Mouse.botao_pressionado(Mouse.BOTAO_ESQUERDO) && !Mouse.botao_pressionado(Mouse.BOTAO_DIREITO) && !Mouse.botao_pressionado(Mouse.BOTAO_MEIO);
+}
+
+funcao botao_direito_exclusivo() -> logico {
+    retorne Mouse.botao_pressionado(Mouse.BOTAO_DIREITO) && !Mouse.botao_pressionado(Mouse.BOTAO_ESQUERDO) && !Mouse.botao_pressionado(Mouse.BOTAO_MEIO);
+}
+
+funcao mouse_sobre_area(x: inteiro, y: inteiro, largura: inteiro, altura: inteiro) -> logico {
+    seja mx: inteiro = Mouse.posicao_x();
+    seja my: inteiro = Mouse.posicao_y();
+    retorne mx >= x && mx <= (x + largura) && my >= y && my <= (y + altura);
+}
+
+funcao desenhar_painel_pintura() {
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.desenhar_retangulo(10, 10, 620, 410, falso, verdadeiro);
+}
+
+funcao desenhar_borda_painel_pintura() {
+    Graficos.definir_cor(Graficos.COR_PRETO);
+    para (seja mutavel i = 0; i < 4; i += 1) {
+        Graficos.desenhar_retangulo(
+        10 + i,
+        10 + i,
+        620 - (i * 2) - 1,
+        410 - (i * 2) - 1,
+        falso,
+        falso
+        );
+    }
+}
+
+funcao desenhar_moldura_fundo() {
+    Graficos.definir_cor(cor_rgb(199, 187, 223));
+    Graficos.desenhar_retangulo(0, 0, 10, 480, falso, verdadeiro);
+    Graficos.desenhar_retangulo(0, 0, 640, 10, falso, verdadeiro);
+    Graficos.desenhar_retangulo(10, 420, 630, 60, falso, verdadeiro);
+    Graficos.desenhar_retangulo(630, 0, 10, 480, falso, verdadeiro);
+}
+
+funcao desenhar_paleta_cores(paleta: vetor < inteiro >) {
+    seja borda: inteiro = 3;
+    seja largura_cor: inteiro = 16;
+    seja altura_cor: inteiro = 16;
+    seja x_paleta: inteiro = 50;
+    seja y_paleta: inteiro = 430;
+    seja linhas: inteiro = 2;
+    seja colunas: inteiro = 14;
+    seja largura_paleta: inteiro = borda + (colunas * (largura_cor + borda));
+    seja altura_paleta: inteiro = borda + (linhas * (altura_cor + borda));
+
+    Graficos.definir_cor(Graficos.COR_PRETO);
+    Graficos.desenhar_retangulo(x_paleta, y_paleta, largura_paleta, altura_paleta, falso, verdadeiro);
+
+    para (seja mutavel linha = 0; linha < linhas; linha += 1) {
+        para (seja mutavel coluna = 0; coluna < colunas; coluna += 1) {
+            seja x_cor: inteiro = x_paleta + borda + (coluna * (largura_cor + borda));
+            seja y_cor: inteiro = y_paleta + borda + (linha * (altura_cor + borda));
+            seja cor: inteiro = paleta[(linha * colunas) + coluna];
+
+            Graficos.definir_cor(cor);
+            Graficos.desenhar_retangulo(x_cor, y_cor, largura_cor, altura_cor, falso, verdadeiro);
+
+            se (cor == Graficos.COR_PRETO) {
+                Graficos.definir_cor(Graficos.COR_BRANCO);
+                Graficos.desenhar_retangulo(
+                x_cor,
+                y_cor,
+                largura_cor - 1,
+                altura_cor - 1,
+                falso,
+                falso
+                );
+            }
+        }
+    }
+}
+
+funcao desenhar_painel_selecao(estado: EstadoPaint) {
+    seja borda: inteiro = 3;
+    seja largura_cor: inteiro = 16;
+    seja altura_cor: inteiro = 16;
+    seja x: inteiro = 8;
+    seja y: inteiro = 430;
+    seja largura_painel: inteiro = largura_cor + (largura_cor / 2) + (borda * 2);
+    seja altura_painel: inteiro = altura_cor + (altura_cor / 2) + (borda * 2);
+
+    seja x_frente: inteiro = x + borda;
+    seja y_frente: inteiro = y + borda;
+    seja x_fundo: inteiro = x_frente + (largura_cor / 2);
+    seja y_fundo: inteiro = y_frente + (altura_cor / 2);
+
+    Graficos.definir_cor(Graficos.COR_PRETO);
+    Graficos.desenhar_retangulo(x, y, largura_painel, altura_painel, falso, verdadeiro);
+
+    Graficos.definir_cor(estado.cor_fundo);
+    Graficos.desenhar_retangulo(x_fundo, y_fundo, largura_cor, altura_cor, falso, verdadeiro);
+    se (estado.cor_fundo == Graficos.COR_PRETO) {
+        Graficos.definir_cor(Graficos.COR_BRANCO);
+    } senao {
+        Graficos.definir_cor(Graficos.COR_PRETO);
+    }
+    Graficos.desenhar_retangulo(x_fundo, y_fundo, largura_cor, altura_cor, falso, falso);
+
+    Graficos.definir_cor(estado.cor_frente);
+    Graficos.desenhar_retangulo(x_frente, y_frente, largura_cor, altura_cor, falso, verdadeiro);
+    se (estado.cor_frente == Graficos.COR_PRETO) {
+        Graficos.definir_cor(Graficos.COR_BRANCO);
+    } senao {
+        Graficos.definir_cor(Graficos.COR_PRETO);
+    }
+    Graficos.desenhar_retangulo(x_frente, y_frente, largura_cor, altura_cor, falso, falso);
+}
+
+funcao desenhar_traco_pincel(x: inteiro, y: inteiro, espessura: inteiro, cor: inteiro) {
+    Graficos.definir_cor(cor);
+    Graficos.desenhar_elipse(
+    x - (espessura / 2),
+    y - (espessura / 2),
+    espessura,
+    espessura,
+    verdadeiro
+    );
+}
+
+funcao desenhar_traco_borracha(x: inteiro, y: inteiro, espessura: inteiro, cor: inteiro) {
+    Graficos.definir_cor(cor);
+    Graficos.desenhar_retangulo(
+    x - (espessura / 2),
+    y - (espessura / 2),
+    espessura,
+    espessura,
+    falso,
+    verdadeiro
+    );
+}
+
+funcao desenhar_traco_spray(x: inteiro, y: inteiro, espessura: inteiro, cor: inteiro) {
+    seja ox: inteiro = x - (espessura / 2);
+    seja oy: inteiro = y - (espessura / 2);
+    seja pontos: inteiro = limitar(espessura / 2, 1, 20);
+    Graficos.definir_cor(cor);
+
+    para (seja mutavel i: inteiro = 1; i <= pontos; i += 1) {
+        seja sx: inteiro = sortear_intervalo(ox, ox + espessura);
+        seja sy: inteiro = sortear_intervalo(oy, oy + espessura);
+        Graficos.desenhar_ponto(sx, sy);
+    }
+}
+
+funcao desenhar_painel_traco(estado: EstadoPaint) {
+    seja x: inteiro = 590;
+    seja y: inteiro = 430;
+    seja largura: inteiro = 40;
+    seja altura: inteiro = 41;
+    seja borda: inteiro = 3;
+
+    Graficos.definir_cor(Graficos.COR_PRETO);
+    Graficos.desenhar_retangulo(x, y, largura, altura, falso, verdadeiro);
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.desenhar_retangulo(
+    x + borda,
+    y + borda,
+    largura - (borda * 2),
+    altura - (borda * 2),
+    falso,
+    verdadeiro
+    );
+
+    seja cx: inteiro = x + (largura / 2);
+    seja cy: inteiro = y + (altura / 2);
+    desenhar_traco_borracha(cx, cy, estado.tamanho_traco + 2, Graficos.COR_PRETO);
+    desenhar_traco_borracha(cx, cy, estado.tamanho_traco, estado.cor_frente);
+}
+
+funcao desenhar_icone_ferramenta(indice: inteiro, x: inteiro, y: inteiro) {
+    se (indice == 0) {
+        // Ícone de pincel
+        Graficos.definir_cor(cor_rgb(40, 80, 180));
+        Graficos.desenhar_elipse(x + 12, y + 12, 16, 16, verdadeiro);
+    } senao se (indice == 1) {
+        // Ícone de borracha
+        Graficos.definir_cor(cor_rgb(240, 140, 160));
+        Graficos.desenhar_retangulo(x + 11, y + 13, 18, 14, verdadeiro, verdadeiro);
+        Graficos.definir_cor(Graficos.COR_PRETO);
+        Graficos.desenhar_retangulo(x + 11, y + 13, 18, 14, verdadeiro, falso);
+    } senao {
+        // Ícone de spray
+        Graficos.definir_cor(Graficos.COR_PRETO);
+        Graficos.desenhar_elipse(x + 12, y + 12, 4, 4, verdadeiro);
+        Graficos.desenhar_elipse(x + 22, y + 11, 3, 3, verdadeiro);
+        Graficos.desenhar_elipse(x + 18, y + 19, 4, 4, verdadeiro);
+        Graficos.desenhar_elipse(x + 11, y + 23, 3, 3, verdadeiro);
+        Graficos.desenhar_elipse(x + 24, y + 24, 3, 3, verdadeiro);
+    }
+}
+
+funcao desenhar_painel_ferramentas(estado: EstadoPaint) {
+    seja borda: inteiro = 3;
+    seja mutavel x: inteiro = 400;
+    seja y: inteiro = 430;
+    seja largura: inteiro = 40;
+    seja altura: inteiro = 41;
+    seja selecionada: inteiro = indice_ferramenta(estado.ferramenta);
+
+    para (seja mutavel i = 0; i < 3; i += 1) {
+        Graficos.definir_cor(Graficos.COR_PRETO);
+        Graficos.desenhar_retangulo(x, y, largura, altura, falso, verdadeiro);
+
+        se (i == selecionada || mouse_sobre_area(x, y, largura, altura)) {
+            Graficos.definir_cor(cor_rgb(205, 255, 205));
+        } senao {
+            Graficos.definir_cor(Graficos.COR_BRANCO);
+        }
+
+        Graficos.desenhar_retangulo(
+        x + borda,
+        y + borda,
+        largura - (borda * 2),
+        altura - (borda * 2),
+        falso,
+        verdadeiro
+        );
+
+        escolha estado.imagem_ferramentas {
+            caso Opcao::Algum(img) => {
+                Graficos.desenhar_porcao_imagem(x + 8, y + 8, i * 24, 0, 24, 24, img);
+            }
+            caso Opcao::Nenhum => {
+                desenhar_icone_ferramenta(i, x, y);
+            }
+        }
+
+        x = x + largura - borda;
+    }
+}
+
+funcao obter_cor_paleta_sob_mouse(paleta: vetor < inteiro >) -> Opcao < inteiro > {
+    seja borda: inteiro = 3;
+    seja largura_cor: inteiro = 16;
+    seja altura_cor: inteiro = 16;
+    seja x_paleta: inteiro = 50;
+    seja y_paleta: inteiro = 430;
+    seja linhas: inteiro = 2;
+    seja colunas: inteiro = 14;
+    seja largura_paleta: inteiro = borda + (colunas * (largura_cor + borda));
+    seja altura_paleta: inteiro = borda + (linhas * (altura_cor + borda));
+
+    se (!mouse_sobre_area(x_paleta, y_paleta, largura_paleta, altura_paleta)) {
+        retorne Opcao::Nenhum;
+    }
+
+    seja linha: inteiro = limitar(
+    (Mouse.posicao_y() - y_paleta - borda) / (altura_cor + borda),
+    0,
+    linhas - 1
+    );
+    seja coluna: inteiro = limitar(
+    (Mouse.posicao_x() - x_paleta - borda) / (largura_cor + borda),
+    0,
+    colunas - 1
+    );
+    retorne Opcao::Algum(paleta[(linha * colunas) + coluna]);
+}
+
+funcao atualizar(mutavel estado: EstadoPaint, paleta: vetor < inteiro >) -> EstadoPaint {
+    escolha obter_cor_paleta_sob_mouse(paleta) {
+        caso Opcao::Algum(cor_clicada) => {
+            se (botao_esquerdo_exclusivo()) {
+                estado.cor_frente = cor_clicada;
+            } senao se (botao_direito_exclusivo()) {
+                estado.cor_fundo = cor_clicada;
+            }
+        }
+        caso Opcao::Nenhum => {}
+    }
+
+    se (
+    Teclado.tecla_pressionada(Teclado.TECLA_ADICAO) || (Teclado.tecla_pressionada(Teclado.TECLA_IGUAL) && Teclado.tecla_pressionada(Teclado.TECLA_SHIFT))
+    ) {
+        estado.tamanho_traco = limitar(estado.tamanho_traco + 1, 1, 26);
+        Util.aguarde(50);
+    } senao se (
+    Teclado.tecla_pressionada(Teclado.TECLA_SUBTRACAO) || Teclado.tecla_pressionada(Teclado.TECLA_MENOS)
+    ) {
+        estado.tamanho_traco = limitar(estado.tamanho_traco - 1, 1, 26);
+        Util.aguarde(50);
+    }
+
+    // Seleção de ferramentas
+    seja mutavel x_ferr: inteiro = 400;
+    para (seja mutavel i = 0; i < 3; i += 1) {
+        se (mouse_sobre_area(x_ferr, 430, 40, 41) && botao_esquerdo_exclusivo()) {
+            estado.ferramenta = ferramenta_por_indice(i);
+        }
+        x_ferr = x_ferr + 40 - 3;
+    }
+
+    retorne estado;
+}
+
+funcao desenhar_pintura_usuario(estado: EstadoPaint) {
+    se (mouse_sobre_area(10, 10, 620, 410)) {
+        se (botao_esquerdo_exclusivo() || botao_direito_exclusivo()) {
+            seja mutavel cor: inteiro = estado.cor_frente;
+            se (botao_esquerdo_exclusivo()) {
+                se (eh_borracha(estado.ferramenta)) {
+                    cor = estado.cor_fundo;
+                } senao {
+                    cor = estado.cor_frente;
+                }
+            } senao {
+                se (eh_borracha(estado.ferramenta)) {
+                    cor = estado.cor_frente;
+                } senao {
+                    cor = estado.cor_fundo;
+                }
+            }
+
+            seja mx: inteiro = Mouse.posicao_x();
+            seja my: inteiro = Mouse.posicao_y();
+
+            escolha estado.ferramenta {
+                caso Ferramenta::Pincel => {
+                    desenhar_traco_pincel(mx, my, estado.tamanho_traco, cor);
+                }
+                caso Ferramenta::Spray => {
+                    desenhar_traco_spray(mx, my, estado.tamanho_traco, cor);
+                }
+                caso Ferramenta::Borracha => {
+                    desenhar_traco_borracha(mx, my, estado.tamanho_traco, cor);
+                }
+            }
+        }
+    }
+}
+
+funcao inicio() {
+    seja paleta: vetor < inteiro > = criar_paleta();
+
+    Graficos.iniciar_modo_grafico(verdadeiro);
+    Graficos.definir_titulo_janela("Paint");
+    Graficos.definir_dimensoes_janela(640, 480);
+
+    seja mutavel img_ferramentas: Opcao < inteiro > = Opcao::Nenhum;
+    escolha Graficos.carregar_imagem("paint/ferramentas.png") {
+        caso Resultado::Ok(id) => {
+            img_ferramentas = Opcao::Algum(id);
+        }
+        caso Resultado::Erro(_) => {
+            img_ferramentas = Opcao::Nenhum;
+        }
+    }
+
+    seja mutavel estado: EstadoPaint = EstadoPaint {
+        tamanho_traco: 15,
+        ferramenta: Ferramenta::Pincel,
+        cor_frente: paleta[0],
+        cor_fundo: paleta[14],
+        imagem_ferramentas: img_ferramentas
+    }
+    ;
+
+    desenhar_painel_pintura();
+
+    enquanto (!Teclado.tecla_pressionada(Teclado.TECLA_ESC)) {
+        estado = atualizar(estado, paleta);
+        desenhar_pintura_usuario(estado);
+        desenhar_borda_painel_pintura();
+        desenhar_moldura_fundo();
+        desenhar_paleta_cores(paleta);
+        desenhar_painel_selecao(estado);
+        desenhar_painel_traco(estado);
+        desenhar_painel_ferramentas(estado);
+        Graficos.renderizar();
+        Util.aguarde(8);
+    }
+
+    escolha estado.imagem_ferramentas {
+        caso Opcao::Algum(id) => {
+            Graficos.liberar_imagem(id);
+        }
+        caso Opcao::Nenhum => {}
+    }
+
+    Graficos.encerrar_modo_grafico();
+}

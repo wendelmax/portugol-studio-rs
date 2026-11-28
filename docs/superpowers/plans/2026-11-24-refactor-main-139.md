@@ -109,14 +109,14 @@
 - [x] Extract button, input, and inspector state synchronization behind callbacks.
 - [x] Run frontend tests, typecheck, and build.
 
-### Task 51: PORS visual preview shell
+### Task 51: FERRO visual preview shell
 
 **Files:**
-- Create: `apps/desktop/src/pors-ui-preview-shell.ts`
+- Create: `apps/desktop/src/ferro-ui-preview-shell.ts`
 - Modify: `apps/desktop/src/main.ts`
-- Test: `apps/desktop/tests/pors-ui-preview-shell.test.mjs`
+- Test: `apps/desktop/tests/ferro-ui-preview-shell.test.mjs`
 
-- [x] Add a boundary test for the PORS preview panel, DOM bindings, and `api.ts` adapters.
+- [x] Add a boundary test for the FERRO preview panel, DOM bindings, and `api.ts` adapters.
 - [x] Move preview panel composition from `main.ts` into the dedicated shell.
 - [x] Run frontend tests, typecheck, and build.
 
@@ -126,7 +126,7 @@
 - Create: `apps/desktop/src/editor/actions-shell.ts`
 - Modify: `apps/desktop/src/main.ts`
 - Update: `apps/desktop/tests/symbol-editor-actions.test.mjs`
-- Update: `apps/desktop/tests/pors-formatting.test.mjs` and `apps/desktop/tests/rust-formatting.test.mjs`
+- Update: `apps/desktop/tests/ferro-formatting.test.mjs` and `apps/desktop/tests/rust-formatting.test.mjs`
 
 - [x] Add a boundary assertion for symbol and formatting action composition outside `main.ts`.
 - [x] Move DOM, API, and controller composition for editor actions into the editor shell.
@@ -151,7 +151,7 @@
 - Update: `apps/desktop/tests/execution-controller-shell.test.mjs`
 - Update: `apps/desktop/tests/cargo-check.test.mjs` and `apps/desktop/tests/classic-execution-controller.test.mjs`
 
-- [x] Add a contract test for composing Rust, PORS, classic Portugol, Cargo, and run dispatch.
+- [x] Add a contract test for composing Rust, FERRO, classic Ferro, Cargo, and run dispatch.
 - [x] Move execution controller adapters out of the application bootstrap.
 - [x] Run focused and full frontend tests, typecheck, build, and diff check.
 
@@ -297,7 +297,7 @@
 - Test: `apps/desktop/tests/execution-state.test.mjs`
 
 - [x] Add a failing test for initial idle state and busy lifecycle transitions.
-- [x] Move execution identity, pending events, pending PORS run, and pause data into a typed store.
+- [x] Move execution identity, pending events, pending FERRO run, and pause data into a typed store.
 - [x] Run frontend tests, typecheck, and build.
 
 ### Task 50: Tab activation shell composition
@@ -384,19 +384,19 @@
 - [x] Run frontend tests, typecheck, and build.
 - [x] Commit the Rust execution group.
 
-### Task 10: Portugol-RS execution
+### Task 10: Ferro execution
 
 **Files:**
-- Create: `apps/desktop/src/run/portugol-rs-execution.ts`
+- Create: `apps/desktop/src/run/ferro-rust-execution.ts`
 - Modify: `apps/desktop/src/main.ts`
-- Test: `apps/desktop/tests/portugol-rs-execution-controller.test.mjs`
-- Modify: `apps/desktop/tests/pors-input.test.mjs`, `run-event-router.test.mjs`, and `source-map.test.mjs`.
+- Test: `apps/desktop/tests/ferro-rust-execution-controller.test.mjs`
+- Modify: `apps/desktop/tests/ferro-input.test.mjs`, `run-event-router.test.mjs`, and `source-map.test.mjs`.
 
 - [x] Add tests for VM startup, VM diagnostics, generated-Rust source mappings, and stale result cleanup.
-- [x] Extract Portugol-RS VM and generated-Rust execution behind callbacks.
+- [x] Extract Ferro VM and generated-Rust execution behind callbacks.
 - [x] Keep backend calls through `api.ts` and preserve startup event replay.
 - [x] Run frontend tests, typecheck, and build.
-- [x] Commit the Portugol-RS execution group (#165).
+- [x] Commit the Ferro execution group (#165).
 
 ### Task 11: Run event handling
 
@@ -404,7 +404,7 @@
 - Create: `apps/desktop/src/run/run-events.ts`
 - Modify: `apps/desktop/src/main.ts`
 - Test: `apps/desktop/tests/run-events-controller.test.mjs`
-- Modify: `apps/desktop/tests/run-event-router.test.mjs`, `pors-input.test.mjs`, and `tsconfig.json`.
+- Modify: `apps/desktop/tests/run-event-router.test.mjs`, `ferro-input.test.mjs`, and `tsconfig.json`.
 
 - [x] Add focused tests for active/stale/startup events, input prompts, completion, and background runtime errors.
 - [x] Extract run event handlers behind explicit UI and state callbacks.
@@ -412,7 +412,7 @@
 - [x] Run frontend tests, typecheck, and build.
 - [x] Commit the run-event group (#166).
 
-### Task 12: Classic Portugol execution
+### Task 12: Classic Ferro execution
 
 **Files:**
 - Create: `apps/desktop/src/run/classic-execution.ts`
@@ -469,7 +469,7 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - Modify: `apps/desktop/src/main.ts`
 - Test: `apps/desktop/tests/language-capabilities.test.mjs`
 
-- [x] Add tests for Portugol/PORS/Rust capabilities, Cargo detection, execution state, formatting, libraries, and symbol actions.
+- [x] Add tests for Ferro/FERRO/Rust capabilities, Cargo detection, execution state, formatting, libraries, and symbol actions.
 - [x] Extract derived control state and leave DOM updates in the shell.
 - [x] Run the full frontend tests (63/63), typecheck, and build.
 - [x] Commit the language capability group (#171).
@@ -493,7 +493,7 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - Modify: `apps/desktop/src/main.ts`
 - Test: `apps/desktop/tests/system-files.test.mjs`
 
-- [x] Add tests for supported `.pex`, `.por`, `.pors`, and `.rs` paths, unsupported-file warnings, per-file errors, and continued processing.
+- [x] Add tests for supported `.pex`, `.por`, `.fer`, and `.rs` paths, unsupported-file warnings, per-file errors, and continued processing.
 - [x] Extract incoming path dispatch while leaving Tauri event subscriptions in the shell.
 - [x] Run the full frontend tests (65/65), typecheck, and build.
 - [x] Commit the system file intake group (#173).
@@ -505,7 +505,7 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - Modify: `apps/desktop/src/main.ts`
 - Test: `apps/desktop/tests/symbol-navigation.test.mjs`
 
-- [x] Add tests for Portugol/PORS resolution, selection and focus, Rust diagnostics, stale responses, and quiet failures.
+- [x] Add tests for Ferro/FERRO resolution, selection and focus, Rust diagnostics, stale responses, and quiet failures.
 - [x] Extract asynchronous declaration navigation while preserving the editor callback contract.
 - [x] Run the full frontend tests (66/66), typecheck, and build.
 - [x] Commit the symbol navigation group (#174).
@@ -570,15 +570,15 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - [x] Run the full frontend tests (71/71), typecheck, and build.
 - [x] Commit the Rust linter group (#179).
 
-### Task 25: Portugol and PORS source linter
+### Task 25: Ferro and FERRO source linter
 
 **Files:**
-- Create: `apps/desktop/src/editor/portugol-linter.ts`
+- Create: `apps/desktop/src/editor/ferro-linter.ts`
 - Modify: `apps/desktop/src/main.ts`
-- Test: `apps/desktop/tests/portugol-linter.test.mjs`
+- Test: `apps/desktop/tests/ferro-linter.test.mjs`
 
 - [x] Add tests for language routing, Rust clearing, diagnostic aggregation, and stale inspection responses.
-- [x] Extract Portugol/PORS lint orchestration with inspection and UI callbacks injected.
+- [x] Extract Ferro/FERRO lint orchestration with inspection and UI callbacks injected.
 - [x] Run the full frontend tests (72/72), typecheck, and build.
 - [x] Commit the source linter group (#180).
 
@@ -601,7 +601,7 @@ Ruling: extract the tab strip's rendering and event wiring as a view module, lea
 - Modify: `apps/desktop/src/main.ts`
 - Test: `apps/desktop/tests/exercise-tab.test.mjs`
 
-- [x] Add tests for starter source, PORS language, clean-tab replacement, and workspace reactivation.
+- [x] Add tests for starter source, FERRO language, clean-tab replacement, and workspace reactivation.
 - [x] Extract exercise-to-tab orchestration with tab and workspace operations injected.
 - [x] Run the full frontend tests (74/74), typecheck, and build.
 - [x] Commit the exercise tab group (#182).
@@ -704,7 +704,7 @@ Ruling: extract the mutable tab list and active ID into a small store while reta
 
 Ruling: group library insertion, snippet buttons, and utility panel tabs behind one injected editor utility controller — they are the three controls in the same utilities panel; if the grouping is too broad, the cost is a slightly wider controller API.
 
-- [x] Add tests for stale library requests, running/PORS guards, snippet insertion, and utility tab selection.
+- [x] Add tests for stale library requests, running/FERRO guards, snippet insertion, and utility tab selection.
 - [x] Extract the utilities panel controls and keep library calls behind `api.ts` injection.
 - [x] Run the full frontend tests (82/82), typecheck, and build.
 - [x] Commit the utility insertions group (#190).

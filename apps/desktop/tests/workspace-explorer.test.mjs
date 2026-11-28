@@ -18,7 +18,7 @@ test("collapsed folders hide descendants and expanded folders preserve tree dept
     { kind: "folder", name: "Aulas", path: "Aulas", entries: [
       { kind: "file", name: "inicio.por", path: "Aulas/inicio.por" },
     ] },
-    { kind: "file", name: "programa.pors", path: "programa.pors" },
+    { kind: "file", name: "programa.fer", path: "programa.fer" },
   ];
 
   assert.deepEqual(flattenWorkspaceEntries(entries), [
@@ -48,13 +48,13 @@ test("collects all workspace files recursively in tree order", () => {
   assert.deepEqual(collectWorkspaceFiles([]), []);
 });
 
-test("classifies Ferro, Rust, and Ferro lesson files case-insensitively and ignores legacy .por/.pex/.pors", () => {
+test("classifies Ferro, Rust, and Ferro lesson files case-insensitively and ignora extensões não suportadas", () => {
   assert.equal(workspaceFileKind("aula.POR"), null);
-  assert.equal(workspaceFileKind("ponte.PORS"), null);
-  assert.equal(workspaceFileKind("ponte.FER"), "portugol-rs");
+  assert.equal(workspaceFileKind("ponte.zzz"), null);
+  assert.equal(workspaceFileKind("ponte.FER"), "ferro-rust");
   assert.equal(workspaceFileKind("main.RS"), "rust");
   assert.equal(workspaceFileKind("listas.LICAO"), "exercise");
-  assert.equal(workspaceFileKind("listas.PORS.JSON"), null);
+  assert.equal(workspaceFileKind("listas.fer.JSON"), null);
   assert.equal(workspaceFileKind("listas.PEX"), null);
   assert.equal(workspaceFileKind("leia-me.md"), null);
 });
@@ -112,16 +112,16 @@ test("home start page defaults new file to Ferro and groups alternate languages"
   assert.match(html, /<button id="home-new"[^>]*Ferro \(\.fer\)[^>]*>[^<]*<span[^>]*>[^<]*<\/span>Novo Arquivo<\/button>/);
   assert.match(html, /<details id="home-new-menu"[^>]*data-testid="home-new-menu"/);
   assert.match(html, /<summary[^>]*aria-label="Criar arquivo em outra linguagem"/);
-  assert.match(html, /id="home-new-pors"[^>]*data-home-new-language="portugol-rs"[^>]*>Novo Ferro \(\.fer\)<\/button>/);
+  assert.match(html, /id="home-new-ferro"[^>]*data-home-new-language="ferro-rust"[^>]*>Novo Ferro \(\.fer\)<\/button>/);
   assert.match(html, /id="home-new-rust"[^>]*data-home-new-language="rust"[^>]*>Novo Rust \(\.rs\)<\/button>/);
   assert.doesNotMatch(html, /id="home-new-por"/);
   assert.match(main, /\$\("home-new"\)\.onclick = \(\) => newTab\(\);/);
-  assert.match(main, /function newTab\(\s*text = PORS_TEMPLATE/);
+  assert.match(main, /function newTab\(\s*text = FERRO_TEMPLATE/);
   assert.match(main, /mountHomeNewFileMenu\(/);
-  assert.match(main, /"portugol-rs": \(\) => newTab\(PORS_TEMPLATE, null, undefined, undefined, undefined, "portugol-rs"\)/);
+  assert.match(main, /"ferro-rust": \(\) => newTab\(FERRO_TEMPLATE, null, undefined, undefined, undefined, "ferro-rust"\)/);
   assert.match(main, /rust: \(\) => newTab\("fn main\(\) \{\\n    \\n\}\\n", null, undefined, undefined, undefined, "rust"\)/);
-  assert.doesNotMatch(main, /portugol: \(\) => newTab/);
-  assert.doesNotMatch(main, /const newPorsButton = document\.createElement/);
+  assert.doesNotMatch(main, /ferro: \(\) => newTab/);
+  assert.doesNotMatch(main, /const newFerroButton = document\.createElement/);
   assert.doesNotMatch(main, /const newRustButton = document\.createElement/);
   assert.match(css, /\.home-actions > button,\s*\.home-new-file-group > button/);
   assert.match(css, /\.home-new-menu-items\s*\{[^}]*background: var\(--surface\)/);
@@ -193,8 +193,8 @@ test("validates relative subfolder paths and computes parent folders for expansi
   assert.throws(() => workspaceSubfolderPath("/absoluto"), /relativa/i);
   assert.throws(() => workspaceSubfolderPath("C:/windows"), /relativa/i);
   assert.throws(() => workspaceSubfolderPath("aulas\\modulo1"), /\//);
-  assert.deepEqual(workspaceParentFolders("ola.pors"), []);
-  assert.deepEqual(workspaceParentFolders("aulas/modulo1/ola.pors"), ["aulas", "aulas/modulo1"]);
+  assert.deepEqual(workspaceParentFolders("ola.fer"), []);
+  assert.deepEqual(workspaceParentFolders("aulas/modulo1/ola.fer"), ["aulas", "aulas/modulo1"]);
 });
 
 test("workspace refresh, subfolder creation, and Cargo scaffold export expose accessible controls and IPC", () => {
@@ -221,7 +221,7 @@ test("classifies desktop project markup and gives each file a marker", async () 
   assert.equal(workspaceFileKind("App/meu-app.ferproj"), "markup");
   assert.equal(workspaceFileMarker("App/JanelaPrincipal.design"), "TL");
   assert.equal(workspaceFileMarker("App/meu-app.ferproj"), "PJ");
-  assert.equal(workspaceFileMarker("ponte.fer"), "Fe");
+  assert.equal(workspaceFileMarker("ponte.zzz"), "Fe");
   assert.equal(workspaceFileMarker("main.rs"), "R");
   assert.equal(workspaceFileMarker("lista.licao"), "EX");
 });

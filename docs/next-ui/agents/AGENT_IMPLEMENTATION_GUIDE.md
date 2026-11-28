@@ -1,6 +1,6 @@
-# Prompt de implementação — Portugol Studio Next
+# Prompt de implementação — Ferro Studio Next
 
-Você está trabalhando no repositório existente do Portugol Studio reimplementado em Rust.
+Você está trabalhando no repositório existente do Ferro Studio reimplementado em Rust.
 
 Leia, nesta ordem:
 1. `DESIGN_AS_CODE.md` — princípios, visual, layout, tokens e experiência.
@@ -15,7 +15,7 @@ Evoluir o produto existente para que cada componente desenhado tenha comportamen
 
 1. Inspecione a árvore de diretórios, dependências, CI, frameworks GUI, parser/AST, runtime, testes, formatos de arquivo e integração de processos. NÃO escolha outra stack antes desta análise.
 2. Crie `IMPLEMENTATION_GAP_REPORT.md` com a matriz `UI-ID | existente | parcialmente existente | ausente | dependência | proposta | teste | risco`.
-3. Preserve compatibilidade dos programas originais do Portugol Studio e suas extensões reais; não presuma extensão `.por` até confirmar.
+3. Preserve compatibilidade dos programas originais do Ferro Studio e suas extensões reais; não presuma extensão `.por` até confirmar.
 4. Mapeie cada componente `UI-*` a um componente real e cada `UC-*` a um caso de uso. Declare explicitamente funcionalidades indisponíveis; não invente resultados.
 5. Implemente vertical slices pequenas, seguindo a seção 9 do contrato. Para cada uma, adicione unitários, integração, componente e BDD apropriados.
 6. Mostre visualmente estados loading/empty/error/success; use `data-testid` ou identificadores equivalentes de teste estáveis.

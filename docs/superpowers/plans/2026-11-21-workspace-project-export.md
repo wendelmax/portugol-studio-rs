@@ -14,7 +14,7 @@
 
 - Preserve the existing Rust + Tauri architecture and workspace session contract.
 - Do not introduce shell execution, dependencies, IPC permissions, or cloud publishing.
-- Accept only validated workspace-relative `.por`, `.pors`, `.rs`, and `.pex` file paths.
+- Accept only validated workspace-relative `.por`, `.fer`, `.rs`, and `.pex` file paths.
 - Preserve relative directory paths, never overwrite an existing export directory, and remove partial output on failure.
 - Report success only after the filesystem operation completes.
 

@@ -89,7 +89,7 @@ pub enum Op {
     ArrayGet,
     /// `[vetor]` -> `[cópia profunda do vetor]`.
     CloneArray,
-    /// `[cadeia]` -> `[cópia da cadeia]`, contabilizando o orçamento PORS.
+    /// `[cadeia]` -> `[cópia da cadeia]`, contabilizando o orçamento FERRO.
     CloneString,
     /// `[v00, v01, ..., v(r-1)(c-1)]` -> `[matriz]`, em ordem de linhas.
     MatrixLit {
@@ -177,34 +177,34 @@ pub struct LocalInfo {
     pub ty: ValueType,
     pub dims: u8,
     pub by_ref: bool,
-    /// Present for nominal PORS values so the debugger can expand their fields.
-    pub pors_debug: Option<PorsDebugType>,
+    /// Present for nominal FERRO values so the debugger can expand their fields.
+    pub ferro_debug: Option<FerroDebugType>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PorsDebugType {
+pub struct FerroDebugType {
     pub name: String,
     pub is_vector: bool,
-    pub shape: PorsDebugShape,
+    pub shape: FerroDebugShape,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PorsDebugShape {
-    Record { fields: Vec<PorsDebugField> },
-    Enum { variants: Vec<PorsDebugVariant> },
+pub enum FerroDebugShape {
+    Record { fields: Vec<FerroDebugField> },
+    Enum { variants: Vec<FerroDebugVariant> },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PorsDebugField {
+pub struct FerroDebugField {
     pub name: String,
     pub ty: String,
-    pub nested: Option<Box<PorsDebugType>>,
+    pub nested: Option<Box<FerroDebugType>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PorsDebugVariant {
+pub struct FerroDebugVariant {
     pub name: String,
-    pub payload: Vec<PorsDebugField>,
+    pub payload: Vec<FerroDebugField>,
 }
 
 /// Nó HIR que originou uma instrução, para o debugger relacionar pausa e fonte.

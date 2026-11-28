@@ -4,7 +4,7 @@ import type { SourceLanguage } from "../document-language";
 import { detectSourceLanguage } from "../document-language.ts";
 import type { ExerciseDocument } from "../exercises";
 
-export const PORS_TEMPLATE = "funcao inicio() {\n    seja mutavel idade = 16;\n    idade += 1;\n    escreva(idade);\n}\n";
+export const FERRO_TEMPLATE = "funcao inicio() {\n    seja mutavel idade = 16;\n    idade += 1;\n    escreva(idade);\n}\n";
 
 export interface NewTabOptions {
   text?: string;
@@ -25,7 +25,7 @@ export function createTabFactory(dependencies: {
 
   function create(options: NewTabOptions = {}): Tab {
     const {
-      text = PORS_TEMPLATE,
+      text = FERRO_TEMPLATE,
       path = null,
       exampleName,
       examplePath,

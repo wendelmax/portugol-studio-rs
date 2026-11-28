@@ -8,7 +8,7 @@
 
 ## Task 1 — Serviço de execução cancelável
 
-**Arquivos:** `crates/portugol-service/src/pors_run.rs`, `crates/portugol-service/src/lib.rs`, `crates/portugol-service/tests/rust_source_runner.rs`.
+**Arquivos:** `crates/ferro-service/src/ferro_run.rs`, `crates/ferro-service/src/lib.rs`, `crates/ferro-service/tests/rust_source_runner.rs`.
 
 - [x] Escrever testes reais para cancelar runtime infinito via token e resultado tipado `Cancelled` com fase `Runtime`.
 - [x] Cobrir fase de compilação de forma determinística com token pré-cancelado; mantida a decisão de não depender do tempo de compilação do `rustc` real.
@@ -41,9 +41,9 @@
 
 ## Task 4 — Validação, reporte e integração
 
-- [x] `cargo fmt --all -- --check`, `cargo test -p portugol-service --offline --locked`, `cargo test -p portugol-desktop --lib --offline --locked`.
+- [x] `cargo fmt --all -- --check`, `cargo test -p ferro-service --offline --locked`, `cargo test -p ferro-desktop --lib --offline --locked`.
 - [x] `cd apps/desktop && npm test` (135), `npm run build`, `git diff --check`.
-- [x] Atualizar `docs/PARIDADE.md` delimitando `.pors` e `.rs`.
+- [x] Atualizar `docs/PARIDADE.md` delimitando `.fer` e `.rs`.
 - [x] Criar relatório em `docs/reports/FEAT-RUST-EXECUTION-CANCEL.md`.
 - [ ] Commit, PR, aguardar CI Linux/Windows/macOS, corrigir vermelho e mesclar/deletar a branch somente após verde.
 

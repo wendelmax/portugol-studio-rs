@@ -49,7 +49,7 @@ test("enables Rust and refreshes learning and lint state for an active Rust tab"
 
 test("disables Rust and skips lint refresh for a non-Rust active tab", async () => {
   const f = fixture({ rustResult: false });
-  f.setTab({ id: 2, language: "portugol" });
+  f.setTab({ id: 2, language: "ferro" });
   await f.controller.initialize();
   assert.ok(f.calls.some(([name, value]) => name === "rustDisabled" && value === true));
   assert.ok(f.calls.some(([name, text]) => name === "rustHelp" && text.startsWith("Instale a toolchain Rust")));
@@ -67,7 +67,7 @@ test("reports a failed Rust check and keeps the editor state usable", async () =
 
 test("records Cargo and rustfmt failures and still refreshes the active language controls", async () => {
   const f = fixture({ cargoError: new Error("cargo missing"), rustfmtError: new Error("rustfmt missing") });
-  f.setTab({ id: 3, language: "portugol-rs" });
+  f.setTab({ id: 3, language: "ferro-rust" });
   await f.controller.initialize();
   assert.ok(f.calls.some(([name, value]) => name === "cargo" && value === false));
   assert.ok(f.calls.some(([name, value]) => name === "rustfmt" && value === false));

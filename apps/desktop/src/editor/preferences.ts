@@ -14,8 +14,8 @@ export interface EditorPreferences {
 
 export const DEFAULT_EDITOR_PREFERENCES: EditorPreferences = { wordWrap: false, tabSize: 4 };
 
-export const EDITOR_WRAP_KEY = "portugol.editor.wordWrap";
-export const EDITOR_TAB_SIZE_KEY = "portugol.editor.tabSize";
+export const EDITOR_WRAP_KEY = "ferro.editor.wordWrap";
+export const EDITOR_TAB_SIZE_KEY = "ferro.editor.tabSize";
 
 type ReadableStorage = Pick<Storage, "getItem">;
 type WritableStorage = Pick<Storage, "setItem">;

@@ -1,4 +1,4 @@
-pub(super) const PORS_UI_RUNTIME: &str = r#"
+pub(super) const FERRO_UI_RUNTIME: &str = r#"
 #[allow(dead_code)]
 mod __ferro_ui {
     use std::cell::RefCell;
@@ -246,7 +246,7 @@ mod __ferro_ui {
 }
 "#;
 
-pub(super) const PORS_MATEMATICA_RUNTIME: &str = r#"
+pub(super) const FERRO_MATEMATICA_RUNTIME: &str = r#"
 #[allow(dead_code)]
 mod __ferro_matematica {
     pub fn potencia(base: f64, expoente: f64) -> f64 { base.powf(expoente) }
@@ -271,7 +271,7 @@ mod __ferro_matematica {
 }
 "#;
 
-pub(super) const PORS_TEXTO_RUNTIME: &str = r#"
+pub(super) const FERRO_TEXTO_RUNTIME: &str = r#"
 #[allow(dead_code)]
 mod __ferro_texto {
     pub fn numero_caracteres(texto: &str) -> i32 { texto.chars().count() as i32 }
@@ -365,7 +365,7 @@ mod __ferro_texto {
 }
 "#;
 
-pub(super) const PORS_TIPOS_RUNTIME: &str = r#"
+pub(super) const FERRO_TIPOS_RUNTIME: &str = r#"
 #[allow(dead_code)]
 mod __ferro_tipos {
     pub fn para_inteiro(texto: &str) -> Result<i32, String> {
@@ -488,7 +488,7 @@ mod __ferro_tipos {
 }
 "#;
 
-pub(super) const PORS_CLOCK_RUNTIME: &str = r#"
+pub(super) const FERRO_CLOCK_RUNTIME: &str = r#"
 #[allow(dead_code)]
 mod __ferro_clock {
     use std::cell::RefCell;
@@ -539,7 +539,7 @@ mod __ferro_clock {
 }
 "#;
 
-pub(super) const PORS_UTIL_RUNTIME: &str = r#"
+pub(super) const FERRO_UTIL_RUNTIME: &str = r#"
 #[allow(dead_code)]
 mod __ferro_util {
     use std::cell::Cell;
@@ -601,7 +601,7 @@ mod __ferro_util {
 }
 "#;
 
-pub(super) const PORS_CALENDARIO_RUNTIME: &str = r#"
+pub(super) const FERRO_CALENDARIO_RUNTIME: &str = r#"
 #[allow(dead_code)]
 mod __ferro_calendario {
     struct UtcDateTime {
@@ -731,7 +731,7 @@ mod __ferro_calendario {
 }
 "#;
 
-pub(super) const PORS_ARQUIVOS_RUNTIME: &str = r#"
+pub(super) const FERRO_ARQUIVOS_RUNTIME: &str = r#"
 #[allow(dead_code)]
 mod __ferro_arquivos {
     use std::io::Write as _;
@@ -887,7 +887,7 @@ mod __ferro_arquivos {
 }
 "#;
 
-pub(super) const PORS_JSON_RUNTIME: &str = r#"
+pub(super) const FERRO_JSON_RUNTIME: &str = r#"
 #[allow(dead_code)]
 mod __ferro_json {
     use std::fmt::Write as _;
@@ -1386,7 +1386,7 @@ mod __ferro_json {
 }
 "#;
 
-pub(super) const PORS_INTERNET_RUNTIME: &str = r#"
+pub(super) const FERRO_INTERNET_RUNTIME: &str = r#"
 #[allow(dead_code)]
 mod __ferro_internet {
     use std::io::{Read as _, Write as _};

@@ -241,7 +241,7 @@ impl ScreenRun {
         if let Some(problem) = check.design.first().or(check.code.first()) {
             return Err(ScreenStartError::Invalid(problem.message.clone()));
         }
-        let module = ferro_bytecode::compile_pors(&program).map_err(|error| {
+        let module = ferro_bytecode::compile_ferro(&program).map_err(|error| {
             ScreenStartError::Invalid(format!("Código da tela: {}", error.message))
         })?;
         let (screen, _) = screen_type(&document);
@@ -299,7 +299,7 @@ impl ScreenRun {
         self.record_types.iter().find(|record| record.name == name)
     }
 
-    /// Valor padrão de um tipo PORS: `0`, `""`, `falso`, vetor vazio, e os
+    /// Valor padrão de um tipo Ferro: `0`, `""`, `falso`, vetor vazio, e os
     /// campos de um registro com os padrões deles.
     fn default_value(&self, ty: Type, depth: usize) -> ScreenValue {
         match ty {

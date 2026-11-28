@@ -1,0 +1,420 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *   Jogo clássico Moon Lander: controle o módulo lunar para pousar suavemente
+ *   na plataforma da superfície lunar.
+ *
+ *   Regras:
+ *     a) O jogador perde se conduzir a nave para fora dos limites da tela
+ *     b) O jogador perde se pousar fora da plataforma de pouso
+ *     c) O jogador perde se tocar a plataforma com velocidade vertical excessiva
+ *
+ *   Controles:
+ *     - Seta Acima ou W: aciona o propulsor principal (reduz queda)
+ *     - Setas Esquerda/Direita ou A/D: propulsores laterais
+ *     - ENTER: inicia / reinicia o pouso
+ *     - ESC: encerra o jogo
+ *
+ * Autores (versão original):
+ *
+ *   Fillipi Domingos Pelz
+ *   Luiz Fernando Noschang (noschang@univali.br)
+ *
+ * Data original: 08/09/2013
+ * Adaptado para Ferro (.fer)
+ */
+
+enum EstadoMoonLander {
+    Menu,
+    Jogando,
+    Pousou,
+    Quebrou,
+    PerdidoNoEspaco,
+}
+
+registro Estrela {
+    x: inteiro,
+    y: inteiro,
+    brilho: inteiro,
+    passo: inteiro,
+    tamanho: inteiro,
+}
+
+registro JogoMoonLander {
+    estado: EstadoMoonLander,
+    nave_x: real,
+    nave_y: real,
+    vel_x: real,
+    vel_y: real,
+    combustivel: real,
+    propulsor_ativo: logico,
+    plataforma_x: inteiro,
+    plataforma_largura: inteiro,
+    tempo_inicio_ms: inteiro,
+    tempo_pouso_ms: inteiro,
+    estrelas: vetor < Estrela >,
+    enter_estava: logico,
+}
+
+funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
+    escolha Graficos.criar_cor(r, g, b) {
+        caso Resultado::Ok(cor) => {
+            retorne cor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne Graficos.COR_BRANCO;
+        }
+    }
+}
+
+funcao sortear_entre(minimo: inteiro, maximo: inteiro) -> inteiro {
+    escolha Util.sorteia(minimo, maximo) {
+        caso Resultado::Ok(v) => {
+            retorne v;
+        }
+        caso Resultado::Erro(_) => {
+            retorne minimo;
+        }
+    }
+}
+
+funcao desenhar_poligono_seguro(xs: vetor < inteiro >, ys: vetor < inteiro >, preencher: logico) {
+    escolha Graficos.desenhar_poligono(xs, ys, preencher) {
+        caso Resultado::Ok(_) => {}
+        caso Resultado::Erro(_) => {}
+    }
+}
+
+funcao criar_estrelas() -> vetor < Estrela > {
+    seja mutavel lista: vetor < Estrela > = [];
+    para (seja mutavel i = 0; i < 65; i += 1) {
+        seja b: inteiro = sortear_entre(80, 240);
+        seja p: inteiro = sortear_entre(2, 5);
+        adicionar(lista, Estrela {
+            x: sortear_entre(10, 790),
+            y: sortear_entre(48, 495),
+            brilho: b,
+            passo: p,
+            tamanho: sortear_entre(1, 3),
+        }
+        );
+    }
+    retorne lista;
+}
+
+funcao criar_partida(estado: EstadoMoonLander, estrelas: vetor < Estrela >) -> JogoMoonLander {
+    seja plat_x: inteiro = sortear_entre(120, 560);
+    seja nave_x_ini: real = Tipos.inteiro_para_real(sortear_entre(140, 620));
+    retorne JogoMoonLander {
+        estado: estado,
+        nave_x: nave_x_ini,
+        nave_y: 80.0,
+        vel_x: 0.0,
+        vel_y: 0.0,
+        combustivel: 100.0,
+        propulsor_ativo: falso,
+        plataforma_x: plat_x,
+        plataforma_largura: 120,
+        tempo_inicio_ms: Util.tempo_decorrido(),
+        tempo_pouso_ms: 0,
+        estrelas: estrelas,
+        enter_estava: falso,
+    }
+    ;
+}
+
+funcao atualizar_estrelas(estrelas: vetor < Estrela >) -> vetor < Estrela > {
+    seja mutavel lista: vetor < Estrela > = estrelas;
+    seja total: inteiro = tamanho(lista);
+    para (seja mutavel i = 0; i < total; i += 1) {
+        seja mutavel e: Estrela = lista[i];
+        e.brilho += e.passo;
+        se (e.brilho >= 245) {
+            e.brilho = 245;
+            e.passo = -Matematica.valor_absoluto_inteiro(e.passo);
+        } senao se (e.brilho <= 70) {
+            e.brilho = 70;
+            e.passo = Matematica.valor_absoluto_inteiro(e.passo);
+        }
+        lista[i] = e;
+    }
+    retorne lista;
+}
+
+funcao atualizar(jogo: JogoMoonLander) -> JogoMoonLander {
+    seja mutavel j: JogoMoonLander = jogo;
+    j.estrelas = atualizar_estrelas(j.estrelas);
+
+    seja enter_agora: logico = Teclado.tecla_pressionada(Teclado.TECLA_ENTER) || Teclado.tecla_pressionada(Teclado.TECLA_ESPACO);
+    seja enter_disparado: logico = enter_agora && !j.enter_estava;
+    j.enter_estava = enter_agora;
+
+    escolha j.estado {
+        caso EstadoMoonLander::Jogando => {}
+        caso _ => {
+            se (enter_disparado) {
+                j = criar_partida(EstadoMoonLander::Jogando, j.estrelas);
+                j.enter_estava = verdadeiro;
+            }
+            retorne j;
+        }
+    }
+
+    // Física lunar
+    seja gravidade: real = 0.095;
+    seja empuxo_vertical: real = 0.21;
+    seja empuxo_lateral: real = 0.14;
+    seja velocidade_max_pouso: real = 2.4;
+
+    j.vel_y += gravidade;
+    j.propulsor_ativo = falso;
+
+    se (j.combustivel > 0.0) {
+        se (Teclado.tecla_pressionada(Teclado.TECLA_SETA_ACIMA) || Teclado.tecla_pressionada(Teclado.TECLA_W)) {
+            j.vel_y -= empuxo_vertical;
+            j.combustivel -= 0.32;
+            j.propulsor_ativo = verdadeiro;
+        }
+        se (Teclado.tecla_pressionada(Teclado.TECLA_SETA_ESQUERDA) || Teclado.tecla_pressionada(Teclado.TECLA_A)) {
+            j.vel_x -= empuxo_lateral;
+            j.combustivel -= 0.12;
+        }
+        se (Teclado.tecla_pressionada(Teclado.TECLA_SETA_DIREITA) || Teclado.tecla_pressionada(Teclado.TECLA_D)) {
+            j.vel_x += empuxo_lateral;
+            j.combustivel -= 0.12;
+        }
+        se (j.combustivel < 0.0) {
+            j.combustivel = 0.0;
+        }
+    }
+
+    // Limites de velocidade
+    se (j.vel_y > 6.5) {
+        j.vel_y = 6.5;
+    }
+    se (j.vel_y < -4.5) {
+        j.vel_y = -4.5;
+    }
+    se (j.vel_x > 4.5) {
+        j.vel_x = 4.5;
+    }
+    se (j.vel_x < -4.5) {
+        j.vel_x = -4.5;
+    }
+
+    j.nave_x += j.vel_x;
+    j.nave_y += j.vel_y;
+
+    // Regra (a): saiu da tela
+    se (j.nave_x < -10.0 || j.nave_x > 810.0 || j.nave_y < -20.0) {
+        j.estado = EstadoMoonLander::PerdidoNoEspaco;
+        retorne j;
+    }
+
+    // Contato com a superfície lunar (y = 524, altura da nave = 34)
+    se (j.nave_y + 34.0 >= 524.0) {
+        j.nave_y = 490.0;
+        j.tempo_pouso_ms = Util.tempo_decorrido() - j.tempo_inicio_ms;
+        seja sobre_plataforma: logico = j.nave_x - 16.0 >= Tipos.inteiro_para_real(j.plataforma_x) && j.nave_x + 16.0 <= Tipos.inteiro_para_real(j.plataforma_x + j.plataforma_largura);
+        seja velocidade_segura: logico = j.vel_y <= velocidade_max_pouso && Matematica.valor_absoluto(j.vel_x) <= 1.6;
+
+        se (sobre_plataforma && velocidade_segura) {
+            j.estado = EstadoMoonLander::Pousou;
+        } senao {
+            j.estado = EstadoMoonLander::Quebrou;
+        }
+    }
+
+    retorne j;
+}
+
+funcao desenhar_nave(x: inteiro, y: inteiro, propulsor: logico, quebrada: logico) {
+    // Chama do propulsor
+    se (propulsor && !quebrada) {
+        seja xs_chama: vetor < inteiro > = [x - 8, x + 8, x];
+        seja ys_chama: vetor < inteiro > = [y + 30, y + 30, y + 52];
+        Graficos.definir_cor(cor_rgb(255, 145, 30));
+        desenhar_poligono_seguro(xs_chama, ys_chama, verdadeiro);
+
+        seja xs_int: vetor < inteiro > = [x - 4, x + 4, x];
+        seja ys_int: vetor < inteiro > = [y + 30, y + 30, y + 43];
+        Graficos.definir_cor(cor_rgb(255, 240, 120));
+        desenhar_poligono_seguro(xs_int, ys_int, verdadeiro);
+    }
+
+    se (quebrada) {
+        Graficos.definir_cor(cor_rgb(255, 95, 45));
+        Graficos.desenhar_elipse(x - 24, y + 6, 48, 32, verdadeiro);
+        Graficos.definir_cor(cor_rgb(255, 220, 80));
+        Graficos.desenhar_elipse(x - 14, y + 12, 28, 20, verdadeiro);
+        retorne;
+    }
+
+    // Pernas de pouso
+    Graficos.definir_cor(cor_rgb(190, 200, 215));
+    Graficos.desenhar_linha(x - 12, y + 24, x - 20, y + 34);
+    Graficos.desenhar_linha(x + 12, y + 24, x + 20, y + 34);
+    Graficos.desenhar_linha(x - 24, y + 34, x - 16, y + 34);
+    Graficos.desenhar_linha(x + 16, y + 34, x + 24, y + 34);
+
+    // Cápsula lunar
+    seja xs_corpo: vetor < inteiro > = [x, x + 16, x + 12, x - 12, x - 16];
+    seja ys_corpo: vetor < inteiro > = [y, y + 14, y + 28, y + 28, y + 14];
+    Graficos.definir_cor(cor_rgb(225, 232, 242));
+    desenhar_poligono_seguro(xs_corpo, ys_corpo, verdadeiro);
+    Graficos.definir_cor(cor_rgb(90, 110, 140));
+    desenhar_poligono_seguro(xs_corpo, ys_corpo, falso);
+
+    // Janela da cabine
+    Graficos.definir_cor(cor_rgb(65, 195, 255));
+    Graficos.desenhar_elipse(x - 6, y + 9, 12, 10, verdadeiro);
+}
+
+funcao desenhar(jogo: JogoMoonLander) {
+    Graficos.definir_cor(cor_rgb(8, 12, 24));
+    Graficos.limpar();
+
+    // Estrelas cintilantes
+    seja estrelas: vetor < Estrela > = jogo.estrelas;
+    seja total_est: inteiro = tamanho(estrelas);
+    para (seja mutavel i = 0; i < total_est; i += 1) {
+        seja e: Estrela = estrelas[i];
+        Graficos.definir_cor(cor_rgb(e.brilho, e.brilho, e.brilho));
+        Graficos.desenhar_elipse(e.x, e.y, e.tamanho * 2, e.tamanho * 2, verdadeiro);
+    }
+
+    // Superfície lunar
+    Graficos.definir_cor(cor_rgb(95, 100, 112));
+    Graficos.desenhar_retangulo(0, 524, 800, 76, falso, verdadeiro);
+    Graficos.definir_cor(cor_rgb(72, 76, 88));
+    Graficos.desenhar_elipse(60, 542, 70, 24, verdadeiro);
+    Graficos.desenhar_elipse(380, 550, 95, 28, verdadeiro);
+    Graficos.desenhar_elipse(660, 538, 80, 26, verdadeiro);
+
+    // Plataforma de pouso
+    Graficos.definir_cor(cor_rgb(255, 200, 50));
+    Graficos.desenhar_retangulo(jogo.plataforma_x, 518, jogo.plataforma_largura, 10, verdadeiro, verdadeiro);
+    Graficos.definir_cor(cor_rgb(80, 240, 130));
+    Graficos.desenhar_elipse(jogo.plataforma_x + 4, 510, 8, 8, verdadeiro);
+    Graficos.desenhar_elipse(jogo.plataforma_x + jogo.plataforma_largura - 12, 510, 8, 8, verdadeiro);
+
+    // Nave
+    seja mutavel quebrada: logico = falso;
+    escolha jogo.estado {
+        caso EstadoMoonLander::Quebrou => {
+            quebrada = verdadeiro;
+        }
+        caso _ => {}
+    }
+    desenhar_nave(Tipos.real_para_inteiro(jogo.nave_x), Tipos.real_para_inteiro(jogo.nave_y), jogo.propulsor_ativo, quebrada);
+
+    // HUD superior
+    Graficos.definir_cor(cor_rgb(18, 24, 42));
+    Graficos.desenhar_retangulo(0, 0, 800, 46, falso, verdadeiro);
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.definir_tamanho_texto(14.0);
+    Graficos.desenhar_texto(18, 14, "MOON LANDER");
+
+    // Velocidade vertical
+    seja vy_dec: real = Matematica.arredondar(jogo.vel_y, 2);
+    se (jogo.vel_y > 2.4) {
+        Graficos.definir_cor(cor_rgb(255, 95, 95));
+    } senao {
+        Graficos.definir_cor(cor_rgb(110, 240, 145));
+    }
+    Graficos.desenhar_texto(175, 14, "Vel Y: " + Tipos.real_para_cadeia(vy_dec) + " (max 2.4)");
+
+    // Velocidade horizontal
+    Graficos.definir_cor(cor_rgb(180, 210, 245));
+    Graficos.desenhar_texto(415, 14, "Vel X: " + Tipos.real_para_cadeia(Matematica.arredondar(jogo.vel_x, 2)));
+
+    // Barra de combustível
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.desenhar_texto(565, 14, "Combustivel:");
+    Graficos.definir_cor(cor_rgb(55, 62, 78));
+    Graficos.desenhar_retangulo(665, 15, 115, 14, verdadeiro, verdadeiro);
+    seja larg_comb: inteiro = Tipos.real_para_inteiro((jogo.combustivel / 100.0) * 115.0);
+    se (jogo.combustivel < 25.0) {
+        Graficos.definir_cor(cor_rgb(255, 85, 85));
+    } senao {
+        Graficos.definir_cor(cor_rgb(255, 200, 50));
+    }
+    Graficos.desenhar_retangulo(665, 15, larg_comb, 14, verdadeiro, verdadeiro);
+
+    // Mensagens de tela
+    escolha jogo.estado {
+        caso EstadoMoonLander::Menu => {
+            Graficos.definir_cor(cor_rgb(16, 22, 38));
+            Graficos.desenhar_retangulo(165, 195, 470, 185, verdadeiro, verdadeiro);
+            Graficos.definir_cor(cor_rgb(255, 200, 50));
+            Graficos.desenhar_retangulo(165, 195, 470, 185, verdadeiro, falso);
+            Graficos.definir_tamanho_texto(30.0);
+            Graficos.desenhar_texto(280, 218, "MOON LANDER");
+            Graficos.definir_cor(Graficos.COR_BRANCO);
+            Graficos.definir_tamanho_texto(14.0);
+            Graficos.desenhar_texto(200, 268, "Pouse suavemente na plataforma amarela (Vel Y <= 2.4)");
+            Graficos.desenhar_texto(208, 294, "Controles: [W/Seta Acima] Propulsor  [A/D ou Setas] Lados");
+            Graficos.definir_cor(cor_rgb(110, 240, 145));
+            Graficos.desenhar_texto(265, 340, "Pressione [ENTER] para decolar");
+        }
+        caso EstadoMoonLander::Pousou => {
+            Graficos.definir_cor(cor_rgb(16, 46, 30));
+            Graficos.desenhar_retangulo(185, 210, 430, 150, verdadeiro, verdadeiro);
+            Graficos.definir_cor(cor_rgb(110, 245, 145));
+            Graficos.definir_tamanho_texto(26.0);
+            Graficos.desenhar_texto(250, 234, "POUSO BEM-SUCEDIDO!");
+            Graficos.definir_cor(Graficos.COR_BRANCO);
+            Graficos.definir_tamanho_texto(15.0);
+            seja segs: real = Matematica.arredondar(Tipos.inteiro_para_real(jogo.tempo_pouso_ms) / 1000.0, 1);
+            Graficos.desenhar_texto(245, 278, "Tempo: " + Tipos.real_para_cadeia(segs) + "s  |  Combustivel: " + Tipos.inteiro_para_cadeia(Tipos.real_para_inteiro(jogo.combustivel)) + "%");
+            Graficos.desenhar_texto(248, 318, "Pressione [ENTER] para nova missao");
+        }
+        caso EstadoMoonLander::Quebrou => {
+            Graficos.definir_cor(cor_rgb(54, 18, 20));
+            Graficos.desenhar_retangulo(185, 210, 430, 150, verdadeiro, verdadeiro);
+            Graficos.definir_cor(cor_rgb(255, 100, 90));
+            Graficos.definir_tamanho_texto(26.0);
+            Graficos.desenhar_texto(260, 234, "A NAVE COLIDIU!");
+            Graficos.definir_cor(Graficos.COR_BRANCO);
+            Graficos.definir_tamanho_texto(14.0);
+            Graficos.desenhar_texto(220, 278, "Pouso rapido demais ou fora da plataforma lunar.");
+            Graficos.desenhar_texto(245, 318, "Pressione [ENTER] para tentar novamente");
+        }
+        caso EstadoMoonLander::PerdidoNoEspaco => {
+            Graficos.definir_cor(cor_rgb(40, 24, 56));
+            Graficos.desenhar_retangulo(185, 210, 430, 150, verdadeiro, verdadeiro);
+            Graficos.definir_cor(cor_rgb(205, 145, 255));
+            Graficos.definir_tamanho_texto(26.0);
+            Graficos.desenhar_texto(236, 234, "PERDIDO NO ESPACO!");
+            Graficos.definir_cor(Graficos.COR_BRANCO);
+            Graficos.definir_tamanho_texto(14.0);
+            Graficos.desenhar_texto(242, 278, "A nave saiu da zona de controle da missao.");
+            Graficos.desenhar_texto(245, 318, "Pressione [ENTER] para tentar novamente");
+        }
+        caso EstadoMoonLander::Jogando => {}
+    }
+
+    Graficos.renderizar();
+}
+
+funcao inicio() {
+    Graficos.iniciar_modo_grafico(verdadeiro);
+    Graficos.definir_dimensoes_janela(800, 600);
+    Graficos.definir_titulo_janela("Moon Lander - Ferro");
+
+    seja mutavel jogo: JogoMoonLander = criar_partida(EstadoMoonLander::Menu, criar_estrelas());
+
+    enquanto (!Teclado.tecla_pressionada(Teclado.TECLA_ESC)) {
+        jogo = atualizar(jogo);
+        desenhar(jogo);
+        Util.aguarde(16);
+    }
+
+    Graficos.encerrar_modo_grafico();
+}

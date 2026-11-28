@@ -11,11 +11,11 @@ O PR #66 habilitou execução de arquivos `.rs` como processo nativo supervisona
 
 Atribuir o ID no backend antes de iniciar a execução, associá-lo a um token `AtomicBool`, expor esse token ao comando `stop` e passá-lo ao supervisor do serviço. O supervisor verifica o token durante compilação e runtime; um pedido aceito termina em resultado tipado `cancelled` somente depois de encerrar e recolher o processo supervisionado. A UI apresenta o resultado final retornado e nunca presume que o pedido de Stop encerrou o processo.
 
-A implementação fica limitada a arquivos `.rs`; `.pors` e o runtime Portugol mantêm seus fluxos atuais nesta decisão. O usuário já recebe aviso explícito de que execução Rust nativa não tem sandbox; o cancelamento não altera essa fronteira de segurança.
+A implementação fica limitada a arquivos `.rs`; `.fer` e o runtime Ferro mantêm seus fluxos atuais nesta decisão. O usuário já recebe aviso explícito de que execução Rust nativa não tem sandbox; o cancelamento não altera essa fronteira de segurança.
 
 ## Alternativas consideradas
 
-- **Eventos de execução unificados para todos os motores:** recusada nesta fatia por reescrever fluxos estáveis de Portugol e `.pors` sem necessidade para o objetivo imediato.
+- **Eventos de execução unificados para todos os motores:** recusada nesta fatia por reescrever fluxos estáveis de Ferro e `.fer` sem necessidade para o objetivo imediato.
 - **Esperar somente o limite de 3 segundos:** recusada porque deixa o controle Interromper e Shift+F7 sem efeito durante execução Rust.
 
 ## Consequências

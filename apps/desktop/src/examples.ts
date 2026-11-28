@@ -1,6 +1,6 @@
 import * as api from "./api";
 import { icon } from "./icons";
-import { buildPorsExampleCatalog, PORS_EXAMPLE_PREFIX } from "./pors-catalog";
+import { buildFerroExampleCatalog, FERRO_EXAMPLE_PREFIX } from "./ferro-catalog";
 
 const normalize = (text: string) => text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLocaleLowerCase("pt-BR");
 
@@ -18,7 +18,7 @@ export function mountExamples(openExample: (source: string, file: string, workPa
   const error = document.querySelector<HTMLElement>("#example-error")!;
   const expanded = new Set<string>();
   let catalog: api.CatalogEntry[] = [];
-  const porsExamplesById = new Map<string, api.PorsExampleInfo>();
+  const ferroExamplesById = new Map<string, api.FerroExampleInfo>();
   let selected: Example | null = null;
   let imageUrl: string | null = null;
 
@@ -90,15 +90,15 @@ export function mountExamples(openExample: (source: string, file: string, workPa
     open.disabled = true;
     error.hidden = true;
     try {
-      if (!example.file.startsWith(PORS_EXAMPLE_PREFIX)) {
+      if (!example.file.startsWith(FERRO_EXAMPLE_PREFIX)) {
         throw new Error(`Exemplo fora do catálogo Ferro: ${example.file}`);
       }
-      const id = example.file.slice(PORS_EXAMPLE_PREFIX.length);
-      const porsExample = porsExamplesById.get(id);
-      if (!porsExample) {
+      const id = example.file.slice(FERRO_EXAMPLE_PREFIX.length);
+      const ferroExample = ferroExamplesById.get(id);
+      if (!ferroExample) {
         throw new Error(`Exemplo Ferro não encontrado: ${id}`);
       }
-      openExample(porsExample.source, porsExample.file_name, "");
+      openExample(ferroExample.source, ferroExample.file_name, "");
     } catch (failure) {
       error.textContent = String(failure);
       error.hidden = false;
@@ -108,12 +108,12 @@ export function mountExamples(openExample: (source: string, file: string, workPa
   };
 
   document.querySelector<HTMLButtonElement>("#example-back")!.onclick = () => showExample(null);
-  void api.listPorsExamples().then((items) => {
-    porsExamplesById.clear();
+  void api.listFerroExamples().then((items) => {
+    ferroExamplesById.clear();
     for (const item of items) {
-      porsExamplesById.set(item.id, item);
+      ferroExamplesById.set(item.id, item);
     }
-    catalog = buildPorsExampleCatalog(items);
+    catalog = buildFerroExampleCatalog(items);
     search.disabled = false;
     search.oninput = render;
     render();

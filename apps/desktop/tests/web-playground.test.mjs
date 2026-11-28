@@ -66,32 +66,32 @@ test("playground runtime encodes/decodes UTF-8 across linear memory for validate
 
   const runtime = createPlaygroundRuntime({
     memory,
-    pors_alloc(len) {
+    ferro_alloc(len) {
       const ptr = nextPtr;
       nextPtr += len;
       return ptr;
     },
-    pors_dealloc() {},
-    pors_result_ptr: () => lastResultPtr,
-    pors_result_len: () => lastResultLen,
-    pors_validate(ptr, len) {
+    ferro_dealloc() {},
+    ferro_result_ptr: () => lastResultPtr,
+    ferro_result_len: () => lastResultLen,
+    ferro_validate(ptr, len) {
       const src = readUtf8(ptr, len);
       return writeResponse({ ok: src.includes("funcao"), diagnostics: [] });
     },
-    pors_format(ptr, len) {
+    ferro_format(ptr, len) {
       const src = readUtf8(ptr, len);
       return writeResponse({ ok: true, changed: false, formatted: src });
     },
-    pors_export_rust(ptr, len) {
+    ferro_export_rust(ptr, len) {
       const src = readUtf8(ptr, len);
       return writeResponse({ ok: true, code: `fn main() { /* ${src.length} */ }`, diagnostics: [] });
     },
-    pors_run(srcPtr, srcLen, inPtr, inLen) {
+    ferro_run(srcPtr, srcLen, inPtr, inLen) {
       const src = readUtf8(srcPtr, srcLen);
       const input = readUtf8(inPtr, inLen);
       return writeResponse({ ok: true, stdout: `${src.length}:${input.trim()}`, diagnostics: [] });
     },
-    pors_ui_start() {
+    ferro_ui_start() {
       return writeResponse({
         ok: true,
         session: 7,
@@ -101,7 +101,7 @@ test("playground runtime encodes/decodes UTF-8 across linear memory for validate
         stdout: "",
       });
     },
-    pors_ui_dispatch(sessionId, kPtr, kLen, tPtr, tLen, vPtr, vLen) {
+    ferro_ui_dispatch(sessionId, kPtr, kLen, tPtr, tLen, vPtr, vLen) {
       return writeResponse({
         ok: true,
         session: sessionId,
@@ -114,10 +114,10 @@ test("playground runtime encodes/decodes UTF-8 across linear memory for validate
         stdout: "",
       });
     },
-    pors_ui_snapshot() {
+    ferro_ui_snapshot() {
       return writeResponse({ ok: true, session: 7, step: 1, tree: { kind: "texto", content: "ok" }, stdout: "" });
     },
-    pors_ui_close(sessionId) {
+    ferro_ui_close(sessionId) {
       closedSession = sessionId;
       return 1;
     },
@@ -247,32 +247,32 @@ test("Prévia UI loads a visual example when the editor holds a console program"
   const readUtf8 = (ptr, len) => new TextDecoder().decode(new Uint8Array(memory.buffer, ptr, len));
   const exports = {
     memory,
-    pors_alloc(len) { const ptr = nextPtr; nextPtr += len; return ptr; },
-    pors_dealloc() {},
-    pors_result_ptr: () => resultPtr,
-    pors_result_len: () => resultLen,
-    pors_validate: () => writeResult({ ok: true, diagnostics: [] }),
-    pors_format: () => writeResult({ ok: true, changed: false, formatted: "" }),
-    pors_export_rust: () => writeResult({ ok: true, code: "", diagnostics: [] }),
-    pors_run(ptr, len) {
+    ferro_alloc(len) { const ptr = nextPtr; nextPtr += len; return ptr; },
+    ferro_dealloc() {},
+    ferro_result_ptr: () => resultPtr,
+    ferro_result_len: () => resultLen,
+    ferro_validate: () => writeResult({ ok: true, diagnostics: [] }),
+    ferro_format: () => writeResult({ ok: true, changed: false, formatted: "" }),
+    ferro_export_rust: () => writeResult({ ok: true, code: "", diagnostics: [] }),
+    ferro_run(ptr, len) {
       return writeResult({ ok: true, stdout: readUtf8(ptr, len), diagnostics: [] });
     },
-    pors_ui_start: () => writeResult({
+    ferro_ui_start: () => writeResult({
       ok: true,
       session: 1,
       step: 0,
       tree: { kind: "texto", content: "Prévia visual" },
       stdout: "",
     }),
-    pors_ui_dispatch: () => writeResult({
+    ferro_ui_dispatch: () => writeResult({
       ok: true,
       session: 1,
       step: 1,
       tree: { kind: "texto", content: "Prévia visual" },
       stdout: "",
     }),
-    pors_ui_snapshot: () => writeResult({ ok: true, session: 1, step: 0, tree: { kind: "texto", content: "" }, stdout: "" }),
-    pors_ui_close: () => 1,
+    ferro_ui_snapshot: () => writeResult({ ok: true, session: 1, step: 0, tree: { kind: "texto", content: "" }, stdout: "" }),
+    ferro_ui_close: () => 1,
   };
 
   const globals = {

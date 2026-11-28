@@ -31,7 +31,7 @@ export interface RunShellDependencies {
   appendConsole: (text: string, kind?: string) => void;
   /** Execução das telas desktop numa janela própria (ADR 0018). */
   screenExecution?: import("./dispatcher").RunDispatcherDependencies["screenExecution"];
-  appendProcessOutput: (result: api.PortugolRsRunResult | api.CargoProjectRunResult | api.RustSourceRunResult) => void;
+  appendProcessOutput: (result: api.FerroRustRunResult | api.CargoProjectRunResult | api.RustSourceRunResult) => void;
   consoleText: () => string;
   copyText: (text: string) => Promise<void>;
   sendInput: (runId: number, value: string) => Promise<void>;
@@ -107,7 +107,7 @@ export function createRunShell(dependencies: RunShellDependencies) {
     runId: () => runState.runId,
     activeLanguage: () => dependencies.activeTab()?.language ?? null,
     runOrContinue: controllers.runOrContinue,
-    stepOrStart: controllers.stepOrStart,
+    stepDebugOrStart: controllers.stepDebugOrStart,
     stop: controllers.stopProgram,
     pause: dependencies.pause,
     continueDebug: () => presentation.debugCommand(dependencies.debugContinue),

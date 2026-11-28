@@ -8,7 +8,7 @@ const component = readFileSync(new URL("../src/shell/status-bar.ts", import.meta
 
 function tab(overrides = {}) {
   return {
-    language: "portugol-rs",
+    language: "ferro-rust",
     diagnostics: [],
     runtimeCompileDiagnostics: [],
     ...overrides,

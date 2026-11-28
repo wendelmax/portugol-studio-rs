@@ -38,10 +38,10 @@ export const LEARNING_TRAIL: LearningTrailStage[] = [
     description: "Comece com entradas, variáveis e condições.",
     examplePaths: ["01-ola-variaveis.fer", "02-condicionais.fer"],
     exercises: [
-      { id: "pors-12-saudacao-cadeia", title: "Saudação com cadeia" },
-      { id: "pors-01-dobro", title: "Dobro de um número" },
-      { id: "pors-11-par-ou-impar", title: "Par ou ímpar" },
-      { id: "pors-02-maior-de-dois", title: "Maior de dois inteiros" },
+      { id: "ferro-12-saudacao-cadeia", title: "Saudação com cadeia" },
+      { id: "ferro-01-dobro", title: "Dobro de um número" },
+      { id: "ferro-11-par-ou-impar", title: "Par ou ímpar" },
+      { id: "ferro-02-maior-de-dois", title: "Maior de dois inteiros" },
     ],
   },
   {
@@ -50,9 +50,9 @@ export const LEARNING_TRAIL: LearningTrailStage[] = [
     description: "Organize o algoritmo em funções e trabalhe com tipos explícitos.",
     examplePaths: ["04-funcoes-recursao.fer", "07-entrada-tipada.fer"],
     exercises: [
-      { id: "pors-03-soma-ate-n", title: "Soma de 1 até N" },
-      { id: "pors-04-funcao-fatorial", title: "Fatorial com função" },
-      { id: "pors-08-dias-do-mes", title: "Validar ano/mês com Tipos e Calendario" },
+      { id: "ferro-03-soma-ate-n", title: "Soma de 1 até N" },
+      { id: "ferro-04-funcao-fatorial", title: "Fatorial com função" },
+      { id: "ferro-08-dias-do-mes", title: "Validar ano/mês com Tipos e Calendario" },
     ],
   },
   {
@@ -61,8 +61,8 @@ export const LEARNING_TRAIL: LearningTrailStage[] = [
     description: "Repita operações e processe sequências de valores.",
     examplePaths: ["03-lacos.fer", "05-vetores.fer", "10-vetores-dinamicos.fer"],
     exercises: [
-      { id: "pors-06-filtrar-positivos", title: "Filtrar positivos em vetor dinâmico" },
-      { id: "pors-07-normalizar-csv", title: "Normalizar lista CSV com Texto" },
+      { id: "ferro-06-filtrar-positivos", title: "Filtrar positivos em vetor dinâmico" },
+      { id: "ferro-07-normalizar-csv", title: "Normalizar lista CSV com Texto" },
     ],
   },
   {
@@ -71,8 +71,8 @@ export const LEARNING_TRAIL: LearningTrailStage[] = [
     description: "Represente resultados ausentes ou inválidos sem esconder falhas.",
     examplePaths: ["09-opcao-resultado.fer", "11-matematica-texto-tipos.fer"],
     exercises: [
-      { id: "pors-05-divisao-segura", title: "Divisão segura com Resultado" },
-      { id: "pors-09-resumo-json", title: "Extrair e atualizar JSON" },
+      { id: "ferro-05-divisao-segura", title: "Divisão segura com Resultado" },
+      { id: "ferro-09-resumo-json", title: "Extrair e atualizar JSON" },
     ],
   },
   {
@@ -81,9 +81,9 @@ export const LEARNING_TRAIL: LearningTrailStage[] = [
     description: "Aplique tipos compostos (registro/enum) e regras de propriedade a coleções.",
     examplePaths: ["06-registros-enums.fer", "10-vetores-dinamicos.fer"],
     exercises: [
-      { id: "pors-13-registro-ponto", title: "Área com registro Retangulo" },
-      { id: "pors-14-enum-semaforo", title: "Semáforo com enum e escolha" },
-      { id: "pors-10-somar-lista-json", title: "Somar lista de inteiros em JSON" },
+      { id: "ferro-13-registro-ponto", title: "Área com registro Retangulo" },
+      { id: "ferro-14-enum-semaforo", title: "Semáforo com enum e escolha" },
+      { id: "ferro-10-somar-lista-json", title: "Somar lista de inteiros em JSON" },
     ],
   },
 ];
@@ -95,7 +95,7 @@ export function learningTrailProgress(
   const stageProgress = stages.map((stage) => {
     const exercises = stage.exercises.map((exercise) => ({
       exercise,
-      completed: hasPassed(`pors:${exercise.id}`),
+      completed: hasPassed(`ferro:${exercise.id}`),
     }));
     const completedExercises = exercises.filter(({ completed }) => completed).length;
     return {

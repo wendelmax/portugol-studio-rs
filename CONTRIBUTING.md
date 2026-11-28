@@ -16,7 +16,7 @@ As issues abertas têm duas labels:
 | `status: pronta` | pode ser reservada |
 | `status: em andamento` | já tem responsável e uma branch `issue/<número>` |
 | `status: bloqueada` | depende de outra issue ainda aberta |
-| `área: ...` | parte do código que a issue altera (shell da IDE, CSS, linguagem PORS, docs, CI) |
+| `área: ...` | parte do código que a issue altera (shell da IDE, CSS, linguagem FERRO, docs, CI) |
 
 Use o script para ver o que está livre:
 
@@ -76,7 +76,7 @@ cd ../ferro-studio-issue-<número>
 
 As mensagens seguem [Conventional Commits](https://www.conventionalcommits.org/pt-br/):
 `feat`, `fix`, `docs`, `refactor`, `test`, `build`, `ci`, `chore`, com escopo
-opcional (`feat(pors): ...`, `fix(ide): ...`). O tipo define o número da
+opcional (`feat(ferro): ...`, `fix(ide): ...`). O tipo define o número da
 próxima versão e o grupo em que o commit aparece nas notas de release
 (veja [`docs/DISTRIBUICAO.md`](docs/DISTRIBUICAO.md)).
 

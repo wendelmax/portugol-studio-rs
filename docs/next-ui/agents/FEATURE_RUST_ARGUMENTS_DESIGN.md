@@ -6,9 +6,9 @@ Permitir que arquivos `.rs` recebam argumentos de linha de comando pelo campo j�
 
 ## Estado atual
 
-- `apps/desktop/src/main.ts` já separa argumentos de Portugol, mas desabilita o campo para arquivos Rust.
+- `apps/desktop/src/main.ts` já separa argumentos de Ferro, mas desabilita o campo para arquivos Rust.
 - O comando Tauri `run_rust_source` recebe somente ID e fonte.
-- `portugol-service::run_rust_source_with_cancel` compila com `rustc` fixo e executa o binário com `Command`, hoje sem `.args(...)`.
+- `ferro-service::run_rust_source_with_cancel` compila com `rustc` fixo e executa o binário com `Command`, hoje sem `.args(...)`.
 - A linha de execução já tem consentimento, cancelamento, limites de duração/saída e não usa shell.
 
 ## Abordagem
@@ -19,7 +19,7 @@ Nenhuma string do aluno é interpretada como shell. A invocação do compilador 
 
 ## Compatibilidade
 
-- Portugol e Portugol-RS preservam a semântica atual; o parser de argumentos é compartilhado somente se os testes confirmarem equivalência nos exemplos atuais.
+- Ferro e Ferro preservam a semântica atual; o parser de argumentos é compartilhado somente se os testes confirmarem equivalência nos exemplos atuais.
 - Fonte `.rs`, consentimento, limites, cancelamento e diagnósticos mantêm comportamento.
 - Argumentos são opcionais; array vazio reproduz o fluxo anterior.
 - Não muda extensão, framework, Tauri, capabilities ou toolchain exigida.

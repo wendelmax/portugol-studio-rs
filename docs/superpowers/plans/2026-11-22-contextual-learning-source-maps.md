@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Never analyze Portugol text with a regex to claim semantic concepts.
+- Never analyze Ferro text with a regex to claim semantic concepts.
 - Ignore stale artifacts, source revision mismatches, approximate mappings, generated-only mappings and partial selections outside the mapped range.
 - Do not change source code, translation semantics, Rust services, Tauri commands or exercise progress.
 - Keep manual concept selection and explicit provenance.
@@ -23,7 +23,7 @@
 - Stale or mismatched source snapshot: return no context and keep manual selection; cover both.
 - Approximate/generated-only mappings: return no context; cover both quality variants.
 - Manual picker choice while the caret remains on a mapped binding: manual choice stays selected until editor selection changes; cover the event path.
-- Classic Portugol vs Portugol-RS: contextual explanation must describe the active source semantics accurately; cover both wording branches.
+- Classic Ferro vs Ferro: contextual explanation must describe the active source semantics accurately; cover both wording branches.
 
 ---
 

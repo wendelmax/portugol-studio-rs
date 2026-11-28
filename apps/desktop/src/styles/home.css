@@ -317,7 +317,7 @@
   margin-top: var(--space-2);
 }
 
-/* Coluna lateral: catálogo de exemplos PORS e acesso a exercícios */
+/* Coluna lateral: catálogo de exemplos FERRO e acesso a exercícios */
 .home-examples {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;

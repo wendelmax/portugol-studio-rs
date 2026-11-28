@@ -1,6 +1,6 @@
 # Inventário histórico de recursos clássicos de programação educacional
 
-> **Direção atual (Fase 6 concluída):** conforme o [ADR 0016](adr/0016-pors-como-linguagem-autoral-e-retirada-do-por.md), o suporte a `.por` e `.pex` foi completamente retirado do produto, da CLI e do workspace. Este arquivo permanece apenas como inventário histórico. A matriz de acompanhamento da migração está em [`PORS_MIGRATION_MATRIX.md`](research/PORS_MIGRATION_MATRIX.md).
+> **Direção atual (Fase 6 concluída):** conforme o [ADR 0016](adr/0016-ferro-como-linguagem-autoral-e-retirada-do-por.md), o suporte a `.por` e `.pex` foi completamente retirado do produto, da CLI e do workspace. Este arquivo permanece apenas como inventário histórico. A matriz de acompanhamento da migração está em [`ferro_MIGRATION_MATRIX.md`](research/ferro_MIGRATION_MATRIX.md).
 
 Inventário histórico de recursos clássicos e seu estado neste projeto.
 Atualize esta tabela junto com cada recurso entregue.
@@ -16,10 +16,10 @@ são executados e validados sem tela.
 
 | Recurso | Estado | Observações |
 |---|---|---|
-| Sintaxe completa do Portugol 2.0 | ✅ | 194/196 exemplos; os 2 restantes têm erro no próprio arquivo |
+| Sintaxe completa do Ferro 2.0 | ✅ | 194/196 exemplos; os 2 restantes têm erro no próprio arquivo |
 | Análise semântica | ✅ | casos do `AnalisadorSemanticoTest.java` portados |
 | Execução (tipos, operadores, vetores, matrizes, funções, referência) | ✅ | semântica do Java gerado pelo original |
-| Execução do subset Ferro (`.fer`) | 🟡 | Execução normal compila o Rust gerado via `rustc`; `Depurar` agora tem backend inicial HIR→bytecode e reutiliza a VM, com breakpoints, snapshots, entrada tipada e saída. Diferencial verificado para declaração, incremento, `para`/`enquanto`, `continue`, curto-circuito, overflow, concatenação e linha de divisão por zero; snapshots respeitam escopos e shadowing. Sem toolchain é possível iniciar a sessão de debug. A VM aplica 3 s de runtime ativo/1 MiB de saída/16 MiB cumulativos de cadeias; pausas e espera por entrada são excluídas do limite temporal. Teste dedicado confirma que uma cadeia lida acima de 16 MiB encerra com limite de memória tipado. Permanecem maior cobertura diferencial e smoke de execução nativa KDE. Execução normal suporta loops, controle e `leia` para tipos primitivos, apresenta saída antes da entrada, valida o valor em português, limita execução e mapeia diagnósticos; veja `docs/reports/FEAT-PORTUGOL-RS-DEBUGGER.md`. Arquivos Rust standalone (`.rs`) têm análise `rustc` de buffer isolado (Rust 2021, 5 s/1 MiB, diagnósticos no linter), execução/cancelamento, argumentos `argv` e formatação com `rustfmt`. Arquivos `.rs` abertos no workspace com `Cargo.toml` ancestral usam `cargo build` para executar o alvo padrão ou o binário selecionado por pacote; a descoberta usa metadata offline sem scripts e mostra seletor acessível quando não há padrão inequívoco. Também oferecem `cargo check` explícito pela paleta, com confirmação de confiança, cancelamento, limite de 20 s e diagnósticos do arquivo aberto no painel Mensagens/linter. O campo Parâmetros de execução passa `argv` ao binário Cargo depois de `--`, sem shell e sob os mesmos limites por plataforma do Rust standalone. Build scripts/dependências podem acessar a rede e executar com permissões locais, sem sandbox. O seletor cobre alvos `bin`; lint contínuo e debugger Rust seguem pendentes. Evidências: `crates/ferro-service/tests/portugol_rs_debugger.rs`, `cargo_project.rs`, `rust_source_runner.rs`, `rust_source_check.rs` e `rust_format.rs`. |
+| Execução do subset Ferro (`.fer`) | 🟡 | Execução normal compila o Rust gerado via `rustc`; `Depurar` agora tem backend inicial HIR→bytecode e reutiliza a VM, com breakpoints, snapshots, entrada tipada e saída. Diferencial verificado para declaração, incremento, `para`/`enquanto`, `continue`, curto-circuito, overflow, concatenação e linha de divisão por zero; snapshots respeitam escopos e shadowing. Sem toolchain é possível iniciar a sessão de debug. A VM aplica 3 s de runtime ativo/1 MiB de saída/16 MiB cumulativos de cadeias; pausas e espera por entrada são excluídas do limite temporal. Teste dedicado confirma que uma cadeia lida acima de 16 MiB encerra com limite de memória tipado. Permanecem maior cobertura diferencial e smoke de execução nativa KDE. Execução normal suporta loops, controle e `leia` para tipos primitivos, apresenta saída antes da entrada, valida o valor em português, limita execução e mapeia diagnósticos; veja `docs/reports/FEAT-FERRO-RUST-DEBUGGER.md`. Arquivos Rust standalone (`.rs`) têm análise `rustc` de buffer isolado (Rust 2021, 5 s/1 MiB, diagnósticos no linter), execução/cancelamento, argumentos `argv` e formatação com `rustfmt`. Arquivos `.rs` abertos no workspace com `Cargo.toml` ancestral usam `cargo build` para executar o alvo padrão ou o binário selecionado por pacote; a descoberta usa metadata offline sem scripts e mostra seletor acessível quando não há padrão inequívoco. Também oferecem `cargo check` explícito pela paleta, com confirmação de confiança, cancelamento, limite de 20 s e diagnósticos do arquivo aberto no painel Mensagens/linter. O campo Parâmetros de execução passa `argv` ao binário Cargo depois de `--`, sem shell e sob os mesmos limites por plataforma do Rust standalone. Build scripts/dependências podem acessar a rede e executar com permissões locais, sem sandbox. O seletor cobre alvos `bin`; lint contínuo e debugger Rust seguem pendentes. Evidências: `crates/ferro-service/tests/ferro_rs_debugger.rs`, `cargo_project.rs`, `rust_source_runner.rs`, `rust_source_check.rs` e `rust_format.rs`. |
 | `escreva`, `leia`, `limpa`, `sorteia` | ✅ | |
 | Parâmetros de execução (`inicio(cadeia params[])`) | ✅ | |
 | Mensagens de erro de execução | ✅ | mesmas mensagens do original |
@@ -53,25 +53,25 @@ são executados e validados sem tela.
 | Erros ao digitar e painel de mensagens (`AbaMensagemCompilador`) | ✅ | tabela com ícones, linha e mensagem. Faixa lateral de diagnósticos clicável |
 | Abas de arquivos, abrir, salvar, salvar como | ✅ | |
 | Console com entrada (`AbaConsole`) | ✅ | entrada e engrenagem para limpar, copiar e ajustar fonte |
-| Depuração na IDE (`AbaDepuracao`, `Depurador`) | 🟡 | gutter, início pausado, pilha e snapshots reais para Portugol clássico e primeira fatia Ferro via VM; permanece pendente ampliar a cobertura e validar a execução nativa no KDE |
+| Depuração na IDE (`AbaDepuracao`, `Depurador`) | 🟡 | gutter, início pausado, pilha e snapshots reais para pseudocódigo clássico e primeira fatia Ferro via VM; permanece pendente ampliar a cobertura e validar a execução nativa no KDE |
 | Laboratório pedagógico de ownership | 🟡 | quatro cenários guiados de `String` para move, `&T`, `&mut T` e escopo; fixtures verificadas com `rustc`; simulação editorial, não é trace Rust nem interpreta o buffer do aluno |
 | Painel Testes (UI-020 / FT-06) | 🟡 | aba inferior executa os casos reais de exercícios `.pex` na revisão atual e mostra aprovação/falhas; progresso só é concluído quando todos passam. Arquivos sem exercício continuam sem runner genérico configurável. Evidência: FT-19 |
-| Níveis de aprendizagem (`beginner`, `bridge`, `rust`) | ✅ | Iniciante e Ponte preservam o fluxo Portugol; Rust usa CodeMirror Rust e o executor `.rs` com `rustc` já existente, habilitado apenas quando a toolchain é detectada. O modo não converte nem modifica o arquivo ativo. O laboratório de ownership continua rotulado como simulação didática. |
+| Níveis de aprendizagem (`beginner`, `bridge`, `rust`) | ✅ | Iniciante e Ponte preservam o fluxo Ferro; Rust usa CodeMirror Rust e o executor `.rs` com `rustc` já existente, habilitado apenas quando a toolchain é detectada. O modo não converte nem modifica o arquivo ativo. O laboratório de ownership continua rotulado como simulação didática. |
 | Autocompletar bibliotecas | ✅ | opções, assinaturas e descrições da mesma referência usada pela ajuda |
-| Prévia Portugol ↔ Rust com navegação de origem | 🟡 | exportação `.por`/`.fer` inclui source maps; o gutter bridge apresenta correspondências reais da linha selecionada e navega ao trecho Rust, que continua podendo voltar à origem. Localizações aproximadas são identificadas; trechos gerados sem origem permanecem sem navegação. |
+| Prévia Ferro ↔ Rust com navegação de origem | 🟡 | exportação `.por`/`.fer` inclui source maps; o gutter bridge apresenta correspondências reais da linha selecionada e navega ao trecho Rust, que continua podendo voltar à origem. Localizações aproximadas são identificadas; trechos gerados sem origem permanecem sem navegação. |
 | Localizar e substituir (`PSFindReplace`) | ✅ | diálogo Ctrl+F com direção, palavra inteira, maiúsculas, expressões regulares e substituição em lote |
 | Atalhos do original (`TelaAtalhos`) | ✅ | tela F11, atalhos de edição, depuração, arquivos, abas, filtros e centralização |
 | Temas claro/escuro (`TelaEditarTemas`) | ✅ | `Sistema` automático (VS Code Light/Dark Modern como padrão em `tokens.css`), `IntelliJ Rust Dark/Light`, presets populares do VS Code (`GitHub`, `One Dark Pro`, `Dracula`, `Catppuccin Mocha`, `Night Owl`), `Alto contraste` e perfis personalizados com prévia `.fer` — todos verificados em WCAG AA (`>= 4,5:1`). |
 | Moldura e barra de comandos | ✅ | Interface proprietária com ícones vetoriais SVG, `TitleBar` com marca `RS`, seletor de projeto, seletor de modo de aprendizagem, controles de execução/depuração/Rust/UI e `ActivityRail` (56 px) + diálogo dedicado de `Configurações` (`Ctrl+,`) com `Restaurar layout padrão`. |
 | Expandir editor (Shift+Esc) | ✅ | barra horizontal compacta e botão de restauração |
 | Explorador de pasta e exportação local (`.por`, `.fer`, `.rs`, `.pex`) | ✅ | árvore navegável com teclado, abertura/salvamento escopados, criação, renomeação e exclusão; permite selecionar arquivos e copiar para uma nova pasta local sem alterar a origem |
-| Tela inicial com exemplos (`AbaInicial`, `PainelExemplos`) | ✅ | Tela inicial proprietária com criação padrão em `.fer`, menu para `.rs`/`.por`, arquivos recentes, catálogo 100% `.fer` (119 exemplos migrados + originais PORS) com busca, prévia e acesso direto a exercícios e dicas. |
-| Ajuda da linguagem e das bibliotecas (`abaAjuda`, `assets/ajuda`) | ✅ | Aba `F1` 100% voltada a PORS (`Primeiros passos (PORS)`, `Bibliotecas padrão (PORS)`, `UI e Multimídia (PORS)` e `Referência da sintaxe (.fer)` com 77 exemplos `.fer`), sem menu de bibliotecas clássicas. |
-| Árvore estrutural (variáveis e funções do programa) | ✅ | `Inspector` redimensionável com abas `Bibliotecas` (13 módulos PORS em `.fer`) e `Modelos` (11 snippets `.fer`), busca na estrutura, filtros, navegação e inspetor de variáveis. |
-| Ir à declaração (`resolve_symbol`) | ✅ | F12 no editor, Ctrl/Cmd+clique e ação no menu; Portugol clássico e `.fer` resolvem bindings por escopo, preservam o buffer e descartam respostas obsoletas |
-| Renomear símbolo (`TelaRenomearSimbolo`) | ✅ | Ctrl+R, menu do editor e duplo clique na árvore; Portugol clássico e `.fer` verificam conflitos e preservam referências sombreadas |
+| Tela inicial com exemplos (`AbaInicial`, `PainelExemplos`) | ✅ | Tela inicial proprietária com criação padrão em `.fer`, menu para `.rs`/`.por`, arquivos recentes, catálogo 100% `.fer` (119 exemplos migrados + originais FERRO) com busca, prévia e acesso direto a exercícios e dicas. |
+| Ajuda da linguagem e das bibliotecas (`abaAjuda`, `assets/ajuda`) | ✅ | Aba `F1` 100% voltada a FERRO (`Primeiros passos (FERRO)`, `Bibliotecas padrão (FERRO)`, `UI e Multimídia (FERRO)` e `Referência da sintaxe (.fer)` com 77 exemplos `.fer`), sem menu de bibliotecas clássicas. |
+| Árvore estrutural (variáveis e funções do programa) | ✅ | `Inspector` redimensionável com abas `Bibliotecas` (13 módulos FERRO em `.fer`) e `Modelos` (11 snippets `.fer`), busca na estrutura, filtros, navegação e inspetor de variáveis. |
+| Ir à declaração (`resolve_symbol`) | ✅ | F12 no editor, Ctrl/Cmd+clique e ação no menu; pseudocódigo clássico e `.fer` resolvem bindings por escopo, preservam o buffer e descartam respostas obsoletas |
+| Renomear símbolo (`TelaRenomearSimbolo`) | ✅ | Ctrl+R, menu do editor e duplo clique na árvore; pseudocódigo clássico e `.fer` verificam conflitos e preservam referências sombreadas |
 | Dobras de código | ✅ | blocos aninhados e comentários de várias linhas, com marcadores no cabeçalho |
-| Formatador de código (`editor/formatador`) | ✅ | opções do editor e Ctrl+Alt+F; Portugol usa o formatador clássico, Ferro usa o formatador próprio (`ferro-frontend`) e `.rs` usa `rustfmt` instalado (Rust 2021, limite de 5 s/1 MiB), com uma única etapa de desfazer. |
+| Formatador de código (`editor/formatador`) | ✅ | opções do editor e Ctrl+Alt+F; Ferro usa o formatador clássico, Ferro usa o formatador próprio (`ferro-frontend`) e `.rs` usa `rustfmt` instalado (Rust 2021, limite de 5 s/1 MiB), com uma única etapa de desfazer. |
 | Exercícios com correção automática e progresso validado (`assets/exercicios`, `checker`) | ✅ | 14 lições `.licao` na trilha e no catálogo principal. A resposta é escrita em `.fer`; conclusões locais só são registradas quando todos os casos reais passam e ficam vinculadas ao hash da revisão avaliada; abrir/executar não registra progresso. |
 | Tamanho da fonte do editor | ✅ | ajuste de 10 a 50, salvo localmente |
 | Dicas de interface (`TelaDicas`) | ✅ | 8 dicas próprias ilustradas em SVG para Ferro (`F3`, setas, atalho para temas e opção de exibir ao iniciar). |
@@ -84,9 +84,9 @@ são executados e validados sem tela.
 
 ## Comparação visual
 
-**Critério atualizado (ADR 0015):** a paridade visual atual com o Portugol
+**Critério atualizado (ADR 0015):** a paridade visual atual com o Ferro
 Studio clássico está aceita. Novas mudanças de interface devem servir aos
-fluxos progressivos Portugol → Ferro → Rust e não precisam reproduzir a
+fluxos progressivos Ferro → Ferro → Rust e não precisam reproduzir a
 IDE Java pixel a pixel. As capturas desta seção ficam como referência histórica
 e regressão; a comparação pendente da tela inicial não bloqueia releases.
 
@@ -94,10 +94,10 @@ Capturas em Linux sob Xvfb. As comparações do editor usam janelas de 1200 ×
 800 pixels, com a versão Java 2.7.5 à esquerda e o port em Rust à direita; a
 aba de código mostra o programa inicial de cada versão.
 
-| Tela | Dark | Portugol |
+| Tela | Dark | Ferro |
 |---|---|---|
 | Inicial | Fora do gate visual | Fora do gate visual |
-| Editor | [Comparar editor em Dark](imagens/paridade/editor-dark.webp) | [Comparar editor em Portugol](imagens/paridade/editor-light.webp) |
+| Editor | [Comparar editor em Dark](imagens/paridade/editor-dark.webp) | [Comparar editor em Ferro](imagens/paridade/editor-light.webp) |
 
 As capturas `home-dark.webp` e `home-light.webp` são composições de telas
 diferentes: mostram o editor Java à esquerda e a tela inicial do port à
@@ -120,4 +120,4 @@ janela gráfica, o teclado e o mouse em Xvfb.
 | Instalador Linux | ✅ | `.deb`, `.rpm`, `.AppImage` |
 | Instalador macOS | ✅ | `.dmg`, assinatura e notarização configuráveis |
 | Associação de arquivos `.por` e `.pex` | ✅ | abertura via sistema e arraste na IDE |
-| Versão de console (módulo `console`) | ✅ | `portugol executar` |
+| Versão de console (módulo `console`) | ✅ | `ferro executar` |

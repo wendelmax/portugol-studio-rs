@@ -19,7 +19,7 @@ function fixture({ insertText } = {}) {
   const snippetButtons = [];
   const tabButtons = new Map([["libraries", fakeButton()], ["models", fakeButton()]]);
   const panels = new Map([["libraries", { hidden: false }], ["models", { hidden: true }]]);
-  const tab = { id: 1, language: "portugol-rs" };
+  const tab = { id: 1, language: "ferro-rust" };
   let activeTab = tab;
   let running = false;
   const snippets = [
@@ -27,8 +27,8 @@ function fixture({ insertText } = {}) {
     { label: "programa", detail: "estrutura" },
   ];
   const controller = createUtilityInsertions({
-    porsLibraries: ["UI", "Json", "Matematica"],
-    porsSnippets: snippets,
+    ferroLibraries: ["UI", "Json", "Matematica"],
+    ferroSnippets: snippets,
     createButton: fakeButton,
     clearLibraryButtons: () => { libraryButtons.length = 0; },
     clearSnippetButtons: () => { snippetButtons.length = 0; },
@@ -53,10 +53,10 @@ function fixture({ insertText } = {}) {
   };
 }
 
-test("module buttons insert PORS module prefix and focus editor", () => {
+test("module buttons insert FERRO module prefix and focus editor", () => {
   const inserted = [];
   const f = fixture({ insertText: (text) => inserted.push(text) });
-  f.controller.updateLibraryButtons([], "portugol-rs");
+  f.controller.updateLibraryButtons([], "ferro-rust");
 
   assert.deepEqual(f.libraryButtons.map((b) => b.textContent), ["UI", "Json", "Matematica"]);
   assert.equal(f.libraryButtons[0].disabled, false);
@@ -83,8 +83,8 @@ test("module buttons enforce running and Rust guards and fall back to status hin
   f.libraryButtons[2].onclick();
   assert.equal(f.events.length, 0);
 
-  f.setTab({ id: 1, language: "portugol-rs" });
-  f.controller.updateLibraryButtons([], "portugol-rs");
+  f.setTab({ id: 1, language: "ferro-rust" });
+  f.controller.updateLibraryButtons([], "ferro-rust");
   f.libraryButtons[2].onclick();
   assert.deepEqual(f.events, [["status", "Use Matematica.funcao(...) diretamente em Ferro.", undefined]]);
 });
@@ -97,7 +97,7 @@ test("snippet buttons retain language guards, insertion, and new-program action"
   loopButton.onclick();
   assert.deepEqual(f.events, []);
 
-  f.setTab({ id: 1, language: "portugol-rs" });
+  f.setTab({ id: 1, language: "ferro-rust" });
   loopButton.onclick();
   programButton.onclick();
 

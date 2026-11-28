@@ -51,7 +51,7 @@ fn compare(current: &Version, release: Release) -> Result<UpdateInfo, String> {
 pub(crate) fn github_get(url: &str) -> Result<ureq::Response, Box<ureq::Error>> {
     let agent = ureq::AgentBuilder::new()
         .timeout(Duration::from_secs(8))
-        .user_agent("Portugol-Studio-RS")
+        .user_agent("Ferro-Studio-RS")
         .build();
     agent
         .get(url)

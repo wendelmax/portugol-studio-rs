@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "id": "pors-13-registro-ponto",
+  "id": "ferro-13-registro-ponto",
   "title": "Área com registro Retangulo",
   "statement": "Leia largura e altura inteiras, construa um registro Retangulo e escreva sua área calculada por uma função tipada.",
   "starter_code": "registro Retangulo {\n    largura: inteiro,\n    altura: inteiro,\n}\n\nfuncao area(r: Retangulo) -> inteiro {\n    retorne 0;\n}\n\nfuncao inicio() {\n    seja mutavel largura: inteiro = leia();\n    seja mutavel altura: inteiro = leia();\n    seja r: Retangulo = Retangulo { largura: largura, altura: altura };\n    escreva(area(r));\n}\n",

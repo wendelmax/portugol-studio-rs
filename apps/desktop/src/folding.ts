@@ -62,6 +62,6 @@ function foldRanges(doc: Text): Map<number, Fold> {
   return ranges;
 }
 
-export const portugolFolding = foldService.of((state, from) =>
+export const ferroFolding = foldService.of((state, from) =>
   foldRanges(state.doc).get(from) ?? null,
 );

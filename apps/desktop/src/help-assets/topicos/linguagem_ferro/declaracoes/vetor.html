@@ -1,0 +1,12 @@
+<title>Declaração de Vetor</title>
+<body>
+<div>
+            <h1>Declaração de Vetor</h1>
+            <p>Quando precisamos guardar vários valores do mesmo tipo — como todas as notas de uma turma ou uma lista de nomes — usamos um vetor. Em Ferro, vetores têm tipo explícito <code>vetor&lt;Tipo&gt;</code> e tamanho dinâmico (equivalente a <code>Vec&lt;T&gt;</code> em Rust).</p>
+            <p>Para declarar um vetor, use <span class="palavra-reservada">seja</span> (ou <span class="palavra-reservada">seja mutavel</span> para alterar itens ou redimensionar), informe o tipo <code>vetor&lt;T&gt;</code> e inicialize com colchetes <code>[v1, v2, ...]</code> ou vazio <code>[]</code>.</p>
+            <div class="codigo-ferro" data-type='sintaxe' data-title="Exemplo de Sintaxe" data-file="../../../recursos/exemplos-ferro/declaracoes/vetor/exemplo1.fer"></div>
+            <p>A primeira posição tem índice <code>0</code> e a última tem índice <code>tamanho(v) - 1</code>. Além do acesso direto <code>v[i]</code>, o Ferro oferece operações seguras integradas: <code>tamanho(v)</code>, <code>adicionar(v, valor)</code>, <code>remover(v)</code> (retorna <code>Opcao&lt;T&gt;</code>) e <code>obter(v, indice)</code> (retorna <code>Opcao&lt;T&gt;</code> sem erro de limites).</p>
+            <p>Para melhor compreensão deste conceito, confira o exemplo abaixo.</p>
+            <div class="codigo-ferro" data-type='exemplo' data-title="Exemplo" data-file="../../../recursos/exemplos-ferro/declaracoes/vetor/exemplo2.fer"></div>
+        </div>
+</body>

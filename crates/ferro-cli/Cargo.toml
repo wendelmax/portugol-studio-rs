@@ -6,7 +6,7 @@ license.workspace = true
 description = "CLI do Ferro Studio: criação, validação, formatação, exportação Rust/Cargo, execução e depuração de programas .fer"
 
 [[bin]]
-name = "portugol"
+name = "ferro"
 path = "src/main.rs"
 
 [dependencies]

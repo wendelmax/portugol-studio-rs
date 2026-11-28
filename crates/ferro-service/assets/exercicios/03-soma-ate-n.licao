@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "id": "pors-03-soma-ate-n",
+  "id": "ferro-03-soma-ate-n",
   "title": "Soma de 1 até N",
   "statement": "Leia um inteiro positivo N e escreva a soma de todos os inteiros de 1 até N.",
   "starter_code": "funcao inicio() {\n    seja mutavel n: inteiro = leia();\n    escreva(0);\n}\n",

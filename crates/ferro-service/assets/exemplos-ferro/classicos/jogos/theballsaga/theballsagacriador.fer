@@ -1,0 +1,423 @@
+/*
+ * Copyright (C) 2016 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *   Editor de Fases para o jogo The Ball Saga! Permite desenhar mapas em uma
+ *   grade 15x25 usando todos os blocos do jogo (Sólido, Espinhos, Portal,
+ *   Ponto Inicial, Chaves Prata/Ouro, Portas Prata/Ouro, Vida Extra e Inversor
+ *   de Gravidade), além de salvar e carregar fases em arquivo texto com a
+ *   biblioteca `Arquivos`.
+ *
+ *   Controles:
+ *     - Clique esquerdo na grade: insere o bloco selecionado
+ *     - Clique direito na grade: apaga o bloco (vazio)
+ *     - Clique na paleta lateral ou teclas 0..9: seleciona o tipo de bloco
+ *     - S / botão Salvar: salva a fase em `fase_ballsaga.txt`
+ *     - L / botão Carregar: carrega a fase de `fase_ballsaga.txt`
+ *     - C / botão Limpar: limpa o mapa mantendo as bordas sólidas
+ *     - ESC: encerra o editor
+ *
+ * Autores (versão original):
+ *
+ *   Alisson Steffens Henrique (ash@edu.univali.br)
+ *   Luiz Fernando Noschang (noschang@univali.br)
+ *
+ * Data original: 10/02/2016
+ * Adaptado para Ferro (.fer)
+ */
+
+registro EditorBallSaga {
+    mapa: vetor < inteiro >,
+    bloco_selecionado: inteiro,
+    mensagem: cadeia,
+    mouse_esq_estava: logico,
+    s_estava: logico,
+    l_estava: logico,
+    c_estava: logico,
+}
+
+funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
+    escolha Graficos.criar_cor(r, g, b) {
+        caso Resultado::Ok(cor) => {
+            retorne cor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne Graficos.COR_BRANCO;
+        }
+    }
+}
+
+funcao desenhar_poligono_seguro(xs: vetor < inteiro >, ys: vetor < inteiro >, preencher: logico) {
+    escolha Graficos.desenhar_poligono(xs, ys, preencher) {
+        caso Resultado::Ok(_) => {}
+        caso Resultado::Erro(_) => {}
+    }
+}
+
+funcao criar_mapa_base() -> vetor < inteiro > {
+    seja mutavel m: vetor < inteiro > = [];
+    para (seja mutavel i = 0; i < 15 * 25; i += 1) {
+        adicionar(m, 0);
+    }
+    para (seja mutavel c = 0; c < 25; c += 1) {
+        m[c] = 1;
+        m[14 * 25 + c] = 1;
+    }
+    para (seja mutavel l = 0; l < 15; l += 1) {
+        m[l * 25] = 1;
+        m[l * 25 + 24] = 1;
+    }
+    // Modelo inicial básico
+    m[12 * 25 + 2] = 10; // Ponto inicial da bolinha
+    m[3 * 25 + 22] = 3; // Portal
+    para (seja mutavel c: inteiro = 5; c <= 11; c += 1) {
+        m[10 * 25 + c] = 1;
+    }
+    m[13 * 25 + 12] = 2; // Espinho
+    m[9 * 25 + 8] = 4; // Chave prata
+    retorne m;
+}
+
+funcao serializar_mapa(mapa: vetor < inteiro >) -> cadeia {
+    seja mutavel texto: cadeia = "";
+    para (seja mutavel l = 0; l < 15; l += 1) {
+        para (seja mutavel c = 0; c < 25; c += 1) {
+            texto = texto + Tipos.inteiro_para_cadeia(mapa[l * 25 + c]);
+            se (c < 24) {
+                texto = texto + ",";
+            }
+        }
+        texto = "{texto}\n";
+    }
+    retorne texto;
+}
+
+funcao salvar_mapa_arquivo(mapa: vetor < inteiro >) -> cadeia {
+    seja conteudo: cadeia = serializar_mapa(mapa);
+    escolha Arquivos.escrever_texto("fase_ballsaga.txt", conteudo) {
+        caso Resultado::Ok(_) => {
+            retorne "Fase salva em fase_ballsaga.txt";
+        }
+        caso Resultado::Erro(erro) => {
+            retorne "Erro ao salvar: " + erro;
+        }
+    }
+}
+
+funcao carregar_mapa_arquivo(mapa_atual: vetor < inteiro >) -> EditorBallSaga {
+    escolha Arquivos.ler_linhas("fase_ballsaga.txt") {
+        caso Resultado::Ok(linhas) => {
+            seja mutavel novo_mapa: vetor < inteiro > = [];
+            para (seja mutavel i = 0; i < 15 * 25; i += 1) {
+                adicionar(novo_mapa, 0);
+            }
+            seja total_l: inteiro = Matematica.menor_inteiro(15, tamanho(linhas));
+            para (seja mutavel l = 0; l < total_l; l += 1) {
+                seja partes: vetor < cadeia > = Texto.dividir(Texto.aparar(linhas[l]), ",");
+                seja total_c: inteiro = Matematica.menor_inteiro(25, tamanho(partes));
+                para (seja mutavel c = 0; c < total_c; c += 1) {
+                    escolha Tipos.para_inteiro(Texto.aparar(partes[c])) {
+                        caso Resultado::Ok(v) => {
+                            novo_mapa[l * 25 + c] = v;
+                        }
+                        caso Resultado::Erro(_) => {}
+                    }
+                }
+            }
+            retorne EditorBallSaga {
+                mapa: novo_mapa,
+                bloco_selecionado: 1,
+                mensagem: "Fase carregada de fase_ballsaga.txt",
+                mouse_esq_estava: falso,
+                s_estava: falso,
+                l_estava: verdadeiro,
+                c_estava: falso,
+            }
+            ;
+        }
+        caso Resultado::Erro(erro) => {
+            retorne EditorBallSaga {
+                mapa: mapa_atual,
+                bloco_selecionado: 1,
+                mensagem: "Nao foi possivel carregar: " + erro,
+                mouse_esq_estava: falso,
+                s_estava: falso,
+                l_estava: verdadeiro,
+                c_estava: falso,
+            }
+            ;
+        }
+    }
+}
+
+funcao nome_bloco(codigo: inteiro) -> cadeia {
+    se (codigo == 0) {
+        retorne "0. Vazio";
+    } senao se (codigo == 1) {
+        retorne "1. Solido";
+    } senao se (codigo == 2) {
+        retorne "2. Espinho";
+    } senao se (codigo == 3) {
+        retorne "3. Portal";
+    } senao se (codigo == 4) {
+        retorne "4. Chave Prata";
+    } senao se (codigo == 5) {
+        retorne "5. Porta Prata";
+    } senao se (codigo == 6) {
+        retorne "6. Chave Ouro";
+    } senao se (codigo == 7) {
+        retorne "7. Porta Ouro";
+    } senao se (codigo == 8) {
+        retorne "8. Vida Extra";
+    } senao se (codigo == 9) {
+        retorne "9. Gravidade";
+    } senao {
+        retorne "Inicio Bola";
+    }
+}
+
+funcao desenhar_tile(codigo: inteiro, x: inteiro, y: inteiro, tam: inteiro) {
+    se (codigo == 1) {
+        Graficos.definir_cor(cor_rgb(86, 98, 128));
+        Graficos.desenhar_retangulo(x, y, tam, tam, falso, verdadeiro);
+        Graficos.definir_cor(cor_rgb(122, 136, 170));
+        Graficos.desenhar_retangulo(x + 2, y + 2, tam - 4, tam - 4, falso, falso);
+    } senao se (codigo == 2) {
+        Graficos.definir_cor(cor_rgb(240, 66, 66));
+        seja xs: vetor < inteiro > = [x + 2, x + tam / 2, x + tam - 2];
+        seja ys: vetor < inteiro > = [y + tam - 2, y + 3, y + tam - 2];
+        desenhar_poligono_seguro(xs, ys, verdadeiro);
+    } senao se (codigo == 3) {
+        Graficos.definir_cor(cor_rgb(130, 80, 255));
+        Graficos.desenhar_elipse(x + 2, y + 2, tam - 4, tam - 4, verdadeiro);
+        Graficos.definir_cor(cor_rgb(110, 240, 255));
+        Graficos.desenhar_elipse(x + 7, y + 7, tam - 14, tam - 14, verdadeiro);
+    } senao se (codigo == 4) {
+        Graficos.definir_cor(cor_rgb(215, 224, 238));
+        Graficos.desenhar_elipse(x + 4, y + 6, 12, 12, verdadeiro);
+        Graficos.desenhar_retangulo(x + 14, y + 10, 10, 4, falso, verdadeiro);
+    } senao se (codigo == 5) {
+        Graficos.definir_cor(cor_rgb(185, 195, 212));
+        Graficos.desenhar_retangulo(x + 4, y + 1, tam - 8, tam - 2, falso, verdadeiro);
+    } senao se (codigo == 6) {
+        Graficos.definir_cor(cor_rgb(255, 210, 50));
+        Graficos.desenhar_elipse(x + 4, y + 6, 12, 12, verdadeiro);
+        Graficos.desenhar_retangulo(x + 14, y + 10, 10, 4, falso, verdadeiro);
+    } senao se (codigo == 7) {
+        Graficos.definir_cor(cor_rgb(235, 185, 40));
+        Graficos.desenhar_retangulo(x + 4, y + 1, tam - 8, tam - 2, falso, verdadeiro);
+    } senao se (codigo == 8) {
+        Graficos.definir_cor(cor_rgb(80, 230, 120));
+        Graficos.desenhar_elipse(x + 4, y + 4, tam - 8, tam - 8, verdadeiro);
+    } senao se (codigo == 9) {
+        Graficos.definir_cor(cor_rgb(255, 120, 220));
+        Graficos.desenhar_retangulo(x + 3, y + 3, tam - 6, tam - 6, verdadeiro, verdadeiro);
+    } senao se (codigo == 10) {
+        Graficos.definir_cor(cor_rgb(238, 68, 68));
+        Graficos.desenhar_elipse(x + 3, y + 3, tam - 6, tam - 6, verdadeiro);
+    }
+}
+
+funcao atualizar(editor: EditorBallSaga) -> EditorBallSaga {
+    seja mutavel e: EditorBallSaga = editor;
+
+    // Atalhos numéricos 0..9
+    se (Teclado.tecla_pressionada(Teclado.TECLA_0)) {
+        e.bloco_selecionado = 0;
+    } senao se (Teclado.tecla_pressionada(Teclado.TECLA_1)) {
+        e.bloco_selecionado = 1;
+    } senao se (Teclado.tecla_pressionada(Teclado.TECLA_2)) {
+        e.bloco_selecionado = 2;
+    } senao se (Teclado.tecla_pressionada(Teclado.TECLA_3)) {
+        e.bloco_selecionado = 3;
+    } senao se (Teclado.tecla_pressionada(Teclado.TECLA_4)) {
+        e.bloco_selecionado = 4;
+    } senao se (Teclado.tecla_pressionada(Teclado.TECLA_5)) {
+        e.bloco_selecionado = 5;
+    } senao se (Teclado.tecla_pressionada(Teclado.TECLA_6)) {
+        e.bloco_selecionado = 6;
+    } senao se (Teclado.tecla_pressionada(Teclado.TECLA_7)) {
+        e.bloco_selecionado = 7;
+    } senao se (Teclado.tecla_pressionada(Teclado.TECLA_8)) {
+        e.bloco_selecionado = 8;
+    } senao se (Teclado.tecla_pressionada(Teclado.TECLA_9)) {
+        e.bloco_selecionado = 9;
+    }
+
+    seja ts: logico = Teclado.tecla_pressionada(Teclado.TECLA_S);
+    se (ts && !e.s_estava) {
+        e.mensagem = salvar_mapa_arquivo(e.mapa);
+    }
+    e.s_estava = ts;
+
+    seja tl: logico = Teclado.tecla_pressionada(Teclado.TECLA_L);
+    se (tl && !e.l_estava) {
+        seja sel: inteiro = e.bloco_selecionado;
+        e = carregar_mapa_arquivo(e.mapa);
+        e.bloco_selecionado = sel;
+        retorne e;
+    }
+    e.l_estava = tl;
+
+    seja tc: logico = Teclado.tecla_pressionada(Teclado.TECLA_C);
+    se (tc && !e.c_estava) {
+        e.mapa = criar_mapa_base();
+        e.mensagem = "Mapa redefinido para o modelo base";
+    }
+    e.c_estava = tc;
+
+    seja mx: inteiro = Mouse.posicao_x();
+    seja my: inteiro = Mouse.posicao_y();
+    seja esq: logico = Mouse.botao_pressionado(Mouse.BOTAO_ESQUERDO);
+    seja dir: logico = Mouse.botao_pressionado(Mouse.BOTAO_DIREITO);
+
+    // Pintura contínua na grade (x=16..716, y=64..484, tile=28 px)
+    se (mx >= 16 && mx < 16 + 25 * 28 && my >= 64 && my < 64 + 15 * 28) {
+        seja col: inteiro = (mx - 16) / 28;
+        seja lin: inteiro = (my - 64) / 28;
+        se (esq || dir) {
+            seja mutavel mapa: vetor < inteiro > = e.mapa;
+            se (dir) {
+                mapa[lin * 25 + col] = 0;
+            } senao {
+                mapa[lin * 25 + col] = e.bloco_selecionado;
+            }
+            e.mapa = mapa;
+        }
+    }
+
+    // Cliques únicos na paleta lateral e nos botões inferiores
+    se (esq && !e.mouse_esq_estava) {
+        para (seja mutavel b = 0; b <= 10; b += 1) {
+            seja by: inteiro = 70 + b * 37;
+            se (mx >= 734 && mx <= 944 && my >= by && my <= by + 32) {
+                e.bloco_selecionado = b;
+            }
+        }
+
+        // Botões inferiores
+        se (mx >= 16 && mx <= 166 && my >= 506 && my <= 542) {
+            e.mensagem = salvar_mapa_arquivo(e.mapa);
+        }
+        se (mx >= 180 && mx <= 340 && my >= 506 && my <= 542) {
+            seja sel: inteiro = e.bloco_selecionado;
+            e = carregar_mapa_arquivo(e.mapa);
+            e.bloco_selecionado = sel;
+            e.mouse_esq_estava = verdadeiro;
+            retorne e;
+        }
+        se (mx >= 354 && mx <= 494 && my >= 506 && my <= 542) {
+            e.mapa = criar_mapa_base();
+            e.mensagem = "Mapa redefinido para o modelo base";
+        }
+    }
+    e.mouse_esq_estava = esq;
+
+    retorne e;
+}
+
+funcao desenhar(e: EditorBallSaga) {
+    Graficos.definir_cor(cor_rgb(20, 24, 34));
+    Graficos.limpar();
+
+    // Cabeçalho
+    Graficos.definir_cor(cor_rgb(30, 36, 52));
+    Graficos.desenhar_retangulo(0, 0, 960, 52, falso, verdadeiro);
+    Graficos.definir_cor(cor_rgb(255, 110, 90));
+    Graficos.definir_tamanho_texto(18.0);
+    Graficos.desenhar_texto(16, 14, "THE BALL SAGA - CRIADOR DE FASES");
+    Graficos.definir_cor(cor_rgb(190, 200, 220));
+    Graficos.definir_tamanho_texto(12.0);
+    Graficos.desenhar_texto(420, 18, "[Esq] Pintar  [Dir] Apagar  [0..9] Bloco  [S] Salvar  [L] Carregar  [ESC] Sair");
+
+    // Grade do cenário (25x15 de 28px = 700x420)
+    Graficos.definir_cor(cor_rgb(14, 18, 28));
+    Graficos.desenhar_retangulo(16, 64, 700, 420, falso, verdadeiro);
+
+    seja mapa: vetor < inteiro > = e.mapa;
+    para (seja mutavel l = 0; l < 15; l += 1) {
+        para (seja mutavel c = 0; c < 25; c += 1) {
+            seja x: inteiro = 16 + c * 28;
+            seja y: inteiro = 64 + l * 28;
+            seja v: inteiro = mapa[l * 25 + c];
+            se (v != 0) {
+                desenhar_tile(v, x, y, 28);
+            }
+            Graficos.definir_cor(cor_rgb(36, 44, 62));
+            Graficos.desenhar_retangulo(x, y, 28, 28, falso, falso);
+        }
+    }
+
+    // Paleta lateral
+    Graficos.definir_cor(cor_rgb(28, 34, 48));
+    Graficos.desenhar_retangulo(726, 62, 224, 484, verdadeiro, verdadeiro);
+    para (seja mutavel b = 0; b <= 10; b += 1) {
+        seja by: inteiro = 70 + b * 37;
+        se (b == e.bloco_selecionado) {
+            Graficos.definir_cor(cor_rgb(66, 86, 128));
+            Graficos.desenhar_retangulo(734, by, 208, 32, verdadeiro, verdadeiro);
+            Graficos.definir_cor(cor_rgb(255, 210, 70));
+            Graficos.desenhar_retangulo(734, by, 208, 32, verdadeiro, falso);
+        } senao {
+            Graficos.definir_cor(cor_rgb(40, 46, 64));
+            Graficos.desenhar_retangulo(734, by, 208, 32, verdadeiro, verdadeiro);
+        }
+        desenhar_tile(b, 740, by + 4, 24);
+        Graficos.definir_cor(Graficos.COR_BRANCO);
+        Graficos.definir_tamanho_texto(13.0);
+        Graficos.desenhar_texto(772, by + 9, nome_bloco(b));
+    }
+
+    // Botões inferiores e barra de status
+    Graficos.definir_cor(cor_rgb(60, 165, 96));
+    Graficos.desenhar_retangulo(16, 506, 150, 36, verdadeiro, verdadeiro);
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.definir_tamanho_texto(13.0);
+    Graficos.desenhar_texto(46, 517, "Salvar (S)");
+
+    Graficos.definir_cor(cor_rgb(66, 130, 212));
+    Graficos.desenhar_retangulo(180, 506, 160, 36, verdadeiro, verdadeiro);
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.desenhar_texto(208, 517, "Carregar (L)");
+
+    Graficos.definir_cor(cor_rgb(196, 86, 76));
+    Graficos.desenhar_retangulo(354, 506, 140, 36, verdadeiro, verdadeiro);
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.desenhar_texto(382, 517, "Limpar (C)");
+
+    Graficos.definir_cor(cor_rgb(255, 220, 110));
+    Graficos.definir_tamanho_texto(12.0);
+    Graficos.desenhar_texto(510, 518, e.mensagem);
+
+    Graficos.renderizar();
+}
+
+funcao inicio() {
+    Graficos.iniciar_modo_grafico(verdadeiro);
+    Graficos.definir_dimensoes_janela(960, 560);
+    Graficos.definir_titulo_janela("The Ball Saga - Criador de Fases");
+
+    seja mutavel editor: EditorBallSaga = EditorBallSaga {
+        mapa: criar_mapa_base(),
+        bloco_selecionado: 1,
+        mensagem: "Pronto para editar",
+        mouse_esq_estava: falso,
+        s_estava: falso,
+        l_estava: falso,
+        c_estava: falso,
+    }
+    ;
+
+    enquanto (!Teclado.tecla_pressionada(Teclado.TECLA_ESC)) {
+        editor = atualizar(editor);
+        desenhar(editor);
+        Util.aguarde(16);
+    }
+
+    Graficos.encerrar_modo_grafico();
+}

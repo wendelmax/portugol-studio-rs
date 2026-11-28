@@ -42,7 +42,7 @@ export function createExecutionPresentationShell(dependencies: ExecutionPresenta
       return true;
     },
     canDebug: canDebugSource,
-    canPause: () => !runState.porsRunPending,
+    canPause: () => !runState.ferroRunPending,
     rustcAvailable: dependencies.rustcAvailable,
     runId: () => runState.runId,
     paused: () => runState.paused,

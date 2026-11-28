@@ -22,12 +22,12 @@ import { renderDiagnostics } from "./diagnostics";
 import { mountExamples } from "./examples";
 import { mountHomeNewFileMenu } from "./home-new-file-menu";
 import { readExercise, type ExerciseDocument } from "./exercises";
-import { portugolFolding } from "./folding";
+import { ferroFolding } from "./folding";
 import { editorSearchKeys, findDialog } from "./find";
 import { icon, mountIcons } from "./icons";
 import { mountOutline } from "./outline";
 import { panelContentId, panelNameForKey, type PanelName } from "./panel-tabs";
-import { PORS_MODULES, PORS_SNIPPETS, portugolRs } from "./portugol";
+import { FERRO_MODULES, FERRO_SNIPPETS, ferroRust } from "./ferro-language";
 import { markup } from "./editor/markup-language";
 import { resolveHelpTopicForEditor } from "./help-navigation";
 import { detectSourceLanguage, ensureSourceExtension, type SourceLanguage } from "./document-language";
@@ -37,10 +37,10 @@ import { createRunShell } from "./run/run-shell";
 import { loadLearningMode, type LearningMode } from "./learning-mode";
 import { createPaletteContext } from "./command-palette";
 import { markRustPreviewStale } from "./rust-preview-state";
-import { mountPorsUiPreviewShell } from "./pors-ui-preview-shell";
+import { mountFerroUiPreviewShell } from "./ferro-ui-preview-shell";
 import * as api from "./api";
 import type { Tab } from "./state/tab";
-import { PORS_TEMPLATE, tabName } from "./state/tabs";
+import { FERRO_TEMPLATE, tabName } from "./state/tabs";
 import { createTabsShell } from "./state/tabs-shell";
 import { createLanguageControlsView } from "./state/language-controls-view";
 import { createTabActivationShell } from "./state/tab-activation-shell";
@@ -121,10 +121,10 @@ const {
   theme,
   preferences,
   sourceLanguage,
-  portugolTools,
+  ferroTools,
   centerSource,
   breakpointGutter,
-  portugolLinter,
+  ferroLinter,
   markupLinter,
   rustSourceLinter,
   view,
@@ -143,7 +143,7 @@ const {
     syncBreakpoints: (state) => syncBreakpoints(state),
     bugIcon: () => icon("bug"),
     activeTab,
-    inspectPortugolRs: (source, tab) => inspectSource(screenFiles, api, source, tab),
+    inspectFerroRust: (source, tab) => inspectSource(screenFiles, api, source, tab),
     inspectMarkup: (source, _path, tab) => inspectMarkupFile(screenFiles, api, source, tab),
     renderMessages,
     showOutline: (symbols) => outline.show(symbols),
@@ -178,12 +178,12 @@ const {
     isActive: () => tabCollection.activeId() === helpId,
   },
   learningPanel: {
-    openPorsExercise: async (exerciseId) => { await exerciseWorkbench?.openPorsById(exerciseId); },
-    openPorsExample: async (fileName) => {
-      const examples = await api.listPorsExamples();
+    openFerroExercise: async (exerciseId) => { await exerciseWorkbench?.openFerroById(exerciseId); },
+    openFerroExample: async (fileName) => {
+      const examples = await api.listFerroExamples();
       const example = examples.find((item) => item.file_name === fileName);
       if (!example) throw new Error(`Exemplo ${fileName} não encontrado`);
-      newTab(example.source, null, example.file_name, undefined, undefined, "portugol-rs");
+      newTab(example.source, null, example.file_name, undefined, undefined, "ferro-rust");
     },
     openOwnershipLab: () => openOwnershipLabView(),
     ownership: {
@@ -215,10 +215,10 @@ const {
   navigation: { goToDeclarationAt },
   extensions: {
     editorPreferences: () => editorPreferenceExtensions(editorPreferences),
-    portugolExtensions: () => [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine],
+    ferroExtensions: () => [ferroFolding, ferroLinter, runtimeError, breakpoints, breakpointGutter, debugLine],
     rustExtensions: () => [rustSourceLinter],
     markupExtensions: () => [markupLinter],
-    portugolRsLanguage: () => portugolRs(),
+    ferroRustLanguage: () => ferroRust(),
     rustLanguage: () => rust(),
     markupLanguage: () => markup(),
     findDialog,
@@ -231,14 +231,14 @@ const {
 function languageSupportFor(language: SourceLanguage) {
   if (language === "rust") return rust();
   if (language === "markup") return markup();
-  return portugolRs();
+  return ferroRust();
 }
 
 /** Linter e ferramentas de cada tipo de documento; marcação não tem depuração. */
 function languageToolsFor(language: SourceLanguage) {
   if (language === "rust") return [rustSourceLinter];
   if (language === "markup") return [markupLinter];
-  return [portugolFolding, portugolLinter, runtimeError, breakpoints, breakpointGutter, debugLine];
+  return [ferroFolding, ferroLinter, runtimeError, breakpoints, breakpointGutter, debugLine];
 }
 
 // ---------------------------------------------------------------------------
@@ -347,14 +347,14 @@ const workspaceFilesShell = createWorkspaceFilesShell({
       if (tab.id === tabCollection.activeId()) {
         view.dispatch({ effects: [
           sourceLanguage.reconfigure(languageSupportFor(tab.language)),
-          portugolTools.reconfigure(languageToolsFor(tab.language)),
+          ferroTools.reconfigure(languageToolsFor(tab.language)),
         ] });
         syncLanguageControls(tab);
         if (languageChanged) {
           rustPreview.cancel();
-          $<HTMLElement>("rust-preview").hidden = learningMode !== "bridge" || tab.language !== "portugol-rs";
+          $<HTMLElement>("rust-preview").hidden = learningMode !== "bridge" || tab.language !== "ferro-rust";
           rustPreview.render(tab);
-          if (learningMode === "bridge" && tab.language === "portugol-rs") rustPreview.schedule();
+          if (learningMode === "bridge" && tab.language === "ferro-rust") rustPreview.schedule();
           else rustPreview.renderMappingGutter();
         }
         renderStatusBar();
@@ -496,7 +496,7 @@ const {
   debugCommand,
   runProgram,
   runOrContinue,
-  stepOrStart,
+  stepDebugOrStart,
   stopProgram,
   checkCargoProject,
   runCargoTests,
@@ -578,8 +578,8 @@ $("learning-inspector-slot").append($("learning-panel"));
 const outline = mountOutline(goTo, renameAt);
 
 const utilityInsertions = createUtilityInsertions({
-  porsLibraries: PORS_MODULES,
-  porsSnippets: PORS_SNIPPETS,
+  ferroLibraries: FERRO_MODULES,
+  ferroSnippets: FERRO_SNIPPETS,
   createButton: () => document.createElement("button"),
   clearLibraryButtons: () => $("utilities-libraries").replaceChildren(),
   clearSnippetButtons: () => $("utilities-models").replaceChildren(),
@@ -624,7 +624,7 @@ const tabActivator = createTabActivationShell({
       theme.reconfigure(editorTheme()),
       preferences.reconfigure(editorPreferenceExtensions(editorPreferences)),
       sourceLanguage.reconfigure(languageSupportFor(tab.language)),
-      portugolTools.reconfigure(languageToolsFor(tab.language)),
+      ferroTools.reconfigure(languageToolsFor(tab.language)),
       setDebugLine.of(tab.id === runState.runTabId ? runState.paused?.position.line ?? null : null),
     ] }),
     clearRustDiagnostics: () => view.dispatch(setDiagnostics(view.state, [])),
@@ -662,7 +662,7 @@ const tabActivator = createTabActivationShell({
 
 $("home-new").onclick = () => newTab();
 mountHomeNewFileMenu($<HTMLDetailsElement>("home-new-menu"), {
-  "portugol-rs": () => newTab(PORS_TEMPLATE, null, undefined, undefined, undefined, "portugol-rs"),
+  "ferro-rust": () => newTab(FERRO_TEMPLATE, null, undefined, undefined, undefined, "ferro-rust"),
   rust: () => newTab("fn main() {\n    \n}\n", null, undefined, undefined, undefined, "rust"),
 });
 $("home-open").onclick = () => void fileIO.openFiles();
@@ -726,7 +726,7 @@ exerciseWorkbench = createExerciseWorkbenchShell({
   activeTab,
   activeId: tabCollection.activeId,
   isDirty,
-  template: PORS_TEMPLATE,
+  template: FERRO_TEMPLATE,
   newTab,
   activate,
   selectWorkspace: (id, path) => workspaceExplorer.select(id, path),
@@ -734,7 +734,7 @@ exerciseWorkbench = createExerciseWorkbenchShell({
   documentForTab: (tab) => tab.state.doc,
   cargoAvailable: toolchainState.cargoAvailable,
   runId: () => runState.runId,
-  runPending: () => runState.porsRunPending,
+  runPending: () => runState.ferroRunPending,
   tabName,
   runCargoTests,
 });
@@ -831,10 +831,10 @@ const applyLearningMode = mountLearningModeShell({
   focusEditor: () => view.focus(),
 });
 
-mountPorsUiPreviewShell({
+mountFerroUiPreviewShell({
   activeTab,
   source: () => view.state.doc.toString(),
-  openExample: (source, fileName) => newTab(source, null, fileName, undefined, undefined, "portugol-rs"),
+  openExample: (source, fileName) => newTab(source, null, fileName, undefined, undefined, "ferro-rust"),
   focusEditor: () => view.focus(),
 });
 activityBarControls = mountActivityBar(document.querySelectorAll<HTMLButtonElement>("[data-activity]"), {
@@ -866,7 +866,7 @@ function paletteContext() {
     rustcAvailable: toolchainState.rustcAvailable(),
     runActive: runState.runId !== null,
     paused: runState.paused !== null,
-    porsRunPending: runState.porsRunPending,
+    ferroRunPending: runState.ferroRunPending,
     canRunAsRust,
   });
 }
@@ -884,13 +884,13 @@ const filterOutlineKind = (kind: "variable" | "array" | "matrix" | "function" | 
 function openContextualHelp(explicitTopicId?: string) {
   const active = activeTab();
   const topicId = explicitTopicId
-    ?? (active?.language === "portugol-rs"
+    ?? (active?.language === "ferro-rust"
       ? resolveHelpTopicForEditor(view.state.doc.toString(), view.state.selection.main.head) ?? undefined
       : undefined);
   activate(helpId);
   if (topicId) void openHelp(topicId);
 }
-view.dom.addEventListener("pors-open-help", (event) => {
+view.dom.addEventListener("ferro-open-help", (event) => {
   const detail = (event as CustomEvent<{ topicId?: string }>).detail;
   openContextualHelp(detail?.topicId);
 });
@@ -899,9 +899,9 @@ mountIdeCommandShell({
   optionMenus,
   actions: {
     runOrContinue,
-    stepOrStart,
+    stepDebugOrStart,
     stopProgram,
-    pauseDebug: () => { if (runState.runId !== null && !runState.porsRunPending) void api.debugPause(runState.runId); },
+    pauseDebug: () => { if (runState.runId !== null && !runState.ferroRunPending) void api.debugPause(runState.runId); },
     continueDebug: () => debugCommand(api.debugContinue),
     stepOver: () => debugCommand(api.debugStepOver),
     stepInto: () => debugCommand(api.debugStepInto),
@@ -1037,7 +1037,7 @@ mountExamples((source, file, workPath) =>
     file,
     workPath || undefined,
     undefined,
-    "portugol-rs",
+    "ferro-rust",
   ),
 );
 activate(0);

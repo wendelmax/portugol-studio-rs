@@ -1,0 +1,101 @@
+/*
+ * Copyright (C) 2017 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ * 	Este exemplo demonstra o uso da biblioteca "Internet" em conjunto com "Texto"
+ * 	para consultar uma página web a partir de uma palavra ou frase digitada pelo
+ * 	usuário e extrair os links presentes no trecho retornado.
+ *
+ * Adaptado para Ferro (.fer)
+ */
+
+funcao extrair_links_fieldset(html: cadeia) -> vetor < cadeia > {
+    seja mutavel links: vetor < cadeia > = [];
+
+    escolha Texto.posicao_texto("<fieldset>", html, 0) {
+        caso Opcao::Algum(pos_inicio) => {
+            escolha Texto.posicao_texto("</fieldset>", html, pos_inicio) {
+                caso Opcao::Algum(pos_fim) => {
+                    escolha Texto.extrair_subtexto(html, pos_inicio, pos_fim) {
+                        caso Resultado::Ok(bloco) => {
+                            seja mutavel cursor = 0;
+                            seja mutavel continuar: logico = verdadeiro;
+
+                            enquanto (continuar) {
+                                escolha Texto.posicao_texto("'http", bloco, cursor) {
+                                    caso Opcao::Algum(ini_link) => {
+                                        escolha Texto.posicao_texto("'", bloco, ini_link + 1) {
+                                            caso Opcao::Algum(fim_link) => {
+                                                escolha Texto.extrair_subtexto(bloco, ini_link + 1, fim_link) {
+                                                    caso Resultado::Ok(url) => {
+                                                        adicionar(links, url);
+                                                    }
+                                                    caso Resultado::Erro(_) => {}
+                                                }
+                                                cursor = fim_link + 1;
+                                            }
+                                            caso Opcao::Nenhum => {
+                                                continuar = falso;
+                                            }
+                                        }
+                                    }
+                                    caso Opcao::Nenhum => {
+                                        continuar = falso;
+                                    }
+                                }
+                            }
+                        }
+                        caso Resultado::Erro(_) => {}
+                    }
+                }
+                caso Opcao::Nenhum => {}
+            }
+        }
+        caso Opcao::Nenhum => {}
+    }
+
+    retorne links;
+}
+
+funcao consultar_gerador(url: cadeia) -> Resultado < vetor < cadeia >, cadeia > {
+    Internet.definir_tempo_limite(5000);
+    seja disponivel: logico = Internet.endereco_disponivel(url)?;
+    se (!disponivel) {
+        retorne Resultado::Erro("Endereço indisponível no momento.");
+    }
+
+    seja html: cadeia = Internet.obter_texto(url)?;
+    retorne Resultado::Ok(extrair_links_fieldset(html));
+}
+
+funcao inicio() {
+    escreva("Digite uma frase ou palavra (Enter usa FERRO STUDIO): ");
+    seja mutavel palavra = leia();
+    palavra = Texto.aparar(palavra);
+
+    se (palavra == "") {
+        palavra = "FERRO STUDIO";
+    }
+
+    seja slug: cadeia = Texto.substituir(palavra, " ", "-");
+    seja url: cadeia = "http://metaatem.net/words/" + slug;
+    escreval("\nConsultando: ", url);
+
+    escolha consultar_gerador(url) {
+        caso Resultado::Ok(links) => {
+            escreval("Links encontrados: ", tamanho(links));
+            para (seja mutavel i = 0; i < tamanho(links); i += 1) {
+                escreval(" ", i + 1, ". ", links[i]);
+            }
+        }
+        caso Resultado::Erro(erro) => {
+            escreval("Não foi possível consultar o servidor: ", erro);
+            escreval("Verifique sua conexão ou o consentimento de rede nas configurações.");
+        }
+    }
+}

@@ -27,7 +27,7 @@ function fixture(initialTabs = []) {
   return { calls, opener, tabs: () => tabs };
 }
 
-test("creates a PORS exercise tab with a safely wrapped statement", () => {
+test("creates a FERRO exercise tab with a safely wrapped statement", () => {
   const f = fixture();
   f.opener.open(exercise());
   const [, source, path, name, examplePath, document, language] = f.calls[0];
@@ -35,16 +35,16 @@ test("creates a PORS exercise tab with a safely wrapped statement", () => {
   assert.equal(name, "Variáveis");
   assert.equal(examplePath, undefined);
   assert.equal(document.name, "Variáveis");
-  assert.equal(language, "portugol-rs");
+  assert.equal(language, "ferro-rust");
   assert.match(source, /Use \* \/ no comentário/);
   assert.match(source, /programa \{ funcao inicio\(\) \{\} \}/);
 });
 
-test("uses the PORS starter and Ferro language", () => {
+test("uses the FERRO starter and Ferro language", () => {
   const f = fixture();
-  f.opener.open(exercise({ pors: { starter_code: "funcao inicio() {}" } }));
+  f.opener.open(exercise({ ferro: { starter_code: "funcao inicio() {}" } }));
   assert.equal(f.calls[0][1], "/*\nUse * / no comentário\n*/\n\nfuncao inicio() {}");
-  assert.equal(f.calls[0][6], "portugol-rs");
+  assert.equal(f.calls[0][6], "ferro-rust");
 });
 
 test("replaces only a clean single blank tab before opening the exercise", () => {
@@ -56,18 +56,18 @@ test("replaces only a clean single blank tab before opening the exercise", () =>
 });
 
 test("reactivates an existing workspace exercise instead of opening a duplicate", () => {
-  const existing = { id: 7, workspaceId: "course", workspaceExercisePath: "lesson/1.pors" };
+  const existing = { id: 7, workspaceId: "course", workspaceExercisePath: "lesson/1.fer" };
   const f = fixture([existing]);
-  f.opener.open(exercise(), { id: "course", path: "lesson/1.pors", preferenceKey: "course", exercise: true });
+  f.opener.open(exercise(), { id: "course", path: "lesson/1.fer", preferenceKey: "course", exercise: true });
   assert.deepEqual(f.calls, [["activate", 7]]);
 });
 
 test("stores workspace exercise metadata, selects it, and activates the new tab", () => {
   const f = fixture();
-  f.opener.open(exercise(), { id: "course", path: "lesson/1.pors", preferenceKey: "course", exercise: true });
+  f.opener.open(exercise(), { id: "course", path: "lesson/1.fer", preferenceKey: "course", exercise: true });
   const tab = f.tabs()[0];
   assert.equal(tab.workspaceId, "course");
-  assert.equal(tab.workspaceExercisePath, "lesson/1.pors");
+  assert.equal(tab.workspaceExercisePath, "lesson/1.fer");
   assert.equal(tab.workspacePreferenceKey, "course");
-  assert.deepEqual(f.calls.slice(1), [["selectWorkspace", "course", "lesson/1.pors"], ["activate", tab.id]]);
+  assert.deepEqual(f.calls.slice(1), [["selectWorkspace", "course", "lesson/1.fer"], ["activate", tab.id]]);
 });

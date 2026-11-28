@@ -9,7 +9,7 @@ Funcionalidade: Ensino contextual e depuração honesta
     Dado que o editor tem um trecho mapeado ao conceito "mutable-binding"
     Quando seleciono o trecho
     Então o painel de ensino mostra o conceito de mutabilidade
-    E a explicação diferencia o comportamento em Portugol e em Rust
+    E a explicação diferencia o comportamento em Ferro e em Rust
 
   Cenário: abrir explicação não conclui exercício
     Dado que um exercício está em andamento

@@ -14,10 +14,10 @@ function fixture(overrides = {}) {
   return { openIncomingFiles: createIncomingFileOpener(dependencies), dependencies, events };
 }
 
-test("opens supported lesson and source files in input order and ignores legacy .por/.pex/.pors", async () => {
+test("opens supported lesson and source files in input order and ignores legacy .por/.pex/.fer", async () => {
   const { openIncomingFiles, events } = fixture();
 
-  await openIncomingFiles(["a.licao", "b.POR", "c.fer", "d.pors", "e.rs", "f.pex"], true);
+  await openIncomingFiles(["a.licao", "b.POR", "c.fer", "d.zzz", "e.rs", "f.pex"], true);
 
   assert.deepEqual(events, [
     ["exercise", "a.licao"], ["file", "c.fer"], ["file", "e.rs"],

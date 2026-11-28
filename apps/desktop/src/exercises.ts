@@ -1,15 +1,15 @@
 import { describeExtensions, fileFormat, isRetiredFile } from "./file-formats.ts";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import {
-  checkPorsExercise,
-  inspectPorsExercise,
-  listPorsExercises,
+  checkFerroExercise,
+  inspectFerroExercise,
+  listFerroExercises,
   readFile,
   type Exercise,
   type ExerciseCheckResult,
-  type PorsExerciseSummary,
+  type FerroExerciseSummary,
 } from "./api";
-import { createPorsExerciseOpener, porsExerciseDocument } from "./exercise-opening";
+import { createFerroExerciseOpener, ferroExerciseDocument } from "./exercise-opening";
 import {
   createExerciseProgress,
   createValidatedExerciseGrader,
@@ -19,16 +19,16 @@ import {
   type ExerciseProgressOutcome,
 } from "./exercise-progress";
 import {
-  formatPorsExerciseOptionValue,
-  formatPorsExerciseOutcome,
-  parsePorsExerciseOptionValue,
-} from "./pors-catalog";
+  formatFerroExerciseOptionValue,
+  formatFerroExerciseOutcome,
+  parseFerroExerciseOptionValue,
+} from "./ferro-catalog";
 
 export interface ExerciseDocument {
   exercise: Exercise;
   name: string;
   contents?: string;
-  pors: PorsExerciseSummary;
+  ferro: FerroExerciseSummary;
 }
 
 export interface ExerciseGrade {
@@ -43,8 +43,8 @@ export async function readExercise(path: string): Promise<ExerciseDocument> {
   }
   const contents = await readFile(path);
   const fileName = path.split(/[\\/]/).pop() ?? "Exercício";
-  const summary = await inspectPorsExercise(contents);
-  return porsExerciseDocument(summary, summary.title || fileName, contents);
+  const summary = await inspectFerroExercise(contents);
+  return ferroExerciseDocument(summary, summary.title || fileName, contents);
 }
 
 export function mountExercises(openSource: (document: ExerciseDocument) => void) {
@@ -60,54 +60,54 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
   const failures = document.querySelector<HTMLUListElement>("#exercise-failures")!;
   const hints = document.querySelector<HTMLElement>("#exercise-hints")!;
   const hintItems = hints.querySelector("ul")!;
-  let pending: Promise<PorsExerciseSummary[]> | null = null;
-  let porsCatalog: PorsExerciseSummary[] = [];
+  let pending: Promise<FerroExerciseSummary[]> | null = null;
+  let ferroCatalog: FerroExerciseSummary[] = [];
   let catalogLoaded = false;
   let modalAttempt = 0;
-  let porsAttempt = 0;
-  const latestPorsByExercise = new Map<string, number>();
+  let ferroAttempt = 0;
+  const latestFerroByExercise = new Map<string, number>();
   const progress = createExerciseProgress();
 
   async function loadCatalog() {
-    if (catalogLoaded) return porsCatalog;
-    pending ??= listPorsExercises();
+    if (catalogLoaded) return ferroCatalog;
+    pending ??= listFerroExercises();
     try {
-      porsCatalog = await pending;
+      ferroCatalog = await pending;
       catalogLoaded = true;
-      return porsCatalog;
+      return ferroCatalog;
     } finally {
       pending = null;
     }
   }
 
-  const openPorsById = createPorsExerciseOpener(async () => {
+  const openFerroById = createFerroExerciseOpener(async () => {
     await loadCatalog();
-    return porsCatalog;
+    return ferroCatalog;
   }, openSource);
 
   function showExercise() {
-    const porsId = parsePorsExerciseOptionValue(list.value);
-    const porsExercise = porsId !== null ? porsCatalog.find(({ id }) => id === porsId) : undefined;
-    statement.textContent = porsExercise
-      ? `${porsExercise.statement}\n\nCasos de teste: ${porsExercise.cases}`
+    const ferroId = parseFerroExerciseOptionValue(list.value);
+    const ferroExercise = ferroId !== null ? ferroCatalog.find(({ id }) => id === ferroId) : undefined;
+    statement.textContent = ferroExercise
+      ? `${ferroExercise.statement}\n\nCasos de teste: ${ferroExercise.cases}`
       : "";
-    solve.disabled = !porsExercise;
+    solve.disabled = !ferroExercise;
   }
 
   function renderCatalog() {
     const nodes: Array<HTMLOptionElement | HTMLOptGroupElement> = [];
-    if (porsCatalog.length > 0) {
-      const porsGroup = document.createElement("optgroup");
-      porsGroup.label = "Lições Ferro (.licao)";
-      for (const item of porsCatalog) {
-        porsGroup.append(
+    if (ferroCatalog.length > 0) {
+      const ferroGroup = document.createElement("optgroup");
+      ferroGroup.label = "Lições Ferro (.licao)";
+      for (const item of ferroCatalog) {
+        ferroGroup.append(
           new Option(
-            exerciseOptionLabel(item.title, progress.hasPassed(`pors:${item.id}`)),
-            formatPorsExerciseOptionValue(item.id),
+            exerciseOptionLabel(item.title, progress.hasPassed(`ferro:${item.id}`)),
+            formatFerroExerciseOptionValue(item.id),
           ),
         );
       }
-      nodes.push(porsGroup);
+      nodes.push(ferroGroup);
     }
     list.replaceChildren(...nodes);
     showExercise();
@@ -115,11 +115,11 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
 
   list.onchange = showExercise;
   solve.onclick = () => {
-    const porsId = parsePorsExerciseOptionValue(list.value);
-    const porsExercise = porsId !== null ? porsCatalog.find(({ id }) => id === porsId) : undefined;
-    if (!porsExercise) return;
+    const ferroId = parseFerroExerciseOptionValue(list.value);
+    const ferroExercise = ferroId !== null ? ferroCatalog.find(({ id }) => id === ferroId) : undefined;
+    if (!ferroExercise) return;
     chooser.close();
-    openSource(porsExerciseDocument(porsExercise));
+    openSource(ferroExerciseDocument(ferroExercise));
   };
 
   open.onclick = async () => {
@@ -162,25 +162,25 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
     source: string,
     isCurrent: () => boolean = () => true,
   ): Promise<ExerciseGrade> {
-    const pors = exerciseDocument.pors;
-    const scope = `pors:${pors.id}:${exerciseDocument.contents ?? "builtin"}`;
-    const request = ++porsAttempt;
-    latestPorsByExercise.set(scope, request);
+    const ferro = exerciseDocument.ferro;
+    const scope = `ferro:${ferro.id}:${exerciseDocument.contents ?? "builtin"}`;
+    const request = ++ferroAttempt;
+    latestFerroByExercise.set(scope, request);
     try {
-      const isRunCurrent = () => latestPorsByExercise.get(scope) === request && isCurrent();
+      const isRunCurrent = () => latestFerroByExercise.get(scope) === request && isCurrent();
       const grader = createValidatedExerciseGrader(
         async (gradedSource) =>
-          formatPorsExerciseOutcome(
-            await checkPorsExercise(pors.id, gradedSource, exerciseDocument.contents),
+          formatFerroExerciseOutcome(
+            await checkFerroExercise(ferro.id, gradedSource, exerciseDocument.contents),
           ),
         progress,
-        `pors:${pors.id}`,
+        `ferro:${ferro.id}`,
         isRunCurrent,
       );
       const { evaluation, result } = await grader(source);
       return { evaluation, progress: result, current: isCurrent() };
     } finally {
-      if (latestPorsByExercise.get(scope) === request) latestPorsByExercise.delete(scope);
+      if (latestFerroByExercise.get(scope) === request) latestFerroByExercise.delete(scope);
     }
   }
 
@@ -222,5 +222,5 @@ export function mountExercises(openSource: (document: ExerciseDocument) => void)
     }
   }
 
-  return { browse, grade, evaluate, openPorsById };
+  return { browse, grade, evaluate, openFerroById };
 }

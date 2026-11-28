@@ -5,7 +5,7 @@ import { createCenterSourceController } from "../src/editor/center-source.ts";
 function fixture({ stored = null, storageError = false, hasTab = true } = {}) {
   const calls = [];
   let tabOpen = hasTab;
-  const values = new Map(stored === null ? [] : [["portugol.centerSource", stored]]);
+  const values = new Map(stored === null ? [] : [["ferro.centerSource", stored]]);
   const storage = {
     getItem(key) { if (storageError) throw new Error("storage unavailable"); return values.get(key) ?? null; },
     setItem(key, value) { if (storageError) throw new Error("storage unavailable"); values.set(key, value); calls.push(["save", key, value]); },
@@ -37,12 +37,12 @@ test("centers when enabling and focuses after each toggle", () => {
   f.controller.toggle();
   assert.equal(f.controller.isActive(), true);
   assert.deepEqual(f.calls.slice(1), [
-    ["pressed", true], ["save", "portugol.centerSource", "true"], ["center"], ["focus"],
+    ["pressed", true], ["save", "ferro.centerSource", "true"], ["center"], ["focus"],
   ]);
   f.controller.toggle();
   assert.equal(f.controller.isActive(), false);
   assert.deepEqual(f.calls.slice(-3), [
-    ["pressed", false], ["save", "portugol.centerSource", "false"], ["focus"],
+    ["pressed", false], ["save", "ferro.centerSource", "false"], ["focus"],
   ]);
 });
 

@@ -79,7 +79,7 @@ export class GraphicsRenderer {
   private readonly registeredFonts = new Map<string, FontFace>();
   private color = "#000";
   private gradient: { direction: number; start: string; end: string } | null = null;
-  private font = { family: "PortugolSans", size: 12, style: 0 };
+  private font = { family: "FerroSans", size: 12, style: 0 };
 
   constructor(private readonly canvas: HTMLCanvasElement) {}
 

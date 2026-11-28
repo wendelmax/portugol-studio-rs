@@ -1,4 +1,4 @@
-//! Conversão verificada de programas Ferro (`.pors`) em Rust compilável.
+//! Conversão verificada de programas Ferro (`.fer`) em Rust compilável.
 
 mod codegen;
 
@@ -40,11 +40,11 @@ enum Ty {
 }
 
 /// Gera Rust para o dialeto educacional Ferro.
-pub fn export_portugol_rs(source: &str) -> Result<String, Vec<Diagnostic>> {
-    export_portugol_rs_with_map(source).map(|generated| generated.code)
+pub fn export_ferro_rs(source: &str) -> Result<String, Vec<Diagnostic>> {
+    export_ferro_rs_with_map(source).map(|generated| generated.code)
 }
 
-/// Projeto Cargo pronto gerado a partir de um programa `.pors` (console ou visual MVU).
+/// Projeto Cargo pronto gerado a partir de um programa `.fer` (console ou visual MVU).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExportedCargoProject {
     pub package_name: String,
@@ -55,7 +55,7 @@ pub struct ExportedCargoProject {
 }
 
 /// Gera Rust para Ferro e preserva os spans HIR de origem.
-pub fn export_portugol_rs_with_map(source: &str) -> Result<GeneratedRust, Vec<Diagnostic>> {
+pub fn export_ferro_rs_with_map(source: &str) -> Result<GeneratedRust, Vec<Diagnostic>> {
     let hir = ferro_frontend::lower(source)?;
     if let Some((module, name, span)) = find_first_unsupported_host_call(&hir) {
         return Err(vec![Diagnostic::error(
@@ -66,27 +66,27 @@ pub fn export_portugol_rs_with_map(source: &str) -> Result<GeneratedRust, Vec<Di
             span,
         )]);
     }
-    Ok(codegen::render_pors_with_map(&hir))
+    Ok(codegen::render_ferro_with_map(&hir))
 }
 
 /// Gera um projeto Cargo completo (Edition 2024, sem dependências externas) a partir
-/// de um programa `.pors`, incluindo apps visuais declarativos (`UI.*` / MVU).
-pub fn export_portugol_rs_cargo_project(
+/// de um programa `.fer`, incluindo apps visuais declarativos (`UI.*` / MVU).
+pub fn export_ferro_rs_cargo_project(
     source: &str,
     requested_name: &str,
 ) -> Result<ExportedCargoProject, Vec<Diagnostic>> {
-    let generated = export_portugol_rs_with_map(source)?;
+    let generated = export_ferro_rs_with_map(source)?;
     let package_name = sanitize_cargo_package_name(requested_name);
     let is_visual = generated.code.contains("mod __ferro_ui");
     let cargo_toml =
         format!("[package]\nname = \"{package_name}\"\nversion = \"0.1.0\"\nedition = \"2024\"\n");
     let readme_md = if is_visual {
         format!(
-            "# {package_name}\n\nProjeto Rust gerado a partir de Ferro (`.pors`) com UI declarativa MVU.\n\n## Como executar\n\n```bash\ncargo run\n```\n\nO programa imprime o snapshot JSON inicial (`step: 0`) e lê eventos pela entrada padrão, um por linha:\n\n- `clique:<id>` ou `{{\"kind\":\"clique\",\"id\":\"<id>\"}}`\n- `entrada_alterada:<id>:<valor>` ou `{{\"kind\":\"entrada_alterada\",\"id\":\"<id>\",\"value\":\"<valor>\"}}`\n"
+            "# {package_name}\n\nProjeto Rust gerado a partir de Ferro (`.fer`) com UI declarativa MVU.\n\n## Como executar\n\n```bash\ncargo run\n```\n\nO programa imprime o snapshot JSON inicial (`step: 0`) e lê eventos pela entrada padrão, um por linha:\n\n- `clique:<id>` ou `{{\"kind\":\"clique\",\"id\":\"<id>\"}}`\n- `entrada_alterada:<id>:<valor>` ou `{{\"kind\":\"entrada_alterada\",\"id\":\"<id>\",\"value\":\"<valor>\"}}`\n"
         )
     } else {
         format!(
-            "# {package_name}\n\nProjeto Rust gerado a partir de Ferro (`.pors`).\n\n## Como executar\n\n```bash\ncargo run\n```\n"
+            "# {package_name}\n\nProjeto Rust gerado a partir de Ferro (`.fer`).\n\n## Como executar\n\n```bash\ncargo run\n```\n"
         )
     };
     Ok(ExportedCargoProject {
@@ -126,10 +126,10 @@ fn sanitize_cargo_package_name(raw: &str) -> String {
     }
     let trimmed = sanitized.trim_matches('-');
     if trimmed.is_empty() {
-        return "programa-pors".to_owned();
+        return "programa-ferro".to_owned();
     }
     if trimmed.as_bytes()[0].is_ascii_digit() {
-        format!("pors-{trimmed}")
+        format!("ferro-{trimmed}")
     } else {
         trimmed.to_owned()
     }
@@ -345,20 +345,20 @@ const JAVA_DOUBLE_HELPER: &str = r#"fn __ferro_java_double(value: f64) -> String
 
 #[cfg(test)]
 mod tests {
-    use super::{SourceMapQuality, SourceRange, export_portugol_rs, export_portugol_rs_with_map};
+    use super::{SourceMapQuality, SourceRange, export_ferro_rs, export_ferro_rs_with_map};
     use std::process::Command;
 
     #[test]
-    fn exports_portugol_rs_to_rust_and_executes_with_expected_output() {
+    fn exports_ferro_rs_to_rust_and_executes_with_expected_output() {
         let source =
             "funcao inicio() { seja mutavel idade: inteiro = 16; idade += 1; escreva(idade); }";
-        assert_rust_output(export_portugol_rs(source).unwrap(), "17");
+        assert_rust_output(export_ferro_rs(source).unwrap(), "17");
     }
 
     #[test]
-    fn exports_and_executes_portugol_rs_while_with_source_maps() {
+    fn exports_and_executes_ferro_rs_while_with_source_maps() {
         let source = "funcao inicio() { seja mutavel i: inteiro = 0; enquanto (i < 3) { escreva(i); i += 1; } }";
-        let generated = export_portugol_rs_with_map(source).unwrap();
+        let generated = export_ferro_rs_with_map(source).unwrap();
         assert!(generated.code.contains("while (pt_i) < (3_i32) {"));
         for snippet in ["enquanto (i < 3)", "i < 3", "escreva(i)"] {
             let start = source.find(snippet).unwrap() as u32;
@@ -390,10 +390,10 @@ mod tests {
     }
 
     #[test]
-    fn exports_and_executes_portugol_rs_for_with_source_maps() {
+    fn exports_and_executes_ferro_rs_for_with_source_maps() {
         let source =
             "funcao inicio() { para (seja mutavel i: inteiro = 0; i < 3; i += 1) { escreva(i); } }";
-        let generated = export_portugol_rs_with_map(source).unwrap();
+        let generated = export_ferro_rs_with_map(source).unwrap();
         assert!(
             generated
                 .code
@@ -430,9 +430,9 @@ mod tests {
     }
 
     #[test]
-    fn exports_and_executes_portugol_rs_loop_control_with_source_maps() {
+    fn exports_and_executes_ferro_rs_loop_control_with_source_maps() {
         let source = "funcao inicio() { seja mutavel visitas: inteiro = 0; para (seja mutavel i: inteiro = 0; i < 5; i += 1) { visitas += 1; se (visitas > 8) { pare; } se (i == 1) { continue; } se (i == 4) { pare; } escreva(i); } }";
-        let generated = export_portugol_rs_with_map(source).unwrap();
+        let generated = export_ferro_rs_with_map(source).unwrap();
         let loop_label = source.find("para").unwrap();
         for (keyword, generated_control) in [
             ("continue;", format!("break 'ferro_body_{loop_label};")),
@@ -476,25 +476,25 @@ mod tests {
         assert_rust_output(generated.code, "023");
 
         let while_source = "funcao inicio() { seja mutavel i: inteiro = 0; enquanto (i < 5) { i += 1; se (i == 2) { continue; } se (i == 4) { pare; } escreva(i); } }";
-        assert_rust_output(export_portugol_rs(while_source).unwrap(), "13");
+        assert_rust_output(export_ferro_rs(while_source).unwrap(), "13");
 
         let nested_source = "funcao inicio() { para (seja mutavel i: inteiro = 0; i < 3; i += 1) { seja mutavel j: inteiro = 0; enquanto (j < 3) { j += 1; se (j == 1) { continue; } se (j == 2) { pare; } escreva(j); } escreva(i); } }";
-        assert_rust_output(export_portugol_rs(nested_source).unwrap(), "012");
+        assert_rust_output(export_ferro_rs(nested_source).unwrap(), "012");
     }
 
     #[test]
     fn counted_loop_continue_uses_header_bindings_when_body_shadows_names() {
         let source = "funcao inicio() { seja mutavel passo: inteiro = 1; seja mutavel visitas: inteiro = 0; para (seja mutavel i: inteiro = 0; i < 4; i += passo) { visitas += 1; se (visitas > 4) { pare; } escreva(i); seja passo: inteiro = 2; continue; } }";
-        assert_rust_output(export_portugol_rs(source).unwrap(), "0123");
+        assert_rust_output(export_ferro_rs(source).unwrap(), "0123");
 
         let source = "funcao inicio() { seja mutavel visitas: inteiro = 0; para (seja mutavel i: inteiro = 0; i < 4; i += 1) { visitas += 1; se (visitas > 4) { pare; } escreva(i); seja i: inteiro = 9; continue; } }";
-        assert_rust_output(export_portugol_rs(source).unwrap(), "0123");
+        assert_rust_output(export_ferro_rs(source).unwrap(), "0123");
     }
 
     #[test]
     fn counted_loop_keeps_utf8_source_maps_in_bounds_and_executes_nested_shadowing() {
         let source = "// comentário antes do loop: café 😃\nfuncao inicio() { para (seja mutavel i: inteiro = 0; i < 2; i += 1) { para (seja mutavel i: inteiro = 0; i < 2; i += 1) { escreva(\"é\", i); } escreva(i); } }";
-        let generated = export_portugol_rs_with_map(source).unwrap();
+        let generated = export_ferro_rs_with_map(source).unwrap();
         assert!(generated.mappings.iter().all(|mapping| {
             mapping.generated.start < mapping.generated.end
                 && mapping.generated.end as usize <= generated.code.len()
@@ -540,20 +540,20 @@ mod tests {
     #[test]
     fn counted_loop_supports_real_control_values() {
         let source = "funcao inicio() { para (seja mutavel i: real = 0.0; i < 1.5; i += 0.5) { escreva(i); } }";
-        let generated = export_portugol_rs(source).unwrap();
+        let generated = export_ferro_rs(source).unwrap();
         assert_rust_output(generated, "0.00.51.0");
     }
 
     #[test]
-    fn adds_string_budget_to_portugol_rs_codegen() {
-        let pors = export_portugol_rs("funcao inicio() { escreva(\"olá\"); }").unwrap();
-        assert!(pors.contains("__ferro_account"));
+    fn adds_string_budget_to_ferro_rs_codegen() {
+        let ferro = export_ferro_rs("funcao inicio() { escreva(\"olá\"); }").unwrap();
+        assert!(ferro.contains("__ferro_account"));
     }
 
     #[test]
     fn maps_generated_rust_declarations_expressions_and_nested_statements_to_source() {
         let source = "funcao inicio() { seja mutavel idade: inteiro = 16; se (verdadeiro) { escreva(idade); } }";
-        let generated = export_portugol_rs_with_map(source).unwrap();
+        let generated = export_ferro_rs_with_map(source).unwrap();
 
         assert!(generated.code.contains("let mut pt_idade: i32 = 16_i32;"));
         for snippet in ["seja mutavel", "verdadeiro", "escreva(idade)"] {
@@ -582,7 +582,7 @@ mod tests {
     #[test]
     fn marks_rust_prelude_as_generated_only() {
         let source = "funcao inicio() { escreva(1); }";
-        let generated = export_portugol_rs_with_map(source).unwrap();
+        let generated = export_ferro_rs_with_map(source).unwrap();
         let prelude = generated.code.find("use std::io").unwrap() as u32;
 
         assert!(generated.mappings.iter().any(|mapping| {
@@ -594,18 +594,18 @@ mod tests {
     }
 
     #[test]
-    fn rejects_portugol_rs_assignment_to_immutable_binding() {
+    fn rejects_ferro_rs_assignment_to_immutable_binding() {
         let source = "funcao inicio() { seja idade: inteiro = 16; idade = 17; }";
-        let errors = export_portugol_rs(source).unwrap_err();
+        let errors = export_ferro_rs(source).unwrap_err();
         assert!(
             errors
                 .iter()
-                .any(|error| error.code == "pors.immutable-assignment")
+                .any(|error| error.code == "ferro.immutable-assignment")
         );
     }
 
     #[test]
-    fn exports_and_runs_visual_mvu_pors_apps_as_standalone_rust_and_cargo_projects() {
+    fn exports_and_runs_visual_mvu_ferro_apps_as_standalone_rust_and_cargo_projects() {
         use std::io::Write;
         use std::process::Stdio;
 
@@ -657,9 +657,8 @@ funcao visualizar(estado: Estado) -> inteiro {
 }
 "#;
         let project =
-            crate::export_portugol_rs_cargo_project(counter_source, "123 Contador Visual!")
-                .unwrap();
-        assert_eq!(project.package_name, "pors-123-contador-visual");
+            crate::export_ferro_rs_cargo_project(counter_source, "123 Contador Visual!").unwrap();
+        assert_eq!(project.package_name, "ferro-123-contador-visual");
         assert!(project.cargo_toml.contains("edition = \"2024\""));
         assert!(project.readme_md.contains("UI declarativa MVU"));
 
@@ -777,7 +776,7 @@ funcao inicio() {
     }
 }
 "#;
-        let generated = export_portugol_rs(source).unwrap();
+        let generated = export_ferro_rs(source).unwrap();
         assert!(generated.contains("Option<pt_Item>"));
         assert!(generated.contains("Option<i32>"));
         assert!(generated.contains("Result<i32, String>"));
@@ -793,7 +792,7 @@ funcao inicio() {
     }
 
     #[test]
-    fn exports_and_executes_pors_matematica_texto_and_tipos_with_identical_semantics() {
+    fn exports_and_executes_ferro_matematica_texto_and_tipos_with_identical_semantics() {
         let source = r#"
 funcao somar_entradas(a: cadeia, b: cadeia) -> Resultado<inteiro, cadeia> {
     seja x: inteiro = Tipos.para_inteiro(Texto.aparar(a))?;
@@ -852,7 +851,7 @@ funcao inicio() {
     escreva(Tipos.cadeia_e_inteiro("123"), "|", Tipos.cadeia_e_logico("verdadeiro"));
 }
 "#;
-        let generated = export_portugol_rs(source).unwrap();
+        let generated = export_ferro_rs(source).unwrap();
         assert!(generated.contains("mod __ferro_matematica"));
         assert!(generated.contains("mod __ferro_texto"));
         assert!(generated.contains("mod __ferro_tipos"));
@@ -862,7 +861,7 @@ funcao inicio() {
             "3.14|8.0|9.0|7|9|5|OLÁ 🦀|oi 🦀|00042|🦀|4|olá|ERR|42|ERR|2.5|FF|verdadeiro|verdadeiro",
         );
 
-        let minimal = export_portugol_rs("funcao inicio() { escreva(1); }").unwrap();
+        let minimal = export_ferro_rs("funcao inicio() { escreva(1); }").unwrap();
         assert!(!minimal.contains("mod __ferro_matematica"));
         assert!(!minimal.contains("mod __ferro_texto"));
         assert!(!minimal.contains("mod __ferro_tipos"));
@@ -914,7 +913,7 @@ funcao inicio() {
     escreva(tamanho(letras), "|", letras[1]);
 }
 "#;
-        let generated = export_portugol_rs(source).unwrap();
+        let generated = export_ferro_rs(source).unwrap();
         assert!(generated.contains("Vec::<i32>::new()"));
         assert!(generated.contains(".push("));
         assert!(generated.contains(".pop()"));
@@ -924,7 +923,7 @@ funcao inicio() {
     }
 
     #[test]
-    fn exports_and_executes_pors_util_and_calendario_deterministically() {
+    fn exports_and_executes_ferro_util_and_calendario_deterministically() {
         let source = r#"
 funcao inicio() {
     Util.definir_semente(42);
@@ -973,7 +972,7 @@ funcao inicio() {
     }
 }
 "#;
-        let generated = export_portugol_rs(source).unwrap();
+        let generated = export_ferro_rs(source).unwrap();
         assert!(generated.contains("mod __ferro_clock"));
         assert!(generated.contains("mod __ferro_util"));
         assert!(generated.contains("mod __ferro_calendario"));
@@ -1011,7 +1010,7 @@ funcao inicio() {
     }
 
     #[test]
-    fn exports_and_executes_workspace_confined_pors_arquivos_in_native_rust() {
+    fn exports_and_executes_workspace_confined_ferro_arquivos_in_native_rust() {
         let source = r#"
 funcao ciclo() -> Resultado<cadeia, cadeia> {
     seja _w: logico = Arquivos.escrever_texto("sub/notas.txt", "alpha\n")?;
@@ -1045,7 +1044,7 @@ funcao inicio() {
     }
 }
 "#;
-        let generated = export_portugol_rs(source).unwrap();
+        let generated = export_ferro_rs(source).unwrap();
         assert!(generated.contains("mod __ferro_arquivos"));
 
         let dir = std::env::temp_dir().join(format!("ferro-rust-arquivos-{}", std::process::id()));
@@ -1080,7 +1079,7 @@ funcao inicio() {
     }
 
     #[test]
-    fn exports_and_executes_zero_dep_pors_json_in_native_rust() {
+    fn exports_and_executes_zero_dep_ferro_json_in_native_rust() {
         let source = r#"
 funcao executar() -> Resultado<cadeia, cadeia> {
     seja mutavel doc: cadeia = "{}";
@@ -1088,7 +1087,7 @@ funcao executar() -> Resultado<cadeia, cadeia> {
     doc = Json.definir_inteiro(doc, "ano", 1843)?;
     doc = Json.definir_real(doc, "nota", 9.5)?;
     doc = Json.definir_logico(doc, "ativo", verdadeiro)?;
-    doc = Json.definir_json(doc, "tags", "[\"pors\",\"rust\"]")?;
+    doc = Json.definir_json(doc, "tags", "[\"ferro\",\"rust\"]")?;
     doc = Json.definir_json(doc, "nums", "[10, 20, 30]")?;
     doc = Json.definir_json(doc, "meta", "{\"emoji\":\"\\uD83D\\uDE00\"}")?;
 
@@ -1139,7 +1138,7 @@ funcao inicio() {
     escreva(Json.valido(fundo));
 }
 "#;
-        let generated = export_portugol_rs(source).unwrap();
+        let generated = export_ferro_rs(source).unwrap();
         assert!(generated.contains("mod __ferro_json"));
         assert_rust_output(
             generated,
@@ -1179,7 +1178,7 @@ funcao inicio() {
     );
 }
 "#;
-        let generated = export_portugol_rs(source).unwrap();
+        let generated = export_ferro_rs(source).unwrap();
         assert!(generated.contains("wrapping_shl"));
         assert!(generated.contains("wrapping_shr"));
         assert!(generated.contains("_ =>"));
@@ -1187,7 +1186,7 @@ funcao inicio() {
     }
 
     #[test]
-    fn exports_and_executes_consented_pors_internet_in_native_rust() {
+    fn exports_and_executes_consented_ferro_internet_in_native_rust() {
         use std::io::{Read, Write};
         use std::net::TcpListener;
         use std::thread;
@@ -1269,7 +1268,7 @@ funcao inicio() {{
 }}
 "#
         );
-        let generated = export_portugol_rs(&source).unwrap();
+        let generated = export_ferro_rs(&source).unwrap();
         assert!(generated.contains("mod __ferro_internet"));
 
         let dir = std::env::temp_dir().join(format!("ferro-rust-internet-{}", std::process::id()));
@@ -1342,7 +1341,7 @@ funcao inicio() {
     escreva(vezes, "|", i, "|", soma);
 }
 "#;
-        let generated = export_portugol_rs(source).unwrap();
+        let generated = export_ferro_rs(source).unwrap();
         assert_rust_output(generated, "1|4|8");
     }
 

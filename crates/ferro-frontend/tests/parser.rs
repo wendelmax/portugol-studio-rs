@@ -5,7 +5,7 @@ const SOURCE: &str =
     "funcao inicio() { seja mutavel idade: inteiro = 16; idade += 1; escreva(idade); }";
 
 #[test]
-fn parses_the_initial_portugol_rs_program_into_typed_hir() {
+fn parses_the_initial_ferro_rs_program_into_typed_hir() {
     let program = lower(SOURCE).expect("o exemplo inicial deve ser válido");
     assert_eq!(program.bindings.len(), 1);
     assert_eq!(program.bindings[0].source_name, "idade");
@@ -132,7 +132,7 @@ fn rejects_reading_into_an_immutable_binding() {
     assert!(
         diagnostics
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.immutable-assignment")
+            .any(|diagnostic| diagnostic.code == "ferro.immutable-assignment")
     );
 }
 
@@ -166,7 +166,7 @@ fn recovers_syntax_diagnostics_across_independent_function_bodies() {
     assert!(
         diagnostics
             .iter()
-            .all(|diagnostic| diagnostic.code == "pors.expected-expression")
+            .all(|diagnostic| diagnostic.code == "ferro.expected-expression")
     );
 }
 
@@ -176,8 +176,8 @@ fn does_not_repeat_diagnostics_for_an_invalid_top_level_item() {
     let diagnostics = lower(source).expect_err("o cabeçalho e o corpo contêm erros");
 
     assert_eq!(diagnostics.len(), 2, "{diagnostics:#?}");
-    assert_eq!(diagnostics[0].code, "pors.expected-identifier");
-    assert_eq!(diagnostics[1].code, "pors.expected-expression");
+    assert_eq!(diagnostics[0].code, "ferro.expected-identifier");
+    assert_eq!(diagnostics[1].code, "ferro.expected-expression");
     assert!(diagnostics[0].span.start < diagnostics[1].span.start);
 }
 
@@ -188,8 +188,8 @@ fn resumes_after_an_unclosed_function_before_later_top_level_declarations() {
         lower(source).expect_err("a primeira função está aberta e a segunda é inválida");
 
     assert_eq!(diagnostics.len(), 2, "{diagnostics:#?}");
-    assert_eq!(diagnostics[0].code, "pors.unexpected-token");
-    assert_eq!(diagnostics[1].code, "pors.expected-expression");
+    assert_eq!(diagnostics[0].code, "ferro.unexpected-token");
+    assert_eq!(diagnostics[1].code, "ferro.expected-expression");
     assert!(diagnostics[0].span.start < diagnostics[1].span.start);
 }
 
@@ -202,7 +202,7 @@ fn recovers_at_statement_terminators_inside_a_function() {
     assert!(
         diagnostics
             .iter()
-            .all(|diagnostic| diagnostic.code == "pors.expected-expression")
+            .all(|diagnostic| diagnostic.code == "ferro.expected-expression")
     );
     let semicolons: Vec<_> = source
         .match_indices(';')
@@ -221,7 +221,7 @@ fn suppresses_semantic_cascades_after_a_syntax_error_in_the_same_function() {
     let diagnostics = lower(source).expect_err("a declaração tem sintaxe inválida");
 
     assert_eq!(diagnostics.len(), 1, "{diagnostics:#?}");
-    assert_eq!(diagnostics[0].code, "pors.expected-expression");
+    assert_eq!(diagnostics[0].code, "ferro.expected-expression");
     assert_eq!(
         &source[diagnostics[0].span.start as usize..diagnostics[0].span.end as usize],
         ";"
@@ -234,7 +234,7 @@ fn keeps_utf8_byte_spans_for_unknown_names() {
     let diagnostics = lower(source).unwrap_err();
     let error = diagnostics
         .iter()
-        .find(|d| d.code == "pors.unknown-name")
+        .find(|d| d.code == "ferro.unknown-name")
         .unwrap();
     assert_eq!(
         &source[error.span.start as usize..error.span.end as usize],
@@ -379,7 +379,7 @@ fn rejects_break_and_continue_outside_loops_at_the_keyword_span() {
         let errors = lower(&source).unwrap_err();
         let error = errors
             .iter()
-            .find(|diagnostic| diagnostic.code == "pors.loop-control-outside-loop")
+            .find(|diagnostic| diagnostic.code == "ferro.loop-control-outside-loop")
             .unwrap_or_else(|| panic!("esperava diagnóstico de controle fora de laço: {keyword}"));
         assert_eq!(
             &source[error.span.start as usize..error.span.end as usize],
@@ -440,18 +440,22 @@ funcao visualizar(estado: Estado) -> inteiro {
 fn validates_ui_host_calls_and_mvu_entry_signatures() {
     let unknown = "funcao inicio() { seja no: inteiro = UI.canvas([1]); }";
     let errors = lower(unknown).unwrap_err();
-    assert!(errors.iter().any(|d| d.code == "pors.unknown-ui-component"));
+    assert!(
+        errors
+            .iter()
+            .any(|d| d.code == "ferro.unknown-ui-component")
+    );
 
     let bad_arity = "funcao inicio() { seja no: inteiro = UI.botao(\"so_um\"); }";
     let errors = lower(bad_arity).unwrap_err();
-    assert!(errors.iter().any(|d| d.code == "pors.ui-call-arity"));
+    assert!(errors.iter().any(|d| d.code == "ferro.ui-call-arity"));
 
     let bad_type = "funcao inicio() { seja no: inteiro = UI.coluna([\"texto\"]); }";
     let errors = lower(bad_type).unwrap_err();
     assert!(
         errors
             .iter()
-            .any(|d| d.code == "pors.ui-call-type-mismatch")
+            .any(|d| d.code == "ferro.ui-call-type-mismatch")
     );
 
     let bad_mvu = r#"
@@ -460,7 +464,7 @@ funcao atualizar(estado: inteiro, alvo: inteiro) -> inteiro { retorne estado + a
 funcao visualizar(estado: inteiro) -> inteiro { retorne UI.texto(estado); }
 "#;
     let errors = lower(bad_mvu).unwrap_err();
-    assert!(errors.iter().any(|d| d.code == "pors.ui-entry-signature"));
+    assert!(errors.iter().any(|d| d.code == "ferro.ui-entry-signature"));
 }
 
 #[test]
@@ -543,7 +547,7 @@ fn validates_option_result_inference_exhaustiveness_try_rules_and_reserved_names
     assert!(
         errors
             .iter()
-            .any(|d| d.code == "pors.option-type-inference")
+            .any(|d| d.code == "ferro.option-type-inference")
     );
 
     let bad_result_infer = "funcao inicio() { escreva(Resultado::Ok(1)); }";
@@ -551,16 +555,16 @@ fn validates_option_result_inference_exhaustiveness_try_rules_and_reserved_names
     assert!(
         errors
             .iter()
-            .any(|d| d.code == "pors.result-type-inference")
+            .any(|d| d.code == "ferro.result-type-inference")
     );
 
     let try_non_builtin = "funcao f() -> Opcao<inteiro> { seja x: inteiro = 1?; retorne Opcao::Algum(x); } funcao inicio() {}";
     let errors = lower(try_non_builtin).unwrap_err();
-    assert!(errors.iter().any(|d| d.code == "pors.try-invalid-type"));
+    assert!(errors.iter().any(|d| d.code == "ferro.try-invalid-type"));
 
     let try_in_inicio = "funcao inicio() { seja x: inteiro = Opcao::Algum(1)?; escreva(x); }";
     let errors = lower(try_in_inicio).unwrap_err();
-    assert!(errors.iter().any(|d| d.code == "pors.try-return-mismatch"));
+    assert!(errors.iter().any(|d| d.code == "ferro.try-return-mismatch"));
 
     let try_err_mismatch = r#"
 funcao f() -> Resultado<inteiro, cadeia> { retorne Resultado::Erro("falha"); }
@@ -568,7 +572,7 @@ funcao g() -> Resultado<inteiro, inteiro> { seja x: inteiro = f()?; retorne Resu
 funcao inicio() {}
 "#;
     let errors = lower(try_err_mismatch).unwrap_err();
-    assert!(errors.iter().any(|d| d.code == "pors.try-return-mismatch"));
+    assert!(errors.iter().any(|d| d.code == "ferro.try-return-mismatch"));
 
     let non_exhaustive = r#"
 funcao inicio() {
@@ -582,20 +586,20 @@ funcao inicio() {
     assert!(
         errors
             .iter()
-            .any(|d| d.code == "pors.non-exhaustive-choice")
+            .any(|d| d.code == "ferro.non-exhaustive-choice")
     );
 
     let reserved_enum = "enum Opcao { A } funcao inicio() {}";
     let errors = lower(reserved_enum).unwrap_err();
-    assert!(errors.iter().any(|d| d.code == "pors.reserved-name"));
+    assert!(errors.iter().any(|d| d.code == "ferro.reserved-name"));
 
     let reserved_record = "registro Resultado { x: inteiro } funcao inicio() {}";
     let errors = lower(reserved_record).unwrap_err();
-    assert!(errors.iter().any(|d| d.code == "pors.reserved-name"));
+    assert!(errors.iter().any(|d| d.code == "ferro.reserved-name"));
 }
 
 #[test]
-fn parses_and_validates_pors_core_libraries_matematica_texto_and_tipos() {
+fn parses_and_validates_ferro_core_libraries_matematica_texto_and_tipos() {
     let source = r#"
 funcao somar_texto(a: cadeia, b: cadeia) -> Resultado<inteiro, cadeia> {
     seja x: inteiro = Tipos.para_inteiro(Texto.aparar(a))?;
@@ -636,19 +640,19 @@ funcao inicio() {
     assert!(
         errors
             .iter()
-            .any(|d| d.code == "pors.unknown-stdlib-function")
+            .any(|d| d.code == "ferro.unknown-stdlib-function")
     );
 
     let bad_arity = "funcao inicio() { seja x: real = Matematica.potencia(2.0); }";
     let errors = lower(bad_arity).unwrap_err();
-    assert!(errors.iter().any(|d| d.code == "pors.stdlib-call-arity"));
+    assert!(errors.iter().any(|d| d.code == "ferro.stdlib-call-arity"));
 
     let bad_type = "funcao inicio() { seja x: real = Matematica.potencia(2, 3.0); }";
     let errors = lower(bad_type).unwrap_err();
     assert!(
         errors
             .iter()
-            .any(|d| d.code == "pors.stdlib-call-type-mismatch")
+            .any(|d| d.code == "ferro.stdlib-call-type-mismatch")
     );
 }
 
@@ -685,26 +689,34 @@ funcao inicio() {
     assert!(
         errors
             .iter()
-            .any(|d| d.code == "pors.empty-vector-type-inference")
+            .any(|d| d.code == "ferro.empty-vector-type-inference")
     );
 
     let immutable_push = "funcao inicio() { seja v: vetor<inteiro> = []; adicionar(v, 1); }";
     let errors = lower(immutable_push).unwrap_err();
-    assert!(errors.iter().any(|d| d.code == "pors.immutable-assignment"));
+    assert!(
+        errors
+            .iter()
+            .any(|d| d.code == "ferro.immutable-assignment")
+    );
 
     let immutable_pop =
         "funcao inicio() { seja v: vetor<inteiro> = [1]; seja x: Opcao<inteiro> = remover(v); }";
     let errors = lower(immutable_pop).unwrap_err();
-    assert!(errors.iter().any(|d| d.code == "pors.immutable-assignment"));
+    assert!(
+        errors
+            .iter()
+            .any(|d| d.code == "ferro.immutable-assignment")
+    );
 
     let bad_push_type =
         "funcao inicio() { seja mutavel v: vetor<inteiro> = []; adicionar(v, \"oi\"); }";
     let errors = lower(bad_push_type).unwrap_err();
-    assert!(errors.iter().any(|d| d.code == "pors.vector-element-type"));
+    assert!(errors.iter().any(|d| d.code == "ferro.vector-element-type"));
 }
 
 #[test]
-fn parses_and_validates_pors_util_and_calendario_libraries() {
+fn parses_and_validates_ferro_util_and_calendario_libraries() {
     let source = r#"
 funcao rolar_dado() -> Resultado<inteiro, cadeia> {
     Util.definir_semente(42);
@@ -731,7 +743,7 @@ funcao inicio() {
     }
 }
 "#;
-    let program = lower(source).expect("Util e Calendario devem ser aceitos em PORS");
+    let program = lower(source).expect("Util e Calendario devem ser aceitos em FERRO");
     assert_eq!(program.functions.len(), 1);
 
     let bad_util = "funcao inicio() { seja x: inteiro = Util.inexistente(); }";
@@ -739,7 +751,7 @@ funcao inicio() {
     assert!(
         errors
             .iter()
-            .any(|d| d.code == "pors.unknown-stdlib-function")
+            .any(|d| d.code == "ferro.unknown-stdlib-function")
     );
 
     let bad_cal_type = "funcao inicio() { seja h: inteiro = Calendario.hora_atual(12); }";
@@ -747,12 +759,12 @@ funcao inicio() {
     assert!(
         errors
             .iter()
-            .any(|d| d.code == "pors.stdlib-call-type-mismatch")
+            .any(|d| d.code == "ferro.stdlib-call-type-mismatch")
     );
 }
 
 #[test]
-fn parses_and_validates_pors_arquivos_library() {
+fn parses_and_validates_ferro_arquivos_library() {
     let source = r#"
 funcao gravar_e_ler() -> Resultado<cadeia, cadeia> {
     seja _ok1: logico = Arquivos.escrever_texto("dados/nota.txt", "linha1\n")?;
@@ -775,7 +787,7 @@ funcao inicio() {
     }
 }
 "#;
-    let program = lower(source).expect("Arquivos.* deve ser aceito em PORS");
+    let program = lower(source).expect("Arquivos.* deve ser aceito em FERRO");
     assert_eq!(program.functions.len(), 1);
 
     let bad_fn = "funcao inicio() { seja r: Resultado<cadeia, cadeia> = Arquivos.abrir(\"a\"); }";
@@ -783,12 +795,12 @@ funcao inicio() {
     assert!(
         errors
             .iter()
-            .any(|d| d.code == "pors.unknown-stdlib-function")
+            .any(|d| d.code == "ferro.unknown-stdlib-function")
     );
 }
 
 #[test]
-fn parses_and_validates_pors_json_library() {
+fn parses_and_validates_ferro_json_library() {
     let source = r#"
 funcao montar() -> Resultado<cadeia, cadeia> {
     seja mutavel doc: cadeia = "{}";
@@ -796,7 +808,7 @@ funcao montar() -> Resultado<cadeia, cadeia> {
     doc = Json.definir_inteiro(doc, "ano", 1843)?;
     doc = Json.definir_real(doc, "nota", 9.5)?;
     doc = Json.definir_logico(doc, "ativo", verdadeiro)?;
-    doc = Json.definir_json(doc, "tags", "[\"pors\",\"rust\"]")?;
+    doc = Json.definir_json(doc, "tags", "[\"ferro\",\"rust\"]")?;
     doc = Json.definir_json(doc, "nums", "[1,2,3]")?;
     seja chaves: vetor<cadeia> = Json.obter_chaves(doc)?;
     seja nome: cadeia = Json.obter_cadeia(doc, "nome")?;
@@ -823,7 +835,7 @@ funcao inicio() {
     }
 }
 "#;
-    let program = lower(source).expect("Json.* deve ser aceito em PORS");
+    let program = lower(source).expect("Json.* deve ser aceito em FERRO");
     assert_eq!(program.functions.len(), 1);
 
     let bad_fn = "funcao inicio() { seja r: logico = Json.inexistente(\"{}\"); }";
@@ -831,7 +843,7 @@ funcao inicio() {
     assert!(
         errors
             .iter()
-            .any(|d| d.code == "pors.unknown-stdlib-function")
+            .any(|d| d.code == "ferro.unknown-stdlib-function")
     );
 
     let bad_type = "funcao inicio() { seja r: Resultado<cadeia, cadeia> = Json.definir_inteiro(\"{}\", \"x\", \"nao\"); }";
@@ -839,7 +851,7 @@ funcao inicio() {
     assert!(
         errors
             .iter()
-            .any(|d| d.code == "pors.stdlib-call-type-mismatch")
+            .any(|d| d.code == "ferro.stdlib-call-type-mismatch")
     );
 }
 
@@ -884,7 +896,7 @@ funcao inicio() {
 }
 "#;
     let errs = lower(unreachable_after).unwrap_err();
-    assert!(errs.iter().any(|d| d.code == "pors.unreachable-case"));
+    assert!(errs.iter().any(|d| d.code == "ferro.unreachable-case"));
 
     let unreachable_all = r#"
 enum Cor { A, B }
@@ -898,11 +910,11 @@ funcao inicio() {
 }
 "#;
     let errs = lower(unreachable_all).unwrap_err();
-    assert!(errs.iter().any(|d| d.code == "pors.unreachable-case"));
+    assert!(errs.iter().any(|d| d.code == "ferro.unreachable-case"));
 }
 
 #[test]
-fn parses_and_validates_pors_internet_library() {
+fn parses_and_validates_ferro_internet_library() {
     let source = r#"
 funcao consultar(url: cadeia) -> Resultado<cadeia, cadeia> {
     Internet.definir_tempo_limite(3000);
@@ -922,7 +934,7 @@ funcao inicio() {
     }
 }
 "#;
-    let program = lower(source).expect("Internet.* deve ser aceito em PORS");
+    let program = lower(source).expect("Internet.* deve ser aceito em FERRO");
     assert_eq!(program.functions.len(), 1);
 
     let bad_fn =
@@ -930,7 +942,7 @@ funcao inicio() {
     let errs = lower(bad_fn).unwrap_err();
     assert!(
         errs.iter()
-            .any(|d| d.code == "pors.unknown-stdlib-function")
+            .any(|d| d.code == "ferro.unknown-stdlib-function")
     );
 }
 
@@ -958,16 +970,16 @@ funcao inicio() {
 
     let bad_cond = "funcao inicio() { faca { escreva(1); } enquanto (1); }";
     let errs = lower(bad_cond).unwrap_err();
-    assert!(errs.iter().any(|d| d.code == "pors.condition-type"));
+    assert!(errs.iter().any(|d| d.code == "ferro.condition-type"));
 }
 
 #[test]
-fn parses_typed_pors_multimedia_bridge_libraries_and_constants() {
+fn parses_typed_ferro_multimedia_bridge_libraries_and_constants() {
     let source = r#"
 funcao inicio() {
     Graficos.iniciar_modo_grafico(verdadeiro);
     Graficos.definir_dimensoes_janela(320, 240);
-    Graficos.definir_titulo_janela("Demo PORS");
+    Graficos.definir_titulo_janela("Demo FERRO");
     seja cor: Resultado<inteiro, cadeia> = Graficos.criar_cor(10, 20, 30);
     escolha cor {
         caso Resultado::Ok(c) => {
@@ -1008,13 +1020,13 @@ funcao inicio() {
     let errs = lower(bad_arg).unwrap_err();
     assert!(
         errs.iter()
-            .any(|d| d.code == "pors.stdlib-call-type-mismatch")
+            .any(|d| d.code == "ferro.stdlib-call-type-mismatch")
     );
 }
 
 #[test]
 fn accepts_the_canonical_syntax_evolution_program() {
-    let source = include_str!("../../../tests/fixtures/pors-syntax-evolution.fer");
+    let source = include_str!("../../../tests/fixtures/ferro-syntax-evolution.fer");
     let program = lower(source).expect("programa motivador deve compilar no frontend");
     assert_eq!(program.functions.len(), 1);
 }

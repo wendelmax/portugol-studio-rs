@@ -1,11 +1,11 @@
-# Portugol Studio Next — Especificações de Interface e Produto
+# Ferro Studio Next — Especificações de Interface e Produto
 
-Documentação consolidada e sem duplicatas para a evolução proprietária da interface do **Portugol Studio RS** (Rust + Tauri v2 + TypeScript/CodeMirror 6).
+Documentação consolidada e sem duplicatas para a evolução proprietária da interface do **Ferro Studio RS** (Rust + Tauri v2 + TypeScript/CodeMirror 6).
 
 ## Precedência (Fonte de Verdade)
 
 1. **Código e testes atuais do repositório** — descrevem o comportamento implementado e verificado.
-2. **ADRs e contratos do produto** (`docs/adr/`, `docs/UX.md`, `docs/research/PORS_MIGRATION_MATRIX.md`) — prevalecem sobre propostas históricas deste pacote quando houver divergência (ex.: ADR 0016 define `.pors` como linguagem principal).
+2. **ADRs e contratos do produto** (`docs/adr/`, `docs/UX.md`, `docs/research/ferro_MIGRATION_MATRIX.md`) — prevalecem sobre propostas históricas deste pacote quando houver divergência (ex.: ADR 0016 define `.fer` como linguagem principal).
 3. **Contratos funcionais e de arquitetura desta pasta** (`product/`, `architecture/`).
 4. **Design as Code e referência visual** (`design/DESIGN_AS_CODE.md`, `assets/ide-concept-reference.png`) — referência estética e de interação, subordinada à funcionalidade real e acessibilidade WCAG AA.
 

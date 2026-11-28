@@ -3,7 +3,7 @@ use ferro_hir::{BinaryOp, Expr, ExprKind, Program, Span, Stmt, StringPart, Type,
 use crate::{SourceMapQuality, SourceMapSegment, SourceRange, format_real, rust_ident};
 
 use super::types::{
-    binary_operator, binding_info, integer_method, pors_clone_value, read_target_label,
+    binary_operator, binding_info, ferro_clone_value, integer_method, read_target_label,
     render_stdlib_host_call, render_ui_host_call, rust_enum_variant_path, rust_type,
 };
 
@@ -18,7 +18,7 @@ pub(super) enum ExpressionPart {
     Nested(MappedExpression),
 }
 
-pub(super) fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedExpression {
+pub(super) fn render_expr(expr: &Expr, program: &Program, ferro: bool) -> MappedExpression {
     let parts = match &expr.kind {
         ExprKind::Binding(id) => vec![ExpressionPart::Text(rust_ident(
             &binding_info(program, *id).source_name,
@@ -37,7 +37,7 @@ pub(super) fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedE
                     if index > 0 {
                         parts.push(ExpressionPart::Text(", ".to_owned()));
                     }
-                    parts.push(ExpressionPart::Nested(owned_value(item, program, pors)));
+                    parts.push(ExpressionPart::Nested(owned_value(item, program, ferro)));
                 }
                 parts.push(ExpressionPart::Text("]".to_owned()));
                 parts
@@ -64,7 +64,7 @@ pub(super) fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedE
                 parts.push(ExpressionPart::Nested(owned_value(
                     field_value,
                     program,
-                    pors,
+                    ferro,
                 )));
             }
             parts.push(ExpressionPart::Text(" }".to_owned()));
@@ -89,7 +89,7 @@ pub(super) fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedE
                     if index > 0 {
                         parts.push(ExpressionPart::Text(", ".to_owned()));
                     }
-                    parts.push(ExpressionPart::Nested(owned_value(item, program, pors)));
+                    parts.push(ExpressionPart::Nested(owned_value(item, program, ferro)));
                 }
                 parts.push(ExpressionPart::Text(")".to_owned()));
             }
@@ -108,7 +108,7 @@ pub(super) fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedE
             .unwrap_or_else(|| "__invalid_field".to_owned());
             vec![
                 ExpressionPart::Text("(".to_owned()),
-                ExpressionPart::Nested(render_expr(value, program, pors)),
+                ExpressionPart::Nested(render_expr(value, program, ferro)),
                 ExpressionPart::Text(format!(").{field_name}")),
             ]
         }
@@ -117,7 +117,7 @@ pub(super) fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedE
                 "{}[__ferro_index(",
                 rust_ident(&binding_info(program, *binding).source_name)
             )),
-            ExpressionPart::Nested(render_expr(index, program, pors)),
+            ExpressionPart::Nested(render_expr(index, program, ferro)),
             ExpressionPart::Text(format!(
                 ", {}.len())]",
                 rust_ident(&binding_info(program, *binding).source_name)
@@ -137,11 +137,11 @@ pub(super) fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedE
             let clone_item = info
                 .ty
                 .vector_element()
-                .map(|elem_ty| pors_clone_value(elem_ty, "item", program))
+                .map(|elem_ty| ferro_clone_value(elem_ty, "item", program))
                 .unwrap_or_else(|| "(*item).clone()".to_owned());
             vec![
                 ExpressionPart::Text("({ let __ferro_idx = (".to_owned()),
-                ExpressionPart::Nested(render_expr(index, program, pors)),
+                ExpressionPart::Nested(render_expr(index, program, ferro)),
                 ExpressionPart::Text(format!(
                     "); if __ferro_idx < 0 {{ Option::None }} else {{ {name}.get(__ferro_idx as usize).map(|item| {clone_item}) }} }})"
                 )),
@@ -204,18 +204,22 @@ pub(super) fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedE
                     })
                     .unwrap_or(false);
                 if takes_vector {
-                    parts.push(ExpressionPart::Nested(owned_value(argument, program, pors)));
+                    parts.push(ExpressionPart::Nested(owned_value(
+                        argument, program, ferro,
+                    )));
                 } else {
                     if takes_string {
-                        parts.push(ExpressionPart::Text(if pors {
+                        parts.push(ExpressionPart::Text(if ferro {
                             "__ferro_string((".to_owned()
                         } else {
                             "String::clone(&(".to_owned()
                         }));
                     }
-                    parts.push(ExpressionPart::Nested(render_expr(argument, program, pors)));
+                    parts.push(ExpressionPart::Nested(render_expr(
+                        argument, program, ferro,
+                    )));
                     if takes_string {
-                        parts.push(ExpressionPart::Text(if pors {
+                        parts.push(ExpressionPart::Text(if ferro {
                             ").as_str())".to_owned()
                         } else {
                             "))".to_owned()
@@ -230,62 +234,62 @@ pub(super) fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedE
             module,
             name,
             arguments,
-        } if module == "UI" => render_ui_host_call(name, arguments, program, pors),
+        } if module == "UI" => render_ui_host_call(name, arguments, program, ferro),
         ExprKind::HostCall {
             module,
             name,
             arguments,
         } if module == "Matematica" => {
-            render_stdlib_host_call("__ferro_matematica", name, arguments, program, pors)
+            render_stdlib_host_call("__ferro_matematica", name, arguments, program, ferro)
         }
         ExprKind::HostCall {
             module,
             name,
             arguments,
         } if module == "Texto" => {
-            render_stdlib_host_call("__ferro_texto", name, arguments, program, pors)
+            render_stdlib_host_call("__ferro_texto", name, arguments, program, ferro)
         }
         ExprKind::HostCall {
             module,
             name,
             arguments,
         } if module == "Tipos" => {
-            render_stdlib_host_call("__ferro_tipos", name, arguments, program, pors)
+            render_stdlib_host_call("__ferro_tipos", name, arguments, program, ferro)
         }
         ExprKind::HostCall {
             module,
             name,
             arguments,
         } if module == "Util" => {
-            render_stdlib_host_call("__ferro_util", name, arguments, program, pors)
+            render_stdlib_host_call("__ferro_util", name, arguments, program, ferro)
         }
         ExprKind::HostCall {
             module,
             name,
             arguments,
         } if module == "Calendario" => {
-            render_stdlib_host_call("__ferro_calendario", name, arguments, program, pors)
+            render_stdlib_host_call("__ferro_calendario", name, arguments, program, ferro)
         }
         ExprKind::HostCall {
             module,
             name,
             arguments,
         } if module == "Arquivos" => {
-            render_stdlib_host_call("__ferro_arquivos", name, arguments, program, pors)
+            render_stdlib_host_call("__ferro_arquivos", name, arguments, program, ferro)
         }
         ExprKind::HostCall {
             module,
             name,
             arguments,
         } if module == "Json" => {
-            render_stdlib_host_call("__ferro_json", name, arguments, program, pors)
+            render_stdlib_host_call("__ferro_json", name, arguments, program, ferro)
         }
         ExprKind::HostCall {
             module,
             name,
             arguments,
         } if module == "Internet" => {
-            render_stdlib_host_call("__ferro_internet", name, arguments, program, pors)
+            render_stdlib_host_call("__ferro_internet", name, arguments, program, ferro)
         }
         ExprKind::HostCall { .. } => vec![ExpressionPart::Text("0_i32".to_owned())],
         ExprKind::Integer(value) if *value == i32::MIN => {
@@ -294,7 +298,7 @@ pub(super) fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedE
         ExprKind::Integer(value) => vec![ExpressionPart::Text(format!("{value}_i32"))],
         ExprKind::Real(value) => vec![ExpressionPart::Text(format_real(*value))],
         ExprKind::Boolean(value) => vec![ExpressionPart::Text(value.to_string())],
-        ExprKind::String(value) => vec![ExpressionPart::Text(if pors {
+        ExprKind::String(value) => vec![ExpressionPart::Text(if ferro {
             format!("__ferro_string({value:?})")
         } else {
             format!("String::from({value:?})")
@@ -311,7 +315,7 @@ pub(super) fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedE
                     "match {line}.trim() {{ \"verdadeiro\" => true, \"falso\" => false, _ => {{ eprintln!(\"Entrada inválida: esperado {label}.\"); std::process::exit(1); }} }}"
                 ),
                 _ => {
-                    if pors {
+                    if ferro {
                         format!("__ferro_string(&{line})")
                     } else {
                         line
@@ -328,7 +332,7 @@ pub(super) fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedE
             for part in parts {
                 let (piece, span) = match part {
                     StringPart::Literal(text, span) => {
-                        let code = if pors {
+                        let code = if ferro {
                             format!("__ferro_string({text:?})")
                         } else {
                             format!("String::from({text:?})")
@@ -340,12 +344,12 @@ pub(super) fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedE
                     }
                     StringPart::Expression(value, span) => {
                         let ty = value.ty;
-                        let rendered = render_expr(value, program, pors);
-                        let owned = if pors {
+                        let rendered = render_expr(value, program, ferro);
+                        let owned = if ferro {
                             compose_expression(
                                 vec![
                                     ExpressionPart::Text("__ferro_string(".to_owned()),
-                                    ExpressionPart::Nested(pors_string_view(rendered, ty)),
+                                    ExpressionPart::Nested(ferro_string_view(rendered, ty)),
                                     ExpressionPart::Text(")".to_owned()),
                                 ],
                                 Span::default(),
@@ -368,12 +372,12 @@ pub(super) fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedE
                 };
                 accumulator = Some(match accumulator {
                     None => piece,
-                    Some(left) => concat_string_expressions(left, piece, span, pors),
+                    Some(left) => concat_string_expressions(left, piece, span, ferro),
                 });
             }
             vec![ExpressionPart::Nested(accumulator.unwrap_or_else(|| {
                 compose_expression(
-                    vec![ExpressionPart::Text(if pors {
+                    vec![ExpressionPart::Text(if ferro {
                         "__ferro_string(\"\")".to_owned()
                     } else {
                         "String::new()".to_owned()
@@ -385,16 +389,16 @@ pub(super) fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedE
         ExprKind::Character(value) => vec![ExpressionPart::Text(format!("{value:?}"))],
         ExprKind::Parenthesized(inner) => vec![
             ExpressionPart::Text("(".to_owned()),
-            ExpressionPart::Nested(render_expr(inner, program, pors)),
+            ExpressionPart::Nested(render_expr(inner, program, ferro)),
             ExpressionPart::Text(")".to_owned()),
         ],
         ExprKind::Try { operand } => vec![
             ExpressionPart::Text("(".to_owned()),
-            ExpressionPart::Nested(owned_value(operand, program, pors)),
+            ExpressionPart::Nested(owned_value(operand, program, ferro)),
             ExpressionPart::Text(")?".to_owned()),
         ],
         ExprKind::Unary { op, operand } => {
-            let nested = render_expr(operand, program, pors);
+            let nested = render_expr(operand, program, ferro);
             match (op, expr.ty) {
                 (UnaryOp::Negate, Type::Integer) => vec![
                     ExpressionPart::Text("(".to_owned()),
@@ -418,26 +422,26 @@ pub(super) fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedE
         ExprKind::Binary { op, left, right } => {
             let left_type = left.ty;
             let right_type = right.ty;
-            let left = render_expr(left, program, pors);
-            let right = render_expr(right, program, pors);
+            let left = render_expr(left, program, ferro);
+            let right = render_expr(right, program, ferro);
             if *op == BinaryOp::Add
                 && ((left_type == Type::String && right_type == Type::String)
                     || (left_type == Type::Character && right_type == Type::Character))
             {
                 vec![
-                    ExpressionPart::Text(if pors {
+                    ExpressionPart::Text(if ferro {
                         "__ferro_concat(".to_owned()
                     } else {
                         "format!(\"{}{}\", ".to_owned()
                     }),
-                    ExpressionPart::Nested(if pors {
-                        pors_string_view(left, left_type)
+                    ExpressionPart::Nested(if ferro {
+                        ferro_string_view(left, left_type)
                     } else {
                         left
                     }),
                     ExpressionPart::Text(", ".to_owned()),
-                    ExpressionPart::Nested(if pors {
-                        pors_string_view(right, right_type)
+                    ExpressionPart::Nested(if ferro {
+                        ferro_string_view(right, right_type)
                     } else {
                         right
                     }),
@@ -472,7 +476,7 @@ pub(super) fn render_expr(expr: &Expr, program: &Program, pors: bool) -> MappedE
     compose_expression(parts, expr.span)
 }
 
-fn pors_string_view(value: MappedExpression, ty: Type) -> MappedExpression {
+fn ferro_string_view(value: MappedExpression, ty: Type) -> MappedExpression {
     let (prefix, suffix) = if ty == Type::Character {
         ("__ferro_char(", ").as_str()")
     } else {
@@ -492,15 +496,15 @@ fn concat_string_expressions(
     left: MappedExpression,
     right: MappedExpression,
     span: Span,
-    pors: bool,
+    ferro: bool,
 ) -> MappedExpression {
-    if pors {
+    if ferro {
         compose_expression(
             vec![
                 ExpressionPart::Text("__ferro_concat(".to_owned()),
-                ExpressionPart::Nested(pors_string_view(left, Type::String)),
+                ExpressionPart::Nested(ferro_string_view(left, Type::String)),
                 ExpressionPart::Text(", ".to_owned()),
-                ExpressionPart::Nested(pors_string_view(right, Type::String)),
+                ExpressionPart::Nested(ferro_string_view(right, Type::String)),
                 ExpressionPart::Text(")".to_owned()),
             ],
             span,
@@ -564,8 +568,8 @@ fn compose_expression(parts: Vec<ExpressionPart>, span: Span) -> MappedExpressio
     MappedExpression { code, mappings }
 }
 
-pub(super) fn owned_value(expr: &Expr, program: &Program, pors: bool) -> MappedExpression {
-    let value = render_expr(expr, program, pors);
+pub(super) fn owned_value(expr: &Expr, program: &Program, ferro: bool) -> MappedExpression {
+    let value = render_expr(expr, program, ferro);
     if matches!(
         expr.kind,
         ExprKind::VectorLiteral(_)
@@ -577,10 +581,10 @@ pub(super) fn owned_value(expr: &Expr, program: &Program, pors: bool) -> MappedE
     }
     if expr.ty.is_vector() {
         if let Type::VectorRecord(id) | Type::VectorEnum(id) = expr.ty {
-            let value = render_expr(expr, program, pors);
+            let value = render_expr(expr, program, ferro);
             let clone = match expr.ty {
-                Type::VectorRecord(_) if pors => format!("__ferro_clone_{}(item)", id.0),
-                Type::VectorEnum(_) if pors => format!("__ferro_clone_enum_{}(item)", id.0),
+                Type::VectorRecord(_) if ferro => format!("__ferro_clone_{}(item)", id.0),
+                Type::VectorEnum(_) if ferro => format!("__ferro_clone_enum_{}(item)", id.0),
                 _ => "item.clone()".to_owned(),
             };
             let prefix = "(";
@@ -599,7 +603,7 @@ pub(super) fn owned_value(expr: &Expr, program: &Program, pors: bool) -> MappedE
                 .collect();
             return MappedExpression { code, mappings };
         }
-        let (prefix, suffix) = if pors && expr.ty == Type::VectorString {
+        let (prefix, suffix) = if ferro && expr.ty == Type::VectorString {
             ("__ferro_vec_string_clone(&(", "))")
         } else {
             ("(", ").clone()")
@@ -620,13 +624,13 @@ pub(super) fn owned_value(expr: &Expr, program: &Program, pors: bool) -> MappedE
             .find(|definition| definition.id == type_id)
     {
         let id = definition.id.0;
-        let value = render_expr(expr, program, pors);
-        let clone = if pors {
+        let value = render_expr(expr, program, ferro);
+        let clone = if ferro {
             format!("__ferro_clone_{id}(&(")
         } else {
             "(".to_owned()
         };
-        let suffix = if pors { "))" } else { ").clone()" };
+        let suffix = if ferro { "))" } else { ").clone()" };
         return compose_expression(
             vec![
                 ExpressionPart::Text(clone),
@@ -642,13 +646,13 @@ pub(super) fn owned_value(expr: &Expr, program: &Program, pors: bool) -> MappedE
             .iter()
             .any(|definition| definition.id == type_id)
     {
-        let value = render_expr(expr, program, pors);
-        let prefix = if pors {
+        let value = render_expr(expr, program, ferro);
+        let prefix = if ferro {
             format!("__ferro_clone_enum_{}(&(", type_id.0)
         } else {
             "(".to_owned()
         };
-        let suffix = if pors { "))" } else { ").clone()" };
+        let suffix = if ferro { "))" } else { ").clone()" };
         return compose_expression(
             vec![
                 ExpressionPart::Text(prefix),
@@ -659,7 +663,7 @@ pub(super) fn owned_value(expr: &Expr, program: &Program, pors: bool) -> MappedE
         );
     }
     if expr.ty == Type::String {
-        if pors {
+        if ferro {
             return compose_expression(
                 vec![
                     ExpressionPart::Text("__ferro_string((".to_owned()),
@@ -688,12 +692,12 @@ pub(super) fn push_expr(
     expr: &Expr,
     program: &Program,
     owned: bool,
-    pors: bool,
+    ferro: bool,
 ) {
     let expression = if owned {
-        owned_value(expr, program, pors)
+        owned_value(expr, program, ferro)
     } else {
-        render_expr(expr, program, pors)
+        render_expr(expr, program, ferro)
     };
     let offset = output.len() as u32;
     output.push_str(&expression.code);

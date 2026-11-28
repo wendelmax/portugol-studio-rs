@@ -52,6 +52,6 @@ test("IDE routes events and replays startup events through the tested run-id gua
   assert.match(shell, /listenRun\(handlers\)/);
   assert.match(runEvents, /routeRunEvent\(id, dependencies\.runId\(\), dependencies\.pendingEvents\(\), handle\)/);
   assert.equal((main.match(/replayEvents: replayRunEvents/g) ?? []).length, 1);
-  const porsExecution = readFileSync(new URL("../src/run/portugol-rs-execution.ts", import.meta.url), "utf8");
-  assert.match(porsExecution, /dependencies\.replayEvents\(events, id\)/);
+  const ferroExecution = readFileSync(new URL("../src/run/ferro-execution.ts", import.meta.url), "utf8");
+  assert.match(ferroExecution, /dependencies\.replayEvents\(events, id\)/);
 });

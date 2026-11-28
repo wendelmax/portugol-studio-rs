@@ -30,15 +30,15 @@ test("cargo check is explicit, workspace-scoped, and mapped to the active editor
 test("Cargo analysis is offered only for Rust files inside a Cargo project while idle", () => {
   const base = {
     language: "rust", cargoProject: true, cargoAvailable: true, canRunAsRust: false,
-    runActive: false, paused: false, porsRunPending: false,
+    runActive: false, paused: false, ferroRunPending: false,
   };
   for (const command of ["Analisar projeto Cargo", "Testar projeto Cargo"]) {
     assert.equal(isPaletteCommandAvailable(command, base), true);
     assert.equal(isPaletteCommandAvailable(command, { ...base, cargoProject: false }), false);
     assert.equal(isPaletteCommandAvailable(command, { ...base, cargoAvailable: false }), false);
     assert.equal(isPaletteCommandAvailable(command, { ...base, runActive: true }), false);
-    assert.equal(isPaletteCommandAvailable(command, { ...base, porsRunPending: true }), false);
-    assert.equal(isPaletteCommandAvailable(command, { ...base, language: "portugol-rs" }), false);
+    assert.equal(isPaletteCommandAvailable(command, { ...base, ferroRunPending: true }), false);
+    assert.equal(isPaletteCommandAvailable(command, { ...base, language: "ferro-rust" }), false);
     assert.equal(isPaletteCommandAvailable(command, { ...base, language: null }), false);
   }
 });

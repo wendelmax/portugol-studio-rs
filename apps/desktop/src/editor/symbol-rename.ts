@@ -30,8 +30,8 @@ export interface SymbolRenamerDependencies {
   isCurrent: (tab: Tab, document: { toString(): string }) => boolean;
   hasOpenDialog: () => boolean;
   semanticSymbolLanguage: (language: SourceLanguage) => SemanticSymbolLanguage | null;
-  renameTargetPortugolRs: (source: string, offset: number) => Promise<RenameTarget>;
-  renameSymbolPortugolRs: (source: string, offset: number, name: string) => Promise<RenameChange[]>;
+  renameTargetFerroRust: (source: string, offset: number) => Promise<RenameTarget>;
+  renameSymbolFerroRust: (source: string, offset: number, name: string) => Promise<RenameChange[]>;
   applyChanges: (changes: RenameChange[]) => void;
   focusEditor: () => void;
   setStatus: (message: string, kind?: "error" | "ok") => void;
@@ -42,13 +42,13 @@ export interface SymbolRenamerDependencies {
 export function createSymbolRenamer(dependencies: SymbolRenamerDependencies) {
   async function openAt(offset: number) {
     const tab = dependencies.activeTab();
-    if (!tab || tab.language !== "portugol-rs" || dependencies.isRunning(tab)) return;
+    if (!tab || tab.language !== "ferro-rust" || dependencies.isRunning(tab)) return;
     const doc = dependencies.currentDocument();
     const language = dependencies.semanticSymbolLanguage(tab.language);
     if (!language) return;
 
     try {
-      const target = await dependencies.renameTargetPortugolRs(doc.toString(), offset);
+      const target = await dependencies.renameTargetFerroRust(doc.toString(), offset);
       if (!dependencies.isCurrent(tab, doc) || dependencies.hasOpenDialog()) return;
 
       const { dialog, form, input, error, submit, description, cancelButton } = dependencies.ui;
@@ -61,7 +61,7 @@ export function createSymbolRenamer(dependencies: SymbolRenamerDependencies) {
         error.hidden = true;
         submit.disabled = true;
         try {
-          const changes = await dependencies.renameSymbolPortugolRs(doc.toString(), offset, input.value.trim());
+          const changes = await dependencies.renameSymbolFerroRust(doc.toString(), offset, input.value.trim());
           if (!dialog.open || !dependencies.isCurrent(tab, doc)) return;
           if (changes.length) dependencies.applyChanges(changes);
           dialog.close();

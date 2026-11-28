@@ -2,7 +2,7 @@
 
 > **For agentic workers:** implement each task in order and verify it before continuing.
 
-**Goal:** Rename `.por`, `.pors`, or `.pex` files from the workspace tree without overwriting data or losing open edits.
+**Goal:** Rename `.por`, `.fer`, or `.pex` files from the workspace tree without overwriting data or losing open edits.
 
 **Architecture:** Keep filesystem operations in the Rust workspace service. A typed rename result returns the refreshed tree and canonical renamed file path; the current tab model is updated only after backend success.
 
@@ -22,7 +22,7 @@
 - Destination collision does not change either file's bytes.
 - Symlink/traversal input cannot escape the workspace.
 - Save cancellation/failure leaves file path and tab association unchanged.
-- Rename of open clean `.por`, `.pors`, and `.pex` keeps matching tabs attached.
+- Rename of open clean `.por`, `.fer`, and `.pex` keeps matching tabs attached.
 - Keyboard focus can reach rename actions and return to the renamed tree item.
 
 ---

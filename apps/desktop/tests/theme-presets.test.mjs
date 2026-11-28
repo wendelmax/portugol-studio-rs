@@ -75,7 +75,7 @@ test("presets populares têm IDs estáveis e cores para todos os tokens da IDE",
 
 test("seletor mantém os temas do sistema e oferece cada preset pelo ID estável", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
-  assert.ok(!html.includes('value="preset:portugol-studio-next"'), "ID de tema antigo não deve aparecer como preset de cor");
+  assert.ok(!html.includes('value="preset:ferro-studio-next"'), "ID de tema antigo não deve aparecer como preset de cor");
   for (const value of ["system", "light", "dark", ...[
     "preset:intellij-rust-dark", "preset:intellij-rust-light",
     "preset:vscode-dark-modern", "preset:vscode-light-modern",

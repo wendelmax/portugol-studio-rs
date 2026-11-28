@@ -16,13 +16,13 @@ test("builds palette capabilities from the active tab and current execution stat
     rustcAvailable: false,
     runActive: true,
     paused: true,
-    porsRunPending: false,
+    ferroRunPending: false,
     canRunAsRust: () => false,
   });
 
   assert.deepEqual(context, {
     language: "rust", cargoProject: true, cargoAvailable: true, canRunAsRust: false,
-    runActive: true, paused: true, porsRunPending: false,
+    runActive: true, paused: true, ferroRunPending: false,
   });
 });
 
@@ -33,11 +33,11 @@ test("empty palette context does not advertise a language or Cargo project", () 
     rustcAvailable: true,
     runActive: false,
     paused: false,
-    porsRunPending: false,
+    ferroRunPending: false,
     canRunAsRust: () => true,
   }), {
     language: null, cargoProject: false, cargoAvailable: true, canRunAsRust: false,
-    runActive: false, paused: false, porsRunPending: false,
+    runActive: false, paused: false, ferroRunPending: false,
   });
 });
 
@@ -57,36 +57,36 @@ test("moves the selected command cyclically with arrow keys", () => {
 });
 
 test("offers only debug actions supported by the current runtime state", () => {
-  assert.equal(isDebugCommandAvailable("Depurar", "portugol-rs", false, false), true);
-  assert.equal(isDebugCommandAvailable("Depurar", "portugol-rs", true, false), false);
-  assert.equal(isDebugCommandAvailable("Interromper", "portugol-rs", false, false), false);
-  assert.equal(isDebugCommandAvailable("Pausar", "portugol-rs", true, false), true);
-  assert.equal(isDebugCommandAvailable("Pausar", "portugol-rs", true, true), false);
-  assert.equal(isDebugCommandAvailable("Continuar", "portugol-rs", true, false), false);
-  assert.equal(isDebugCommandAvailable("Continuar", "portugol-rs", true, true), true);
+  assert.equal(isDebugCommandAvailable("Depurar", "ferro-rust", false, false), true);
+  assert.equal(isDebugCommandAvailable("Depurar", "ferro-rust", true, false), false);
+  assert.equal(isDebugCommandAvailable("Interromper", "ferro-rust", false, false), false);
+  assert.equal(isDebugCommandAvailable("Pausar", "ferro-rust", true, false), true);
+  assert.equal(isDebugCommandAvailable("Pausar", "ferro-rust", true, true), false);
+  assert.equal(isDebugCommandAvailable("Continuar", "ferro-rust", true, false), false);
+  assert.equal(isDebugCommandAvailable("Continuar", "ferro-rust", true, true), true);
   assert.equal(isDebugCommandAvailable("Depurar", "rust", false, false), false);
 });
 
-test("PORS palette debugger commands follow VM state while Rust keeps them unavailable", () => {
-  const idlePors = {
-    language: "portugol-rs", cargoProject: false, cargoAvailable: false, canRunAsRust: false,
-    runActive: false, paused: false, porsRunPending: false,
+test("FERRO palette debugger commands follow VM state while Rust keeps them unavailable", () => {
+  const idleFerro = {
+    language: "ferro-rust", cargoProject: false, cargoAvailable: false, canRunAsRust: false,
+    runActive: false, paused: false, ferroRunPending: false,
   };
-  assert.equal(isPaletteCommandAvailable("Depurar", idlePors), true);
-  assert.equal(isPaletteCommandAvailable("Interromper", idlePors), false);
-  assert.equal(isPaletteCommandAvailable("Pausar", idlePors), false);
+  assert.equal(isPaletteCommandAvailable("Depurar", idleFerro), true);
+  assert.equal(isPaletteCommandAvailable("Interromper", idleFerro), false);
+  assert.equal(isPaletteCommandAvailable("Pausar", idleFerro), false);
 
-  const runningPors = { ...idlePors, runActive: true };
-  assert.equal(isPaletteCommandAvailable("Interromper", runningPors), true);
-  assert.equal(isPaletteCommandAvailable("Pausar", runningPors), true);
-  assert.equal(isPaletteCommandAvailable("Continuar", runningPors), false);
+  const runningFerro = { ...idleFerro, runActive: true };
+  assert.equal(isPaletteCommandAvailable("Interromper", runningFerro), true);
+  assert.equal(isPaletteCommandAvailable("Pausar", runningFerro), true);
+  assert.equal(isPaletteCommandAvailable("Continuar", runningFerro), false);
 
-  const pausedPors = { ...runningPors, paused: true };
+  const pausedFerro = { ...runningFerro, paused: true };
   for (const command of ["Continuar", "Próxima instrução", "Entrar na função", "Sair da função"]) {
-    assert.equal(isPaletteCommandAvailable(command, pausedPors), true, command);
+    assert.equal(isPaletteCommandAvailable(command, pausedFerro), true, command);
   }
 
-  const runningRust = { ...pausedPors, language: "rust" };
+  const runningRust = { ...pausedFerro, language: "rust" };
   for (const command of ["Depurar", "Interromper", "Pausar", "Continuar", "Próxima instrução", "Entrar na função", "Sair da função"]) {
     assert.equal(isPaletteCommandAvailable(command, runningRust), false, command);
   }
@@ -113,8 +113,8 @@ test("command palette shortcut is advertised", () => {
 
 test("palette hides tab commands without a tab and Rust-unsupported commands in Rust files", () => {
   const idle = {
-    language: "portugol-rs", cargoProject: false, cargoAvailable: false, canRunAsRust: false,
-    runActive: false, paused: false, porsRunPending: false,
+    language: "ferro-rust", cargoProject: false, cargoAvailable: false, canRunAsRust: false,
+    runActive: false, paused: false, ferroRunPending: false,
   };
   assert.equal(isPaletteCommandAvailable("Paleta de comandos", idle), false);
   assert.equal(isPaletteCommandAvailable("Salvar", idle), true);
@@ -126,8 +126,8 @@ test("palette hides tab commands without a tab and Rust-unsupported commands in 
 
 test("Executar como Rust needs rustc for the active Ferro file and no run in progress", () => {
   const ready = {
-    language: "portugol-rs", cargoProject: false, cargoAvailable: false, canRunAsRust: true,
-    runActive: false, paused: false, porsRunPending: false,
+    language: "ferro-rust", cargoProject: false, cargoAvailable: false, canRunAsRust: true,
+    runActive: false, paused: false, ferroRunPending: false,
   };
   assert.equal(isPaletteCommandAvailable("Executar como Rust", ready), true);
   assert.equal(isPaletteCommandAvailable("Executar como Rust", { ...ready, canRunAsRust: false }), false);
@@ -135,8 +135,8 @@ test("Executar como Rust needs rustc for the active Ferro file and no run in pro
   assert.equal(isPaletteCommandAvailable("Executar como Rust", { ...ready, language: null }), false);
 });
 
-test("markup tabs hide run, debug and PORS symbol commands but keep formatting", () => {
-  const context = { language: "markup", cargoProject: false, cargoAvailable: false, canRunAsRust: false, runActive: false, paused: false, porsRunPending: false };
+test("markup tabs hide run, debug and FERRO symbol commands but keep formatting", () => {
+  const context = { language: "markup", cargoProject: false, cargoAvailable: false, canRunAsRust: false, runActive: false, paused: false, ferroRunPending: false };
   for (const command of ["Executar", "Depurar", "Renomear símbolo", "Alternar prévia Rust", "Parâmetros de execução"]) {
     assert.equal(isPaletteCommandAvailable(command, context), false, command);
   }

@@ -1,23 +1,23 @@
 import {
-  PORS_HELP_DEFAULT_TOPIC,
-  PORS_HELP_LIBRARIES,
-  PORS_HELP_TOPICS,
-  filterPorsHelp,
-  type PorsHelpLibrary,
-} from "./pors-help";
-import { parsePorsSignature } from "./pors-stdlib-catalog";
+  FERRO_HELP_DEFAULT_TOPIC,
+  FERRO_HELP_LIBRARIES,
+  FERRO_HELP_TOPICS,
+  filterFerroHelp,
+  type FerroHelpLibrary,
+} from "./ferro-help";
+import { parseFerroSignature } from "./ferro-stdlib-catalog";
 import {
   buildSyntaxTopicTree,
   createHelpHistory,
   parseInlineCodeRuns,
-  tokenizePorsCode,
+  tokenizeFerroCode,
   type HelpTreeNode,
 } from "./help-navigation";
 
 const html = import.meta.glob<string>("./help-assets/topicos/**/*.html", {
   eager: true, query: "?raw", import: "default",
 });
-const examples = import.meta.glob<string>("./help-assets/recursos/exemplos-pors/**/*.fer", {
+const examples = import.meta.glob<string>("./help-assets/recursos/exemplos-ferro/**/*.fer", {
   eager: true, query: "?raw", import: "default",
 });
 const images = import.meta.glob<string>("./help-assets/recursos/imagens/**/*.png", {
@@ -55,7 +55,7 @@ function renderHighlightedCode(source: string): HTMLPreElement {
   const pre = document.createElement("pre");
   pre.className = "help-code";
   const code = document.createElement("code");
-  for (const token of tokenizePorsCode(source.trimEnd())) {
+  for (const token of tokenizeFerroCode(source.trimEnd())) {
     if (token.kind === "plain") {
       code.append(document.createTextNode(token.text));
     } else {
@@ -97,7 +97,7 @@ export function mountHelp(optionsOrOpen: MountHelpOptions | ((source: string, fi
   });
   const topicById = new Map(topics.map((topic) => [topic.id, topic]));
   const syntaxTree = buildSyntaxTopicTree(topics);
-  const history = createHelpHistory(PORS_HELP_DEFAULT_TOPIC);
+  const history = createHelpHistory(FERRO_HELP_DEFAULT_TOPIC);
 
   function selectedId() {
     return history.current();
@@ -169,20 +169,20 @@ export function mountHelp(optionsOrOpen: MountHelpOptions | ((source: string, fi
     if (!breadcrumbs) return;
     breadcrumbs.replaceChildren();
     const current = selectedId();
-    const crumbs: { label: string; id?: string }[] = [{ label: "Ajuda", id: PORS_HELP_DEFAULT_TOPIC }];
+    const crumbs: { label: string; id?: string }[] = [{ label: "Ajuda", id: FERRO_HELP_DEFAULT_TOPIC }];
 
-    const porsTopic = PORS_HELP_TOPICS.find(({ id }) => id === current);
-    if (porsTopic) {
-      if (porsTopic.id !== PORS_HELP_DEFAULT_TOPIC) {
-        crumbs.push({ label: "Primeiros passos", id: PORS_HELP_DEFAULT_TOPIC });
-        crumbs.push({ label: porsTopic.title });
+    const ferroTopic = FERRO_HELP_TOPICS.find(({ id }) => id === current);
+    if (ferroTopic) {
+      if (ferroTopic.id !== FERRO_HELP_DEFAULT_TOPIC) {
+        crumbs.push({ label: "Primeiros passos", id: FERRO_HELP_DEFAULT_TOPIC });
+        crumbs.push({ label: ferroTopic.title });
       }
-    } else if (current.startsWith("pors-lib:")) {
+    } else if (current.startsWith("ferro-lib:")) {
       const [libraryId, member] = current.split(".");
-      const lib = PORS_HELP_LIBRARIES.find(({ id }) => id === libraryId);
+      const lib = FERRO_HELP_LIBRARIES.find(({ id }) => id === libraryId);
       if (lib) {
         crumbs.push({ label: lib.group === "standard" ? "Bibliotecas padrão" : "UI e Multimídia" });
-        const shortName = lib.name.replace(/^PORS:\s*/, "");
+        const shortName = lib.name;
         if (member) {
           crumbs.push({ label: shortName, id: lib.id });
           crumbs.push({ label: member });
@@ -191,7 +191,7 @@ export function mountHelp(optionsOrOpen: MountHelpOptions | ((source: string, fi
         }
       }
     } else if (topicById.has(current)) {
-      crumbs.push({ label: "Referência da sintaxe", id: "topicos/linguagem_portugol/index.html" });
+      crumbs.push({ label: "Referência da sintaxe", id: "topicos/linguagem_ferro/index.html" });
       const parts = current.split("/");
       // Adiciona diretórios intermediários que possuam index.html
       for (let i = 3; i < parts.length - 1; i += 1) {
@@ -200,7 +200,7 @@ export function mountHelp(optionsOrOpen: MountHelpOptions | ((source: string, fi
         if (parent && parent.id !== current) crumbs.push({ label: parent.title, id: parent.id });
       }
       const leaf = topicById.get(current)!;
-      if (leaf.id !== "topicos/linguagem_portugol/index.html") {
+      if (leaf.id !== "topicos/linguagem_ferro/index.html") {
         crumbs.push({ label: leaf.title });
       }
     }
@@ -235,7 +235,7 @@ export function mountHelp(optionsOrOpen: MountHelpOptions | ((source: string, fi
 
     const asset = (path: string) => decodeURI(new URL(path, "https://ajuda.invalid/" + topic).pathname.slice(1));
     const example = node.getAttribute("data-file");
-    if (node.classList.contains("codigo-portugol") && example) {
+    if (node.classList.contains("codigo-ferro") && example) {
       const path = asset(example);
       const source = examples["./help-assets/" + path];
       if (source === undefined) return null;
@@ -265,7 +265,7 @@ export function mountHelp(optionsOrOpen: MountHelpOptions | ((source: string, fi
       const image = element as HTMLImageElement;
       const dark = src.includes("${tema}");
       const darkPath = prefix + asset(src.replace("${tema}", "Dark"));
-      const lightPath = prefix + asset(src.replace("${tema}", "Portugol"));
+      const lightPath = prefix + asset(src.replace("${tema}", "Ferro"));
       const light = images[lightPath];
       if (!light) return null;
       image.alt = node.getAttribute("alt") ?? "";
@@ -286,7 +286,7 @@ export function mountHelp(optionsOrOpen: MountHelpOptions | ((source: string, fi
     return element;
   }
 
-  function renderMemberCard(item: PorsHelpLibrary["items"][number], libId: string) {
+  function renderMemberCard(item: FerroHelpLibrary["items"][number], libId: string) {
     const section = document.createElement("section");
     section.className = "help-member-card";
     section.dataset.memberSearch = normalize(`${item.name} ${item.signature} ${item.description}`);
@@ -309,7 +309,7 @@ export function mountHelp(optionsOrOpen: MountHelpOptions | ((source: string, fi
     sig.classList.add("help-signature");
     section.append(headingRow, sig, paragraph(item.description));
 
-    const details = parsePorsSignature(item.signature);
+    const details = parseFerroSignature(item.signature);
     if (details.parameters.length > 0) {
       const paramTitle = document.createElement("h4");
       paramTitle.className = "help-sublabel";
@@ -342,8 +342,8 @@ export function mountHelp(optionsOrOpen: MountHelpOptions | ((source: string, fi
     return section;
   }
 
-  function renderLibrary(lib: PorsHelpLibrary, member?: string) {
-    const shortName = lib.name.replace(/^PORS:\s*/, "");
+  function renderLibrary(lib: FerroHelpLibrary, member?: string) {
+    const shortName = lib.name;
     const header = document.createElement("h1");
     header.textContent = member ? `${shortName}.${member}` : lib.name;
     article.append(header);
@@ -387,7 +387,7 @@ export function mountHelp(optionsOrOpen: MountHelpOptions | ((source: string, fi
     const sectionsContainer = document.createElement("div");
     sectionsContainer.className = "help-lib-sections";
 
-    const groups: { title: string; items: readonly PorsHelpLibrary["items"][number][] }[] = [];
+    const groups: { title: string; items: readonly FerroHelpLibrary["items"][number][] }[] = [];
     if (functions.length) groups.push({ title: `Funções (${functions.length})`, items: functions });
     if (constants.length) groups.push({ title: `Constantes (${constants.length})`, items: constants });
 
@@ -433,15 +433,15 @@ export function mountHelp(optionsOrOpen: MountHelpOptions | ((source: string, fi
   function renderArticle() {
     article.replaceChildren();
     const current = selectedId();
-    const porsTopic = PORS_HELP_TOPICS.find(({ id }) => id === current);
-    if (porsTopic) {
+    const ferroTopic = FERRO_HELP_TOPICS.find(({ id }) => id === current);
+    if (ferroTopic) {
       const header = document.createElement("h1");
-      header.textContent = porsTopic.title;
-      article.append(header, paragraph(porsTopic.summary));
-      for (const text of porsTopic.paragraphs) {
+      header.textContent = ferroTopic.title;
+      article.append(header, paragraph(ferroTopic.summary));
+      for (const text of ferroTopic.paragraphs) {
         article.append(paragraph(text));
       }
-      if (porsTopic.comparisonRows?.length) {
+      if (ferroTopic.comparisonRows?.length) {
         const table = document.createElement("table");
         const thead = document.createElement("thead");
         const headRow = document.createElement("tr");
@@ -452,25 +452,25 @@ export function mountHelp(optionsOrOpen: MountHelpOptions | ((source: string, fi
         }
         thead.append(headRow);
         const tbody = document.createElement("tbody");
-        for (const [concept, porsCode, rustCode] of porsTopic.comparisonRows) {
+        for (const [concept, ferroCode, rustCode] of ferroTopic.comparisonRows) {
           const tr = document.createElement("tr");
           const tdConcept = document.createElement("td");
           tdConcept.textContent = concept;
-          const tdPors = document.createElement("td");
-          const codePors = document.createElement("code");
-          codePors.textContent = porsCode;
-          tdPors.append(codePors);
+          const tdFerro = document.createElement("td");
+          const codeFerro = document.createElement("code");
+          codeFerro.textContent = ferroCode;
+          tdFerro.append(codeFerro);
           const tdRust = document.createElement("td");
           const codeRust = document.createElement("code");
           codeRust.textContent = rustCode;
           tdRust.append(codeRust);
-          tr.append(tdConcept, tdPors, tdRust);
+          tr.append(tdConcept, tdFerro, tdRust);
           tbody.append(tr);
         }
         table.append(thead, tbody);
         article.append(table);
       }
-      if (porsTopic.id === "pors:ponte-rust" && options.openOwnershipLab) {
+      if (ferroTopic.id === "ferro:ponte-rust" && options.openOwnershipLab) {
         const labBtn = document.createElement("button");
         labBtn.type = "button";
         labBtn.className = "primary help-action-cta";
@@ -478,19 +478,19 @@ export function mountHelp(optionsOrOpen: MountHelpOptions | ((source: string, fi
         labBtn.onclick = () => options.openOwnershipLab?.();
         article.append(labBtn);
       }
-      if (porsTopic.example) {
-        article.append(buildCodeBlock(porsTopic.example.title, porsTopic.example.source, porsTopic.example.fileName, true));
+      if (ferroTopic.example) {
+        article.append(buildCodeBlock(ferroTopic.example.title, ferroTopic.example.source, ferroTopic.example.fileName, true));
       }
       refreshTheme();
       article.scrollTop = 0;
       return;
     }
 
-    if (current.startsWith("pors-lib:")) {
+    if (current.startsWith("ferro-lib:")) {
       const [libraryId, libraryMember] = current.split(".");
-      const porsLibrary = PORS_HELP_LIBRARIES.find(({ id }) => id === libraryId);
-      if (porsLibrary) {
-        renderLibrary(porsLibrary, libraryMember);
+      const ferroLibrary = FERRO_HELP_LIBRARIES.find(({ id }) => id === libraryId);
+      if (ferroLibrary) {
+        renderLibrary(ferroLibrary, libraryMember);
         refreshTheme();
         article.scrollTop = 0;
         return;
@@ -569,12 +569,12 @@ export function mountHelp(optionsOrOpen: MountHelpOptions | ((source: string, fi
 
   function appendLibraryEntries(
     target: DocumentFragment,
-    libs: readonly PorsHelpLibrary[],
+    libs: readonly FerroHelpLibrary[],
     query: string,
   ): number {
     let matches = 0;
     for (const lib of libs) {
-      const shortName = lib.name.replace(/^PORS:\s*/, "");
+      const shortName = lib.name;
       const matchingItems = query
         ? lib.items.filter((item) => normalize(`${shortName} ${item.name} ${item.signature} ${item.description}`).includes(query))
         : lib.items;
@@ -631,24 +631,24 @@ export function mountHelp(optionsOrOpen: MountHelpOptions | ((source: string, fi
     if (searchClear) searchClear.hidden = rawQuery.length === 0;
 
     let totalMatches = 0;
-    const porsMatches = filterPorsHelp(search.value);
-    const porsTopics = document.createDocumentFragment();
-    for (const topic of porsMatches.topics) {
-      porsTopics.append(topicButton(topic.id, topic.title));
+    const ferroMatches = filterFerroHelp(search.value);
+    const ferroTopics = document.createDocumentFragment();
+    for (const topic of ferroMatches.topics) {
+      ferroTopics.append(topicButton(topic.id, topic.title));
       totalMatches += 1;
     }
 
     const standardLibraries = document.createDocumentFragment();
     totalMatches += appendLibraryEntries(
       standardLibraries,
-      porsMatches.libraries.filter((lib) => lib.group === "standard"),
+      ferroMatches.libraries.filter((lib) => lib.group === "standard"),
       query,
     );
 
     const visualLibraries = document.createDocumentFragment();
     totalMatches += appendLibraryEntries(
       visualLibraries,
-      porsMatches.libraries.filter((lib) => lib.group === "visual"),
+      ferroMatches.libraries.filter((lib) => lib.group === "visual"),
       query,
     );
 
@@ -667,7 +667,7 @@ export function mountHelp(optionsOrOpen: MountHelpOptions | ((source: string, fi
 
     navigation.replaceChildren();
     for (const [label, entriesList, defaultOpen] of [
-      ["Primeiros passos com Ferro", porsTopics, true],
+      ["Primeiros passos com Ferro", ferroTopics, true],
       ["Bibliotecas padrão", standardLibraries, true],
       ["UI e multimídia", visualLibraries, Boolean(query)],
       ["Referência da sintaxe (.fer)", language, Boolean(query)],
@@ -709,7 +709,7 @@ export function mountHelp(optionsOrOpen: MountHelpOptions | ((source: string, fi
     };
   }
   if (homeTopicButton) {
-    homeTopicButton.onclick = () => choose(PORS_HELP_DEFAULT_TOPIC, true);
+    homeTopicButton.onclick = () => choose(FERRO_HELP_DEFAULT_TOPIC, true);
   }
   if (searchClear) {
     searchClear.onclick = () => {

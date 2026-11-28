@@ -26,7 +26,7 @@ impl Parser {
             "texto" => {
                 if arguments.is_empty() {
                     return self.fail(
-                        "pors.ui-call-arity",
+                        "ferro.ui-call-arity",
                         "`UI.texto` espera pelo menos 1 argumento",
                         whole_span,
                     );
@@ -41,7 +41,7 @@ impl Parser {
                             | hir::Type::Character
                     ) {
                         return self.fail(
-                            "pors.ui-call-type-mismatch",
+                            "ferro.ui-call-type-mismatch",
                             format!(
                                 "`UI.texto` espera valores escalares (cadeia, inteiro, real, logico ou caracter), recebeu `{}`",
                                 type_label(argument.ty)
@@ -54,7 +54,7 @@ impl Parser {
             "botao" => {
                 if arguments.len() != 2 {
                     return self.fail(
-                        "pors.ui-call-arity",
+                        "ferro.ui-call-arity",
                         format!(
                             "`UI.botao` espera 2 argumentos (id, rotulo), recebeu {}",
                             arguments.len()
@@ -65,7 +65,7 @@ impl Parser {
                 for (index, label) in [(0, "id"), (1, "rotulo")] {
                     if arguments[index].ty != hir::Type::String {
                         return self.fail(
-                            "pors.ui-call-type-mismatch",
+                            "ferro.ui-call-type-mismatch",
                             format!("O argumento `{label}` de `UI.botao` deve ter tipo `cadeia`"),
                             syntax_span(arguments[index].span),
                         );
@@ -75,7 +75,7 @@ impl Parser {
             "entrada" => {
                 if arguments.len() != 3 {
                     return self.fail(
-                        "pors.ui-call-arity",
+                        "ferro.ui-call-arity",
                         format!(
                             "`UI.entrada` espera 3 argumentos (id, valor, dica), recebeu {}",
                             arguments.len()
@@ -86,7 +86,7 @@ impl Parser {
                 for (index, label) in [(0, "id"), (1, "valor"), (2, "dica")] {
                     if arguments[index].ty != hir::Type::String {
                         return self.fail(
-                            "pors.ui-call-type-mismatch",
+                            "ferro.ui-call-type-mismatch",
                             format!("O argumento `{label}` de `UI.entrada` deve ter tipo `cadeia`"),
                             syntax_span(arguments[index].span),
                         );
@@ -96,7 +96,7 @@ impl Parser {
             "coluna" | "linha" | "lista" => {
                 if arguments.len() != 1 {
                     return self.fail(
-                        "pors.ui-call-arity",
+                        "ferro.ui-call-arity",
                         format!(
                             "`UI.{component}` espera 1 argumento (vetor<inteiro>), recebeu {}",
                             arguments.len()
@@ -106,7 +106,7 @@ impl Parser {
                 }
                 if arguments[0].ty != hir::Type::VectorInteger {
                     return self.fail(
-                        "pors.ui-call-type-mismatch",
+                        "ferro.ui-call-type-mismatch",
                         format!(
                             "`UI.{component}` espera `vetor<inteiro>`, recebeu `{}`",
                             type_label(arguments[0].ty)
@@ -117,7 +117,7 @@ impl Parser {
             }
             _ => {
                 return self.fail(
-                    "pors.unknown-ui-component",
+                    "ferro.unknown-ui-component",
                     format!("Componente visual desconhecido: UI.{component}"),
                     component_span,
                 );
@@ -146,7 +146,7 @@ impl Parser {
         } = expr.kind
         else {
             return self.fail(
-                "pors.expected-statement",
+                "ferro.expected-statement",
                 "Esperada chamada de função",
                 syntax_span(expr.span),
             );
@@ -435,14 +435,14 @@ impl Parser {
 
         let Some((param_types, return_spec)) = signature else {
             return self.fail(
-                "pors.unknown-stdlib-function",
+                "ferro.unknown-stdlib-function",
                 format!("Função desconhecida na biblioteca padrão: {module}.{member}"),
                 member_span,
             );
         };
         if arguments.len() != param_types.len() {
             return self.fail(
-                "pors.stdlib-call-arity",
+                "ferro.stdlib-call-arity",
                 format!(
                     "`{module}.{member}` espera {} argumento(s), recebeu {}",
                     param_types.len(),
@@ -454,7 +454,7 @@ impl Parser {
         for (index, (argument, expected_ty)) in arguments.iter().zip(param_types).enumerate() {
             if argument.ty != *expected_ty {
                 return self.fail(
-                    "pors.stdlib-call-type-mismatch",
+                    "ferro.stdlib-call-type-mismatch",
                     format!(
                         "O argumento {} de `{module}.{member}` deve ter tipo `{}`, recebeu `{}`",
                         index + 1,
@@ -500,7 +500,7 @@ impl Parser {
         let expect_text = |parser: &Self, arguments: &[hir::Expr]| -> Result<(), Vec<Diagnostic>> {
             if arguments.len() != 1 {
                 return parser.fail(
-                    "pors.stdlib-call-arity",
+                    "ferro.stdlib-call-arity",
                     format!(
                         "`Dialogo.{member}` espera 1 argumento (o texto), recebeu {}",
                         arguments.len()
@@ -510,7 +510,7 @@ impl Parser {
             }
             if arguments[0].ty != hir::Type::String {
                 return parser.fail(
-                    "pors.stdlib-call-type-mismatch",
+                    "ferro.stdlib-call-type-mismatch",
                     format!("O texto de `Dialogo.{member}` deve ter tipo `cadeia`"),
                     syntax_span(arguments[0].span),
                 );
@@ -542,7 +542,7 @@ impl Parser {
                 let component = self.record_ids.get("DialogoArquivo").copied();
                 let [argument] = <[hir::Expr; 1]>::try_from(arguments).map_err(|arguments| {
                     vec![Diagnostic::error(
-                        "pors.stdlib-call-arity",
+                        "ferro.stdlib-call-arity",
                         format!(
                             "`Dialogo.{member}` espera 1 argumento (um `<DialogoArquivo>` da tela), recebeu {}",
                             arguments.len()
@@ -552,7 +552,7 @@ impl Parser {
                 })?;
                 let Some(id) = component.filter(|id| argument.ty == hir::Type::Record(*id)) else {
                     return self.fail(
-                        "pors.stdlib-call-type-mismatch",
+                        "ferro.stdlib-call-type-mismatch",
                         format!("`Dialogo.{member}` espera um `<DialogoArquivo>` da tela, como `t.dlgAbrir`"),
                         syntax_span(argument.span),
                     );
@@ -565,7 +565,7 @@ impl Parser {
                 let field = |name: &str| definition.fields.iter().position(|f| f.name == name);
                 let (Some(title), Some(filter)) = (field("titulo"), field("filtro")) else {
                     return self.fail(
-                        "pors.stdlib-call-type-mismatch",
+                        "ferro.stdlib-call-type-mismatch",
                         "O `<DialogoArquivo>` desta tela não tem título e filtro",
                         syntax_span(argument.span),
                     );
@@ -584,7 +584,7 @@ impl Parser {
             }
             false => {
                 return self.fail(
-                    "pors.unknown-stdlib-function",
+                    "ferro.unknown-stdlib-function",
                     format!(
                         "Função desconhecida: Dialogo.{member}. Use `mensagem`, `confirmar`, `abrir_arquivo` ou `salvar_arquivo`."
                     ),

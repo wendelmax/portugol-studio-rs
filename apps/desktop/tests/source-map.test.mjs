@@ -21,18 +21,18 @@ test("Rust export API exposes generated and source editor ranges", () => {
   assert.match(api, /interface RustExport[\s\S]*sourceMap: SourceMapInfo\[\]/);
 });
 
-test("PORS run API distinguishes execution, compiler diagnostics, limits and cancellation", () => {
-  assert.match(api, /status: "executed"[\s\S]*status: "compile_error"[\s\S]*diagnostics: PortugolRsCompileDiagnostic\[\][\s\S]*status: "compile_limit"[\s\S]*status: "runtime_limit"[\s\S]*reason: "time" \| "output" \| "string_memory"[\s\S]*status: "cancelled"/);
-  assert.match(api, /runPortugolRs = \(id: number, source: string\)[\s\S]*\{ id, source \}/);
+test("FERRO run API distinguishes execution, compiler diagnostics, limits and cancellation", () => {
+  assert.match(api, /status: "executed"[\s\S]*status: "compile_error"[\s\S]*diagnostics: FerroRustCompileDiagnostic\[\][\s\S]*status: "compile_limit"[\s\S]*status: "runtime_limit"[\s\S]*reason: "time" \| "output" \| "string_memory"[\s\S]*status: "cancelled"/);
+  assert.match(api, /runFerroRust = \(id: number, source: string\)[\s\S]*\{ id, source \}/);
 });
 
-test("PORS execution uses the shared registered cancellation token", () => {
+test("FERRO execution uses the shared registered cancellation token", () => {
   const tauri = readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
-  const porsExecution = readFileSync(new URL("../src/run/portugol-rs-execution.ts", import.meta.url), "utf8");
-  assert.match(tauri, /async fn run_portugol_rs\([\s\S]*id: u32,[\s\S]*run_portugol_rs_with_io[\s\S]*remove\(&id\)/);
-  assert.match(main, /registerRun: api\.registerPortugolRsRun/);
-  assert.match(porsExecution, /registeredId = await dependencies\.registerRun\(\)[\s\S]*dependencies\.setRunId\(registeredId\)[\s\S]*dependencies\.runGeneratedRust\(registeredId, source\)/);
-  assert.match(porsExecution, /result\.status === "cancelled"[\s\S]*Execução Ferro cancelada durante/);
+  const ferroExecution = readFileSync(new URL("../src/run/ferro-execution.ts", import.meta.url), "utf8");
+  assert.match(tauri, /async fn run_ferro_rs\([\s\S]*id: u32,[\s\S]*run_ferro_rs_with_io[\s\S]*remove\(&id\)/);
+  assert.match(main, /registerRun: api\.registerFerroRustRun/);
+  assert.match(ferroExecution, /registeredId = await dependencies\.registerRun\(\)[\s\S]*dependencies\.setRunId\(registeredId\)[\s\S]*dependencies\.runGeneratedRust\(registeredId, source\)/);
+  assert.match(ferroExecution, /result\.status === "cancelled"[\s\S]*Execução Ferro cancelada durante/);
 });
 
 test("standalone Rust API covers compile/runtime limits and Tauri registers the command", () => {
@@ -132,7 +132,7 @@ test("source mapping gutter derives unique exact and approximate line links", ()
 });
 
 test("bridge mapping gutter exposes accessible two-way navigation between source and Rust", () => {
-  assert.match(html, /id="rust-mapping-gutter"[^>]*aria-label="Mapeamento Portugol para Rust"/);
+  assert.match(html, /id="rust-mapping-gutter"[^>]*aria-label="Mapeamento do pseudocódigo em português para Rust"/);
   assert.match(html, /id="rust-mapping-status"[^>]*aria-live="polite"/);
   assert.match(main, /function renderMappingGutter\(/);
   assert.match(generatedEditor, /"data-source-offset": String\(mapping\.sourceOffset\)/);
@@ -183,7 +183,7 @@ test("Rust editor keeps the per-tab artifact marked stale until current translat
   assert.doesNotMatch(updateListener, /renderRustPreview\(tab\)|rustPreview\.render\(/);
   assert.match(fileIO, /const languageChanged = tab\.language !== previousLanguage/);
   assert.match(main, /if \(languageChanged && tab\.rustPreview\?\.artifact\)/);
-  assert.match(main, /if \(learningMode === "bridge" && tab\.language === "portugol-rs"\) rustPreview\.schedule\(\)/);
+  assert.match(main, /if \(learningMode === "bridge" && tab\.language === "ferro-rust"\) rustPreview\.schedule\(\)/);
   const save = fileIO.match(/async function save\(as = false\): Promise<boolean> \{([\s\S]*?)\n  \}/)?.[1] ?? "";
   assert.match(save, /await dependencies\.writeFile\(path, text\)[\s\S]*const previousLanguage = tab\.language[\s\S]*tab\.language = dependencies\.detectSourceLanguage\(path\)/);
   const schedule = main.match(/\n( *)function scheduleRustExport\(\) \{([\s\S]*?)\n\1\}\n\n\1function renderRustPreview/)?.[2] ?? "";
@@ -203,15 +203,15 @@ test("generated Rust diff is read-only, accessible, bounded, and hidden when the
   assert.match(css, /\.rust-diff-table tr\[data-kind="added"\]/);
 });
 
-test("PORS run response is discarded when its tab or document revision changes", () => {
-  const porsExecution = readFileSync(new URL("../src/run/portugol-rs-execution.ts", import.meta.url), "utf8");
-  assert.match(porsExecution, /dependencies\.isCurrent\(tab, document\)/);
-  assert.match(porsExecution, /result\.status === "executed"/);
-  assert.match(porsExecution, /result\.status === "runtime_limit"/);
-  assert.match(porsExecution, /tempo máximo de 3 segundos/);
-  assert.match(porsExecution, /limite de saída de 1 MiB/);
-  assert.match(porsExecution, /limite de memória para cadeias de 16 MiB/);
-  assert.match(porsExecution, /result\.diagnostics\.map\(dependencies\.sourceDiagnostic\)/);
+test("FERRO run response is discarded when its tab or document revision changes", () => {
+  const ferroExecution = readFileSync(new URL("../src/run/ferro-execution.ts", import.meta.url), "utf8");
+  assert.match(ferroExecution, /dependencies\.isCurrent\(tab, document\)/);
+  assert.match(ferroExecution, /result\.status === "executed"/);
+  assert.match(ferroExecution, /result\.status === "runtime_limit"/);
+  assert.match(ferroExecution, /tempo máximo de 3 segundos/);
+  assert.match(ferroExecution, /limite de saída de 1 MiB/);
+  assert.match(ferroExecution, /limite de memória para cadeias de 16 MiB/);
+  assert.match(ferroExecution, /result\.diagnostics\.map\(dependencies\.sourceDiagnostic\)/);
   assert.match(generatedEditor, /mappedSourceOffsetAt\(editor\.state\.field\(generatedRustDecorations\), position\)/);
   assert.match(main, /function focusRustMapping\(link: SourceMapLink\)[\s\S]*generatedRustEditor\.dispatch\([\s\S]*scrollIntoView: true/);
 });

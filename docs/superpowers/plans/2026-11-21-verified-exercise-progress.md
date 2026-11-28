@@ -70,8 +70,8 @@
 - [x] Update parity notes to distinguish existing auto-grading from the new validated local progress.
 - [x] Run `cd apps/desktop && npm test` (4 test files pass).
 - [x] Run `cd apps/desktop && npm run build` (TypeScript and Vite pass).
-- [ ] Run `cargo test --workspace`; local run is blocked while compiling Tauri by missing `webkit2gtk-4.1` and `javascriptcoregtk-4.1` development libraries. `cargo test --workspace --exclude portugol-desktop` passed all remaining Rust tests after enabling the test's loopback listener.
-- [ ] Run `cargo clippy --workspace --all-targets -- -D warnings`; local run is blocked by the same missing WebKitGTK development library. `cargo clippy --workspace --exclude portugol-desktop --all-targets -- -D warnings` passed.
+- [ ] Run `cargo test --workspace`; local run is blocked while compiling Tauri by missing `webkit2gtk-4.1` and `javascriptcoregtk-4.1` development libraries. `cargo test --workspace --exclude ferro-desktop` passed all remaining Rust tests after enabling the test's loopback listener.
+- [ ] Run `cargo clippy --workspace --all-targets -- -D warnings`; local run is blocked by the same missing WebKitGTK development library. `cargo clippy --workspace --exclude ferro-desktop --all-targets -- -D warnings` passed.
 - [x] Review changed files and commit the feature documentation; CI remains the gate for full workspace validation.
 
 #### Review finding and fix

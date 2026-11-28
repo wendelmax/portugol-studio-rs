@@ -9,11 +9,11 @@ export function clampFontSize(value: number): number {
   return Math.round(Math.max(MIN_SIZE, Math.min(MAX_SIZE, value || FALLBACK_SIZE)));
 }
 
-/** Liga cada campo `id` à variável CSS `--id` e à preferência `portugol.id`. */
+/** Liga cada campo `id` à variável CSS `--id` e à preferência `ferro.id`. */
 export function mountFontSizeControls(ids: readonly string[]) {
   for (const id of ids) {
     const input = document.getElementById(id) as HTMLInputElement;
-    const key = `portugol.${id}`;
+    const key = `ferro.${id}`;
     const applyFontSize = () => {
       input.value = String(clampFontSize(input.valueAsNumber));
       document.documentElement.style.setProperty(`--${id}`, `${input.value}px`);

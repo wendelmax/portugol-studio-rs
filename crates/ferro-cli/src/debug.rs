@@ -13,7 +13,7 @@ use ferro_hir::{Diagnostic, Span, line_col};
 use ferro_vm::debug::{DebugCommand, DebugControl, PausedInfo};
 use ferro_vm::{StdIo, Vm};
 
-use crate::{is_pors_file, read_source, report_unsupported_extension};
+use crate::{is_ferro_file, read_source, report_unsupported_extension};
 
 enum Event {
     Paused(PausedInfo),
@@ -23,7 +23,7 @@ enum Event {
 
 pub fn main(args: &[String]) -> ExitCode {
     if args.is_empty() || args.iter().any(|arg| arg == "-h" || arg == "--help") {
-        eprintln!("uso: portugol depurar [--ponto <linha>]... <arquivo.fer>");
+        eprintln!("uso: ferro depurar [--ponto <linha>]... <arquivo.fer>");
         return ExitCode::SUCCESS;
     }
 
@@ -60,12 +60,12 @@ pub fn main(args: &[String]) -> ExitCode {
     }
 
     let Some(file) = file else {
-        eprintln!("uso: portugol depurar [--ponto <linha>]... <arquivo.fer>");
+        eprintln!("uso: ferro depurar [--ponto <linha>]... <arquivo.fer>");
         return ExitCode::FAILURE;
     };
 
     let path = Path::new(file);
-    if !is_pors_file(path) {
+    if !is_ferro_file(path) {
         report_unsupported_extension(path);
         return ExitCode::FAILURE;
     }
@@ -87,11 +87,11 @@ pub fn main(args: &[String]) -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    let module = match ferro_bytecode::compile_pors(&program) {
+    let module = match ferro_bytecode::compile_ferro(&program) {
         Ok(module) => module,
         Err(error) => {
             let span = Span::new(error.span.start, error.span.end);
-            let diagnostic = Diagnostic::error("pors.compile-error", error.message, span);
+            let diagnostic = Diagnostic::error("ferro.compile-error", error.message, span);
             eprintln!("{}", diagnostic.render(&source, file));
             return ExitCode::FAILURE;
         }
@@ -115,7 +115,7 @@ pub fn main(args: &[String]) -> ExitCode {
         let mut io = StdIo;
         let mut vm = Vm::new(&module, &mut io).with_debug(vm_control);
         if let Some(dir) = worker_dir {
-            vm = vm.with_pors_workspace_dir(dir);
+            vm = vm.with_ferro_workspace_dir(dir);
         }
         match vm.run() {
             Ok(()) => {
@@ -154,7 +154,7 @@ pub fn main(args: &[String]) -> ExitCode {
                     .trim();
                 println!("\n[pausa] {file}:{line}:{col} | {snippet}");
                 loop {
-                    print!("(pors-dbg) ");
+                    print!("(ferro-dbg) ");
                     let _ = io::stdout().flush();
                     let Some(Ok(raw)) = lines.next() else {
                         control.stop();
