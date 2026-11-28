@@ -243,9 +243,9 @@ function e2eHarnessScript(scenario, width, height, runId) {
       await sleep(350);
       const helpHeadings = [...document.querySelectorAll("#help-topics h2")].map((h) => h.textContent);
       check("help-ferro-menus-only",
-        helpHeadings.includes("Primeiros passos (FERRO)") &&
-        helpHeadings.includes("Bibliotecas padrão (FERRO)") &&
-        helpHeadings.includes("UI e Multimídia (FERRO)") &&
+        helpHeadings.includes("Primeiros passos com Ferro") &&
+        helpHeadings.includes("Bibliotecas padrão") &&
+        helpHeadings.includes("UI e multimídia") &&
         helpHeadings.includes("Referência da sintaxe (.fer)") &&
         !helpHeadings.includes("Bibliotecas clássicas"),
         helpHeadings.join(" | "));
