@@ -4,7 +4,7 @@
 - **Data:** 2026-11-27
 - **Responsável:** mantenedor do produto
 - **Relacionados:** [ADR 0015](0015-evolucao-visual-orientada-a-aprendizagem.md), [ADR 0016](0016-ferro-como-linguagem-autoral-e-retirada-do-por.md), [ADR 0017](0017-modelo-execucao-e-estado-ui-visual-ferro.md), [ADR 0020](0020-ajustes-pedagogicos-da-sintaxe-ferro.md), [ADR 0021](0021-tela-como-forma-unica-de-interface-ferro.md)
-- **Emendas:** Emendas 1, 2 e 3 (2026-11-27); Emenda 4 (2026-11-28)
+- **Emendas:** Emendas 1, 2 e 3 (2026-11-27); Emendas 4 e 5 (2026-11-28)
 
 > **Emenda 1 (2026-11-27).** O formato da tela passa a usar uma marcação de tags no
 > estilo XAML (pseudo-XAML) em vez da sintaxe de chaves da versão inicial. O
@@ -38,6 +38,14 @@
 > sistema: o atributo `Permissoes` do `<Projeto>` no `.ferproj`, com os
 > serviços separados por vírgula (`Permissoes="Dialogo,AreaTransferencia"`),
 > no mesmo estilo de `Ancora="Cima,Esquerda"`. Ver a seção 5.
+
+> **Emenda 5 (2026-11-28).** Uma tela pode abrir outra tela do projeto por
+> cima dela, com o módulo `Telas`: `Telas.abrir("Outra")`, ou
+> `Telas.abrir("Outra", dados, "aoFechar")` para entregar dados e receber a
+> resposta. A tela aberta termina com `Telas.concluir()` (devolve os dados) ou
+> `Telas.fechar()` (sem resposta). O handler não fica parado esperando: a
+> resposta chega numa função de retorno, o que mantém o handler puro e
+> funciona igual na VM e no Slint exportado. Ver a seção 9.
 
 > **Nota (2026-11-27, [ADR 0023](0023-identidade-e-marca-ferro-studio.md)
 > Emenda 1).** O manifesto passa a usar a extensão `.ferproj`. Como o
@@ -482,7 +490,7 @@ construir frameworks ou interfaces muito elaboradas fica de fora.
 | `DataTemplate` | `<Lista Itens="{dados.alunos}">` com `<ModeloItem>` para cada `registro` | Depois |
 | `Style`, `ResourceDictionary`, temas | `<Estilo Para="Botao" ... />` na janela ou no projeto, temas claro e escuro | Depois |
 | Validação (`IDataErrorInfo`) | `Erro="{dados.erro_idade}"` junto do campo, ligado a `Resultado` e `Tipos.para_*` | Depois |
-| Várias janelas e diálogos (`ShowDialog`) | Abrir outra tela como diálogo, com resultado em `Resultado` | Depois |
+| Várias janelas e diálogos (`ShowDialog`) | `Telas.abrir` com função de retorno que recebe um `Opcao` (seção 9) | Emenda 5 |
 
 Não serão adotados: eventos roteados (*bubbling*/*tunneling*), dependency
 properties declaradas pelo aluno, `ControlTemplate`, *triggers* e
@@ -492,6 +500,71 @@ properties declaradas pelo aluno, `ControlTemplate`, *triggers* e
 conteúdo arbitrário (o máximo previsto é um `Botao` com `Icone`). Cada um é um
 conceito a mais antes de o primeiro programa funcionar, sem ganho
 proporcional no aprendizado.
+
+### 9. Várias janelas *(Emenda 5)*
+
+Um projeto tem várias telas, e uma tela abre outra pelo nome. A tela aberta
+fica por cima da que a abriu e bloqueia essa tela até ser fechada, como o
+`ShowDialog` do Windows Forms.
+
+```ferro
+// JanelaPrincipal.fer: abre a edição da conta e recebe a conta editada
+funcao btnEditar_clicar(tela: JanelaPrincipal) -> JanelaPrincipal {
+    Telas.abrir("EditarConta", tela.dados, "edicao_terminou");
+    retorne tela;
+}
+
+funcao edicao_terminou(tela: JanelaPrincipal, resposta: Opcao<Conta>) -> JanelaPrincipal {
+    seja mutavel t: JanelaPrincipal = tela;
+    escolha resposta {
+        caso Opcao::Algum(conta) => { t.dados = conta; }
+        caso Opcao::Nenhum => { }
+    }
+    retorne t;
+}
+
+// EditarConta.fer: a tela aberta termina com concluir ou fechar
+funcao btnSalvar_clicar(tela: EditarConta) -> EditarConta {
+    Telas.concluir();
+    retorne tela;
+}
+```
+
+- `Telas.abrir("Nome")` abre a tela `Nome` do projeto, sem dados e sem
+  resposta. `Telas.abrir("Nome", dados, "funcao")` entrega `dados` como o
+  `dados` inicial da tela aberta, antes do `AoAbrir` dela, e chama `funcao`
+  quando ela fechar. O nome da tela e o da função são textos literais, para
+  que a análise confira os dois.
+- A função de retorno recebe a janela e um `Opcao` com o tipo de `dados`, e
+  devolve a janela: `funcao f(tela: J, resposta: Opcao<Conta>) -> J`. A
+  análise confere a assinatura, como faz com os eventos do `.design`.
+- `Telas.concluir()` fecha a tela atual e a função de retorno recebe
+  `Opcao::Algum` com os `dados` dela. `Telas.fechar()` e o botão de fechar da
+  janela entregam `Opcao::Nenhum`. Na janela inicial, os dois encerram o
+  programa.
+- As chamadas de `Telas` só registram o pedido. A tela abre, ou fecha, quando
+  o handler termina, com a janela que ele devolveu. O handler continua puro e
+  não fica parado à espera de outra janela. É assim que a VM, a janela Tauri
+  e o Slint exportado podem se comportar igual: o Slint não tem um laço de
+  eventos aninhado para um diálogo que bloqueia o handler.
+- Cada tela declara o próprio registro de `Dados`. Para entregar dados, o
+  registro das duas telas precisa ter o mesmo nome e os mesmos campos, com os
+  mesmos tipos; a execução confere e explica a diferença. Um módulo com
+  tipos compartilhados entre as telas fica para depois.
+- `Telas` não precisa de permissão no `.ferproj`: abre só telas do próprio
+  projeto.
+- Fica para depois: telas que não bloqueiam a que as abriu (janelas
+  independentes, como o `Show` do Windows Forms), abrir a mesma tela mais de
+  uma vez ao mesmo tempo e trocar mensagens entre telas abertas.
+
+Alternativas consideradas:
+
+- **Chamada que espera a resposta** (`seja r = Telas.mostrar(...)`, como o
+  `ShowDialog`). Rejeitada: no Slint exportado o handler roda dentro do laço
+  de eventos, que não aninha, e na VM o handler pararia no meio da execução
+  com a janela antiga.
+- **Abrir a tela pelo `.design`** (`AoClicar="abrir:EditarConta"`). Rejeitada:
+  não entrega dados nem recebe resposta, e esconde do código o que acontece.
 
 ## Alternativas consideradas
 
@@ -562,8 +635,10 @@ Rust do produto. Pode ser oferecida depois como "empacotar sem compilar".
 - **Fase 6 (exportação Slint):** `.design` → `.slint`, adaptadores de
   *callbacks* e testes de paridade entre a VM e o binário exportado.
 - **Depois:** modelos de itens (`<ModeloItem>`), estilos e temas, validação
-  junto do campo, diálogos entre telas e células que ocupam várias linhas ou
-  colunas.
+  junto do campo e células que ocupam várias linhas ou colunas.
+- **Várias janelas (Emenda 5):** `Telas.abrir`, `Telas.concluir` e
+  `Telas.fechar` na linguagem e na VM; telas empilhadas na execução Tauri;
+  exportação Slint de todas as telas do projeto.
 - A HIR passa a aceitar tipos sintetizados de fora do código-fonte `.fer`,
   com *source maps* que apontam para o `.design`.
 - Testes de paridade passam a cobrir a sequência de eventos → estado da janela
