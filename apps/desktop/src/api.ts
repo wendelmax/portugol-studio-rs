@@ -421,6 +421,10 @@ export const deleteWorkspaceFile = (workspaceId: string, relativePath: string) =
   invoke<WorkspaceDeleteResult>("workspace_delete_file", { workspaceId, relativePath });
 export const exportWorkspaceFiles = (workspaceId: string, relativePaths: string[]) =>
   invoke<WorkspaceExportResult | null>("workspace_export", { workspaceId, relativePaths });
+/** Exporta uma tela como projeto Cargo com Slint; `null` se a pasta não foi escolhida. */
+export const exportScreenCargo = (designSource: string, codeSource: string, workspaceId: string, designPath: string) =>
+  invoke<{ packageName: string; projectDir: string } | null>("screen_export_cargo", { designSource, codeSource, workspaceId, designPath });
+
 export const exportCargoProject = (packageName: string, rustCode: string) =>
   invoke<CargoScaffoldExportResult | null>("export_cargo_project", { packageName, rustCode });
 

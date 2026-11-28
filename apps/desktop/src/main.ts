@@ -449,6 +449,15 @@ const consoleBox = $("console");
 const inputForm = $<HTMLFormElement>("console-form");
 const inputField = $<HTMLInputElement>("console-input");
 
+/** Executar e exportar telas (ADR 0018, seções 5 e 6). */
+const screenExecution = createScreenExecution({
+  files: screenFiles,
+  start: api.startScreenRun,
+  exportCargo: api.exportScreenCargo,
+  setStatus,
+  appendConsole,
+  showConsole: () => showPanel("console"),
+});
 const runShell = createRunShell({
   activeTab,
   tabs: tabCollection.tabs,
@@ -481,16 +490,14 @@ const runShell = createRunShell({
   debugStepOut: api.debugStepOut,
   renderMessages,
   renderExerciseTests,
-  screenExecution: createScreenExecution({
-    files: screenFiles,
-    start: api.startScreenRun,
-    setStatus,
-    appendConsole,
-    showConsole: () => showPanel("console"),
-  }),
+  screenExecution,
 });
 void api.listenScreenOutput((output) => appendConsole(output.text, output.error ? "error" : undefined));
 $("design-run").onclick = () => void runShell.runProgram();
+$("design-export").onclick = () => {
+  const tab = activeTab();
+  if (tab && screenExecution.handles(tab)) void screenExecution.exportCargo(tab);
+};
 const {
   runState,
   syncBreakpoints,

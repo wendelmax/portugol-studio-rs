@@ -339,3 +339,115 @@ pub async fn screen_run_dispatch(
         }
     }
 }
+
+/// Exportar uma tela (ADR 0018, seção 6): pede a pasta e grava o projeto
+/// Cargo com a interface em Slint; as imagens da tela vão para `ui/`.
+#[tauri::command]
+pub async fn screen_export_cargo(
+    app: AppHandle,
+    session: tauri::State<'_, crate::workspace::WorkspaceSession>,
+    design_source: String,
+    code_source: String,
+    workspace_id: String,
+    design_path: String,
+) -> Result<Option<ScreenExportResult>, String> {
+    let (folder, _) =
+        crate::workspace::screen_project(session.inner(), &workspace_id, &design_path)?;
+    let name = folder
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("tela-ferro")
+        .to_owned();
+    let project = ferro_rust::export_screen_cargo_project(&design_source, &code_source, &name)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let Some(selected) = app
+            .dialog()
+            .file()
+            .set_title("Exportar a tela como projeto Cargo")
+            .blocking_pick_folder()
+        else {
+            return Ok(None);
+        };
+        let destination = selected
+            .into_path()
+            .map_err(|error| format!("Não foi possível acessar a pasta selecionada: {error}"))?;
+        write_screen_project(&project, &folder, &destination)?;
+        Ok(Some(ScreenExportResult {
+            package_name: project.package_name,
+            project_dir: destination.display().to_string(),
+        }))
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScreenExportResult {
+    package_name: String,
+    project_dir: String,
+}
+
+/// Grava o projeto; recusa uma pasta que já tem `Cargo.toml` e imagens fora
+/// da pasta da tela.
+fn write_screen_project(
+    project: &ferro_rust::ScreenCargoProject,
+    screen_folder: &std::path::Path,
+    destination: &std::path::Path,
+) -> Result<(), String> {
+    if destination.join("Cargo.toml").exists() {
+        return Err("A pasta escolhida já tem um Cargo.toml; escolha uma pasta vazia.".into());
+    }
+    let write = |relative: &str, content: &[u8]| -> Result<(), String> {
+        let target = destination.join(relative);
+        if let Some(parent) = target.parent() {
+            std::fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+        }
+        std::fs::write(&target, content)
+            .map_err(|error| format!("Não foi possível gravar {}: {error}", target.display()))
+    };
+    for (relative, content) in &project.files {
+        write(relative, content.as_bytes())?;
+    }
+    let screen_folder = std::fs::canonicalize(screen_folder).map_err(|error| error.to_string())?;
+    for image in &project.images {
+        let source = std::fs::canonicalize(screen_folder.join(image))
+            .map_err(|_| format!("A imagem `{image}` da tela não foi encontrada."))?;
+        if !source.starts_with(&screen_folder) {
+            return Err(format!("A imagem `{image}` está fora da pasta da tela."));
+        }
+        let bytes = std::fs::read(&source).map_err(|error| error.to_string())?;
+        write(&format!("ui/{image}"), &bytes)?;
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod export_tests {
+    #[test]
+    fn grava_o_projeto_com_as_imagens_e_nao_sobrescreve() {
+        let base = std::env::temp_dir().join(format!("ferro-exportar-tela-{}", std::process::id()));
+        let screen = base.join("App");
+        std::fs::create_dir_all(screen.join("recursos")).unwrap();
+        std::fs::write(screen.join("recursos/logo.png"), [1u8, 2, 3]).unwrap();
+        let design = "<Janela Nome=\"J\" Titulo=\"T\" Largura=\"100\" Altura=\"100\">\n    <Imagem Nome=\"img\" X=\"0\" Y=\"0\" Arquivo=\"recursos/logo.png\" />\n</Janela>\n";
+        let project = ferro_rust::export_screen_cargo_project(design, "", "App").unwrap();
+        let destination = base.join("saida");
+        super::write_screen_project(&project, &screen, &destination).unwrap();
+        assert!(destination.join("ui/J.slint").is_file());
+        assert_eq!(
+            std::fs::read(destination.join("ui/recursos/logo.png")).unwrap(),
+            [1, 2, 3]
+        );
+        let again = super::write_screen_project(&project, &screen, &destination).unwrap_err();
+        assert!(again.contains("Cargo.toml"), "{again}");
+
+        let outside = "<Janela Nome=\"J\" Titulo=\"T\" Largura=\"100\" Altura=\"100\">\n    <Imagem Nome=\"img\" X=\"0\" Y=\"0\" Arquivo=\"../segredo.png\" />\n</Janela>\n";
+        std::fs::write(base.join("segredo.png"), [9u8]).unwrap();
+        let project = ferro_rust::export_screen_cargo_project(outside, "", "App").unwrap();
+        let error =
+            super::write_screen_project(&project, &screen, &base.join("saida2")).unwrap_err();
+        assert!(error.contains("fora da pasta"), "{error}");
+        std::fs::remove_dir_all(&base).unwrap();
+    }
+}

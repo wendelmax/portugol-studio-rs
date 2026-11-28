@@ -1225,6 +1225,7 @@ version = "0.7.0"
 dependencies = [
  "cap-std",
  "ferro-formatos",
+ "ferro-rust",
  "ferro-service",
  "ferro-tela",
  "rodio",

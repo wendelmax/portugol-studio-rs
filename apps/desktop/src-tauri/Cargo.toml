@@ -16,6 +16,7 @@ tauri-build = { version = "2", features = [] }
 cap-std = "4"
 ferro-service = { path = "../../../crates/ferro-service" }
 ferro-tela = { path = "../../../crates/ferro-tela" }
+ferro-rust = { path = "../../../crates/ferro-rust" }
 ferro-formatos = { path = "../../../crates/ferro-formatos" }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"

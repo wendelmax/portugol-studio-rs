@@ -1036,6 +1036,7 @@ pub fn run_app() {
             debug_step_out,
             debug_set_breakpoints,
             screen_window::screen_run_start,
+            screen_window::screen_export_cargo,
             screen_window::screen_run_state,
             screen_window::screen_run_dispatch,
             graphics::graphics_next,
