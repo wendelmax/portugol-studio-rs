@@ -38,7 +38,8 @@ Modernizar o Web Playground Ferro publicado em https://wendelmax.github.io/ferro
 
 - `apps/web-playground/ferro-language.mjs` é a fonte única da referência. Exporta `FERRO_SYNTAX_ENTRIES`, `wordRangeAt(source, caret)` e `completeFerro(source, caret)`.
 - Cada entrada tem `{ id, label, kind, group, signature, description, example, insertText }`. Grupos: `Estrutura`, `Declarações`, `Tipos`, `Controle`, `Dados`, `Entrada e saída`, `Valores`, `Operadores`. `insertText` é o trecho inserido no editor; para palavras e variantes é igual a `label`.
-- `wordRangeAt` retrocede sobre `[A-Za-z0-9_:]` para que `Resultado::O` seja um único token. `completeFerro` filtra por prefixo case-insensitive, limita a 12 resultados e retorna `[]` dentro de comentário `//` ou cadeia aberta.
+- `wordRangeAt` retrocede sobre `[A-Za-z0-9_:]` para que `Resultado::O` seja um único token. `completeFerro` filtra por prefixo case-insensitive, limita a 12 resultados e retorna `[]` dentro de comentário `//` ou cadeia aberta; a varredura considera linhas anteriores porque literais Ferro podem conter `\n`.
+- A referência e o autocomplete anunciam somente sintaxe aceita pelo frontend Ferro; formas como `senao_se`, `faca_enquanto`, `nulo`, `??`, `??=` e `?.` não aparecem no catálogo (ver RFC 008 e o lexer de `ferro-frontend`).
 - O popup de autocomplete vive dentro de `.pg-editor-wrap`, é controlado por `ArrowDown`/`ArrowUp`/`Enter`/`Tab`/`Escape` e nunca intercepta `Ctrl+Enter`.
 - O painel de referência é um card full-width abaixo da grade editor/terminal, com `<input type="search">`, lista agrupada e estado vazio; o clique insere `insertText` no caret do editor.
 - Os botões `Validar`, `Formatar`, `Prévia UI` e `Ver Rust` viram opções de `<select id="pg-action">`. Escolher uma opção dispara a ação e o select volta ao placeholder; `Executar` permanece como único botão.

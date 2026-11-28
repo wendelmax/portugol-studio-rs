@@ -129,17 +129,9 @@ export const FERRO_SYNTAX_ENTRIES = [
     "senao",
     "keyword",
     "Controle",
-    "senao { ... }",
-    "Ramificação executada quando a condição do se anterior é falsa.",
-    "se (pronto) {\n    escreval(\"Sim\");\n} senao {\n    escreval(\"Não\");\n}",
-  ),
-  entry(
-    "senao_se",
-    "keyword",
-    "Controle",
-    "senao se (condicao) { ... }",
-    "Encadeia uma nova condição após um se ou senao se.",
-    "se (n < 0) {\n    escreval(\"Negativo\");\n} senao se (n == 0) {\n    escreval(\"Zero\");\n}",
+    "senao { ... } / senao se (condicao) { ... }",
+    "Ramificação executada quando a condição do se anterior é falsa; senao se encadeia outra condição.",
+    "se (n < 0) {\n    escreval(\"Negativo\");\n} senao se (n == 0) {\n    escreval(\"Zero\");\n} senao {\n    escreval(\"Positivo\");\n}",
   ),
   entry(
     "enquanto",
@@ -150,10 +142,10 @@ export const FERRO_SYNTAX_ENTRIES = [
     "enquanto (n > 0) {\n    n -= 1;\n}",
   ),
   entry(
-    "faca_enquanto",
+    "faca",
     "keyword",
     "Controle",
-    "faca { ...} enquanto (condicao);",
+    "faca { ... } enquanto (condicao);",
     "Executa o bloco ao menos uma vez e repete enquanto a condição for verdadeira.",
     "faca {\n    n -= 1;\n} enquanto (n > 0);",
   ),
@@ -286,14 +278,6 @@ export const FERRO_SYNTAX_ENTRIES = [
     "seja ativo: logico = falso;",
   ),
   entry(
-    "nulo",
-    "constant",
-    "Valores",
-    "nulo",
-    "Ausência de valor em contextos que a aceitam.",
-    "seja vazio = nulo;",
-  ),
-  entry(
     "Resultado::Ok",
     "variant",
     "Valores",
@@ -334,30 +318,6 @@ export const FERRO_SYNTAX_ENTRIES = [
     "seja n: inteiro = dividir(a, b)?;",
   ),
   entry(
-    "??",
-    "operator",
-    "Operadores",
-    "esquerda ?? direita",
-    "Escolhe a direita quando a esquerda é Opcao::Nenhum.",
-    "seja nome = encontrado ?? \"anônimo\";",
-  ),
-  entry(
-    "??=",
-    "operator",
-    "Operadores",
-    "variavel ??= valor",
-    "Atribui valor quando a variável ainda está vazia.",
-    "nome ??= \"anônimo\";",
-  ),
-  entry(
-    "?.",
-    "operator",
-    "Operadores",
-    "valor?.campo",
-    "Acesso encadeado seguro que preserva ausência em vez de falhar.",
-    "seja cidade = pessoa?.endereco?.cidade;",
-  ),
-  entry(
     "+=",
     "operator",
     "Operadores",
@@ -396,16 +356,21 @@ export function wordRangeAt(source, caret) {
 /** Verdadeiro quando o caret está dentro de comentário de linha ou cadeia aberta. */
 function inCommentOrString(source, caret) {
   const end = Math.max(0, Math.min(caret, source.length));
-  const lineStart = source.lastIndexOf("\n", end - 1) + 1;
   let quote = null;
   let escaped = false;
+  let lineComment = false;
 
-  for (let i = lineStart; i < end; i += 1) {
+  for (let i = 0; i < end; i += 1) {
     const ch = source[i];
     if (escaped) {
       escaped = false;
       continue;
     }
+    if (ch === "\n") {
+      lineComment = false;
+      continue;
+    }
+    if (lineComment) continue;
     if (quote !== null) {
       if (ch === "\\") escaped = true;
       else if (ch === quote) quote = null;
@@ -415,9 +380,12 @@ function inCommentOrString(source, caret) {
       quote = ch;
       continue;
     }
-    if (ch === "/" && source[i + 1] === "/") return true;
+    if (ch === "/" && source[i + 1] === "/") {
+      lineComment = true;
+      i += 1;
+    }
   }
-  return quote !== null;
+  return quote !== null || lineComment;
 }
 
 /** Sugestões de sintaxe Ferro para o prefixo antes do caret, no máximo 12. */

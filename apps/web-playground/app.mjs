@@ -146,6 +146,7 @@ function renderCompletions(entries, activeIndex, range) {
     item.setAttribute("role", "option");
     item.setAttribute("aria-selected", String(index === activeIndex));
     item.textContent = entry.label;
+    item.addEventListener("mousedown", (event) => event.preventDefault());
     item.addEventListener("click", () => applyCompletion(index));
     fragment.append(item);
   });

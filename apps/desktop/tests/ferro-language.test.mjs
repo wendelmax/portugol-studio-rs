@@ -26,6 +26,21 @@ test("completions are suppressed inside comments and strings", () => {
   assert.deepEqual(completeFerro(quoted, quoted.indexOf('";')), []);
 });
 
+test("completions stay suppressed inside strings that span lines", () => {
+  assert.deepEqual(labels('seja s = "abc\nescr'), []);
+  assert.ok(labels('seja s = "a//b"; escr').includes("escreval"));
+});
+
+test("syntax reference only advertises syntax Ferro accepts", () => {
+  const entriesByLabel = new Map(FERRO_SYNTAX_ENTRIES.map((entry) => [entry.label, entry]));
+  for (const invalid of ["senao_se", "faca_enquanto", "nulo", "??", "??=", "?."]) {
+    assert.equal(entriesByLabel.has(invalid), false, `${invalid} não é sintaxe Ferro`);
+  }
+  assert.ok(entriesByLabel.has("faca"));
+  assert.match(entriesByLabel.get("senao").example, /senao se/);
+  assert.match(entriesByLabel.get("Opcao::Nenhum").description, /ausência/);
+});
+
 test("syntax entries cover every reference group and carry examples", () => {
   const groups = new Set(FERRO_SYNTAX_ENTRIES.map((entry) => entry.group));
   for (const group of [

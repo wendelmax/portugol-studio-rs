@@ -571,6 +571,17 @@ test("web playground autocomplete suggests Ferro words and supports keyboard sel
     assert.equal(editor.value, "escreval");
     assert.equal(list.hidden, true);
 
+    editor.value = "escr";
+    editor.selectionStart = editor.selectionEnd = 4;
+    editor.fire("input");
+    const item = list.children.find((child) => child.textContent === "escreval");
+    assert.ok(item, "escreval deve estar na lista");
+    let defaultPrevented = false;
+    item.fire("mousedown", { preventDefault() { defaultPrevented = true; } });
+    if (!defaultPrevented) editor.fire("blur");
+    item.fire("click");
+    assert.equal(editor.value, "escreval");
+
     editor.value = "// escr";
     editor.selectionStart = editor.selectionEnd = 7;
     editor.fire("input");

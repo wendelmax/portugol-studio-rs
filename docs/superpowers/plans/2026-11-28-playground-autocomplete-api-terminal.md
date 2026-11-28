@@ -111,13 +111,13 @@ Defina `FERRO_SYNTAX_ENTRIES` com entradas únicas nos grupos abaixo, na ordem e
 - `Estrutura`: `funcao`, `inicio`, `retorne`.
 - `Declarações`: `seja`, `mutavel`.
 - `Tipos`: `inteiro`, `real`, `logico`, `cadeia`, `caracter`, `vetor`, `Opcao`, `Resultado`.
-- `Controle`: `se`, `senao`, `senao_se`, `enquanto`, `faca_enquanto`, `para`, `pare`, `continue`, `escolha`, `caso`.
+- `Controle`: `se`, `senao` (cobre `senao se`), `enquanto`, `faca` (com `enquanto`), `para`, `pare`, `continue`, `escolha`, `caso`.
 - `Dados`: `registro`, `enum`, `adicionar`, `remover`, `obter`, `tamanho`.
 - `Entrada e saída`: `escreva`, `escreval`, `leia`, nesta ordem.
-- `Valores`: `verdadeiro`, `falso`, `nulo`, `Resultado::Ok`, `Resultado::Erro`, `Opcao::Algum`, `Opcao::Nenhum`.
-- `Operadores`: `?`, `??`, `??=`, `?.`, `+=`, `&&`, `||`.
+- `Valores`: `verdadeiro`, `falso`, `Resultado::Ok`, `Resultado::Erro`, `Opcao::Algum`, `Opcao::Nenhum` (não há `nulo` no Ferro).
+- `Operadores`: `?`, `+=`, `&&`, `||` (`??`, `??=` e `?.` não são tokens do lexer e estão adiados na RFC 008).
 
-Implemente `wordRangeAt(source, caret)`: retroceda sobre `[A-Za-z0-9_:]` a partir de `caret` e devolva `{ start, end: caret, prefix: source.slice(start, caret) }`. Implemente `completeFerro(source, caret)`: retorne `[]` quando a linha até o caret contiver `//` fora de cadeia ou quando houver quantidade ímpar de aspas não escapadas antes do caret; caso contrário, use `wordRangeAt` e filtre `FERRO_SYNTAX_ENTRIES` por `label.toLowerCase().startsWith(prefix.toLowerCase())`, preservando a ordem da lista e limitando a 12.
+Implemente `wordRangeAt(source, caret)`: retroceda sobre `[A-Za-z0-9_:]` a partir de `caret` e devolva `{ start, end: caret, prefix: source.slice(start, caret) }`. Implemente `completeFerro(source, caret)`: retorne `[]` quando o caret estiver dentro de comentário `//` ou de cadeia aberta; a varredura deve cobrir todo o fonte até o caret, mantendo o estado da cadeia entre linhas porque o lexer Ferro aceita `\n` dentro de literais. Caso contrário, use `wordRangeAt` e filtre `FERRO_SYNTAX_ENTRIES` por `label.toLowerCase().startsWith(prefix.toLowerCase())`, preservando a ordem da lista e limitando a 12.
 
 - [ ] **Step 4: Add the module to the bundle script**
 
@@ -388,3 +388,13 @@ Expected: exit 0, nenhum aviso de whitespace e uma linha de `cp` contendo `ferro
 git add apps/web-playground/README.md
 git commit -m "docs: descreve playground com autocomplete e terminal"
 ```
+
+## Correções pós-revisão (2026-11-28)
+
+A revisão final do branch encontrou três problemas que o plano original não cobria:
+
+1. O clique do mouse no popup era perdido porque `blur` fechava o popup no `mousedown`, antes do `click`. Cada item do popup agora chama `event.preventDefault()` em `mousedown`.
+2. A detecção de cadeia aberta reiniciava a cada linha, mas o lexer Ferro aceita `\n` dentro de literais. A varredura passa a cobrir todo o fonte até o caret.
+3. A lista de entradas anunciava `senao_se`, `faca_enquanto`, `nulo`, `??`, `??=` e `?.`, que o frontend Ferro não aceita. As entradas passam a ser `senao` (com `senao se`), `faca`, `Opcao::Nenhum`, e os operadores ficam restritos a `?`, `+=`, `&&` e `||`. As listas da Task 1 acima foram corrigidas para refletir isso.
+
+Cada correção foi precedida de teste falho. O item "propagável com `?.`" da revisão era falso positivo: o texto é `propagável com ?.` — operador `?` seguido do ponto final da frase.
