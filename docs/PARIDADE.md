@@ -1,8 +1,8 @@
-# Inventário histórico do Portugol Studio clássico
+# Inventário histórico de recursos clássicos de programação educacional
 
-> **Direção atual (Fase 6 concluída):** conforme o [ADR 0016](adr/0016-pors-como-linguagem-autoral-e-retirada-do-por.md), o suporte a `.por` e `.pex` foi completamente retirado do produto, da CLI e do workspace. Este arquivo permanece apenas como inventário histórico de referência das capacidades do produto Java original. Para projetos `.por`/`.pex`, utilize o [Portugol Studio original](https://github.com/UNIVALI-LITE/Portugol-Studio). A matriz de acompanhamento da migração está em [`PORS_MIGRATION_MATRIX.md`](research/PORS_MIGRATION_MATRIX.md).
+> **Direção atual (Fase 6 concluída):** conforme o [ADR 0016](adr/0016-pors-como-linguagem-autoral-e-retirada-do-por.md), o suporte a `.por` e `.pex` foi completamente retirado do produto, da CLI e do workspace. Este arquivo permanece apenas como inventário histórico. A matriz de acompanhamento da migração está em [`PORS_MIGRATION_MATRIX.md`](research/PORS_MIGRATION_MATRIX.md).
 
-Inventário do que o Portugol Studio original oferece e o estado no port.
+Inventário histórico de recursos clássicos e seu estado neste projeto.
 Atualize esta tabela junto com cada recurso entregue.
 
 Legenda: ✅ feito · 🟡 parcial · ⬜ falta · ➖ não se aplica
@@ -80,7 +80,7 @@ são executados e validados sem tela.
 | Relatar bug (`TelaRelatarBug`) | ✅ | diálogo em Sobre, com abertura das issues do port no navegador |
 | Mostrar alertas (`TelaAlertas`) | ✅ | consulta issues públicas abertas com o rótulo `alerta` no repositório do port |
 | Plugins (`plugins`, `PainelPlugins`) | ➖ | plugins do original são classes Java; exigiria outro modelo de extensão |
-| Carrossel de cursos, coletor de interações | ➖ | dependem de serviços da UNIVALI |
+| Carrossel de cursos, coletor de interações | ➖ | dependem de serviços externos |
 
 ## Comparação visual
 

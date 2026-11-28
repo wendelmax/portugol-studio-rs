@@ -24,7 +24,7 @@ pub(crate) fn is_legacy_file(path: &Path) -> bool {
 pub(crate) fn report_unsupported_extension(path: &Path) {
     if is_legacy_file(path) {
         eprintln!(
-            "{}: arquivos legados .por/.pex não são suportados no Ferro Studio; use o Portugol Studio original para abri-los ou converta para {}",
+            "{}: arquivos legados .por/.pex não são suportados no Ferro Studio; use arquivos {}",
             path.display(),
             ferro_formatos::describe(&[Kind::Source])
         );

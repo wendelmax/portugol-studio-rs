@@ -33,7 +33,7 @@ test("help-assets ships all 77 ported .fer examples without classic .por boilerp
     const rel = path.relative(exemplosPorsDir, file);
     assert.ok(!source.includes("programa {"), `${rel} nao deve conter "programa {"`);
     assert.ok(!source.includes("inclua biblioteca"), `${rel} nao deve conter "inclua biblioteca"`);
-    assert.ok(!source.includes("$$$ Portugol Studio $$$"), `${rel} nao deve conter rodape legado do Portugol Studio`);
+    assert.ok(!source.includes("$$$ Portugol Studio $$$"), `${rel} nao deve conter o rodape legado do material de origem`);
   }
 });
 

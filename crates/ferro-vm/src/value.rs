@@ -29,7 +29,7 @@ pub enum Reference {
 }
 
 /// `inteiro` e `real` seguem os tipos `int` e `double` do Java gerado pelo
-/// Portugol Studio: inteiros têm 32 bits e estouram com *wrap-around*.
+/// A linguagem usa inteiros de 32 bits com estouro *wrap-around*.
 /// Vetores e matrizes são compartilhados por referência, como os arrays Java.
 #[derive(Debug, Clone)]
 pub enum Value {

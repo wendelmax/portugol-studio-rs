@@ -89,7 +89,7 @@ function theme(name: string, base: Base, p: Palette): Theme {
   return { name, base, colors };
 }
 
-// Paletas padronizadas do Portugol Studio RS: IntelliJ Rust (RustRover) e os temas claros e
+// Paletas padronizadas do Ferro Studio: IntelliJ Rust (RustRover) e os temas claros e
 // escuros mais usados do VS Code, calibrados para contraste WCAG AA (>= 4,5:1).
 export const BUILTIN_THEMES: Readonly<Record<string, Theme>> = {
   "preset:intellij-rust-dark": theme("IntelliJ Rust Dark", "dark", {

@@ -6,18 +6,16 @@ implementação, auditorias e relatórios de agentes não são contratos de UX.
 
 ## Direção do produto
 
-O Portugol Studio é uma aplicação desktop Rust + Tauri para aprender lógica,
+O Ferro Studio é uma aplicação desktop Rust + Tauri para aprender lógica,
 Ferro e Rust real. Ferro (`.fer`) é a linguagem autoral e o caminho
 principal de aprendizagem; arquivos Rust (`.rs`) permitem avançar para a
-linguagem e a toolchain reais. A interface deve preservar familiaridade útil
-com uma IDE educacional e evoluir em função desses fluxos, sem exigir paridade
-pixel a pixel com o Portugol Studio clássico.
+linguagem e a toolchain reais. A interface deve ser familiar para quem aprende
+programação e evoluir em função desses fluxos.
 
 O suporte a Portugol clássico (`.por`/`.pex`) foi retirado na Fase 6 do
 [ADR 0016](adr/0016-pors-como-linguagem-autoral-e-retirada-do-por.md). Quando o
-usuário tenta abrir um arquivo `.por` ou `.pex`, a interface e a CLI exibem uma
-orientação clara em português indicando o Portugol Studio original — sem
-converter nem modificar o arquivo do usuário.
+usuário tenta abrir um arquivo `.por` ou `.pex`, a interface e a CLI informam
+que o formato não é suportado, sem converter nem modificar o arquivo.
 
 ## Princípios de experiência
 
@@ -93,7 +91,7 @@ converter nem modificar o arquivo do usuário.
 | `.rs` | Código Rust real. Análise, formatação, compilação e execução dependem das ferramentas Rust correspondentes instaladas; a IDE informa quando uma capacidade não está disponível. |
 | `.licao` | Exercício estruturado Ferro avaliado no serviço local com casos de teste reais. |
 | `.pors` / `.pors.json` | Extensões retiradas. Não são abertas como código ou lições; renomear para `.fer` ou `.licao` mantém o conteúdo. |
-| `.por` / `.pex` | Não suportados (Fase 6 / ADR 0016). A IDE e a CLI rejeitam a abertura com aviso claro orientando o usuário ao Portugol Studio original, sem alterar nem converter o arquivo. |
+| `.por` / `.pex` | Não suportados (Fase 6 / ADR 0016). A IDE e a CLI rejeitam a abertura com aviso claro, sem alterar nem converter o arquivo. |
 
 O Rust gerado é um artefato de tradução do Ferro, não uma promessa de
 compatibilidade com toda a linguagem Rust. A prévia deve corresponder à revisão

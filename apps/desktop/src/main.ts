@@ -3,7 +3,7 @@ import { mountTips } from "./tips";
 import { mountThemeEditor } from "./themes";
 // IDE: abas de arquivos, editor CodeMirror, console e execução.
 //
-// Atalhos seguem o Portugol Studio original (TelaAtalhos.java):
+// Atalhos seguem convenções de IDEs educacionais:
 // Shift+F6 executa, Shift+F7 interrompe, Ctrl+Q fecha a aba,
 // Alt+←/→ troca de aba, Shift+Esc expande o editor.
 

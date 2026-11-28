@@ -1589,7 +1589,7 @@ fn convert(value: &Value, ty: ValueType) -> Option<Value> {
     })
 }
 
-/// Converte a linha digitada como a aba de console do Portugol Studio.
+/// Converte uma linha digitada no console.
 /// Escalares passam por `trim` como no Rust gerado; `cadeia` permanece bruta.
 fn parse_input(ty: ValueType, line: Option<String>) -> Exec<Value> {
     let invalid = || {

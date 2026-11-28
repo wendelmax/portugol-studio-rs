@@ -497,12 +497,12 @@ mod tests {
         assert!(
             read_relative_file(&temp.0, Path::new("legado.por"))
                 .unwrap_err()
-                .contains("Portugol Studio original")
+                .contains("Arquivos legados")
         );
         assert!(
             read_relative_file(&temp.0, Path::new("legado.pex"))
                 .unwrap_err()
-                .contains("Portugol Studio original")
+                .contains("Arquivos legados")
         );
     }
 
@@ -1878,10 +1878,7 @@ fn checked_file(root: &Path, relative: &Path, allow_exercise: bool) -> Result<Pa
             || allow_exercise && is_exercise(&candidate))
     {
         if is_legacy_extension(&candidate) {
-            return Err(
-                "Arquivos legados .por e .pex não são suportados no Ferro Studio. Use o Portugol Studio original para abri-los."
-                    .into(),
-            );
+            return Err("Arquivos legados .por e .pex não são suportados no Ferro Studio.".into());
         }
         return Err(format!(
             "O explorador só abre arquivos {}.",

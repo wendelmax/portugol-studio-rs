@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Copia os exemplos do Portugol Studio original para tests/corpus.
+"""Copia exemplos clássicos de Portugol para tests/corpus.
 
 Uso: python3 scripts/importar_corpus.py <caminho do Portugol-Studio>
 

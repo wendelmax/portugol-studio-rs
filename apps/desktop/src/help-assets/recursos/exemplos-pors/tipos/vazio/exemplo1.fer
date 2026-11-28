@@ -19,7 +19,7 @@ funcao informacoes(nome: cadeia, versao: real, fornecedor: cadeia) {
 
 funcao inicio() {
     imprime_linha();
-    informacoes("Ferro", 1.0, "Portugol Studio RS");
+    informacoes("Ferro", 1.0, "Ferro Studio");
     imprime_linha();
     informacoes("Java", 1.7, "Oracle");
     imprime_linha();

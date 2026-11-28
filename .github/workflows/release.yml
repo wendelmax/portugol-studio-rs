@@ -61,7 +61,7 @@ jobs:
 
           ### Arquivos suportados
 
-          O Ferro Studio suporta programas **Ferro (\`.fer\`)**, lições **\`.licao\`**, projetos **\`.ferproj\` / \`.design\`** e arquivos/projetos **Rust (\`.rs\` / Cargo)**. O suporte ao formato clássico \`.por\`/\`.pex\` foi retirado; para projetos legados, utilize o [Portugol Studio original](https://github.com/UNIVALI-LITE/Portugol-Studio).
+          O Ferro Studio suporta programas **Ferro (\`.fer\`)**, lições **\`.licao\`**, projetos **\`.ferproj\` / \`.design\`** e arquivos/projetos **Rust (\`.rs\` / Cargo)**. O suporte ao formato clássico \`.por\`/\`.pex\` foi retirado.
 
           ### Instalação
 

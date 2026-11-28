@@ -3,8 +3,7 @@
 [tools]
 rust = "1.99.1"
 node = "22.23.5"
-# O Portugol Studio original compila com sourceCompatibility 1.8
-# (projects.gradle). Usamos o JDK 8 para os testes diferenciais.
+# O corpus clássico ainda requer compatibilidade com Java 8.
 java = "temurin-8.0.512+9"
 
 [tasks.test]

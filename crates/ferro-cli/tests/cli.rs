@@ -130,14 +130,14 @@ fn rejects_legacy_por_with_guidance_and_unknown_extensions() {
     let legacy_check = cli().arg(&classic).output().unwrap();
     assert!(!legacy_check.status.success());
     assert!(
-        String::from_utf8_lossy(&legacy_check.stderr).contains("Portugol Studio original"),
+        String::from_utf8_lossy(&legacy_check.stderr).contains("não são suportados"),
         "{legacy_check:?}"
     );
 
     let legacy_run = cli().args(["executar"]).arg(&classic).output().unwrap();
     assert!(!legacy_run.status.success());
     assert!(
-        String::from_utf8_lossy(&legacy_run.stderr).contains("Portugol Studio original"),
+        String::from_utf8_lossy(&legacy_run.stderr).contains("não são suportados"),
         "{legacy_run:?}"
     );
 

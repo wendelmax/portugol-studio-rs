@@ -1265,7 +1265,7 @@ const EXAMPLES: &[PorsExample] = &[
         category: "Música",
         title: "Player de Música",
         file_name: "player.fer",
-        description: "Este exemplo apresenta um player de música criado utilizando os recursos de reprodução de sons e música do Portugol Studio. O exemplo também utiliza os recursos da biblioteca gráfica para criar um fundo animado e os botões de controle de reprodução do playr",
+        description: "Este exemplo apresenta um player de música criado com os recursos de reprodução de sons e música de Ferro. O exemplo também utiliza a biblioteca gráfica para criar um fundo animado e os botões de controle do player.",
         is_visual: false,
         license: "LGPL-3.0-only",
         source: include_str!("../assets/exemplos-pors/classicos/musica/player.fer"),

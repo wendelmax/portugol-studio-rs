@@ -20,7 +20,7 @@ Executar e depurar um `.fer` usam a VM educacional, sem exigir Rust instalado; `
 
 ## Executar arquivos Rust (`.rs`)
 
-A IDE compila arquivos `.rs` como Rust 2021 usando `rustc` encontrado no `PATH`. A toolchain Rust precisa estar instalada no sistema; os instaladores do Portugol Studio não incluem nem instalam `rustc`. Sem a toolchain, o botão Executar fica indisponível. A execução de cada arquivo exige ação explícita e uma confirmação por sessão.
+A IDE compila arquivos `.rs` como Rust 2021 usando `rustc` encontrado no `PATH`. A toolchain Rust precisa estar instalada no sistema; os instaladores do Ferro Studio não incluem nem instalam `rustc`. Sem a toolchain, o botão Executar fica indisponível. A execução de cada arquivo exige ação explícita e uma confirmação por sessão.
 
 A compilação tem limite de 20 segundos e a execução de 3 segundos. A fonte e a saída combinada têm limite de 1 MiB. A entrada padrão é fechada; dependências externas, módulos externos e entrada interativa não estão disponíveis no fluxo standalone. O supervisor aplica o limite ao processo associado; código nativo sem sandbox ainda pode criar processos destacados ou escapar do grupo/job antes de ser associado.
 
