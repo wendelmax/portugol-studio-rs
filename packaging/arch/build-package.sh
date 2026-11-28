@@ -63,6 +63,7 @@ pkg_path="${packages[0]}"
 pkg_list="$(tar --zstd -tf "$pkg_path")"
 for required in \
   "usr/bin/ferro-desktop" \
+  "usr/bin/ferro" \
   "usr/bin/ferro-studio" \
   "usr/share/applications/ferro-studio.desktop" \
   "usr/share/mime/packages/ferro-studio.xml" \

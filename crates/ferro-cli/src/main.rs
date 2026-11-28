@@ -40,7 +40,25 @@ pub(crate) fn report_unsupported_extension(path: &Path) {
 fn main() -> ExitCode {
     let args: Vec<String> = env::args().skip(1).collect();
 
+    if args.len() == 2 && matches!(args[1].as_str(), "-h" | "--help") {
+        return help_command(&args[..1]);
+    }
+
     match args.first().map(String::as_str) {
+        Some("valida" | "validar") => return validate_command(&args[1..]),
+        Some("ajuda") => return help_command(&args[1..]),
+        Some("--help" | "-h") => {
+            print_usage();
+            return ExitCode::SUCCESS;
+        }
+        Some("sintaxe") => {
+            print_syntax();
+            return ExitCode::SUCCESS;
+        }
+        Some("--version" | "-V") => {
+            println!("ferro {}", env!("CARGO_PKG_VERSION"));
+            return ExitCode::SUCCESS;
+        }
         Some("executar") => return run::main(&args[1..]),
         Some("depurar") => return debug::main(&args[1..]),
         Some("formatar") => return format_command(&args[1..]),
@@ -50,19 +68,33 @@ fn main() -> ExitCode {
         _ => {}
     }
 
-    if args.is_empty() || args.iter().any(|arg| arg == "-h" || arg == "--help") {
+    if args.is_empty() {
         print_usage();
         return ExitCode::SUCCESS;
     }
 
+    // Atalho para o caso mais comum: executar diretamente um arquivo Ferro.
+    // Diretórios e arquivos de projeto continuam sendo validação.
+    if is_ferro_file(Path::new(&args[0])) {
+        return run::main(&args);
+    }
+
+    validate_command(&args)
+}
+
+fn validate_command(args: &[String]) -> ExitCode {
     let mut paths = Vec::new();
     let mut quiet = false;
 
-    for arg in &args {
+    for arg in args {
         match arg.as_str() {
             "-q" | "--quiet" => quiet = true,
             _ => paths.push(PathBuf::from(arg)),
         }
+    }
+
+    if paths.is_empty() {
+        paths.push(PathBuf::from("."));
     }
 
     let mut files = Vec::new();
@@ -153,12 +185,21 @@ fn main() -> ExitCode {
 }
 
 fn new_command(args: &[String]) -> ExitCode {
+    if args
+        .first()
+        .is_some_and(|arg| arg == "--help" || arg == "-h")
+    {
+        return help_command(&["novo".to_owned()]);
+    }
     if args.first().is_some_and(|arg| arg == "--desktop") {
         return desktop::new_project(&args[1..]);
     }
+    if args.first().is_some_and(|arg| arg == "--jogo") {
+        return desktop::new_game_project();
+    }
     if args.len() != 1 || args[0] == "-h" || args[0] == "--help" {
         eprintln!(
-            "uso: ferro novo <arquivo.fer>\n     ferro novo --desktop <pasta> [--nome \"Nome do aplicativo\"] [--exemplo contador]"
+            "uso: ferro novo <arquivo.fer>\n     ferro novo --desktop <pasta> [--nome \"Nome do aplicativo\"] [--exemplo contador]\n     ferro novo --jogo <pasta> (indisponível neste build)"
         );
         return ExitCode::FAILURE;
     }
@@ -195,6 +236,37 @@ fn new_command(args: &[String]) -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+fn help_command(args: &[String]) -> ExitCode {
+    if args.is_empty() {
+        print_usage();
+        return ExitCode::SUCCESS;
+    }
+    if args.len() != 1 {
+        eprintln!("uso: ferro ajuda [comando]");
+        return ExitCode::FAILURE;
+    }
+    let usage = match args[0].as_str() {
+        "valida" | "validar" => "uso: ferro valida [--quiet] [<arquivo.fer | diretório>...]",
+        "executar" => "uso: ferro executar [--bytecode] <arquivo.fer>",
+        "depurar" => "uso: ferro depurar [--ponto <linha>]... <arquivo.fer>",
+        "novo" => {
+            "uso: ferro novo <arquivo.fer> | --desktop <pasta> [--nome <nome>] (novo --jogo requer suporte a Tipo=Jogo no validador .ferproj)"
+        }
+        "formatar" => "uso: ferro formatar [--check] <arquivo.fer | .design | .ferproj>",
+        "exportar-rust" => "uso: ferro exportar-rust <arquivo.fer>",
+        "exportar-cargo" => "uso: ferro exportar-cargo <arquivo.fer> <pasta>",
+        "sintaxe" => "uso: ferro sintaxe",
+        "ajuda" | "--help" | "-h" => "uso: ferro ajuda [comando]",
+        "--version" | "-V" => "uso: ferro --version",
+        other => {
+            eprintln!("comando desconhecido: {other}");
+            return ExitCode::FAILURE;
+        }
+    };
+    println!("{usage}");
+    ExitCode::SUCCESS
 }
 
 fn format_command(args: &[String]) -> ExitCode {
@@ -462,7 +534,8 @@ fn print_usage() {
         "ferro {}\n\
          \n\
          Uso:\n\
-           ferro [opções] <arquivo | diretório>...            valida .fer, .design e .ferproj\n\
+           ferro <arquivo.fer>                                executa na VM\n\
+           ferro valida [<arquivo | diretório>...]            valida; sem caminho usa a pasta atual\n\
            ferro novo <arquivo.fer>                           cria um modelo .fer\n\
            ferro novo --desktop <pasta> [--nome <nome>]       cria um projeto desktop\n\
            ferro novo --desktop <pasta> --exemplo contador    cria o projeto de exemplo\n\
@@ -472,11 +545,31 @@ fn print_usage() {
            ferro exportar-cargo <tela.design> <pasta>         gera um projeto Cargo com a tela em Slint\n\
            ferro executar [--bytecode] <arquivo.fer>          executa um programa na VM\n\
            ferro depurar [--ponto <linha>]... <arquivo.fer>   depura um programa interativamente\n\
+           ferro sintaxe                                     mostra uma referência da linguagem Ferro\n\
+           ferro --version                                   mostra a versão instalada\n\
          \n\
          Opções da validação:\n\
            -q, --quiet   só mostra arquivos com erro\n\
            -h, --help    mostra esta ajuda",
         env!("CARGO_PKG_VERSION")
+    );
+}
+
+fn print_syntax() {
+    println!(
+        "Sintaxe Ferro (referência resumida)\n\
+         \n\
+         funcao inicio() {{\n\
+             seja nome: cadeia = \"mundo\";\n\
+             escreval(\"Olá, {{nome}}!\");\n\
+         }}\n\
+         \n\
+         Tipos: inteiro, real, logico, caracter, cadeia, vetor<T> e vazio.\n\
+         Declarações: seja nome = valor; | seja mutavel nome: Tipo = valor;\n\
+         Controle: se/senao, enquanto, para, escolha/caso, pare, continue.\n\
+         Funções: funcao nome(parametro: Tipo) -> Tipo {{ ... }}\n\
+         Comentários: // linha ou /* bloco */\n\
+         Consulte a Ajuda do Ferro Studio para a referência completa."
     );
 }
 

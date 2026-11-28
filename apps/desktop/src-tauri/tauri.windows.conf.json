@@ -1,0 +1,13 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "resources": {
+      "binaries/ferro.exe": "binaries/ferro.exe"
+    },
+    "windows": {
+      "nsis": {
+        "installerHooks": "windows/ferro-cli-path.nsh"
+      }
+    }
+  }
+}

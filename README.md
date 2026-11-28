@@ -136,28 +136,36 @@ exportação e a execução de Rust estão em [`docs/FERRO-RUST.md`](docs/FERRO-
 
 ## Linha de comando
 
-O comando de linha de comando atual valida, formata, executa, depura e exporta
-programas `.fer` sem abrir a IDE. Com o repositório clonado:
+O instalador do Ferro Studio também instala o executável `ferro` no `PATH`.
+Assim, o CLI pode ser usado sem abrir a IDE e sem precisar de Cargo:
 
 ```bash
-cargo run -p ferro-cli -- programa.fer                       # valida (também aceita pastas)
-cargo run -p ferro-cli -- executar programa.fer              # executa na máquina virtual
-cargo run -p ferro-cli -- depurar programa.fer               # depurador interativo no terminal
-cargo run -p ferro-cli -- novo exercicio.fer                 # cria um arquivo inicial
-cargo run -p ferro-cli -- formatar programa.fer              # formata (--check só confere)
-cargo run -p ferro-cli -- exportar-rust programa.fer         # imprime o Rust gerado
-cargo run -p ferro-cli -- exportar-cargo programa.fer pasta  # gera um projeto Cargo
-cargo run -p ferro-cli -- exportar-cargo App/JanelaPrincipal.design pasta  # tela desktop em Slint
-cargo run -p ferro-cli -- novo --desktop "Meu App"            # cria um projeto desktop Ferro
-cargo run -p ferro-cli -- "Meu App"                           # valida .fer, .design e .ferproj
+ferro programa.fer                             # executa na máquina virtual
+ferro valida programa.fer                      # valida um arquivo
+ferro valida                                   # valida a pasta atual
+ferro valida src/                              # também aceita diretórios
+ferro depurar programa.fer                     # depurador interativo no terminal
+ferro novo exercicio.fer                       # cria um arquivo inicial
+ferro novo --desktop "Meu App" --exemplo contador # cria projeto desktop de exemplo
+ferro formatar programa.fer                    # formata (--check só confere)
+ferro exportar-rust programa.fer               # imprime o Rust gerado
+ferro exportar-cargo programa.fer projeto      # gera um projeto Cargo
+ferro exportar-cargo App/JanelaPrincipal.design projeto # exporta tela em Slint
+ferro ajuda executar                           # ajuda de um comando
+ferro sintaxe                                  # resumo da sintaxe Ferro
+ferro --version
 ```
+
+No repositório clonado, `cargo run -p ferro-cli -- ...` continua disponível
+para desenvolvimento; ele não é necessário para quem instalou o produto.
 
 Cada projeto desktop Ferro tem um manifesto `.ferproj` e telas descritas por
 pares de arquivos: `Nome.design` (o desenho em pseudo-XAML) e `Nome.fer` (o
 code-behind). `formatar` também aceita `.design` e `.ferproj`.
 
 `executar --bytecode` mostra as instruções geradas para a máquina virtual,
-útil para quem estuda compiladores. `--quiet` lista apenas os arquivos com erro.
+útil para quem estuda compiladores. `valida --quiet` lista apenas os arquivos
+com erro. O CLI deste build ainda não cria projetos de jogo `.ferproj`.
 
 ## Para desenvolvedores
 

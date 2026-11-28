@@ -39,6 +39,8 @@ build() {
   npm --prefix apps/desktop ci
   npm --prefix apps/desktop run build
   export CARGO_TARGET_DIR="${srcdir}/${pkgname}-${pkgver}/target"
+  cargo build --release --locked -p ferro-cli
+  install -Dm755 "target/release/ferro" "apps/desktop/src-tauri/binaries/ferro"
   cargo build --release --locked -p ferro-desktop --features tauri/custom-protocol
 }
 
@@ -46,6 +48,7 @@ package() {
   cd "${pkgname}-${pkgver}"
 
   install -Dm755 "target/release/ferro-desktop" "${pkgdir}/usr/bin/ferro-desktop"
+  install -Dm755 "target/release/ferro" "${pkgdir}/usr/bin/ferro"
   ln -s ferro-desktop "${pkgdir}/usr/bin/ferro-studio"
 
   install -Dm644 "packaging/arch/ferro-studio.desktop" \
