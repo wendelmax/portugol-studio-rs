@@ -88,9 +88,28 @@ mod tests {
     }
 
     #[test]
+    fn creates_the_counter_example_project() {
+        let temp = TempDir::new();
+        let folder =
+            super::create_desktop_project_in(&temp.0, "Contador", Some("contador")).unwrap();
+        assert!(folder.join("contador.ferproj").is_file());
+        assert!(folder.join("JanelaPrincipal.design").is_file());
+        assert!(
+            fs::read_to_string(folder.join("JanelaPrincipal.fer"))
+                .unwrap()
+                .contains("btnInc_clicar")
+        );
+        assert!(super::create_desktop_project_in(&temp.0, "Outro", Some("nada")).is_err());
+        assert!(
+            !temp.0.join("Outro").exists(),
+            "exemplo desconhecido não deixa pasta pela metade"
+        );
+    }
+
+    #[test]
     fn creates_a_desktop_project_folder_without_overwriting() {
         let temp = TempDir::new();
-        let folder = super::create_desktop_project_in(&temp.0, "  Meu App  ").unwrap();
+        let folder = super::create_desktop_project_in(&temp.0, "  Meu App  ", None).unwrap();
         assert!(folder.ends_with("Meu App"));
         assert!(folder.join("meu-app.ferproj").is_file());
         assert!(folder.join("JanelaPrincipal.design").is_file());
@@ -101,12 +120,12 @@ mod tests {
         paths.sort();
         assert_eq!(paths, ["JanelaPrincipal.design", "meu-app.ferproj"]);
 
-        let again = super::create_desktop_project_in(&temp.0, "Meu App").unwrap_err();
+        let again = super::create_desktop_project_in(&temp.0, "Meu App", None).unwrap_err();
         assert!(again.contains("Já existe uma pasta"), "{again}");
 
         for name in ["", "   ", "a/b", "a\\b", "nome?", ".oculto", "fim.", "!!!"] {
             assert!(
-                super::create_desktop_project_in(&temp.0, name).is_err(),
+                super::create_desktop_project_in(&temp.0, name, None).is_err(),
                 "{name:?}"
             );
         }
@@ -1076,11 +1095,19 @@ fn desktop_project_folder_name(name: &str) -> Result<String, String> {
     Ok(trimmed.to_owned())
 }
 
-/// Cria a pasta `parent/name` com o modelo de projeto desktop. A pasta não
-/// pode existir; se algo falhar depois de criá-la, ela é removida.
-fn create_desktop_project_in(parent: &Path, name: &str) -> Result<PathBuf, String> {
+/// Cria a pasta `parent/name` com o modelo de projeto desktop (ou com um
+/// projeto de exemplo, como o contador). A pasta não pode existir; se algo
+/// falhar depois de criá-la, ela é removida.
+fn create_desktop_project_in(
+    parent: &Path,
+    name: &str,
+    example: Option<&str>,
+) -> Result<PathBuf, String> {
     let folder_name = desktop_project_folder_name(name)?;
-    let template = ferro_tela::project::desktop_template(&folder_name)?;
+    let template = match example {
+        Some(id) => ferro_tela::project::example_template(id, &folder_name)?,
+        None => ferro_tela::project::desktop_template(&folder_name)?,
+    };
     let parent = fs::canonicalize(parent)
         .map_err(|_| "A pasta escolhida não está disponível.".to_string())?;
     if !parent.is_dir() {
@@ -2339,6 +2366,7 @@ pub async fn workspace_create_desktop_project(
     app: AppHandle,
     session: State<'_, WorkspaceSession>,
     name: String,
+    example: Option<String>,
 ) -> Result<Option<DesktopProjectCreated>, String> {
     desktop_project_folder_name(&name)?;
     let session = session.inner().clone();
@@ -2354,7 +2382,7 @@ pub async fn workspace_create_desktop_project(
         let parent = selected
             .into_path()
             .map_err(|error| format!("Não foi possível usar a pasta selecionada: {error}"))?;
-        let root = create_desktop_project_in(&parent, &name)?;
+        let root = create_desktop_project_in(&parent, &name, example.as_deref())?;
         let root = fs::canonicalize(root)
             .map_err(|error| format!("Não foi possível acessar o projeto criado: {error}"))?;
         let entries = list_entries(&root)?;

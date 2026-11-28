@@ -1,0 +1,12 @@
+// Código da tela JanelaPrincipal. Cada evento ligado na tela chama uma função
+// que recebe a janela e devolve a janela atualizada.
+
+registro Estado {
+    contagem: inteiro
+}
+
+funcao btnInc_clicar(tela: JanelaPrincipal) -> JanelaPrincipal {
+    seja mutavel t: JanelaPrincipal = tela;
+    t.dados.contagem += 1;
+    retorne t;
+}

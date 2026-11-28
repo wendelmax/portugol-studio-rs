@@ -1,12 +1,15 @@
 import * as api from "./api";
 import { icon } from "./icons";
-import { buildFerroExampleCatalog, FERRO_EXAMPLE_PREFIX } from "./ferro-catalog";
+import { buildDesktopExampleFolder, buildFerroExampleCatalog, DESKTOP_EXAMPLE_PREFIX, FERRO_EXAMPLE_PREFIX } from "./ferro-catalog";
 
 const normalize = (text: string) => text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLocaleLowerCase("pt-BR");
 
 type Example = Extract<api.CatalogEntry, { kind: "file" }>;
 
-export function mountExamples(openExample: (source: string, file: string, workPath: string) => void) {
+export function mountExamples(
+  openExample: (source: string, file: string, workPath: string) => void,
+  openDesktopExample: (id: string, name: string) => void = () => {},
+) {
   const search = document.querySelector<HTMLInputElement>("#example-search")!;
   const container = document.querySelector("#examples")!;
   const empty = document.querySelector<HTMLElement>("#examples-empty")!;
@@ -90,6 +93,10 @@ export function mountExamples(openExample: (source: string, file: string, workPa
     open.disabled = true;
     error.hidden = true;
     try {
+      if (example.file.startsWith(DESKTOP_EXAMPLE_PREFIX)) {
+        openDesktopExample(example.file.slice(DESKTOP_EXAMPLE_PREFIX.length), example.name);
+        return;
+      }
       if (!example.file.startsWith(FERRO_EXAMPLE_PREFIX)) {
         throw new Error(`Exemplo fora do catálogo Ferro: ${example.file}`);
       }
@@ -114,6 +121,12 @@ export function mountExamples(openExample: (source: string, file: string, workPa
       ferroExamplesById.set(item.id, item);
     }
     catalog = buildFerroExampleCatalog(items);
+    void api.listDesktopExamples().then((desktop) => {
+      const folder = buildDesktopExampleFolder(desktop);
+      if (!folder) return;
+      catalog = [folder, ...catalog];
+      render();
+    }).catch(() => undefined);
     search.disabled = false;
     search.oninput = render;
     render();

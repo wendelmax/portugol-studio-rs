@@ -378,3 +378,20 @@ fn ui_obsoleto_aparece_como_aviso_sem_falhar() {
     let stdout = String::from_utf8_lossy(&checked.stdout);
     assert!(stdout.contains("1 aviso(s)"), "{stdout}");
 }
+
+#[test]
+fn creates_the_counter_example_and_it_validates() {
+    let dir = TempDir::new();
+    let project = dir.0.join("Contador");
+    let created = cli()
+        .args(["novo", "--desktop"])
+        .arg(&project)
+        .args(["--exemplo", "contador"])
+        .output()
+        .unwrap();
+    assert!(created.status.success(), "{created:?}");
+    assert!(project.join("JanelaPrincipal.fer").is_file());
+    let checked = cli().arg(&project).output().unwrap();
+    assert!(checked.status.success(), "{checked:?}");
+    assert!(String::from_utf8_lossy(&checked.stdout).contains("3 arquivo(s), 0 com erro(s)"));
+}

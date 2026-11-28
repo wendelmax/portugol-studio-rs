@@ -392,8 +392,11 @@ export interface DesktopProjectCreated {
   designPath: string;
 }
 /** Pede o local ao usuário e cria o projeto; `null` se a escolha for cancelada. */
-export const createDesktopProject = (name: string) =>
-  invoke<DesktopProjectCreated | null>("workspace_create_desktop_project", { name });
+/** Cria um projeto desktop; com `example`, a partir de um projeto de exemplo. */
+export const createDesktopProject = (name: string, example: string | null = null) =>
+  invoke<DesktopProjectCreated | null>("workspace_create_desktop_project", { name, example });
+export type DesktopExampleInfo = { id: string; name: string; description: string };
+export const listDesktopExamples = () => invoke<DesktopExampleInfo[]>("desktop_example_projects");
 export const refreshWorkspace = (workspaceId: string) =>
   invoke<WorkspaceListing>("workspace_refresh", { workspaceId });
 export const restoreWorkspace = () => invoke<WorkspaceListing | null>("workspace_restore");

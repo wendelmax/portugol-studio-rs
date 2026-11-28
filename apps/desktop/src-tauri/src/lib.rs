@@ -257,6 +257,27 @@ fn screen_data_fields(design_source: String, code_source: String) -> Vec<ferro_s
     ferro_service::screen_data_fields(&design_source, &code_source)
 }
 
+/// Projeto desktop de exemplo, para a lista de exemplos da IDE.
+#[derive(serde::Serialize)]
+struct DesktopExample {
+    id: &'static str,
+    name: &'static str,
+    description: &'static str,
+}
+
+/// Projetos desktop de exemplo (o contador, por exemplo).
+#[tauri::command]
+fn desktop_example_projects() -> Vec<DesktopExample> {
+    ferro_tela::project::EXAMPLE_PROJECTS
+        .iter()
+        .map(|example| DesktopExample {
+            id: example.id,
+            name: example.name,
+            description: example.description,
+        })
+        .collect()
+}
+
 /// Controles e atributos do formato `.design`, para a caixa de ferramentas.
 #[tauri::command]
 fn design_schema() -> ferro_service::DesignSchema {
@@ -954,6 +975,7 @@ pub fn run_app() {
             design_tree,
             edit_design,
             design_schema,
+            desktop_example_projects,
             screen_data_fields,
             export_ferro_rs,
             format_rust_source,

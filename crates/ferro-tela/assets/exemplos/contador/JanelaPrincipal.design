@@ -1,0 +1,14 @@
+<!-- Contador: o mesmo exemplo do antigo UI.*, agora como tela. -->
+<Janela
+    Nome="JanelaPrincipal"
+    Titulo="Contador"
+    Largura="260"
+    Altura="140"
+    Dados="Estado"
+    Formato="1">
+    <Pilha Margem="16" Espaco="12">
+        <Rotulo Nome="lblContagem" Texto="Contagem: {dados.contagem}" />
+        <Botao Nome="btnInc" Texto="+1" AoClicar="btnInc_clicar" />
+    </Pilha>
+    <DadosExemplo contagem="3" />
+</Janela>

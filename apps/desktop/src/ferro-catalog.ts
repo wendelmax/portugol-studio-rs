@@ -110,3 +110,22 @@ export function formatFerroExerciseOutcome(
     hints: evaluation.hints,
   };
 }
+
+/** Prefixo dos projetos desktop de exemplo na lista de exemplos. */
+export const DESKTOP_EXAMPLE_PREFIX = "desktop:";
+
+/** Pasta "Projetos desktop": cada exemplo cria um projeto com tela e código. */
+export function buildDesktopExampleFolder(examples: readonly { id: string; name: string; description: string }[]): CatalogEntry | null {
+  if (examples.length === 0) return null;
+  return {
+    kind: "folder",
+    name: "Projetos desktop",
+    entries: examples.map((example) => ({
+      kind: "file",
+      name: example.name,
+      file: `${DESKTOP_EXAMPLE_PREFIX}${example.id}`,
+      description: `${example.description} Cria um projeto desktop com a tela e o código.`,
+      preview: null,
+    })),
+  };
+}

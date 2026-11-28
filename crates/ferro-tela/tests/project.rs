@@ -177,3 +177,36 @@ fn nomes_de_projeto_invalidos() {
     assert!(desktop_template("linha\nquebrada").is_err());
     assert!(desktop_template(&"a".repeat(project::MAX_NAME_CHARS + 1)).is_err());
 }
+
+#[test]
+fn exemplo_do_contador_e_um_projeto_valido() {
+    let template = project::example_template("contador", "Meu Contador").unwrap();
+    let paths: Vec<_> = template.files.iter().map(|f| f.path.as_str()).collect();
+    assert_eq!(
+        paths,
+        [
+            format!("meu-contador.{MANIFEST_EXTENSION}").as_str(),
+            "JanelaPrincipal.design",
+            "JanelaPrincipal.fer"
+        ]
+    );
+    let manifest = analyze_manifest(&template.files[0].content);
+    assert!(
+        manifest.diagnostics.is_empty(),
+        "{:?}",
+        manifest.diagnostics
+    );
+    assert_eq!(manifest.manifest.unwrap().name, "Meu Contador");
+    let design = analyze(&template.files[1].content);
+    assert!(design.diagnostics.is_empty(), "{:?}", design.diagnostics);
+    assert_eq!(
+        &format_source(&template.files[1].content).unwrap(),
+        &template.files[1].content
+    );
+    assert!(
+        project::example_template("nada", "X")
+            .unwrap_err()
+            .contains("contador")
+    );
+    assert!(project::example_template("contador", "   ").is_err());
+}

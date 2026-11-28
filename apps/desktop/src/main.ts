@@ -1030,15 +1030,17 @@ mountFontSizeControls(["editor-font", "console-font"]);
 
 mountIcons();
 recentFilesView.render(recentFiles.list());
-mountExamples((source, file, workPath) =>
-  newTab(
-    source,
-    null,
-    file,
-    workPath || undefined,
-    undefined,
-    "ferro-rust",
-  ),
+mountExamples(
+  (source, file, workPath) =>
+    newTab(
+      source,
+      null,
+      file,
+      workPath || undefined,
+      undefined,
+      "ferro-rust",
+    ),
+  (id, name) => workspaceExplorer.newDesktopProject({ id, name }),
 );
 activate(0);
 applyTheme(themeChoice());
