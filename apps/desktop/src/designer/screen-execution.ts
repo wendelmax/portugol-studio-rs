@@ -10,7 +10,7 @@ import { isScreenFile, screenCodeFor, screenDesignFor, screenFileSource, type Sc
 export interface ScreenExecutionHost {
   files: ScreenFilesHost;
   /** Inicia a sessão e abre a janela; rejeita com a mensagem do primeiro problema. */
-  start: (designSource: string, codeSource: string) => Promise<string>;
+  start: (designSource: string, codeSource: string, workspaceId: string, designPath: string) => Promise<string>;
   setStatus: (message: string, kind?: "error" | "ok") => void;
   appendConsole: (text: string, kind?: string) => void;
   showConsole: () => void;
@@ -30,7 +30,7 @@ export function createScreenExecution(host: ScreenExecutionHost) {
       const code = codePath ? await screenFileSource(host.files, tab.workspaceId, codePath) : "";
       const name = designPath.split("/").pop() ?? designPath;
       try {
-        await host.start(design, code ?? "");
+        await host.start(design, code ?? "", tab.workspaceId, designPath);
         host.setStatus(`Tela ${name} em execução numa janela própria`, "ok");
       } catch (error) {
         const message = String(error).replace(/^Error: /, "");

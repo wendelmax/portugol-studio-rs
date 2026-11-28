@@ -192,8 +192,9 @@ export type DataField = { name: string; type: string; editable: boolean };
 export const screenDataFields = (designSource: string, codeSource: string) =>
   invoke<DataField[]>("screen_data_fields", { designSource, codeSource });
 /** Executa uma tela numa janela própria; devolve o rótulo da janela. */
-export const startScreenRun = (designSource: string, codeSource: string) =>
-  invoke<string>("screen_run_start", { designSource, codeSource });
+/** Num workspace, `workspaceId` e `designPath` deixam valer as permissões do `.ferproj`. */
+export const startScreenRun = (designSource: string, codeSource: string, workspaceId: string | null = null, designPath: string | null = null) =>
+  invoke<string>("screen_run_start", { designSource, codeSource, workspaceId, designPath });
 /** Saída de `escreva` e erros das telas em execução, para o console. */
 export const listenScreenOutput = (handler: (output: { label: string; text: string; error: boolean }) => void) =>
   listen<{ label: string; text: string; error: boolean }>("screen-run:output", (event) => handler(event.payload));

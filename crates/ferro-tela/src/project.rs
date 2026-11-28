@@ -24,7 +24,18 @@ pub const DEFAULT_WINDOW: &str = "JanelaPrincipal";
 /// Tamanho máximo do nome do projeto, em caracteres.
 pub const MAX_NAME_CHARS: usize = 64;
 
-const ATTRIBUTES: &[&str] = &["Nome", "Versao", "JanelaInicial", "Icone", "Formato"];
+const ATTRIBUTES: &[&str] = &[
+    "Nome",
+    "Versao",
+    "JanelaInicial",
+    "Icone",
+    "Permissoes",
+    "Formato",
+];
+
+/// Serviços do sistema que um projeto desktop pode pedir em `Permissoes`
+/// (ADR 0018, Fase 5). Uma tela só usa os serviços que o projeto declara.
+pub const PERMISSIONS: &[&str] = &["Arquivos", "Dialogo", "AreaTransferencia", "Notificacao"];
 
 /// Conteúdo de um `.ferproj` válido.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -35,6 +46,8 @@ pub struct Manifest {
     pub start_window: String,
     pub start_window_span: Span,
     pub icon: Option<String>,
+    /// Serviços do sistema declarados em `Permissoes`, na ordem do arquivo.
+    pub permissions: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -187,13 +200,59 @@ fn manifest(document: &Document, diagnostics: &mut Vec<Diagnostic>) -> Option<Ma
         }
     });
 
+    let permissions = root
+        .attribute("Permissoes")
+        .map(|attribute| permissions(attribute, diagnostics))
+        .unwrap_or_default();
+
     Some(Manifest {
         name: name?,
         version,
         start_window: start?.value.clone(),
         start_window_span: start?.value_span,
         icon,
+        permissions,
     })
+}
+
+/// `Permissoes="Dialogo,AreaTransferencia"`: serviços conhecidos, sem
+/// repetição. Um nome parecido com um serviço ganha a sugestão.
+fn permissions(attribute: &Attribute, diagnostics: &mut Vec<Diagnostic>) -> Vec<String> {
+    let mut out = Vec::new();
+    for raw in attribute.value.split(',') {
+        let name = raw.trim();
+        if name.is_empty() {
+            continue;
+        }
+        if !PERMISSIONS.contains(&name) {
+            let close = PERMISSIONS.iter().find(|known| {
+                known.eq_ignore_ascii_case(name)
+                    || known.to_lowercase().starts_with(&name.to_lowercase())
+            });
+            let mut diagnostic = Diagnostic::error(
+                "projeto.unknown-permission",
+                format!("`{name}` não é um serviço que o projeto possa pedir"),
+                attribute.value_span,
+            )
+            .with_help(format!("Serviços: {}.", PERMISSIONS.join(", ")));
+            if let Some(known) = close {
+                diagnostic = diagnostic.with_help(format!(
+                    "Quis dizer `{known}`? Serviços: {}.",
+                    PERMISSIONS.join(", ")
+                ));
+            }
+            diagnostics.push(diagnostic);
+        } else if out.iter().any(|seen| seen == name) {
+            diagnostics.push(Diagnostic::warning(
+                "projeto.duplicate-permission",
+                format!("A permissão `{name}` aparece mais de uma vez"),
+                attribute.value_span,
+            ));
+        } else {
+            out.push(name.to_owned());
+        }
+    }
+    out
 }
 
 fn required<'a>(

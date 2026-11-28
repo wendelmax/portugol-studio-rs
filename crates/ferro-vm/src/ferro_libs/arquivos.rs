@@ -50,7 +50,9 @@ pub(super) fn resolve_workspace_path(
     allow_root: bool,
 ) -> Result<(PathBuf, PathBuf), String> {
     let Some(root) = runtime.workspace_dir.as_deref() else {
-        return Err("Acesso a arquivos requer um diretório de workspace configurado.".to_string());
+        return Err(runtime.workspace_denied.clone().unwrap_or_else(|| {
+            "Acesso a arquivos requer um diretório de workspace configurado.".to_string()
+        }));
     };
     if raw.contains('\0') {
         return Err("Caminho inválido: contém caractere nulo.".to_string());

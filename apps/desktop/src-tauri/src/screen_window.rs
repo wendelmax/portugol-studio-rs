@@ -195,16 +195,34 @@ fn size_of(step: &ScreenStep) -> (f64, f64) {
 #[tauri::command]
 pub async fn screen_run_start(
     app: AppHandle,
+    session: tauri::State<'_, crate::workspace::WorkspaceSession>,
     design_source: String,
     code_source: String,
+    workspace_id: Option<String>,
+    design_path: Option<String>,
 ) -> Result<String, String> {
     let design = design_source.clone();
+    // Numa pasta de projeto, as permissões do .ferproj valem e o `Arquivos`
+    // pode receber a pasta do projeto.
+    let project = match (workspace_id.as_deref(), design_path.as_deref()) {
+        (Some(id), Some(path)) => {
+            Some(crate::workspace::screen_project(session.inner(), id, path)?)
+        }
+        _ => None,
+    };
     let (mut run, step) = tauri::async_runtime::spawn_blocking(move || {
         ScreenRun::start(&design_source, &code_source)
     })
     .await
     .map_err(|error| error.to_string())?
     .map_err(|error| error.to_string())?;
+    if let Some((folder, Some(manifest))) = project {
+        let permissions = ferro_tela::project::analyze_manifest(&manifest)
+            .manifest
+            .map(|manifest| manifest.permissions)
+            .unwrap_or_default();
+        run.set_project(permissions, Some(folder));
+    }
 
     let manager = app.state::<ScreenWindows>();
     let label = format!("screen-{}", manager.next.fetch_add(1, Ordering::Relaxed));

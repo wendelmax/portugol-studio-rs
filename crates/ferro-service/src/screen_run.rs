@@ -22,6 +22,60 @@ use ferro_vm::{BufferIo, Host, Value, Vm};
 /// Cria o host de cada chamada: quem mostra os diálogos (`Dialogo`) da tela.
 pub type ScreenHostFactory = Box<dyn Fn() -> Box<dyn Host> + Send>;
 
+fn denied(service: &str) -> String {
+    format!(
+        "A tela usou `{service}`, mas o projeto não pede essa permissão: acrescente `{service}` em `Permissoes` no .ferproj (por exemplo, `Permissoes=\"{service}\"`)."
+    )
+}
+
+/// Host que só deixa passar os serviços declarados em `Permissoes`.
+struct PermissionHost {
+    inner: Box<dyn Host>,
+    allowed: Vec<String>,
+}
+
+impl PermissionHost {
+    fn check(&self, service: &str) -> Result<(), String> {
+        if self.allowed.iter().any(|allowed| allowed == service) {
+            Ok(())
+        } else {
+            Err(denied(service))
+        }
+    }
+}
+
+impl Host for PermissionHost {
+    fn show_message(&mut self, text: &str) -> Result<(), String> {
+        self.check("Dialogo")?;
+        self.inner.show_message(text)
+    }
+    fn confirm(&mut self, text: &str) -> Result<bool, String> {
+        self.check("Dialogo")?;
+        self.inner.confirm(text)
+    }
+    fn file_dialog(
+        &mut self,
+        save: bool,
+        title: &str,
+        filters: &[ferro_vm::FileFilter],
+    ) -> Result<Option<String>, String> {
+        self.check("Dialogo")?;
+        self.inner.file_dialog(save, title, filters)
+    }
+    fn clipboard_write(&mut self, text: &str) -> Result<(), String> {
+        self.check("AreaTransferencia")?;
+        self.inner.clipboard_write(text)
+    }
+    fn clipboard_read(&mut self) -> Result<Option<String>, String> {
+        self.check("AreaTransferencia")?;
+        self.inner.clipboard_read()
+    }
+    fn notify(&mut self, title: &str, text: &str) -> Result<(), String> {
+        self.check("Notificacao")?;
+        self.inner.notify(title, text)
+    }
+}
+
 /// Instruções por evento antes de interromper o handler (laço infinito).
 pub const SCREEN_EVENT_STEP_BUDGET: usize = 5_000_000;
 /// Estados guardados no histórico.
@@ -150,6 +204,10 @@ pub struct ScreenRun {
     history: Vec<ScreenValue>,
     step_budget: usize,
     host: Option<ScreenHostFactory>,
+    /// `Permissoes` do `.ferproj`; `None` para uma tela fora de um projeto.
+    permissions: Option<Vec<String>>,
+    /// Pasta do projeto, entregue ao `Arquivos` quando ele é permitido.
+    project_dir: Option<std::path::PathBuf>,
 }
 
 fn first_message(diagnostics: &[ferro_hir::Diagnostic], file: &str) -> String {
@@ -256,6 +314,8 @@ impl ScreenRun {
             document,
             step_budget: SCREEN_EVENT_STEP_BUDGET,
             host: None,
+            permissions: None,
+            project_dir: None,
         };
         run.state = run.initial_window();
         run.sync_bound();
@@ -280,6 +340,23 @@ impl ScreenRun {
     /// existir, por isso usa o host só a partir dos eventos.
     pub fn set_host(&mut self, factory: ScreenHostFactory) {
         self.host = Some(factory);
+    }
+
+    /// Serviços que o projeto permite (`Permissoes` do `.ferproj`) e a pasta
+    /// dele. `Arquivos` só recebe a pasta quando está entre as permissões.
+    pub fn set_project(
+        &mut self,
+        permissions: Vec<String>,
+        project_dir: Option<std::path::PathBuf>,
+    ) {
+        self.permissions = Some(permissions);
+        self.project_dir = project_dir;
+    }
+
+    fn allows(&self, service: &str) -> bool {
+        self.permissions
+            .as_ref()
+            .is_none_or(|permissions| permissions.iter().any(|p| p == service))
     }
 
     /// Limite de instruções por evento (testes usam valores pequenos).
@@ -396,7 +473,22 @@ impl ScreenRun {
         let result = {
             let mut vm = Vm::new(&self.module, &mut io);
             if let Some(factory) = &self.host {
-                vm = vm.with_host(factory());
+                let host = factory();
+                vm = vm.with_host(match &self.permissions {
+                    Some(allowed) => Box::new(PermissionHost {
+                        inner: host,
+                        allowed: allowed.clone(),
+                    }),
+                    None => host,
+                });
+            }
+            #[cfg(not(target_arch = "wasm32"))]
+            if self.allows("Arquivos") {
+                if let Some(dir) = &self.project_dir {
+                    vm = vm.with_ferro_workspace_dir(dir.clone());
+                }
+            } else {
+                vm = vm.with_ferro_workspace_denied(denied("Arquivos"));
             }
             vm.call_function(handler, vec![self.state.to_vm()], self.step_budget)
         };
