@@ -20,7 +20,7 @@ output_dir="${2:-$repo_root/target/arch}"
 mkdir -p "$output_dir"
 output_dir="$(cd "$output_dir" && pwd)"
 
-build_dir="$(mktemp -d "/tmp/portugol-arch-build-$$.XXXXXX")"
+build_dir="$(mktemp -d "/tmp/ferro-arch-build-$$.XXXXXX")"
 cleanup() {
   rm -rf "$build_dir"
 }
@@ -33,8 +33,8 @@ tar \
   --exclude="./apps/desktop/dist" \
   --exclude="./packaging/arch/*.tar.gz" \
   --exclude="./packaging/arch/*.pkg.tar.*" \
-  --transform="s,^\.,portugol-studio-rs-${pkgver}," \
-  -czf "${build_dir}/portugol-studio-rs-${pkgver}.tar.gz" \
+  --transform="s,^\.,ferro-studio-${pkgver}," \
+  -czf "${build_dir}/ferro-studio-${pkgver}.tar.gz" \
   .
 
 cp packaging/arch/PKGBUILD "${build_dir}/PKGBUILD"
@@ -51,7 +51,7 @@ else
 fi
 
 shopt -s nullglob
-packages=("${build_dir}"/portugol-studio-rs-*.pkg.tar.zst)
+packages=("${build_dir}"/ferro-studio-*.pkg.tar.zst)
 shopt -u nullglob
 
 if [[ ${#packages[@]} -ne 1 ]]; then
@@ -63,11 +63,11 @@ pkg_path="${packages[0]}"
 pkg_list="$(tar --zstd -tf "$pkg_path")"
 for required in \
   "usr/bin/ferro-desktop" \
-  "usr/bin/portugol-studio-rs" \
-  "usr/share/applications/portugol-studio-rs.desktop" \
-  "usr/share/mime/packages/portugol-studio-rs.xml" \
-  "usr/share/icons/hicolor/scalable/apps/portugol-studio-rs.svg" \
-  "usr/share/licenses/portugol-studio-rs/LICENSE"; do
+  "usr/bin/ferro-studio" \
+  "usr/share/applications/ferro-studio.desktop" \
+  "usr/share/mime/packages/ferro-studio.xml" \
+  "usr/share/icons/hicolor/scalable/apps/ferro-studio.svg" \
+  "usr/share/licenses/ferro-studio/LICENSE"; do
   if ! grep -Fxq "$required" <<<"$pkg_list"; then
     echo "Arquivo obrigatório ausente no pacote Arch: $required" >&2
     exit 1

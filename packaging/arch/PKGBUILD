@@ -1,10 +1,10 @@
-# Maintainer: Ferro Studio Contributors <https://github.com/wendelmax/portugol-studio-rs>
-pkgname=portugol-studio-rs
+# Maintainer: Ferro Studio Contributors <https://github.com/wendelmax/ferro-studio>
+pkgname=ferro-studio
 pkgver=0.7.0
 pkgrel=1
 pkgdesc="Ferro Studio — IDE educacional em português com ponte para Rust"
 arch=('x86_64' 'aarch64')
-url="https://github.com/wendelmax/portugol-studio-rs"
+url="https://github.com/wendelmax/ferro-studio"
 license=('LGPL-3.0-only')
 depends=(
   'webkit2gtk-4.1'
@@ -46,25 +46,25 @@ package() {
   cd "${pkgname}-${pkgver}"
 
   install -Dm755 "target/release/ferro-desktop" "${pkgdir}/usr/bin/ferro-desktop"
-  ln -s ferro-desktop "${pkgdir}/usr/bin/portugol-studio-rs"
+  ln -s ferro-desktop "${pkgdir}/usr/bin/ferro-studio"
 
-  install -Dm644 "packaging/arch/portugol-studio-rs.desktop" \
-    "${pkgdir}/usr/share/applications/portugol-studio-rs.desktop"
-  install -Dm644 "packaging/arch/portugol-studio-rs.xml" \
-    "${pkgdir}/usr/share/mime/packages/portugol-studio-rs.xml"
+  install -Dm644 "packaging/arch/ferro-studio.desktop" \
+    "${pkgdir}/usr/share/applications/ferro-studio.desktop"
+  install -Dm644 "packaging/arch/ferro-studio.xml" \
+    "${pkgdir}/usr/share/mime/packages/ferro-studio.xml"
 
   install -Dm644 "apps/desktop/src-tauri/icons/32x32.png" \
-    "${pkgdir}/usr/share/icons/hicolor/32x32/apps/portugol-studio-rs.png"
+    "${pkgdir}/usr/share/icons/hicolor/32x32/apps/ferro-studio.png"
   install -Dm644 "apps/desktop/src-tauri/icons/64x64.png" \
-    "${pkgdir}/usr/share/icons/hicolor/64x64/apps/portugol-studio-rs.png"
+    "${pkgdir}/usr/share/icons/hicolor/64x64/apps/ferro-studio.png"
   install -Dm644 "apps/desktop/src-tauri/icons/128x128.png" \
-    "${pkgdir}/usr/share/icons/hicolor/128x128/apps/portugol-studio-rs.png"
+    "${pkgdir}/usr/share/icons/hicolor/128x128/apps/ferro-studio.png"
   install -Dm644 "apps/desktop/src-tauri/icons/128x128@2x.png" \
-    "${pkgdir}/usr/share/icons/hicolor/256x256/apps/portugol-studio-rs.png"
+    "${pkgdir}/usr/share/icons/hicolor/256x256/apps/ferro-studio.png"
   install -Dm644 "apps/desktop/src-tauri/icons/icon.png" \
-    "${pkgdir}/usr/share/icons/hicolor/512x512/apps/portugol-studio-rs.png"
+    "${pkgdir}/usr/share/icons/hicolor/512x512/apps/ferro-studio.png"
   install -Dm644 "apps/desktop/src-tauri/icons/icon.svg" \
-    "${pkgdir}/usr/share/icons/hicolor/scalable/apps/portugol-studio-rs.svg"
+    "${pkgdir}/usr/share/icons/hicolor/scalable/apps/ferro-studio.svg"
 
   install -Dm644 "LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
 }
