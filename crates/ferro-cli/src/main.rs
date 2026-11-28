@@ -236,12 +236,16 @@ fn format_command(args: &[String]) -> ExitCode {
         }
     };
 
-    let edits: Option<Vec<(usize, usize, String)>> = ferro_frontend::format(&source).map(|edits| {
-        edits
-            .into_iter()
-            .map(|edit| (edit.from, edit.to, edit.insert))
-            .collect()
-    });
+    let options = desktop::code_behind_design(path)
+        .map(|design| ferro_tela::codebehind::lower_options(&design))
+        .unwrap_or_default();
+    let edits: Option<Vec<(usize, usize, String)>> = ferro_frontend::format_with(&source, &options)
+        .map(|edits| {
+            edits
+                .into_iter()
+                .map(|edit| (edit.from, edit.to, edit.insert))
+                .collect()
+        });
 
     let Some(edits) = edits else {
         eprintln!("{file}: não foi possível formatar (corrija os erros do programa primeiro)");

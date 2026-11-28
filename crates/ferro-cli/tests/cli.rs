@@ -395,3 +395,32 @@ fn creates_the_counter_example_and_it_validates() {
     assert!(checked.status.success(), "{checked:?}");
     assert!(String::from_utf8_lossy(&checked.stdout).contains("3 arquivo(s), 0 com erro(s)"));
 }
+
+#[test]
+fn formats_screen_code_behind_using_the_design() {
+    let dir = TempDir::new();
+    fs::write(
+        dir.0.join("JanelaPrincipal.design"),
+        "<Janela Nome=\"JanelaPrincipal\" Titulo=\"T\" Largura=\"200\" Altura=\"100\">\n    <Botao Nome=\"btnOk\" Texto=\"OK\" X=\"8\" Y=\"8\" AoClicar=\"btnOk_clicar\" />\n</Janela>\n",
+    )
+    .unwrap();
+    let code = dir.0.join("JanelaPrincipal.fer");
+    fs::write(
+        &code,
+        "funcao btnOk_clicar(tela: JanelaPrincipal) -> JanelaPrincipal {\nseja mutavel t: JanelaPrincipal = tela;\n    retorne t;\n}\n",
+    )
+    .unwrap();
+    let formatted = cli().arg("formatar").arg(&code).output().unwrap();
+    assert!(formatted.status.success(), "{formatted:?}");
+    assert!(
+        fs::read_to_string(&code)
+            .unwrap()
+            .contains("\n    seja mutavel t")
+    );
+    let checked = cli()
+        .args(["formatar", "--check"])
+        .arg(&code)
+        .output()
+        .unwrap();
+    assert!(checked.status.success(), "{checked:?}");
+}

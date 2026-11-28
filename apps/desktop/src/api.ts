@@ -83,6 +83,9 @@ export interface Inspection {
 
 export const formatFerroRust = (source: string) =>
   invoke<{ from: number; to: number; insert: string }[] | null>("format_ferro_rs", { source });
+/** Formata o code-behind de uma tela com os tipos do `.design` dela. */
+export const formatCodeBehind = (source: string, designSource: string) =>
+  invoke<{ from: number; to: number; insert: string }[] | null>("format_code_behind", { source, designSource });
 
 export interface Exercise {
   id: number;

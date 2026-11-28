@@ -149,7 +149,13 @@ fn spacing(left: Piece, right: Piece) -> &'static str {
 /// Retorna edições somente de espaço em coordenadas UTF-16, ou `None` quando o
 /// fonte `.fer` possui erros de sintaxe/semântica.
 pub fn format(source: &str) -> Option<Vec<WhitespaceEdit>> {
-    crate::lower(source).ok()?;
+    format_with(source, &crate::LowerOptions::default())
+}
+
+/// [`format`] para um arquivo que só analisa com opções próprias, como o
+/// code-behind de uma tela (tipos da tela e sem `inicio`).
+pub fn format_with(source: &str, options: &crate::LowerOptions) -> Option<Vec<WhitespaceEdit>> {
+    crate::lower_with(source, options).ok()?;
     let (tokens, diagnostics) = lex(source);
     if !diagnostics.is_empty() {
         return None;

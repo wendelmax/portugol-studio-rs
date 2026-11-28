@@ -14,6 +14,8 @@ export interface EditorActionsShellDependencies {
   runId: SymbolEditorActionsDependencies["runId"];
   runTabId: SymbolEditorActionsDependencies["runTabId"];
   rustfmtAvailable: EditorFormatterDependencies["rustfmtAvailable"];
+  /** Formatação Ferro; o padrão chama o formatador de programas comuns. */
+  formatFerroRust?: EditorFormatterDependencies["formatFerroRust"];
   centerSelection: () => void;
   toggleCenterSource: () => void;
 }
@@ -53,7 +55,7 @@ export function createEditorActionsShell(dependencies: EditorActionsShellDepende
     rustfmtAvailable: dependencies.rustfmtAvailable,
     view: dependencies.view,
     formatRust: api.formatRustSource,
-    formatFerroRust: api.formatFerroRust,
+    formatFerroRust: dependencies.formatFerroRust ?? api.formatFerroRust,
     formatMarkup: api.formatMarkup,
     setStatus,
   });

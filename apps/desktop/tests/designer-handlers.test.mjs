@@ -92,3 +92,17 @@ test("tela sem code-behind confere os eventos como ausentes", async () => {
   await inspectMarkupFile(h, inspectors, "<Janela />", { id: 4, workspaceId: "w", workspacePath: "App/J.design" });
   assert.deepEqual(calls, [["<Janela />", "App/J.design", true, null]]);
 });
+
+test("formatar o código de uma tela usa o .design; programa solto usa o formatador comum", async () => {
+  const { formatSource } = await import("../src/designer/screen-files.ts");
+  const calls = [];
+  const formatters = {
+    formatFerroRust: async (source) => (calls.push(["comum", source]), []),
+    formatCodeBehind: async (source, design) => (calls.push(["tela", source, design]), []),
+  };
+  const h = host({ files: ["App/J.design", "App/J.fer"], disk: { "App/J.design": "<Janela />" } });
+  await formatSource(h, formatters, "codigo", { id: 1, workspaceId: "w", workspacePath: "App/J.fer" });
+  await formatSource(h, formatters, "solto", { id: 2, workspaceId: "w", workspacePath: "App/outro.fer" });
+  await formatSource(h, formatters, "sem aba", undefined);
+  assert.deepEqual(calls, [["tela", "codigo", "<Janela />"], ["comum", "solto"], ["comum", "sem aba"]]);
+});
