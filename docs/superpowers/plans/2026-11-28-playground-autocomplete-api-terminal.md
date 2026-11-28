@@ -4,7 +4,7 @@
 
 **Goal:** Modernizar o Web Playground Ferro com autocomplete das instruções/sintaxes `.fer`, um painel de referência da linguagem, menos botões e um terminal que mostra entrada e saída juntas, sem dependências e sem mudar o WASM.
 
-**Architecture:** Mantemos o playground estático atual (`index.html`, `app.mjs`, `style.css`, `playground-core.mjs`) e adicionamos um único módulo `.mjs` com a referência de sintaxe e funções puras de completions. A UI reutiliza o realce e o runtime existentes; o terminal permanece em modo histórico porque `pors_run(source, stdin)` já recebe toda a entrada de uma vez.
+**Architecture:** Mantemos o playground estático atual (`index.html`, `app.mjs`, `style.css`, `playground-core.mjs`) e adicionamos um único módulo `.mjs` com a referência de sintaxe e funções puras de completions. A UI reutiliza o realce e o runtime existentes; o terminal permanece em modo histórico porque `ferro_run(source, stdin)` já recebe toda a entrada de uma vez.
 
 **Tech Stack:** JavaScript ESM sem dependências, DOM APIs (`createElement`/`textContent`), WebAssembly via `ferro-wasm`, Node `node:test` para testes.
 
@@ -14,7 +14,7 @@
 
 - `apps/web-playground` permanece sem dependências JavaScript externas e sem `innerHTML` em `index.html`, `app.mjs`, `playground-core.mjs` ou `ferro-language.mjs`.
 - Textos visíveis em pt-BR; temas `data-theme="light|dark"` e os breakpoints 980 px / 720 px / 420 px continuam funcionando.
-- `ferro_wasm` e o protocolo de memória linear não são alterados: `pors_run(source, stdin)` continua recebendo o conteúdo integral de `#pg-stdin`.
+- `ferro_wasm` e o protocolo de memória linear não são alterados: `ferro_run(source, stdin)` continua recebendo o conteúdo integral de `#pg-stdin`.
 - `scripts/build-web-playground.sh` deve copiar `ferro-language.mjs` para `apps/web-playground/dist/`.
 - Comandos de teste são executados a partir da raiz do repositório com `node --test`; não é necessário instalar `node_modules`.
 - Nenhuma mensagem de commit contém atribuição a IA, Claude ou Anthropic.
@@ -106,7 +106,7 @@ Expected: FAIL porque `ferro-language.mjs` ainda não existe.
 
 - [ ] **Step 3: Implement `ferro-language.mjs`**
 
-Defina `FERRO_SYNTAX_ENTRIES` com entradas únicas nos grupos abaixo, na ordem em que devem aparecer na referência e no autocomplete. Use `insertText === label` para todas. Textos de `description`/`example` podem ser curtos, mas devem ser válidos em pt-BR e derivados da sintaxe já documentada em `apps/desktop/src/portugol.ts`, `docs/PORTUGOL-RUST.md` e RFCs de `docs/superpowers/specs/`:
+Defina `FERRO_SYNTAX_ENTRIES` com entradas únicas nos grupos abaixo, na ordem em que devem aparecer na referência e no autocomplete. Use `insertText === label` para todas. Textos de `description`/`example` podem ser curtos, mas devem ser válidos em pt-BR e derivados da sintaxe já documentada em `apps/desktop/src/ferro-language.ts`, `docs/FERRO-RUST.md` e RFCs de `docs/superpowers/specs/`:
 
 - `Estrutura`: `funcao`, `inicio`, `retorne`.
 - `Declarações`: `seja`, `mutavel`.
@@ -303,7 +303,7 @@ test("web playground replaces action buttons with a single command combobox and 
 });
 ```
 
-Acrescente um teste de DOM com runtime falso (o mesmo padrão do teste de prévia UI) cobrindo: (a) `pg-stdin.value = "Ada\n\n"`, `pors_run` devolve `stdout: "Olá\n<script>x</script>\n"`; depois de disparar `pg-run`, `pg-terminal-history.children` contém uma linha `data-kind="input"` com texto `Ada`, uma segunda linha de entrada vazia, duas linhas `data-kind="output"` e nenhuma terceira linha de entrada; o texto `<script>x</script>` permanece literal; (b) trocar `pg-action.value = "validate"` e disparar `change` faz `pg-status-text` conter "válido" sem clicar em botão. Atualize o teste `Prévia UI...` para trocar `elements.get("pg-run-ui").fire("click")` por `const action = elements.get("pg-action"); action.value = "ui"; action.fire("change")`, e remova dos arrays `ids` os elementos extintos, acrescentando `pg-action` e `pg-terminal-history`.
+Acrescente um teste de DOM com runtime falso (o mesmo padrão do teste de prévia UI) cobrindo: (a) `pg-stdin.value = "Ada\n\n"`, `ferro_run` devolve `stdout: "Olá\n<script>x</script>\n"`; depois de disparar `pg-run`, `pg-terminal-history.children` contém uma linha `data-kind="input"` com texto `Ada`, uma segunda linha de entrada vazia, duas linhas `data-kind="output"` e nenhuma terceira linha de entrada; o texto `<script>x</script>` permanece literal; (b) trocar `pg-action.value = "validate"` e disparar `change` faz `pg-status-text` conter "válido" sem clicar em botão. Atualize o teste `Prévia UI...` para trocar `elements.get("pg-run-ui").fire("click")` por `const action = elements.get("pg-action"); action.value = "ui"; action.fire("change")`, e remova dos arrays `ids` os elementos extintos, acrescentando `pg-action` e `pg-terminal-history`.
 
 - [ ] **Step 2: Run the test to verify it fails**
 
