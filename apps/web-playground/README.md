@@ -1,49 +1,34 @@
-# Ferro Studio — Web Playground (WASM)
+# Ferro Studio — Web Playground
 
 Playground estático, sem dependências JavaScript externas, movido pelo crate
 [`ferro-wasm`](../../crates/ferro-wasm) compilado para
-`wasm32-unknown-unknown`.
-
-Versão online publicada automaticamente via GitHub Pages:
+`wasm32-unknown-unknown`. Publicado em
 [wendelmax.github.io/ferro-studio](https://wendelmax.github.io/ferro-studio/).
 
-## Recursos
+## Uso
 
-- Autocomplete da sintaxe `.fer` (instruções, tipos, variantes e operadores),
-  navegável com setas, `Enter`, `Tab` e `Escape`;
-- Painel pesquisável de sintaxe e instruções Ferro com forma canônica,
-  descrição e exemplo — clicar em um item insere o trecho no editor;
-- Validação instantânea de código `.fer` com diagnósticos em português;
-- Formatação canônica UTF-16;
-- Execução na VM Ferro em memória linear com suporte a `leia` e orçamentos de
-  passos, saída e memória de cadeias;
-- Terminal unificado: entradas (uma linha por `leia`) e saídas aparecem no mesmo
-  histórico, com diagnósticos quando houver;
-- Ações secundárias reunidas em um combobox (`Validar`, `Formatar`, `Prévia UI` e
-  `Ver Rust`), com `Executar` como botão primário;
-- Prévia visual interativa para apps declarativos MVU (`UI.*` com
-  `iniciar`/`atualizar`/`visualizar`), renderizados sem `innerHTML`;
-- Interface responsiva com tema claro/escuro explícito (preferência salva no
-  navegador) e realce de sintaxe leve no editor `.fer`.
+- **Abrir .fer**: botão `Abrir .fer` na barra superior. Usa o seletor nativo
+  quando o navegador permite; nos demais, abre um seletor comum.
+- **Salvar**: `Salvar` grava no mesmo arquivo quando há permissão; caso
+  contrário, baixa uma cópia. `Novo` cria `sem-titulo-N.fer`.
+- **Abas**: exemplos, arquivos e lições abertos viram abas. Trocar de aba
+  preserva o texto editado; `×` fecha a aba.
+- **Exemplos**: doze programas organizados por grupo na lateral, incluindo
+  entrada tipada, vetores, `Resultado` e prévia visual MVU.
+- **Trilha**: seis lições curtas. `Verificar` compara a saída do seu programa
+  com o esperado; o progresso fica no navegador. A entrada padrão é fixa nas
+  lições.
+- **Painéis inferiores**: Terminal, Prévia UI, Rust gerado e Referência de
+  sintaxe (pesquisável; clique insere o trecho no editor).
+- **Executar** ou `Ctrl/Cmd+Enter` roda a aba ativa. `Tema` alterna claro/escuro.
 
-## Como compilar e executar localmente
+## Build local
 
-1. Instale o alvo WebAssembly (uma única vez):
+```bash
+rustup target add wasm32-unknown-unknown
+./scripts/build-web-playground.sh
+python3 -m http.server 8080 --directory apps/web-playground/dist
+```
 
-   ```bash
-   rustup target add wasm32-unknown-unknown
-   ```
-
-2. Gere o bundle estático pronto para servir em `apps/web-playground/dist/`:
-
-   ```bash
-   ./scripts/build-web-playground.sh
-   ```
-
-3. Sirva a pasta `apps/web-playground/dist/` com qualquer servidor HTTP estático:
-
-   ```bash
-   python3 -m http.server 8080 --directory apps/web-playground/dist
-   ```
-
-   Depois abra `http://localhost:8080`.
+Abra `http://localhost:8080`. Para checar as soluções da trilha com o WASM
+real, rode `node scripts/check-web-lessons.mjs` depois do build.

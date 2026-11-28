@@ -980,7 +980,7 @@ function createEditorHarness(query, { wasm = false, lessons = null } = {}) {
       const source = readUtf8(srcPtr, srcLen);
       return writeResult({
         ok: true,
-        stdout: source.includes("Ada") ? "Olá, Ada\n" : "sem Ada\n",
+        stdout: source.includes("Ada") ? "Olá, Ada!\n" : "sem Ada\n",
         diagnostics: [],
       });
     },

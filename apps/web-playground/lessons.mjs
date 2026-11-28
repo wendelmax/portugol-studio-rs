@@ -13,7 +13,7 @@ export const LESSONS = [
 }
 `,
     stdin: "",
-    expected: ["Olá, Ada"],
+    expected: ["Olá, Ada!"],
   },
   {
     id: "decisoes",

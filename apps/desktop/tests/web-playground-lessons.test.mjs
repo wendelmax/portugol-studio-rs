@@ -25,20 +25,20 @@ test("checkLesson compara stdout linha a linha com o stdin fixo da lição", () 
     run(source, stdin) {
       receivedStdin = stdin;
       assert.equal(source, "funcao inicio() {}");
-      return { ok: true, stdout: "Olá, Ada\n", diagnostics: [] };
+      return { ok: true, stdout: "Olá, Ada!\n", diagnostics: [] };
     },
   };
 
   const passed = checkLesson(runtime, lesson, "funcao inicio() {}");
   assert.equal(receivedStdin, lesson.stdin);
   assert.equal(passed.ok, true);
-  assert.deepEqual(passed.actual, ["Olá, Ada"]);
+  assert.deepEqual(passed.actual, ["Olá, Ada!"]);
 
   runtime.run = () => ({ ok: true, stdout: "errado\n", diagnostics: [] });
   const failed = checkLesson(runtime, lesson, "funcao inicio() {}");
   assert.equal(failed.ok, false);
   assert.deepEqual(failed.actual, ["errado"]);
-  assert.deepEqual(failed.expected, ["Olá, Ada"]);
+  assert.deepEqual(failed.expected, ["Olá, Ada!"]);
 });
 
 test("checkLesson preserva linha vazia no meio e reprova erro de compilação", () => {

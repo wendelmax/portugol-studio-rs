@@ -205,7 +205,7 @@ node --test apps/desktop/tests/ferro-language.test.mjs \
              apps/desktop/tests/web-playground.test.mjs \
              apps/desktop/tests/web-playground-files.test.mjs \
              apps/desktop/tests/web-playground-lessons.test.mjs
-cargo test -p ferro-service --test pors_examples_migration
+cargo test -p ferro-service --test ferro_examples_migration
 bash -n scripts/build-web-playground.sh
 git diff --check
 bash scripts/build-web-playground.sh
