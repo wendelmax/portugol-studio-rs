@@ -22,6 +22,10 @@ function fixture() {
     debugContinue: async () => calls.push(["continue"]),
     debugStepOver: async () => calls.push(["step"]),
     stop: async () => calls.push(["stop"]),
+    screenExecution: {
+      handles: (current) => current.screen === true,
+      run: async (current) => calls.push(["tela", current.language]),
+    },
   });
   return {
     calls, document, editorState, dispatcher,
@@ -79,4 +83,13 @@ test("markup tabs never start a PORS or Rust run", async () => {
   await f.dispatcher.runProgram();
   await f.dispatcher.runProgram(true);
   assert.deepEqual(f.calls, []);
+});
+
+test("telas rodam numa janela própria, a partir do .design ou do código", async () => {
+  const f = fixture();
+  f.setTab({ language: "markup", screen: true });
+  await f.dispatcher.runProgram();
+  f.setTab({ language: "portugol-rs", screen: true });
+  await f.dispatcher.runProgram();
+  assert.deepEqual(f.calls, [["tela", "markup"], ["tela", "portugol-rs"]]);
 });

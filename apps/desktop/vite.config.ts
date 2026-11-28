@@ -19,6 +19,7 @@ export default defineConfig({
       input: {
         ide: fileURLToPath(new URL("./index.html", import.meta.url)),
         graphics: fileURLToPath(new URL("./graphics.html", import.meta.url)),
+        screen: fileURLToPath(new URL("./screen.html", import.meta.url)),
       },
       output: {
         codeSplitting: {

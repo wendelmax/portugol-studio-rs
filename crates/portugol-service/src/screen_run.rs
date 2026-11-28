@@ -512,6 +512,11 @@ impl ScreenRun {
         Ok(self.step(handler, output))
     }
 
+    /// O estado atual, sem chamar função (a janela pede ao abrir).
+    pub fn current_step(&self) -> ScreenStep {
+        self.step(None, String::new())
+    }
+
     /// Estados guardados, do inicial ao atual.
     pub fn history_len(&self) -> usize {
         self.history.len()
