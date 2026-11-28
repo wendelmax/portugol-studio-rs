@@ -23,6 +23,100 @@ pub struct ScreenCargoProject {
 
 const SLINT_VERSION: &str = "1";
 
+/// Os serviços do sistema no programa exportado, com a dependência de cada
+/// um. O comportamento segue o da IDE: `mensagem` e `confirmar` mostram caixas
+/// do sistema, os diálogos de arquivo devolvem `Opcao`, `colar` devolve
+/// `Nenhum` quando não há texto, e uma notificação que falha não para a tela.
+const SERVICES: &[(&str, &str, &str)] = &[
+    (
+        "Dialogo",
+        "rfd = \"0.15\"",
+        r#"
+mod __ferro_dialogo {
+    fn caixa(texto: &str) -> rfd::MessageDialog {
+        rfd::MessageDialog::new().set_title("Mensagem").set_description(texto)
+    }
+
+    pub fn mensagem(texto: &str) {
+        caixa(texto).set_level(rfd::MessageLevel::Info).show();
+    }
+
+    pub fn confirmar(texto: &str) -> bool {
+        matches!(
+            caixa(texto)
+                .set_title("Confirmar")
+                .set_buttons(rfd::MessageButtons::YesNo)
+                .show(),
+            rfd::MessageDialogResult::Yes
+        )
+    }
+
+    /// `"*.txt;*.csv"` (o `Filtro` do `<DialogoArquivo>`) em extensões.
+    fn arquivo(titulo: &str, filtro: &str) -> rfd::FileDialog {
+        let extensoes: Vec<String> = filtro
+            .split(';')
+            .map(|parte| parte.trim().trim_start_matches('*').trim_start_matches('.').to_owned())
+            .filter(|extensao| !extensao.is_empty() && extensao != "*")
+            .collect();
+        let dialogo = rfd::FileDialog::new().set_title(titulo);
+        if extensoes.is_empty() {
+            dialogo
+        } else {
+            let nome = extensoes.iter().map(|e| format!("*.{e}")).collect::<Vec<_>>().join(", ");
+            dialogo.add_filter(nome, &extensoes)
+        }
+    }
+
+    pub fn abrir_arquivo(titulo: &str, filtro: &str) -> Option<String> {
+        arquivo(titulo, filtro).pick_file().map(|caminho| caminho.display().to_string())
+    }
+
+    pub fn salvar_arquivo(titulo: &str, filtro: &str) -> Option<String> {
+        arquivo(titulo, filtro).save_file().map(|caminho| caminho.display().to_string())
+    }
+}
+"#,
+    ),
+    (
+        "AreaTransferencia",
+        "arboard = \"3\"",
+        r#"
+mod __ferro_area_transferencia {
+    pub fn copiar(texto: &str) {
+        if let Ok(mut area) = arboard::Clipboard::new() {
+            let _ = area.set_text(texto.to_owned());
+        }
+    }
+
+    pub fn colar() -> Option<String> {
+        arboard::Clipboard::new().ok()?.get_text().ok()
+    }
+}
+"#,
+    ),
+    (
+        "Notificacao",
+        "notify-rust = \"4\"",
+        r#"
+mod __ferro_notificacao {
+    pub fn mostrar(titulo: &str, texto: &str) {
+        let _ = notify_rust::Notification::new().summary(titulo).body(texto).show();
+    }
+}
+"#,
+    ),
+];
+
+/// Serviços que o code-behind usa, pelo lexer (comentários não contam).
+fn used_services(code: &str) -> Vec<&'static (&'static str, &'static str, &'static str)> {
+    let names: Vec<&str> = SERVICES.iter().map(|(name, _, _)| *name).collect();
+    let uses = ferro_frontend::module_uses(code, &names);
+    SERVICES
+        .iter()
+        .filter(|(name, _, _)| uses.iter().any(|(module, _)| module == name))
+        .collect()
+}
+
 fn data_type(ty: Type, program: &Program, path: &mut Vec<String>) -> Result<DataType, String> {
     let record = |id| {
         program
@@ -137,7 +231,7 @@ pub fn export_screen_cargo_project(
     let options = ferro_tela::codebehind::lower_options(design_source);
     let program = ferro_frontend::lower_with(code_source, &options)
         .map_err(|diagnostics| render_errors(code_source, &file, &diagnostics))?;
-    let generated = crate::export_ferro_rs_with_options(code_source, &options)
+    let generated = crate::export_screen_code(code_source, &options)
         .map_err(|diagnostics| render_errors(code_source, &file, &diagnostics))?;
     let data = data_record(&program, &window)?;
 
@@ -164,13 +258,19 @@ pub fn export_screen_cargo_project(
         .strip_suffix("fn main() {\n}")
         .unwrap_or(&code)
         .trim_end();
+    let services = used_services(code_source);
+    let runtime: String = services.iter().map(|(_, _, code)| *code).collect();
     let main_rs = format!(
-        "// Gerado pelo Ferro Studio a partir de {window}.fer e {window}.design.\n#![allow(dead_code, non_camel_case_types, non_snake_case, unused)]\n{code}\n{adapter}"
+        "// Gerado pelo Ferro Studio a partir de {window}.fer e {window}.design.\n#![allow(dead_code, non_camel_case_types, non_snake_case, unused)]\n{code}\n{runtime}{adapter}"
     );
+    let dependencies: String = services
+        .iter()
+        .map(|(_, dependency, _)| format!("{dependency}\n"))
+        .collect();
 
     let package_name = crate::cargo_package_name(name);
     let cargo_toml = format!(
-        "[package]\nname = \"{package_name}\"\nversion = \"0.1.0\"\nedition = \"2024\"\n\n[dependencies]\nslint = \"{SLINT_VERSION}\"\n\n[build-dependencies]\nslint-build = \"{SLINT_VERSION}\"\n"
+        "[package]\nname = \"{package_name}\"\nversion = \"0.1.0\"\nedition = \"2024\"\n\n[dependencies]\nslint = \"{SLINT_VERSION}\"\n{dependencies}\n[build-dependencies]\nslint-build = \"{SLINT_VERSION}\"\n"
     );
     let build_rs = format!(
         "fn main() {{\n    slint_build::compile(\"ui/{window}.slint\").expect(\"a interface da tela não compilou\");\n}}\n"

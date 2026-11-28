@@ -69,8 +69,20 @@ pub fn export_ferro_rs_with_options(
     source: &str,
     options: &ferro_frontend::LowerOptions,
 ) -> Result<GeneratedRust, Vec<Diagnostic>> {
+    export_with(source, options, &[])
+}
+
+/// Serviços do sistema das telas: só a exportação de tela traz o código
+/// deles (com as dependências no `Cargo.toml`).
+pub(crate) const SCREEN_SERVICES: &[&str] = &["Dialogo", "AreaTransferencia", "Notificacao"];
+
+fn export_with(
+    source: &str,
+    options: &ferro_frontend::LowerOptions,
+    allowed: &[&str],
+) -> Result<GeneratedRust, Vec<Diagnostic>> {
     let hir = ferro_frontend::lower_with(source, options)?;
-    if let Some((module, name, span)) = find_first_unsupported_host_call(&hir) {
+    if let Some((module, name, span)) = find_first_unsupported_host_call(&hir, allowed) {
         return Err(vec![Diagnostic::error(
             "ferro-rust.host-call-unsupported",
             format!(
@@ -124,6 +136,14 @@ pub fn write_cargo_project(
     Ok(())
 }
 
+/// Code-behind de uma tela, com os serviços do sistema liberados.
+pub(crate) fn export_screen_code(
+    source: &str,
+    options: &ferro_frontend::LowerOptions,
+) -> Result<GeneratedRust, Vec<Diagnostic>> {
+    export_with(source, options, SCREEN_SERVICES)
+}
+
 /// Nome Rust gerado para um registro, campo ou função FERRO (`pt_nome`), para
 /// quem escreve código que conversa com o gerado.
 pub fn rust_name(name: &str) -> String {
@@ -159,35 +179,43 @@ fn sanitize_cargo_package_name(raw: &str) -> String {
     }
 }
 
-fn find_first_unsupported_host_call(
-    program: &ferro_hir::Program,
-) -> Option<(&str, &str, ferro_hir::Span)> {
-    find_host_call_in_stmts(&program.body).or_else(|| {
+fn find_first_unsupported_host_call<'a>(
+    program: &'a ferro_hir::Program,
+    extra: &[&str],
+) -> Option<(&'a str, &'a str, ferro_hir::Span)> {
+    find_host_call_in_stmts(&program.body, extra).or_else(|| {
         program.functions.iter().find_map(|function| {
-            find_host_call_in_stmts(&function.body).or_else(|| {
+            find_host_call_in_stmts(&function.body, extra).or_else(|| {
                 function
                     .tail_expression
                     .as_ref()
-                    .and_then(find_host_call_in_expr)
+                    .and_then(|item| find_host_call_in_expr(item, extra))
             })
         })
     })
 }
 
-fn find_host_call_in_stmts(stmts: &[ferro_hir::Stmt]) -> Option<(&str, &str, ferro_hir::Span)> {
+fn find_host_call_in_stmts<'a>(
+    stmts: &'a [ferro_hir::Stmt],
+    extra: &[&str],
+) -> Option<(&'a str, &'a str, ferro_hir::Span)> {
     use ferro_hir::StmtKind as S;
     for stmt in stmts {
         let found = match &stmt.kind {
-            S::Declare { initializer, .. } => initializer.as_ref().and_then(find_host_call_in_expr),
-            S::Assign { value, .. } | S::FieldAssign { value, .. } => find_host_call_in_expr(value),
-            S::Choose { value, arms } => find_host_call_in_expr(value).or_else(|| {
+            S::Declare { initializer, .. } => initializer
+                .as_ref()
+                .and_then(|item| find_host_call_in_expr(item, extra)),
+            S::Assign { value, .. } | S::FieldAssign { value, .. } => {
+                find_host_call_in_expr(value, extra)
+            }
+            S::Choose { value, arms } => find_host_call_in_expr(value, extra).or_else(|| {
                 arms.iter()
-                    .find_map(|arm| find_host_call_in_stmts(&arm.body))
+                    .find_map(|arm| find_host_call_in_stmts(&arm.body, extra))
             }),
             S::Read { .. } | S::LoopControl { .. } => None,
-            S::Call { arguments, .. } | S::Write(arguments) => {
-                arguments.iter().find_map(find_host_call_in_expr)
-            }
+            S::Call { arguments, .. } | S::Write(arguments) => arguments
+                .iter()
+                .find_map(|item| find_host_call_in_expr(item, extra)),
             S::HostCall {
                 module,
                 name,
@@ -203,36 +231,45 @@ fn find_host_call_in_stmts(stmts: &[ferro_hir::Stmt]) -> Option<(&str, &str, fer
                         | "Arquivos"
                         | "Json"
                         | "Internet"
-                ) {
+                ) && !extra.contains(&module.as_str())
+                {
                     Some((module.as_str(), name.as_str(), stmt.span))
                 } else {
-                    arguments.iter().find_map(find_host_call_in_expr)
+                    arguments
+                        .iter()
+                        .find_map(|item| find_host_call_in_expr(item, extra))
                 }
             }
             S::If {
                 condition,
                 then_branch,
                 else_branch,
-            } => find_host_call_in_expr(condition)
-                .or_else(|| find_host_call_in_stmts(then_branch))
-                .or_else(|| else_branch.as_deref().and_then(find_host_call_in_stmts)),
+            } => find_host_call_in_expr(condition, extra)
+                .or_else(|| find_host_call_in_stmts(then_branch, extra))
+                .or_else(|| {
+                    else_branch
+                        .as_deref()
+                        .and_then(|item| find_host_call_in_stmts(item, extra))
+                }),
             S::While { condition, body } | S::DoWhile { body, condition } => {
-                find_host_call_in_expr(condition).or_else(|| find_host_call_in_stmts(body))
+                find_host_call_in_expr(condition, extra)
+                    .or_else(|| find_host_call_in_stmts(body, extra))
             }
             S::For {
                 initializer,
                 condition,
                 step,
                 body,
-            } => find_host_call_in_stmts(std::slice::from_ref(initializer.as_ref()))
-                .or_else(|| find_host_call_in_expr(condition))
-                .or_else(|| find_host_call_in_stmts(std::slice::from_ref(step.as_ref())))
-                .or_else(|| find_host_call_in_stmts(body)),
-            S::Return { value } => value.as_ref().and_then(find_host_call_in_expr),
-            S::IndexAssign { index, value, .. } => {
-                find_host_call_in_expr(index).or_else(|| find_host_call_in_expr(value))
-            }
-            S::VectorPush { value, .. } => find_host_call_in_expr(value),
+            } => find_host_call_in_stmts(std::slice::from_ref(initializer.as_ref()), extra)
+                .or_else(|| find_host_call_in_expr(condition, extra))
+                .or_else(|| find_host_call_in_stmts(std::slice::from_ref(step.as_ref()), extra))
+                .or_else(|| find_host_call_in_stmts(body, extra)),
+            S::Return { value } => value
+                .as_ref()
+                .and_then(|item| find_host_call_in_expr(item, extra)),
+            S::IndexAssign { index, value, .. } => find_host_call_in_expr(index, extra)
+                .or_else(|| find_host_call_in_expr(value, extra)),
+            S::VectorPush { value, .. } => find_host_call_in_expr(value, extra),
             S::VectorPop { .. } => None,
         };
         if found.is_some() {
@@ -242,7 +279,10 @@ fn find_host_call_in_stmts(stmts: &[ferro_hir::Stmt]) -> Option<(&str, &str, fer
     None
 }
 
-fn find_host_call_in_expr(expr: &ferro_hir::Expr) -> Option<(&str, &str, ferro_hir::Span)> {
+fn find_host_call_in_expr<'a>(
+    expr: &'a ferro_hir::Expr,
+    extra: &[&str],
+) -> Option<(&'a str, &'a str, ferro_hir::Span)> {
     use ferro_hir::ExprKind as E;
     match &expr.kind {
         E::HostCall {
@@ -260,10 +300,13 @@ fn find_host_call_in_expr(expr: &ferro_hir::Expr) -> Option<(&str, &str, ferro_h
                     | "Arquivos"
                     | "Json"
                     | "Internet"
-            ) {
+            ) && !extra.contains(&module.as_str())
+            {
                 Some((module.as_str(), name.as_str(), expr.span))
             } else {
-                arguments.iter().find_map(find_host_call_in_expr)
+                arguments
+                    .iter()
+                    .find_map(|item| find_host_call_in_expr(item, extra))
             }
         }
         E::Call { arguments, .. }
@@ -273,19 +316,21 @@ fn find_host_call_in_expr(expr: &ferro_hir::Expr) -> Option<(&str, &str, ferro_h
         }
         | E::EnumConstructor {
             payload: arguments, ..
-        } => arguments.iter().find_map(find_host_call_in_expr),
+        } => arguments
+            .iter()
+            .find_map(|item| find_host_call_in_expr(item, extra)),
         E::Field { value, .. }
         | E::Index { index: value, .. }
         | E::VectorGet { index: value, .. }
         | E::Parenthesized(value)
         | E::Try { operand: value }
-        | E::Unary { operand: value, .. } => find_host_call_in_expr(value),
+        | E::Unary { operand: value, .. } => find_host_call_in_expr(value, extra),
         E::Binary { left, right, .. } => {
-            find_host_call_in_expr(left).or_else(|| find_host_call_in_expr(right))
+            find_host_call_in_expr(left, extra).or_else(|| find_host_call_in_expr(right, extra))
         }
         E::InterpolatedString { parts } => parts.iter().find_map(|part| match part {
             ferro_hir::StringPart::Literal(_, _) => None,
-            ferro_hir::StringPart::Expression(value, _) => find_host_call_in_expr(value),
+            ferro_hir::StringPart::Expression(value, _) => find_host_call_in_expr(value, extra),
         }),
         E::Read { .. } => None,
         E::Binding(_)
