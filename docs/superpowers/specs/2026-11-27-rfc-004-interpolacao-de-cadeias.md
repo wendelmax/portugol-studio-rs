@@ -2,16 +2,16 @@
 
 - **Data:** 2026-11-27
 - **Status:** Aceita
-- **Relacionados:** [ADR 0019](../../adr/0019-contrato-minimo-de-tipos-pors.md), [RFC 002](2026-11-27-rfc-002-leia-como-expressao.md), [RFC 003](2026-11-27-rfc-003-escreval.md), [design de evolução sintática inicial do PORS](2026-11-26-pors-syntax-evolution-design.md)
-- **Revisada por:** [ADR 0020](../../adr/0020-ajustes-pedagogicos-da-sintaxe-pors.md)
+- **Relacionados:** [ADR 0019](../../adr/0019-contrato-minimo-de-tipos-ferro.md), [RFC 002](2026-11-27-rfc-002-leia-como-expressao.md), [RFC 003](2026-11-27-rfc-003-escreval.md), [design de evolução sintática inicial do FERRO](2026-11-26-ferro-syntax-evolution-design.md)
+- **Revisada por:** [ADR 0020](../../adr/0020-ajustes-pedagogicos-da-sintaxe-ferro.md)
 
-> **Revisão (ADR 0020):** Revisada pelas decisões 1 e 2 do ADR 0020. A interpolação aceita também `inteiro`, `real` e `logico`, com o texto que `escreva` exibiria; `pors.interpolation-non-string` fica restrito a tipos não escalares. Um identificador ou acesso a campo não resolvido entre chaves continua literal, mas gera o aviso `pors.interpolation-unknown-name` com sugestão.
+> **Revisão (ADR 0020):** Revisada pelas decisões 1 e 2 do ADR 0020. A interpolação aceita também `inteiro`, `real` e `logico`, com o texto que `escreva` exibiria; `ferro.interpolation-non-string` fica restrito a tipos não escalares. Um identificador ou acesso a campo não resolvido entre chaves continua literal, mas gera o aviso `ferro.interpolation-unknown-name` com sugestão.
 
 ## Contexto
 
 O design aprovado pede `"Olá, {nome}!"` como cadeia com partes na HIR, e classifica como anti-objetivo substituir o texto antes de montar a HIR: isso perderia spans, formatação, rename e diagnósticos. Hoje o lexer devolve `String(String)` já com os escapes decodificados e trata `{`/`}` dentro de cadeia como literais, então `"{nome}"` imprime `{nome}`.
 
-O ADR 0019 congela `cadeia` e `caracter` como os únicos tipos que participam da concatenação de texto e mantém spans como offsets UTF-8 semiabertos em bytes. A regra vigente em `crates/portugol-rs-frontend/src/parser/constants.rs:318-323` aceita `Add` entre `String`/`String` e `Character`/`Character` com resultado `String`; o bytecode reusa `Op::Add` e o Rust gerado reusa `__pors_concat`, sem opcode novo. A RFC 002 faz `leia()` inferir o tipo do contexto (`cadeia` sem contexto tipado), e a RFC 003 define `escreval` como acréscimo de quebra final, sem alterar a cadeia em si.
+O ADR 0019 congela `cadeia` e `caracter` como os únicos tipos que participam da concatenação de texto e mantém spans como offsets UTF-8 semiabertos em bytes. A regra vigente em `crates/ferro-rust-frontend/src/parser/constants.rs:318-323` aceita `Add` entre `String`/`String` e `Character`/`Character` com resultado `String`; o bytecode reusa `Op::Add` e o Rust gerado reusa `__ferro_concat`, sem opcode novo. A RFC 002 faz `leia()` inferir o tipo do contexto (`cadeia` sem contexto tipado), e a RFC 003 define `escreval` como acréscimo de quebra final, sem alterar a cadeia em si.
 
 Esta RFC fixa o contrato observável da interpolação no frontend, na HIR, no bytecode/VM, no Rust gerado, no formatador e nos editores. Não define retorno implícito (RFC 005) nem o contrato completo de realce (RFC 006).
 
@@ -22,7 +22,7 @@ Esta RFC fixa o contrato observável da interpolação no frontend, na HIR, no b
 1. A interpolação existe somente dentro de literais de cadeia entre aspas duplas. O frontend particiona o texto bruto entre as aspas — não a `String` já decodificada — para preservar escapes e offsets originais.
 2. `\{` e `\}` produzem chaves literais e viram parte `Literal`. Um `{` ou `}` é considerado escapado quando precedido por número ímpar de `\` no texto bruto; `\\{` é barra literal seguida de `{` não escapado.
 3. Um `{` não escapado inicia interpolação somente quando existe um `}` não escapado correspondente na mesma cadeia e o conteúdo entre eles não é vazio. O `}` correspondente é o primeiro `}` não escapado depois do `{`.
-4. O conteúdo entre as chaves é uma expressão PORS completa, parseada pelo parser normal nos offsets de bytes originais do fonte. Não há reconhecimento de strings aninhadas para adiantar o fechamento: o primeiro `}` não escapado fecha a parte.
+4. O conteúdo entre as chaves é uma expressão FERRO completa, parseada pelo parser normal nos offsets de bytes originais do fonte. Não há reconhecimento de strings aninhadas para adiantar o fechamento: o primeiro `}` não escapado fecha a parte.
 5. `{}` e um `{` sem fechamento não escapado na mesma cadeia permanecem texto literal; o `{` é emitido como literal e a varredura continua. Quando há mais de um `{` antes do primeiro `}`, somente o primeiro par forma a parte: `"{nome} e { aberto"` interpola `{nome}` e deixa o último `{` literal.
 6. Espaço em branco conta como conteúdo: `{ }` não é vazio e tenta parsear como expressão, com o diagnóstico da regra de conteúdo inválido.
 7. Por compatibilidade com cadeias que já continham chaves, conteúdo com erro léxico ou com nomes não resolvidos continua literal; não há diagnóstico de interpolação nesses casos. Exemplos: `"{@}"` e `"{invalido}"` permanecem `ExprKind::String`. Os diagnósticos de interpolação ficam reservados a conteúdo lexicalmente válido e sintaticamente reconhecível.
@@ -45,22 +45,22 @@ Esta RFC fixa o contrato observável da interpolação no frontend, na HIR, no b
 
 ### Tipos e diagnósticos
 
-1. Somente expressões do tipo `cadeia` ou `caracter` são aceitas como parte de texto. Antes da dobra, cada parte é convertida para `cadeia`: uma parte `cadeia` entra como ela mesma e uma parte `caracter` é materializada como cadeia de um caractere. Assim, toda `Op::Add` da dobra tem dois operandos `cadeia`, e nenhuma chamada a `__pors_concat` mistura tipos. A conversão não cria nó de HIR nem auxiliar: o `Expr` filho mantém seu `ty = caracter` e seu `Expr.span` interno, e a parte passa a ser tratada como `cadeia` no lowering. `leia()` satisfaz esta regra quando resulta em `cadeia` (sem contexto tipado) ou quando o contexto esperado é `caracter`, conforme RFC 002.
-2. Conteúdo que não parseia como expressão PORS completa gera `pors.interpolation-invalid` no span exato do conteúdo entre chaves, sem as chaves. Exemplo: `escreva("{1 +}");` aponta `[10, 13)`.
-3. Conteúdo que parseia, mas cujo tipo não é `cadeia` nem `caracter`, gera `pors.interpolation-non-string` no span da expressão interna, sem as chaves. Números inteiros e reais, lógicos, vetores, registros, enums e `vazio` usam todos esse código; não há `to_string` implícito nem conversão numérica nesta fatia. Exemplo: `escreva("{42}");` aponta `[10, 12)`.
+1. Somente expressões do tipo `cadeia` ou `caracter` são aceitas como parte de texto. Antes da dobra, cada parte é convertida para `cadeia`: uma parte `cadeia` entra como ela mesma e uma parte `caracter` é materializada como cadeia de um caractere. Assim, toda `Op::Add` da dobra tem dois operandos `cadeia`, e nenhuma chamada a `__ferro_concat` mistura tipos. A conversão não cria nó de HIR nem auxiliar: o `Expr` filho mantém seu `ty = caracter` e seu `Expr.span` interno, e a parte passa a ser tratada como `cadeia` no lowering. `leia()` satisfaz esta regra quando resulta em `cadeia` (sem contexto tipado) ou quando o contexto esperado é `caracter`, conforme RFC 002.
+2. Conteúdo que não parseia como expressão FERRO completa gera `ferro.interpolation-invalid` no span exato do conteúdo entre chaves, sem as chaves. Exemplo: `escreva("{1 +}");` aponta `[10, 13)`.
+3. Conteúdo que parseia, mas cujo tipo não é `cadeia` nem `caracter`, gera `ferro.interpolation-non-string` no span da expressão interna, sem as chaves. Números inteiros e reais, lógicos, vetores, registros, enums e `vazio` usam todos esse código; não há `to_string` implícito nem conversão numérica nesta fatia. Exemplo: `escreva("{42}");` aponta `[10, 12)`.
 4. Um diagnóstico não transforma a parte em literal: a cadeia interpolada continua com `ty = cadeia`, e o erro é localizado na parte ofensiva.
 
 | Trecho (coluna 0) | Diagnóstico |
 | --- | --- |
-| `escreva("{1 +}");` | `pors.interpolation-invalid` em `[10, 13)` |
-| `escreva("{ }");` | `pors.interpolation-invalid` em `[10, 11)` |
-| `escreva("{42}");` | `pors.interpolation-non-string` em `[10, 12)` |
-| `escreva("{2.5}");` | `pors.interpolation-non-string` em `[10, 13)` |
-| `escreva("{nome:>10}");` | `pors.interpolation-invalid` em `[10, 18)`; não há especificador de formato |
+| `escreva("{1 +}");` | `ferro.interpolation-invalid` em `[10, 13)` |
+| `escreva("{ }");` | `ferro.interpolation-invalid` em `[10, 11)` |
+| `escreva("{42}");` | `ferro.interpolation-non-string` em `[10, 12)` |
+| `escreva("{2.5}");` | `ferro.interpolation-non-string` em `[10, 13)` |
+| `escreva("{nome:>10}");` | `ferro.interpolation-invalid` em `[10, 18)`; não há especificador de formato |
 
 ### Lowering, bytecode, Rust gerado e source maps
 
-1. O lowering do `ExprKind::InterpolatedString` monta o texto das partes na ordem do fonte depois da conversão para `cadeia`, reusando `Op::Add` com resultado `cadeia` e dois operandos `cadeia` em cada operação da dobra. No bytecode, a parte `caracter` é convertida ao valor `Str` de um caractere antes de entrar na dobra, pelo caminho de concatenação já existente na VM, sem opcode novo. No Rust gerado, `pors_string_view(parte, ty)` aplica a conversão existente (`__pors_char` para `caracter`, helper já presente) e `__pors_concat` continua recebendo dois `&str`. Não há opcode, helper, VM, crate ou tipo novo.
+1. O lowering do `ExprKind::InterpolatedString` monta o texto das partes na ordem do fonte depois da conversão para `cadeia`, reusando `Op::Add` com resultado `cadeia` e dois operandos `cadeia` em cada operação da dobra. No bytecode, a parte `caracter` é convertida ao valor `Str` de um caractere antes de entrar na dobra, pelo caminho de concatenação já existente na VM, sem opcode novo. No Rust gerado, `ferro_string_view(parte, ty)` aplica a conversão existente (`__ferro_char` para `caracter`, helper já presente) e `__ferro_concat` continua recebendo dois `&str`. Não há opcode, helper, VM, crate ou tipo novo.
 2. Quando há uma única parte literal, o resultado é o próprio valor da cadeia; não é introduzida operação de concatenação vazia. Quando há mais partes, a dobra é associativa à esquerda, na ordem do fonte.
 3. Cada parte possui um `SourceMapSegment` apontando para o `Span` da parte; a conversão para `cadeia` não cria segmento próprio nem nó de HIR, e a expressão interna mantém seu `Expr.span` e o span interno usado pelos diagnósticos. Debugger, bytecode/VM e Rust gerado leem as partes e esses mapas, não o texto bruto da cadeia.
 4. VM e Rust gerado produzem stdout idêntico, inclusive para partes `caracter`, pela mesma conversão para `cadeia` nos dois backends, e para escapes e cadeias com chaves literais. Não há campo JSON, fachada ou API WASM nova.
@@ -75,7 +75,7 @@ Esta RFC fixa o contrato observável da interpolação no frontend, na HIR, no b
 ### Fronteiras e adiamentos
 
 - Especificadores de formato não são aceitos nesta fatia e nenhuma sintaxe é reservada para eles; aceitar algum formato exige revisar esta RFC.
-- A decisão sobre conversão de números para texto também fica adiada: até lá, números em interpolação geram `pors.interpolation-non-string`.
+- A decisão sobre conversão de números para texto também fica adiada: até lá, números em interpolação geram `ferro.interpolation-non-string`.
 - `leia<T>()` e validação tipada explícita de entrada continuam em **P1**, conforme RFC 002 e ADR 0019; a conversão implícita acontece na própria leitura.
 - Retorno implícito é da RFC 005 e realce de sintaxe é da RFC 006; esta RFC não altera nenhum dos dois contratos.
 - Permanecem adiados pelo ADR 0019: novas larguras de inteiro e a decisão sobre overflow, aliases, `nunca`, Unicode além dos offsets de bytes dos spans e mudanças em heap/GC.
@@ -83,7 +83,7 @@ Esta RFC fixa o contrato observável da interpolação no frontend, na HIR, no b
 
 ## Exemplos válidos
 
-```pors
+```ferro
 funcao saudar(nome: cadeia) -> cadeia {
     retorne "Olá, {nome}!";
 }
@@ -97,7 +97,7 @@ funcao inicio() {
 
 `escreval("Olá, {nome}!");` imprime `Olá, <valor de nome>` seguido de uma quebra de linha, sem bytes extras. A interpolação também é válida em qualquer posição de expressão, inclusive como argumento de `escreva`:
 
-```pors
+```ferro
 funcao inicio() {
     seja letra: caracter = 'a';
     escreval("letra: {letra}");
@@ -112,9 +112,9 @@ O segundo `escreva` imprime `{nome} e {} ficam literais; { aberto também` — `
 
 | Trecho (coluna 0) | Motivo |
 | --- | --- |
-| `escreva("{1 +}");` | conteúdo não parseia: `pors.interpolation-invalid` em `[10, 13)` |
-| `escreva("{42}");` | número não é `cadeia` nem `caracter`: `pors.interpolation-non-string` em `[10, 12)` |
-| `escreva("{nome:>10}");` | especificador de formato inexistente: `pors.interpolation-invalid` em `[10, 18)` |
+| `escreva("{1 +}");` | conteúdo não parseia: `ferro.interpolation-invalid` em `[10, 13)` |
+| `escreva("{42}");` | número não é `cadeia` nem `caracter`: `ferro.interpolation-non-string` em `[10, 12)` |
+| `escreva("{nome:>10}");` | especificador de formato inexistente: `ferro.interpolation-invalid` em `[10, 18)` |
 
 ## Consequências
 

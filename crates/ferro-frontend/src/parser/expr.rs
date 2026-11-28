@@ -22,7 +22,7 @@ impl Parser {
                 let (field_name, field_span) = self.identifier()?;
                 let hir::Type::Record(type_id) = left.ty else {
                     return self.fail(
-                        "pors.field-non-record",
+                        "ferro.field-non-record",
                         "Acesso de campo exige um registro",
                         field_span,
                     );
@@ -39,7 +39,7 @@ impl Parser {
                     .find(|(_, field)| field.name == field_name)
                 else {
                     return self.fail(
-                        "pors.unknown-field",
+                        "ferro.unknown-field",
                         format!(
                             "Campo `{field_name}` não existe no registro `{}`",
                             definition.name
@@ -65,7 +65,7 @@ impl Parser {
                             Some((_, hir::BuiltinEnum::Option(_))) => inner,
                             _ => {
                                 return self.fail(
-                                    "pors.try-return-mismatch",
+                                    "ferro.try-return-mismatch",
                                     "O operador `?` em `Opcao` exige que a função retorne `Opcao<...>`",
                                     question_span,
                                 );
@@ -81,7 +81,7 @@ impl Parser {
                             }
                             _ => {
                                 return self.fail(
-                                    "pors.try-return-mismatch",
+                                    "ferro.try-return-mismatch",
                                     "O operador `?` em `Resultado` exige que a função retorne `Resultado<..., E>` com o mesmo tipo de erro",
                                     question_span,
                                 );
@@ -90,7 +90,7 @@ impl Parser {
                     }
                     None => {
                         return self.fail(
-                            "pors.try-invalid-type",
+                            "ferro.try-invalid-type",
                             "O operador `?` só pode ser aplicado a valores `Opcao<T>` ou `Resultado<T, E>`",
                             question_span,
                         );
@@ -115,7 +115,7 @@ impl Parser {
             let right = self.expression(precedence + 1)?;
             let ty = binary_type(op, left.ty, right.ty).ok_or_else(|| {
                 vec![Diagnostic::error(
-                    "pors.type-mismatch",
+                    "ferro.type-mismatch",
                     "Operandos incompatíveis para este operador",
                     syntax_span(left.span),
                 )]
@@ -144,7 +144,7 @@ impl Parser {
             Kind::Integer(n) => (
                 hir::ExprKind::Integer(i32::try_from(n).map_err(|_| {
                     vec![Diagnostic::error(
-                        "pors.integer-range",
+                        "ferro.integer-range",
                         "Literal inteiro fora do intervalo de 32 bits",
                         span,
                     )]
@@ -192,7 +192,7 @@ impl Parser {
                     }
                     let end = self.tokens[cursor.min(self.tokens.len() - 1)].span;
                     return self.fail(
-                        "pors.read-arguments-unsupported",
+                        "ferro.read-arguments-unsupported",
                         "`leia()` não aceita argumentos; use `leia(variavel)` como comando",
                         start.join(end),
                     );
@@ -258,7 +258,7 @@ impl Parser {
                         .cloned()
                     else {
                         return self.fail(
-                            "pors.unknown-type",
+                            "ferro.unknown-type",
                             format!("Enum não declarado: {name}"),
                             span,
                         );
@@ -271,7 +271,7 @@ impl Parser {
                         .map(|(index, variant)| (index, variant.clone()))
                     else {
                         return self.fail(
-                            "pors.unknown-variant",
+                            "ferro.unknown-variant",
                             format!("Variante `{variant_name}` não existe em `{name}`"),
                             variant_span,
                         );
@@ -295,7 +295,7 @@ impl Parser {
                     };
                     if payload.len() != variant.payload_types.len() {
                         return self.fail(
-                            "pors.enum-payload-arity",
+                            "ferro.enum-payload-arity",
                             format!(
                                 "A variante `{variant_name}` exige {} valor(es)",
                                 variant.payload_types.len()
@@ -309,7 +309,7 @@ impl Parser {
                         .find(|(argument, expected)| argument.ty != **expected)
                     {
                         return self.fail(
-                            "pors.enum-payload-type",
+                            "ferro.enum-payload-type",
                             format!("Valor incompatível com o payload de `{variant_name}`"),
                             syntax_span(argument.span),
                         );
@@ -347,14 +347,14 @@ impl Parser {
                             .find(|(_, field)| field.name == field_name)
                         else {
                             return self.fail(
-                                "pors.unknown-field",
+                                "ferro.unknown-field",
                                 format!("Campo `{field_name}` não existe em `{name}`"),
                                 field_span,
                             );
                         };
                         if values[index].is_some() {
                             return self.fail(
-                                "pors.field-redeclared",
+                                "ferro.field-redeclared",
                                 format!("Campo `{field_name}` foi informado mais de uma vez"),
                                 field_span,
                             );
@@ -363,7 +363,7 @@ impl Parser {
                         let value = self.expression_with_expected(0, Some(field.ty))?;
                         if value.ty != field.ty {
                             return self.fail(
-                                "pors.field-type-mismatch",
+                                "ferro.field-type-mismatch",
                                 format!("Valor incompatível com o campo `{field_name}`"),
                                 syntax_span(value.span),
                             );
@@ -377,7 +377,7 @@ impl Parser {
                         self.expect(Kind::RBrace, "Esperado `}` após campos do registro")?;
                     if let Some(missing) = values.iter().position(Option::is_none) {
                         return self.fail(
-                            "pors.missing-field",
+                            "ferro.missing-field",
                             format!(
                                 "Campo `{}` não foi informado",
                                 definition.fields[missing].name
@@ -402,14 +402,14 @@ impl Parser {
                             self.expect(Kind::RParen, "Esperado `)` após argumento de tamanho")?;
                         let Some(element_type) = argument.ty.vector_element() else {
                             return self.fail(
-                                "pors.length-type",
+                                "ferro.length-type",
                                 "`tamanho` espera um vetor",
                                 syntax_span(argument.span),
                             );
                         };
                         let hir::ExprKind::Binding(binding) = argument.kind else {
                             return self.fail(
-                                "pors.length-binding",
+                                "ferro.length-binding",
                                 "`tamanho` precisa receber o nome de um vetor",
                                 syntax_span(argument.span),
                             );
@@ -428,14 +428,14 @@ impl Parser {
                             self.expect(Kind::RParen, "Esperado `)` após argumento de remover")?;
                         let symbol = self.lookup(&target_name).ok_or_else(|| {
                             vec![Diagnostic::error(
-                                "pors.unknown-name",
+                                "ferro.unknown-name",
                                 format!("Nome não declarado: {target_name}"),
                                 target_span,
                             )]
                         })?;
                         let Some(element_type) = symbol.ty.vector_element() else {
                             return self.fail(
-                                "pors.vector-operation-type",
+                                "ferro.vector-operation-type",
                                 format!(
                                     "`remover` espera um vetor, mas `{target_name}` não é um vetor"
                                 ),
@@ -444,7 +444,7 @@ impl Parser {
                         };
                         if symbol.mutability != hir::Mutability::Mutable {
                             return self.fail(
-                                "pors.immutable-assignment",
+                                "ferro.immutable-assignment",
                                 format!(
                                     "`{target_name}` é imutável; declare com `seja mutavel` para remover elementos"
                                 ),
@@ -465,14 +465,14 @@ impl Parser {
                         let (target_name, target_span) = self.identifier()?;
                         let symbol = self.lookup(&target_name).ok_or_else(|| {
                             vec![Diagnostic::error(
-                                "pors.unknown-name",
+                                "ferro.unknown-name",
                                 format!("Nome não declarado: {target_name}"),
                                 target_span,
                             )]
                         })?;
                         let Some(element_type) = symbol.ty.vector_element() else {
                             return self.fail(
-                                "pors.vector-operation-type",
+                                "ferro.vector-operation-type",
                                 format!(
                                     "`obter` espera um vetor, mas `{target_name}` não é um vetor"
                                 ),
@@ -486,7 +486,7 @@ impl Parser {
                         let index = self.expression(0)?;
                         if index.ty != hir::Type::Integer {
                             return self.fail(
-                                "pors.index-type",
+                                "ferro.index-type",
                                 "O índice do vetor deve ter tipo inteiro",
                                 syntax_span(index.span),
                             );
@@ -507,7 +507,7 @@ impl Parser {
                     }
                     let signature = self.signatures.get(&name).cloned().ok_or_else(|| {
                         vec![Diagnostic::error(
-                            "pors.unknown-function",
+                            "ferro.unknown-function",
                             format!("Função não declarada: {name}"),
                             span,
                         )]
@@ -527,7 +527,7 @@ impl Parser {
                     let close = self.expect(Kind::RParen, "Esperado `)` após argumentos")?;
                     if arguments.len() != signature.parameters.len() {
                         return self.fail(
-                            "pors.call-arity",
+                            "ferro.call-arity",
                             format!(
                                 "A função `{name}` espera {} argumento(s), recebeu {}",
                                 signature.parameters.len(),
@@ -539,7 +539,7 @@ impl Parser {
                     for (argument, parameter) in arguments.iter().zip(&signature.parameters) {
                         if argument.ty != parameter.ty {
                             return self.fail(
-                                "pors.call-type-mismatch",
+                                "ferro.call-type-mismatch",
                                 format!(
                                     "Argumento incompatível com o parâmetro `{}`",
                                     parameter.name
@@ -550,7 +550,7 @@ impl Parser {
                     }
                     let function = signature.id.ok_or_else(|| {
                         vec![Diagnostic::error(
-                            "pors.entry-call",
+                            "ferro.entry-call",
                             "`inicio` não pode ser chamada diretamente",
                             span,
                         )]
@@ -568,14 +568,14 @@ impl Parser {
                 if matches!(self.current().kind, Kind::LBracket) {
                     let symbol = self.lookup(&name).ok_or_else(|| {
                         vec![Diagnostic::error(
-                            "pors.unknown-name",
+                            "ferro.unknown-name",
                             format!("Nome não declarado: {name}"),
                             span,
                         )]
                     })?;
                     let Some(element_type) = symbol.ty.vector_element() else {
                         return self.fail(
-                            "pors.index-non-vector",
+                            "ferro.index-non-vector",
                             format!("`{name}` não é um vetor"),
                             span,
                         );
@@ -584,7 +584,7 @@ impl Parser {
                     let index = self.expression(0)?;
                     if index.ty != hir::Type::Integer {
                         return self.fail(
-                            "pors.index-type",
+                            "ferro.index-type",
                             "O índice do vetor deve ter tipo inteiro",
                             syntax_span(index.span),
                         );
@@ -601,7 +601,7 @@ impl Parser {
                 }
                 let symbol = self.lookup(&name).ok_or_else(|| {
                     vec![Diagnostic::error(
-                        "pors.unknown-name",
+                        "ferro.unknown-name",
                         format!("Nome não declarado: {name}"),
                         span,
                     )]
@@ -634,7 +634,7 @@ impl Parser {
                     (hir::UnaryOp::BitNot, hir::Type::Integer) => hir::Type::Integer,
                     _ => {
                         return self.fail(
-                            "pors.invalid-unary-operator",
+                            "ferro.invalid-unary-operator",
                             "Operador unário incompatível com o tipo",
                             span,
                         );
@@ -663,7 +663,7 @@ impl Parser {
             Kind::LBracket => return self.vector_literal(span, expected),
             other => {
                 return self.fail(
-                    "pors.expected-expression",
+                    "ferro.expected-expression",
                     format!("Esperada expressão, encontrado {other:?}"),
                     span,
                 );
@@ -735,14 +735,14 @@ impl Parser {
                         let complete = matches!(self.current().kind, Kind::Eof);
                         let unresolved_name = parsed.as_ref().is_err_and(|errors| {
                             errors.iter().all(|d| {
-                                matches!(d.code, "pors.unknown-name" | "pors.unknown-function")
+                                matches!(d.code, "ferro.unknown-name" | "ferro.unknown-function")
                             })
                         });
                         self.tokens = outer_tokens;
                         self.cursor = outer_cursor;
                         if parsed.is_err() && !unresolved_name {
                             return self.fail(
-                                "pors.interpolation-invalid",
+                                "ferro.interpolation-invalid",
                                 "Conteúdo inválido dentro da interpolação",
                                 span,
                             );
@@ -751,7 +751,7 @@ impl Parser {
                             let expr = parsed.expect("expressão de interpolação válida");
                             if !matches!(expr.ty, hir::Type::String | hir::Type::Character) {
                                 return self.fail(
-                                    "pors.interpolation-non-string",
+                                    "ferro.interpolation-non-string",
                                     "A interpolação exige um valor `cadeia` ou `caracter`",
                                     span,
                                 );
@@ -823,14 +823,14 @@ impl Parser {
                 };
                 if payload.len() != 1 {
                     return self.fail(
-                        "pors.enum-payload-arity",
+                        "ferro.enum-payload-arity",
                         "A variante `Algum` exige 1 valor(es)",
                         variant_span,
                     );
                 }
                 if payload[0].ty == hir::Type::Unit {
                     return self.fail(
-                        "pors.void-value",
+                        "ferro.void-value",
                         "Uma função sem retorno não pode ser usada como valor",
                         syntax_span(payload[0].span),
                     );
@@ -868,7 +868,7 @@ impl Parser {
                 };
                 if !payload.is_empty() {
                     return self.fail(
-                        "pors.enum-payload-arity",
+                        "ferro.enum-payload-arity",
                         "A variante `Nenhum` exige 0 valor(es)",
                         variant_span,
                     );
@@ -877,7 +877,7 @@ impl Parser {
                     expected.and_then(|ty| self.builtin_enum_of(ty))
                 else {
                     return self.fail(
-                        "pors.option-type-inference",
+                        "ferro.option-type-inference",
                         "Não foi possível inferir o tipo de `Opcao::Nenhum`; informe o tipo `Opcao<T>`",
                         start.join(end),
                     );
@@ -893,7 +893,7 @@ impl Parser {
                 })
             }
             _ => self.fail(
-                "pors.unknown-variant",
+                "ferro.unknown-variant",
                 format!("Variante `{variant_name}` não existe em `Opcao`"),
                 variant_span,
             ),
@@ -912,7 +912,7 @@ impl Parser {
             "Erro" => 1,
             _ => {
                 return self.fail(
-                    "pors.unknown-variant",
+                    "ferro.unknown-variant",
                     format!("Variante `{variant_name}` não existe em `Resultado`"),
                     variant_span,
                 );
@@ -949,21 +949,21 @@ impl Parser {
         };
         if payload.len() != 1 {
             return self.fail(
-                "pors.enum-payload-arity",
+                "ferro.enum-payload-arity",
                 format!("A variante `{variant_name}` exige 1 valor(es)"),
                 variant_span,
             );
         }
         if payload[0].ty == hir::Type::Unit {
             return self.fail(
-                "pors.void-value",
+                "ferro.void-value",
                 "Uma função sem retorno não pode ser usada como valor",
                 syntax_span(payload[0].span),
             );
         }
         let Some((type_id, expected_ok, expected_err)) = expected_result else {
             return self.fail(
-                "pors.result-type-inference",
+                "ferro.result-type-inference",
                 format!(
                     "Não foi possível inferir os tipos de `Resultado::{variant_name}`; informe o tipo `Resultado<T, E>`"
                 ),
@@ -977,7 +977,7 @@ impl Parser {
         };
         if payload[0].ty != expected_ty {
             return self.fail(
-                "pors.enum-payload-type",
+                "ferro.enum-payload-type",
                 format!("Valor incompatível com o payload de `{variant_name}`"),
                 syntax_span(payload[0].span),
             );
@@ -1003,7 +1003,7 @@ impl Parser {
             let whole = start.join(close.span);
             let Some(ty) = expected.filter(|ty| ty.is_vector()) else {
                 return self.fail(
-                    "pors.empty-vector-type-inference",
+                    "ferro.empty-vector-type-inference",
                     "Não foi possível inferir o tipo do vetor vazio `[]`; informe o tipo `vetor<T>`",
                     whole,
                 );
@@ -1026,14 +1026,14 @@ impl Parser {
         let element_type = elements[0].ty;
         if element_type.is_vector() || element_type == hir::Type::Unit {
             return self.fail(
-                "pors.vector-element-type",
+                "ferro.vector-element-type",
                 "Vetores aninhados e valores sem retorno não podem ser elementos",
                 syntax_span(elements[0].span),
             );
         }
         if let Some(incompatible) = elements.iter().find(|element| element.ty != element_type) {
             return self.fail(
-                "pors.vector-element-type",
+                "ferro.vector-element-type",
                 "Todos os elementos do vetor devem ter o mesmo tipo",
                 syntax_span(incompatible.span),
             );

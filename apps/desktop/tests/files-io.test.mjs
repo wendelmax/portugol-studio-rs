@@ -7,7 +7,7 @@ function makeTab(overrides = {}) {
   return {
     id: 1,
     path: null,
-    language: "portugol-rs",
+    language: "ferro-rust",
     saved: "",
     diagnostics: [],
     symbols: [],
@@ -50,25 +50,25 @@ function fixture(overrides = {}) {
 }
 
 test("opening an existing path activates its tab without reading it again", async () => {
-  const existing = makeTab({ id: 8, path: "/aula.pors" });
+  const existing = makeTab({ id: 8, path: "/aula.fer" });
   const { io, events } = fixture({ initialTabs: [existing], selectedTab: existing });
 
-  await io.openFile("/aula.pors");
+  await io.openFile("/aula.fer");
 
-  assert.deepEqual(events, [["activate", 8], ["recent", "/aula.pors"]]);
+  assert.deepEqual(events, [["activate", 8], ["recent", "/aula.fer"]]);
 });
 
 test("opening a file replaces the only pristine untitled tab", async () => {
   const blank = makeTab({ id: 2, path: null, saved: "" });
   const { io, events, getTabs } = fixture({ initialTabs: [blank], selectedTab: blank });
 
-  await io.openFile("/aula.pors");
+  await io.openFile("/aula.fer");
 
   assert.equal(getTabs().some((tab) => tab.id === 2), false);
   assert.deepEqual(events, [
-    ["readFile", "/aula.pors"],
-    ["newTab", "arquivo", "/aula.pors"],
-    ["recent", "/aula.pors"],
+    ["readFile", "/aula.fer"],
+    ["newTab", "arquivo", "/aula.fer"],
+    ["recent", "/aula.fer"],
   ]);
 });
 
@@ -83,7 +83,7 @@ test("canceling the open dialog does not change tabs or status", async () => {
 });
 
 test("saving as Ferro adds .fer and reports the language change after writing", async () => {
-  const tab = makeTab({ id: 4, path: null, language: "portugol-rs", saved: "antigo" });
+  const tab = makeTab({ id: 4, path: null, language: "ferro-rust", saved: "antigo" });
   const { io, events, dependencies } = fixture({ selectedTab: tab });
   dependencies.saveDialog = async (options) => {
     assert.equal(options.defaultPath, "programa.fer");
@@ -94,34 +94,34 @@ test("saving as Ferro adds .fer and reports the language change after writing", 
 
   assert.equal(saved, true);
   assert.equal(tab.path, "/tmp/aula.fer");
-  assert.equal(tab.language, "portugol-rs");
+  assert.equal(tab.language, "ferro-rust");
   assert.deepEqual(events.map(([name]) => name), ["writeFile", "afterSave", "recent", "renderTabs", "status"]);
   assert.equal(events[0][2], "conteúdo atual");
   assert.equal(events[1][1], tab);
-  assert.equal(events[1][2], "portugol-rs");
+  assert.equal(events[1][2], "ferro-rust");
   assert.equal(events[1][3], false);
 });
 
 test("saving a workspace tab uses its workspace path", async () => {
-  const tab = makeTab({ id: 5, path: "src/main.pors", workspaceId: "workspace", workspacePath: "src/main.pors" });
+  const tab = makeTab({ id: 5, path: "src/main.fer", workspaceId: "workspace", workspacePath: "src/main.fer" });
   const { io, events } = fixture({ selectedTab: tab });
 
   const saved = await io.save();
 
   assert.equal(saved, true);
-  assert.deepEqual(events[0], ["writeWorkspaceFile", "workspace", "src/main.pors", "conteúdo atual"]);
+  assert.deepEqual(events[0], ["writeWorkspaceFile", "workspace", "src/main.fer", "conteúdo atual"]);
   assert.equal(tab.workspaceId, "workspace");
 });
 
 test("failed writes keep the tab unchanged and show the error", async () => {
-  const tab = makeTab({ id: 6, path: "/old.pors", language: "portugol-rs", saved: "antigo" });
+  const tab = makeTab({ id: 6, path: "/old.fer", language: "ferro-rust", saved: "antigo" });
   const { io, events, dependencies } = fixture({ selectedTab: tab });
   dependencies.writeFile = async () => { throw new Error("disco cheio"); };
 
   const saved = await io.save();
 
   assert.equal(saved, false);
-  assert.equal(tab.path, "/old.pors");
+  assert.equal(tab.path, "/old.fer");
   assert.equal(tab.saved, "antigo");
   assert.deepEqual(events, [["status", "Error: disco cheio", "error"]]);
 });

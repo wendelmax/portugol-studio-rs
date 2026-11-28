@@ -5,7 +5,7 @@ import type { Tab } from "../state/tab";
 import { createLatestOnlyRustSourceChecker } from "../rust-source-check";
 import { createCenterSourceController } from "./center-source";
 import { createBreakpointGutter, toCodeMirror } from "./decorations";
-import { createPortugolLintSourceCheck } from "./portugol-linter";
+import { createFerroLintSourceCheck } from "./ferro-linter";
 import { createRustLintSourceCheck } from "./rust-linter";
 
 export interface EditorSetupDependencies {
@@ -18,7 +18,7 @@ export interface EditorSetupDependencies {
   bugIcon: () => HTMLElement;
   activeTab: () => Tab | undefined;
   /** Inspeção de código-fonte; a aba diz se é o code-behind de uma tela. */
-  inspectPortugolRs: (source: string, tab: Tab | undefined) => Promise<Inspection>;
+  inspectFerroRust: (source: string, tab: Tab | undefined) => Promise<Inspection>;
   /** Inspeção de .design e .ferproj; o tipo vem da extensão do caminho. */
   inspectMarkup: (source: string, path: string, tab: Tab | undefined) => Promise<Inspection>;
   renderMessages: () => void;
@@ -33,7 +33,7 @@ export function createEditorSetup(dependencies: EditorSetupDependencies) {
   const theme = new Compartment();
   const preferences = new Compartment();
   const sourceLanguage = new Compartment();
-  const portugolTools = new Compartment();
+  const ferroTools = new Compartment();
   const generatedRustTheme = new Compartment();
 
   const centerSource = createCenterSourceController({
@@ -49,19 +49,19 @@ export function createEditorSetup(dependencies: EditorSetupDependencies) {
     dependencies.bugIcon,
   );
 
-  const portugolLinter = linter(createPortugolLintSourceCheck({
+  const ferroLinter = linter(createFerroLintSourceCheck({
     activeTab: dependencies.activeTab,
-    inspectPortugolRs: dependencies.inspectPortugolRs,
+    inspectFerroRust: dependencies.inspectFerroRust,
     renderMessages: dependencies.renderMessages,
     showOutline: dependencies.showOutline,
     updateLibraryButtons: dependencies.updateLibraryButtons,
     toCodeMirror,
   }), { delay: 350 });
 
-  const markupLinter = linter(createPortugolLintSourceCheck({
+  const markupLinter = linter(createFerroLintSourceCheck({
     activeTab: dependencies.activeTab,
     language: "markup",
-    inspectPortugolRs: (source, tab) =>
+    inspectFerroRust: (source, tab) =>
       dependencies.inspectMarkup(source, tab?.workspacePath ?? tab?.path ?? "tela.design", tab),
     renderMessages: dependencies.renderMessages,
     showOutline: dependencies.showOutline,
@@ -82,11 +82,11 @@ export function createEditorSetup(dependencies: EditorSetupDependencies) {
     theme,
     preferences,
     sourceLanguage,
-    portugolTools,
+    ferroTools,
     generatedRustTheme,
     centerSource,
     breakpointGutter,
-    portugolLinter,
+    ferroLinter,
     markupLinter,
     rustSourceLinter,
   };

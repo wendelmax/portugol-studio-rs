@@ -20,7 +20,7 @@ function memoryStorage(initial = {}) {
 }
 
 test("loading ignores invalid entries and respects the limit", () => {
-  const paths = Array.from({ length: 9 }, (_, index) => `/p/${index}.pors`);
+  const paths = Array.from({ length: 9 }, (_, index) => `/p/${index}.fer`);
   const storage = memoryStorage({ [RECENT_KEY]: JSON.stringify([...paths, 42, null]) });
   assert.deepEqual(loadRecentFiles(storage), paths.slice(0, RECENT_LIMIT));
   assert.deepEqual(loadRecentFiles(memoryStorage({ [RECENT_KEY]: "{inválido" })), []);
@@ -48,13 +48,13 @@ test("the store saves and notifies every change", () => {
   const storage = memoryStorage();
   const notified = [];
   const recent = createRecentFiles(storage, (list) => notified.push([...list]));
-  recent.remember("/a.pors");
-  recent.remember("/b.pors");
-  recent.rename("/a.pors", "/c.pors");
-  recent.forget("/b.pors");
-  assert.deepEqual(recent.list(), ["/c.pors"]);
-  assert.deepEqual(JSON.parse(storage.data.get(RECENT_KEY)), ["/c.pors"]);
-  assert.deepEqual(notified, [["/a.pors"], ["/b.pors", "/a.pors"], ["/c.pors", "/b.pors"], ["/c.pors"]]);
+  recent.remember("/a.fer");
+  recent.remember("/b.fer");
+  recent.rename("/a.fer", "/c.fer");
+  recent.forget("/b.fer");
+  assert.deepEqual(recent.list(), ["/c.fer"]);
+  assert.deepEqual(JSON.parse(storage.data.get(RECENT_KEY)), ["/c.fer"]);
+  assert.deepEqual(notified, [["/a.fer"], ["/b.fer", "/a.fer"], ["/c.fer", "/b.fer"], ["/c.fer"]]);
 });
 
 test("the store keeps working in memory when saving fails", () => {
@@ -65,6 +65,6 @@ test("the store keeps working in memory when saving fails", () => {
     },
   };
   const recent = createRecentFiles(storage, () => {});
-  recent.remember("/a.pors");
-  assert.deepEqual(recent.list(), ["/a.pors"]);
+  recent.remember("/a.fer");
+  assert.deepEqual(recent.list(), ["/a.fer"]);
 });

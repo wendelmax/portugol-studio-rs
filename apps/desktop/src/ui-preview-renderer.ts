@@ -212,7 +212,7 @@ export function mountUiPreview(
     switch (node.kind) {
       case "coluna": {
         const element = doc.createElement("div");
-        element.className = "pors-ui-column";
+        element.className = "ferro-ui-column";
         element.setAttribute("data-ui-kind", "coluna");
         for (const child of node.children) {
           element.appendChild(buildElement(child, generation, inputsById));
@@ -221,7 +221,7 @@ export function mountUiPreview(
       }
       case "linha": {
         const element = doc.createElement("div");
-        element.className = "pors-ui-row";
+        element.className = "ferro-ui-row";
         element.setAttribute("data-ui-kind", "linha");
         for (const child of node.children) {
           element.appendChild(buildElement(child, generation, inputsById));
@@ -230,7 +230,7 @@ export function mountUiPreview(
       }
       case "texto": {
         const element = doc.createElement("p");
-        element.className = "pors-ui-text";
+        element.className = "ferro-ui-text";
         element.setAttribute("data-ui-kind", "texto");
         element.textContent = node.content;
         return element;
@@ -238,7 +238,7 @@ export function mountUiPreview(
       case "botao": {
         const button = doc.createElement("button");
         button.type = "button";
-        button.className = "pors-ui-button";
+        button.className = "ferro-ui-button";
         button.setAttribute("data-ui-kind", "botao");
         button.setAttribute("data-ui-id", node.id);
         button.textContent = node.label;
@@ -252,7 +252,7 @@ export function mountUiPreview(
       case "entrada": {
         const input = doc.createElement("input");
         input.type = "text";
-        input.className = "pors-ui-input";
+        input.className = "ferro-ui-input";
         input.setAttribute("data-ui-kind", "entrada");
         input.setAttribute("data-ui-id", node.id);
         input.value = node.value;
@@ -273,11 +273,11 @@ export function mountUiPreview(
       }
       case "lista": {
         const list = doc.createElement("ul");
-        list.className = "pors-ui-list";
+        list.className = "ferro-ui-list";
         list.setAttribute("data-ui-kind", "lista");
         for (const item of node.items) {
           const itemElement = doc.createElement("li");
-          itemElement.className = "pors-ui-list-item";
+          itemElement.className = "ferro-ui-list-item";
           itemElement.appendChild(buildElement(item, generation, inputsById));
           list.appendChild(itemElement);
         }

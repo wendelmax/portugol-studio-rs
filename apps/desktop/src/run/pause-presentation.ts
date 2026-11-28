@@ -35,7 +35,7 @@ export function createPausePresentation(dependencies: PausePresentationDependenc
     dependencies.showUtilities(true);
     dependencies.showDebugPanel();
     if (dependencies.activeTabId() === runTabId) dependencies.goTo(info.position.offset);
-    dependencies.setStatus(dependencies.runTab()?.language === "portugol-rs"
+    dependencies.setStatus(dependencies.runTab()?.language === "ferro-rust"
       ? `VM Ferro pausada na linha ${info.position.line}.`
       : `Pausado na linha ${info.position.line}.`);
   }

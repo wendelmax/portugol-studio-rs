@@ -56,25 +56,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn keeps_existing_fer_rust_and_lesson_files_from_arguments() {
+    fn keeps_existing_ferro_rust_and_lesson_files_from_arguments() {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../..");
         let lesson = std::env::temp_dir().join(format!("licao-{}.licao", std::process::id()));
         let ferro = std::env::temp_dir().join(format!("Ferro á {}.FER", std::process::id()));
         let rust = std::env::temp_dir().join(format!("Ferro {}.RS", std::process::id()));
-        let old_pors = std::env::temp_dir().join(format!("antigo-{}.pors", std::process::id()));
+        let unsupported = std::env::temp_dir().join(format!("arquivo-{}.zzz", std::process::id()));
         let legacy_por = std::env::temp_dir().join(format!("legado-{}.por", std::process::id()));
         let legacy_pex = std::env::temp_dir().join(format!("legado-{}.pex", std::process::id()));
         std::fs::write(&lesson, "{}").unwrap();
         std::fs::write(&ferro, "funcao inicio() {}").unwrap();
         std::fs::write(&rust, "fn main() {}").unwrap();
-        std::fs::write(&old_pors, "funcao inicio() {}").unwrap();
+        std::fs::write(&unsupported, "funcao inicio() {}").unwrap();
         std::fs::write(&legacy_por, "programa { funcao inicio() {} }").unwrap();
         std::fs::write(&legacy_pex, "{}").unwrap();
         let not_source = root.join("Cargo.toml");
         let paths = file_paths([
             lesson.clone(),
             not_source,
-            old_pors.clone(),
+            unsupported.clone(),
             legacy_por.clone(),
             legacy_pex.clone(),
             ferro.clone(),
@@ -92,7 +92,7 @@ mod tests {
         std::fs::remove_file(lesson).unwrap();
         std::fs::remove_file(ferro).unwrap();
         std::fs::remove_file(rust).unwrap();
-        std::fs::remove_file(old_pors).unwrap();
+        std::fs::remove_file(unsupported).unwrap();
         std::fs::remove_file(legacy_por).unwrap();
         std::fs::remove_file(legacy_pex).unwrap();
     }

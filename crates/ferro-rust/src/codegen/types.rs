@@ -57,7 +57,7 @@ pub(super) fn read_target_label(target: Option<Type>) -> &'static str {
     }
 }
 
-pub(super) fn pors_clone_value(ty: Type, value: &str, program: &Program) -> String {
+pub(super) fn ferro_clone_value(ty: Type, value: &str, program: &Program) -> String {
     match ty {
         Type::String => format!("__ferro_string({value})"),
         Type::VectorString => format!("__ferro_vec_string_clone({value})"),
@@ -189,7 +189,7 @@ pub(super) fn map_type(ty: Type) -> crate::Ty {
         Type::Boolean => crate::Ty::Logico,
         Type::String => crate::Ty::Cadeia,
         Type::Character => crate::Ty::Caracter,
-        Type::Unit => unreachable!("tipo unit não possui valor Portugol"),
+        Type::Unit => unreachable!("tipo unit não possui valor Ferro"),
         Type::VectorInteger
         | Type::VectorReal
         | Type::VectorBoolean
@@ -205,7 +205,7 @@ pub(super) fn render_ui_host_call(
     name: &str,
     arguments: &[Expr],
     program: &Program,
-    pors: bool,
+    ferro: bool,
 ) -> Vec<ExpressionPart> {
     match name {
         "texto" => {
@@ -214,7 +214,7 @@ pub(super) fn render_ui_host_call(
                 if index > 0 {
                     parts.push(ExpressionPart::Text(", ".to_owned()));
                 }
-                let rendered = render_expr(argument, program, pors);
+                let rendered = render_expr(argument, program, ferro);
                 match argument.ty {
                     Type::String => {
                         parts.push(ExpressionPart::Text("(&(".to_owned()));
@@ -245,23 +245,23 @@ pub(super) fn render_ui_host_call(
         }
         "botao" => vec![
             ExpressionPart::Text("__ferro_ui::botao(&(".to_owned()),
-            ExpressionPart::Nested(render_expr(&arguments[0], program, pors)),
+            ExpressionPart::Nested(render_expr(&arguments[0], program, ferro)),
             ExpressionPart::Text("), &(".to_owned()),
-            ExpressionPart::Nested(render_expr(&arguments[1], program, pors)),
+            ExpressionPart::Nested(render_expr(&arguments[1], program, ferro)),
             ExpressionPart::Text("))".to_owned()),
         ],
         "entrada" => vec![
             ExpressionPart::Text("__ferro_ui::entrada(&(".to_owned()),
-            ExpressionPart::Nested(render_expr(&arguments[0], program, pors)),
+            ExpressionPart::Nested(render_expr(&arguments[0], program, ferro)),
             ExpressionPart::Text("), &(".to_owned()),
-            ExpressionPart::Nested(render_expr(&arguments[1], program, pors)),
+            ExpressionPart::Nested(render_expr(&arguments[1], program, ferro)),
             ExpressionPart::Text("), &(".to_owned()),
-            ExpressionPart::Nested(render_expr(&arguments[2], program, pors)),
+            ExpressionPart::Nested(render_expr(&arguments[2], program, ferro)),
             ExpressionPart::Text("))".to_owned()),
         ],
         "coluna" | "linha" | "lista" => vec![
             ExpressionPart::Text(format!("__ferro_ui::{name}(&(")),
-            ExpressionPart::Nested(render_expr(&arguments[0], program, pors)),
+            ExpressionPart::Nested(render_expr(&arguments[0], program, ferro)),
             ExpressionPart::Text("))".to_owned()),
         ],
         _ => vec![ExpressionPart::Text("0_i32".to_owned())],
@@ -273,14 +273,14 @@ pub(super) fn render_stdlib_host_call(
     name: &str,
     arguments: &[Expr],
     program: &Program,
-    pors: bool,
+    ferro: bool,
 ) -> Vec<ExpressionPart> {
     let mut parts = vec![ExpressionPart::Text(format!("{rust_mod}::{name}("))];
     for (index, argument) in arguments.iter().enumerate() {
         if index > 0 {
             parts.push(ExpressionPart::Text(", ".to_owned()));
         }
-        let rendered = render_expr(argument, program, pors);
+        let rendered = render_expr(argument, program, ferro);
         if argument.ty == Type::String {
             parts.push(ExpressionPart::Text("&(".to_owned()));
             parts.push(ExpressionPart::Nested(rendered));

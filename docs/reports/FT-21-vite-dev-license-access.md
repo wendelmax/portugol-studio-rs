@@ -9,7 +9,7 @@ O frontend Tauri importa `LICENSE?raw`, que fica na raiz do repositório enquant
 - `node --experimental-strip-types --test tests/vite-config.test.mjs` — PASS.
 - `npm test` em `apps/desktop` — PASS, 20/20 testes.
 - `npm run build` em `apps/desktop` — PASS; Vite alerta que o chunk `ide` tem 656.22 kB, acima do limite padrão de 500 kB.
-- `npm run tauri dev` na worktree Linux/KDE — o processo nativo `portugol-desktop` iniciou a partir de `target/debug` da worktree e permaneceu ativo. O servidor Vite iniciou em `http://localhost:5173`; o módulo `/@fs/.../LICENSE?raw` da worktree respondeu HTTP 200 e o erro de allowlist não reapareceu.
+- `npm run tauri dev` na worktree Linux/KDE — o processo nativo `ferro-desktop` iniciou a partir de `target/debug` da worktree e permaneceu ativo. O servidor Vite iniciou em `http://localhost:5173`; o módulo `/@fs/.../LICENSE?raw` da worktree respondeu HTTP 200 e o erro de allowlist não reapareceu.
 - O GTK emitiu um aviso de `gtk_window_set_titlebar()` para uma janela já realizada; não impediu a inicialização.
 
 ## Teste e desvio registrados
@@ -20,4 +20,4 @@ Ruling: manter o teste de contrato estático junto do smoke test nativo, em vez 
 
 ## Limitação
 
-Esse smoke confirma o carregamento do frontend na janela Tauri, não a paridade visual completa do Portugol Studio Next.
+Esse smoke confirma o carregamento do frontend na janela Tauri, não a paridade visual completa do Ferro Studio Next.

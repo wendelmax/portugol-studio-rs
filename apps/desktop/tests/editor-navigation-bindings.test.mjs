@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import { createEditorNavigationBindings } from "../src/editor/navigation-bindings.ts";
 
-function fixture(language = "portugol", offset = 42, cursor = 84) {
+function fixture(language = "ferro", offset = 42, cursor = 84) {
   const calls = [];
   const bindings = createEditorNavigationBindings({
     activeLanguage: () => language,
@@ -26,15 +26,15 @@ test("primary Ctrl/Cmd clicks navigate quietly to the clicked source position", 
 
 test("editor clicks ignore Rust, non-primary buttons, missing modifiers, and absent positions", () => {
   const rust = fixture("rust");
-  const portugol = fixture();
-  const absent = fixture("portugol", null);
+  const ferro = fixture();
+  const absent = fixture("ferro", null);
 
   assert.equal(rust.bindings.onEditorClick({ button: 0, ctrlKey: true }, rust.editor), false);
-  assert.equal(portugol.bindings.onEditorClick({ button: 1, ctrlKey: true }, portugol.editor), false);
-  assert.equal(portugol.bindings.onEditorClick({ button: 0 }, portugol.editor), false);
+  assert.equal(ferro.bindings.onEditorClick({ button: 1, ctrlKey: true }, ferro.editor), false);
+  assert.equal(ferro.bindings.onEditorClick({ button: 0 }, ferro.editor), false);
   assert.equal(absent.bindings.onEditorClick({ button: 0, metaKey: true }, absent.editor), false);
   assert.deepEqual(rust.calls, []);
-  assert.deepEqual(portugol.calls, []);
+  assert.deepEqual(ferro.calls, []);
   assert.deepEqual(absent.calls, []);
 });
 

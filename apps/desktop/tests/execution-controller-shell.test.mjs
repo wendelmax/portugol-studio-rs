@@ -8,14 +8,14 @@ test("execution controller wiring lives in a dedicated shell", async () => {
   const main = await readFile(new URL("../src/main.ts", import.meta.url), "utf8");
 
   assert.match(shell, /createRustExecutionController\(/);
-  assert.match(shell, /createPortugolRsExecutionController\(/);
+  assert.match(shell, /createFerroRustExecutionController\(/);
   assert.doesNotMatch(shell, /createClassicExecutionController\(/);
   assert.match(shell, /createCargoProjectController\(/);
   assert.match(shell, /createRunDispatcher\(/);
   assert.match(main, /createRunShell\(/);
   assert.match(runShell, /createExecutionControllerShell\(/);
   assert.doesNotMatch(main, /createRustExecutionController\(/);
-  assert.doesNotMatch(main, /createPortugolRsExecutionController\(/);
+  assert.doesNotMatch(main, /createFerroRustExecutionController\(/);
   assert.doesNotMatch(main, /createClassicExecutionController\(/);
   assert.doesNotMatch(main, /createCargoProjectController\(/);
   assert.doesNotMatch(main, /createRunDispatcher\(/);

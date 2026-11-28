@@ -6,7 +6,7 @@ export interface CenterSourceDependencies {
   focusEditor: () => void;
 }
 
-const PREFERENCE_KEY = "portugol.centerSource";
+const PREFERENCE_KEY = "ferro.centerSource";
 
 /** Restores and updates the editor's center-source preference. */
 export function createCenterSourceController(dependencies: CenterSourceDependencies) {

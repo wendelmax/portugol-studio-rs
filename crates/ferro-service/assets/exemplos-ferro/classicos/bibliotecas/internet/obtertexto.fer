@@ -1,0 +1,47 @@
+/*
+ * Copyright (C) 2017 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ * 	Este exemplo demonstra como verificar a disponibilidade de um endereço na web
+ * 	e baixar seu conteúdo textual usando "Internet.endereco_disponivel" e
+ * 	"Internet.obter_texto".
+ *
+ * Adaptado para Ferro (.fer)
+ */
+
+funcao consultar_contador(endereco: cadeia) -> Resultado < cadeia, cadeia > {
+    Internet.definir_tempo_limite(5000);
+    seja disponivel: logico = Internet.endereco_disponivel(endereco)?;
+    se (!disponivel) {
+        retorne Resultado::Erro("O endereço não está disponível no momento.");
+    }
+    retorne Internet.obter_texto(endereco + "/users");
+}
+
+funcao inicio() {
+    seja endereco: cadeia = "https://ferro-web-counter-test.herokuapp.com/api";
+
+    escolha consultar_contador(endereco) {
+        caso Resultado::Ok(resp) => {
+            seja val: inteiro = Texto.numero_caracteres(resp);
+            se (val > 24) {
+                escolha Texto.extrair_subtexto(resp, 23, val - 1) {
+                    caso Resultado::Ok(users) => {
+                        escreval("Este exemplo já foi executado ", users, " vezes");
+                    }
+                    caso Resultado::Erro(_) => {}
+                }
+            }
+            escreval("\nConteúdo capturado:\n", resp);
+        }
+        caso Resultado::Erro(erro) => {
+            escreval("Não foi possível acessar ", endereco);
+            escreval("Motivo: ", erro);
+        }
+    }
+}

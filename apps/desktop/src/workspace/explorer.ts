@@ -5,7 +5,7 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import * as api from "../api";
 import { ALL_FILE_KINDS, describeExtensions, fileKind } from "../file-formats.ts";
 import { $ } from "../dom";
-import { porsExerciseDocument } from "../exercise-opening";
+import { ferroExerciseDocument } from "../exercise-opening";
 import type { ExerciseDocument } from "../exercises";
 import { setStatus } from "../shell/status";
 import type { Tab, WorkspaceFileRef } from "../state/tab";
@@ -390,9 +390,9 @@ export function mountWorkspaceExplorer(host: WorkspaceExplorerHost) {
       }
       const loaded = await api.readWorkspaceFile(selected.id, entry.path);
       if (workspaceState?.id !== selected.id) return;
-      const summary = await api.inspectPorsExercise(loaded.source);
+      const summary = await api.inspectFerroExercise(loaded.source);
       if (workspaceState?.id !== selected.id) return;
-      const exerciseDoc = porsExerciseDocument(
+      const exerciseDoc = ferroExerciseDocument(
         summary,
         summary.title || loaded.path.split("/").pop() || entry.name,
         loaded.source,

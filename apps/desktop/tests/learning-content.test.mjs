@@ -19,21 +19,21 @@ test("Beginner, Bridge e Rust apresentam os conceitos próprios de cada nível",
   assert.deepEqual(rust.map(({ id }) => id), ["mutability", "ownership", "borrowing"]);
 });
 
-test("conceitos apontam para exercícios .pors existentes e Rust-only não aponta para exercício PORS", async () => {
+test("conceitos apontam para exercícios .fer existentes e Rust-only não aponta para exercício FERRO", async () => {
   const { conceptsForMode } = await import(moduleUrl.href);
-  const concepts = new Map(conceptsForMode("bridge").map(({ id, practicePorsExerciseId }) => [id, practicePorsExerciseId]));
+  const concepts = new Map(conceptsForMode("bridge").map(({ id, practiceFerroExerciseId }) => [id, practiceFerroExerciseId]));
 
-  assert.equal(concepts.get("variables"), "pors-12-saudacao-cadeia");
-  assert.equal(concepts.get("conditionals"), "pors-11-par-ou-impar");
-  assert.equal(concepts.get("loops"), "pors-03-soma-ate-n");
-  assert.equal(concepts.get("functions"), "pors-04-funcao-fatorial");
-  assert.equal(concepts.get("option-result"), "pors-05-divisao-segura");
-  assert.equal(concepts.get("collections"), "pors-06-filtrar-positivos");
-  assert.equal(concepts.get("records-enums"), "pors-13-registro-ponto");
-  for (const concept of conceptsForMode("rust")) assert.equal(concept.practicePorsExerciseId, undefined, concept.id);
+  assert.equal(concepts.get("variables"), "ferro-12-saudacao-cadeia");
+  assert.equal(concepts.get("conditionals"), "ferro-11-par-ou-impar");
+  assert.equal(concepts.get("loops"), "ferro-03-soma-ate-n");
+  assert.equal(concepts.get("functions"), "ferro-04-funcao-fatorial");
+  assert.equal(concepts.get("option-result"), "ferro-05-divisao-segura");
+  assert.equal(concepts.get("collections"), "ferro-06-filtrar-positivos");
+  assert.equal(concepts.get("records-enums"), "ferro-13-registro-ponto");
+  for (const concept of conceptsForMode("rust")) assert.equal(concept.practiceFerroExerciseId, undefined, concept.id);
 });
 
-test("cada prompt de prática combina com o enunciado real do exercício .pors associado", async () => {
+test("cada prompt de prática combina com o enunciado real do exercício .fer associado", async () => {
   const { conceptsForMode } = await import(moduleUrl.href);
   const exercisesDir = new URL("../../../crates/ferro-service/assets/exercicios/", import.meta.url);
   const expectedTerms = new Map([
@@ -47,17 +47,17 @@ test("cada prompt de prática combina com o enunciado real do exercício .pors a
   ]);
 
   for (const concept of conceptsForMode("bridge")) {
-    if (!concept.practicePorsExerciseId) continue;
-    const file = `${concept.practicePorsExerciseId.slice("pors-".length)}.licao`;
+    if (!concept.practiceFerroExerciseId) continue;
+    const file = `${concept.practiceFerroExerciseId.slice("ferro-".length)}.licao`;
     const definition = JSON.parse(readFileSync(new URL(file, exercisesDir), "utf8"));
-    assert.equal(definition.id, concept.practicePorsExerciseId);
+    assert.equal(definition.id, concept.practiceFerroExerciseId);
     const term = expectedTerms.get(concept.id);
     assert.ok(term?.test(concept.practice), `${concept.id}: o prompt de prática trata do mesmo conceito`);
-    assert.ok(term?.test(definition.statement), `${concept.id}: o exercício .pors real trata do mesmo conceito`);
+    assert.ok(term?.test(definition.statement), `${concept.id}: o exercício .fer real trata do mesmo conceito`);
   }
 
   const exercisesTs = readFileSync(new URL("../src/exercises.ts", import.meta.url), "utf8");
-  assert.ok(!exercisesTs.includes("Portugol clássico (.por)"), "diálogo de exercícios não deve listar grupo legado .por");
+  assert.ok(!exercisesTs.includes("pseudocódigo clássico (.por)"), "diálogo de exercícios não deve listar grupo legado .por");
 });
 
 test("cada conceito em Beginner, Bridge e Rust tem explicação completa, sem alegar detecção automática", async () => {
@@ -70,7 +70,7 @@ test("cada conceito em Beginner, Bridge e Rust tem explicação completa, sem al
       assert.ok(concept.whyItMatters.trim(), `${mode}/${concept.id}: por que importa`);
       assert.ok(concept.practice.trim(), `${mode}/${concept.id}: praticar`);
       assert.equal(concept.provenance, "manual-selection");
-      if (mode !== "rust") assert.ok(concept.portugolExample.code.trim(), `${mode}/${concept.id}: exemplo Portugol`);
+      if (mode !== "rust") assert.ok(concept.ferroExample.code.trim(), `${mode}/${concept.id}: exemplo Ferro`);
     }
   }
 });
@@ -86,7 +86,7 @@ test("cartão Aprender apresenta seções nomeadas e renderiza o conteúdo do ca
   assert.match(html, /<h3 id="learning-title" aria-live="polite" aria-atomic="true">/);
   assert.match(html, /id="learning-practice-open"[^>]*hidden/);
   assert.match(html, /id="learning-practice-status"[^>]*role="status"/);
-  assert.match(main, /exercises\.openPorsById\(exerciseId\)/);
+  assert.match(main, /exercises\.openFerroById\(exerciseId\)/);
 });
 
 test("ownership explica move de String e identifica o trecho como exemplo editorial", async () => {

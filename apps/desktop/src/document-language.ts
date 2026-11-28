@@ -2,17 +2,17 @@ import { classifyFile, fileExtension, isMarkupKind } from "./file-formats.ts";
 
 /**
  * Linguagem de um documento aberto no editor. `markup` cobre a marcação dos
- * projetos desktop PORS (ADR 0018): o desenho de uma tela (`.design`) e o
+ * projetos desktop FERRO (ADR 0018): o desenho de uma tela (`.design`) e o
  * manifesto (`.ferproj`). Marcação não executa, não depura e não tem prévia
  * Rust; só tem realce, diagnósticos, estrutura e formatação.
  */
-export type SourceLanguage = "portugol-rs" | "rust" | "markup";
+export type SourceLanguage = "ferro-rust" | "rust" | "markup";
 
 export function detectSourceLanguage(path: string): SourceLanguage {
   const kind = classifyFile(path)?.kind ?? null;
   if (kind === "rust") return "rust";
   if (isMarkupKind(kind)) return "markup";
-  return "portugol-rs";
+  return "ferro-rust";
 }
 
 export function isMarkupPath(path: string): boolean {

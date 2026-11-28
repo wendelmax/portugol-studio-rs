@@ -13,9 +13,9 @@ function fixture(overrides = {}) {
   const document = { text: "funcao inicio() {}" };
   const tab = {
     id: 1,
-    path: "basico.pors",
-    language: "portugol-rs",
-    exercise: { name: "basico.pors.json", exercise: { cases: 2 }, pors: true },
+    path: "basico.fer",
+    language: "ferro-rust",
+    exercise: { name: "basico.fer", exercise: { cases: 2 }, ferro: true },
     exerciseTestGeneration: 0,
     saved: document.text,
     state: { doc: document },
@@ -88,7 +88,7 @@ test("exercise test panel renders current case count and labels", () => {
 
   controller.render();
 
-  assert.equal(view.title, "Testes — basico.pors");
+  assert.equal(view.title, "Testes — basico.fer");
   assert.equal(view.status, "2 casos configurados para este exercício (.fer).");
   assert.equal(view.runHidden, false);
   assert.equal(view.runDisabled, false);

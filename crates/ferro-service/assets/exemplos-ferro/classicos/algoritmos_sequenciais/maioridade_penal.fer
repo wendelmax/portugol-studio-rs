@@ -1,0 +1,36 @@
+/* Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ * Adaptado para Ferro (.fer)
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *     Este exemplo define qual o valor da maioridade penal usando uma variável imutável.
+ *     Logo após, pede ao usuário que informe sua idade e calcula quantos anos faltam
+ *     para ele atingir a maioridade.
+ *
+ * Autores:
+ *
+ *     Giordana Maria da Costa Valle
+ *     Carlos Alexandre Krueger
+ *
+ * Data: 01/06/2013
+ */
+
+funcao inicio() {
+    seja MAIORIDADE: inteiro = 18;
+
+    escreva("Digite sua idade: ");
+    seja mutavel idade: inteiro = leia();
+
+    // Calcula quantos anos faltam para atingir a maioridade
+    seja anos: inteiro = MAIORIDADE - idade;
+
+    se (anos > 0) {
+        escreval("Falta(m) ", anos, " ano(s) para você atingir a maioridade");
+    } senao {
+        escreval("Você já atingiu a maioridade");
+    }
+}

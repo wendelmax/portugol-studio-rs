@@ -34,10 +34,10 @@ test("recent files view hides an empty list and renders paths with basename labe
   assert.equal(f.recent.hidden, true);
   assert.deepEqual(f.list.children, []);
 
-  f.view.render(["/aula/primeiro.pors", "C:\\curso\\segundo.rs"]);
+  f.view.render(["/aula/primeiro.fer", "C:\\curso\\segundo.rs"]);
   assert.equal(f.recent.hidden, false);
   assert.deepEqual(f.list.children.map(({ children, title }) => [children[1].textContent, title]), [
-    ["primeiro.pors", "/aula/primeiro.pors"],
+    ["primeiro.fer", "/aula/primeiro.fer"],
     ["segundo.rs", "C:\\curso\\segundo.rs"],
   ]);
   assert.deepEqual(f.list.children[0].children[0], { name: "grande/file" });
@@ -45,16 +45,16 @@ test("recent files view hides an empty list and renders paths with basename labe
 
 test("recent files view opens the chosen path and reports open errors", async () => {
   const f = fixture({ openFile: async (path) => {
-    if (path === "/falha.pors") throw new Error("arquivo ausente");
+    if (path === "/falha.fer") throw new Error("arquivo ausente");
     f.events.push(["open", path]);
   } });
-  f.view.render(["/ok.pors", "/falha.pors"]);
+  f.view.render(["/ok.fer", "/falha.fer"]);
 
   f.list.children[0].onclick();
   f.list.children[1].onclick();
   await new Promise((resolve) => setImmediate(resolve));
 
-  assert.deepEqual(f.events, [["open", "/ok.pors"], ["status", "Error: arquivo ausente", "error"]]);
+  assert.deepEqual(f.events, [["open", "/ok.fer"], ["status", "Error: arquivo ausente", "error"]]);
 });
 
 test("main delegates recent-file rendering to its view controller", async () => {

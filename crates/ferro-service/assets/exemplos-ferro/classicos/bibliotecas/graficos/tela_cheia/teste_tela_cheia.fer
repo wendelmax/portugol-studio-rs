@@ -1,0 +1,167 @@
+/*
+ * Exemplo clássico do Ferro Studio adaptado para Ferro (.fer)
+ *
+ * Descrição:
+ *
+ *   Demonstra o controle da janela gráfica: redimensionamento com as setas,
+ *   ocultar/exibir bordas (O/E), alternar tela cheia (F/W), inspeção das
+ *   dimensões da janela e da tela (I) e centralização de imagem na tela.
+ */
+
+funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
+    escolha Graficos.criar_cor(r, g, b) {
+        caso Resultado::Ok(cor) => {
+            retorne cor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne Graficos.COR_PRETO;
+        }
+    }
+}
+
+funcao aguardar_soltar(tecla: inteiro) {
+    enquanto (Teclado.tecla_pressionada(tecla)) {
+        Util.aguarde(10);
+    }
+}
+
+funcao maximo(a: inteiro, b: inteiro) -> inteiro {
+    se (a > b) {
+        retorne a;
+    }
+    retorne b;
+}
+
+funcao desenhar_conteudo_padrao(largura_j: inteiro, altura_j: inteiro) {
+    seja card_w: inteiro = 300;
+    seja card_h: inteiro = 180;
+    seja x: inteiro = (largura_j - card_w) / 2;
+    seja y: inteiro = (altura_j - card_h) / 2;
+
+    Graficos.definir_cor(cor_rgb(45, 65, 95));
+    Graficos.desenhar_retangulo(x, y, card_w, card_h, verdadeiro, verdadeiro);
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.desenhar_retangulo(x, y, card_w, card_h, verdadeiro, falso);
+
+    Graficos.definir_tamanho_texto(16.0);
+    Graficos.desenhar_texto(x + 20, y + 25, "Teste de Tela Cheia e Janela");
+    Graficos.definir_tamanho_texto(13.0);
+    Graficos.desenhar_texto(x + 20, y + 60, "Setas: redimensionar janela");
+    Graficos.desenhar_texto(x + 20, y + 82, "F: tela cheia | W: modo janela");
+    Graficos.desenhar_texto(x + 20, y + 104, "O: ocultar borda | E: exibir borda");
+    Graficos.desenhar_texto(x + 20, y + 126, "I: imprimir dimensões | ESC: sair");
+}
+
+funcao inicio() {
+    seja mutavel imagem_carregada: Opcao < inteiro > = Opcao::Nenhum;
+    escolha Graficos.carregar_imagem("./dog.jpg") {
+        caso Resultado::Ok(id) => {
+            imagem_carregada = Opcao::Algum(id);
+        }
+        caso Resultado::Erro(_) => {
+            imagem_carregada = Opcao::Nenhum;
+        }
+    }
+
+    Graficos.iniciar_modo_grafico(verdadeiro);
+    Graficos.definir_dimensoes_janela(400, 300);
+    Graficos.definir_titulo_janela("Teste de Tela Cheia");
+
+    enquanto (verdadeiro) {
+        se (Teclado.tecla_pressionada(Teclado.TECLA_ESC)) {
+            pare;
+        } senao se (Teclado.tecla_pressionada(Teclado.TECLA_I)) {
+            Util.aguarde(100);
+            escreval("Janela [", Graficos.largura_janela(), ", ", Graficos.altura_janela(), "]");
+            escreval("Tela [", Graficos.largura_tela(), ", ", Graficos.altura_tela(), "]\n");
+            aguardar_soltar(Teclado.TECLA_I);
+        } senao se (Teclado.tecla_pressionada(Teclado.TECLA_SETA_ACIMA)) {
+            Util.aguarde(100);
+            Graficos.definir_dimensoes_janela(
+            Graficos.largura_janela(),
+            Graficos.altura_janela() + 50
+            );
+            aguardar_soltar(Teclado.TECLA_SETA_ACIMA);
+        } senao se (Teclado.tecla_pressionada(Teclado.TECLA_SETA_ABAIXO)) {
+            Util.aguarde(100);
+            Graficos.definir_dimensoes_janela(
+            Graficos.largura_janela(),
+            maximo(150, Graficos.altura_janela() - 50)
+            );
+            aguardar_soltar(Teclado.TECLA_SETA_ABAIXO);
+        } senao se (Teclado.tecla_pressionada(Teclado.TECLA_SETA_ESQUERDA)) {
+            Util.aguarde(100);
+            Graficos.definir_dimensoes_janela(
+            maximo(200, Graficos.largura_janela() - 50),
+            Graficos.altura_janela()
+            );
+            aguardar_soltar(Teclado.TECLA_SETA_ESQUERDA);
+        } senao se (Teclado.tecla_pressionada(Teclado.TECLA_SETA_DIREITA)) {
+            Util.aguarde(100);
+            Graficos.definir_dimensoes_janela(
+            Graficos.largura_janela() + 50,
+            Graficos.altura_janela()
+            );
+            aguardar_soltar(Teclado.TECLA_SETA_DIREITA);
+        } senao se (Teclado.tecla_pressionada(Teclado.TECLA_O)) {
+            Util.aguarde(100);
+            Graficos.ocultar_borda_janela();
+            aguardar_soltar(Teclado.TECLA_O);
+        } senao se (Teclado.tecla_pressionada(Teclado.TECLA_E)) {
+            Util.aguarde(100);
+            Graficos.exibir_borda_janela();
+            aguardar_soltar(Teclado.TECLA_E);
+        } senao se (Teclado.tecla_pressionada(Teclado.TECLA_F)) {
+            Util.aguarde(200);
+            Graficos.entrar_modo_tela_cheia();
+            aguardar_soltar(Teclado.TECLA_F);
+        } senao se (Teclado.tecla_pressionada(Teclado.TECLA_W)) {
+            Util.aguarde(200);
+            Graficos.sair_modo_tela_cheia();
+            aguardar_soltar(Teclado.TECLA_W);
+        }
+
+        Graficos.definir_cor(cor_rgb(22, 28, 40));
+        Graficos.limpar();
+
+        seja lj: inteiro = Graficos.largura_janela();
+        seja aj: inteiro = Graficos.altura_janela();
+
+        escolha imagem_carregada {
+            caso Opcao::Algum(img) => {
+                seja mutavel larg_img = 0;
+                seja mutavel alt_img = 0;
+                escolha Graficos.largura_imagem(img) {
+                    caso Resultado::Ok(w) => {
+                        larg_img = w;
+                    }
+                    caso Resultado::Erro(_) => {}
+                }
+                escolha Graficos.altura_imagem(img) {
+                    caso Resultado::Ok(h) => {
+                        alt_img = h;
+                    }
+                    caso Resultado::Erro(_) => {}
+                }
+                seja x: inteiro = (lj - larg_img) / 2;
+                seja y: inteiro = (aj - alt_img) / 2;
+                Graficos.desenhar_imagem(x, y, img);
+            }
+            caso Opcao::Nenhum => {
+                desenhar_conteudo_padrao(lj, aj);
+            }
+        }
+
+        Graficos.renderizar();
+        Util.aguarde(16);
+    }
+
+    escolha imagem_carregada {
+        caso Opcao::Algum(img) => {
+            Graficos.liberar_imagem(img);
+        }
+        caso Opcao::Nenhum => {}
+    }
+
+    Graficos.encerrar_modo_grafico();
+}

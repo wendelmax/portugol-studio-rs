@@ -13,7 +13,7 @@ Funcionalidade: Fluxo básico da IDE e proteção dos documentos
     E o editor contém o conteúdo real do exemplo
 
   Cenário: mudar para modo ponte não reescreve código
-    Dado que abri um arquivo Portugol com conteúdo conhecido
+    Dado que abri um arquivo Ferro com conteúdo conhecido
     Quando seleciono o modo "Ponte para Rust"
     Então o conteúdo original do buffer permanece idêntico
     E a interface mostra os recursos disponíveis de comparação

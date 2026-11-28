@@ -1,6 +1,6 @@
 # language: pt
 @FT-04 @translation
-Funcionalidade: Tradução de Portugol para Rust com proveniência
+Funcionalidade: Tradução de Ferro para Rust com proveniência
   Como estudante
   Quero comparar meu algoritmo com Rust
   Para entender equivalências sem perder meu código

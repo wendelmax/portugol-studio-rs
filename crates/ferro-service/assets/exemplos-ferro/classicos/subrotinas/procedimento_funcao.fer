@@ -1,0 +1,57 @@
+/* Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ * Adaptado para Ferro (.fer)
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *     Este exemplo ilustra o uso das funções da linguagem Ferro.
+ *
+ *     Neste exemplo, foi criado um procedimento (função sem retorno) que formata uma
+ *     mensagem qualquer e uma função que realiza um cálculo matemático entre dois
+ *     números informados e retorna o resultado.
+ *
+ * Autores:
+ *
+ *     Giordana Maria da Costa Valle
+ *     Carlos Alexandre Krueger
+ *
+ * Data: 01/06/2013
+ */
+
+funcao mensagem(texto: cadeia) {
+    // Insere uma linha antes do texto da mensagem
+    para (seja mutavel i = 0; i < 50; i += 1) {
+        escreva("-");
+    }
+
+    // Escreve a mensagem
+    escreval("\n", texto);
+
+    // Insere uma linha após o texto da mensagem
+    para (seja mutavel i = 0; i < 50; i += 1) {
+        escreva("-");
+    }
+
+    escreval();
+}
+
+// Função que realiza um cálculo e retorna o resultado
+funcao calcula(a: real, b: real) -> real {
+    seja resultado: real = a * a + b * b;
+    retorne resultado;
+}
+
+funcao inicio() {
+    // Chama o procedimento
+    mensagem("Bem Vindo");
+
+    // Chama a função diretamente dentro do escreva
+    escreva("O resultado do primeiro cálculo é: ", calcula(3.0, 4.0));
+    escreval("\nO resultado do segundo cálculo é: ", calcula(7.0, 2.0));
+
+    // Chama o procedimento novamente
+    mensagem("Tchau");
+}

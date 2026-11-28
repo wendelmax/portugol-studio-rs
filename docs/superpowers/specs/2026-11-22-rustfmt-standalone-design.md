@@ -6,7 +6,7 @@ Habilitar `Formatar código-fonte` em buffers Rust standalone para que a IDE pro
 
 ## Estado observado
 
-- CodeMirror já oferece o botão/atalho e `formatCode()` chama o formatador Portugol.
+- CodeMirror já oferece o botão/atalho e `formatCode()` chama o formatador Ferro.
 - `.rs` desabilita o botão com a explicação `Formatador Rust não configurado.`
 - O serviço já supervisiona processos com limites de saída/tempo e usa diretórios temporários; `rustfmt` não faz parte da capability atual (`rust_toolchain_available` verifica apenas `rustc`).
 - A especificação Next exige ações reais, respostas obsoletas descartadas e código gerado/fonte preservados em erro.
@@ -16,7 +16,7 @@ Habilitar `Formatar código-fonte` em buffers Rust standalone para que a IDE pro
 - Usar `rustfmt` instalado no sistema, com edição Rust 2021 e configuração padrão determinística.
 - Não iniciar shell, Cargo, projeto, dependência ou executável informado pela UI.
 - Preservar texto do buffer se rustfmt estiver ausente, falhar, exceder limite ou se o documento/aba mudar durante a chamada.
-- Habilitar o botão em `.rs` somente após detectar `rustfmt`; Portugol-RS continua sem formatador e Portugol clássico mantém seu formatador.
+- Habilitar o botão em `.rs` somente após detectar `rustfmt`; Ferro continua sem formatador e pseudocódigo clássico mantém seu formatador.
 - Aplicar a substituição como uma única transação de undo.
 
 ## Abordagens consideradas
@@ -34,8 +34,8 @@ Habilitar `Formatar código-fonte` em buffers Rust standalone para que a IDE pro
 
 ## Não objetivos
 
-Não formatar Portugol-RS, código gerado no preview, arquivos em disco fora do buffer, projetos Cargo, macros executadas, nem instalar toolchains automaticamente.
+Não formatar Ferro, código gerado no preview, arquivos em disco fora do buffer, projetos Cargo, macros executadas, nem instalar toolchains automaticamente.
 
 ## Rollback
 
-Remover comando/capability Tauri, API e ramificação `.rs` em `formatCode`; o formatador Portugol clássico permanece intacto.
+Remover comando/capability Tauri, API e ramificação `.rs` em `formatCode`; o formatador pseudocódigo clássico permanece intacto.

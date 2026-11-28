@@ -7,17 +7,17 @@
 //! use ferro_vm::{BufferIo, run};
 //!
 //! let hir = ferro_frontend::lower("funcao inicio() { escreva(1 + 1); }").unwrap();
-//! let module = ferro_bytecode::compile_pors(&hir).unwrap();
+//! let module = ferro_bytecode::compile_ferro(&hir).unwrap();
 //! let mut io = BufferIo::default();
 //! run(&module, &mut io).unwrap();
 //! assert_eq!(io.output, "2");
 //! ```
 
 pub mod debug;
+mod ferro_libs;
 pub mod graphics;
 pub mod host;
 pub mod io;
-mod pors_libs;
 #[cfg(feature = "stdlib")]
 pub mod stdlib;
 pub mod ui;

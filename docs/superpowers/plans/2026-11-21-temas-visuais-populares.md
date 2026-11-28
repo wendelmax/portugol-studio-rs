@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Do not add runtime dependencies or network access.
-- Preserve the existing Portugol, Dark, System, and user-created themes.
+- Preserve the existing Ferro, Dark, System, and user-created themes.
 - Support Linux, Windows, and macOS.
 - Apply presets through the existing `localStorage` preference and CSS variables.
 

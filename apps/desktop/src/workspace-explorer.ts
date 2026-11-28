@@ -110,10 +110,10 @@ export function flattenWorkspaceEntries(
   return rows;
 }
 
-export function workspaceFileKind(path: string): "portugol-rs" | "rust" | "exercise" | "markup" | null {
+export function workspaceFileKind(path: string): "ferro-rust" | "rust" | "exercise" | "markup" | null {
   const kind = classifyFile(path)?.kind ?? null;
   if (kind === "lesson") return "exercise";
-  if (kind === "source") return "portugol-rs";
+  if (kind === "source") return "ferro-rust";
   if (kind === "rust") return "rust";
   if (isMarkupKind(kind)) return "markup";
   return null;

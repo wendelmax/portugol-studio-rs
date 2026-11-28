@@ -2,7 +2,7 @@
 
 ## Delivered
 
-- Accessible rename action for `.por`, `.pors`, and `.pex` entries.
+- Accessible rename action for `.por`, `.fer`, and `.pex` entries.
 - The action remains visible on touch devices without hover.
 - The original extension is preserved; invalid names, path traversal, symlinks, and destination collisions are rejected by the Rust workspace service.
 - Rename is exclusive and preserves file contents. The refreshed tree and canonical file path are returned to the frontend.

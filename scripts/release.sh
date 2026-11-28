@@ -89,7 +89,7 @@ for t in feat fix perf docs outros; do
     notas+="### ${titulos[$t]}"$'\n\n'"${grupos[$t]}"$'\n'
 done
 
-repo_url="https://github.com/wendelmax/portugol-studio-rs"
+repo_url="https://github.com/wendelmax/ferro-studio"
 if [[ -n "$ultima_tag" ]]; then
     notas+="Comparação completa: $repo_url/compare/$ultima_tag...$tag"$'\n'
 fi

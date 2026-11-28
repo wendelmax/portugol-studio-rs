@@ -2,7 +2,7 @@
 
 ## Intenção
 
-Concluir o terceiro nível da progressão pedagógica usando o editor `.rs` e a execução Rust que já existem. O aluno poderá selecionar Rust, estudar fundamentos de Rust e abrir/criar arquivos `.rs` sem converter ou alterar um arquivo Portugol implicitamente.
+Concluir o terceiro nível da progressão pedagógica usando o editor `.rs` e a execução Rust que já existem. O aluno poderá selecionar Rust, estudar fundamentos de Rust e abrir/criar arquivos `.rs` sem converter ou alterar um arquivo Ferro implicitamente.
 
 ## Evidência e restrições
 
@@ -10,7 +10,7 @@ Concluir o terceiro nível da progressão pedagógica usando o editor `.rs` e a 
 - `apps/desktop/index.html` expõe o modo Rust como indisponível; a mensagem sobre editor e compilador é imprecisa.
 - `apps/desktop/src/learning-mode.ts` e `learning-content.ts` oferecem apenas Beginner/Bridge.
 - A execução Rust não é sandboxed e exige consentimento; esses controles e limites existentes devem permanecer.
-- A mudança não altera Tauri, permissões, IPC, parser, runtime, linguagem de arquivos ou formato `.por`/`.pors`.
+- A mudança não altera Tauri, permissões, IPC, parser, runtime, linguagem de arquivos ou formato `.por`/`.fer`.
 
 ## Abordagem escolhida
 

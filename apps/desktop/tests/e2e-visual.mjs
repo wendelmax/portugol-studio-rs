@@ -3,7 +3,7 @@
 //
 // Uso:
 //   npm run build && node tests/e2e-visual.mjs
-//   node tests/e2e-visual.mjs --screenshots /tmp/portugol-e2e-shots
+//   node tests/e2e-visual.mjs --screenshots /tmp/ferro-e2e-shots
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
@@ -59,18 +59,18 @@ function e2eHarnessScript(scenario, width, height, runId) {
     unregisterCallback() {},
     async invoke(cmd, payload) {
       switch (cmd) {
-        case "pors_examples":
-        case "list_pors_examples":
+        case "ferro_examples":
+        case "list_ferro_examples":
           return [
-            { id: "ola_mundo", title: "Olá Mundo", category: "Básico", description: "Primeiro programa PORS.", source: 'funcao inicio() {\\n    escreva("Olá Mundo!");\\n}\\n' },
+            { id: "ola_mundo", title: "Olá Mundo", category: "Básico", description: "Primeiro programa FERRO.", source: 'funcao inicio() {\\n    escreva("Olá Mundo!");\\n}\\n' },
             { id: "resultado", title: "Divisão segura com Resultado", category: "Tipos", description: "Tratamento de erro tipado.", source: 'funcao inicio() {\\n    escreva("Ok");\\n}\\n' }
           ];
         case "take_pending_files":
           return [];
-        case "inspect_portugol_rs":
+        case "inspect_ferro_rs":
         case "inspect":
           return { diagnostics: [], symbols: [{ name: "inicio", kind: "function", data_type: "vazio", offset: 0, line: 1 }] };
-        case "export_portugol_rs":
+        case "export_ferro_rs":
         case "export_rust": {
           const src = (payload && payload.source) || "";
           const end = Math.max(1, src.length);
@@ -148,7 +148,7 @@ function e2eHarnessScript(scenario, width, height, runId) {
       return;
     }
 
-    // 2. Criar novo arquivo .pors e validar shell + TitleBar sem sobreposição
+    // 2. Criar novo arquivo .fer e validar shell + TitleBar sem sobreposição
     document.getElementById("home-new").click();
     await sleep(250);
     const code = document.getElementById("code");
@@ -194,7 +194,7 @@ function e2eHarnessScript(scenario, width, height, runId) {
       check("editor-options-no-overlap-rust-header",
         !overlaps(rect(editorOptionsSummary), rect(previewHeader)),
         "options=" + JSON.stringify(rect(editorOptionsSummary)) + " rustHeader=" + JSON.stringify(rect(previewHeader)));
-      check("inspector-pors-libraries-enabled",
+      check("inspector-ferro-libraries-enabled",
         libNames.includes("UI") && libNames.includes("Json") && !libNames.includes("Objetos") && libButtons.every((b) => !b.disabled),
         libNames.join(","));
     } else {
@@ -220,14 +220,14 @@ function e2eHarnessScript(scenario, width, height, runId) {
     settingsDialog.close();
     await sleep(100);
 
-    // 5. Abrir Aprender no Inspector e conferir novos conceitos PORS + Ownership Lab
+    // 5. Abrir Aprender no Inspector e conferir novos conceitos FERRO + Ownership Lab
     document.querySelector('[data-activity="learn"]').click();
     await sleep(150);
     const learningPanel = document.getElementById("learning-panel");
     check("learning-panel-visible", isVisible(learningPanel));
     const conceptPicker = document.getElementById("learning-concept");
     const optionIds = [...conceptPicker.options].map((o) => o.value);
-    check("learning-has-pors-concepts",
+    check("learning-has-ferro-concepts",
       ["functions", "option-result", "collections", "records-enums"].every((id) => optionIds.includes(id)),
       optionIds.join(","));
     conceptPicker.value = "ownership";
@@ -237,15 +237,15 @@ function e2eHarnessScript(scenario, width, height, runId) {
       isVisible(document.getElementById("ownership-lab")) &&
       (document.getElementById("ownership-provenance").textContent || "").includes("Simulação didática"));
 
-    // 6. Abrir Ajuda e confirmar menus 100% PORS
+    // 6. Abrir Ajuda e confirmar menus 100% FERRO
     if (${JSON.stringify(scenario)} === "editor-bridge-verify") {
       document.getElementById("btn-help").click();
       await sleep(350);
       const helpHeadings = [...document.querySelectorAll("#help-topics h2")].map((h) => h.textContent);
-      check("help-pors-menus-only",
-        helpHeadings.includes("Primeiros passos (PORS)") &&
-        helpHeadings.includes("Bibliotecas padrão (PORS)") &&
-        helpHeadings.includes("UI e Multimídia (PORS)") &&
+      check("help-ferro-menus-only",
+        helpHeadings.includes("Primeiros passos com Ferro") &&
+        helpHeadings.includes("Bibliotecas padrão") &&
+        helpHeadings.includes("UI e multimídia") &&
         helpHeadings.includes("Referência da sintaxe (.fer)") &&
         !helpHeadings.includes("Bibliotecas clássicas"),
         helpHeadings.join(" | "));
@@ -286,15 +286,15 @@ function shotSetupScript(scenario) {
     transformCallback(cb) { const id = Math.floor(Math.random() * 1e9); window["_" + id] = cb; return id; },
     unregisterCallback() {},
     async invoke(cmd, payload) {
-      if (cmd === "pors_examples" || cmd === "list_pors_examples") {
+      if (cmd === "ferro_examples" || cmd === "list_ferro_examples") {
         return [
-          { id: "ola_mundo", title: "Olá Mundo", category: "Básico", description: "Primeiro programa PORS.", source: 'funcao inicio() {\\n    escreva("Olá Mundo!");\\n}\\n' },
+          { id: "ola_mundo", title: "Olá Mundo", category: "Básico", description: "Primeiro programa FERRO.", source: 'funcao inicio() {\\n    escreva("Olá Mundo!");\\n}\\n' },
           { id: "resultado", title: "Divisão segura com Resultado", category: "Tipos", description: "Tratamento de erro tipado.", source: 'funcao inicio() {\\n    escreva("Ok");\\n}\\n' }
         ];
       }
       if (cmd === "take_pending_files") return [];
-      if (cmd === "inspect_portugol_rs" || cmd === "inspect") return { diagnostics: [], symbols: [{ name: "inicio", kind: "function", data_type: "vazio", offset: 0, line: 1 }] };
-      if (cmd === "export_portugol_rs" || cmd === "export_rust") {
+      if (cmd === "inspect_ferro_rs" || cmd === "inspect") return { diagnostics: [], symbols: [{ name: "inicio", kind: "function", data_type: "vazio", offset: 0, line: 1 }] };
+      if (cmd === "export_ferro_rs" || cmd === "export_rust") {
         const src = (payload && payload.source) || "";
         const end = Math.max(1, src.length);
         return { code: MOCK_RUST, sourceMap: [{ sourceStart: { offset: 0, line: 1, column: 1 }, sourceEnd: { offset: end, line: 1, column: end + 1 }, generatedStart: { offset: 14, line: 2, column: 5 }, generatedEnd: { offset: 41, line: 2, column: 32 }, quality: "exact" }], diagnostics: [] };
@@ -419,7 +419,7 @@ function tailFrom(stream) {
 }
 
 async function runViewportAttempt({ scenario, width, height, screenshotName, runId }) {
-  const profileDir = mkdtempSync(path.join(tmpdir(), "portugol-e2e-"));
+  const profileDir = mkdtempSync(path.join(tmpdir(), "ferro-e2e-"));
   const address = server.address();
   const targetUrl = `http://127.0.0.1:${address.port}/?e2e=${encodeURIComponent(scenario)}&w=${width}&h=${height}&rid=${encodeURIComponent(runId)}`;
 
@@ -492,7 +492,7 @@ async function runViewportAttempt({ scenario, width, height, screenshotName, run
     });
 
     if (screenshotsDir) {
-      const shotProfile = mkdtempSync(path.join(tmpdir(), "portugol-shot-"));
+      const shotProfile = mkdtempSync(path.join(tmpdir(), "ferro-shot-"));
       const shotFile = path.join(screenshotsDir, screenshotName);
       const shotUrl = `http://127.0.0.1:${address.port}/?shot=${encodeURIComponent(scenario)}&w=${width}&h=${height}`;
       try {

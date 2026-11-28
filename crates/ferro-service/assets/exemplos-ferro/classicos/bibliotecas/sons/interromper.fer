@@ -1,0 +1,70 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *   Este exemplo demonstra o controle de reprodução de áudio com a biblioteca
+ *   Sons: iniciar, pausar, reposicionar o tempo da música e interromper a
+ *   reprodução com liberação segura de memória.
+ *
+ * Autores:
+ *
+ *   Luiz Fernando Noschang (noschang@univali.br)
+ *   Adaptado e implementado para Ferro (.fer)
+ *
+ * Data: 18/07/2014
+ */
+
+funcao inicio() {
+    seja caminho: cadeia = "audio/musica.mp3";
+
+    escreval("=== Biblioteca Sons: Pausar, Reposicionar e Interromper ===");
+    escreval("Carregando: ", caminho);
+
+    escolha Sons.carregar_som(caminho) {
+        caso Resultado::Ok(som) => {
+            escolha Sons.reproduzir_som(som, verdadeiro) {
+                caso Resultado::Ok(reproducao) => {
+                    escreval("1) Reproduzindo música em repetição contínua...");
+                    Util.aguarde(1000);
+
+                    escreval(
+                    "2) Pausando na posição ",
+                    Sons.obter_posicao_atual_musica(reproducao),
+                    " ms..."
+                    );
+                    Sons.pausar_som(reproducao);
+                    Util.aguarde(500);
+
+                    escreval("3) Reposicionando para o início (0 ms)...");
+                    escolha Sons.definir_posicao_atual_musica(reproducao, 0) {
+                        caso Resultado::Ok(_) => {
+                            escreval("   Posição redefinida com sucesso.");
+                        }
+                        caso Resultado::Erro(erro_pos) => {
+                            escreval("   Não foi possível reposicionar: ", erro_pos);
+                        }
+                    }
+
+                    escreval("4) Interrompendo reprodução...");
+                    Sons.interromper_som(reproducao);
+                    escreval("Reprodução interrompida com sucesso.");
+                }
+                caso Resultado::Erro(erro_rep) => {
+                    escreval("Erro ao iniciar reprodução: ", erro_rep);
+                }
+            }
+
+            Sons.liberar_som(som);
+            escreval("Som liberado.");
+        }
+        caso Resultado::Erro(erro) => {
+            escreval("Não foi possível carregar '", caminho, "': ", erro);
+            escreval("Coloque um arquivo de áudio nesse caminho para testar o controle completo.");
+        }
+    }
+}

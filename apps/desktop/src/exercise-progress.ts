@@ -37,7 +37,7 @@ export interface CryptoLike {
   subtle: Pick<SubtleCrypto, "digest">;
 }
 
-const storageKey = "portugol.exercise-progress.v1";
+const storageKey = "ferro.exercise-progress.v1";
 const emptyState = (): ExerciseProgressState => ({ version: 1, exercises: {} });
 const progressListeners = new Set<() => void>();
 

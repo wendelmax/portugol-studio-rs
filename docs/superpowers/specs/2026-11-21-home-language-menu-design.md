@@ -2,12 +2,12 @@
 
 ## Intent
 
-Keep the Portugol Studio start page recognizable while making the new `.pors` and `.rs` entry points available without adding more permanent toolbar buttons. The classic Portugol action remains the default, as it does today.
+Keep the Ferro Studio start page recognizable while making the new `.fer` and `.rs` entry points available without adding more permanent toolbar buttons. The classic Ferro action remains the default, as it does today.
 
 ## Goals
 
 - Keep one prominent “Novo Arquivo” action that opens a classic `.por` program and retains Ctrl+N behavior.
-- Put Portugol-RS and Rust creation choices in a compact, keyboard-accessible menu attached to that action.
+- Put Ferro and Rust creation choices in a compact, keyboard-accessible menu attached to that action.
 - Preserve their existing templates and language detection; selecting an option must open the matching language in the editor.
 - Keep the rest of the home page and its open, folder, help, recent, examples, and footer actions unchanged.
 - Close the menu after selection and return focus to its trigger when Escape is pressed.
@@ -22,19 +22,19 @@ Keep the Portugol Studio start page recognizable while making the new `.pors` an
 ## Constraints
 
 - Use the existing static HTML, TypeScript event wiring, CSS variables, and Tauri application.
-- Keep the established Portugol Studio home layout and theme tokens.
-- Use existing `.por`, `.pors`, and `.rs` templates and existing `newTab` behavior.
+- Keep the established Ferro Studio home layout and theme tokens.
+- Use existing `.por`, `.fer`, and `.rs` templates and existing `newTab` behavior.
 - Test the menu controller with real event callbacks and test accessible markup; validate screenshots in native CI when available.
 
 ## Approaches
 
-1. Keep separate “Novo Portugol-RS” and “Novo Rust” buttons. This is simplest, but the start toolbar becomes crowded and drifts from the original three-action layout.
-2. Add a compact language menu to “Novo Arquivo” while keeping its click and Ctrl+N behavior pointed at classic Portugol. This preserves the familiar default and exposes the new languages in one predictable place. **Selected**, because it improves the start toolbar without hiding the classic workflow or changing architecture.
+1. Keep separate “Novo Ferro” and “Novo Rust” buttons. This is simplest, but the start toolbar becomes crowded and drifts from the original three-action layout.
+2. Add a compact language menu to “Novo Arquivo” while keeping its click and Ctrl+N behavior pointed at classic Ferro. This preserves the familiar default and exposes the new languages in one predictable place. **Selected**, because it improves the start toolbar without hiding the classic workflow or changing architecture.
 3. Ask for a language in a modal every time. This makes the choice explicit, but adds friction to the common classic path and changes Ctrl+N behavior.
 
 ## Interaction and implementation
 
-The new-file group contains the existing classic action plus a native `<details>/<summary>` disclosure. The disclosure contains two buttons with explicit labels “Novo Portugol-RS (.pors)” and “Novo Rust (.rs)”. The controller receives language-specific callbacks so it can close the menu after activation and close/refocus it on Escape. The two language templates remain in `main.ts`; no template generation moves into the view helper.
+The new-file group contains the existing classic action plus a native `<details>/<summary>` disclosure. The disclosure contains two buttons with explicit labels “Novo Ferro (.fer)” and “Novo Rust (.rs)”. The controller receives language-specific callbacks so it can close the menu after activation and close/refocus it on Escape. The two language templates remain in `main.ts`; no template generation moves into the view helper.
 
 The CSS scopes large icon-button styling to direct children of the start toolbar. The menu items use the existing surface, border, text, and accent tokens, and appear above the example column without changing the two-column page layout. The disclosure summary has a stable accessible name and test id; menu actions retain stable ids.
 

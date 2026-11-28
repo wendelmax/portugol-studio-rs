@@ -29,7 +29,7 @@ export interface EditorShellDependencies {
   update: Omit<EditorUpdateDependencies, "activeTab" | "currentEditorState" | "learningMode" | "centerActive">;
   navigation: Omit<EditorNavigationBindingsDependencies, "activeLanguage" | "selectionHead">;
   extensions: Omit<EditorExtensionDependencies,
-    "sourceLanguage" | "portugolTools" | "theme" | "preferences" | "editorColors" | "editorTheme" | "onEditorClick" | "onGoToDeclaration" | "onUpdate">;
+    "sourceLanguage" | "ferroTools" | "theme" | "preferences" | "editorColors" | "editorTheme" | "onEditorClick" | "onGoToDeclaration" | "onUpdate">;
   theme: Pick<EditorThemeControllerDependencies, "applyPageTheme" | "onSystemThemeChange">;
 }
 
@@ -67,7 +67,7 @@ export function createEditorShell(dependencies: EditorShellDependencies) {
   const extensions = createEditorExtensionFactory({
     ...dependencies.extensions,
     sourceLanguage: editorSetup.sourceLanguage,
-    portugolTools: editorSetup.portugolTools,
+    ferroTools: editorSetup.ferroTools,
     theme: editorSetup.theme,
     preferences: editorSetup.preferences,
     editorColors,

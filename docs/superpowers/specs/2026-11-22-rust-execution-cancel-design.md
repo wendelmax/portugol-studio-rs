@@ -11,7 +11,7 @@ Permitir que o aluno interrompa um programa `.rs` em execução pelo botão Inte
 ## Abordagens consideradas
 
 1. **Escolhida — registro de execução + cancel token atômico:** Tauri aloca um ID, registra um `Arc<AtomicBool>` e passa o token ao serviço. A UI pode chamar Stop enquanto aguarda `run_rust_source(id, source)`. O supervisor verifica o token durante compilação e execução, mata/recolhe a árvore e devolve `cancelled` com fase e saída capturada. Reutiliza o padrão de ID/Stop e processo supervisionado atual.
-2. **Substituir todo o runtime por eventos streaming comuns:** unificaria Portugol, `.pors` e `.rs`, mas mudaria o contrato de eventos e várias telas para resolver apenas o cancelamento `.rs`; risco e regressão maiores.
+2. **Substituir todo o runtime por eventos streaming comuns:** unificaria Ferro, `.fer` e `.rs`, mas mudaria o contrato de eventos e várias telas para resolver apenas o cancelamento `.rs`; risco e regressão maiores.
 3. **Manter somente os limites automáticos de 20s/3s:** menor mudança, mas não cumpre o controle Interromper e Shift+F7 já esperado na IDE.
 
 ## Decisões
@@ -25,7 +25,7 @@ Permitir que o aluno interrompa um programa `.rs` em execução pelo botão Inte
 
 ## Fora de escopo
 
-Execução `.pors`, runtime clássico, depuração, entrada interativa, Cargo e garantias de sandbox. A execução nativa segue usando permissões da conta local.
+Execução `.fer`, runtime clássico, depuração, entrada interativa, Cargo e garantias de sandbox. A execução nativa segue usando permissões da conta local.
 
 ## Risco e rollback
 

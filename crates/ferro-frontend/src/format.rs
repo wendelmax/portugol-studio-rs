@@ -1,4 +1,4 @@
-//! Formatação canônica de espaços para Ferro (`.pors`), preservando
+//! Formatação canônica de espaços para Ferro (`.fer`), preservando
 //! comentários, literais e semântica.
 
 use crate::lexer::{Kind, Token, lex};
@@ -147,7 +147,7 @@ fn spacing(left: Piece, right: Piece) -> &'static str {
 }
 
 /// Retorna edições somente de espaço em coordenadas UTF-16, ou `None` quando o
-/// fonte `.pors` possui erros de sintaxe/semântica.
+/// fonte `.fer` possui erros de sintaxe/semântica.
 pub fn format(source: &str) -> Option<Vec<WhitespaceEdit>> {
     crate::lower(source).ok()?;
     let (tokens, diagnostics) = lex(source);
@@ -304,7 +304,7 @@ mod tests {
     }
 
     #[test]
-    fn keeps_default_pors_template_canonically_formatted() {
+    fn keeps_default_ferro_template_canonically_formatted() {
         let template = "funcao inicio() {\n    seja mutavel idade: inteiro = 16;\n    idade += 1;\n    escreva(idade);\n}\n";
         assert_eq!(format(template), Some(Vec::new()));
     }

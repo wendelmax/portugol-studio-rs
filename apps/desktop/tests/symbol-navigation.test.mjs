@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { EditorState } from "@codemirror/state";
 import { createSymbolNavigator } from "../src/editor/symbol-navigation.ts";
 
-function fixture(language = "portugol-rs", overrides = {}) {
+function fixture(language = "ferro-rust", overrides = {}) {
   const events = [];
   let active = { id: 1, language };
   let state = EditorState.create({ doc: "funcao inicio() {}" });
@@ -18,7 +18,7 @@ function fixture(language = "portugol-rs", overrides = {}) {
   const dependencies = {
     activeTab: () => active,
     view,
-    resolvePortugolRs: async () => ({ start: { offset: 5 }, end: { offset: 8 } }),
+    resolveFerroRust: async () => ({ start: { offset: 5 }, end: { offset: 8 } }),
     setStatus: (message, kind) => events.push(["status", message, kind]),
     ...overrides,
   };
@@ -29,19 +29,19 @@ function fixture(language = "portugol-rs", overrides = {}) {
   };
 }
 
-test("resolves PORS symbols with its service and selects the declaration", async () => {
+test("resolves FERRO symbols with its service and selects the declaration", async () => {
   const calls = [];
-  const { navigator, dependencies, events, view } = fixture("portugol-rs", {
-    resolvePortugolRs: async (...args) => { calls.push(["pors", ...args]); return { start: { offset: 5 }, end: { offset: 8 } }; },
+  const { navigator, dependencies, events, view } = fixture("ferro-rust", {
+    resolveFerroRust: async (...args) => { calls.push(["ferro", ...args]); return { start: { offset: 5 }, end: { offset: 8 } }; },
   });
 
   await navigator.goToDeclarationAt(2);
 
   assert.equal(calls.length, 1);
-  assert.equal(calls[0][0], "pors");
+  assert.equal(calls[0][0], "ferro");
   assert.deepEqual({ from: view.state.selection.main.from, to: view.state.selection.main.to }, { from: 5, to: 8 });
   assert.deepEqual(events.map(([name]) => name), ["dispatch", "focus"]);
-  assert.equal(dependencies.activeTab().language, "portugol-rs");
+  assert.equal(dependencies.activeTab().language, "ferro-rust");
 });
 
 test("Rust navigation reports that symbol navigation is unavailable", async () => {
@@ -54,8 +54,8 @@ test("Rust navigation reports that symbol navigation is unavailable", async () =
 
 test("ignores a result when the active document changes while resolution is pending", async () => {
   let resolve;
-  const { navigator, events, setState } = fixture("portugol-rs", {
-    resolvePortugolRs: () => new Promise((done) => { resolve = done; }),
+  const { navigator, events, setState } = fixture("ferro-rust", {
+    resolveFerroRust: () => new Promise((done) => { resolve = done; }),
   });
   const pending = navigator.goToDeclarationAt(0);
   setState(EditorState.create({ doc: "outro documento" }));
@@ -66,8 +66,8 @@ test("ignores a result when the active document changes while resolution is pend
 });
 
 test("quiet navigation failures do not display a status message", async () => {
-  const { navigator, events } = fixture("portugol-rs", {
-    resolvePortugolRs: async () => { throw "símbolo não encontrado"; },
+  const { navigator, events } = fixture("ferro-rust", {
+    resolveFerroRust: async () => { throw "símbolo não encontrado"; },
   });
 
   await navigator.goToDeclarationAt(0, true);

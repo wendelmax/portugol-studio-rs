@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "id": "pors-08-dias-do-mes",
+  "id": "ferro-08-dias-do-mes",
   "title": "Validar ano/mês com Tipos e Calendario",
   "statement": "Leia duas cadeias representando ano e mês. Converta-as com Tipos.para_inteiro e use Calendario.dias_no_mes para escrever a quantidade de dias ou \"invalido\" em caso de erro.",
   "starter_code": "funcao calcular_dias(ano_txt: cadeia, mes_txt: cadeia) -> Resultado<inteiro, cadeia> {\n    seja ano: inteiro = Tipos.para_inteiro(ano_txt)?;\n    seja mes: inteiro = Tipos.para_inteiro(mes_txt)?;\n    retorne Calendario.dias_no_mes(ano, mes);\n}\n\nfuncao inicio() {\n    seja mutavel ano_txt = leia();\n    seja mutavel mes_txt = leia();\n    escreva(\"invalido\");\n}\n",

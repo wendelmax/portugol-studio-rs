@@ -6,9 +6,9 @@
 
 - **ide:** exportar projeto Cargo e suportar subpastas e atualização no Explorador (#250)
 - **ide:** trilha interativa, paleta expandida e preferências de editor em Ajustes (#249)
-- **help:** nova Ajuda interativa PORS + Rust com árvore, histórico, F1 contextual e 100% da stdlib (#247)
+- **help:** nova Ajuda interativa FERRO + Rust com árvore, histórico, F1 contextual e 100% da stdlib (#247)
 - **web:** redesinar playground com temas e editor destacado (#246)
-- **wasm:** expor exportação Rust no portugol-wasm e no Web Playground (#242)
+- **wasm:** expor exportação Rust no ferro-wasm e no Web Playground (#242)
 
 ### Correções
 
@@ -22,18 +22,18 @@
 - **arch:** adicionar empacotamento PKGBUILD e job no CI/Release (#251)
 - publicar Web Playground WASM no GitHub Pages e atualizar actions para v7 (#241)
 
-Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v0.6.0...v0.7.0
+Comparação completa: https://github.com/wendelmax/ferro-studio/compare/v0.6.0...v0.7.0
 
 ## 0.6.0 (2026-11-26)
 
 ### Novidades
 
 - verificação real com rustc no Laboratório de Ownership e Web Playground WASM (#239)
-- exercícios e LearningInspector 100% PORS, docs atualizadas e ícones proprietários do bundle Tauri (#233)
-- **desktop:** adapta Bibliotecas e Modelos do Inspector para PORS e integra E2E visual no CI (#232)
-- **desktop:** conclui shell Next (TitleBar, Configurações, reset de layout), LearningInspector PORS→Rust, polimento visual e E2E 1536x960/1280x800 (#231)
-- **desktop:** define Sistema (VS Code Modern) como tema padrão e remove preset de cor Portugol Studio Next (#230)
-- **desktop:** refaz menus da ajuda para PORS, organiza docs/next-ui e padroniza temas IntelliJ Rust e VS Code (#229)
+- exercícios e LearningInspector 100% FERRO, docs atualizadas e ícones proprietários do bundle Tauri (#233)
+- **desktop:** adapta Bibliotecas e Modelos do Inspector para FERRO e integra E2E visual no CI (#232)
+- **desktop:** conclui shell Next (TitleBar, Configurações, reset de layout), LearningInspector FERRO→Rust, polimento visual e E2E 1536x960/1280x800 (#231)
+- **desktop:** define Sistema (VS Code Modern) como tema padrão e remove preset de cor Ferro Studio Next (#230)
+- **desktop:** refaz menus da ajuda para FERRO, organiza docs/next-ui e padroniza temas IntelliJ Rust e VS Code (#229)
 - **ide:** adota interface proprietária com barra superior, ícones SVG, tela inicial e dicas próprias (#228)
 
 ### Documentação
@@ -42,16 +42,16 @@ Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v
 
 ### Manutenção
 
-- **desktop:** aplicar code-splitting no Vite, atualizar testes PORS e indexar docs/plans (#238)
+- **desktop:** aplicar code-splitting no Vite, atualizar testes FERRO e indexar docs/plans (#238)
 - **vm:** remover módulos clássicos mortos da stdlib e dependências ociosas (#237)
-- **core:** extrair diagnósticos para portugol-hir e remover crates e corpus legados (#236)
+- **core:** extrair diagnósticos para ferro-hir e remover crates e corpus legados (#236)
 - **core:** remover caminhos legados .por/.pex de cli, service e rust (#235)
 - **desktop:** remover suporte legado a .por e .pex da IDE e Tauri (#234)
-- Migrar todos os exemplos visíveis de .por para PORS (#226)
-- endurece backend, alinha docs e modulariza núcleo PORS (#227)
+- Migrar todos os exemplos visíveis de .por para FERRO (#226)
+- endurece backend, alinha docs e modulariza núcleo FERRO (#227)
 - Unificar a linguagem visual do shell do editor (#224)
 
-Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v0.5.0...v0.6.0
+Comparação completa: https://github.com/wendelmax/ferro-studio/compare/v0.5.0...v0.6.0
 
 ## 0.5.0 (2026-11-25)
 
@@ -59,21 +59,21 @@ Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v
 
 - Barra de status com linguagem, modo e contagem de diagnósticos (#222)
 - Comparação lado a lado entre código e Rust gerado (#221)
-- Comandos de depuração indisponíveis para .pors na paleta e no botão Pausar (#220)
+- Comandos de depuração indisponíveis para .fer na paleta e no botão Pausar (#220)
 - Trilha de aprendizado visível no painel Aprender (#219)
 
-Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v0.4.0...v0.5.0
+Comparação completa: https://github.com/wendelmax/ferro-studio/compare/v0.4.0...v0.5.0
 
 ## 0.4.0 (2026-11-25)
 
 ### Novidades
 
 - **ide:** amplia acessibilidade de temas e controles
-- **pors:** recupera erros e acumula diagnósticos
-- **pors:** add typed multimedia bridge for Graficos, Teclado, Mouse, and Sons (#131)
-- **ide:** executar .pors na VM sem exigir Rust instalado (#142)
+- **ferro:** recupera erros e acumula diagnósticos
+- **ferro:** add typed multimedia bridge for Graficos, Teclado, Mouse, and Sons (#131)
+- **ide:** executar .fer na VM sem exigir Rust instalado (#142)
 - **ide:** unify cargo test execution and results in Tests panel (#130)
-- **pors:** add faca-enquanto loop and interactive CLI debugger (#129)
+- **ferro:** add faca-enquanto loop and interactive CLI debugger (#129)
 
 ### Documentação
 
@@ -93,7 +93,7 @@ Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v
 - **run:** extrai shell dos controladores
 - **run:** extrai shell de apresentação
 - **editor:** extrai shell de ações
-- **pors:** extrai shell da prévia visual
+- **ferro:** extrai shell da prévia visual
 - **state:** extrai composição de ativação de abas
 - **run:** extrai estado de execução
 - **editor:** compõe ações de símbolos
@@ -132,9 +132,9 @@ Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v
 - **ide:** extrai fechamento das abas (#170)
 - **ide:** extrai factory e metadados das abas (#169)
 - **ide:** extrai renderizacao das abas (#168)
-- **ide:** extrai execução do Portugol clássico (#167)
+- **ide:** extrai execução do pseudocódigo clássico (#167)
 - **ide:** extrai eventos de execução (#166)
-- **ide:** extrai execução do Portugol-RS (#165)
+- **ide:** extrai execução do Ferro (#165)
 - **ide:** extrai execução de projetos Rust (#164)
 - **ide:** extrai comandos do depurador (#163)
 - **ide:** extrai controles de execução (#162)
@@ -144,7 +144,7 @@ Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v
 - **ide:** extrai leitura e escrita de arquivos (#158)
 - **ide:** separa style.css em módulos semânticos e tokens (#150)
 - Consolidar propostas de UX em docs/UX.md (#155)
-- PORS: aceitar senao se encadeado (#149)
+- FERRO: aceitar senao se encadeado (#149)
 - **ide:** extrai janela, ajuda e diálogos do projeto do main.ts (#154)
 - **ide:** extrai paleta de comandos e atalhos do main.ts (#152)
 - **ide:** extrai painel Aprender e laboratório de ownership do main.ts (#151)
@@ -154,48 +154,48 @@ Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v
 - **ide:** extrai tema e decorações do editor do main.ts (#144)
 - **ide:** extrai layout de painéis e arquivos recentes do main.ts (#143)
 
-Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v0.3.0...v0.4.0
+Comparação completa: https://github.com/wendelmax/ferro-studio/compare/v0.3.0...v0.4.0
 
 ## 0.3.0 (2026-11-24)
 
 ### Novidades
 
-- **pors:** add consented cancellable Internet library across VM, WASM, Rust and IDE (#127)
-- **ide:** default new files to .pors, refine Tests panel and add Json/Arquivos examples and exercises (#125)
+- **ferro:** add consented cancellable Internet library across VM, WASM, Rust and IDE (#127)
+- **ide:** default new files to .fer, refine Tests panel and add Json/Arquivos examples and exercises (#125)
 
 ### Manutenção
 
 - remove LICENSE.md duplicado (#128)
 
-Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v0.2.0...v0.3.0
+Comparação completa: https://github.com/wendelmax/ferro-studio/compare/v0.2.0...v0.3.0
 
 ## 0.2.0 (2026-11-24)
 
 ### Novidades
 
-- **pors:** add bitwise/shift operators and wildcard arm in escolha (#124)
-- **pors:** add zero-dependency Json library across VM, WASM, Rust and IDE (#122)
-- **pors:** expand examples, exercises and IDE help
-- **pors:** add workspace-confined Arquivos library across VM, Rust and IDE
-- **pors:** add Util and Calendario libraries with deterministic UTC clock and IDE catalog sync (#118)
-- **pors:** add dynamic vectors ([], adicionar, remover, obter) and Texto.dividir (#117)
-- **ide:** add PORS contextual autocomplete, snippets and hover tooltips (#116)
-- **pors:** add core Matematica, Texto and Tipos libraries across VM, WASM and Rust (#115)
-- **pors:** add built-in Opcao<T>, Resultado<T, E> and ? propagation (#114)
-- **ide:** integrate .pors examples and versioned exercises into desktop app (#113)
-- **pors:** add tested .pors examples corpus and versioned exercise evaluator
-- **rust:** export visual PORS MVU apps to standalone Rust and Cargo projects
-- **ide:** add PORS visual MVU preview panel, Tauri backend and examples
-- **ui:** add TypeScript WebAssembly host bridge for PORS MVU preview (#109)
-- **pors:** add typed UI.* declarative calls and MVU entry support (#108)
-- **pors:** add records and exhaustive enums
-- **cli:** support creating, validating, formatting, exporting and running .pors (#105)
+- **ferro:** add bitwise/shift operators and wildcard arm in escolha (#124)
+- **ferro:** add zero-dependency Json library across VM, WASM, Rust and IDE (#122)
+- **ferro:** expand examples, exercises and IDE help
+- **ferro:** add workspace-confined Arquivos library across VM, Rust and IDE
+- **ferro:** add Util and Calendario libraries with deterministic UTC clock and IDE catalog sync (#118)
+- **ferro:** add dynamic vectors ([], adicionar, remover, obter) and Texto.dividir (#117)
+- **ide:** add FERRO contextual autocomplete, snippets and hover tooltips (#116)
+- **ferro:** add core Matematica, Texto and Tipos libraries across VM, WASM and Rust (#115)
+- **ferro:** add built-in Opcao<T>, Resultado<T, E> and ? propagation (#114)
+- **ide:** integrate .fer examples and versioned exercises into desktop app (#113)
+- **ferro:** add tested .fer examples corpus and versioned exercise evaluator
+- **rust:** export visual FERRO MVU apps to standalone Rust and Cargo projects
+- **ide:** add FERRO visual MVU preview panel, Tauri backend and examples
+- **ui:** add TypeScript WebAssembly host bridge for FERRO MVU preview (#109)
+- **ferro:** add typed UI.* declarative calls and MVU entry support (#108)
+- **ferro:** add records and exhaustive enums
+- **cli:** support creating, validating, formatting, exporting and running .fer (#105)
 - **vm:** add declarative UI contract and event-driven MVU runtime
-- **pors:** add canonical formatter and editor integration
-- **vm:** gate stdlib for wasm32 PORS core
-- **pors:** add typed vector support
-- **pors:** add user-defined functions (#97)
-- depurador VM para Portugol-RS (#90)
+- **ferro:** add canonical formatter and editor integration
+- **vm:** gate stdlib for wasm32 FERRO core
+- **ferro:** add typed vector support
+- **ferro:** add user-defined functions (#97)
+- depurador VM para Ferro (#90)
 - encaminha argumentos para projetos Cargo (#89)
 - open related learning exercises (#86)
 - enrich learning inspector explanations (#85)
@@ -213,20 +213,20 @@ Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v
 - add rustfmt support for standalone Rust files
 - pass arguments to standalone Rust programs
 - habilitar modo de aprendizagem Rust
-- adicionar entrada interativa ao Portugol-RS
-- cancel Portugol-RS executions
+- adicionar entrada interativa ao Ferro
+- cancel Ferro executions
 - cancel standalone Rust executions
 - execute standalone Rust sources in desktop IDE (#66)
 - **ui:** contextual learning from Rust source maps
-- **ui:** compose Portugol Studio Next desktop shell
-- support Portugol-RS loop control (#61)
+- **ui:** compose Ferro Studio Next desktop shell
+- support Ferro loop control (#61)
 - run exercise cases in tests panel
-- highlight supported PORS loops
+- highlight supported FERRO loops
 - group home page language actions
-- support counted loops in Portugol-RS
-- add Portugol Rust source mapping gutter
-- execute supported Portugol-RS programs
-- **portugol-rs:** add semantic symbol navigation and rename (#52)
+- support counted loops in Ferro
+- add Ferro Rust source mapping gutter
+- execute supported Ferro programs
+- **ferro-rust:** add semantic symbol navigation and rename (#52)
 - **workspace:** exportar arquivos selecionados do projeto (#51)
 - add honest project tests panel
 - add accessible command palette
@@ -235,29 +235,29 @@ Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v
 - delete workspace files from explorer
 - rename workspace files from explorer
 - restore last workspace on startup (#44)
-- create Portugol files in workspace (#43)
+- create Ferro files in workspace (#43)
 - add scoped workspace explorer (#42)
-- integrate .pors document flow in desktop IDE
-- add initial Portugol-RS frontend
+- integrate .fer document flow in desktop IDE
+- add initial Ferro frontend
 - add shared typed HIR foundation
 - **editor:** navegação semântica até declaração (#38)
 - **desktop:** laboratório visual de ownership (#37)
 - register verified local exercise progress
 - add progressive learning concept cards
 - add progressive learning mode selector
-- preview and export a supported Portugol subset to Rust (#31)
+- preview and export a supported Ferro subset to Rust (#31)
 - add popular offline color themes
 
 ### Correções
 
 - **cargo:** separate target discovery from program arguments
-- **pors:** complete editor support for helper functions
+- **ferro:** complete editor support for helper functions
 - reject Cargo manifest symlinks in service (#88)
 - improve secondary text contrast in themes (#87)
 - **ui:** preserve stale Rust preview per tab
 - **desktop:** allow Vite to serve repository license (#62)
 - fit resizable panes to narrow windows
-- disable Portugol symbol navigation in Rust tabs
+- disable Ferro symbol navigation in Rust tabs
 - canonicalize workspace path before delete
 - limit workspace delete wrapper to tests
 - confine workspace file deletion to root handle
@@ -266,27 +266,27 @@ Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v
 
 - reescreve README para o público do projeto (#123)
 - define visual UI state and WASM runtime ADR
-- define PORS-first product migration (#96)
+- define FERRO-first product migration (#96)
 - reprioritize progressive learning product (#92)
-- atualiza inventário e lacunas do Portugol Studio Next (#75)
+- atualiza inventário e lacunas do Ferro Studio Next (#75)
 - record FT-06 verification evidence
 - link workspace delete report to pull request
 - record workspace delete implementation commit
 - clarify pending home screen parity evidence (#36)
 - record green UI learning CI
-- record Portugol Webstudio product research
+- record Ferro Webstudio product research
 
 ### Manutenção
 
 - filtro por caminhos e fluxo de release (#126)
-- Merge pull request #106 from wendelmax/feat/pors-wasm-facade
+- Merge pull request #106 from wendelmax/feat/ferro-wasm-facade
 - Merge pull request #104 from wendelmax/feat/gemini-ui-renderer
-- verify PORS diagnostic spans (#95)
-- expand Portugol-RS differential operator coverage (#94)
-- guard Portugol-RS debugger against stale run events
-- cover Portugol-RS chain input memory limit (#91)
-- Adiciona loops seguros ao Portugol-RS (#55)
-- Mapear Rust gerado e diagnósticos para a origem Portugol
+- verify FERRO diagnostic spans (#95)
+- expand Ferro differential operator coverage (#94)
+- guard Ferro debugger against stale run events
+- cover Ferro chain input memory limit (#91)
+- Adiciona loops seguros ao Ferro (#55)
+- Mapear Rust gerado e diagnósticos para a origem Ferro
 - canonicalize workspace rename assertion
 - generate Rust from shared HIR
 - Abre programas e exercícios enviados pelo sistema
@@ -297,7 +297,7 @@ Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v
 - Permite importar e corrigir exercícios .pex
 - Aproxima o diálogo de localizar e substituir
 - Carrega os alertas públicos do projeto
-- Aproxima a tela inicial e o editor do Portugol Studio
+- Aproxima a tela inicial e o editor do Ferro Studio
 - Adiciona verificação de atualizações da IDE
 - Adiciona exercícios originais e correção dinâmica
 - Adiciona editor de temas com perfis e prévia
@@ -312,12 +312,12 @@ Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v
 - Executa o teste da IDE com sessão D-Bus no Ubuntu 24.04
 - Disponibiliza os 119 exemplos originais com seus recursos
 - Localiza a IDE por geometria e limita o tempo do teste gráfico
-- Reproduz a moldura e os comandos visuais do Portugol Studio
+- Reproduz a moldura e os comandos visuais do Ferro Studio
 - Verifica a janela gráfica por pixels no Xvfb sem o inspetor
 - Corrige o IPC gráfico empacotado e testa a janela nativa na CI
 - Adiciona árvore estrutural e inspetor ao Painel Utilitários
 - Conecta Graficos, Teclado e Mouse à janela da IDE
 - Integra a ajuda original de linguagem e bibliotecas
-- Aproxima a IDE do Portugol Studio e adiciona início da depuração
+- Aproxima a IDE do Ferro Studio e adiciona início da depuração
 
-Comparação completa: https://github.com/wendelmax/portugol-studio-rs/compare/v0.1.0...v0.2.0
+Comparação completa: https://github.com/wendelmax/ferro-studio/compare/v0.1.0...v0.2.0

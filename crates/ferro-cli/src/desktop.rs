@@ -1,4 +1,4 @@
-//! Comandos do CLI para projetos desktop PORS (ADR 0018): criar o projeto,
+//! Comandos do CLI para projetos desktop FERRO (ADR 0018): criar o projeto,
 //! validar e formatar `.design` e `.ferproj`.
 
 use std::fs;
@@ -57,10 +57,10 @@ fn design_files(folder: &Path) -> Vec<String> {
         .collect()
 }
 
-/// `portugol novo --desktop <pasta> [--nome "Nome do App"]`
+/// `ferro novo --desktop <pasta> [--nome "Nome do App"]`
 pub(crate) fn new_project(args: &[String]) -> ExitCode {
     let usage = || {
-        eprintln!("uso: portugol novo --desktop <pasta> [--nome \"Nome do aplicativo\"]");
+        eprintln!("uso: ferro novo --desktop <pasta> [--nome \"Nome do aplicativo\"]");
         ExitCode::FAILURE
     };
     let mut folder: Option<&str> = None;

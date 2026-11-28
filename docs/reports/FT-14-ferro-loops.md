@@ -1,0 +1,9 @@
+# FT-14 — Repetição segura em Ferro
+
+- **Entrega:** o subset Ferro reconhece `enquanto (condicao_logica) { comandos }`, emite Rust `while`, preserva os source maps do loop, condição e corpo, e respeita escopos léxicos e mutabilidade da HIR compartilhada.
+- **Compatibilidade:** o interpretador clássico e a saída Rust do pseudocódigo clássico continuam inalterados. `pare`, `continue`, `faca-enquanto`, `para` e rótulos continuam fora do subset.
+- **Limites de runtime:** depois da compilação, o processo gerado tem prazo de 3 segundos, stdout e stderr compartilham captura máxima de 1 MiB, e a saída FERRO conta alocações cumulativas de cadeias até 16 MiB com verificação antes de alocar concatenações.
+- **IPC/UI:** limites retornam `runtime_limit` com `time`, `output` ou `string_memory`; a IDE preserva a saída parcial e apresenta a causa em português.
+- **Segurança operacional:** apenas o executável Rust criado pelo exportador validado é iniciado. Captura de pipes é concorrente, limitada e o processo é encerrado e recolhido quando excede um orçamento.
+- **Limitações:** prazo de compilação não faz parte desta fatia; o orçamento de cadeias não equivale a um limite de RSS do sistema operacional. Não há interrupção manual nem isolamento de processo completo.
+- **Validação local:** `cargo test --locked --workspace --exclude ferro-desktop`, `cargo check --locked -p ferro-desktop --tests`, `cargo clippy --locked -p ferro-service --all-targets -- -D warnings`, `cargo fmt --all -- --check`, `git diff --check` e `npm test` passaram. A suíte de execução FERRO inclui execução de string/concatenação, timeout, saída excessiva e orçamento de cadeias. `npm run build` não iniciou localmente por falta de `tsc` no `node_modules` desta worktree; o build da interface precisa ficar verde no CI antes do merge.

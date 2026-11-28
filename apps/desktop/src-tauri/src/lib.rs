@@ -4,13 +4,13 @@
 //!
 //! | comando                  | o que faz                                          |
 //! |--------------------------|----------------------------------------------------|
-//! | `inspect_portugol_rs`    | diagnósticos e símbolos de `.pors`                 |
-//! | `debug_portugol_rs`      | compila e executa `.pors` na VM; devolve o id      |
+//! | `inspect_ferro_rs`    | diagnósticos e símbolos de `.fer`                 |
+//! | `debug_ferro_rs`      | compila e executa `.fer` na VM; devolve o id      |
 //! | `send_input`             | responde a um `leia`                               |
 //! | `stop`                   | interrompe a execução                              |
 //! | `debug_*`                | pausa, continua, passos e pontos de parada         |
-//! | `read_file`              | lê `.pors`, `.rs` ou `.json` em UTF-8              |
-//! | `write_file`             | grava `.pors` ou `.rs` em UTF-8                    |
+//! | `read_file`              | lê `.fer`, `.rs` ou `.json` em UTF-8              |
+//! | `write_file`             | grava `.fer` ou `.rs` em UTF-8                    |
 //!
 //! Eventos emitidos durante uma execução (todos com `id`):
 //! `run:output` (`text`), `run:clear`, `run:input` (`expected`),
@@ -42,8 +42,8 @@ struct Runs {
     next_id: AtomicU32,
     current: Mutex<Option<(u32, RunHandle)>>,
     rust_source_cancellations: Mutex<HashMap<u32, Arc<AtomicBool>>>,
-    portugol_rs_input_senders: Mutex<HashMap<u32, mpsc::Sender<String>>>,
-    portugol_rs_input_receivers: Mutex<HashMap<u32, mpsc::Receiver<String>>>,
+    ferro_rs_input_senders: Mutex<HashMap<u32, mpsc::Sender<String>>>,
+    ferro_rs_input_receivers: Mutex<HashMap<u32, mpsc::Receiver<String>>>,
 }
 
 impl Runs {
@@ -64,14 +64,14 @@ impl Runs {
         Ok(id)
     }
 
-    fn register_portugol_rs(&self) -> Result<u32, String> {
+    fn register_ferro_rs(&self) -> Result<u32, String> {
         let id = self.register_rust_source()?;
         let (sender, receiver) = mpsc::channel();
-        self.portugol_rs_input_senders
+        self.ferro_rs_input_senders
             .lock()
             .unwrap_or_else(|error| error.into_inner())
             .insert(id, sender);
-        self.portugol_rs_input_receivers
+        self.ferro_rs_input_receivers
             .lock()
             .unwrap_or_else(|error| error.into_inner())
             .insert(id, receiver);
@@ -202,8 +202,8 @@ impl RunObserver for EventSink {
 }
 
 #[tauri::command]
-fn inspect_portugol_rs(source: String) -> ferro_service::Inspection {
-    ferro_service::inspect_portugol_rs(&source)
+fn inspect_ferro_rs(source: String) -> ferro_service::Inspection {
+    ferro_service::inspect_ferro_rs(&source)
 }
 
 /// Diagnósticos e estrutura de um `.design` ou `.ferproj`; o tipo vem da
@@ -264,8 +264,8 @@ fn design_schema() -> ferro_service::DesignSchema {
 }
 
 #[tauri::command]
-async fn export_portugol_rs(source: String) -> Result<ferro_service::RustExport, String> {
-    tauri::async_runtime::spawn_blocking(move || ferro_service::export_portugol_rs(&source))
+async fn export_ferro_rs(source: String) -> Result<ferro_service::RustExport, String> {
+    tauri::async_runtime::spawn_blocking(move || ferro_service::export_ferro_rs(&source))
         .await
         .map_err(|error| error.to_string())
 }
@@ -297,12 +297,12 @@ async fn check_rust_source(
 }
 
 #[tauri::command]
-async fn run_portugol_rs(
+async fn run_ferro_rs(
     app: AppHandle,
     runs: State<'_, Runs>,
     id: u32,
     source: String,
-) -> Result<ferro_service::PortugolRsRunResult, String> {
+) -> Result<ferro_service::FerroRustRunResult, String> {
     let cancellation = runs
         .rust_source_cancellations
         .lock()
@@ -311,7 +311,7 @@ async fn run_portugol_rs(
         .cloned()
         .ok_or_else(|| "A execução Ferro não está mais registrada.".to_string())?;
     let receiver = runs
-        .portugol_rs_input_receivers
+        .ferro_rs_input_receivers
         .lock()
         .unwrap_or_else(|error| error.into_inner())
         .remove(&id)
@@ -319,7 +319,7 @@ async fn run_portugol_rs(
     let input_app = app.clone();
     let output_app = app;
     let joined = tauri::async_runtime::spawn_blocking(move || {
-        ferro_service::run_portugol_rs_with_io(
+        ferro_service::run_ferro_rs_with_io(
             &source,
             &cancellation,
             |expected| {
@@ -356,7 +356,7 @@ async fn run_portugol_rs(
         .lock()
         .unwrap_or_else(|error| error.into_inner())
         .remove(&id);
-    runs.portugol_rs_input_senders
+    runs.ferro_rs_input_senders
         .lock()
         .unwrap_or_else(|error| error.into_inner())
         .remove(&id);
@@ -369,8 +369,8 @@ fn register_rust_source_run(runs: State<'_, Runs>) -> Result<u32, String> {
 }
 
 #[tauri::command]
-fn register_portugol_rs_run(runs: State<'_, Runs>) -> Result<u32, String> {
-    runs.register_portugol_rs()
+fn register_ferro_rs_run(runs: State<'_, Runs>) -> Result<u32, String> {
+    runs.register_ferro_rs()
 }
 
 #[tauri::command]
@@ -587,33 +587,33 @@ async fn test_cargo_project(
 }
 
 #[tauri::command]
-fn format_portugol_rs(source: String) -> Option<Vec<ferro_service::TextEdit>> {
-    ferro_service::format_portugol_rs(&source)
+fn format_ferro_rs(source: String) -> Option<Vec<ferro_service::TextEdit>> {
+    ferro_service::format_ferro_rs(&source)
 }
 
 #[tauri::command]
-fn rename_target_portugol_rs(
+fn rename_target_ferro_rs(
     source: String,
     offset: u32,
 ) -> Result<ferro_service::RenameTarget, String> {
-    ferro_service::rename_target_portugol_rs(&source, offset)
+    ferro_service::rename_target_ferro_rs(&source, offset)
 }
 
 #[tauri::command]
-fn resolve_symbol_portugol_rs(
+fn resolve_symbol_ferro_rs(
     source: String,
     offset: u32,
 ) -> Result<ferro_service::SymbolLocation, String> {
-    ferro_service::resolve_symbol_portugol_rs(&source, offset)
+    ferro_service::resolve_symbol_ferro_rs(&source, offset)
 }
 
 #[tauri::command]
-fn rename_symbol_portugol_rs(
+fn rename_symbol_ferro_rs(
     source: String,
     offset: u32,
     name: String,
 ) -> Result<Vec<ferro_service::RenameEdit>, String> {
-    ferro_service::rename_symbol_portugol_rs(&source, offset, &name)
+    ferro_service::rename_symbol_ferro_rs(&source, offset, &name)
 }
 
 #[derive(serde::Deserialize)]
@@ -627,9 +627,9 @@ enum ProjectPage {
 #[tauri::command]
 async fn open_project_page(page: ProjectPage) -> Result<(), String> {
     let url = match page {
-        ProjectPage::BugReport => "https://github.com/wendelmax/portugol-studio-rs/issues/new",
-        ProjectPage::Releases => "https://github.com/wendelmax/portugol-studio-rs/releases",
-        ProjectPage::Contribute => "https://github.com/wendelmax/portugol-studio-rs",
+        ProjectPage::BugReport => "https://github.com/wendelmax/ferro-studio/issues/new",
+        ProjectPage::Releases => "https://github.com/wendelmax/ferro-studio/releases",
+        ProjectPage::Contribute => "https://github.com/wendelmax/ferro-studio",
     };
     let mut command;
     #[cfg(target_os = "linux")]
@@ -662,7 +662,7 @@ async fn open_project_page(page: ProjectPage) -> Result<(), String> {
 /// Com `pause_on_start` falso é a execução normal: para apenas nos pontos de
 /// parada.
 #[tauri::command]
-fn debug_portugol_rs(
+fn debug_ferro_rs(
     app: AppHandle,
     runs: State<'_, Runs>,
     source: String,
@@ -692,7 +692,7 @@ fn debug_portugol_rs(
         ..RunOptions::default()
     };
     let handle =
-        ferro_service::start_portugol_rs_with_host(&source, options, observer, move |interrupt| {
+        ferro_service::start_ferro_rs_with_host(&source, options, observer, move |interrupt| {
             Box::new(graphics::DesktopHost::new(
                 app,
                 id,
@@ -712,7 +712,7 @@ fn send_input(runs: State<'_, Runs>, id: u32, line: String) {
     });
     if let Some(line) = line
         && let Some(sender) = runs
-            .portugol_rs_input_senders
+            .ferro_rs_input_senders
             .lock()
             .unwrap_or_else(|error| error.into_inner())
             .get(&id)
@@ -852,15 +852,15 @@ fn write_file(path: String, text: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn pors_ui_start(
-    ui_sessions: State<'_, Arc<ferro_service::PorsUiService>>,
+async fn ferro_ui_start(
+    ui_sessions: State<'_, Arc<ferro_service::FerroUiService>>,
     source: String,
     max_steps: Option<usize>,
     max_nodes: Option<usize>,
     max_depth: Option<usize>,
 ) -> Result<String, String> {
     let service = Arc::clone(ui_sessions.inner());
-    let budget = ferro_service::PorsUiBudgetRequest {
+    let budget = ferro_service::FerroUiBudgetRequest {
         max_steps,
         max_nodes,
         max_depth,
@@ -871,8 +871,8 @@ async fn pors_ui_start(
 }
 
 #[tauri::command]
-async fn pors_ui_dispatch(
-    ui_sessions: State<'_, Arc<ferro_service::PorsUiService>>,
+async fn ferro_ui_dispatch(
+    ui_sessions: State<'_, Arc<ferro_service::FerroUiService>>,
     session_id: u32,
     kind: String,
     target_id: String,
@@ -887,36 +887,36 @@ async fn pors_ui_dispatch(
 }
 
 #[tauri::command]
-fn pors_ui_cancel(
-    ui_sessions: State<'_, Arc<ferro_service::PorsUiService>>,
+fn ferro_ui_cancel(
+    ui_sessions: State<'_, Arc<ferro_service::FerroUiService>>,
     session_id: u32,
 ) -> bool {
     ui_sessions.cancel(session_id)
 }
 
 #[tauri::command]
-fn pors_example_catalog() -> Vec<ferro_service::PorsExample> {
-    ferro_service::pors_examples().to_vec()
+fn ferro_example_catalog() -> Vec<ferro_service::FerroExample> {
+    ferro_service::ferro_examples().to_vec()
 }
 
 #[tauri::command]
-fn pors_exercise_catalog() -> Vec<ferro_service::PorsExerciseSummary> {
-    ferro_service::pors_exercises()
+fn ferro_exercise_catalog() -> Vec<ferro_service::FerroExerciseSummary> {
+    ferro_service::ferro_exercises()
 }
 
 #[tauri::command]
-async fn check_pors_exercise(
+async fn check_ferro_exercise(
     id: Option<String>,
     source: String,
     exercise_json: Option<String>,
-) -> Result<ferro_service::PorsExerciseEvaluation, String> {
+) -> Result<ferro_service::FerroExerciseEvaluation, String> {
     tauri::async_runtime::spawn_blocking(move || {
         if let Some(raw_json) = exercise_json {
-            ferro_service::check_imported_pors_exercise(&raw_json, &source)
+            ferro_service::check_imported_ferro_exercise(&raw_json, &source)
         } else if let Some(id) = id {
-            ferro_service::check_pors_exercise(&id, &source)
+            ferro_service::check_ferro_exercise(&id, &source)
         } else {
-            Err("Informe o identificador ou o JSON do exercício .pors.".into())
+            Err("Informe o identificador ou o JSON do exercício .fer.".into())
         }
     })
     .await
@@ -924,13 +924,13 @@ async fn check_pors_exercise(
 }
 
 #[tauri::command]
-fn inspect_pors_exercise(raw_json: String) -> Result<ferro_service::PorsExerciseSummary, String> {
-    ferro_service::inspect_pors_exercise(&raw_json)
+fn inspect_ferro_exercise(raw_json: String) -> Result<ferro_service::FerroExerciseSummary, String> {
+    ferro_service::inspect_ferro_exercise(&raw_json)
 }
 
 #[tauri::command]
-fn pors_ui_close(
-    ui_sessions: State<'_, Arc<ferro_service::PorsUiService>>,
+fn ferro_ui_close(
+    ui_sessions: State<'_, Arc<ferro_service::FerroUiService>>,
     session_id: u32,
 ) -> bool {
     ui_sessions.close(session_id)
@@ -941,13 +941,13 @@ pub fn run_app() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(Runs::default())
-        .manage(Arc::new(ferro_service::PorsUiService::new()))
+        .manage(Arc::new(ferro_service::FerroUiService::new()))
         .manage(workspace::WorkspaceSession::default())
         .manage(open_files::PendingFiles::from_args())
         .manage(graphics::GraphicsWindows::default())
         .manage(screen_window::ScreenWindows::default())
         .invoke_handler(tauri::generate_handler![
-            inspect_portugol_rs,
+            inspect_ferro_rs,
             inspect_markup,
             inspect_code_behind,
             format_markup,
@@ -955,36 +955,36 @@ pub fn run_app() {
             edit_design,
             design_schema,
             screen_data_fields,
-            export_portugol_rs,
+            export_ferro_rs,
             format_rust_source,
             rustfmt_available,
             rust_toolchain_available,
             check_rust_source,
-            run_portugol_rs,
+            run_ferro_rs,
             register_rust_source_run,
-            register_portugol_rs_run,
+            register_ferro_rs_run,
             run_rust_source,
             cargo_toolchain_available,
             cargo_project_run_targets,
             run_cargo_project,
             check_cargo_project,
             test_cargo_project,
-            format_portugol_rs,
-            pors_ui_start,
-            pors_ui_dispatch,
-            pors_ui_cancel,
-            pors_ui_close,
-            pors_example_catalog,
-            pors_exercise_catalog,
-            check_pors_exercise,
-            inspect_pors_exercise,
-            rename_target_portugol_rs,
-            rename_symbol_portugol_rs,
-            resolve_symbol_portugol_rs,
+            format_ferro_rs,
+            ferro_ui_start,
+            ferro_ui_dispatch,
+            ferro_ui_cancel,
+            ferro_ui_close,
+            ferro_example_catalog,
+            ferro_exercise_catalog,
+            check_ferro_exercise,
+            inspect_ferro_exercise,
+            rename_target_ferro_rs,
+            rename_symbol_ferro_rs,
+            resolve_symbol_ferro_rs,
             open_project_page,
             updates::check_updates,
             alerts::project_alerts,
-            debug_portugol_rs,
+            debug_ferro_rs,
             send_input,
             stop,
             debug_pause,
@@ -1051,18 +1051,18 @@ mod rust_source_run_tests {
     }
 
     #[test]
-    fn portugol_rs_run_registers_a_stoppable_input_channel() {
+    fn ferro_rs_run_registers_a_stoppable_input_channel() {
         let runs = Runs::default();
-        let id = runs.register_portugol_rs().unwrap();
+        let id = runs.register_ferro_rs().unwrap();
         let sender = runs
-            .portugol_rs_input_senders
+            .ferro_rs_input_senders
             .lock()
             .unwrap_or_else(|error| error.into_inner())
             .get(&id)
             .unwrap()
             .clone();
         let receiver = runs
-            .portugol_rs_input_receivers
+            .ferro_rs_input_receivers
             .lock()
             .unwrap_or_else(|error| error.into_inner())
             .remove(&id)
@@ -1076,7 +1076,7 @@ mod rust_source_run_tests {
     #[test]
     fn standalone_file_commands_allow_supported_extensions_and_reject_others() {
         let dir = std::env::temp_dir().join(format!(
-            "portugol-standalone-file-guard-{}",
+            "ferro-standalone-file-guard-{}",
             std::process::id()
         ));
         std::fs::create_dir_all(&dir).unwrap();

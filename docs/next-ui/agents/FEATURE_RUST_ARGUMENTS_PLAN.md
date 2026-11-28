@@ -8,7 +8,7 @@
 
 **Tech Stack:** TypeScript, Node `node:test`, Rust std, Tauri v2.
 
-**Spec:** `docs/portugol-studio-next-integration/docs/agents/FEATURE_RUST_ARGUMENTS_DESIGN.md`.
+**Spec:** `docs/ferro-studio-next-integration/docs/agents/FEATURE_RUST_ARGUMENTS_DESIGN.md`.
 
 ## Restrições globais
 
@@ -31,8 +31,8 @@
 - Criar `apps/desktop/src/process-arguments.ts` e `apps/desktop/tests/process-arguments.test.mjs`.
 - Modificar `apps/desktop/src/main.ts`, `src/api.ts`, `tests/source-map.test.mjs` e `tests/runtime-capabilities.test.mjs` apenas se necessário para o controle.
 - Modificar `apps/desktop/src-tauri/src/lib.rs` para receber `Vec<String>` e encaminhar ao serviço.
-- Modificar `crates/portugol-service/src/pors_run.rs`, `src/lib.rs` e `tests/rust_source_runner.rs` para validar argumentos e testar `std::env::args()`.
-- Atualizar `docs/PARIDADE.md`, `docs/portugol-studio-next-integration/docs/quality/TRACEABILITY_MATRIX.yaml` e este relatório.
+- Modificar `crates/ferro-service/src/ferro_run.rs`, `src/lib.rs` e `tests/rust_source_runner.rs` para validar argumentos e testar `std::env::args()`.
+- Atualizar `docs/PARIDADE.md`, `docs/ferro-studio-next-integration/docs/quality/TRACEABILITY_MATRIX.yaml` e este relatório.
 
 ## Tarefas
 
@@ -47,14 +47,14 @@
 
 - [x] Testar end-to-end no serviço que `std::env::args()` recebe argumentos com espaços/Unicode/aspas corretamente.
 - [x] Testar rejeição de NUL, 257 itens e total >64 KiB.
-- [x] Executar `cargo test -p portugol-service --test rust_source_runner --offline --locked` para ver falha esperada antes da implementação.
+- [x] Executar `cargo test -p ferro-service --test rust_source_runner --offline --locked` para ver falha esperada antes da implementação.
 - [x] Implementar funções com cancelamento compatíveis com wrappers existentes, validar limites e aplicar `.args(arguments)` somente ao binário.
 - [x] Conectar `Vec<String>` ao comando Tauri e ao payload frontend.
 - [x] Executar testes focados e Tauri app check.
 
 ### 3. UI, evidência e revisão
 
-- [x] Habilitar campo de argumentos para Rust com sintaxe e erros de parse claros; manter Portugol-RS desabilitado.
+- [x] Habilitar campo de argumentos para Rust com sintaxe e erros de parse claros; manter Ferro desabilitado.
 - [x] Testar controle e API com cobertura frontend.
 - [x] Atualizar paridade, matriz e relatório; registrar ausência de execução por shell.
 - [x] Executar frontend, build, fmt, workspace tests, Clippy, Tauri check e `git diff --check`.

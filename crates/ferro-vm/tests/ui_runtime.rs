@@ -12,7 +12,7 @@ fn local(name: &str, ty: ValueType) -> LocalInfo {
         ty,
         dims: 0,
         by_ref: false,
-        pors_debug: None,
+        ferro_debug: None,
     }
 }
 
@@ -200,7 +200,7 @@ fn runs_headless_mvu_lifecycle_with_history_and_canonical_json() {
 }
 
 #[test]
-fn invokes_pors_functions_reentrantly_with_per_event_step_budget() {
+fn invokes_ferro_functions_reentrantly_with_per_event_step_budget() {
     let source = r#"
 funcao proximo(estado: inteiro, delta: inteiro) -> inteiro {
     retorne estado + delta;
@@ -215,8 +215,8 @@ funcao travar(estado: inteiro) -> inteiro {
 funcao inicio() {
 }
 "#;
-    let hir = ferro_frontend::lower(source).expect("fonte PORS válida");
-    let module = ferro_bytecode::compile_pors(&hir).expect("bytecode PORS");
+    let hir = ferro_frontend::lower(source).expect("fonte FERRO válida");
+    let module = ferro_bytecode::compile_ferro(&hir).expect("bytecode FERRO");
     let mut io = BufferIo::default();
     let mut vm = Vm::new(&module, &mut io);
 
@@ -224,7 +224,7 @@ funcao inicio() {
     for _ in 0..5 {
         estado = vm
             .call_function("proximo", vec![estado, Value::Int(3)], 500)
-            .expect("chamada PORS dentro do orçamento");
+            .expect("chamada FERRO dentro do orçamento");
     }
     assert_int(&estado, 25);
 
@@ -295,7 +295,7 @@ fn escapes_json_strings_and_supports_all_adr_0017_components() {
         items: vec![UiNode::Row {
             children: vec![
                 UiNode::Text {
-                    content: "Olá \"PORS\"\n\\🦀".into(),
+                    content: "Olá \"FERRO\"\n\\🦀".into(),
                 },
                 UiNode::Button {
                     id: "ok".into(),
@@ -306,7 +306,7 @@ fn escapes_json_strings_and_supports_all_adr_0017_components() {
     };
     assert_eq!(
         tree.to_json(),
-        r#"{"kind":"lista","items":[{"kind":"linha","children":[{"kind":"texto","content":"Olá \"PORS\"\n\\🦀"},{"kind":"botao","id":"ok","label":"Enviar\t!"}]}]}"#
+        r#"{"kind":"lista","items":[{"kind":"linha","children":[{"kind":"texto","content":"Olá \"FERRO\"\n\\🦀"},{"kind":"botao","id":"ok","label":"Enviar\t!"}]}]}"#
     );
     assert_eq!(
         UiEvent::InputChanged {
@@ -347,8 +347,8 @@ funcao explodir(texto: cadeia) -> cadeia {
 }
 funcao inicio() {}
 "#;
-    let hir = ferro_frontend::lower(source).expect("fonte PORS válida");
-    let mem_module = ferro_bytecode::compile_pors(&hir).expect("bytecode PORS");
+    let hir = ferro_frontend::lower(source).expect("fonte FERRO válida");
+    let mem_module = ferro_bytecode::compile_ferro(&hir).expect("bytecode FERRO");
     let mut vm = Vm::new(&mem_module, &mut io).with_string_memory_limit(512);
     let err = vm
         .call_function("explodir", vec![Value::str("x")], 100_000)
@@ -357,7 +357,7 @@ funcao inicio() {}
 }
 
 #[test]
-fn runs_end_to_end_pors_source_with_records_enums_and_ui_calls_in_ui_session() {
+fn runs_end_to_end_ferro_source_with_records_enums_and_ui_calls_in_ui_session() {
     let source = r#"
 enum Acao { Pronto, Editado }
 
@@ -397,8 +397,8 @@ funcao visualizar(estado: Estado) -> inteiro {
     ]);
 }
 "#;
-    let hir = ferro_frontend::lower(source).expect("fonte PORS visual válida");
-    let module = ferro_bytecode::compile_pors(&hir).expect("bytecode PORS visual válido");
+    let hir = ferro_frontend::lower(source).expect("fonte FERRO visual válida");
+    let module = ferro_bytecode::compile_ferro(&hir).expect("bytecode FERRO visual válido");
     let mut io = BufferIo::default();
     let mut session = UiSession::start(
         &module,
@@ -406,7 +406,7 @@ funcao visualizar(estado: Estado) -> inteiro {
         UiBudget::default(),
         Arc::new(AtomicBool::new(false)),
     )
-    .expect("iniciar sessão MVU a partir de fonte .pors");
+    .expect("iniciar sessão MVU a partir de fonte .fer");
 
     assert!(
         session

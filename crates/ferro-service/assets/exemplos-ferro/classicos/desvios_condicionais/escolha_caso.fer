@@ -1,0 +1,70 @@
+/* Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ * Adaptado para Ferro (.fer)
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *     Este exemplo ilustra o uso da instrução "escolha" combinada com um "enum"
+ *     no Ferro. O programa pede ao usuário que escolha uma opção numérica,
+ *     converte o código para uma variante do enum OpcaoMenu e exibe a frase
+ *     correspondente à opção escolhida.
+ *
+ * Autores:
+ *
+ *     Giordana Maria da Costa Valle
+ *     Carlos Alexandre Krueger
+ *
+ * Data: 01/06/2013
+ */
+
+enum OpcaoMenu {
+    Elogio,
+    Ofensa,
+    Sair,
+    Invalida
+}
+
+funcao interpretar_opcao(codigo: inteiro) -> OpcaoMenu {
+    se (codigo == 1) {
+        retorne OpcaoMenu::Elogio;
+    } senao se (codigo == 2) {
+        retorne OpcaoMenu::Ofensa;
+    } senao se (codigo == 3) {
+        retorne OpcaoMenu::Sair;
+    } senao {
+        retorne OpcaoMenu::Invalida;
+    }
+}
+
+funcao inicio() {
+    escreval("1) Elogio");
+    escreval("2) Ofensa");
+    escreval("3) Sair\n");
+
+    escreva("Escolha uma opção: ");
+    seja mutavel codigo: inteiro = leia();
+
+    escreval();
+
+    seja opcao: OpcaoMenu = interpretar_opcao(codigo);
+
+    escolha opcao {
+        caso OpcaoMenu::Elogio => {
+            escreva("Você é lindo(a)!");
+        }
+        caso OpcaoMenu::Ofensa => {
+            escreva("Você é um monstro!");
+        }
+        caso OpcaoMenu::Sair => {
+            escreva("Tchau!");
+        }
+        caso OpcaoMenu::Invalida => {
+            escreva("Opção inválida!");
+        }
+    }
+
+    escreval();
+}

@@ -5,7 +5,7 @@ export interface ExecutionState {
   runId: number | null;
   runTabId: number | null;
   pendingEvents: PendingRunEvent[] | null;
-  porsRunPending: boolean;
+  ferroRunPending: boolean;
   paused: DebugInfo | null;
 }
 
@@ -15,12 +15,12 @@ export function createExecutionState(): ExecutionState {
     runId: null,
     runTabId: null,
     pendingEvents: null,
-    porsRunPending: false,
+    ferroRunPending: false,
     paused: null,
   };
 }
 
 /** Indica se há execução ou início de execução em andamento. */
 export function isExecutionBusy(state: ExecutionState): boolean {
-  return state.runId !== null || state.pendingEvents !== null || state.porsRunPending;
+  return state.runId !== null || state.pendingEvents !== null || state.ferroRunPending;
 }

@@ -1,5 +1,5 @@
-export const RUST_EXECUTION_CONSENT_KEY = "portugol-studio.rust-execution-consent.v1";
-export const CARGO_EXECUTION_CONSENT_KEY = "portugol-studio.cargo-execution-consent.v1";
+export const RUST_EXECUTION_CONSENT_KEY = "ferro-studio.rust-execution-consent.v1";
+export const CARGO_EXECUTION_CONSENT_KEY = "ferro-studio.cargo-execution-consent.v1";
 
 export function hasRustExecutionConsent(storage: Pick<Storage, "getItem">): boolean {
   return storage.getItem(RUST_EXECUTION_CONSENT_KEY) === "accepted";

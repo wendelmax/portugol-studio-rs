@@ -12,16 +12,16 @@ import type { SourceLanguage } from "../document-language";
 
 export interface EditorExtensionDependencies {
   sourceLanguage: Compartment;
-  portugolTools: Compartment;
+  ferroTools: Compartment;
   theme: Compartment;
   /** Compartimento opcional para quebra de linha e recuo (preferências do usuário). */
   preferences?: Compartment;
   editorPreferences?: () => Extension;
-  portugolExtensions: () => Extension[];
+  ferroExtensions: () => Extension[];
   rustExtensions: () => Extension[];
   /** Ferramentas da marcação dos projetos desktop (.design e .ferproj). */
   markupExtensions?: () => Extension[];
-  portugolRsLanguage: () => Extension;
+  ferroRustLanguage: () => Extension;
   rustLanguage: () => Extension;
   markupLanguage?: () => Extension;
   editorColors: Extension;
@@ -42,12 +42,12 @@ export function createEditorExtensionFactory(dependencies: EditorExtensionDepend
       ? dependencies.rustExtensions()
       : isMarkup
         ? dependencies.markupExtensions?.() ?? []
-        : dependencies.portugolExtensions();
+        : dependencies.ferroExtensions();
     const languageExtension = isRust
       ? dependencies.rustLanguage()
       : isMarkup
         ? dependencies.markupLanguage?.() ?? []
-        : dependencies.portugolRsLanguage();
+        : dependencies.ferroRustLanguage();
 
     return [
       lineNumbers(),
@@ -67,7 +67,7 @@ export function createEditorExtensionFactory(dependencies: EditorExtensionDepend
         ? dependencies.preferences.of(dependencies.editorPreferences())
         : EditorState.tabSize.of(4),
       dependencies.sourceLanguage.of(languageExtension),
-      dependencies.portugolTools.of(tools),
+      dependencies.ferroTools.of(tools),
       foldGutter({ markerDOM: (open) => {
         const marker = document.createElement("span");
         marker.textContent = open ? "−" : "+";

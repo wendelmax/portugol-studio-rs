@@ -1,7 +1,7 @@
 # FEAT — Explicação contextual por source map
 
 - Requisito: UI-023/024, UC-13, FT-05; seleção no editor direciona uma explicação somente quando há evidência de um mapeamento exato para a tradução Rust atual.
-- Implementação: `apps/desktop/src/learning-context.ts` resolve a seleção/caret sobre spans exatos da fonte e reconhece declarações `let`/`let mut` apenas no trecho Rust mapeado. O inspector exibe os trechos reais, proveniência e texto adequado a Portugol clássico ou Portugol-RS.
+- Implementação: `apps/desktop/src/learning-context.ts` resolve a seleção/caret sobre spans exatos da fonte e reconhece declarações `let`/`let mut` apenas no trecho Rust mapeado. O inspector exibe os trechos reais, proveniência e texto adequado a pseudocódigo clássico ou Ferro.
 - Compatibilidade: a seleção manual continua disponível e tem precedência até a próxima mudança de seleção no editor. Nenhuma fonte, execução, IPC, serviço Rust ou progresso de exercício foi alterado.
 - Recusa de inferência: contexto não aparece para traduções ausentes, antigas, de outra fonte, spans parciais fora do mapeamento, mapeamentos aproximados/gerados ou trechos sem declaração Rust reconhecida.
 

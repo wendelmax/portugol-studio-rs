@@ -15,7 +15,7 @@ test("editor setup owns shared compartments, linters, centering, and breakpoint 
   assert.match(setup, /new Compartment\(\)/);
   assert.match(setup, /createCenterSourceController/);
   assert.match(setup, /createBreakpointGutter/);
-  assert.match(setup, /createPortugolLintSourceCheck/);
+  assert.match(setup, /createFerroLintSourceCheck/);
   assert.match(setup, /createRustLintSourceCheck/);
   assert.match(main, /createEditorShell\(/);
   assert.doesNotMatch(main, /createEditorSetup\(|new EditorView\(/);
@@ -23,6 +23,6 @@ test("editor setup owns shared compartments, linters, centering, and breakpoint 
   assert.match(shell, /createEditorUpdateController\(/);
   assert.match(shell, /createEditorExtensionFactory\(/);
   assert.match(shell, /createEditorThemeController\(/);
-  assert.doesNotMatch(main, /const portugolLinter = linter\(/);
+  assert.doesNotMatch(main, /const ferroLinter = linter\(/);
   assert.doesNotMatch(main, /const rustSourceLinter = linter\(/);
 });

@@ -1,4 +1,4 @@
-# Execução de arquivos Rust no Portugol Studio RS
+# Execução de arquivos Rust no Ferro Studio RS
 
 ## Intenção
 
@@ -6,7 +6,7 @@ Concluir o terceiro nível de aprendizagem permitindo compilar e executar um arq
 
 ## Como funciona hoje
 
-Arquivos `.rs` já são reconhecidos, abertos, editados e salvos com realce Rust. `rustc` é detectado para o executor `.pors`, mas `canRunSource` e `runProgram` recusam arquivos `.rs`. O serviço `.pors` já demonstra a fronteira necessária: comandos Tauri fechados, pasta temporária, compilação e processo supervisionados, limites de saída/tempo.
+Arquivos `.rs` já são reconhecidos, abertos, editados e salvos com realce Rust. `rustc` é detectado para o executor `.fer`, mas `canRunSource` e `runProgram` recusam arquivos `.rs`. O serviço `.fer` já demonstra a fronteira necessária: comandos Tauri fechados, pasta temporária, compilação e processo supervisionados, limites de saída/tempo.
 
 ## Abordagens consideradas
 
@@ -29,6 +29,6 @@ Arquivos `.rs` já são reconhecidos, abertos, editados e salvos com realce Rust
 - Um `.rs` que compila mostra stdout, stderr e exit code do binário real.
 - Um `.rs` inválido mostra diagnóstico clicável na linha/coluna real do código Rust.
 - Loop infinito e excesso de saída são encerrados por limites e identificados na UI.
-- O botão respeita detecção de `rustc` e não muda o comportamento de `.por` ou `.pors`.
+- O botão respeita detecção de `rustc` e não muda o comportamento de `.por` ou `.fer`.
 - A confirmação de execução informa a fronteira de segurança; cancelar não inicia compilação.
 - Builds e testes multiplataforma existentes continuam sem adicionar permissões Tauri ou dependências frontend.

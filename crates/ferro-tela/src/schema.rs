@@ -13,9 +13,9 @@ pub enum ValueType {
     Text,
     /// `verdadeiro` ou `falso`.
     Bool,
-    /// Nome de uma função PORS que trata um evento.
+    /// Nome de uma função FERRO que trata um evento.
     Event,
-    /// Nome de um `registro` PORS.
+    /// Nome de um `registro` FERRO.
     TypeName,
     /// Nome de controle (o atributo `Nome`).
     ControlName,
@@ -210,7 +210,7 @@ pub const WINDOW: ElementSchema = ElementSchema {
         attr(
             "Dados",
             ValueType::TypeName,
-            "Registro PORS com o estado mostrado pelos vínculos {dados.campo}",
+            "Registro do pseudocódigo em português com o estado mostrado pelos vínculos {dados.campo}",
         ),
         attr("AoAbrir", ValueType::Event, "Executado ao abrir a janela"),
         attr(

@@ -1,0 +1,57 @@
+/* Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ * Adaptado para Ferro (.fer)
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *     Este exemplo demonstra o uso do desvio condicional para criar uma mini
+ *     calculadora. O programa pede ao usuário que informe dois números reais
+ *     e a operação a ser executada entre estes números (soma, divisão, etc.).
+ *     Por fim, é exibido o valor resultante da operação entre os dois números.
+ *
+ * Autores:
+ *
+ *     Giordana Maria da Costa Valle
+ *     Carlos Alexandre Krueger
+ *
+ * Data: 01/06/2013
+ */
+
+funcao inicio() {
+    seja mutavel resultado: real = 0.0;
+
+    escreva("Digite o primeiro número: ");
+    seja mutavel operando1: real = leia();
+
+    escreva("Digite o segundo número: ");
+    seja mutavel operando2: real = leia();
+
+    escreval();
+
+    escreva("Agora digite uma das operações ( + - * / ): ");
+    seja mutavel operador: caracter = leia();
+
+    // Verifica qual foi a operação selecionada
+    se (operador == '+') {
+        resultado = operando1 + operando2;
+    } senao se (operador == '-') {
+        resultado = operando1 - operando2;
+    } senao se (operador == '/') {
+        se (operando2 == 0.0) {
+            escreval("\nErro: não é possível dividir por zero!");
+            retorne;
+        }
+        resultado = operando1 / operando2;
+    } senao se (operador == '*') {
+        resultado = operando1 * operando2;
+    } senao {
+        escreval("\nOperação inválida!");
+        retorne;
+    }
+
+    escreval("\nResultado:\n");
+    escreval(operando1, " ", operador, " ", operando2, " = ", resultado);
+}

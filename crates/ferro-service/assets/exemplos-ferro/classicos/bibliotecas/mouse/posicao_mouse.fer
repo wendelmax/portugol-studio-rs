@@ -1,0 +1,108 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *   Este exemplo demonstra como acompanhar em tempo real as coordenadas
+ *   do ponteiro do mouse utilizando Mouse.posicao_x() e Mouse.posicao_y().
+ *
+ * Autores:
+ *
+ *   Luiz Fernando Noschang (noschang@univali.br)
+ *   Adaptado e implementado para Ferro (.fer)
+ *
+ * Data: 18/07/2014
+ */
+
+funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
+    escolha Graficos.criar_cor(r, g, b) {
+        caso Resultado::Ok(cor) => {
+            retorne cor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne Graficos.COR_PRETO;
+        }
+    }
+}
+
+funcao inicio() {
+    seja largura: inteiro = 640;
+    seja altura: inteiro = 480;
+    seja limite_rastro: inteiro = 25;
+
+    Graficos.iniciar_modo_grafico(verdadeiro);
+    Graficos.definir_dimensoes_janela(largura, altura);
+    Graficos.definir_titulo_janela("Mouse - Posição do Mouse");
+
+    seja mutavel rastro_x: vetor < inteiro > = [];
+    seja mutavel rastro_y: vetor < inteiro > = [];
+
+    enquanto (!Teclado.tecla_pressionada(Teclado.TECLA_ESC)) {
+        seja mx: inteiro = Mouse.posicao_x();
+        seja my: inteiro = Mouse.posicao_y();
+
+        adicionar(rastro_x, mx);
+        adicionar(rastro_y, my);
+
+        se (tamanho(rastro_x) > limite_rastro) {
+            seja mutavel novo_x: vetor < inteiro > = [];
+            seja mutavel novo_y: vetor < inteiro > = [];
+            para (seja mutavel i: inteiro = 1; i < tamanho(rastro_x); i += 1) {
+                adicionar(novo_x, rastro_x[i]);
+                adicionar(novo_y, rastro_y[i]);
+            }
+            rastro_x = novo_x;
+            rastro_y = novo_y;
+        }
+
+        Graficos.definir_cor(cor_rgb(18, 24, 36));
+        Graficos.limpar();
+
+        // Linhas-guia cruzadas na posição atual do mouse
+        Graficos.definir_cor(cor_rgb(55, 72, 100));
+        Graficos.desenhar_linha(mx, 0, mx, altura);
+        Graficos.desenhar_linha(0, my, largura, my);
+
+        // Rastro suave do movimento
+        seja n: inteiro = tamanho(rastro_x);
+        para (seja mutavel i = 0; i < n; i += 1) {
+            seja raio: inteiro = 3 + (i / 3);
+            seja intensidade: inteiro = 80 + ((i * 170) / limite_rastro);
+            Graficos.definir_cor(cor_rgb(60, intensidade, 240));
+            Graficos.desenhar_elipse(
+            rastro_x[i] - (raio / 2),
+            rastro_y[i] - (raio / 2),
+            raio,
+            raio,
+            verdadeiro
+            );
+        }
+
+        // Mira na posição atual
+        Graficos.definir_cor(Graficos.COR_AMARELO);
+        Graficos.desenhar_elipse(mx - 12, my - 12, 24, 24, falso);
+
+        // Barra superior com coordenadas
+        Graficos.definir_cor(cor_rgb(30, 40, 58));
+        Graficos.desenhar_retangulo(12, 12, 340, 62, verdadeiro, verdadeiro);
+        Graficos.definir_cor(Graficos.COR_BRANCO);
+        Graficos.definir_tamanho_texto(18.0);
+        Graficos.desenhar_texto(
+        24,
+        22,
+        "Mouse X: " + Tipos.inteiro_para_cadeia(mx) + "  |  Y: " + Tipos.inteiro_para_cadeia(my)
+        );
+        Graficos.definir_tamanho_texto(14.0);
+        Graficos.definir_cor(cor_rgb(180, 195, 220));
+        Graficos.desenhar_texto(24, 48, "Mova o ponteiro pela janela (ESC para sair)");
+
+        Graficos.renderizar();
+        Util.aguarde(16);
+    }
+
+    Graficos.encerrar_modo_grafico();
+}

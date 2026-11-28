@@ -1,0 +1,38 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ * 	Este exemplo demonstra como utilizar a função "valor_absoluto" da biblioteca "Matematica"
+ * 	para obter o valor absoluto de um número real (para inteiros, utilize "valor_absoluto_inteiro").
+ *
+ * 	Na matemática, o valor absoluto (ou módulo) é a distância entre um ponto qualquer de uma
+ * 	reta até sua origem (ponto zero). Como não existem distâncias negativas, o valor absoluto
+ * 	é sempre um número positivo. Assim:
+ *
+ * 	- O valor absoluto de 4 é igual a 4
+ * 	- O valor absoluto de -4 também é igual a 4
+ *
+ * 	- O valor absoluto de 12 é igual a 12
+ * 	- O valor absoluto de -12 é igual a 12
+ *
+ * Autores:
+ *
+ * 	Luiz Fernando Noschang (noschang@univali.br)
+ *
+ * Data: 18/07/2014
+ * Adaptado para Ferro (.fer)
+ */
+
+funcao inicio() {
+    escreva("Informe um número positivo ou negativo: ");
+    seja mutavel numero: real = leia();
+
+    // Calcula o valor absoluto do número informado
+    seja absoluto: real = Matematica.valor_absoluto(numero);
+    escreval("O valor absoluto de ", numero, " é: ", absoluto);
+}

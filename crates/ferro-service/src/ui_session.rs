@@ -18,13 +18,13 @@ use serde_json::{Value as JsonValue, json};
 const DEFAULT_UI_MAX_OUTPUT_BYTES: usize = 256 * 1024;
 
 #[derive(Debug, Clone, Copy, Default)]
-pub struct PorsUiBudgetRequest {
+pub struct FerroUiBudgetRequest {
     pub max_steps: Option<usize>,
     pub max_nodes: Option<usize>,
     pub max_depth: Option<usize>,
 }
 
-impl PorsUiBudgetRequest {
+impl FerroUiBudgetRequest {
     fn resolve(self) -> UiBudget {
         let mut budget = UiBudget::default();
         if let Some(steps) = self.max_steps.filter(|&v| v > 0) {
@@ -59,25 +59,25 @@ enum UiRequest {
     },
 }
 
-/// Gerenciador `Send + Sync` de sessões MVU PORS para hosts desktop (Tauri).
-pub struct PorsUiService {
+/// Gerenciador `Send + Sync` de sessões MVU FERRO para hosts desktop (Tauri).
+pub struct FerroUiService {
     sender: Mutex<mpsc::Sender<UiRequest>>,
     interrupts: Arc<Mutex<HashMap<u32, Arc<AtomicBool>>>>,
 }
 
-impl Default for PorsUiService {
+impl Default for FerroUiService {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl PorsUiService {
+impl FerroUiService {
     pub fn new() -> Self {
         let (tx, rx) = mpsc::channel::<UiRequest>();
         let interrupts = Arc::new(Mutex::new(HashMap::<u32, Arc<AtomicBool>>::new()));
         let worker_interrupts = Arc::clone(&interrupts);
         let _ = thread::Builder::new()
-            .name("pors-ui-worker".into())
+            .name("ferro-ui-worker".into())
             .spawn(move || run_worker(rx, worker_interrupts));
         Self {
             sender: Mutex::new(tx),
@@ -85,7 +85,7 @@ impl PorsUiService {
         }
     }
 
-    pub fn start(&self, source: String, budget: PorsUiBudgetRequest) -> String {
+    pub fn start(&self, source: String, budget: FerroUiBudgetRequest) -> String {
         let (reply_tx, reply_rx) = mpsc::channel();
         let sent = self
             .sender
@@ -216,7 +216,7 @@ fn handle_start(
         Ok(program) => program,
         Err(diagnostics) => return diagnostics_error_json(&diagnostics),
     };
-    let module = match ferro_bytecode::compile_pors(&program) {
+    let module = match ferro_bytecode::compile_ferro(&program) {
         Ok(module) => module,
         Err(error) => {
             return json!({
@@ -501,7 +501,7 @@ funcao visualizar(estado: Estado) -> inteiro {
 funcao iniciar() -> Estado {
     retorne Estado {
         rascunho: "",
-        tarefa1: "Estudar PORS",
+        tarefa1: "Estudar Ferro",
         concluida1: falso,
         tarefa2: "Testar UI declarativa",
         concluida2: verdadeiro
@@ -558,7 +558,7 @@ funcao rotulo_tarefa(texto: cadeia, feita: logico) -> cadeia {
 
 funcao visualizar(estado: Estado) -> inteiro {
     retorne UI.coluna([
-        UI.texto("Lista de tarefas PORS"),
+        UI.texto("Lista de tarefas Ferro"),
         UI.linha([
             UI.entrada("rascunho", estado.rascunho, "Nova tarefa..."),
             UI.botao("salvar", "Adicionar")
@@ -579,10 +579,10 @@ funcao visualizar(estado: Estado) -> inteiro {
 
     #[test]
     fn runs_counter_and_tasks_visual_examples_through_worker_service() {
-        let service = PorsUiService::new();
+        let service = FerroUiService::new();
 
         let started: JsonValue = serde_json::from_str(
-            &service.start(COUNTER_EXAMPLE.into(), PorsUiBudgetRequest::default()),
+            &service.start(COUNTER_EXAMPLE.into(), FerroUiBudgetRequest::default()),
         )
         .unwrap();
         assert_eq!(started["ok"], true);
@@ -604,7 +604,7 @@ funcao visualizar(estado: Estado) -> inteiro {
         assert!(service.close(id));
 
         let tasks_started: JsonValue = serde_json::from_str(
-            &service.start(TASKS_EXAMPLE.into(), PorsUiBudgetRequest::default()),
+            &service.start(TASKS_EXAMPLE.into(), FerroUiBudgetRequest::default()),
         )
         .unwrap();
         assert_eq!(tasks_started["ok"], true);
@@ -636,11 +636,11 @@ funcao visualizar(estado: Estado) -> inteiro {
 
     #[test]
     fn enforces_budget_and_reports_diagnostics_through_worker_service() {
-        let service = PorsUiService::new();
+        let service = FerroUiService::new();
 
         let invalid: JsonValue = serde_json::from_str(&service.start(
             "funcao inicio() { escreva(desconhecido); }".into(),
-            PorsUiBudgetRequest::default(),
+            FerroUiBudgetRequest::default(),
         ))
         .unwrap();
         assert_eq!(invalid["ok"], false);
@@ -656,9 +656,9 @@ funcao visualizar(estado: inteiro) -> inteiro { retorne UI.texto(estado); }
 "#;
         let started: JsonValue = serde_json::from_str(&service.start(
             loop_source.into(),
-            PorsUiBudgetRequest {
+            FerroUiBudgetRequest {
                 max_steps: Some(500),
-                ..PorsUiBudgetRequest::default()
+                ..FerroUiBudgetRequest::default()
             },
         ))
         .unwrap();

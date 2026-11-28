@@ -1,7 +1,7 @@
 # Modelo pedagógico — modos e progressão
 
 ## Modos
-- **Iniciante**: Portugol, variáveis/condicionais/loops, execução visual; Rust não imposto.
+- **Iniciante**: Ferro, variáveis/condicionais/loops, execução visual; Rust não imposto.
 - **Ponte**: sintaxe Ferro opcional e equivalência explícita com Rust; comparador e explicações.
 - **Rust**: rustc/Cargo real (se disponível), mutabilidade, tipos, ownership, borrowing, Result/Option.
 

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-const ALERTS: &str = "https://api.github.com/repos/wendelmax/portugol-studio-rs/issues?state=open&labels=alerta&per_page=20";
+const ALERTS: &str = "https://api.github.com/repos/wendelmax/ferro-studio/issues?state=open&labels=alerta&per_page=20";
 
 #[derive(Deserialize)]
 struct Issue {

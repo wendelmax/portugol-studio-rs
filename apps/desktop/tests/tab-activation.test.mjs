@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { createTabActivator } from "../src/state/tab-activation.ts";
 
-function fixture({ activeId = 1, targetId = 2, tabLanguage = "portugol-rs" } = {}) {
-  const current = { id: 1, language: "portugol", state: { doc: "old" }, symbols: [] };
+function fixture({ activeId = 1, targetId = 2, tabLanguage = "ferro-rust" } = {}) {
+  const current = { id: 1, language: "ferro", state: { doc: "old" }, symbols: [] };
   const target = { id: targetId, language: tabLanguage, state: { doc: "target" }, symbols: [], workspaceId: "ws" };
   const tabs = [current, target];
   const events = [];
@@ -88,7 +88,7 @@ test("activating a file configures workspace, editor, previews, and diagnostics"
   assert.equal(getActive(), target.id);
   assert.deepEqual(events, [
     ["activeId", 2], ["pages", 2, 2], ["workspace", "ws"], ["editorState", 2], ["loadPanes", "ws"],
-    ["learning", 2], ["configure", "portugol-rs"], ["applyPanes"], ["renderTabs"], ["renderTests"],
+    ["learning", 2], ["configure", "ferro-rust"], ["applyPanes"], ["renderTabs"], ["renderTests"],
     ["previewHidden", false], ["preview", 2], ["mappingGutter"], ["messages"], ["outline", 2, true],
     ["libraries", 2], ["cursor"], ["center"], ["schedulePreview", 2], ["controls", 2], ["focusEditor"],
   ]);

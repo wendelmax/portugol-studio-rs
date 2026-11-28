@@ -1,4 +1,4 @@
-//! Análise e formatação dos arquivos de marcação de projetos desktop PORS
+//! Análise e formatação dos arquivos de marcação de projetos desktop FERRO
 //! (ADR 0018): o desenho da tela (`.design`) e o manifesto (`.ferproj`).
 
 use ferro_tela::{Element, project, schema};
@@ -150,7 +150,7 @@ mod tests {
             MarkupKind::from_path("meu-app.FERPROJ"),
             Some(MarkupKind::Manifest)
         );
-        assert_eq!(MarkupKind::from_path("programa.pors"), None);
+        assert_eq!(MarkupKind::from_path("programa.fer"), None);
         assert_eq!(MarkupKind::from_path("sem-extensao"), None);
     }
 

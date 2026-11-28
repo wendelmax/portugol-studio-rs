@@ -1,6 +1,6 @@
 # Restaurar último workspace — desenho
 
-**Status:** aprovado pelo escopo contínuo de implementação do Portugol Studio Next
+**Status:** aprovado pelo escopo contínuo de implementação do Ferro Studio Next
 **Rastreabilidade:** `STATE_AND_EVENT_CONTRACT.md` — estado de workspace persistente
 
 ## Objetivo
@@ -10,7 +10,7 @@ Ao iniciar, reabrir o último workspace escolhido para que o aluno retome o proj
 ## Experiência
 
 - Ao abrir uma pasta pelo seletor nativo, a aplicação registra o caminho canonicalizado em sua pasta de configuração local.
-- Na inicialização, a IDE tenta restaurar esse workspace e repopula a árvore `.por`, `.pors` e `.pex`.
+- Na inicialização, a IDE tenta restaurar esse workspace e repopula a árvore `.por`, `.fer` e `.pex`.
 - Um caminho inexistente ou inválido é descartado silenciosamente e a IDE abre normalmente sem pasta selecionada.
 - Uma falha de leitura da configuração é apresentada na barra de status, sem impedir o editor de abrir.
 - A restauração só carrega o workspace na árvore; não abre arquivos nem altera abas/buffers.
@@ -27,7 +27,7 @@ Ao iniciar, reabrir o último workspace escolhido para que o aluno retome o proj
 - Depois de selecionar uma pasta, reiniciar e chamar restauração retorna árvore equivalente e novo ID de sessão.
 - Sem preferência salva, retorna estado vazio sem erro.
 - Pasta apagada ou movida é descartada e não volta a gerar erro nas próximas inicializações.
-- Arquivos `.por`, `.pors` e `.pex` continuam listados; o estado persistido não altera conteúdo ou abas.
+- Arquivos `.por`, `.fer` e `.pex` continuam listados; o estado persistido não altera conteúdo ou abas.
 - Falha de escrita de preferência não impede abrir a pasta na sessão atual.
 - Falha de leitura da preferência não impede iniciar a IDE.
 

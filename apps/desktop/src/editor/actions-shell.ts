@@ -27,9 +27,9 @@ export function createEditorActionsShell(dependencies: EditorActionsShellDepende
     runTabId: dependencies.runTabId,
     hasOpenDialog: () => document.querySelector("dialog[open]") !== null,
     semanticSymbolLanguage,
-    renameTargetPortugolRs: api.renameTargetPortugolRs,
-    renameSymbolPortugolRs: api.renameSymbolPortugolRs,
-    resolvePortugolRs: api.resolveSymbolPortugolRs,
+    renameTargetFerroRust: api.renameTargetFerroRust,
+    renameSymbolFerroRust: api.renameSymbolFerroRust,
+    resolveFerroRust: api.resolveSymbolFerroRust,
     applyChanges: (changes) => dependencies.view.dispatch({
       changes,
       annotations: isolateHistory.of("full"),
@@ -53,7 +53,7 @@ export function createEditorActionsShell(dependencies: EditorActionsShellDepende
     rustfmtAvailable: dependencies.rustfmtAvailable,
     view: dependencies.view,
     formatRust: api.formatRustSource,
-    formatPortugolRs: api.formatPortugolRs,
+    formatFerroRust: api.formatFerroRust,
     formatMarkup: api.formatMarkup,
     setStatus,
   });

@@ -14,12 +14,12 @@ duas telas iniciais. As imagens do editor permanecem comparações válidas.
 ## Entrega desta etapa
 
 - Remover os links de tela inicial da tabela de comparação validada.
-- Marcar os estados Dark e Portugol como pendentes.
+- Marcar os estados Dark e Ferro como pendentes.
 - Preservar os arquivos atuais e explicar por que não comprovam a paridade.
 
 ## Próxima etapa
 
-Capturar a tela inicial do Portugol Studio Java 2.7.5 e do port em Linux/Xvfb,
+Capturar a tela inicial do Ferro Studio Java 2.7.5 e do port em Linux/Xvfb,
 na mesma resolução e tema, registrar as condições de captura e então atualizar
 a tabela. A comparação só será marcada como validada após inspeção das duas
 capturas lado a lado.

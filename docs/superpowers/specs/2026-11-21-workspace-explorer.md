@@ -12,7 +12,7 @@ Permitir escolher uma pasta de projeto, navegar por arquivos suportados e abrir 
 
 - Adicionar uma perspectiva “Explorador” na área lateral existente, sem substituir a tela/editor atual.
 - A ação “Abrir pasta” usa o diálogo nativo de diretório já disponível no Tauri.
-- Exibir nome da pasta e árvore recolhível de arquivos `.por`, `.pors` e `.pex`.
+- Exibir nome da pasta e árvore recolhível de arquivos `.por`, `.fer` e `.pex`.
 - Seleção por mouse e teclado; Enter abre o arquivo. Arquivo já aberto ativa sua aba, sem duplicá-lo.
 - Estados vazios, carregando e erro têm texto acessível em português. Pastas sem arquivos suportados exibem orientação.
 - A árvore é somente leitura nesta etapa; não há criar, renomear ou excluir.
@@ -36,7 +36,7 @@ Permitir escolher uma pasta de projeto, navegar por arquivos suportados e abrir 
 
 ## Critérios de aceite
 
-- Escolher uma pasta válida mostra apenas `.por`, `.pors` e `.pex` encontrados dentro da raiz.
+- Escolher uma pasta válida mostra apenas `.por`, `.fer` e `.pex` encontrados dentro da raiz.
 - Estrutura de pastas é representada; diretórios vazios podem ser omitidos.
 - Abrir um arquivo produz aba correta e conteúdo real; reabrir ativa a mesma aba.
 - Abrir arquivos individuais pelo fluxo atual permanece funcional.
@@ -57,7 +57,7 @@ Permitir escolher uma pasta de projeto, navegar por arquivos suportados e abrir 
 
 - **Risco:** diferenças de canonicalização/symlink entre Linux, macOS e Windows. Mitigar com `Path` do Rust e testes direcionados em CI.
 - **Risco:** arquivos removidos entre listagem e abertura. A leitura refaz validação e retorna erro sem alterar o documento ativo.
-- **Compatibilidade:** fluxo individual `.por`/`.pors`/`.pex`, abas e salvamento ficam preservados.
+- **Compatibilidade:** fluxo individual `.por`/`.fer`/`.pex`, abas e salvamento ficam preservados.
 - **Rollback:** remover perspectiva e comandos de workspace; comandos existentes de abrir/salvar arquivos não dependem deles.
 
 ## Fora de escopo

@@ -32,7 +32,7 @@ pub trait Sound {
 }
 
 pub trait Host {
-    /// Decodifica um clipe a partir de um caminho já resolvido pelo Portugol.
+    /// Decodifica um clipe a partir de um caminho já resolvido pelo Ferro.
     fn load_sound(&mut self, path: &Path) -> Result<Box<dyn Sound>, String> {
         let _ = path;
         Err(unavailable("a reprodução de áudio"))

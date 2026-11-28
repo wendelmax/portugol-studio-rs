@@ -17,7 +17,7 @@ test("replays pending files at startup and after OS file events", async () => {
   const calls = [];
   let onFiles;
   mountSystemFileEvents({
-    pendingFiles: async () => ["/tmp/a.pors"],
+    pendingFiles: async () => ["/tmp/a.fer"],
     listenForFiles: async (listener) => { onFiles = listener; },
     listenForDrop: async () => {},
     openFiles: async (paths) => { calls.push(paths); },
@@ -27,7 +27,7 @@ test("replays pending files at startup and after OS file events", async () => {
   onFiles();
   await new Promise((resolve) => setTimeout(resolve, 0));
 
-  assert.deepEqual(calls, [["/tmp/a.pors"], ["/tmp/a.pors"]]);
+  assert.deepEqual(calls, [["/tmp/a.fer"], ["/tmp/a.fer"]]);
 });
 
 test("reports startup retrieval errors and opens only dropped paths with drop context", async () => {
@@ -41,10 +41,10 @@ test("reports startup retrieval errors and opens only dropped paths with drop co
     setStatus: (...args) => { calls.push(args); },
   });
   await new Promise((resolve) => setTimeout(resolve, 0));
-  onDrop({ type: "over", paths: ["ignored.pors"] });
-  onDrop({ type: "drop", paths: ["dropped.pors"] });
+  onDrop({ type: "over", paths: ["ignored.fer"] });
+  onDrop({ type: "drop", paths: ["dropped.fer"] });
   await new Promise((resolve) => setTimeout(resolve, 0));
 
   assert.equal(calls[0][0], "Não foi possível receber arquivos do sistema.");
-  assert.deepEqual(calls[1], [["dropped.pors"], true]);
+  assert.deepEqual(calls[1], [["dropped.fer"], true]);
 });

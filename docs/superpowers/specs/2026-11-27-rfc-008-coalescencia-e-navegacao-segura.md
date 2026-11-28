@@ -1,9 +1,9 @@
-# RFC 008: coalescência nula e navegação segura no PORS
+# RFC 008: coalescência nula e navegação segura no FERRO
 
 - **Data:** 2026-11-27
 - **Status:** Proposta
-- **Relacionados:** [ADR 0019](../../adr/0019-contrato-minimo-de-tipos-pors.md), [RFC 004](2026-11-27-rfc-004-interpolacao-de-cadeias.md), [RFC 006](2026-11-27-rfc-006-realce-de-sintaxe.md), [RFC 007](2026-11-27-rfc-007-tratamento-de-erros.md), [design de evolução sintática inicial do PORS](2026-11-26-pors-syntax-evolution-design.md)
-- **Revisada por:** [ADR 0020](../../adr/0020-ajustes-pedagogicos-da-sintaxe-pors.md)
+- **Relacionados:** [ADR 0019](../../adr/0019-contrato-minimo-de-tipos-ferro.md), [RFC 004](2026-11-27-rfc-004-interpolacao-de-cadeias.md), [RFC 006](2026-11-27-rfc-006-realce-de-sintaxe.md), [RFC 007](2026-11-27-rfc-007-tratamento-de-erros.md), [design de evolução sintática inicial do FERRO](2026-11-26-ferro-syntax-evolution-design.md)
+- **Revisada por:** [ADR 0020](../../adr/0020-ajustes-pedagogicos-da-sintaxe-ferro.md)
 
 > **Revisão (ADR 0020):** Escopo da primeira entrega limitado pela decisão 6 do ADR 0020: somente `??`. `?.`, `??=` e a conversão implícita de `T` para `Opcao<T>` ficam adiados; os exemplos devem usar `Opcao::Algum(valor)` explicitamente.
 
@@ -11,7 +11,7 @@
 
 ## Contexto
 
-O PORS já é *null-safe* por construção: não há `null`, ponteiro nulo, nem valor `nenhum` na linguagem. A ausência é `Opcao<T>` com `Opcao::Algum(valor)` e `Opcao::Nenhum`, representada no bytecode como arranjo com discriminante (`Value::Array` + `PorsDebugShape::Enum`) e gerada em Rust como `Option<T>`. O operador `?` já existe e propaga `Opcao<T>` ou `Resultado<T, E>` para a função chamadora, com diagnóstico `pors.try-return-mismatch` quando a assinatura não é compatível (`crates/portugol-rs-frontend/src/parser/expr.rs:60-106`).
+O FERRO já é *null-safe* por construção: não há `null`, ponteiro nulo, nem valor `nenhum` na linguagem. A ausência é `Opcao<T>` com `Opcao::Algum(valor)` e `Opcao::Nenhum`, representada no bytecode como arranjo com discriminante (`Value::Array` + `FerroDebugShape::Enum`) e gerada em Rust como `Option<T>`. O operador `?` já existe e propaga `Opcao<T>` ou `Resultado<T, E>` para a função chamadora, com diagnóstico `ferro.try-return-mismatch` quando a assinatura não é compatível (`crates/ferro-rust-frontend/src/parser/expr.rs:60-106`).
 
 A proposta recebida pede `??`, `?.` e `??=`, tipos compactos como `cadeia?`, o valor `nenhum` e um `OptionalValue` com opcodes novos na VM. Esta RFC registra a versão compatível: os três operadores entram, os aliases e a sobrecarga de `?` como sufixo de tipo ficam adiados, e a VM reusa a representação existente. A RFC 007 mantém a fronteira entre ausência (`Opcao`) e erro (`Resultado`); `??` não trata erro.
 
@@ -31,15 +31,15 @@ A proposta recebida pede `??`, `?.` e `??=`, tipos compactos como `cadeia?`, o v
 2. `Opcao::Algum(valor) ?? alternativa` produz `valor`; `Opcao::Nenhum ?? alternativa` produz `alternativa`. A alternativa é avaliada somente quando a esquerda é `Opcao::Nenhum`.
 3. `??` é associativo à direita: `a ?? b ?? c` equivale a `a ?? (b ?? c)`. Isso preserva a avaliação da esquerda para a direita e a preguiça: em `nome ?? buscar_nome()`, `buscar_nome()` só é chamado se `nome` for `Opcao::Nenhum`.
 4. Zero, `falso` e cadeia vazia são valores presentes. `??` reage apenas a `Opcao::Nenhum`.
-5. Esquerda que não é `Opcao<T>` gera `pors.coalesce-invalid-type`, com span no operador `??`. Direita de tipo diferente de `T` gera `pors.coalesce-type-mismatch`, com span na direita.
-6. `??` não aceita `Resultado<T, E>`. Nesse caso, `pors.coalesce-invalid-type` com span no operador e mensagem orientando a usar `escolha` ou `tente/capture` da RFC 007. O método `ok()`, que descartaria o erro explicitamente, fica adiado.
+5. Esquerda que não é `Opcao<T>` gera `ferro.coalesce-invalid-type`, com span no operador `??`. Direita de tipo diferente de `T` gera `ferro.coalesce-type-mismatch`, com span na direita.
+6. `??` não aceita `Resultado<T, E>`. Nesse caso, `ferro.coalesce-invalid-type` com span no operador e mensagem orientando a usar `escolha` ou `tente/capture` da RFC 007. O método `ok()`, que descartaria o erro explicitamente, fica adiado.
 
 ### Atribuição por coalescência `??=`
 
-1. Sintaxe: `alvo ??= expressao;`, onde `alvo` é o nome de uma variável **mutável** de tipo `Opcao<T>` e `expressao` tem tipo `T`. Campos de registro e elementos de vetor não são alvos nesta fatia, embora sejam alvos de `=`; nesses casos, `pors.coalesce-assign-invalid-type` com span no alvo.
+1. Sintaxe: `alvo ??= expressao;`, onde `alvo` é o nome de uma variável **mutável** de tipo `Opcao<T>` e `expressao` tem tipo `T`. Campos de registro e elementos de vetor não são alvos nesta fatia, embora sejam alvos de `=`; nesses casos, `ferro.coalesce-assign-invalid-type` com span no alvo.
 2. Se `alvo` é `Opcao::Nenhum`, recebe `Opcao::Algum(expressao)`; se já é `Opcao::Algum(_)`, nada acontece e `expressao` não é avaliada.
 3. `??=` é comando nesta RFC: não produz valor e não pode ser encadeado. A forma de expressão fica adiada.
-4. Alvo imutável, inexistente ou de tipo diferente de `Opcao<T>` gera `pors.coalesce-assign-invalid-type`, com span no alvo. Expressão de tipo diferente de `T` gera `pors.coalesce-type-mismatch`, com span na expressão.
+4. Alvo imutável, inexistente ou de tipo diferente de `Opcao<T>` gera `ferro.coalesce-assign-invalid-type`, com span no alvo. Expressão de tipo diferente de `T` gera `ferro.coalesce-type-mismatch`, com span na expressão.
 
 ### Navegação segura `?.`
 
@@ -47,21 +47,21 @@ A proposta recebida pede `??`, `?.` e `??=`, tipos compactos como `cadeia?`, o v
 2. Se `base` é `Opcao::Algum(registro)`, o resultado é o valor do campo; se é `Opcao::Nenhum`, o resultado é `Opcao::Nenhum`.
 3. O resultado é sempre `Opcao<Tcampo>`, inclusive quando `campo` já é `Opcao<Tcampo>`: `?.` achata exatamente um nível, nunca produz `Opcao<Opcao<_>>`. É o equivalente a `and_then`, não a `map` seguido de `map`.
 4. Encadeamento é permitido: `cliente?.endereco?.cidade` aplica um `?.` por vez, achatando um nível em cada passo. O encadeamento é associativo à esquerda.
-5. `?.` seguido de `(` não é suportado: o PORS não tem sintaxe de chamada de método em instância. Nesse caso, `pors.safe-call-unsupported`, com span no `?.`. Chamadas seguras ficam adiadas.
-6. `base` que não é `Opcao<registro>`, ou campo inexistente, gera `pors.safe-access-invalid-type`, com span no `?.`.
-7. `?.` não captura erro: sobre `Resultado`, o diagnóstico é `pors.safe-access-invalid-type`, com a mesma mensagem orientando a RFC 007.
+5. `?.` seguido de `(` não é suportado: o FERRO não tem sintaxe de chamada de método em instância. Nesse caso, `ferro.safe-call-unsupported`, com span no `?.`. Chamadas seguras ficam adiadas.
+6. `base` que não é `Opcao<registro>`, ou campo inexistente, gera `ferro.safe-access-invalid-type`, com span no `?.`.
+7. `?.` não captura erro: sobre `Resultado`, o diagnóstico é `ferro.safe-access-invalid-type`, com a mesma mensagem orientando a RFC 007.
 
 ### Conversão implícita para `Opcao<T>`
 
 1. Quando o tipo esperado é conhecido e é exatamente `Opcao<T>`, um valor do tipo `T` é aceito e embrulhado em `Opcao::Algum`. A conversão se aplica somente a inicializador de `seja`, argumento de chamada e valor de retorno: `seja nome: Opcao<cadeia> = "Maria";`, parâmetro `Opcao<inteiro>` chamado com `18`, `retorne 42;` em função `-> Opcao<inteiro>`.
 2. Não se aplica a campos de registro, payload de enum, elementos de vetor, alvo de atribuição, operando de `??`, base de `?.` nem ramo de `tente`. Assim, `seja x: Opcao<inteiro> = 1 ?? 2;` continua inválido pelo operando esquerdo, e a atribuição `x = 1;` continua exigindo `Opcao::Algum(1)`.
 3. A conversão é de um único nível. Não converte `T` em `Opcao<Opcao<T>>`, nem `Opcao<T>` em `Opcao<Opcao<T>>`, e nunca altera o tipo de uma expressão sem tipo esperado.
-4. `Opcao::Algum(x)` e `Opcao::Nenhum` continuam exigindo contexto quando o tipo não pode ser inferido; a conversão implícita não remove essa exigência. Em particular, o lado direito de `??` **não** fornece contexto para inferir `Opcao::Nenhum`: `seja x = Opcao::Nenhum ?? 0;` gera `pors.option-type-inference` no `Opcao::Nenhum`. A forma válida é `seja x: Opcao<inteiro> = Opcao::Nenhum; escreval(x ?? 0);`.
+4. `Opcao::Algum(x)` e `Opcao::Nenhum` continuam exigindo contexto quando o tipo não pode ser inferido; a conversão implícita não remove essa exigência. Em particular, o lado direito de `??` **não** fornece contexto para inferir `Opcao::Nenhum`: `seja x = Opcao::Nenhum ?? 0;` gera `ferro.option-type-inference` no `Opcao::Nenhum`. A forma válida é `seja x: Opcao<inteiro> = Opcao::Nenhum; escreval(x ?? 0);`.
 5. A conversão não se aplica a `Resultado`, nem a `vazio`, mantendo o ADR 0019.
 
 ### Precedência
 
-Da mais alta para a mais baixa, acrescentando ao quadro vigente de `crates/portugol-rs-frontend/src/parser/constants.rs:285-306`:
+Da mais alta para a mais baixa, acrescentando ao quadro vigente de `crates/ferro-rust-frontend/src/parser/constants.rs:285-306`:
 
 | Nível | Operadores | Associatividade |
 | --- | --- | --- |
@@ -97,7 +97,7 @@ Da mais alta para a mais baixa, acrescentando ao quadro vigente de `crates/portu
 
 ## Exemplos válidos
 
-```pors
+```ferro
 registro Pessoa {
     nome: cadeia,
     telefone: Opcao<cadeia>
@@ -114,7 +114,7 @@ funcao inicio() {
 }
 ```
 
-```pors
+```ferro
 funcao inicio() {
     seja celular: Opcao<cadeia> = Opcao::Nenhum;
     seja telefone: Opcao<cadeia> = Opcao::Algum("1234");
@@ -127,7 +127,7 @@ funcao inicio() {
 }
 ```
 
-```pors
+```ferro
 funcao inicio() {
     seja idade: Opcao<inteiro> = 18;
     seja valor = idade ?? 0;
@@ -139,18 +139,18 @@ funcao inicio() {
 
 | Trecho (coluna 0) | Diagnóstico | Motivo |
 | --- | --- | --- |
-| `funcao inicio() { seja x = 1 ?? 2; }` | `pors.coalesce-invalid-type` em `[29, 31)` | `1` não é `Opcao<T>` |
-| `funcao inicio() { seja x: Opcao<inteiro> = Opcao::Algum(1); escreval(x ?? "b"); }` | `pors.coalesce-type-mismatch` em `[74, 77)` | alternativa `cadeia` não é `inteiro` |
-| `funcao inicio() { seja p: Pessoa = Pessoa { nome: "Ana", telefone: Opcao::Nenhum }; escreval(p?.nome); }` | `pors.safe-access-invalid-type` em `[94, 96)` | `p` não é `Opcao<registro>` |
-| `funcao inicio() { seja p: Opcao<Pessoa> = Opcao::Nenhum; escreval(p?.nome()); }` | `pors.safe-call-unsupported` em `[67, 69)` | chamada segura não existe nesta fatia |
-| `funcao inicio() { seja r: Resultado<inteiro, cadeia> = Resultado::Erro("x"); escreval(r ?? 0); }` | `pors.coalesce-invalid-type` no `??` | ausência e erro são domínios distintos |
+| `funcao inicio() { seja x = 1 ?? 2; }` | `ferro.coalesce-invalid-type` em `[29, 31)` | `1` não é `Opcao<T>` |
+| `funcao inicio() { seja x: Opcao<inteiro> = Opcao::Algum(1); escreval(x ?? "b"); }` | `ferro.coalesce-type-mismatch` em `[74, 77)` | alternativa `cadeia` não é `inteiro` |
+| `funcao inicio() { seja p: Pessoa = Pessoa { nome: "Ana", telefone: Opcao::Nenhum }; escreval(p?.nome); }` | `ferro.safe-access-invalid-type` em `[94, 96)` | `p` não é `Opcao<registro>` |
+| `funcao inicio() { seja p: Opcao<Pessoa> = Opcao::Nenhum; escreval(p?.nome()); }` | `ferro.safe-call-unsupported` em `[67, 69)` | chamada segura não existe nesta fatia |
+| `funcao inicio() { seja r: Resultado<inteiro, cadeia> = Resultado::Erro("x"); escreval(r ?? 0); }` | `ferro.coalesce-invalid-type` no `??` | ausência e erro são domínios distintos |
 
 ## Decisões de escopo (chamadas do autor)
 
 - A conversão implícita `T -> Opcao<T>` fica restrita a inicializador de `seja`, argumento de chamada e retorno; não alcança campos, vetores, atribuição, operandos de `??`, base de `?.` nem ramos de `tente`.
 - O lado direito de `??` não infere `T` para `Opcao::Nenhum`; a anotação continua obrigatória.
 - `??=` aceita somente nome de variável mutável; campos e índices ficam adiados.
-- `?.` cobre apenas acesso a campo de registro; chamada segura fica adiada porque o PORS não tem chamada de método em instância.
+- `?.` cobre apenas acesso a campo de registro; chamada segura fica adiada porque o FERRO não tem chamada de método em instância.
 - `?.` achata exatamente um nível por operador, inclusive em encadeamento.
 - Nenhum operador novo entra em interpolação de cadeia além do que a RFC 004 já permite.
 

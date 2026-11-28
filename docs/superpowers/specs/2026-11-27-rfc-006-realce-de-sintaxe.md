@@ -2,11 +2,11 @@
 
 - **Data:** 2026-11-27
 - **Status:** Aceita
-- **Relacionados:** [ADR 0019](../../adr/0019-contrato-minimo-de-tipos-pors.md), [RFC 002](2026-11-27-rfc-002-leia-como-expressao.md), [RFC 003](2026-11-27-rfc-003-escreval.md), [RFC 004](2026-11-27-rfc-004-interpolacao-de-cadeias.md), [RFC 005](2026-11-27-rfc-005-retorno-implicito.md), [design de evolução sintática inicial do PORS](2026-11-26-pors-syntax-evolution-design.md)
+- **Relacionados:** [ADR 0019](../../adr/0019-contrato-minimo-de-tipos-ferro.md), [RFC 002](2026-11-27-rfc-002-leia-como-expressao.md), [RFC 003](2026-11-27-rfc-003-escreval.md), [RFC 004](2026-11-27-rfc-004-interpolacao-de-cadeias.md), [RFC 005](2026-11-27-rfc-005-retorno-implicito.md), [design de evolução sintática inicial do FERRO](2026-11-26-ferro-syntax-evolution-design.md)
 
 ## Contexto
 
-O design de evolução sintática inicial do PORS (documento de 2026-11-26) declarou, na seção
+O design de evolução sintática inicial do FERRO (documento de 2026-11-26) declarou, na seção
 "Realce de sintaxe: IDE e playground", a necessidade de uma **taxonomia compartilhada de tokens**
 para o realce, além da herança do contrato lexical já usado pelo frontend.
 
@@ -51,13 +51,13 @@ apresentem os mesmos tokens para as mesmas regras sem divergir.
    - `{}` e um `{` sem fechamento permanecem `string`; o conteúdo precisa ser não vazio; o conteúdo pode
      conter espaços, que contam como conteúdo.
 3. O realce **não valida** a expressão: a validade é decidida pelo parser, com os diagnósticos
-   `pors.interpolation-invalid` e `pors.interpolation-non-string` (RFC 004). Conteúdo com erro
+   `ferro.interpolation-invalid` e `ferro.interpolation-non-string` (RFC 004). Conteúdo com erro
    léxico ou nomes não resolvidos permanece literal, sem diagnóstico de interpolação. O scanner apenas
    emite o token `interpolation`.
 
 ### IDE
 
-1. Na IDE, em `apps/desktop/src/portugol.ts`, o scanner de cadeia do token emitido passa a
+1. Na IDE, em `apps/desktop/src/ferro.ts`, o scanner de cadeia do token emitido passa a
    produzir `string`, `interpolation` e, quando aplicável, o nó interno `variableName` para o
    identificador dentro de `{...}`, preservando escapes e spans.
 2. O nó interno `variableName` é exclusivo da IDE e usado apenas por ela; o playground não o
@@ -89,7 +89,7 @@ apresentem os mesmos tokens para as mesmas regras sem divergir.
 ### Fronteiras
 
 - A implementação dos passos acima está planejada em
-  `docs/superpowers/plans/2026-11-27-pors-syntax-highlighting.md` (Tasks 1 a 4); esta RFC não
+  `docs/superpowers/plans/2026-11-27-ferro-syntax-highlighting.md` (Tasks 1 a 4); esta RFC não
   repete as tarefas do plano, apenas fixa o contrato que eles produzem.
 - Não há novo opcode, VM, crate, produto, API WASM ou pasta `specs/` paralela.
 - O debugger, o painel Rust e o formato continuam fora do escopo deste contrato de realce.
@@ -124,14 +124,14 @@ apresentem os mesmos tokens para as mesmas regras sem divergir.
 
 | Código | Motivo |
 | --- | --- |
-| `escreval("{1 +}");` | o realce emite `interpolation`; a expressão inválida é diagnosticada pelo parser como `pors.interpolation-invalid` no span do conteúdo |
-| `escreva("{42}");` | o realce emite `interpolation`; o tipo não é `cadeia` nem `caracter`, com `pors.interpolation-non-string` no parser |
+| `escreval("{1 +}");` | o realce emite `interpolation`; a expressão inválida é diagnosticada pelo parser como `ferro.interpolation-invalid` no span do conteúdo |
+| `escreva("{42}");` | o realce emite `interpolation`; o tipo não é `cadeia` nem `caracter`, com `ferro.interpolation-non-string` no parser |
 
 ## Consequências
 
 - Os testes de aceite (fase seguinte) consomem esta taxonomia: `keyword`, `type`, `builtin`,
   `string`, `interpolation`, `number`, `comment`, `operator`.
-- A implementação planejada em `docs/superpowers/plans/2026-11-27-pors-syntax-highlighting.md` (Tasks
+- A implementação planejada em `docs/superpowers/plans/2026-11-27-ferro-syntax-highlighting.md` (Tasks
   1 a 4) mantém a mesma taxonomia nos dois editores, sem tokens internos no playground.
 - Qualquer mudança na gramática de `{...}`, nas regras de escapes ou na lista de tokens exige
   revisão desta RFC e do ADR 0019 antes de entrar em código.

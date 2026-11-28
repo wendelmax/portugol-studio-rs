@@ -24,7 +24,7 @@ test("breakpoints follow the code when lines are inserted above them", () => {
 test("diagnostics are clamped to the document and keep the help text", () => {
   const info = {
     severity: "error",
-    code: "pors.type",
+    code: "ferro.type",
     message: "Tipos incompatíveis",
     help: "Converta o valor",
     start: { offset: 4, line: 1, column: 5 },
@@ -34,7 +34,7 @@ test("diagnostics are clamped to the document and keep the help text", () => {
     from: 4,
     to: 5,
     severity: "error",
-    source: "pors.type",
+    source: "ferro.type",
     message: "Tipos incompatíveis\nAjuda: Converta o valor",
   });
   const beyond = toCodeMirror({ ...info, help: null, start: { ...info.start, offset: 50 }, end: { ...info.end, offset: 60 } }, 10);

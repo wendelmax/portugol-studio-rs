@@ -23,7 +23,7 @@
         <button id="btn-stop" class="titlebar-action-btn titlebar-stop-btn" data-testid="stop" title="Interromper a execução ou depuração (Shift+F7)" aria-label="Interromper" disabled><span data-icon="square"></span><span>Parar</span></button>
         <span class="titlebar-divider" aria-hidden="true"></span>
         <button id="btn-rust" class="titlebar-pill-btn" title="Comparar e exportar este programa para Rust" aria-label="Ver tradução para Rust" aria-pressed="false">Rust</button>
-        <button id="btn-ui-preview" class="titlebar-pill-btn" title="Abrir preview visual declarativo PORS (UI.*)" aria-label="Preview Visual PORS" aria-pressed="false">UI</button>
+        <button id="btn-ui-preview" class="titlebar-pill-btn" title="Abrir prévia do designer visual (UI.*)" aria-label="Prévia visual" aria-pressed="false">UI</button>
       </nav>
       <div class="window-controls" role="group" aria-label="Controles da janela">
         <button id="window-min" title="Minimizar" aria-label="Minimizar"><span data-icon="window-min"></span></button>
@@ -51,12 +51,12 @@
               <details id="home-new-menu" class="home-new-menu" data-testid="home-new-menu">
                 <summary id="home-new-menu-toggle" aria-label="Criar arquivo em outra linguagem" aria-controls="home-new-menu-items" title="Criar arquivo em outra linguagem"><span aria-hidden="true">▾</span></summary>
                 <div id="home-new-menu-items" class="home-new-menu-items" aria-label="Outras linguagens">
-                  <button id="home-new-pors" type="button" data-home-new-language="portugol-rs" title="Novo arquivo Ferro (.fer)">Novo Ferro (.fer)</button>
+                  <button id="home-new-ferro" type="button" data-home-new-language="ferro-rust" title="Novo arquivo Ferro (.fer)">Novo Ferro (.fer)</button>
                   <button id="home-new-rust" type="button" data-home-new-language="rust" title="Novo arquivo Rust (.rs)">Novo Rust (.rs)</button>
                 </div>
               </details>
             </div>
-            <button id="home-new-project" type="button" title="Novo projeto desktop PORS: uma janela que você monta arrastando controles"><span data-icon="file-plus"></span>Novo Projeto</button>
+            <button id="home-new-project" type="button" title="Novo aplicativo com uma janela montada ao arrastar controles no designer"><span data-icon="file-plus"></span>Novo Projeto</button>
             <button id="home-open" title="Abrir arquivo (Ctrl+O)"><span data-icon="folder-open"></span>Abrir Arquivo</button>
             <button id="home-open-folder" title="Abrir pasta de projeto"><span data-icon="folder"></span>Abrir Pasta</button>
             <button id="home-help" title="Ajuda (F1)"><span data-icon="book-open"></span>Ajuda</button>
@@ -156,7 +156,7 @@
             <aside id="design-side" class="design-side" aria-label="Estrutura e propriedades"></aside>
           </section>
           <section id="editor" data-testid="code-editor" class="editor"></section>
-          <nav id="rust-mapping-gutter" class="rust-mapping-gutter" aria-label="Mapeamento Portugol para Rust" hidden>
+          <nav id="rust-mapping-gutter" class="rust-mapping-gutter" aria-label="Mapeamento do pseudocódigo em português para Rust" hidden>
             <p id="rust-mapping-status" role="status" aria-live="polite">Aguardando source maps…</p>
             <div id="rust-mapping-links"></div>
           </nav>
@@ -177,23 +177,23 @@
             <div id="rust-output" class="rust-generated-editor"></div>
             <div id="rust-diff-output" class="rust-diff-output" aria-label="Diferenças entre traduções Rust" hidden></div>
           </aside>
-          <aside id="pors-ui-preview" class="pors-ui-preview" aria-label="Preview Visual PORS" hidden>
+          <aside id="ferro-ui-preview" class="ferro-ui-preview" aria-label="Prévia visual" hidden>
             <header>
-              <h2>Preview Visual PORS</h2>
+              <h2>Prévia visual</h2>
               <div>
-                <button id="pors-ui-run" type="button">Executar</button>
-                <button id="pors-ui-restart" type="button" disabled>Reiniciar</button>
-                <button id="pors-ui-cancel" type="button" disabled>Cancelar</button>
-                <button id="pors-ui-close" type="button" aria-label="Fechar preview visual PORS">×</button>
+                <button id="ferro-ui-run" type="button">Executar</button>
+                <button id="ferro-ui-restart" type="button" disabled>Reiniciar</button>
+                <button id="ferro-ui-cancel" type="button" disabled>Cancelar</button>
+                <button id="ferro-ui-close" type="button" aria-label="Fechar prévia visual">×</button>
               </div>
             </header>
-            <div class="pors-ui-examples-bar">
-              <label for="pors-ui-example-select">Exemplo visual</label>
-              <select id="pors-ui-example-select"></select>
-              <button id="pors-ui-load-example" type="button">Carregar exemplo</button>
+            <div class="ferro-ui-examples-bar">
+              <label for="ferro-ui-example-select">Exemplo visual</label>
+              <select id="ferro-ui-example-select"></select>
+              <button id="ferro-ui-load-example" type="button">Carregar exemplo</button>
             </div>
-            <p id="pors-ui-status" role="status" aria-live="polite">Abra um programa .fer visual ou carregue um exemplo.</p>
-            <div id="pors-ui-canvas" class="pors-ui-canvas"></div>
+            <p id="ferro-ui-status" role="status" aria-live="polite">Abra um programa .fer visual ou carregue um exemplo.</p>
+            <div id="ferro-ui-canvas" class="ferro-ui-canvas"></div>
           </aside>
           <aside class="error-strip" aria-label="Diagnósticos por linha"><div id="error-strip"></div></aside>
           <details id="editor-options" class="options editor-options">
@@ -308,10 +308,10 @@
                 </section>
               </div>
               <div class="learning-examples">
-                <section id="learning-portugol-example">
-                  <h4>Portugol</h4>
-                  <p id="learning-portugol-caption"></p>
-                  <pre><code id="learning-portugol-code"></code></pre>
+                <section id="learning-ferro-example">
+                  <h4>Pseudocódigo em português</h4>
+                  <p id="learning-ferro-caption"></p>
+                  <pre><code id="learning-ferro-code"></code></pre>
                 </section>
                 <section id="learning-rust-example" hidden>
                   <h4 id="learning-rust-heading">Rust — comparação didática</h4>
@@ -666,8 +666,8 @@
           <h3 id="settings-learning-heading">Aprendizagem</h3>
           <label class="learning-mode" for="learning-mode">Modo de aprendizagem
             <select id="learning-mode" data-testid="learning-mode" aria-describedby="learning-mode-rust-help">
-              <option value="beginner">Portugol — iniciante</option>
-              <option value="bridge">Portugol + ponte para Rust</option>
+              <option value="beginner">Pseudocódigo — iniciante</option>
+              <option value="bridge">Pseudocódigo + caminho para Rust</option>
               <option id="learning-mode-rust-option" value="rust" disabled>Rust</option>
             </select>
             <span id="learning-mode-rust-help" class="learning-mode-help">Verificando a toolchain Rust…</span>
@@ -769,7 +769,7 @@
       <h2 id="update-title">Atualizações</h2>
       <p id="update-status" role="status"></p>
       <pre id="update-notes" hidden></pre>
-      <p id="update-error" role="status" hidden>Não foi possível abrir o navegador. Use github.com/wendelmax/portugol-studio-rs/releases.</p>
+      <p id="update-error" role="status" hidden>Não foi possível abrir o navegador. Use github.com/wendelmax/ferro-studio/releases.</p>
       <div class="dialog-actions">
         <button id="update-download">Ver versões no GitHub</button>
         <form method="dialog"><button>Fechar</button></form>

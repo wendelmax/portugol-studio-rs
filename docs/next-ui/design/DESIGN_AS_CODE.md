@@ -1,10 +1,10 @@
-# Portugol Studio Next — Design as Code
+# Ferro Studio Next — Design as Code
 
 > Version: 0.1.0 | Status: Proposed | Language: pt-BR | Audience: designers, frontend engineers, AI coding agents
 
 ## 0. Contract
 
-This is the source of truth for the **visual and interaction design** of Portugol Studio Next, an educational IDE evolving Portugol Studio toward progressive Rust learning.
+This is the source of truth for the **visual and interaction design** of Ferro Studio Next, an educational IDE evolving Ferro Studio toward progressive Rust learning.
 
 **Scope:** desktop-first IDE, adaptable to 1280px+ viewports. Smaller screens must reflow panels; do not hide core editor functionality. The reference mockup is illustrative, not a pixel-perfect implementation mandate. Code snippets, execution times, and test statuses in the mockup are demo data and **must not be treated as live results**.
 
@@ -23,8 +23,8 @@ This is the source of truth for the **visual and interaction design** of Portugo
 
 | Mode | Primary editor | Secondary editor | Education panel | Runtime |
 |---|---|---|---|---|
-| `beginner` / Iniciante | Classic Portugol | Hidden by default | Basic hints | Portugol interpreter |
-| `bridge` / Ponte para Rust | Portugol or Ferro | Generated Rust | Active explanations and mapping | Interpreter or Rust (explicit choice) |
+| `beginner` / Iniciante | Classic Ferro | Hidden by default | Basic hints | Ferro interpreter |
+| `bridge` / Ponte para Rust | Ferro or Ferro | Generated Rust | Active explanations and mapping | Interpreter or Rust (explicit choice) |
 | `rust` / Rust | Rust | Optional source comparison | Advanced types, ownership, borrowing | Cargo / rustc |
 
 Mode affects defaults, hints and visible controls; it **must not change source code automatically**. Persist mode per workspace.
@@ -40,7 +40,7 @@ APP SHELL
 │   ├── EditorWorkspace (flex)
 │   │   ├── EditorTabs
 │   │   ├── EditorSplit (resizable)
-│   │   │   ├── SourceEditor: Portugol / Ferro / Rust
+│   │   │   ├── SourceEditor: Ferro / Ferro / Rust
 │   │   │   ├── MappingGutter: source-to-generated correspondences
 │   │   │   └── GeneratedRustEditor: read-only initially, editable after explicit detach
 │   │   └── BottomPanel: Console · Tests · Output · Problems
@@ -68,7 +68,7 @@ Use semantic tokens rather than hard-coded colors in components. Theme below is 
 
 ```yaml
 product:
-  name: Portugol Studio Next
+  name: Ferro Studio Next
   locale: pt-BR
   direction: ltr
   defaultTheme: dark
@@ -143,7 +143,7 @@ Ensure WCAG AA contrast for normal text (4.5:1), non-text controls/indicators (3
 
 ### `TitleBar`
 - Product identity at left, current project in center-left, primary `Executar` and secondary `Depurar` at right.
-- `Executar` dropdown chooses Portugol interpreter vs generated Rust where supported. Label execution engine in console.
+- `Executar` dropdown chooses Ferro interpreter vs generated Rust where supported. Label execution engine in console.
 - While running: visible busy state, cancel/stop control, repeated-run prevention.
 
 ### `ActivityRail`
@@ -152,7 +152,7 @@ Ensure WCAG AA contrast for normal text (4.5:1), non-text controls/indicators (3
 
 ### `ExplorerPanel`
 - File tree supports keyboard navigation, nesting, rename, create, delete with confirmation, and unsaved indicators.
-- Source extension `.por` is a proposal, not a guaranteed existing compatibility format. Preserve native legacy format when importing existing Portugol Studio projects.
+- Source extension `.por` is a proposal, not a guaranteed existing compatibility format. Preserve native legacy format when importing existing Ferro Studio projects.
 - Generated `.rs` files live under a visible `generated/` view or generated artifacts group, never silently mixed with authored files.
 
 ### `SourceEditor`
@@ -224,7 +224,7 @@ Ensure WCAG AA contrast for normal text (4.5:1), non-text controls/indicators (3
 
 ```ts
 type LearningMode = 'beginner' | 'bridge' | 'rust';
-type RuntimeEngine = 'portugol' | 'rust';
+type RuntimeEngine = 'ferro' | 'rust';
 type TranslationStatus = 'idle' | 'generating' | 'ready' | 'stale' | 'partial' | 'error';
 type RunStatus = 'idle' | 'running' | 'succeeded' | 'failed' | 'cancelled';
 
@@ -267,8 +267,8 @@ packages/ui-components/      # tabs, tree, buttons, splitters, overlays, panels
 packages/editor-adapter/     # language editor engine integration
 packages/learning-ui/        # explanation cards, progress, exercises
 packages/memory-visualizer/  # validated traces / simulated conceptual states
-crates/language-portugol/    # optional: parser / semantic analysis
-crates/language-portugol-rs/ # optional: educational dialect
+crates/language-ferro/    # optional: parser / semantic analysis
+crates/language-ferro-rust/ # optional: educational dialect
 crates/transpiler-rust/      # optional: semantics-aware Rust generation
 crates/runtime/              # optional: execution and diagnostic interfaces
 ```
@@ -277,7 +277,7 @@ crates/runtime/              # optional: execution and diagnostic interfaces
 
 ## 9. Engineering and design acceptance criteria
 
-- [ ] Visually recognizable evolution of Portugol Studio, with reduced density in beginner mode.
+- [ ] Visually recognizable evolution of Ferro Studio, with reduced density in beginner mode.
 - [ ] At 1536×960, split editors + console + learning inspector usable without overlapping content.
 - [ ] At 1280×800, core editor and run button remain visible and inspector can collapse.
 - [ ] Explorer, console and inspector are collapsible and resizable, including keyboard controls.
@@ -306,13 +306,13 @@ crates/runtime/              # optional: execution and diagnostic interfaces
 - Reuse existing technologies and components if adequate; justify any new dependency.
 - Produce small reviewable commits and screenshots before/after per milestone.
 - Never invent parser capabilities, translation correctness, compiler output or test results.
-- Preserve existing Portugol programs and education workflows.
-- When encountering a semantic mismatch between Portugol and Rust, create an explicit design/engineering decision record rather than silently changing behavior.
+- Preserve existing Ferro programs and education workflows.
+- When encountering a semantic mismatch between Ferro and Rust, create an explicit design/engineering decision record rather than silently changing behavior.
 
 ## 11. Open design decisions
 
 - Final product naming and whether `Ferro` is a visible language name or only a course mode.
-- Existing Portugol Studio source/project compatibility scope.
+- Existing Ferro Studio source/project compatibility scope.
 - UI framework, windowing shell and editor engine.
 - Whether Rust code generation happens incrementally or on explicit request.
 - Backend execution sandboxing and compiler/toolchain distribution model.

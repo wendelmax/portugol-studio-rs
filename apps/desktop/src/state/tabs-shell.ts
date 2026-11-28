@@ -1,7 +1,7 @@
 import type { Extension, EditorState } from "@codemirror/state";
 import type { SourceLanguage } from "../document-language.ts";
 import type { ExerciseDocument } from "../exercises.ts";
-import { createTabFactory, isTabDirty, PORS_TEMPLATE, tabName } from "./tabs.ts";
+import { createTabFactory, isTabDirty, FERRO_TEMPLATE, tabName } from "./tabs.ts";
 import { createTabCollection } from "./tab-collection.ts";
 import { createTabCloser } from "./tab-closer.ts";
 import { createTabsView } from "./tabs-view.ts";
@@ -35,7 +35,7 @@ export function createTabsShell(dependencies: TabsShellDependencies) {
   });
 
   function newTab(
-    text = PORS_TEMPLATE,
+    text = FERRO_TEMPLATE,
     path: string | null = null,
     exampleName?: string,
     examplePath?: string,

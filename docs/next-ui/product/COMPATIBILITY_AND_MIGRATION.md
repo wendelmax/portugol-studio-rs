@@ -12,7 +12,7 @@
 | Recurso | Existe? evidência | Teste baseline | Mudança proposta | Risco | Rollback |
 |---|---|---|---|---|---|
 | Abrir/Salvar | UNKNOWN | UNKNOWN | NONE | Alta | Reverter adapter |
-| Executar Portugol | UNKNOWN | UNKNOWN | NONE | Crítica | Flag desativa UI nova |
+| Executar Ferro | UNKNOWN | UNKNOWN | NONE | Crítica | Flag desativa UI nova |
 | Debug | UNKNOWN | UNKNOWN | PENDING | Alta | Retornar fluxo atual |
 | Bibliotecas | UNKNOWN | UNKNOWN | PENDING | Alta | Preservar engine |
 | Formato de arquivo | UNKNOWN | UNKNOWN | NONE | Crítica | Backup/restauração |

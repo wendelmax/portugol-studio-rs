@@ -1,25 +1,25 @@
-import type { PorsExerciseSummary } from "./api";
+import type { FerroExerciseSummary } from "./api";
 import type { ExerciseDocument } from "./exercises";
 
 export type ExerciseDocumentOpener = (document: ExerciseDocument) => void;
 
-export function porsExerciseDocument(summary: PorsExerciseSummary, name = summary.title, contents?: string): ExerciseDocument {
+export function ferroExerciseDocument(summary: FerroExerciseSummary, name = summary.title, contents?: string): ExerciseDocument {
   return {
     exercise: { id: 0, statement: summary.statement, cases: summary.cases },
     name,
     contents,
-    pors: summary,
+    ferro: summary,
   };
 }
 
-export function createPorsExerciseOpener(
-  load: () => Promise<readonly PorsExerciseSummary[]>,
+export function createFerroExerciseOpener(
+  load: () => Promise<readonly FerroExerciseSummary[]>,
   open: ExerciseDocumentOpener,
 ) {
-  let catalog: readonly PorsExerciseSummary[] | undefined;
-  let pending: Promise<readonly PorsExerciseSummary[]> | null = null;
+  let catalog: readonly FerroExerciseSummary[] | undefined;
+  let pending: Promise<readonly FerroExerciseSummary[]> | null = null;
 
-  return async (id: string): Promise<PorsExerciseSummary> => {
+  return async (id: string): Promise<FerroExerciseSummary> => {
     if (!id.trim()) throw new Error("Identificador de exercício Ferro inválido.");
     if (!catalog) {
       pending ??= load()
@@ -33,7 +33,7 @@ export function createPorsExerciseOpener(
 
     const exercise = catalog?.find((item) => item.id === id);
     if (!exercise) throw new Error(`Exercício Ferro ${id} não encontrado no catálogo.`);
-    open(porsExerciseDocument(exercise));
+    open(ferroExerciseDocument(exercise));
     return exercise;
   };
 }

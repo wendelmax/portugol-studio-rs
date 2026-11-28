@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createEditorUpdateController } from "../src/editor/update-controller.ts";
 
-function fixture({ language = "portugol", learningMode = "bridge", panelVisible = true, centerActive = true } = {}) {
+function fixture({ language = "ferro", learningMode = "bridge", panelVisible = true, centerActive = true } = {}) {
   const events = [];
   let state = { doc: { toString: () => "novo código" } };
   const tab = {
@@ -55,7 +55,7 @@ test("document changes clear transient state and refresh exercise, tabs, preview
   ]);
 });
 
-test("Rust edits do not invalidate generated Portugol preview or schedule bridge updates", () => {
+test("Rust edits do not invalidate generated Ferro preview or schedule bridge updates", () => {
   const { handleUpdate, events, tab } = fixture({ language: "rust" });
 
   handleUpdate({ docChanged: true, selectionSet: false, state: { doc: { toString: () => "rust" } } });

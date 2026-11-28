@@ -1,6 +1,6 @@
 export type LearningMode = "beginner" | "bridge" | "rust";
 
-const STORAGE_KEY = "portugol.learningMode";
+const STORAGE_KEY = "ferro.learningMode";
 
 function workspaceStorageKey(preferenceKey: string): string {
   return `${STORAGE_KEY}.workspace.${encodeURIComponent(preferenceKey)}`;

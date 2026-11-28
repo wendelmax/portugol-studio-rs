@@ -8,7 +8,7 @@ import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
 import { applyThemeColors, themeProfile } from "../themes";
 
-export const THEME_KEY = "portugol.theme";
+export const THEME_KEY = "ferro.theme";
 export const DEFAULT_THEME = "system";
 
 const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");

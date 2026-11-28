@@ -1,19 +1,19 @@
-//! Fachada do núcleo Portugol-RS para a IDE.
+//! Fachada do núcleo Ferro para a IDE.
 //!
-//! * [`inspect_portugol_rs`]: análise sintática e semântica com posições UTF-16 para o editor;
-//! * [`start_portugol_rs`]: compila e executa/depura o programa na VM numa thread própria,
+//! * [`inspect_ferro_rs`]: análise sintática e semântica com posições UTF-16 para o editor;
+//! * [`start_ferro_rs`]: compila e executa/depura o programa na VM numa thread própria,
 //!   entregando saída, pedidos de `leia` e o resultado a um [`RunObserver`];
-//! * [`run_portugol_rs`] / [`run_rust_source`]: execução via `rustc` / `cargo`.
+//! * [`run_ferro_rs`] / [`run_rust_source`]: execução via `rustc` / `cargo`.
 //!
 //! Não depende do Tauri: a camada da janela só traduz os eventos.
 
 mod cargo_project;
 mod designer;
+mod ferro_examples;
+mod ferro_exercises;
+mod ferro_run;
 mod markup;
 mod outline;
-mod pors_examples;
-mod pors_exercises;
-mod pors_run;
 mod position;
 mod rename;
 mod run;
@@ -37,37 +37,37 @@ pub use designer::{
     AttributeInfo, DataField, DesignAttribute, DesignEdit, DesignNode, DesignSchema, ElementInfo,
     design_schema, design_tree, edit_design, screen_data_fields,
 };
+pub use ferro_examples::{FerroExample, ferro_examples, find_ferro_example};
+pub use ferro_exercises::{
+    FERRO_EXERCISE_SCHEMA_VERSION, FerroExerciseCase, FerroExerciseCaseOutcome,
+    FerroExerciseDefinition, FerroExerciseEvaluation, FerroExerciseStatus, FerroExerciseSummary,
+    check_ferro_exercise, check_imported_ferro_exercise, evaluate_ferro_exercise, ferro_exercises,
+    inspect_ferro_exercise, parse_ferro_exercise_json,
+};
+pub use ferro_run::{
+    FerroRustRunPhase, FerroRustRunResult, FerroRustRuntimeLimitReason,
+    RustSourceCompileDiagnostic, RustSourceLimitReason, RustSourceRunPhase, RustSourceRunResult,
+    check_rust_source, format_rust_source, run_ferro_rs, run_ferro_rs_with_cancel,
+    run_ferro_rs_with_io, run_rust_source, run_rust_source_with_args_and_cancel,
+    run_rust_source_with_cancel, rust_toolchain_available, rustfmt_available,
+};
 pub use ferro_vm::{FileFilter, Host, Sound, graphics};
 pub use markup::{CodeBehind, MarkupKind, format_markup, inspect_markup, inspect_markup_with_code};
 pub use outline::{SymbolInfo, SymbolKind};
-pub use pors_examples::{PorsExample, find_pors_example, pors_examples};
-pub use pors_exercises::{
-    PORS_EXERCISE_SCHEMA_VERSION, PorsExerciseCase, PorsExerciseCaseOutcome,
-    PorsExerciseDefinition, PorsExerciseEvaluation, PorsExerciseStatus, PorsExerciseSummary,
-    check_imported_pors_exercise, check_pors_exercise, evaluate_pors_exercise,
-    inspect_pors_exercise, parse_pors_exercise_json, pors_exercises,
-};
-pub use pors_run::{
-    PortugolRsRunPhase, PortugolRsRunResult, PortugolRsRuntimeLimitReason,
-    RustSourceCompileDiagnostic, RustSourceLimitReason, RustSourceRunPhase, RustSourceRunResult,
-    check_rust_source, format_rust_source, run_portugol_rs, run_portugol_rs_with_cancel,
-    run_portugol_rs_with_io, run_rust_source, run_rust_source_with_args_and_cancel,
-    run_rust_source_with_cancel, rust_toolchain_available, rustfmt_available,
-};
 pub use position::Position;
 pub use rename::{
-    RenameEdit, RenameTarget, SymbolLocation, rename_symbol_portugol_rs, rename_target_portugol_rs,
-    resolve_symbol_portugol_rs,
+    RenameEdit, RenameTarget, SymbolLocation, rename_symbol_ferro_rs, rename_target_ferro_rs,
+    resolve_symbol_ferro_rs,
 };
 pub use run::{
     DebugFrameInfo, DebugInfo, DebugMappingInfo, DebugVarInfo, RunHandle, RunLimitReason,
-    RunObserver, RunOptions, RunOutcome, start_portugol_rs, start_portugol_rs_with_host,
+    RunObserver, RunOptions, RunOutcome, start_ferro_rs, start_ferro_rs_with_host,
 };
 pub use screen_run::{
     SCREEN_EVENT_STEP_BUDGET, ScreenEvent, ScreenHostFactory, ScreenRun, ScreenStartError,
     ScreenStep, ScreenValue,
 };
-pub use ui_session::{PorsUiBudgetRequest, PorsUiService};
+pub use ui_session::{FerroUiBudgetRequest, FerroUiService};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -95,7 +95,7 @@ pub struct TextEdit {
 }
 
 /// Formata código Ferro (`.fer`) preservando comentários e literais.
-pub fn format_portugol_rs(source: &str) -> Option<Vec<TextEdit>> {
+pub fn format_ferro_rs(source: &str) -> Option<Vec<TextEdit>> {
     ferro_frontend::format(source).map(|edits| {
         edits
             .into_iter()
@@ -114,7 +114,7 @@ pub struct Inspection {
     pub symbols: Vec<SymbolInfo>,
 }
 
-/// Resultado da prévia Portugol → Rust. Em caso de falha, `code` fica vazio e
+/// Resultado da prévia Ferro → Rust. Em caso de falha, `code` fica vazio e
 /// `diagnostic` aponta para a construção original que impediu a tradução.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -164,9 +164,9 @@ fn editor_source_map(source: &str, generated: &GeneratedRust) -> Vec<SourceMapIn
         .collect()
 }
 
-/// Analisa o dialeto Portugol-RS e expõe spans no formato UTF-16 do editor.
-pub fn inspect_portugol_rs(source: &str) -> Inspection {
-    inspect_portugol_rs_with(source, &ferro_frontend::LowerOptions::default())
+/// Analisa o dialeto Ferro e expõe spans no formato UTF-16 do editor.
+pub fn inspect_ferro_rs(source: &str) -> Inspection {
+    inspect_ferro_rs_with(source, &ferro_frontend::LowerOptions::default())
 }
 
 /// Analisa o code-behind de uma tela (`Nome.fer` ao lado de `Nome.design`):
@@ -175,7 +175,7 @@ pub fn inspect_portugol_rs(source: &str) -> Inspection {
 /// no `.design`, os tipos da tela ficam de fora.
 pub fn inspect_code_behind(source: &str, design_source: &str) -> Inspection {
     let mut inspection =
-        inspect_portugol_rs_with(source, &designer::code_behind_options(design_source));
+        inspect_ferro_rs_with(source, &designer::code_behind_options(design_source));
     if inspection.diagnostics.is_empty() {
         let index = position::LineIndex::new(source);
         inspection.diagnostics = designer::check_screen(design_source, Some(source))
@@ -187,7 +187,7 @@ pub fn inspect_code_behind(source: &str, design_source: &str) -> Inspection {
     inspection
 }
 
-fn inspect_portugol_rs_with(source: &str, options: &ferro_frontend::LowerOptions) -> Inspection {
+fn inspect_ferro_rs_with(source: &str, options: &ferro_frontend::LowerOptions) -> Inspection {
     let index = position::LineIndex::new(source);
     match ferro_frontend::lower_with(source, options) {
         Ok(program) => {
@@ -195,7 +195,7 @@ fn inspect_portugol_rs_with(source: &str, options: &ferro_frontend::LowerOptions
                 .functions
                 .iter()
                 .map(|function| {
-                    let name_start = pors_function_name_start(source, function.span.start);
+                    let name_start = ferro_function_name_start(source, function.span.start);
                     let mut children: Vec<_> = function
                         .bindings
                         .iter()
@@ -206,7 +206,7 @@ fn inspect_portugol_rs_with(source: &str, options: &ferro_frontend::LowerOptions
                             } else {
                                 SymbolKind::Variable
                             },
-                            ty: pors_type_name(binding.ty),
+                            ty: ferro_type_name(binding.ty),
                             position: index.position(binding.span.start),
                             children: Vec::new(),
                         })
@@ -215,7 +215,7 @@ fn inspect_portugol_rs_with(source: &str, options: &ferro_frontend::LowerOptions
                     SymbolInfo {
                         name: function.source_name.clone(),
                         kind: SymbolKind::Function,
-                        ty: function.return_type.map_or("vazio", pors_type_name),
+                        ty: function.return_type.map_or("vazio", ferro_type_name),
                         position: index.position(name_start),
                         children,
                     }
@@ -226,7 +226,7 @@ fn inspect_portugol_rs_with(source: &str, options: &ferro_frontend::LowerOptions
                 // O dialeto não possui `const`: `seja` é um binding local
                 // imutável, não uma constante global da linguagem clássica.
                 kind: SymbolKind::Variable,
-                ty: pors_type_name(binding.ty),
+                ty: ferro_type_name(binding.ty),
                 position: index.position(binding.span.start),
                 children: Vec::new(),
             }));
@@ -243,7 +243,7 @@ fn inspect_portugol_rs_with(source: &str, options: &ferro_frontend::LowerOptions
     }
 }
 
-pub(crate) fn pors_function_name_start(source: &str, function_start: u32) -> u32 {
+pub(crate) fn ferro_function_name_start(source: &str, function_start: u32) -> u32 {
     let start = function_start as usize;
     let tail = &source[start..];
     let mut offset = tail
@@ -270,7 +270,7 @@ pub(crate) fn pors_function_name_start(source: &str, function_start: u32) -> u32
     start.saturating_add(offset).min(source.len()) as u32
 }
 
-fn pors_type_name(ty: ferro_hir::Type) -> &'static str {
+fn ferro_type_name(ty: ferro_hir::Type) -> &'static str {
     match ty {
         ferro_hir::Type::Integer => "inteiro",
         ferro_hir::Type::Real => "real",
@@ -290,10 +290,10 @@ fn pors_type_name(ty: ferro_hir::Type) -> &'static str {
     }
 }
 
-/// Traduz o dialeto Portugol-RS para Rust usando o backend compartilhado.
-pub fn export_portugol_rs(source: &str) -> RustExport {
+/// Traduz o dialeto Ferro para Rust usando o backend compartilhado.
+pub fn export_ferro_rs(source: &str) -> RustExport {
     let index = position::LineIndex::new(source);
-    match ferro_rust::export_portugol_rs_with_map(source) {
+    match ferro_rust::export_ferro_rs_with_map(source) {
         Ok(generated) => {
             let source_map = editor_source_map(source, &generated);
             RustExport {
@@ -337,12 +337,12 @@ pub(crate) fn describe(index: &position::LineIndex, diagnostic: &Diagnostic) -> 
 }
 
 #[cfg(test)]
-mod portugol_rs_service {
-    use super::{export_portugol_rs, inspect_portugol_rs};
+mod ferro_rs_service {
+    use super::{export_ferro_rs, inspect_ferro_rs};
 
     #[test]
-    fn inspection_returns_typed_symbols_for_portugol_rs() {
-        let inspection = inspect_portugol_rs("funcao inicio() { seja idade: inteiro = 16; }");
+    fn inspection_returns_typed_symbols_for_ferro_rs() {
+        let inspection = inspect_ferro_rs("funcao inicio() { seja idade: inteiro = 16; }");
         assert!(inspection.diagnostics.is_empty());
         assert_eq!(inspection.symbols[0].name, "idade");
         assert_eq!(inspection.symbols[0].ty, "inteiro");
@@ -352,7 +352,7 @@ mod portugol_rs_service {
     #[test]
     fn inspection_includes_helper_functions_and_parameters() {
         let source = "funcao /* helper */ somar(a: inteiro, b: inteiro) -> inteiro { seja total: inteiro = a + b; retorne total; }\nfuncao inicio() { escreva(somar(2, 3)); }";
-        let inspection = inspect_portugol_rs(source);
+        let inspection = inspect_ferro_rs(source);
 
         let function = inspection
             .symbols
@@ -374,22 +374,22 @@ mod portugol_rs_service {
     #[test]
     fn diagnostics_use_utf16_offsets_after_non_bmp_text() {
         let source = "// 🧠\nfuncao inicio() { seja idade: inteiro = ; }";
-        let inspection = inspect_portugol_rs(source);
+        let inspection = inspect_ferro_rs(source);
         let diagnostic = &inspection.diagnostics[0];
         let byte_offset = source.find(";").unwrap();
         let utf16_offset = source[..byte_offset].encode_utf16().count();
         assert_eq!(diagnostic.start.offset as usize, utf16_offset);
-        assert!(diagnostic.code.starts_with("pors."));
+        assert!(diagnostic.code.starts_with("ferro."));
     }
 
     #[test]
     fn inspection_reports_multiple_syntax_errors_and_export_rejects_source() {
         let source = "funcao primeira() { seja a: inteiro = ; }\nfuncao segunda() { seja b: inteiro = ; }\nfuncao terceira() { seja c: inteiro = ; }\nfuncao inicio() {}";
-        let inspection = inspect_portugol_rs(source);
+        let inspection = inspect_ferro_rs(source);
         assert_eq!(inspection.diagnostics.len(), 3);
         assert!(inspection.symbols.is_empty());
 
-        let export = export_portugol_rs(source);
+        let export = export_ferro_rs(source);
         assert!(export.code.is_none());
         assert!(export.diagnostic.is_some());
         assert!(export.source_map.is_empty());
@@ -398,7 +398,7 @@ mod portugol_rs_service {
     #[test]
     fn export_uses_the_shared_rust_backend() {
         let result =
-            export_portugol_rs("funcao inicio() { seja idade: inteiro = 16; escreva(idade); }");
+            export_ferro_rs("funcao inicio() { seja idade: inteiro = 16; escreva(idade); }");
         assert!(result.diagnostic.is_none());
         assert!(result.code.unwrap().contains("print!(\"{}\""));
     }
@@ -406,15 +406,15 @@ mod portugol_rs_service {
     #[test]
     fn export_indents_function_calls_inside_generated_blocks() {
         let result =
-            export_portugol_rs("funcao mostrar() { escreva(1); }\nfuncao inicio() { mostrar(); }");
-        let code = result.code.expect("PORS de funções deve ser traduzido");
+            export_ferro_rs("funcao mostrar() { escreva(1); }\nfuncao inicio() { mostrar(); }");
+        let code = result.code.expect("FERRO de funções deve ser traduzido");
         assert!(code.contains("    pt_mostrar();"), "{code}");
     }
 
     #[test]
     fn export_source_maps_convert_unicode_ranges_to_utf16_editor_offsets() {
         let source = "funcao inicio() { seja texto: cadeia = \"😀\"; escreva(texto); }";
-        let result = export_portugol_rs(source);
+        let result = export_ferro_rs(source);
         let code = result.code.as_ref().unwrap();
         let source_start_bytes = source.find("escreva").unwrap();
         let source_start_utf16 = source[..source_start_bytes].encode_utf16().count() as u32;
@@ -448,7 +448,7 @@ mod portugol_rs_service {
     #[test]
     fn helper_function_source_mappings_are_not_marked_generated_only() {
         let source = "funcao dobro(valor: inteiro) -> inteiro { retorne valor * 2; }\nfuncao inicio() { escreva(dobro(3)); }";
-        let result = export_portugol_rs(source);
+        let result = export_ferro_rs(source);
         assert!(result.diagnostic.is_none());
 
         let helper_start = source.find("retorne").unwrap();
@@ -472,7 +472,7 @@ mod portugol_rs_service {
 
     #[test]
     fn export_source_map_serializes_with_the_typescript_camel_case_contract() {
-        let result = export_portugol_rs("funcao inicio() { seja idade: inteiro = 16; }");
+        let result = export_ferro_rs("funcao inicio() { seja idade: inteiro = 16; }");
         let value = serde_json::to_value(result).unwrap();
         let mapping = &value["sourceMap"][0];
 
@@ -483,9 +483,9 @@ mod portugol_rs_service {
     }
 
     #[test]
-    fn format_portugol_rs_returns_utf16_whitespace_edits_and_rejects_invalid_source() {
+    fn format_ferro_rs_returns_utf16_whitespace_edits_and_rejects_invalid_source() {
         let source = "funcao inicio(){escreva(\"😀\");seja x:inteiro=1+2;}";
-        let edits = super::format_portugol_rs(source).expect("fonte PORS válida deve formatar");
+        let edits = super::format_ferro_rs(source).expect("fonte FERRO válida deve formatar");
         assert!(!edits.is_empty());
         let mut units: Vec<u16> = source.encode_utf16().collect();
         for edit in edits.into_iter().rev() {
@@ -497,10 +497,10 @@ mod portugol_rs_service {
             "funcao inicio() {\n    escreva(\"😀\");\n    seja x: inteiro = 1 + 2;\n}\n"
         );
         assert!(
-            super::format_portugol_rs(&formatted)
+            super::format_ferro_rs(&formatted)
                 .expect("fonte já formatada")
                 .is_empty()
         );
-        assert!(super::format_portugol_rs("funcao inicio() { seja x: inteiro = ; }").is_none());
+        assert!(super::format_ferro_rs("funcao inicio() { seja x: inteiro = ; }").is_none());
     }
 }

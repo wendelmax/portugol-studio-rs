@@ -141,7 +141,7 @@
 }
 
 .editor-area[data-design-view] > #rust-preview,
-.editor-area[data-design-view] > #pors-ui-preview,
+.editor-area[data-design-view] > #ferro-ui-preview,
 .editor-area[data-design-view] > #rust-mapping-gutter,
 .editor-area[data-design-view] > #rust-comparison-splitter {
   display: none;

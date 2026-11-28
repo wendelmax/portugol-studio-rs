@@ -1,12 +1,12 @@
 # INSTRUÇÃO DE ENTRADA PARA AGENTES — LEIA ANTES DE CODIFICAR
 
-Você está integrando a evolução **Portugol Studio Next** em um **projeto em andamento em Rust + Tauri**. Sua tarefa é preservar o projeto e introduzir os novos comportamentos de maneira incremental.
+Você está integrando a evolução **Ferro Studio Next** em um **projeto em andamento em Rust + Tauri**. Sua tarefa é preservar o projeto e introduzir os novos comportamentos de maneira incremental.
 
 ## Guardrails inegociáveis
 
 - NÃO criar novo app, novo workspace Rust, novo frontend ou substituir arquivos raiz por padrão.
 - NÃO mudar framework, arquitetura, versão Tauri, gerenciamento de dependências, build, permissões ou editor sem justificativa aprovada.
-- NÃO remover funcionalidades clássicas do Portugol para implantar as novas.
+- NÃO remover funcionalidades clássicas do Ferro para implantar as novas.
 - NÃO introduzir mocks permanentes, resultados artificiais de execução/compilação, traduções falsas ou progresso de lição calculado por cliques.
 - NÃO permitir comandos de shell arbitrários vindos do frontend; limitar operações Tauri a capacidades/escopos verificáveis.
 - NÃO sobrescrever buffers com alterações não salvas nem código Rust gerado editado pelo aluno.

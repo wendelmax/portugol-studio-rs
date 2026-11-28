@@ -26,7 +26,7 @@ export interface StatusBarState {
 }
 
 const languages: Record<SourceLanguage, string> = {
-  "portugol-rs": "Ferro",
+  "ferro-rust": "Ferro",
   rust: "Rust",
   markup: "Marcação (pseudo-XAML)",
 };
@@ -64,7 +64,7 @@ export function statusBarState(
   return {
     language: languages[tab.language],
     mode: modes[learningMode],
-    engines: tab.language === "portugol-rs" && rustcAvailable === true
+    engines: tab.language === "ferro-rust" && rustcAvailable === true
       ? "VM e Rust nativo"
       : null,
     indentation: `${Math.max(1, Math.floor(tabSize))} espaços`,

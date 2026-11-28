@@ -7,7 +7,7 @@ fn rejects_assignment_to_immutable_binding_at_its_span() {
     let errors = lower(source).unwrap_err();
     let error = errors
         .iter()
-        .find(|d| d.code == "pors.immutable-assignment")
+        .find(|d| d.code == "ferro.immutable-assignment")
         .unwrap();
     assert_eq!(
         &source[error.span.start as usize..error.span.end as usize],
@@ -22,7 +22,7 @@ fn rejects_field_assignment_through_an_immutable_record_binding() {
     assert!(
         errors
             .iter()
-            .any(|error| error.code == "pors.immutable-assignment")
+            .any(|error| error.code == "ferro.immutable-assignment")
     );
 }
 
@@ -33,7 +33,7 @@ fn rejects_non_exhaustive_and_duplicate_enum_cases() {
         lower(non_exhaustive)
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.non-exhaustive-choice")
+            .any(|diagnostic| diagnostic.code == "ferro.non-exhaustive-choice")
     );
 
     let duplicate = "enum Evento { Iniciar, Parar } funcao inicio() { seja evento: Evento = Evento::Iniciar; escolha evento { caso Evento::Iniciar => {} caso Evento::Iniciar => {} caso Evento::Parar => {} } }";
@@ -41,7 +41,7 @@ fn rejects_non_exhaustive_and_duplicate_enum_cases() {
         lower(duplicate)
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.duplicate-case")
+            .any(|diagnostic| diagnostic.code == "ferro.duplicate-case")
     );
 }
 
@@ -52,7 +52,7 @@ fn rejects_enum_constructor_and_case_payload_mismatches() {
         lower(constructor_arity)
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.enum-payload-arity")
+            .any(|diagnostic| diagnostic.code == "ferro.enum-payload-arity")
     );
 
     let constructor_type = "enum Evento { Definir(inteiro) } funcao inicio() { seja evento: Evento = Evento::Definir(\"x\"); }";
@@ -60,7 +60,7 @@ fn rejects_enum_constructor_and_case_payload_mismatches() {
         lower(constructor_type)
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.enum-payload-type")
+            .any(|diagnostic| diagnostic.code == "ferro.enum-payload-type")
     );
 
     let case_arity = "enum Evento { Definir(inteiro) } funcao inicio() { seja evento: Evento = Evento::Definir(1); escolha evento { caso Evento::Definir => {} } }";
@@ -68,7 +68,7 @@ fn rejects_enum_constructor_and_case_payload_mismatches() {
         lower(case_arity)
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.case-payload-arity")
+            .any(|diagnostic| diagnostic.code == "ferro.case-payload-arity")
     );
 }
 
@@ -80,7 +80,7 @@ fn rejects_incomplete_duplicate_and_mistyped_record_construction() {
         lower(incomplete)
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.missing-field")
+            .any(|diagnostic| diagnostic.code == "ferro.missing-field")
     );
 
     let duplicate = "registro P { x: inteiro } funcao inicio() { seja p: P = P { x: 1, x: 2 }; }";
@@ -88,7 +88,7 @@ fn rejects_incomplete_duplicate_and_mistyped_record_construction() {
         lower(duplicate)
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.field-redeclared")
+            .any(|diagnostic| diagnostic.code == "ferro.field-redeclared")
     );
 
     let mismatch = "registro P { x: inteiro } funcao inicio() { seja p: P = P { x: verdadeiro }; }";
@@ -96,7 +96,7 @@ fn rejects_incomplete_duplicate_and_mistyped_record_construction() {
         lower(mismatch)
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.field-type-mismatch")
+            .any(|diagnostic| diagnostic.code == "ferro.field-type-mismatch")
     );
 }
 
@@ -107,7 +107,7 @@ fn rejects_unknown_name_and_type_mismatch() {
         lower(unknown)
             .unwrap_err()
             .iter()
-            .any(|d| d.code == "pors.unknown-name")
+            .any(|d| d.code == "ferro.unknown-name")
     );
 
     let mismatch = "funcao inicio() { seja mutavel idade: inteiro = 16; idade = verdadeiro; }";
@@ -115,7 +115,7 @@ fn rejects_unknown_name_and_type_mismatch() {
         lower(mismatch)
             .unwrap_err()
             .iter()
-            .any(|d| d.code == "pors.type-mismatch")
+            .any(|d| d.code == "ferro.type-mismatch")
     );
 }
 
@@ -126,7 +126,7 @@ fn rejects_wrong_function_arity_and_argument_type() {
         lower(arity)
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.call-arity")
+            .any(|diagnostic| diagnostic.code == "ferro.call-arity")
     );
 
     let argument_type = "funcao dobro(valor: inteiro) -> inteiro { retorne valor * 2; } funcao inicio() { escreva(dobro(verdadeiro)); }";
@@ -134,7 +134,7 @@ fn rejects_wrong_function_arity_and_argument_type() {
         lower(argument_type)
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.call-type-mismatch")
+            .any(|diagnostic| diagnostic.code == "ferro.call-type-mismatch")
     );
 }
 
@@ -145,7 +145,7 @@ fn rejects_non_void_functions_without_a_return_on_every_path() {
         lower(source)
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.missing-return")
+            .any(|diagnostic| diagnostic.code == "ferro.missing-return")
     );
 }
 
@@ -156,7 +156,7 @@ fn rejects_using_void_function_as_a_value() {
         lower(source)
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.void-value")
+            .any(|diagnostic| diagnostic.code == "ferro.void-value")
     );
 }
 
@@ -167,14 +167,14 @@ fn rejects_duplicate_and_unknown_functions() {
         lower(duplicate)
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.function-redeclared")
+            .any(|diagnostic| diagnostic.code == "ferro.function-redeclared")
     );
     let unknown = "funcao inicio() { ausente(); }";
     assert!(
         lower(unknown)
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.unknown-function")
+            .any(|diagnostic| diagnostic.code == "ferro.unknown-function")
     );
 }
 
@@ -196,7 +196,7 @@ fn rejects_heterogeneous_vector_elements_and_non_integer_indexes() {
         lower(heterogeneous)
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.vector-element-type")
+            .any(|diagnostic| diagnostic.code == "ferro.vector-element-type")
     );
     let non_integer =
         "funcao inicio() { seja valores: vetor<inteiro> = [1, 2]; escreva(valores[0.5]); }";
@@ -204,7 +204,7 @@ fn rejects_heterogeneous_vector_elements_and_non_integer_indexes() {
         lower(non_integer)
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.index-type")
+            .any(|diagnostic| diagnostic.code == "ferro.index-type")
     );
 }
 
@@ -215,7 +215,7 @@ fn rejects_mutating_an_immutable_vector() {
         lower(source)
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.immutable-assignment")
+            .any(|diagnostic| diagnostic.code == "ferro.immutable-assignment")
     );
 }
 
@@ -226,7 +226,7 @@ fn rejects_tamanho_for_non_vector_values() {
         lower(source)
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.length-type")
+            .any(|diagnostic| diagnostic.code == "ferro.length-type")
     );
 }
 
@@ -266,7 +266,7 @@ fn rejects_reserved_words_as_variable_names() {
         lower(source)
             .unwrap_err()
             .iter()
-            .any(|d| d.code == "pors.reserved-name")
+            .any(|d| d.code == "ferro.reserved-name")
     );
     for keyword in ["pare", "continue"] {
         let source = format!("funcao inicio() {{ seja mutavel {keyword}: inteiro = 1; }}");
@@ -274,7 +274,7 @@ fn rejects_reserved_words_as_variable_names() {
             lower(&source)
                 .unwrap_err()
                 .iter()
-                .any(|d| d.code == "pors.reserved-name"),
+                .any(|d| d.code == "ferro.reserved-name"),
             "{keyword} não deve ser usado como identificador"
         );
     }
@@ -287,7 +287,7 @@ fn enforces_boolean_conditions_and_loop_scope() {
         lower(non_boolean)
             .unwrap_err()
             .iter()
-            .any(|d| d.code == "pors.condition-type")
+            .any(|d| d.code == "ferro.condition-type")
     );
 
     let escaped = "funcao inicio() { enquanto (falso) { seja item: inteiro = 1; } escreva(item); }";
@@ -295,7 +295,7 @@ fn enforces_boolean_conditions_and_loop_scope() {
         lower(escaped)
             .unwrap_err()
             .iter()
-            .any(|d| d.code == "pors.unknown-name")
+            .any(|d| d.code == "ferro.unknown-name")
     );
 
     let immutable =
@@ -304,7 +304,7 @@ fn enforces_boolean_conditions_and_loop_scope() {
         lower(immutable)
             .unwrap_err()
             .iter()
-            .any(|d| d.code == "pors.immutable-assignment")
+            .any(|d| d.code == "ferro.immutable-assignment")
     );
 }
 
@@ -329,7 +329,7 @@ fn counted_loop_control_does_not_escape_its_scope() {
         lower(source)
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.unknown-name")
+            .any(|diagnostic| diagnostic.code == "ferro.unknown-name")
     );
 }
 
@@ -340,7 +340,7 @@ fn counted_loop_rejects_non_boolean_condition_and_non_numeric_control() {
         lower(condition)
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.condition-type")
+            .any(|diagnostic| diagnostic.code == "ferro.condition-type")
     );
 
     let control = "funcao inicio() { para (seja mutavel ativo: logico = verdadeiro; ativo; ativo = falso) {} }";
@@ -348,7 +348,7 @@ fn counted_loop_rejects_non_boolean_condition_and_non_numeric_control() {
         lower(control)
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.for-control-type")
+            .any(|diagnostic| diagnostic.code == "ferro.for-control-type")
     );
 }
 
@@ -357,7 +357,8 @@ fn counted_loop_requires_the_seja_keyword_before_its_control_declaration() {
     let source = "funcao inicio() { para (banana mutavel i: inteiro = 0; i < 2; i += 1) {} }";
     let errors = lower(source).unwrap_err();
     assert!(errors.iter().any(|diagnostic| {
-        diagnostic.code == "pors.expected-keyword" && diagnostic.message.contains("Esperado `seja`")
+        diagnostic.code == "ferro.expected-keyword"
+            && diagnostic.message.contains("Esperado `seja`")
     }));
 }
 
@@ -368,7 +369,7 @@ fn counted_loop_step_must_compound_assign_its_mutable_control() {
         lower(wrong_binding)
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.for-step-binding")
+            .any(|diagnostic| diagnostic.code == "ferro.for-step-binding")
     );
 
     let plain_assignment =
@@ -377,7 +378,7 @@ fn counted_loop_step_must_compound_assign_its_mutable_control() {
         lower(plain_assignment)
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.for-step-operator")
+            .any(|diagnostic| diagnostic.code == "ferro.for-step-operator")
     );
 
     let immutable = "funcao inicio() { para (seja i: inteiro = 0; i < 2; i += 1) {} }";
@@ -385,7 +386,7 @@ fn counted_loop_step_must_compound_assign_its_mutable_control() {
         lower(immutable)
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "pors.immutable-assignment")
+            .any(|diagnostic| diagnostic.code == "ferro.immutable-assignment")
     );
 }
 
@@ -404,7 +405,7 @@ fn read_expression_rejects_arguments() {
         lower(source)
             .unwrap_err()
             .iter()
-            .any(|d| d.code == "pors.read-arguments-unsupported")
+            .any(|d| d.code == "ferro.read-arguments-unsupported")
     );
 }
 
@@ -460,7 +461,7 @@ fn rejects_invalid_interpolation_content_at_the_inner_span() {
     let errors = lower(source).unwrap_err();
     let error = errors
         .iter()
-        .find(|d| d.code == "pors.interpolation-invalid")
+        .find(|d| d.code == "ferro.interpolation-invalid")
         .unwrap();
     assert_eq!(
         &source[error.span.start as usize..error.span.end as usize],
@@ -472,7 +473,7 @@ fn rejects_invalid_interpolation_content_at_the_inner_span() {
         lower(number)
             .unwrap_err()
             .iter()
-            .any(|d| d.code == "pors.interpolation-non-string")
+            .any(|d| d.code == "ferro.interpolation-non-string")
     );
 
     for literal in [
@@ -489,13 +490,13 @@ fn implicit_return_is_only_allowed_in_a_typed_function_body() {
         lower("funcao f() -> inteiro { se (verdadeiro) { 1 } retorne 2; }")
             .unwrap_err()
             .iter()
-            .any(|d| d.code == "pors.implicit-return-without-type")
+            .any(|d| d.code == "ferro.implicit-return-without-type")
     );
     assert!(
         lower("funcao f() -> cadeia { 1 + 1 }")
             .unwrap_err()
             .iter()
-            .any(|d| d.code == "pors.return-type-mismatch")
+            .any(|d| d.code == "ferro.return-type-mismatch")
     );
 }
 
@@ -506,7 +507,7 @@ fn rejects_trailing_expression_in_a_function_without_return_type() {
     assert!(
         errors
             .iter()
-            .any(|d| d.code == "pors.implicit-return-without-type")
+            .any(|d| d.code == "ferro.implicit-return-without-type")
     );
 }
 
@@ -516,12 +517,12 @@ fn still_requires_an_initializer_and_an_explicit_type_for_an_empty_vector() {
         lower("funcao inicio() { seja x: inteiro; }")
             .unwrap_err()
             .iter()
-            .any(|d| d.code == "pors.unexpected-token")
+            .any(|d| d.code == "ferro.unexpected-token")
     );
     assert!(
         lower("funcao inicio() { seja x = []; }")
             .unwrap_err()
             .iter()
-            .any(|d| d.code == "pors.empty-vector-type-inference")
+            .any(|d| d.code == "ferro.empty-vector-type-inference")
     );
 }

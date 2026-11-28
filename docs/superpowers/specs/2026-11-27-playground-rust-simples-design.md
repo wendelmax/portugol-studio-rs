@@ -6,8 +6,8 @@ Ao clicar em **Ver Rust**, quem está aprendendo deve conseguir reconhecer a
 tradução do próprio programa Ferro. O código deve continuar compilável e
 produzir os mesmos resultados observáveis, mas não deve carregar helpers de
 suporte que o programa não usa. O Rust exibido também deve refletir a marca
-Ferro: o código de suporte emitido pelo gerador não deve conter `PORS`/`pors`,
-`Portugol` ou a marca anterior em identificadores, comentários, nomes de
+Ferro: o código de suporte emitido pelo gerador não deve conter `FERRO`/`ferro`,
+`Ferro` ou a marca anterior em identificadores, comentários, nomes de
 protocolo ou textos embutidos como o User-Agent HTTP. Identificadores e strings
 escritos pelo usuário permanecem intactos para preservar seu programa.
 
@@ -15,7 +15,7 @@ escritos pelo usuário permanecem intactos para preservar seu programa.
 
 `apps/web-playground/app.mjs` mostra diretamente o texto retornado por
 `runtime.exportRust()`. O gerador em `crates/ferro-rust/src/codegen/mod.rs`
-acrescenta helpers comuns de formatação numérica e runtime PORS
+acrescenta helpers comuns de formatação numérica e runtime FERRO
 independentemente das operações usadas; os runtimes específicos de módulos já
 são selecionados por uso.
 
@@ -48,5 +48,5 @@ são selecionados por uso.
 
 Para programas que não usam leitura, reais, vetores ou módulos especiais, o
 Rust exibido contém apenas o `main`, funções do programa e os helpers
-estritamente necessários, não contém menções a PORS e compila mantendo a saída
+estritamente necessários, não contém menções a FERRO e compila mantendo a saída
 do programa Ferro.

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** Implementar na worktree com TDD, revisão independente e CI antes do merge.
 
-**Goal:** Ligar alguns cartões a exercícios reais do catálogo Portugol para que o aluno possa iniciar uma atividade relacionada.
+**Goal:** Ligar alguns cartões a exercícios reais do catálogo Ferro para que o aluno possa iniciar uma atividade relacionada.
 
 **Architecture:** Mapear IDs explicitamente no conteúdo de aprendizagem; encapsular carregamento/seleção de exercício no frontend existente e reutilizar `openExercise`/`openSource` sem novo IPC.
 
@@ -40,7 +40,7 @@
 - [x] Testar os mapas 2/12/24, ausência da ação nos conceitos Rust-only e alinhar cada prompt ao enunciado `.pex` real.
 - [x] Renderizar botão condicional e estado acessível de loading, sucesso ou falha.
 - [x] Testar que abertura não chama avaliador nem persistência de progresso; opener só cria e entrega `ExerciseDocument` à navegação.
-- [x] Rodar `npm test` (189/189), `npm run build`, `cargo test -p portugol-service --offline --locked` (87 testes), `cargo fmt --all --check`, `git diff --check`.
+- [x] Rodar `npm test` (189/189), `npm run build`, `cargo test -p ferro-service --offline --locked` (87 testes), `cargo fmt --all --check`, `git diff --check`.
 
 ### Task 3: integração
 

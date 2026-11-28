@@ -5,7 +5,7 @@ import { deriveLanguageControls } from "../src/state/language-capabilities.ts";
 
 function fixture(overrides = {}) {
   const tab = {
-    language: "portugol-rs",
+    language: "ferro-rust",
     symbols: [],
     ...overrides.tab,
   };
@@ -23,7 +23,7 @@ function fixture(overrides = {}) {
   return deriveLanguageControls(tab, state);
 }
 
-test("Ferro keeps run/debug, enables PORS modules, and disables unsupported arguments", () => {
+test("Ferro keeps run/debug, enables FERRO modules, and disables unsupported arguments", () => {
   const controls = fixture({
     state: { libraryNames: ["Matematica", "Texto", "Objetos"] },
   });
@@ -34,7 +34,7 @@ test("Ferro keeps run/debug, enables PORS modules, and disables unsupported argu
   assert.equal(controls.arguments.disabled, true);
   assert.equal(controls.arguments.title, "Parâmetros ainda não são suportados em Ferro.");
   assert.equal(controls.libraries.Texto.disabled, false);
-  assert.equal(controls.libraries.Texto.title, "Inserir módulo PORS Texto.");
+  assert.equal(controls.libraries.Texto.title, "Inserir biblioteca Ferro Texto.");
   assert.equal(controls.libraries.Objetos.disabled, true);
   assert.equal(controls.format.disabled, false);
 });
@@ -50,7 +50,7 @@ test("Rust without detected Cargo shows a discovery message and locks execution"
   assert.equal(controls.buttons["btn-run"].description, "Verificando se este arquivo pertence a um projeto Cargo.");
   assert.equal(controls.buttons["btn-debug"].disabled, true);
   assert.equal(controls.arguments.disabled, false);
-  assert.equal(controls.libraries.Matematica.title, "Módulos PORS não se aplicam a Rust.");
+  assert.equal(controls.libraries.Matematica.title, "Bibliotecas Ferro não se aplicam a Rust.");
 });
 
 test("Rust reports missing tools, formatter, and unsupported symbol actions", () => {
@@ -91,7 +91,7 @@ test("IDE applies derived language controls through the tested state module", as
   assert.match(view, /controls\.buttons\[id\]/);
 });
 
-test("desktop markup only formats: no run, debug, arguments, PORS modules or symbol actions", () => {
+test("desktop markup only formats: no run, debug, arguments, FERRO modules or symbol actions", () => {
   const controls = fixture({ tab: { language: "markup" } });
 
   assert.equal(controls.buttons["btn-run"].disabled, true);
@@ -102,7 +102,7 @@ test("desktop markup only formats: no run, debug, arguments, PORS modules or sym
   );
   assert.equal(controls.arguments.disabled, true);
   assert.equal(controls.libraries.Texto.disabled, true);
-  assert.equal(controls.libraries.Texto.title, "Módulos PORS não se aplicam a arquivos de marcação.");
+  assert.equal(controls.libraries.Texto.title, "Bibliotecas Ferro não se aplicam a arquivos de marcação.");
   assert.equal(controls.symbolActions.disabled, true);
   assert.equal(controls.format.disabled, false);
 });

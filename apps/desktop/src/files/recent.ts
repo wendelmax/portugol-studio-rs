@@ -1,6 +1,6 @@
 // Lista de arquivos abertos recentemente, guardada no armazenamento local.
 
-export const RECENT_KEY = "portugol.recent";
+export const RECENT_KEY = "ferro.recent";
 export const RECENT_LIMIT = 6;
 
 type RecentStorage = Pick<Storage, "getItem" | "setItem">;

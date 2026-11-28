@@ -1,6 +1,6 @@
 import type { Tab } from "./tab";
 import { canDebugSource, canFormatSource, canRunSource } from "../runtime-capabilities.ts";
-import { PORS_STDLIB_MODULES } from "../pors-stdlib-catalog.ts";
+import { FERRO_STDLIB_MODULES } from "../ferro-stdlib-catalog.ts";
 
 export const LANGUAGE_BUTTON_IDS = [
   "btn-run", "btn-debug", "btn-debug-pause", "btn-debug-continue", "btn-debug-step-over", "btn-debug-step-into", "btn-debug-step-out",
@@ -21,7 +21,7 @@ export function deriveLanguageControls(
   tab: Pick<Tab, "language" | "workspaceId" | "workspacePath" | "cargoProject" | "symbols">,
   state: LanguageControlState,
 ) {
-  const pors = tab.language === "portugol-rs";
+  const ferro = tab.language === "ferro-rust";
   const rustFile = tab.language === "rust";
   const markupFile = tab.language === "markup";
   const buttons = Object.fromEntries(LANGUAGE_BUTTON_IDS.map((id) => {
@@ -47,7 +47,7 @@ export function deriveLanguageControls(
             ? "Depuração Rust ainda não está disponível."
             : "";
     const title = unavailableReason
-      || (pors && isRun ? "Executar na VM do Ferro (Shift+F6)" : "")
+      || (ferro && isRun ? "Executar na VM do Ferro (Shift+F6)" : "")
       || (rustFile && isRun && tab.cargoProject === true ? "Compilar e executar o projeto Cargo (scripts e dependências executam localmente)" : "")
       || (rustFile && isRun ? "Compilar e executar Rust 2021 com rustc (execução sem sandbox)" : "")
       || state.defaultTitles[id]
@@ -58,7 +58,7 @@ export function deriveLanguageControls(
     disabled: !rustFile,
     title: markupFile
       ? "Parâmetros de execução não se aplicam a arquivos de marcação."
-      : pors
+      : ferro
       ? "Parâmetros ainda não são suportados em Ferro."
       : rustFile
         ? "Espaços separam itens; aspas duplas agrupam. O programa recebe argv, sem shell."
@@ -71,23 +71,23 @@ export function deriveLanguageControls(
       : "Formatar código-fonte",
   };
 // Os módulos vêm do catálogo da biblioteca padrão, a mesma lista do autocompletar.
-const PORS_LIBRARY_NAMES: ReadonlySet<string> = new Set(PORS_STDLIB_MODULES);
+const FERRO_LIBRARY_NAMES: ReadonlySet<string> = new Set(FERRO_STDLIB_MODULES);
 
   const libraries = Object.fromEntries(state.libraryNames.map((name) => {
-    const porsAvailable = pors && PORS_LIBRARY_NAMES.has(name);
+    const ferroAvailable = ferro && FERRO_LIBRARY_NAMES.has(name);
     return [name, {
-      disabled: rustFile || !porsAvailable,
+      disabled: rustFile || !ferroAvailable,
       title: rustFile
-        ? "Módulos PORS não se aplicam a Rust."
+        ? "Bibliotecas Ferro não se aplicam a Rust."
         : markupFile
-        ? "Módulos PORS não se aplicam a arquivos de marcação."
-        : porsAvailable
-          ? `Inserir módulo PORS ${name}.`
+        ? "Bibliotecas Ferro não se aplicam a arquivos de marcação."
+        : ferroAvailable
+          ? `Inserir biblioteca Ferro ${name}.`
           : "Módulo indisponível em Ferro.",
     }];
   }));
   const symbolActions = {
-    disabled: !pors,
+    disabled: !ferro,
     description: rustFile
       ? "Navegação e renomeação de símbolos Rust ainda não estão implementadas."
       : markupFile

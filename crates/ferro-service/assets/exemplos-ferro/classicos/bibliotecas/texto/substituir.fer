@@ -1,0 +1,67 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ * 	Este exemplo demonstra o uso da função "substituir" da biblioteca "Texto" para trocar
+ * 	uma sequência de caracteres por outra em um dado do tipo cadeia.
+ *
+ * Autores:
+ *
+ * 	Luiz Fernando Noschang (noschang@univali.br)
+ *
+ * Data: 18/07/2014
+ * Adaptado para Ferro (.fer)
+ */
+
+funcao inicio() {
+    seja mutavel texto: cadeia = "PATO";
+    seja mutavel substituicao: cadeia = "";
+
+    /*
+     * Ao substituir um texto, devem ser considerados os seguintes aspectos:
+     *
+     * 1 - A função "substituir" não altera o valor da variável original, mas
+     *     retorna um novo valor. Desta forma, a variável "texto" mantém o valor
+     *     "PATO", a não ser que o valor retornado pela função seja atribuído a ela.
+     *
+     * 2 - A função "substituir" diferencia letras maiúsculas e minúsculas na
+     *     hora de procurar o texto que se quer substituir.
+     */
+
+    // Substitui "PA" por "RA" para formar "RATO"
+    substituicao = Texto.substituir(texto, "PA", "RA");
+    escreval(texto, " --> ", substituicao);
+
+    // Substitui "PA" por "GA" para formar "GATO"
+    substituicao = Texto.substituir(texto, "PA", "GA");
+    escreval(texto, " --> ", substituicao);
+
+    // Substitui "A" por "AR" para formar "PARTO"
+    substituicao = Texto.substituir(texto, "A", "AR");
+    escreval(texto, " --> ", substituicao);
+
+    // Substitui "AT" por "ELICAN" para formar "PELICANO"
+    substituicao = Texto.substituir(texto, "AT", "ELICAN");
+    escreval(texto, " --> ", substituicao);
+
+    // Substitui "TO" por "MONHA" para formar "PAMONHA"
+    substituicao = Texto.substituir(texto, "TO", "MONHA");
+    escreval(texto, " --> ", substituicao);
+
+    // Como informamos "to" em letras minúsculas, a substituição não ocorre
+    substituicao = Texto.substituir(texto, "to", "MONHA");
+    escreval(texto, " --> ", substituicao);
+
+    // Como informamos "LI" (que não existe no texto), a substituição não ocorre
+    substituicao = Texto.substituir(texto, "LI", "MA");
+    escreval(texto, " --> ", substituicao);
+
+    // Realiza uma substituição e atribui o valor retornado à variável "texto"
+    texto = Texto.substituir(texto, "PA", "LAGAR");
+    escreval(texto, " --> ", substituicao);
+}

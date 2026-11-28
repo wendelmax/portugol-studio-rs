@@ -4,9 +4,9 @@ import { test } from "node:test";
 
 const moduleUrl = new URL("../src/learning/trail.ts", import.meta.url);
 
-test("learning trail catalog is versioned and maps examples to PORS exercises", async () => {
+test("learning trail catalog is versioned and maps examples to FERRO exercises", async () => {
   const { LEARNING_TRAIL_VERSION, LEARNING_TRAIL } = await import(moduleUrl.href);
-  const exampleDirectory = new URL("../../../crates/ferro-service/assets/exemplos-pors/", import.meta.url);
+  const exampleDirectory = new URL("../../../crates/ferro-service/assets/exemplos-ferro/", import.meta.url);
   const exerciseDirectory = new URL("../../../crates/ferro-service/assets/exercicios/", import.meta.url);
   const examples = new Set(await readdir(exampleDirectory));
   const exerciseFiles = new Set(await readdir(exerciseDirectory));
@@ -14,12 +14,12 @@ test("learning trail catalog is versioned and maps examples to PORS exercises", 
   assert.equal(LEARNING_TRAIL_VERSION, 1);
   assert.ok(LEARNING_TRAIL.length > 0);
   for (const stage of LEARNING_TRAIL) {
-    assert.ok(stage.examplePaths.length > 0, `${stage.id} must include a PORS example`);
-    assert.ok(stage.exercises.length > 0, `${stage.id} must include a PORS exercise`);
-    for (const path of stage.examplePaths) assert.ok(examples.has(path), `Missing PORS example ${path}`);
+    assert.ok(stage.examplePaths.length > 0, `${stage.id} must include a FERRO example`);
+    assert.ok(stage.exercises.length > 0, `${stage.id} must include a FERRO exercise`);
+    for (const path of stage.examplePaths) assert.ok(examples.has(path), `Missing FERRO example ${path}`);
     for (const exercise of stage.exercises) {
-      const filename = `${exercise.id.slice("pors-".length)}.licao`;
-      assert.ok(exerciseFiles.has(filename), `Missing PORS exercise ${filename}`);
+      const filename = `${exercise.id.slice("ferro-".length)}.licao`;
+      assert.ok(exerciseFiles.has(filename), `Missing FERRO exercise ${filename}`);
       const definition = JSON.parse(await readFile(new URL(filename, exerciseDirectory), "utf8"));
       assert.equal(definition.id, exercise.id);
       assert.equal(definition.title, exercise.title);
@@ -51,13 +51,13 @@ test("learning trail progress stays empty until every exercise passes and sugges
 test("a stage completes only when all its exercises pass and next action names the next exercise", async () => {
   const { LEARNING_TRAIL, learningTrailProgress } = await import(moduleUrl.href);
   const firstStage = LEARNING_TRAIL[0];
-  const passed = new Set(firstStage.exercises.slice(0, -1).map(({ id }) => `pors:${id}`));
+  const passed = new Set(firstStage.exercises.slice(0, -1).map(({ id }) => `ferro:${id}`));
   const partial = learningTrailProgress(LEARNING_TRAIL, (identity) => passed.has(identity));
 
   assert.equal(partial.completedStages, 0);
   assert.equal(partial.suggestedExercise.id, firstStage.exercises.at(-1).id);
 
-  for (const { id } of firstStage.exercises) passed.add(`pors:${id}`);
+  for (const { id } of firstStage.exercises) passed.add(`ferro:${id}`);
   const next = learningTrailProgress(LEARNING_TRAIL, (identity) => passed.has(identity));
   assert.equal(next.completedStages, 1);
   assert.equal(next.status, "in-progress");
@@ -67,7 +67,7 @@ test("a stage completes only when all its exercises pass and next action names t
 
 test("learning trail reports a clear completed state after all catalog exercises pass", async () => {
   const { LEARNING_TRAIL, learningTrailProgress } = await import(moduleUrl.href);
-  const all = new Set(LEARNING_TRAIL.flatMap(({ exercises }) => exercises.map(({ id }) => `pors:${id}`)));
+  const all = new Set(LEARNING_TRAIL.flatMap(({ exercises }) => exercises.map(({ id }) => `ferro:${id}`)));
   const progress = learningTrailProgress(LEARNING_TRAIL, (identity) => all.has(identity));
 
   assert.equal(progress.status, "completed");

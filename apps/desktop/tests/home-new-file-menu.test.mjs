@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { mountHomeNewFileMenu } from "../src/home-new-file-menu.ts";
 
-function setup(languages = ["portugol-rs", "rust"]) {
+function setup(languages = ["ferro-rust", "rust"]) {
   const callbacks = new Map();
   const buttons = languages.map((language) => ({
     dataset: { homeNewLanguage: language },
@@ -29,13 +29,13 @@ test("home new file menu selects Ferro and closes", () => {
   const state = setup();
   let selected = "";
   mountHomeNewFileMenu(state.menu, {
-    "portugol-rs": () => { selected = "portugol-rs"; },
+    "ferro-rust": () => { selected = "ferro-rust"; },
     rust: () => { selected = "rust"; },
   });
 
-  state.callbacks.get("portugol-rs:click")();
+  state.callbacks.get("ferro-rust:click")();
 
-  assert.equal(selected, "portugol-rs");
+  assert.equal(selected, "ferro-rust");
   assert.equal(state.menu.open, false);
 });
 
@@ -43,7 +43,7 @@ test("home new file menu selects Rust and closes", () => {
   const state = setup();
   let selected = "";
   mountHomeNewFileMenu(state.menu, {
-    "portugol-rs": () => { selected = "portugol-rs"; },
+    "ferro-rust": () => { selected = "ferro-rust"; },
     rust: () => { selected = "rust"; },
   });
 
@@ -55,7 +55,7 @@ test("home new file menu selects Rust and closes", () => {
 
 test("home new file menu Escape closes and restores focus", () => {
   const state = setup();
-  mountHomeNewFileMenu(state.menu, { "portugol-rs": () => {}, rust: () => {} });
+  mountHomeNewFileMenu(state.menu, { "ferro-rust": () => {}, rust: () => {} });
   let prevented = false;
 
   state.menu.handlers.get("keydown")({ key: "Escape", preventDefault() { prevented = true; } });
@@ -65,12 +65,12 @@ test("home new file menu Escape closes and restores focus", () => {
   assert.equal(state.summary.focused, true);
 });
 
-test("home new file menu ignores legacy classic Portugol and unknown language values", () => {
-  const state = setup(["portugol", "toString"]);
+test("home new file menu ignores legacy classic Ferro and unknown language values", () => {
+  const state = setup(["ferro", "toString"]);
   let invoked = false;
-  mountHomeNewFileMenu(state.menu, { "portugol-rs": () => { invoked = true; }, rust: () => { invoked = true; } });
+  mountHomeNewFileMenu(state.menu, { "ferro-rust": () => { invoked = true; }, rust: () => { invoked = true; } });
 
-  state.callbacks.get("portugol:click")();
+  state.callbacks.get("ferro:click")();
   state.callbacks.get("toString:click")();
 
   assert.equal(invoked, false);

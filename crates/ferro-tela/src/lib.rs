@@ -1,6 +1,6 @@
-//! Formato `.design`: o desenho de uma tela de um projeto desktop PORS, em
+//! Formato `.design`: o desenho de uma tela de um projeto desktop FERRO, em
 //! pseudo-XAML (ADR 0018). Uma tela é a junção de `Nome.design` com o
-//! code-behind `Nome.pors`; este crate cuida só do `.design`.
+//! code-behind `Nome.fer`; este crate cuida só do `.design`.
 //!
 //! ```xml
 //! <Janela Nome="JanelaPrincipal" Titulo="Calculadora" Largura="360" Altura="240" Dados="Conta">
@@ -13,7 +13,7 @@
 //! ```
 //!
 //! O crate não depende de UI nem do sistema operacional e compila para
-//! `wasm32-unknown-unknown`, como o restante do núcleo PORS. Os spans seguem a
+//! `wasm32-unknown-unknown`, como o restante do núcleo FERRO. Os spans seguem a
 //! convenção de [`ferro_hir::Span`]: bytes UTF-8, intervalo `[start, end)`.
 
 pub mod ast;

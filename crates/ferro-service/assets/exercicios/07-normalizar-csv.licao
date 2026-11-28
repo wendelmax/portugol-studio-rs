@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "id": "pors-07-normalizar-csv",
+  "id": "ferro-07-normalizar-csv",
   "title": "Normalizar lista CSV com Texto",
   "statement": "Leia uma linha com itens separados por vírgula (ex.: \" ana , bia \"). Escreva a quantidade de itens e o primeiro item sem espaços extras em maiúsculas, separados por \"|\".",
   "starter_code": "funcao inicio() {\n    seja mutavel linha = leia();\n    seja partes: vetor<cadeia> = Texto.dividir(linha, \",\");\n    escreva(tamanho(partes), \"|\");\n}\n",

@@ -14,9 +14,9 @@ export interface SymbolEditorActionsDependencies {
   runTabId: () => number | null;
   hasOpenDialog: () => boolean;
   semanticSymbolLanguage: (language: SourceLanguage) => SemanticSymbolLanguage | null;
-  renameTargetPortugolRs: (source: string, offset: number) => Promise<RenameTarget>;
-  renameSymbolPortugolRs: (source: string, offset: number, name: string) => Promise<RenameChange[]>;
-  resolvePortugolRs: (source: string, offset: number) => Promise<SymbolLocation>;
+  renameTargetFerroRust: (source: string, offset: number) => Promise<RenameTarget>;
+  renameSymbolFerroRust: (source: string, offset: number, name: string) => Promise<RenameChange[]>;
+  resolveFerroRust: (source: string, offset: number) => Promise<SymbolLocation>;
   applyChanges: (changes: RenameChange[]) => void;
   focusEditor: () => void;
   setStatus: (message: string, kind?: "error" | "ok") => void;
@@ -32,8 +32,8 @@ export function createSymbolEditorActions(dependencies: SymbolEditorActionsDepen
     isCurrent: (tab, doc) => dependencies.activeTab() === tab && dependencies.view.state.doc === doc,
     hasOpenDialog: dependencies.hasOpenDialog,
     semanticSymbolLanguage: dependencies.semanticSymbolLanguage,
-    renameTargetPortugolRs: dependencies.renameTargetPortugolRs,
-    renameSymbolPortugolRs: dependencies.renameSymbolPortugolRs,
+    renameTargetFerroRust: dependencies.renameTargetFerroRust,
+    renameSymbolFerroRust: dependencies.renameSymbolFerroRust,
     applyChanges: dependencies.applyChanges,
     focusEditor: dependencies.focusEditor,
     setStatus: dependencies.setStatus,
@@ -42,7 +42,7 @@ export function createSymbolEditorActions(dependencies: SymbolEditorActionsDepen
   const navigator = createSymbolNavigator({
     activeTab: dependencies.activeTab,
     view: dependencies.view,
-    resolvePortugolRs: dependencies.resolvePortugolRs,
+    resolveFerroRust: dependencies.resolveFerroRust,
     setStatus: dependencies.setStatus,
   });
 

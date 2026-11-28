@@ -9,14 +9,14 @@ test("execution state starts idle and derives pending/running busy state", () =>
     runId: null,
     runTabId: null,
     pendingEvents: null,
-    porsRunPending: false,
+    ferroRunPending: false,
     paused: null,
   });
   assert.equal(isExecutionBusy(state), false);
 
-  state.porsRunPending = true;
+  state.ferroRunPending = true;
   assert.equal(isExecutionBusy(state), true);
-  state.porsRunPending = false;
+  state.ferroRunPending = false;
   state.pendingEvents = [];
   assert.equal(isExecutionBusy(state), true);
   state.pendingEvents = null;

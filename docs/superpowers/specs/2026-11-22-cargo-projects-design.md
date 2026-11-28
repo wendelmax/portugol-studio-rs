@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Permitir compilar e executar um projeto Cargo existente ao abrir um de seus arquivos Rust pelo explorador do workspace, mantendo os fluxos de Portugol, Portugol-RS e `.rs` standalone.
+Permitir compilar e executar um projeto Cargo existente ao abrir um de seus arquivos Rust pelo explorador do workspace, mantendo os fluxos de Ferro, Ferro e `.rs` standalone.
 
 ## Fluxo
 

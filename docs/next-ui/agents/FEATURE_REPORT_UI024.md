@@ -14,7 +14,7 @@
   - `cargo fmt --all --check` — **PASS**.
   - `cargo test --workspace --offline --locked` com sysroot WebKitGTK local — **PASS**, incluindo VM, regressão, Tauri e doctests.
   - `cargo clippy --all-targets --offline -- -D warnings` — **PASS**.
-  - `cargo clippy -p portugol-desktop --offline -- -D warnings` com sysroot local — **PASS**.
+  - `cargo clippy -p ferro-desktop --offline -- -D warnings` com sysroot local — **PASS**.
   - `git diff --check` — **PASS**.
   - CI #79 — **FAIL** no smoke gráfico nativo porque a alternância da nova aba buscava o ID errado. O commit `5042736` adicionou mapeamento explícito e teste de regressão.
   - CI #80, após a correção — **PASS** em Linux, Windows e macOS, incluindo o smoke gráfico nativo.

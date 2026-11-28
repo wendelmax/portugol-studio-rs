@@ -1,0 +1,31 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ * 	Este exemplo demonstra como utilizar a função "menor_numero" da biblioteca "Matematica"
+ * 	para escolher o menor entre dois números reais (para inteiros, utilize "menor_inteiro").
+ *
+ * Autores:
+ *
+ * 	Luiz Fernando Noschang (noschang@univali.br)
+ *
+ * Data: 18/07/2014
+ * Adaptado para Ferro (.fer)
+ */
+
+funcao inicio() {
+    escreva("Informe o primeiro número: ");
+    seja mutavel numero1: real = leia();
+
+    escreva("Informe o segundo número: ");
+    seja mutavel numero2: real = leia();
+
+    // Obtém o menor dos dois números
+    seja menor: real = Matematica.menor_numero(numero1, numero2);
+    escreval("\nO menor número é: ", menor);
+}

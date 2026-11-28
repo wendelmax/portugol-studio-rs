@@ -121,17 +121,17 @@ funcao visualizar(estado: Estado) -> inteiro {
 
 const REQUIRED_EXPORTS = [
   "memory",
-  "pors_alloc",
-  "pors_dealloc",
-  "pors_result_ptr",
-  "pors_result_len",
-  "pors_validate",
-  "pors_format",
-  "pors_run",
-  "pors_ui_start",
-  "pors_ui_dispatch",
-  "pors_ui_snapshot",
-  "pors_ui_close",
+  "ferro_alloc",
+  "ferro_dealloc",
+  "ferro_result_ptr",
+  "ferro_result_len",
+  "ferro_validate",
+  "ferro_format",
+  "ferro_run",
+  "ferro_ui_start",
+  "ferro_ui_dispatch",
+  "ferro_ui_snapshot",
+  "ferro_ui_close",
 ];
 
 function sanitizeBudget(value) {
@@ -159,52 +159,52 @@ export function createPlaygroundRuntime(rawExports) {
     const encoded = encoder.encode(text);
     const len = encoded.length;
     if (len === 0) return fn(0, 0);
-    const ptr = rawExports.pors_alloc(len);
+    const ptr = rawExports.ferro_alloc(len);
     if (ptr === 0) throw new Error("Falha ao alocar memória linear no módulo WASM.");
     try {
       new Uint8Array(rawExports.memory.buffer, ptr, len).set(encoded);
       return fn(ptr, len);
     } finally {
-      rawExports.pors_dealloc(ptr, len);
+      rawExports.ferro_dealloc(ptr, len);
     }
   }
 
   function readJson(expectedLen) {
-    const ptr = rawExports.pors_result_ptr();
-    const actualLen = rawExports.pors_result_len();
+    const ptr = rawExports.ferro_result_ptr();
+    const actualLen = rawExports.ferro_result_len();
     const len = actualLen === expectedLen ? actualLen : expectedLen;
     const raw = decoder.decode(new Uint8Array(rawExports.memory.buffer, ptr, len));
     return JSON.parse(raw);
   }
 
   function closeUi(sessionId) {
-    const closed = rawExports.pors_ui_close(sessionId) === 1;
+    const closed = rawExports.ferro_ui_close(sessionId) === 1;
     openSessions.delete(sessionId);
     return closed;
   }
 
   return {
     validate(source) {
-      return withUtf8(source, (ptr, len) => readJson(rawExports.pors_validate(ptr, len)));
+      return withUtf8(source, (ptr, len) => readJson(rawExports.ferro_validate(ptr, len)));
     },
     format(source) {
-      return withUtf8(source, (ptr, len) => readJson(rawExports.pors_format(ptr, len)));
+      return withUtf8(source, (ptr, len) => readJson(rawExports.ferro_format(ptr, len)));
     },
     exportRust(source) {
-      if (typeof rawExports.pors_export_rust !== "function") {
+      if (typeof rawExports.ferro_export_rust !== "function") {
         return {
           ok: false,
           error: "A exportação para Rust não está disponível nesta versão do módulo WASM.",
           diagnostics: [],
         };
       }
-      return withUtf8(source, (ptr, len) => readJson(rawExports.pors_export_rust(ptr, len)));
+      return withUtf8(source, (ptr, len) => readJson(rawExports.ferro_export_rust(ptr, len)));
     },
     run(source, input = "", budget = {}) {
       return withUtf8(source, (srcPtr, srcLen) =>
         withUtf8(input, (inPtr, inLen) =>
           readJson(
-            rawExports.pors_run(
+            rawExports.ferro_run(
               srcPtr,
               srcLen,
               inPtr,
@@ -220,7 +220,7 @@ export function createPlaygroundRuntime(rawExports) {
     startUi(source, budget = {}) {
       const result = withUtf8(source, (srcPtr, srcLen) =>
         readJson(
-          rawExports.pors_ui_start(
+          rawExports.ferro_ui_start(
             srcPtr,
             srcLen,
             sanitizeBudget(budget.maxSteps),
@@ -237,7 +237,7 @@ export function createPlaygroundRuntime(rawExports) {
       return withUtf8(event.kind, (kPtr, kLen) =>
         withUtf8(event.id, (tPtr, tLen) =>
           withUtf8(value, (vPtr, vLen) =>
-            readJson(rawExports.pors_ui_dispatch(sessionId, kPtr, kLen, tPtr, tLen, vPtr, vLen)),
+            readJson(rawExports.ferro_ui_dispatch(sessionId, kPtr, kLen, tPtr, tLen, vPtr, vLen)),
           ),
         ),
       );

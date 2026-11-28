@@ -13,6 +13,6 @@ Montar um segundo `EditorView` CodeMirror na prévia existente, com linguagem Ru
 
 ## Consequências
 
-- A comparação Portugol–Rust usa a linguagem Rust existente e mantém navegação semântica por source map.
+- A comparação Ferro–Rust usa a linguagem Rust existente e mantém navegação semântica por source map.
 - O editor gerado não cria um arquivo autoral até que o aluno escolha desvincular.
 - A prévia mantém o layout e os controles atuais; não há nova dependência nem novo backend.

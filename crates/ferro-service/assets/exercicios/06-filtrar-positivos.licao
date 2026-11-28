@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "id": "pors-06-filtrar-positivos",
+  "id": "ferro-06-filtrar-positivos",
   "title": "Filtrar positivos em vetor dinâmico",
   "statement": "Leia N (quantidade) seguido de N inteiros. Guarde apenas os valores positivos (> 0) em um vetor dinâmico e escreva a quantidade filtrada seguida do primeiro positivo (ou 0 se nenhum).",
   "starter_code": "funcao inicio() {\n    seja mutavel n: inteiro = leia();\n    seja mutavel positivos: vetor<inteiro> = [];\n    escreva(tamanho(positivos), \" 0\");\n}\n",

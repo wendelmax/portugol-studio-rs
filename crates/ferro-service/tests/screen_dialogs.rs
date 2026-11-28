@@ -137,7 +137,7 @@ fn sem_host_o_dialogo_explica_onde_funciona() {
 fn programa_de_console_com_dialogo_da_erro_claro() {
     let source = "funcao inicio() {\n    Dialogo.mensagem(\"oi\");\n}\n";
     let program = ferro_frontend::lower(source).unwrap();
-    let module = ferro_bytecode::compile_pors(&program).unwrap();
+    let module = ferro_bytecode::compile_ferro(&program).unwrap();
     let mut io = ferro_vm::BufferIo::default();
     let error = ferro_vm::run(&module, &mut io).unwrap_err();
     assert!(

@@ -19,7 +19,7 @@ function fixture(overrides = {}) {
     setPaused: (value) => { paused = value; events.push(["paused", value]); },
     setRunning: (value) => events.push(["running", value]),
     setStatus: (...args) => events.push(["status", ...args]),
-    runLanguage: () => "portugol",
+    runLanguage: () => "ferro",
     debugContinue: async (runId) => events.push(["continue", runId]),
     stop: async () => true,
     ...overrides,

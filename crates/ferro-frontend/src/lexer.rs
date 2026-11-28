@@ -167,7 +167,7 @@ impl Lexer<'_> {
                 _ => {
                     self.bump();
                     self.error(
-                        "pors.invalid-character",
+                        "ferro.invalid-character",
                         format!("Caractere inesperado: {ch}"),
                         start,
                         self.offset,
@@ -213,7 +213,7 @@ impl Lexer<'_> {
             match text.parse::<f64>() {
                 Ok(value) => self.push(start, Kind::Real(value)),
                 Err(_) => self.error(
-                    "pors.invalid-number",
+                    "ferro.invalid-number",
                     "Número real inválido".into(),
                     start,
                     self.offset,
@@ -223,7 +223,7 @@ impl Lexer<'_> {
             match text.parse::<i64>() {
                 Ok(value) => self.push(start, Kind::Integer(value)),
                 Err(_) => self.error(
-                    "pors.invalid-number",
+                    "ferro.invalid-number",
                     "Número inteiro fora do intervalo suportado".into(),
                     start,
                     self.offset,
@@ -267,7 +267,7 @@ impl Lexer<'_> {
         }
         if !closed {
             self.error(
-                "pors.unterminated-literal",
+                "ferro.unterminated-literal",
                 "Literal não foi fechado".into(),
                 start,
                 self.offset,
@@ -280,7 +280,7 @@ impl Lexer<'_> {
                 self.push(start, Kind::Character(ch));
             } else {
                 self.error(
-                    "pors.invalid-character-literal",
+                    "ferro.invalid-character-literal",
                     "Literal caracter deve conter um caractere".into(),
                     start,
                     self.offset,
@@ -314,7 +314,7 @@ impl Lexer<'_> {
             self.bump();
         } else {
             self.error(
-                "pors.unterminated-comment",
+                "ferro.unterminated-comment",
                 "Comentário de bloco não foi fechado".into(),
                 start,
                 self.offset,

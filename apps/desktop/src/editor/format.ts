@@ -14,7 +14,7 @@ export interface EditorFormatterDependencies {
   rustfmtAvailable: () => boolean;
   view: Pick<EditorViewType, "state" | "dispatch" | "focus">;
   formatRust: (source: string) => Promise<string>;
-  formatPortugolRs: (source: string) => Promise<FormatChange[] | null>;
+  formatFerroRust: (source: string) => Promise<FormatChange[] | null>;
   /** Formatação de .design e .ferproj; opcional para quem não abre marcação. */
   formatMarkup?: (source: string) => Promise<FormatChange[] | null>;
   setStatus: (message: string, kind?: "error" | "ok") => void;
@@ -39,7 +39,7 @@ export function createEditorFormatter(dependencies: EditorFormatterDependencies)
       } else if (tab.language === "markup") {
         changes = dependencies.formatMarkup ? await dependencies.formatMarkup(source) : null;
       } else {
-        changes = await dependencies.formatPortugolRs(source);
+        changes = await dependencies.formatFerroRust(source);
       }
       if (dependencies.activeTab() !== tab || dependencies.view.state.doc !== doc) return;
       if (!changes) {

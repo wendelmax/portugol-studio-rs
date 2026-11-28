@@ -1,7 +1,7 @@
 //! Leitura dos valores de atributos: vínculos `{dados.campo}`, espessuras
 //! (`Margem`), trilhas da `Grade` e listas separadas por vírgula.
 //!
-//! As funções são públicas porque o frontend PORS e o renderizador também
+//! As funções são públicas porque o frontend FERRO e o renderizador também
 //! precisam delas para resolver vínculos e montar o layout.
 
 use ferro_hir::{Diagnostic, Span};

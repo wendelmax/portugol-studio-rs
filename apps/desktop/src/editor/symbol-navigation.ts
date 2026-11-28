@@ -6,7 +6,7 @@ import type { Tab } from "../state/tab";
 export interface SymbolNavigationDependencies {
   activeTab: () => Tab | undefined;
   view: Pick<EditorViewType, "state" | "dispatch" | "focus">;
-  resolvePortugolRs: (source: string, offset: number) => Promise<SymbolLocation>;
+  resolveFerroRust: (source: string, offset: number) => Promise<SymbolLocation>;
   setStatus: (message: string, kind?: "error" | "ok") => void;
 }
 
@@ -17,7 +17,7 @@ export function createSymbolNavigator(dependencies: SymbolNavigationDependencies
   async function goToDeclarationAt(offset: number, quiet = false): Promise<void> {
     const tab = dependencies.activeTab();
     if (!tab) return;
-    if (tab.language !== "portugol-rs") {
+    if (tab.language !== "ferro-rust") {
       if (!quiet) {
         dependencies.setStatus(tab.language === "rust"
           ? "Navegação de símbolos Rust ainda não está configurada."
@@ -28,7 +28,7 @@ export function createSymbolNavigator(dependencies: SymbolNavigationDependencies
     const doc = dependencies.view.state.doc;
     const request = ++generation;
     try {
-      const location = await dependencies.resolvePortugolRs(doc.toString(), offset);
+      const location = await dependencies.resolveFerroRust(doc.toString(), offset);
       if (request !== generation || dependencies.activeTab() !== tab || dependencies.view.state.doc !== doc) return;
       dependencies.view.dispatch({
         selection: { anchor: location.start.offset, head: location.end.offset },

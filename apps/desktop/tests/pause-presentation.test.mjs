@@ -17,7 +17,7 @@ function fixture() {
   let activeId = 1;
   let runTabId = 1;
   let runId = 9;
-  let tabs = [{ id: 1, language: "portugol-rs" }];
+  let tabs = [{ id: 1, language: "ferro-rust" }];
   let paused;
   const present = createPausePresentation({
     setPausedState: (value) => { paused = value; calls.push(["paused", value]); },

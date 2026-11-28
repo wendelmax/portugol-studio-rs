@@ -98,7 +98,7 @@ pub fn check_screen(design_source: &str, code: Option<&str>) -> ScreenCheck {
         let ok = window_type
             .is_some_and(|ty| parameter_types == [ty] && function.return_type == Some(ty));
         if !ok {
-            let start = crate::pors_function_name_start(source, function.span.start);
+            let start = crate::ferro_function_name_start(source, function.span.start);
             check.code.push(
                 Diagnostic::error(
                     "design.handler-signature",
@@ -588,20 +588,20 @@ mod code_behind_tests {
         let code = CODE.replace("t.btnSomar.habilitado", "t.btnSubtrair.habilitado");
         let inspection = crate::inspect_code_behind(&code, DESIGN);
         let diagnostic = &inspection.diagnostics[0];
-        assert_eq!(diagnostic.code, "pors.unknown-field");
+        assert_eq!(diagnostic.code, "ferro.unknown-field");
         assert_eq!(diagnostic.start.line, 8);
     }
 
     #[test]
     fn sem_o_design_o_tipo_da_janela_e_desconhecido() {
-        let inspection = crate::inspect_portugol_rs(CODE);
+        let inspection = crate::inspect_ferro_rs(CODE);
         assert!(!inspection.diagnostics.is_empty());
         let broken = crate::inspect_code_behind(CODE, "<Janela");
         assert!(
             broken
                 .diagnostics
                 .iter()
-                .any(|d| d.code == "pors.unknown-type"),
+                .any(|d| d.code == "ferro.unknown-type"),
             "{:?}",
             broken.diagnostics
         );

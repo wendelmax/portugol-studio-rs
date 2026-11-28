@@ -12,7 +12,7 @@ Implementar UI-006/UC-14/FT-10 com cópia local dos arquivos selecionados no Exp
 
 ## Limites e compatibilidade
 
-- Selecionar arquivos já visíveis pelo Explorador: `.por`, `.pors`, `.rs`, `.pex`; preservar caminhos relativos.
+- Selecionar arquivos já visíveis pelo Explorador: `.por`, `.fer`, `.rs`, `.pex`; preservar caminhos relativos.
 - Marcar todos por padrão, permitindo desmarcar qualquer subconjunto.
 - O seletor de pasta nativo será aberto no comando Tauri; cancelamento não copia arquivos.
 - Criar uma subpasta com o nome do workspace e falhar se ela já existir.

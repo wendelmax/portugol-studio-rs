@@ -1,5 +1,5 @@
 //! Contrato declarativo de UI e ciclo de vida orientado a eventos (MVU) para
-//! programas visuais em PORS, portável entre Desktop (Tauri WebView) e Web (WASM).
+//! programas visuais em FERRO, portável entre Desktop (Tauri WebView) e Web (WASM).
 //!
 //! Implementa a base de runtime do ADR 0017 sem dependências de sistema
 //! operacional ou rede, permitindo compilar e executar sob `--no-default-features`

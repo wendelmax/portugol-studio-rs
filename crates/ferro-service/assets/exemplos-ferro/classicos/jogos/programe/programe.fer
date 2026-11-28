@@ -1,0 +1,564 @@
+/*
+ * Copyright (C) 2016 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *   Programe! — Jogo educativo de lógica de programação: monte uma sequência
+ *   de comandos (DIREITA, ESQUERDA, SOBE, DESCE e REPETIR x2) para conduzir o
+ *   personagem pelo labirinto até a saída sem bater nas árvores ou cercas.
+ *
+ *   Controles:
+ *     - Clique nos botões de comando ou teclas [1] Dir, [2] Esq, [3] Sobe, [4] Desce, [5] Repetir x2 (ultimo)
+ *     - [BACKSPACE] ou botão Desfazer: remove o último comando
+ *     - [ENTER] / [ESPACO] ou botão PLAY: executa o programa passo a passo
+ *     - [R] ou botão Limpar: reinicia a fase e limpa o programa
+ *     - [N]: avança para a próxima fase
+ *     - [ESC]: encerra o jogo
+ *
+ * Autor (versão original):
+ *
+ *   Adson Marques da Silva Esteves (shinadson@gmail.com)
+ *
+ * Data original: 11/03/2016
+ * Adaptado para Ferro (.fer)
+ */
+
+enum EstadoPrograme {
+    Editando,
+    Executando,
+    VitoriaFase,
+    ErroColisao,
+    VitoriaFinal,
+}
+
+registro JogoPrograme {
+    estado: EstadoPrograme,
+    fase: inteiro,
+    mapa: vetor < inteiro >,
+    inicio_l: inteiro,
+    inicio_c: inteiro,
+    saida_l: inteiro,
+    saida_c: inteiro,
+    char_l: inteiro,
+    char_c: inteiro,
+    comandos: vetor < inteiro >,
+    passo_atual: inteiro,
+    ultimo_tick_ms: inteiro,
+    mensagem: cadeia,
+    mouse_estava: logico,
+    t1_estava: logico,
+    t2_estava: logico,
+    t3_estava: logico,
+    t4_estava: logico,
+    t5_estava: logico,
+    bs_estava: logico,
+    enter_estava: logico,
+    r_estava: logico,
+    n_estava: logico,
+}
+
+// Mapa 8x10: 0 = grama, 1 = cerca/bloco, 2 = árvore, 3 = saída
+// Comandos: 1 = DIREITA, 2 = ESQUERDA, 3 = SOBE, 4 = DESCE
+
+funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
+    escolha Graficos.criar_cor(r, g, b) {
+        caso Resultado::Ok(cor) => {
+            retorne cor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne Graficos.COR_BRANCO;
+        }
+    }
+}
+
+funcao carregar_fase(fase: inteiro) -> JogoPrograme {
+    seja mutavel m: vetor < inteiro > = [];
+    para (seja mutavel i = 0; i < 8 * 10; i += 1) {
+        adicionar(m, 0);
+    }
+
+    seja mutavel il: inteiro = 6;
+    seja mutavel ic: inteiro = 1;
+    seja mutavel sl: inteiro = 1;
+    seja mutavel sc: inteiro = 8;
+
+    se (fase == 1) {
+        // Fase 1: Caminho em L com árvores
+        para (seja mutavel l: inteiro = 1; l <= 5; l += 1) {
+            m[l * 10 + 4] = 2;
+        }
+        m[6 * 10 + 6] = 1;
+        m[5 * 10 + 6] = 1;
+        m[4 * 10 + 6] = 1;
+        il = 6;
+        ic = 1;
+        sl = 2;
+        sc = 8;
+        m[sl * 10 + sc] = 3;
+    } senao se (fase == 2) {
+        // Fase 2: Zigue-zague entre cercas
+        para (seja mutavel c = 0; c <= 6; c += 1) {
+            m[5 * 10 + c] = 1;
+        }
+        para (seja mutavel c: inteiro = 3; c <= 9; c += 1) {
+            m[2 * 10 + c] = 1;
+        }
+        m[4 * 10 + 2] = 2;
+        m[1 * 10 + 5] = 2;
+        il = 6;
+        ic = 1;
+        sl = 0;
+        sc = 8;
+        m[sl * 10 + sc] = 3;
+    } senao {
+        // Fase 3: Labirinto compacto
+        para (seja mutavel l = 0; l <= 5; l += 1) {
+            m[l * 10 + 3] = 1;
+        }
+        para (seja mutavel l: inteiro = 2; l <= 7; l += 1) {
+            m[l * 10 + 6] = 1;
+        }
+        m[6 * 10 + 1] = 2;
+        m[3 * 10 + 4] = 2;
+        m[4 * 10 + 8] = 2;
+        il = 1;
+        ic = 1;
+        sl = 6;
+        sc = 8;
+        m[sl * 10 + sc] = 3;
+    }
+
+    seja vazio: vetor < inteiro > = [];
+    retorne JogoPrograme {
+        estado: EstadoPrograme::Editando,
+        fase: fase,
+        mapa: m,
+        inicio_l: il,
+        inicio_c: ic,
+        saida_l: sl,
+        saida_c: sc,
+        char_l: il,
+        char_c: ic,
+        comandos: vazio,
+        passo_atual: 0,
+        ultimo_tick_ms: Util.tempo_decorrido(),
+        mensagem: "Monte a sequencia de comandos e clique em PLAY!",
+        mouse_estava: falso,
+        t1_estava: falso,
+        t2_estava: falso,
+        t3_estava: falso,
+        t4_estava: falso,
+        t5_estava: falso,
+        bs_estava: falso,
+        enter_estava: falso,
+        r_estava: falso,
+        n_estava: falso,
+    }
+    ;
+}
+
+funcao nome_comando(cmd: inteiro) -> cadeia {
+    se (cmd == 1) {
+        retorne "DIR";
+    } senao se (cmd == 2) {
+        retorne "ESQ";
+    } senao se (cmd == 3) {
+        retorne "SOBE";
+    } senao {
+        retorne "DESCE";
+    }
+}
+
+funcao cor_comando(cmd: inteiro) -> inteiro {
+    se (cmd == 1) {
+        retorne cor_rgb(66, 165, 245);
+    } senao se (cmd == 2) {
+        retorne cor_rgb(245, 166, 66);
+    } senao se (cmd == 3) {
+        retorne cor_rgb(102, 204, 122);
+    } senao {
+        retorne cor_rgb(186, 114, 240);
+    }
+}
+
+funcao adicionar_comando(jogo: JogoPrograme, cmd: inteiro) -> JogoPrograme {
+    seja mutavel j: JogoPrograme = jogo;
+    seja mutavel cmds: vetor < inteiro > = j.comandos;
+    se (tamanho(cmds) < 24) {
+        adicionar(cmds, cmd);
+        j.comandos = cmds;
+    }
+    retorne j;
+}
+
+funcao remover_ultimo_comando(jogo: JogoPrograme) -> JogoPrograme {
+    seja mutavel j: JogoPrograme = jogo;
+    seja mutavel cmds: vetor < inteiro > = j.comandos;
+    se (tamanho(cmds) > 0) {
+        escolha remover(cmds) {
+            caso Opcao::Algum(_) => {}
+            caso Opcao::Nenhum => {}
+        }
+        j.comandos = cmds;
+    }
+    retorne j;
+}
+
+funcao iniciar_execucao(jogo: JogoPrograme) -> JogoPrograme {
+    seja mutavel j: JogoPrograme = jogo;
+    seja cmds: vetor < inteiro > = j.comandos;
+    se (tamanho(cmds) == 0) {
+        j.mensagem = "Adicione pelo menos um comando antes de executar!";
+        retorne j;
+    }
+    j.char_l = j.inicio_l;
+    j.char_c = j.inicio_c;
+    j.passo_atual = 0;
+    j.estado = EstadoPrograme::Executando;
+    j.ultimo_tick_ms = Util.tempo_decorrido();
+    j.mensagem = "Executando programa...";
+    retorne j;
+}
+
+funcao ponto_no_ret(px: inteiro, py: inteiro, x: inteiro, y: inteiro, l: inteiro, a: inteiro) -> logico {
+    retorne px >= x && px <= x + l && py >= y && py <= y + a;
+}
+
+funcao atualizar(jogo: JogoPrograme) -> JogoPrograme {
+    seja mutavel j: JogoPrograme = jogo;
+
+    seja tn: logico = Teclado.tecla_pressionada(Teclado.TECLA_N);
+    se (tn && !j.n_estava) {
+        seja prox: inteiro = (j.fase % 3) + 1;
+        j = carregar_fase(prox);
+        j.n_estava = verdadeiro;
+        retorne j;
+    }
+    j.n_estava = tn;
+
+    seja tr: logico = Teclado.tecla_pressionada(Teclado.TECLA_R);
+    se (tr && !j.r_estava) {
+        j = carregar_fase(j.fase);
+        j.r_estava = verdadeiro;
+        retorne j;
+    }
+    j.r_estava = tr;
+
+    // Execução passo a passo
+    escolha j.estado {
+        caso EstadoPrograme::Executando => {
+            seja agora: inteiro = Util.tempo_decorrido();
+            se (agora - j.ultimo_tick_ms >= 260) {
+                j.ultimo_tick_ms = agora;
+                seja cmds: vetor < inteiro > = j.comandos;
+                seja total: inteiro = tamanho(cmds);
+                se (j.passo_atual >= total) {
+                    se (j.char_l == j.saida_l && j.char_c == j.saida_c) {
+                        se (j.fase == 3) {
+                            j.estado = EstadoPrograme::VitoriaFinal;
+                            j.mensagem = "Parabens! Voce concluiu todas as fases!";
+                        } senao {
+                            j.estado = EstadoPrograme::VitoriaFase;
+                            j.mensagem = "Fase concluida! Pressione [N] ou [ENTER] para a proxima!";
+                        }
+                    } senao {
+                        j.estado = EstadoPrograme::ErroColisao;
+                        j.mensagem = "O programa terminou antes da saida. Ajuste os comandos!";
+                    }
+                    retorne j;
+                }
+
+                seja cmd: inteiro = cmds[j.passo_atual];
+                j.passo_atual += 1;
+
+                seja mutavel nl: inteiro = j.char_l;
+                seja mutavel nc: inteiro = j.char_c;
+                se (cmd == 1) {
+                    nc += 1;
+                } senao se (cmd == 2) {
+                    nc -= 1;
+                } senao se (cmd == 3) {
+                    nl -= 1;
+                } senao {
+                    nl += 1;
+                }
+
+                seja mapa: vetor < inteiro > = j.mapa;
+                se (nl < 0 || nl >= 8 || nc < 0 || nc >= 10) {
+                    j.estado = EstadoPrograme::ErroColisao;
+                    j.mensagem = "Colisao com a borda do mapa! Tente novamente.";
+                    retorne j;
+                }
+                seja cel: inteiro = mapa[nl * 10 + nc];
+                se (cel == 1 || cel == 2) {
+                    j.estado = EstadoPrograme::ErroColisao;
+                    j.mensagem = "Obstaculo no caminho! Revise sua sequencia.";
+                    retorne j;
+                }
+
+                j.char_l = nl;
+                j.char_c = nc;
+
+                se (j.char_l == j.saida_l && j.char_c == j.saida_c) {
+                    se (j.fase == 3) {
+                        j.estado = EstadoPrograme::VitoriaFinal;
+                        j.mensagem = "Parabens! Voce concluiu todas as 3 fases!";
+                    } senao {
+                        j.estado = EstadoPrograme::VitoriaFase;
+                        j.mensagem = "Fase concluida! Pressione [ENTER] para a proxima fase.";
+                    }
+                }
+            }
+            retorne j;
+        }
+        caso _ => {}
+    }
+
+    // Teclas de edição e execução
+    seja t1: logico = Teclado.tecla_pressionada(Teclado.TECLA_1);
+    se (t1 && !j.t1_estava) {
+        j.estado = EstadoPrograme::Editando;
+        j = adicionar_comando(j, 1);
+    }
+    j.t1_estava = t1;
+
+    seja t2: logico = Teclado.tecla_pressionada(Teclado.TECLA_2);
+    se (t2 && !j.t2_estava) {
+        j.estado = EstadoPrograme::Editando;
+        j = adicionar_comando(j, 2);
+    }
+    j.t2_estava = t2;
+
+    seja t3: logico = Teclado.tecla_pressionada(Teclado.TECLA_3);
+    se (t3 && !j.t3_estava) {
+        j.estado = EstadoPrograme::Editando;
+        j = adicionar_comando(j, 3);
+    }
+    j.t3_estava = t3;
+
+    seja t4: logico = Teclado.tecla_pressionada(Teclado.TECLA_4);
+    se (t4 && !j.t4_estava) {
+        j.estado = EstadoPrograme::Editando;
+        j = adicionar_comando(j, 4);
+    }
+    j.t4_estava = t4;
+
+    // Tecla 5: Repetir (duplica último comando)
+    seja t5: logico = Teclado.tecla_pressionada(Teclado.TECLA_5);
+    se (t5 && !j.t5_estava) {
+        seja cmds: vetor < inteiro > = j.comandos;
+        seja n: inteiro = tamanho(cmds);
+        se (n > 0) {
+            j = adicionar_comando(j, cmds[n - 1]);
+        }
+    }
+    j.t5_estava = t5;
+
+    seja bs: logico = Teclado.tecla_pressionada(Teclado.TECLA_BACKSPACE);
+    se (bs && !j.bs_estava) {
+        j.estado = EstadoPrograme::Editando;
+        j = remover_ultimo_comando(j);
+    }
+    j.bs_estava = bs;
+
+    seja ent: logico = Teclado.tecla_pressionada(Teclado.TECLA_ENTER) || Teclado.tecla_pressionada(Teclado.TECLA_ESPACO);
+    se (ent && !j.enter_estava) {
+        escolha j.estado {
+            caso EstadoPrograme::VitoriaFase => {
+                j = carregar_fase(j.fase + 1);
+                j.enter_estava = verdadeiro;
+                retorne j;
+            }
+            caso EstadoPrograme::VitoriaFinal => {
+                j = carregar_fase(1);
+                j.enter_estava = verdadeiro;
+                retorne j;
+            }
+            caso _ => {
+                j = iniciar_execucao(j);
+            }
+        }
+    }
+    j.enter_estava = ent;
+
+    // Cliques do mouse nos botões
+    seja clicando: logico = Mouse.botao_pressionado(Mouse.BOTAO_ESQUERDO);
+    se (clicando && !j.mouse_estava) {
+        seja mx: inteiro = Mouse.posicao_x();
+        seja my: inteiro = Mouse.posicao_y();
+
+        // Paleta de comandos (x = 544..780)
+        se (ponto_no_ret(mx, my, 544, 96, 112, 42)) {
+            j.estado = EstadoPrograme::Editando;
+            j = adicionar_comando(j, 1);
+        } senao se (ponto_no_ret(mx, my, 666, 96, 112, 42)) {
+            j.estado = EstadoPrograme::Editando;
+            j = adicionar_comando(j, 2);
+        } senao se (ponto_no_ret(mx, my, 544, 148, 112, 42)) {
+            j.estado = EstadoPrograme::Editando;
+            j = adicionar_comando(j, 3);
+        } senao se (ponto_no_ret(mx, my, 666, 148, 112, 42)) {
+            j.estado = EstadoPrograme::Editando;
+            j = adicionar_comando(j, 4);
+        } senao se (ponto_no_ret(mx, my, 544, 200, 234, 40)) {
+            seja cmds: vetor < inteiro > = j.comandos;
+            seja n: inteiro = tamanho(cmds);
+            se (n > 0) {
+                j = adicionar_comando(j, cmds[n - 1]);
+            }
+        } senao se (ponto_no_ret(mx, my, 544, 256, 234, 42)) {
+            j = iniciar_execucao(j);
+        } senao se (ponto_no_ret(mx, my, 544, 308, 112, 38)) {
+            j.estado = EstadoPrograme::Editando;
+            j = remover_ultimo_comando(j);
+        } senao se (ponto_no_ret(mx, my, 666, 308, 112, 38)) {
+            j = carregar_fase(j.fase);
+        } senao se (ponto_no_ret(mx, my, 544, 356, 234, 38)) {
+            j = carregar_fase((j.fase % 3) + 1);
+        }
+    }
+    j.mouse_estava = clicando;
+
+    retorne j;
+}
+
+funcao desenhar_botao(x: inteiro, y: inteiro, l: inteiro, a: inteiro, cor: inteiro, texto: cadeia) {
+    Graficos.definir_cor(cor);
+    Graficos.desenhar_retangulo(x, y, l, a, verdadeiro, verdadeiro);
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.definir_tamanho_texto(13.0);
+    seja lw: inteiro = Graficos.largura_texto(texto);
+    Graficos.desenhar_texto(x + (l - lw) / 2, y + a / 2 - 7, texto);
+}
+
+funcao desenhar(jogo: JogoPrograme) {
+    Graficos.definir_cor(cor_rgb(24, 30, 42));
+    Graficos.limpar();
+
+    // Cabeçalho
+    Graficos.definir_cor(cor_rgb(34, 42, 60));
+    Graficos.desenhar_retangulo(0, 0, 800, 56, falso, verdadeiro);
+    Graficos.definir_cor(cor_rgb(100, 235, 160));
+    Graficos.definir_tamanho_texto(20.0);
+    Graficos.desenhar_texto(20, 14, "PROGRAME! - Fase " + Tipos.inteiro_para_cadeia(jogo.fase) + "/3");
+    Graficos.definir_cor(cor_rgb(195, 205, 224));
+    Graficos.definir_tamanho_texto(12.0);
+    Graficos.desenhar_texto(275, 20, "[1..4] Direcoes  [5] Repetir  [ENTER] Play  [R] Limpar  [N] Fase  [ESC] Sair");
+
+    // Grade do mapa 10x8 (tile = 48 px, x=24..504, y=72..456)
+    seja mapa: vetor < inteiro > = jogo.mapa;
+    para (seja mutavel l = 0; l < 8; l += 1) {
+        para (seja mutavel c = 0; c < 10; c += 1) {
+            seja x: inteiro = 24 + c * 48;
+            seja y: inteiro = 72 + l * 48;
+            se ((l + c) % 2 == 0) {
+                Graficos.definir_cor(cor_rgb(76, 142, 82));
+            } senao {
+                Graficos.definir_cor(cor_rgb(68, 132, 74));
+            }
+            Graficos.desenhar_retangulo(x, y, 48, 48, falso, verdadeiro);
+
+            seja cel: inteiro = mapa[l * 10 + c];
+            se (cel == 1) {
+                // Cerca / bloco
+                Graficos.definir_cor(cor_rgb(142, 96, 56));
+                Graficos.desenhar_retangulo(x + 4, y + 6, 40, 36, verdadeiro, verdadeiro);
+                Graficos.definir_cor(cor_rgb(186, 134, 82));
+                Graficos.desenhar_retangulo(x + 8, y + 12, 32, 8, falso, verdadeiro);
+                Graficos.desenhar_retangulo(x + 8, y + 28, 32, 8, falso, verdadeiro);
+            } senao se (cel == 2) {
+                // Árvore
+                Graficos.definir_cor(cor_rgb(108, 72, 42));
+                Graficos.desenhar_retangulo(x + 20, y + 28, 8, 16, falso, verdadeiro);
+                Graficos.definir_cor(cor_rgb(32, 98, 52));
+                Graficos.desenhar_elipse(x + 8, y + 4, 32, 30, verdadeiro);
+            } senao se (cel == 3) {
+                // Saída (bandeira/portal)
+                Graficos.definir_cor(cor_rgb(255, 215, 60));
+                Graficos.desenhar_retangulo(x + 6, y + 6, 36, 36, verdadeiro, verdadeiro);
+                Graficos.definir_cor(cor_rgb(30, 36, 50));
+                Graficos.definir_tamanho_texto(12.0);
+                Graficos.desenhar_texto(x + 9, y + 18, "META");
+            }
+        }
+    }
+
+    // Personagem
+    seja px: inteiro = 24 + jogo.char_c * 48;
+    seja py: inteiro = 72 + jogo.char_l * 48;
+    Graficos.definir_cor(cor_rgb(70, 170, 255));
+    Graficos.desenhar_elipse(px + 8, py + 8, 32, 32, verdadeiro);
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.desenhar_elipse(px + 15, py + 16, 6, 6, verdadeiro);
+    Graficos.desenhar_elipse(px + 27, py + 16, 6, 6, verdadeiro);
+
+    // Painel lateral de comandos
+    Graficos.definir_cor(cor_rgb(32, 38, 54));
+    Graficos.desenhar_retangulo(530, 72, 258, 384, verdadeiro, verdadeiro);
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.definir_tamanho_texto(13.0);
+    Graficos.desenhar_texto(544, 78, "COMANDOS:");
+
+    desenhar_botao(544, 96, 112, 42, cor_comando(1), "1. DIREITA");
+    desenhar_botao(666, 96, 112, 42, cor_comando(2), "2. ESQUERDA");
+    desenhar_botao(544, 148, 112, 42, cor_comando(3), "3. SOBE");
+    desenhar_botao(666, 148, 112, 42, cor_comando(4), "4. DESCE");
+    desenhar_botao(544, 200, 234, 40, cor_rgb(90, 110, 150), "5. REPETIR ULTIMO");
+
+    desenhar_botao(544, 256, 234, 42, cor_rgb(56, 184, 108), "PLAY / EXECUTAR");
+    desenhar_botao(544, 308, 112, 38, cor_rgb(196, 126, 62), "Desfazer");
+    desenhar_botao(666, 308, 112, 38, cor_rgb(196, 76, 76), "Limpar");
+    desenhar_botao(544, 356, 234, 38, cor_rgb(72, 120, 198), "Trocar Fase (N)");
+
+    seja cmds: vetor < inteiro > = jogo.comandos;
+    seja total: inteiro = tamanho(cmds);
+
+    Graficos.definir_cor(cor_rgb(255, 220, 110));
+    Graficos.definir_tamanho_texto(11.0);
+    Graficos.desenhar_texto(544, 410, "Comandos usados: " + Tipos.inteiro_para_cadeia(total) + "/24");
+
+    // Quadro programável inferior
+    Graficos.definir_cor(cor_rgb(18, 22, 32));
+    Graficos.desenhar_retangulo(24, 470, 764, 112, verdadeiro, verdadeiro);
+    Graficos.definir_cor(cor_rgb(175, 188, 210));
+    Graficos.definir_tamanho_texto(12.0);
+    Graficos.desenhar_texto(36, 478, "PROGRAMA: " + jogo.mensagem);
+
+    para (seja mutavel i = 0; i < total; i += 1) {
+        seja linha_q: inteiro = i / 12;
+        seja col_q: inteiro = i % 12;
+        seja cx: inteiro = 36 + col_q * 62;
+        seja cy: inteiro = 502 + linha_q * 36;
+        Graficos.definir_cor(cor_comando(cmds[i]));
+        Graficos.desenhar_retangulo(cx, cy, 56, 28, verdadeiro, verdadeiro);
+        se (i == jogo.passo_atual - 1) {
+            Graficos.definir_cor(cor_rgb(255, 240, 80));
+            Graficos.desenhar_retangulo(cx - 2, cy - 2, 60, 32, verdadeiro, falso);
+        }
+        Graficos.definir_cor(Graficos.COR_BRANCO);
+        Graficos.definir_tamanho_texto(11.0);
+        Graficos.desenhar_texto(cx + 8, cy + 8, nome_comando(cmds[i]));
+    }
+
+    Graficos.renderizar();
+}
+
+funcao inicio() {
+    Graficos.iniciar_modo_grafico(verdadeiro);
+    Graficos.definir_dimensoes_janela(800, 600);
+    Graficos.definir_titulo_janela("Programe! - Ferro");
+
+    seja mutavel jogo: JogoPrograme = carregar_fase(1);
+
+    enquanto (!Teclado.tecla_pressionada(Teclado.TECLA_ESC)) {
+        jogo = atualizar(jogo);
+        desenhar(jogo);
+        Util.aguarde(16);
+    }
+
+    Graficos.encerrar_modo_grafico();
+}

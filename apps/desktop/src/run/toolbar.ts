@@ -8,7 +8,7 @@ export interface RunToolbarDependencies {
   runId: () => number | null;
   activeLanguage: () => SourceLanguage | null | undefined;
   runOrContinue: () => unknown;
-  stepOrStart: () => unknown;
+  stepDebugOrStart: () => unknown;
   stop: () => unknown;
   pause: (runId: number) => unknown;
   continueDebug: () => unknown;
@@ -27,7 +27,7 @@ export interface RunToolbarDependencies {
 /** Binds execution, debugger, console, and panel controls to the run services. */
 export function mountRunToolbar(dependencies: RunToolbarDependencies) {
   dependencies.button("btn-run").onclick = () => { void dependencies.runOrContinue(); };
-  dependencies.button("btn-debug").onclick = () => { void dependencies.stepOrStart(); };
+  dependencies.button("btn-debug").onclick = () => { void dependencies.stepDebugOrStart(); };
   dependencies.button("btn-stop").onclick = () => { void dependencies.stop(); };
   dependencies.button("btn-debug-pause").onclick = () => {
     const language = dependencies.activeLanguage();

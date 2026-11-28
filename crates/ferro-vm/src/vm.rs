@@ -121,7 +121,7 @@ pub struct Vm<'a> {
     consts: Vec<Option<Value>>,
     #[cfg(feature = "stdlib")]
     ctx: NativeContext,
-    pors_runtime: crate::pors_libs::PorsRuntime,
+    ferro_runtime: crate::ferro_libs::FerroRuntime,
     native_handler: Option<&'a mut HostNativeHandler<'a>>,
     interrupt: Arc<AtomicBool>,
     args: Vec<String>,
@@ -173,9 +173,9 @@ fn debug_value(
     value: &Value,
     scope: &'static str,
     max_items: usize,
-    pors_debug: Option<&ferro_bytecode::PorsDebugType>,
+    ferro_debug: Option<&ferro_bytecode::FerroDebugType>,
 ) {
-    if let Some(debug_type) = pors_debug {
+    if let Some(debug_type) = ferro_debug {
         debug_nominal_value(out, name, value, scope, max_items, debug_type);
         return;
     }
@@ -232,7 +232,7 @@ fn debug_nominal_value(
     value: &Value,
     scope: &'static str,
     max_items: usize,
-    debug_type: &ferro_bytecode::PorsDebugType,
+    debug_type: &ferro_bytecode::FerroDebugType,
 ) {
     if debug_type.is_vector
         && let Value::Array(items) = value
@@ -265,11 +265,11 @@ fn debug_nominal_one(
     value: &Value,
     scope: &'static str,
     max_items: usize,
-    debug_type: &ferro_bytecode::PorsDebugType,
+    debug_type: &ferro_bytecode::FerroDebugType,
 ) {
-    use ferro_bytecode::PorsDebugShape;
+    use ferro_bytecode::FerroDebugShape;
     match (&debug_type.shape, value) {
-        (PorsDebugShape::Record { fields }, Value::Array(cells)) => {
+        (FerroDebugShape::Record { fields }, Value::Array(cells)) => {
             let cells = cells.borrow();
             out.push(DebugVariable {
                 name: name.into(),
@@ -291,7 +291,7 @@ fn debug_nominal_one(
                 }
             }
         }
-        (PorsDebugShape::Enum { variants }, Value::Array(cells)) => {
+        (FerroDebugShape::Enum { variants }, Value::Array(cells)) => {
             let cells = cells.borrow();
             let tag = cells.first().and_then(|value| match value {
                 Value::Int(tag) => usize::try_from(*tag).ok(),
@@ -406,7 +406,7 @@ impl<'a> Vm<'a> {
             consts,
             #[cfg(feature = "stdlib")]
             ctx,
-            pors_runtime: crate::pors_libs::PorsRuntime::new(),
+            ferro_runtime: crate::ferro_libs::FerroRuntime::new(),
             native_handler: None,
             interrupt,
             args: Vec::new(),
@@ -430,13 +430,13 @@ impl<'a> Vm<'a> {
     #[cfg(feature = "stdlib")]
     pub fn with_seed(mut self, seed: u64) -> Self {
         self.ctx.reseed(seed);
-        self.pors_runtime.set_seed(seed);
+        self.ferro_runtime.set_seed(seed);
         self
     }
 
-    /// Fixa a semente determinística de `Util.sorteia` em PORS (inclusive sem `stdlib` e em `wasm32`).
-    pub fn with_pors_seed(mut self, seed: u64) -> Self {
-        self.pors_runtime.set_seed(seed);
+    /// Fixa a semente determinística de `Util.sorteia` em FERRO (inclusive sem `stdlib` e em `wasm32`).
+    pub fn with_ferro_seed(mut self, seed: u64) -> Self {
+        self.ferro_runtime.set_seed(seed);
         self
     }
 
@@ -444,22 +444,22 @@ impl<'a> Vm<'a> {
     #[cfg(feature = "stdlib")]
     pub fn with_working_dir(mut self, dir: impl Into<std::path::PathBuf>) -> Self {
         let dir = dir.into();
-        self.pors_runtime.set_workspace_dir(dir.clone());
+        self.ferro_runtime.set_workspace_dir(dir.clone());
         self.ctx.work_dir = dir;
         self
     }
 
-    /// Diretório raiz confinado para `Arquivos.*` em PORS (compatível com `--no-default-features`).
+    /// Diretório raiz confinado para `Arquivos.*` em FERRO (compatível com `--no-default-features`).
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn with_pors_workspace_dir(mut self, dir: impl Into<std::path::PathBuf>) -> Self {
-        self.pors_runtime.set_workspace_dir(dir.into());
+    pub fn with_ferro_workspace_dir(mut self, dir: impl Into<std::path::PathBuf>) -> Self {
+        self.ferro_runtime.set_workspace_dir(dir.into());
         self
     }
 
-    /// Autoriza (ou revoga) explicitamente chamadas de `Internet.*` em PORS (negado por padrão).
+    /// Autoriza (ou revoga) explicitamente chamadas de `Internet.*` em FERRO (negado por padrão).
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn with_pors_network_enabled(mut self, enabled: bool) -> Self {
-        self.pors_runtime.set_network_enabled(enabled);
+    pub fn with_ferro_network_enabled(mut self, enabled: bool) -> Self {
+        self.ferro_runtime.set_network_enabled(enabled);
         self
     }
 
@@ -474,7 +474,7 @@ impl<'a> Vm<'a> {
     #[cfg(feature = "stdlib")]
     pub fn offline(mut self) -> Self {
         #[cfg(not(target_arch = "wasm32"))]
-        self.pors_runtime.set_network_enabled(false);
+        self.ferro_runtime.set_network_enabled(false);
         self
     }
 
@@ -483,13 +483,13 @@ impl<'a> Vm<'a> {
     #[cfg(feature = "stdlib")]
     pub fn with_simulated_time(mut self, epoch_ms: u64) -> Self {
         self.ctx.simulate_time(epoch_ms);
-        self.pors_runtime.simulate_time(epoch_ms);
+        self.ferro_runtime.simulate_time(epoch_ms);
         self
     }
 
-    /// Relógio UTC simulado para `Util` e `Calendario` em PORS (compatível com `--no-default-features` e `wasm32`).
-    pub fn with_pors_simulated_time(mut self, epoch_ms: u64) -> Self {
-        self.pors_runtime.simulate_time(epoch_ms);
+    /// Relógio UTC simulado para `Util` e `Calendario` em FERRO (compatível com `--no-default-features` e `wasm32`).
+    pub fn with_ferro_simulated_time(mut self, epoch_ms: u64) -> Self {
+        self.ferro_runtime.simulate_time(epoch_ms);
         self
     }
 
@@ -720,7 +720,7 @@ impl<'a> Vm<'a> {
                 &mut variables,
                 &info.name,
                 &info
-                    .pors_debug
+                    .ferro_debug
                     .as_ref()
                     .map(|debug| {
                         if debug.is_vector {
@@ -733,7 +733,7 @@ impl<'a> Vm<'a> {
                 value,
                 "local",
                 MAX_ITEMS,
-                info.pors_debug.as_ref(),
+                info.ferro_debug.as_ref(),
             );
         }
 
@@ -779,7 +779,7 @@ impl<'a> Vm<'a> {
         Ok(())
     }
 
-    fn clone_pors_value(&mut self, value: &Value) -> Exec<Value> {
+    fn clone_ferro_value(&mut self, value: &Value) -> Exec<Value> {
         match value {
             Value::Str(text) => {
                 self.charge_string(text.len())?;
@@ -789,7 +789,7 @@ impl<'a> Vm<'a> {
                 let items = array.borrow().clone();
                 let mut cloned = Vec::with_capacity(items.len());
                 for item in &items {
-                    cloned.push(self.clone_pors_value(item)?);
+                    cloned.push(self.clone_ferro_value(item)?);
                 }
                 Ok(Value::Array(Rc::new(RefCell::new(cloned))))
             }
@@ -797,7 +797,7 @@ impl<'a> Vm<'a> {
                 let matrix = matrix.borrow().clone();
                 let mut data = Vec::with_capacity(matrix.data.len());
                 for item in &matrix.data {
-                    data.push(self.clone_pors_value(item)?);
+                    data.push(self.clone_ferro_value(item)?);
                 }
                 Ok(Value::Matrix(Rc::new(RefCell::new(Matrix {
                     rows: matrix.rows,
@@ -976,7 +976,7 @@ impl<'a> Vm<'a> {
                     None
                 };
                 let option = match found {
-                    Some(value) => vec![Value::Int(0), self.clone_pors_value(&value)?],
+                    Some(value) => vec![Value::Int(0), self.clone_ferro_value(&value)?],
                     None => vec![Value::Int(1)],
                 };
                 self.push(Value::Array(Rc::new(RefCell::new(option))));
@@ -989,7 +989,7 @@ impl<'a> Vm<'a> {
                 let values = array.borrow().clone();
                 let mut cloned = Vec::with_capacity(values.len());
                 for value in values.iter() {
-                    cloned.push(self.clone_pors_value(value)?);
+                    cloned.push(self.clone_ferro_value(value)?);
                 }
                 self.push(Value::Array(Rc::new(RefCell::new(cloned))));
             }
@@ -1185,7 +1185,7 @@ impl<'a> Vm<'a> {
                     self.push(result);
                     return Ok(false);
                 }
-                if native_ref.library.starts_with("Pors") {
+                if native_ref.library.starts_with("Ferro") {
                     let string_limit = self.string_memory_limit;
                     let string_used = &mut self.string_memory_used;
                     let interrupt = &self.interrupt;
@@ -1193,11 +1193,11 @@ impl<'a> Vm<'a> {
                     let runtime_clock = &self.runtime_clock;
                     let mut hit_string_limit = false;
                     let mut hit_time_limit = false;
-                    let pors_outcome = crate::pors_libs::call(
+                    let ferro_outcome = crate::ferro_libs::call(
                         &native_ref.library,
                         &native_ref.name,
                         &args,
-                        &mut self.pors_runtime,
+                        &mut self.ferro_runtime,
                         &mut |bytes| {
                             let next = string_used.saturating_add(bytes);
                             if string_limit.is_some_and(|limit| next > limit) {
@@ -1229,15 +1229,15 @@ impl<'a> Vm<'a> {
                     } else if hit_time_limit {
                         self.pending_limit = Some(RuntimeLimitReason::Time);
                     }
-                    if let Some(outcome) = pors_outcome {
+                    if let Some(outcome) = ferro_outcome {
                         let result = outcome?;
                         self.push(result);
                         return Ok(false);
                     }
-                    if native_ref.library == "PorsDialogo" {
+                    if native_ref.library == "FerroDialogo" {
                         #[cfg(feature = "stdlib")]
                         {
-                            let result = crate::pors_libs::dialogo::call(
+                            let result = crate::ferro_libs::dialogo::call(
                                 &native_ref.name,
                                 &args,
                                 &mut self.ctx,
@@ -1256,12 +1256,12 @@ impl<'a> Vm<'a> {
                         let string_limit = self.string_memory_limit;
                         let string_used = &mut self.string_memory_used;
                         let mut hit_string_limit = false;
-                        let outcome = crate::pors_libs::call_multimedia(
+                        let outcome = crate::ferro_libs::call_multimedia(
                             &native_ref.library,
                             &native_ref.name,
                             &args,
                             &mut self.ctx,
-                            &self.pors_runtime,
+                            &self.ferro_runtime,
                             &mut |bytes| {
                                 let next = string_used.saturating_add(bytes);
                                 if string_limit.is_some_and(|limit| next > limit) {
@@ -1283,7 +1283,7 @@ impl<'a> Vm<'a> {
                         let string_limit = self.string_memory_limit;
                         let string_used = &mut self.string_memory_used;
                         let mut hit_string_limit = false;
-                        let outcome = crate::pors_libs::call_multimedia_unavailable(
+                        let outcome = crate::ferro_libs::call_multimedia_unavailable(
                             &native_ref.library,
                             &native_ref.name,
                             &mut |bytes| {

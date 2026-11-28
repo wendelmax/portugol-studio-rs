@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "id": "pors-11-par-ou-impar",
+  "id": "ferro-11-par-ou-impar",
   "title": "Par ou ímpar",
   "statement": "Leia um número inteiro e escreva verdadeiro se ele for par ou falso se for ímpar.",
   "starter_code": "funcao inicio() {\n    seja mutavel numero: inteiro = leia();\n    escreva(falso);\n}\n",

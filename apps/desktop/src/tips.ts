@@ -1,6 +1,6 @@
 import tips from "./assets/tips/index.json";
 
-const startupKey = "portugol.tips.showOnStartup";
+const startupKey = "ferro.tips.showOnStartup";
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 type TipItem = {
@@ -91,7 +91,7 @@ function renderTipVisual(kind: string): SVGSVGElement {
       el("text", { x: "56", y: "122", class: "tip-code" }, "UI.texto(\"Contagem: 3\"),"),
       el("text", { x: "56", y: "142", class: "tip-code" }, "UI.botao(\"inc\", \"+1\")"),
       el("text", { x: "42", y: "162", class: "tip-code" }, "])"),
-      el("text", { x: "318", y: "74", class: "tip-label-accent" }, "Preview Visual PORS"),
+      el("text", { x: "318", y: "74", class: "tip-label-accent" }, "Prévia visual do Ferro"),
       el("text", { x: "354", y: "114", class: "tip-title-sm" }, "Contagem: 3"),
       el("rect", { x: "354", y: "130", width: "124", height: "30", rx: "6", class: "tip-pill" }),
       el("text", { x: "386", y: "149", class: "tip-pill-text" }, "+1 Somar"),
@@ -135,7 +135,7 @@ function renderTipVisual(kind: string): SVGSVGElement {
       el("text", { x: "390", y: "146", class: "tip-code" }, "WCAG AA"),
     );
   } else {
-    // Default: "pors"
+    // Default: "ferro"
     svg.append(
       el("rect", { x: "28", y: "52", width: "504", height: "132", rx: "8", class: "tip-card" }),
       el("text", { x: "44", y: "76", class: "tip-label-accent" }, "ola.fer — Ferro"),

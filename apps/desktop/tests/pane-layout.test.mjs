@@ -46,13 +46,13 @@ test("stores and restores pane ratios independently per workspace", () => {
   assert.equal(savePaneLayout(target, second, "workspace-b"), true);
   assert.deepEqual(loadPaneLayout(target, "workspace-a"), first);
   assert.deepEqual(loadPaneLayout(target, "workspace-b"), second);
-  assert.equal(values.get("portugol.pane-layout.v1.workspace.workspace-a"), JSON.stringify(first));
+  assert.equal(values.get("ferro.pane-layout.v1.workspace.workspace-a"), JSON.stringify(first));
 });
 
 test("workspace without a valid layout inherits the global layout", () => {
   const values = new Map([
-    ["portugol.pane-layout.v1", JSON.stringify({ explorer: 0.28, bottom: 0.32, utilities: 0.3 })],
-    ["portugol.pane-layout.v1.workspace.workspace-b", "{bad json"],
+    ["ferro.pane-layout.v1", JSON.stringify({ explorer: 0.28, bottom: 0.32, utilities: 0.3 })],
+    ["ferro.pane-layout.v1.workspace.workspace-b", "{bad json"],
   ]);
   const target = {
     getItem(key) { return values.get(key) ?? null; },
@@ -97,8 +97,8 @@ test("fits both side panes into the width left after toolbar, editor, and separa
 
 test("resets workspace or global pane layout back to defaults", () => {
   const values = new Map([
-    ["portugol.pane-layout.v1", JSON.stringify({ explorer: 0.3, bottom: 0.4, utilities: 0.35 })],
-    ["portugol.pane-layout.v1.workspace.proj", JSON.stringify({ explorer: 0.22, bottom: 0.33, utilities: 0.27 })],
+    ["ferro.pane-layout.v1", JSON.stringify({ explorer: 0.3, bottom: 0.4, utilities: 0.35 })],
+    ["ferro.pane-layout.v1.workspace.proj", JSON.stringify({ explorer: 0.22, bottom: 0.33, utilities: 0.27 })],
   ]);
   const target = {
     getItem(key) { return values.get(key) ?? null; },
@@ -106,11 +106,11 @@ test("resets workspace or global pane layout back to defaults", () => {
   };
 
   assert.deepEqual(resetPaneLayout(target, "proj"), DEFAULT_PANE_LAYOUT);
-  assert.equal(values.has("portugol.pane-layout.v1.workspace.proj"), false);
-  assert.equal(values.has("portugol.pane-layout.v1"), true);
+  assert.equal(values.has("ferro.pane-layout.v1.workspace.proj"), false);
+  assert.equal(values.has("ferro.pane-layout.v1"), true);
 
   assert.deepEqual(resetPaneLayout(target), DEFAULT_PANE_LAYOUT);
-  assert.equal(values.has("portugol.pane-layout.v1"), false);
+  assert.equal(values.has("ferro.pane-layout.v1"), false);
   assert.deepEqual(loadPaneLayout(target), DEFAULT_PANE_LAYOUT);
 });
 

@@ -5,7 +5,7 @@ use semver::Version;
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
-const LATEST: &str = "https://api.github.com/repos/wendelmax/portugol-studio-rs/releases/latest";
+const LATEST: &str = "https://api.github.com/repos/wendelmax/ferro-studio/releases/latest";
 
 #[derive(Deserialize)]
 struct Release {
@@ -51,7 +51,7 @@ fn compare(current: &Version, release: Release) -> Result<UpdateInfo, String> {
 pub(crate) fn github_get(url: &str) -> Result<ureq::Response, Box<ureq::Error>> {
     let agent = ureq::AgentBuilder::new()
         .timeout(Duration::from_secs(8))
-        .user_agent("Portugol-Studio-RS")
+        .user_agent("Ferro-Studio-RS")
         .build();
     agent
         .get(url)

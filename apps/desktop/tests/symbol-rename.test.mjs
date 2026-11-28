@@ -4,7 +4,7 @@ import { createSymbolRenamer } from "../src/editor/symbol-rename.ts";
 
 function fixture() {
   const calls = [];
-  let tab = { id: 1, language: "portugol-rs" };
+  let tab = { id: 1, language: "ferro-rust" };
   let doc = { toString: () => "fonte" };
   let running = false;
   let otherDialogOpen = false;
@@ -25,9 +25,9 @@ function fixture() {
     isRunning: () => running,
     isCurrent: (candidate, document) => candidate === tab && document === doc,
     hasOpenDialog: () => otherDialogOpen,
-    semanticSymbolLanguage: (language) => language === "portugol-rs" ? "portugol-rs" : null,
-    renameTargetPortugolRs: (source, offset) => targetRequest("portugol-rs", source, offset),
-    renameSymbolPortugolRs: (source, offset, name) => renameRequest("portugol-rs", source, offset, name),
+    semanticSymbolLanguage: (language) => language === "ferro-rust" ? "ferro-rust" : null,
+    renameTargetFerroRust: (source, offset) => targetRequest("ferro-rust", source, offset),
+    renameSymbolFerroRust: (source, offset, name) => renameRequest("ferro-rust", source, offset, name),
     applyChanges: (changes) => calls.push(["changes", changes]),
     focusEditor: () => calls.push(["focus"]),
     setStatus: (...args) => calls.push(["status", ...args]),
@@ -50,7 +50,7 @@ test("ignores missing, Rust, or currently running tabs", async () => {
   await f.renamer.openAt(0);
   f.setTab({ id: 2, language: "rust" });
   await f.renamer.openAt(0);
-  f.setTab({ id: 1, language: "portugol-rs" });
+  f.setTab({ id: 1, language: "ferro-rust" });
   f.setRunning(true);
   await f.renamer.openAt(0);
   assert.deepEqual(f.calls, []);
@@ -58,9 +58,9 @@ test("ignores missing, Rust, or currently running tabs", async () => {
 
 test("routes target lookup through the Ferro service and displays the target", async () => {
   const f = fixture();
-  f.setTab({ id: 1, language: "portugol-rs" });
+  f.setTab({ id: 1, language: "ferro-rust" });
   await f.renamer.openAt(4);
-  assert.deepEqual(f.calls[0], ["target", "portugol-rs", "fonte", 4]);
+  assert.deepEqual(f.calls[0], ["target", "ferro-rust", "fonte", 4]);
   assert.equal(f.ui.description.textContent, "idade · 2 ocorrências");
   assert.equal(f.ui.input.value, "idade");
   assert.equal(f.ui.dialog.open, true);
@@ -89,7 +89,7 @@ test("submits trimmed names, applies changes, closes the dialog, and focuses the
   let prevented = false;
   await f.ui.form.onsubmit({ preventDefault: () => { prevented = true; } });
   assert.equal(prevented, true);
-  assert.deepEqual(f.calls.find(([name]) => name === "rename"), ["rename", "portugol-rs", "fonte", 3, "anos"]);
+  assert.deepEqual(f.calls.find(([name]) => name === "rename"), ["rename", "ferro-rust", "fonte", 3, "anos"]);
   assert.deepEqual(f.calls.find(([name]) => name === "changes"), ["changes", [{ from: 0, to: 3, insert: "anos" }]]);
   assert.equal(f.ui.dialog.open, false);
   assert.equal(f.ui.submit.disabled, false);

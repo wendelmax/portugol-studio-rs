@@ -12,11 +12,11 @@ test("tab factory assigns unique ids, detects language, and activates each creat
     activate: (id) => activations.push(id),
   });
 
-  const first = factory.create({ text: "funcao inicio() {}", path: "aula.pors" });
+  const first = factory.create({ text: "funcao inicio() {}", path: "aula.fer" });
   const second = factory.create({ text: "fn main() {}", path: "main.rs" });
 
   assert.deepEqual([first.id, second.id], [1, 2]);
-  assert.equal(first.language, "portugol-rs");
+  assert.equal(first.language, "ferro-rust");
   assert.equal(second.language, "rust");
   assert.deepEqual(tabs, [first, second]);
   assert.deepEqual(activations, [1, 2]);
@@ -43,9 +43,9 @@ test("tab factory keeps workspace, exercise, and explicit language metadata", ()
 });
 
 test("tab utilities derive names and dirty state from the active buffer", () => {
-  const tab = { id: 1, path: "src/aula.pors", saved: "salvo", state: { doc: { toString: () => "rascunho" } } };
+  const tab = { id: 1, path: "src/aula.fer", saved: "salvo", state: { doc: { toString: () => "rascunho" } } };
 
-  assert.equal(tabName(tab), "aula.pors");
+  assert.equal(tabName(tab), "aula.fer");
   assert.equal(tabName({ id: 2, path: null, exampleName: "Exemplo" }), "Exemplo");
   assert.equal(tabName({ id: 3, path: null }), "Sem título");
   assert.equal(isTabDirty(tab, 1, "editado"), true);

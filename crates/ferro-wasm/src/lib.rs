@@ -1,14 +1,14 @@
-//! Fachada WebAssembly sem dependências externas para o núcleo PORS mínimo e
+//! Fachada WebAssembly sem dependências externas para o núcleo FERRO mínimo e
 //! o runtime declarativo MVU de UI (ADR 0017).
 //!
 //! Compila nativamente para `wasm32-unknown-unknown` usando `ferro-vm` sem
 //! a feature `stdlib`, expondo:
-//! - validação (`pors_validate`), formatação canônica (`pors_format`) e execução
-//!   com orçamentos de passos/memória/saída (`pors_run`) de programas `.pors`;
-//! - gerenciamento de sessões MVU (`pors_ui_start`, `pors_ui_dispatch`,
-//!   `pors_ui_snapshot`, `pors_ui_close`) sobre [`UiSession`];
+//! - validação (`ferro_validate`), formatação canônica (`ferro_format`) e execução
+//!   com orçamentos de passos/memória/saída (`ferro_run`) de programas `.fer`;
+//! - gerenciamento de sessões MVU (`ferro_ui_start`, `ferro_ui_dispatch`,
+//!   `ferro_ui_snapshot`, `ferro_ui_close`) sobre [`UiSession`];
 //! - respostas em JSON determinístico (RFC 8259) alocadas em memória linear via
-//!   buffer reutilizável por thread (`pors_result_ptr` / `pors_result_len`).
+//!   buffer reutilizável por thread (`ferro_result_ptr` / `ferro_result_len`).
 
 use std::alloc::{Layout, alloc, dealloc};
 use std::cell::RefCell;
@@ -28,7 +28,7 @@ pub const DEFAULT_RUN_MAX_STEPS: usize = 1_000_000;
 pub const DEFAULT_RUN_MAX_OUTPUT_BYTES: usize = 1024 * 1024;
 pub const DEFAULT_UI_MAX_OUTPUT_BYTES: usize = 256 * 1024;
 
-/// Limites explícitos para execução de programas `.pors` no host WASM.
+/// Limites explícitos para execução de programas `.fer` no host WASM.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RunBudget {
     pub max_steps: usize,
@@ -80,13 +80,13 @@ impl SessionStore {
         }
     }
 
-    /// Compila um fonte `.pors` e inicia uma sessão MVU com o orçamento informado.
-    pub fn start_pors(&mut self, source: &str, budget: UiBudget) -> String {
+    /// Compila um fonte `.fer` e inicia uma sessão MVU com o orçamento informado.
+    pub fn start_ferro(&mut self, source: &str, budget: UiBudget) -> String {
         let program = match ferro_frontend::lower(source) {
             Ok(program) => program,
             Err(diagnostics) => return diagnostics_error_json(&diagnostics),
         };
-        let module = match ferro_bytecode::compile_pors(&program) {
+        let module = match ferro_bytecode::compile_ferro(&program) {
             Ok(module) => module,
             Err(error) => {
                 return simple_error_json(
@@ -163,8 +163,8 @@ impl SessionStore {
     }
 }
 
-/// Valida um programa `.pors` e devolve os diagnósticos em JSON.
-pub fn validate_pors_json(source: &str) -> String {
+/// Valida um programa `.fer` e devolve os diagnósticos em JSON.
+pub fn validate_ferro_json(source: &str) -> String {
     match ferro_frontend::lower(source) {
         Ok(_) => "{\"ok\":true,\"diagnostics\":[]}".into(),
         Err(diagnostics) => {
@@ -176,8 +176,8 @@ pub fn validate_pors_json(source: &str) -> String {
     }
 }
 
-/// Formata um programa `.pors` com o formatador canônico UTF-16 e devolve JSON.
-pub fn format_pors_json(source: &str) -> String {
+/// Formata um programa `.fer` com o formatador canônico UTF-16 e devolve JSON.
+pub fn format_ferro_json(source: &str) -> String {
     match ferro_frontend::format(source) {
         Some(edits) => {
             let changed = !edits.is_empty();
@@ -201,7 +201,7 @@ pub fn format_pors_json(source: &str) -> String {
         None => match ferro_frontend::lower(source) {
             Err(diagnostics) => diagnostics_error_json(&diagnostics),
             Ok(_) => simple_error_json(
-                "Não foi possível formatar o código-fonte .pors.",
+                "Não foi possível formatar o código-fonte .fer.",
                 Some("format_error"),
                 None,
                 None,
@@ -210,9 +210,9 @@ pub fn format_pors_json(source: &str) -> String {
     }
 }
 
-/// Gera código Rust equivalente a um programa `.pors` e devolve JSON canônico.
-pub fn export_rust_pors_json(source: &str) -> String {
-    match ferro_rust::export_portugol_rs(source) {
+/// Gera código Rust equivalente a um programa `.fer` e devolve JSON canônico.
+pub fn export_rust_ferro_json(source: &str) -> String {
+    match ferro_rust::export_ferro_rs(source) {
         Ok(code) => {
             let mut out = String::from("{\"ok\":true,\"code\":");
             write_json_string(&code, &mut out);
@@ -223,13 +223,13 @@ pub fn export_rust_pors_json(source: &str) -> String {
     }
 }
 
-/// Compila e executa um programa `.pors` na VM mínima com entrada e limites explícitos.
-pub fn run_pors_json(source: &str, input: &str, budget: RunBudget) -> String {
+/// Compila e executa um programa `.fer` na VM mínima com entrada e limites explícitos.
+pub fn run_ferro_json(source: &str, input: &str, budget: RunBudget) -> String {
     let program = match ferro_frontend::lower(source) {
         Ok(program) => program,
         Err(diagnostics) => return diagnostics_error_json(&diagnostics),
     };
-    let module = match ferro_bytecode::compile_pors(&program) {
+    let module = match ferro_bytecode::compile_ferro(&program) {
         Ok(module) => module,
         Err(error) => {
             return simple_error_json(
@@ -428,7 +428,7 @@ fn diagnostics_error_json(diagnostics: &[Diagnostic]) -> String {
     let first_message = diagnostics
         .first()
         .map(|d| d.message.as_str())
-        .unwrap_or("Erro de sintaxe ou semântica no código .pors.");
+        .unwrap_or("Erro de sintaxe ou semântica no código .fer.");
     let mut out = String::from("{\"ok\":false,\"error\":");
     write_json_string(first_message, &mut out);
     out.push_str(",\"code\":\"diagnostics\",\"diagnostics\":");
@@ -517,14 +517,14 @@ unsafe fn read_utf8_arg<'a>(ptr: *const u8, len: usize) -> Result<&'a str, Strin
         return Err("Ponteiro nulo recebido pela interface WASM.".into());
     }
     // SAFETY: O chamador do host WASM garante um intervalo válido de `len` bytes
-    // previamente alocado com `pors_alloc`.
+    // previamente alocado com `ferro_alloc`.
     let bytes = unsafe { slice::from_raw_parts(ptr, len) };
     std::str::from_utf8(bytes).map_err(|_| "Entrada UTF-8 inválida recebida pelo host WASM.".into())
 }
 
 /// Aloca `len` bytes na memória linear WASM para passagem de strings UTF-8 pelo host.
 #[unsafe(no_mangle)]
-pub extern "C" fn pors_alloc(len: usize) -> *mut u8 {
+pub extern "C" fn ferro_alloc(len: usize) -> *mut u8 {
     if len == 0 {
         return std::ptr::dangling_mut();
     }
@@ -535,13 +535,13 @@ pub extern "C" fn pors_alloc(len: usize) -> *mut u8 {
     unsafe { alloc(layout) }
 }
 
-/// Libera um bloco previamente alocado por [`pors_alloc`].
+/// Libera um bloco previamente alocado por [`ferro_alloc`].
 ///
 /// # Safety
-/// `ptr` deve ter sido retornado por [`pors_alloc`] com o mesmo `len` e ainda não
+/// `ptr` deve ter sido retornado por [`ferro_alloc`] com o mesmo `len` e ainda não
 /// ter sido liberado.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pors_dealloc(ptr: *mut u8, len: usize) {
+pub unsafe extern "C" fn ferro_dealloc(ptr: *mut u8, len: usize) {
     if len == 0 || ptr.is_null() {
         return;
     }
@@ -553,62 +553,62 @@ pub unsafe extern "C" fn pors_dealloc(ptr: *mut u8, len: usize) {
 
 /// Ponteiro para o último resultado JSON gravado em UTF-8.
 #[unsafe(no_mangle)]
-pub extern "C" fn pors_result_ptr() -> *const u8 {
+pub extern "C" fn ferro_result_ptr() -> *const u8 {
     RESULT_BUFFER.with(|slot| slot.borrow().as_ptr())
 }
 
 /// Tamanho em bytes do último resultado JSON gravado em UTF-8.
 #[unsafe(no_mangle)]
-pub extern "C" fn pors_result_len() -> usize {
+pub extern "C" fn ferro_result_len() -> usize {
     RESULT_BUFFER.with(|slot| slot.borrow().len())
 }
 
-/// Valida um fonte `.pors` e grava o resultado JSON no buffer de resposta.
+/// Valida um fonte `.fer` e grava o resultado JSON no buffer de resposta.
 ///
 /// # Safety
 /// `src_ptr` deve apontar para `src_len` bytes válidos na memória linear.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pors_validate(src_ptr: *const u8, src_len: usize) -> usize {
+pub unsafe extern "C" fn ferro_validate(src_ptr: *const u8, src_len: usize) -> usize {
     let json = match unsafe { read_utf8_arg(src_ptr, src_len) } {
-        Ok(source) => validate_pors_json(source),
+        Ok(source) => validate_ferro_json(source),
         Err(message) => simple_error_json(&message, Some("invalid_utf8"), None, None),
     };
     store_result(json)
 }
 
-/// Formata um fonte `.pors` e grava o resultado JSON no buffer de resposta.
+/// Formata um fonte `.fer` e grava o resultado JSON no buffer de resposta.
 ///
 /// # Safety
 /// `src_ptr` deve apontar para `src_len` bytes válidos na memória linear.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pors_format(src_ptr: *const u8, src_len: usize) -> usize {
+pub unsafe extern "C" fn ferro_format(src_ptr: *const u8, src_len: usize) -> usize {
     let json = match unsafe { read_utf8_arg(src_ptr, src_len) } {
-        Ok(source) => format_pors_json(source),
+        Ok(source) => format_ferro_json(source),
         Err(message) => simple_error_json(&message, Some("invalid_utf8"), None, None),
     };
     store_result(json)
 }
 
-/// Exporta um fonte `.pors` para código Rust e grava o resultado JSON no buffer de resposta.
+/// Exporta um fonte `.fer` para código Rust e grava o resultado JSON no buffer de resposta.
 ///
 /// # Safety
 /// `src_ptr` deve apontar para `src_len` bytes válidos na memória linear.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pors_export_rust(src_ptr: *const u8, src_len: usize) -> usize {
+pub unsafe extern "C" fn ferro_export_rust(src_ptr: *const u8, src_len: usize) -> usize {
     let json = match unsafe { read_utf8_arg(src_ptr, src_len) } {
-        Ok(source) => export_rust_pors_json(source),
+        Ok(source) => export_rust_ferro_json(source),
         Err(message) => simple_error_json(&message, Some("invalid_utf8"), None, None),
     };
     store_result(json)
 }
 
-/// Compila e executa um fonte `.pors` na VM mínima com limites configuráveis
+/// Compila e executa um fonte `.fer` na VM mínima com limites configuráveis
 /// (`0` aplica o valor padrão de cada orçamento).
 ///
 /// # Safety
 /// `src_ptr`/`src_len` e `input_ptr`/`input_len` devem apontar para fatias válidas.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pors_run(
+pub unsafe extern "C" fn ferro_run(
     src_ptr: *const u8,
     src_len: usize,
     input_ptr: *const u8,
@@ -639,7 +639,7 @@ pub unsafe extern "C" fn pors_run(
                     max_output_bytes
                 },
             };
-            run_pors_json(source, input, budget)
+            run_ferro_json(source, input, budget)
         }
         (Err(message), _) | (_, Err(message)) => {
             simple_error_json(&message, Some("invalid_utf8"), None, None)
@@ -648,12 +648,12 @@ pub unsafe extern "C" fn pors_run(
     store_result(json)
 }
 
-/// Inicia uma sessão MVU a partir de um fonte `.pors` (`0` aplica orçamento padrão).
+/// Inicia uma sessão MVU a partir de um fonte `.fer` (`0` aplica orçamento padrão).
 ///
 /// # Safety
 /// `src_ptr` deve apontar para `src_len` bytes válidos na memória linear.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pors_ui_start(
+pub unsafe extern "C" fn ferro_ui_start(
     src_ptr: *const u8,
     src_len: usize,
     max_steps: usize,
@@ -672,7 +672,7 @@ pub unsafe extern "C" fn pors_ui_start(
             if max_depth > 0 {
                 budget.max_depth = max_depth;
             }
-            SESSIONS.with(|store| store.borrow_mut().start_pors(source, budget))
+            SESSIONS.with(|store| store.borrow_mut().start_ferro(source, budget))
         }
         Err(message) => simple_error_json(&message, Some("invalid_utf8"), None, None),
     };
@@ -684,7 +684,7 @@ pub unsafe extern "C" fn pors_ui_start(
 /// # Safety
 /// Os ponteiros e comprimentos fornecidos devem representar fatias válidas.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pors_ui_dispatch(
+pub unsafe extern "C" fn ferro_ui_dispatch(
     session_id: u32,
     kind_ptr: *const u8,
     kind_len: usize,
@@ -712,14 +712,14 @@ pub unsafe extern "C" fn pors_ui_dispatch(
 
 /// Lê o snapshot atual de uma sessão MVU ativa.
 #[unsafe(no_mangle)]
-pub extern "C" fn pors_ui_snapshot(session_id: u32) -> usize {
+pub extern "C" fn ferro_ui_snapshot(session_id: u32) -> usize {
     let json = SESSIONS.with(|store| store.borrow().snapshot(session_id));
     store_result(json)
 }
 
 /// Encerra uma sessão MVU ativa. Retorna `1` se existia, `0` caso contrário.
 #[unsafe(no_mangle)]
-pub extern "C" fn pors_ui_close(session_id: u32) -> u32 {
+pub extern "C" fn ferro_ui_close(session_id: u32) -> u32 {
     let closed = SESSIONS.with(|store| store.borrow_mut().close(session_id));
     u32::from(closed)
 }

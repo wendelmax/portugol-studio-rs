@@ -15,4 +15,4 @@ Habilitar o mesmo campo para `.rs` standalone e Cargo. Reutilizar `parseProcessA
 
 - Parâmetros com espaços, Unicode, aspas e valor vazio chegam como argumentos separados ao programa.
 - Projeto Cargo continua usando consentimento e supervisão existentes; o build não recebe os argumentos do programa.
-- Portugol clássico e Portugol-RS mantêm seus próprios contratos de entrada/parâmetros.
+- pseudocódigo clássico e Ferro mantêm seus próprios contratos de entrada/parâmetros.

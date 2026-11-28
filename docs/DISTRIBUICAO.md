@@ -10,7 +10,7 @@ Os instaladores do **Ferro Studio** são gerados pelo workflow
 | Linux (x86_64 e ARM64) | `.deb`, `.rpm`, `.AppImage` e `.pkg.tar.zst` (Arch Linux) |
 | macOS (Apple Silicon ARM64 e Intel x86_64) | `.dmg` e `.app` |
 
-No **Arch Linux** (`x86_64` e `aarch64`), os pacotes `.pkg.tar.zst` são gerados automaticamente pelo grupo `linux_arch` em [`.github/workflows/release.yml`](../.github/workflows/release.yml) usando [`packaging/arch/PKGBUILD`](../packaging/arch/PKGBUILD) e [`packaging/arch/build-package.sh`](../packaging/arch/build-package.sh). Para instalar um pacote baixado: `sudo pacman -U portugol-studio-rs-*.pkg.tar.zst`. Para gerar localmente: `bash packaging/arch/build-package.sh`.
+No **Arch Linux** (`x86_64` e `aarch64`), os pacotes `.pkg.tar.zst` são gerados automaticamente pelo grupo `linux_arch` em [`.github/workflows/release.yml`](../.github/workflows/release.yml) usando [`packaging/arch/PKGBUILD`](../packaging/arch/PKGBUILD) e [`packaging/arch/build-package.sh`](../packaging/arch/build-package.sh). Para instalar um pacote baixado: `sudo pacman -U ferro-studio-*.pkg.tar.zst`. Para gerar localmente: `bash packaging/arch/build-package.sh`.
 
 ## Como publicar uma versão
 

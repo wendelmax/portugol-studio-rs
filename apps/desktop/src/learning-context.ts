@@ -21,7 +21,7 @@ export interface LearningContext {
   rustSnippet: string;
 }
 
-export function explainMappedConcept(context: LearningContext, _language: "portugol-rs" = "portugol-rs"): string {
+export function explainMappedConcept(context: LearningContext, _language: "ferro-rust" = "ferro-rust"): string {
   if (context.conceptId === "conditionals") {
     return "Esta decisão Ferro foi mapeada para uma condição if no Rust gerado.";
   }

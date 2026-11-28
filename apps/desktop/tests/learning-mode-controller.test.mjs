@@ -5,7 +5,7 @@ import { createLearningModeController } from "../src/learning/mode-controller.ts
 function fixture(overrides = {}) {
   const events = [];
   let mode = "beginner";
-  let tab = { language: "portugol-rs", workspacePreferenceKey: "aula-1" };
+  let tab = { language: "ferro-rust", workspacePreferenceKey: "aula-1" };
   const controller = createLearningModeController({
     rustcAvailable: () => true,
     activeTab: () => tab,

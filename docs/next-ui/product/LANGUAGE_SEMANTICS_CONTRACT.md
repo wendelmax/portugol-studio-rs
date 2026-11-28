@@ -1,9 +1,9 @@
-# Contrato de semântica: Portugol ⇄ Ferro ⇄ Rust
+# Contrato de semântica: Ferro ⇄ Ferro ⇄ Rust
 
 **Não existe garantia de tradução automática universal.** Tratar o Ferro como dialeto **proposto**; não afirmar que compila em rustc diretamente.
 
 ## Descoberta obrigatória
-Inventariar gramática real, bibliotecas, precedência, coercões, índices de vetores, escopo, comportamento das strings e entrada/saída do Portugol implementado. Não partir de suposições ou de um único exemplo de código.
+Inventariar gramática real, bibliotecas, precedência, coercões, índices de vetores, escopo, comportamento das strings e entrada/saída do Ferro implementado. Não partir de suposições ou de um único exemplo de código.
 
 ## Camadas propostas (adaptar ao código real)
 `source + language_id → lexer/parser → AST → symbol table/type checker → IR semântico → { interpreter, Rust emitter, diagnostics, source maps }`
@@ -52,4 +52,4 @@ fn main() {
 ```
 
 ## Golden fixtures
-Cada regra suportada deve ter fixture `{entrada Portugol, Rust esperado, stdin, stdout/exit esperado, diagnósticos, mapping}`. Diferenciar testes de snapshot textual dos testes de equivalência de execução.
+Cada regra suportada deve ter fixture `{entrada Ferro, Rust esperado, stdin, stdout/exit esperado, diagnósticos, mapping}`. Diferenciar testes de snapshot textual dos testes de equivalência de execução.

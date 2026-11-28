@@ -9,7 +9,7 @@ import { hasCargoExecutionConsent, hasRustExecutionConsent, rememberCargoExecuti
 import { replayRunEvents } from "../run-event-router";
 import { chooseCargoTarget } from "./cargo-target-dialog";
 import { createCargoProjectController } from "./cargo-project";
-import { createPortugolRsExecutionController } from "./portugol-rs-execution";
+import { createFerroRustExecutionController } from "./ferro-execution";
 import { createRunDispatcher } from "./dispatcher";
 import { createRustExecutionController } from "./rust-execution";
 import type { ExecutionState } from "./execution-state";
@@ -39,7 +39,7 @@ export interface ExecutionControllerShellDependencies {
   appendConsole: (text: string) => void;
   /** Execução das telas desktop numa janela própria (ADR 0018). */
   screenExecution?: import("./dispatcher").RunDispatcherDependencies["screenExecution"];
-  appendProcessOutput: (result: api.PortugolRsRunResult | api.CargoProjectRunResult | api.RustSourceRunResult) => void;
+  appendProcessOutput: (result: api.FerroRustRunResult | api.CargoProjectRunResult | api.RustSourceRunResult) => void;
   renderMessages: () => void;
   renderExerciseTests: () => void;
 }
@@ -64,7 +64,7 @@ export function createExecutionControllerShell(dependencies: ExecutionController
     isCurrent,
     runId: () => runState.runId,
     setRunId: (id) => { runState.runId = id; },
-    setPending: (pending) => { runState.porsRunPending = pending; },
+    setPending: (pending) => { runState.ferroRunPending = pending; },
     setRunTabId: (id) => { runState.runTabId = id; },
     syncLanguageControls: dependencies.syncLanguageControls,
     setRunning: runPresentation.setRunning,
@@ -106,12 +106,12 @@ export function createExecutionControllerShell(dependencies: ExecutionController
     showMessages: () => dependencies.showPanel("messages"),
   });
 
-  const runPortugolRsExecution = createPortugolRsExecutionController({
+  const runFerroRustExecution = createFerroRustExecutionController({
     rustcAvailable: dependencies.rustcAvailable,
     isCurrent,
     runId: () => runState.runId,
     setRunId: (id) => { runState.runId = id; },
-    setPending: (pending) => { runState.porsRunPending = pending; },
+    setPending: (pending) => { runState.ferroRunPending = pending; },
     setRunTabId: (id) => { runState.runTabId = id; },
     setPendingEvents: (events) => { runState.pendingEvents = events; },
     setRunning: runPresentation.setRunning,
@@ -122,9 +122,9 @@ export function createExecutionControllerShell(dependencies: ExecutionController
     clearConsole: dependencies.clearConsole,
     hideInput: () => { $<HTMLFormElement>("console-form").hidden = true; },
     runListeners: dependencies.runListeners,
-    startVm: api.startPortugolRsVm,
-    registerRun: api.registerPortugolRsRun,
-    runGeneratedRust: api.runPortugolRs,
+    startVm: api.startFerroRustVm,
+    registerRun: api.registerFerroRustRun,
+    runGeneratedRust: api.runFerroRust,
     setStatus: dependencies.setStatus,
     appendProcessOutput: dependencies.appendProcessOutput,
     appendConsole: dependencies.appendConsole,
@@ -159,7 +159,7 @@ export function createExecutionControllerShell(dependencies: ExecutionController
     argumentsText: () => $<HTMLInputElement>("args").value,
     breakpointLines: (state) => breakpointLines(state),
     rustExecution: runRustExecution,
-    portugolRsExecution: runPortugolRsExecution,
+    ferroRustExecution: runFerroRustExecution,
     isPaused: () => runState.paused !== null,
     debugContinue: () => runPresentation.debugCommand(api.debugContinue),
     debugStepOver: () => runPresentation.debugCommand(api.debugStepOver),
@@ -176,7 +176,7 @@ export function createExecutionControllerShell(dependencies: ExecutionController
     save: dependencies.save,
     currentDocument,
     isCurrent,
-    setPending: (pending) => { runState.porsRunPending = pending; },
+    setPending: (pending) => { runState.ferroRunPending = pending; },
     setRunTabId: (id) => { runState.runTabId = id; },
     runId: () => runState.runId,
     setRunId: (id) => { runState.runId = id; },

@@ -8,15 +8,15 @@ function fixture() {
   const calls = [];
   const marker = (name) => {
     calls.push(name);
-    return EditorState.tabSize.of(name === "rust" ? 8 : name === "pors" ? 2 : 4);
+    return EditorState.tabSize.of(name === "rust" ? 8 : name === "ferro" ? 2 : 4);
   };
   const dependencies = {
     sourceLanguage: new Compartment(),
-    portugolTools: new Compartment(),
+    ferroTools: new Compartment(),
     theme: new Compartment(),
-    portugolExtensions: () => [marker("portugolTools")],
+    ferroExtensions: () => [marker("ferroTools")],
     rustExtensions: () => [marker("rustTools")],
-    portugolRsLanguage: () => marker("pors"),
+    ferroRustLanguage: () => marker("ferro"),
     rustLanguage: () => marker("rust"),
     editorColors: EditorState.tabSize.of(4),
     editorTheme: () => EditorState.tabSize.of(4),
@@ -29,15 +29,15 @@ function fixture() {
   return { createExtensions: createEditorExtensionFactory(dependencies), calls };
 }
 
-test("selects language and tooling extensions for PORS and Rust", () => {
+test("selects language and tooling extensions for FERRO and Rust", () => {
   const { createExtensions, calls } = fixture();
 
-  const pors = createExtensions("portugol-rs");
+  const ferro = createExtensions("ferro-rust");
   const rust = createExtensions("rust");
 
-  assert.ok(pors.length > 10);
+  assert.ok(ferro.length > 10);
   assert.ok(rust.length > 10);
-  assert.deepEqual(calls, ["portugolTools", "pors", "rustTools", "rust"]);
+  assert.deepEqual(calls, ["ferroTools", "ferro", "rustTools", "rust"]);
 });
 
 test("routes mouse, F12, and editor updates through injected shell handlers", async () => {

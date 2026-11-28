@@ -60,14 +60,14 @@ test("running and failed case evaluation have explicit status messages", () => {
     result: { total: 2, passed: 2, failures: [], completed: true },
   }), "2 de 2 casos aprovados. Exercício concluído nesta revisão.");
   assert.equal(
-    exerciseTestStatus({ kind: "ready", cases: 4 }, "portugol-rs"),
+    exerciseTestStatus({ kind: "ready", cases: 4 }, "ferro-rust"),
     "4 casos configurados para este exercício (.fer).",
   );
   assert.equal(
     exerciseTestStatus({
       kind: "completed",
       result: { total: 4, passed: 4, failures: [], completed: true },
-    }, "portugol-rs"),
+    }, "ferro-rust"),
     "4 de 4 casos aprovados (.fer). Exercício concluído nesta revisão.",
   );
 });

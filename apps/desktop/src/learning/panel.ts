@@ -18,9 +18,9 @@ export interface LearningPanelHost {
   activeTab(): Tab | undefined;
   learningMode(): LearningMode;
   /** Abre exercício Ferro pelo identificador do catálogo .fer. */
-  openPorsExercise(id: string): Promise<void>;
+  openFerroExercise(id: string): Promise<void>;
   /** Abre um exemplo .fer do catálogo pelo nome de arquivo (ex.: `01-ola-variaveis.fer`). */
-  openPorsExample?(fileName: string): Promise<void>;
+  openFerroExample?(fileName: string): Promise<void>;
   /** Abre o Laboratório de Ownership em modo expandido no painel. */
   openOwnershipLab?(): void;
   ownership?: OwnershipLabHost;
@@ -36,7 +36,7 @@ export function mountLearningPanel(host: LearningPanelHost) {
   async function openTrailExample(fileName: string) {
     const message = $("learning-trail-message");
     try {
-      await host.openPorsExample?.(fileName);
+      await host.openFerroExample?.(fileName);
       message.textContent = `Exemplo ${fileName} aberto em uma nova aba.`;
     } catch {
       message.textContent = `Não foi possível abrir o exemplo ${fileName}.`;
@@ -49,7 +49,7 @@ export function mountLearningPanel(host: LearningPanelHost) {
     const message = $("learning-trail-message");
     message.textContent = "Abrindo exercício…";
     try {
-      await host.openPorsExercise(exerciseId);
+      await host.openFerroExercise(exerciseId);
     } catch {
       message.textContent = "Não foi possível abrir o exercício. Tente novamente pela lista de exercícios.";
     } finally {
@@ -64,7 +64,7 @@ export function mountLearningPanel(host: LearningPanelHost) {
     const tab = host.activeTab();
     const pinnedConceptId = learningPinForMode(tab?.learningPins, learningMode, concepts.map(({ id }) => id));
     const source = host.sourceView.state.doc.toString();
-    const context = !pinnedConceptId && learningMode === "bridge" && !learningConceptManuallySelected && tab?.language === "portugol-rs"
+    const context = !pinnedConceptId && learningMode === "bridge" && !learningConceptManuallySelected && tab?.language === "ferro-rust"
       ? learningContextAtSelection({
         source,
         selectionFrom: host.sourceView.state.selection.main.from,
@@ -123,7 +123,7 @@ export function mountLearningPanel(host: LearningPanelHost) {
         const link = document.createElement("button");
         link.type = "button";
         link.className = "learning-trail-link";
-        const done = exerciseProgress.hasPassed(`pors:${exercise.id}`);
+        const done = exerciseProgress.hasPassed(`ferro:${exercise.id}`);
         link.textContent = done ? `✓ ${exercise.title}` : exercise.title;
         link.title = `Abrir o exercício “${exercise.title}”`;
         link.dataset.exerciseId = exercise.id;
@@ -164,17 +164,17 @@ export function mountLearningPanel(host: LearningPanelHost) {
     pinButton.setAttribute("aria-pressed", String(topicPinned));
     pinButton.textContent = topicPinned ? "Desafixar tópico" : "Fixar tópico";
     const practiceButton = $<HTMLButtonElement>("learning-practice-open");
-    practiceButton.hidden = concept.practicePorsExerciseId === undefined;
+    practiceButton.hidden = concept.practiceFerroExerciseId === undefined;
     practiceButton.disabled = !tab || learningPracticeBusy;
-    practiceButton.dataset.exerciseId = concept.practicePorsExerciseId ?? "";
+    practiceButton.dataset.exerciseId = concept.practiceFerroExerciseId ?? "";
     const active = host.activeTab();
     $("learning-mode-description").textContent = learningMode === "bridge"
-      ? "Ponte didática: compare os conceitos de Portugol com exemplos Rust editoriais."
+      ? "Compare os conceitos do pseudocódigo em português com exemplos Rust."
       : learningMode === "rust"
         ? active?.language === "rust"
           ? "Nível Rust: o arquivo .rs ativo é editado e executado com a toolchain Rust instalada."
           : "Nível Rust: abra ou crie um arquivo .rs para programar em Rust. O arquivo atual permanece intacto."
-        : "Fundamentos de lógica e programação em Portugol.";
+        : "Aprenda a linguagem Ferro, pratique com exercícios .fer e acompanhe cada exemplo no editor. Rust aparece como próximo passo, no seu ritmo.";
     $("learning-title").textContent = concept.title;
     $("learning-provenance").textContent = topicPinned
       ? "Tópico fixado — escolha manual nesta aba"
@@ -182,16 +182,16 @@ export function mountLearningPanel(host: LearningPanelHost) {
         ? "Relacionado à seleção por mapeamento exato da tradução atual"
         : "Conceito selecionado manualmente";
     $("learning-definition").textContent = context
-      ? `${concept.definition} ${explainMappedConcept(context, "portugol-rs")}`
+      ? `${concept.definition} ${explainMappedConcept(context, "ferro-rust")}`
       : concept.definition;
     $("learning-what-changed").textContent = concept.whatChanged;
     $("learning-why-it-matters").textContent = concept.whyItMatters;
     $("learning-practice").textContent = concept.practice;
     const rustMode = learningMode === "rust";
-    $("learning-portugol-example").hidden = rustMode;
+    $("learning-ferro-example").hidden = rustMode;
     if (!rustMode) {
-      $("learning-portugol-caption").textContent = context ? "Trecho selecionado na fonte" : concept.portugolExample.caption;
-      $("learning-portugol-code").textContent = context ? context.sourceSnippet : concept.portugolExample.code;
+      $("learning-ferro-caption").textContent = context ? "Trecho selecionado na fonte" : concept.ferroExample.caption;
+      $("learning-ferro-code").textContent = context ? context.sourceSnippet : concept.ferroExample.code;
     }
 
     const rustSection = $<HTMLElement>("learning-rust-example");
@@ -240,7 +240,7 @@ export function mountLearningPanel(host: LearningPanelHost) {
     const status = $<HTMLElement>("learning-practice-status");
       status.textContent = "Abrindo exercício…";
     try {
-      await host.openPorsExercise(exerciseId);
+      await host.openFerroExercise(exerciseId);
       status.textContent = "Exercício aberto no editor. A abertura não registra progresso.";
     } catch {
       status.textContent = "Não foi possível abrir o exercício. Tente novamente ou use a lista de exercícios.";
@@ -260,7 +260,7 @@ export function mountLearningPanel(host: LearningPanelHost) {
     button.disabled = true;
     $("learning-trail-message").textContent = `Abrindo ${button.textContent}…`;
     try {
-      await host.openPorsExercise(exerciseId);
+      await host.openFerroExercise(exerciseId);
     } catch {
       $("learning-trail-message").textContent = "Não foi possível abrir o próximo exercício. Tente novamente pela lista de exercícios.";
     } finally {

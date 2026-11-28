@@ -8,7 +8,7 @@ export function createIdeShortcuts(actions: IdeShortcutActions): Shortcut[] {
     { label: "Shift+F6 / Ctrl+Enter", command: "Executar", matches: (e) =>
       (e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey && e.key === "F6")
       || ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key === "Enter"), action: actions.runOrContinue },
-    { label: "Shift+F5", command: "Depurar", matches: (e) => e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey && e.key === "F5", action: actions.stepOrStart },
+    { label: "Shift+F5", command: "Depurar", matches: (e) => e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey && e.key === "F5", action: actions.stepDebugOrStart },
     { label: "Shift+F7", command: "Interromper", matches: (e) => e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey && e.key === "F7", action: actions.stopProgram },
     { label: "F7", command: "Alternar desenho e código da tela", matches: (e) => !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey && e.key === "F7", action: actions.toggleScreenCode },
     { label: "F9", command: "Pausar", matches: (e) => !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey && e.key === "F9", action: actions.pauseDebug },
@@ -41,7 +41,7 @@ export function createIdeShortcuts(actions: IdeShortcutActions): Shortcut[] {
     { label: "via paleta de comandos", command: "Restaurar layout padrão", matches: () => false, action: actions.resetLayout },
     { label: "via paleta de comandos", command: "Abrir Laboratório de Ownership", matches: () => false, action: actions.openOwnershipLab },
     { label: "via paleta de comandos", command: "Alternar prévia Rust", matches: () => false, action: actions.toggleRustPreview },
-    { label: "via paleta de comandos", command: "Alternar Preview Visual PORS", matches: () => false, action: actions.toggleUiPreview },
+    { label: "via paleta de comandos", command: "Alternar prévia visual", matches: () => false, action: actions.toggleUiPreview },
     { label: "via paleta de comandos", command: "Abrir pasta de projeto", matches: () => false, action: actions.openFolder },
     { label: "via paleta de comandos", command: "Novo projeto desktop", matches: () => false, action: actions.newDesktopProject },
     { label: "via paleta de comandos", command: "Novo arquivo Rust (.rs)", matches: () => false, action: actions.newRustFile },

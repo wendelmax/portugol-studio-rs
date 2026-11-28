@@ -10,7 +10,7 @@ O estudante que abre um projeto Cargo deve poder informar os mesmos `argv` que j
 
 ## Limites
 
-Não alterar a seleção de alvo, consentimento Cargo, execução standalone, entrada stdin ou parâmetros de Portugol. Revalidar tudo no backend; não confiar no campo da UI. Argumentos vazios preservam a execução atual.
+Não alterar a seleção de alvo, consentimento Cargo, execução standalone, entrada stdin ou parâmetros de Ferro. Revalidar tudo no backend; não confiar no campo da UI. Argumentos vazios preservam a execução atual.
 
 ## Aceitação
 

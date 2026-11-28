@@ -1,0 +1,376 @@
+/*
+ * Copyright (C) 2014 - UNIVALI - Universidade do Vale do Itajaí
+ *
+ * Este arquivo de código fonte é livre para utilização, cópia e/ou modificação
+ * desde que este cabeçalho, contendo os direitos autorais e a descrição do programa,
+ * seja mantido.
+ *
+ * Descrição:
+ *
+ *   Jogo clássico estilo Arkanoid / Breakout desenvolvido com as bibliotecas
+ *   Graficos, Teclado, Util e Tipos. Controle o bastão para rebater a bolinha
+ *   e destruir todos os blocos coloridos sem deixá-la cair.
+ *
+ *   Controles:
+ *     - Setas Esquerda/Direita ou A/D: movem o bastão
+ *     - ESPACO ou ENTER: lança a bolinha / reinicia a partida
+ *     - ESC: encerra o jogo
+ *
+ * Adaptado do exemplo clássico "jogos/arkanoid.por" para Ferro (.fer)
+ */
+
+enum EstadoArkanoid {
+    Menu,
+    Jogando,
+    Vitoria,
+    Derrota,
+}
+
+registro JogoArkanoid {
+    estado: EstadoArkanoid,
+    blocos: vetor < inteiro >,
+    blocos_restantes: inteiro,
+    bastao_x: real,
+    bastao_y: real,
+    bastao_largura: inteiro,
+    bastao_altura: inteiro,
+    bola_x: real,
+    bola_y: real,
+    bola_vx: real,
+    bola_vy: real,
+    bola_raio: inteiro,
+    bola_presa: logico,
+    vidas: inteiro,
+    pontuacao: inteiro,
+    enter_estava: logico,
+}
+
+funcao cor_rgb(r: inteiro, g: inteiro, b: inteiro) -> inteiro {
+    escolha Graficos.criar_cor(r, g, b) {
+        caso Resultado::Ok(cor) => {
+            retorne cor;
+        }
+        caso Resultado::Erro(_) => {
+            retorne Graficos.COR_BRANCO;
+        }
+    }
+}
+
+funcao criar_blocos() -> vetor < inteiro > {
+    // 5 linhas x 10 colunas; valor indica resistência/cor (1..5)
+    seja mutavel grade: vetor < inteiro > = [];
+    para (seja mutavel linha = 0; linha < 5; linha += 1) {
+        para (seja mutavel col = 0; col < 10; col += 1) {
+            adicionar(grade, 5 - linha);
+        }
+    }
+    retorne grade;
+}
+
+funcao criar_jogo(estado_inicial: EstadoArkanoid) -> JogoArkanoid {
+    retorne JogoArkanoid {
+        estado: estado_inicial,
+        blocos: criar_blocos(),
+        blocos_restantes: 50,
+        bastao_x: 340.0,
+        bastao_y: 552.0,
+        bastao_largura: 120,
+        bastao_altura: 14,
+        bola_x: 400.0,
+        bola_y: 538.0,
+        bola_vx: 4.5,
+        bola_vy: - 5.2,
+        bola_raio: 9,
+        bola_presa: verdadeiro,
+        vidas: 3,
+        pontuacao: 0,
+        enter_estava: falso,
+    }
+    ;
+}
+
+funcao cor_bloco(nivel: inteiro) -> inteiro {
+    se (nivel == 5) {
+        retorne cor_rgb(235, 77, 75);
+    } senao se (nivel == 4) {
+        retorne cor_rgb(240, 147, 43);
+    } senao se (nivel == 3) {
+        retorne cor_rgb(249, 202, 36);
+    } senao se (nivel == 2) {
+        retorne cor_rgb(106, 176, 76);
+    } senao {
+        retorne cor_rgb(34, 166, 179);
+    }
+}
+
+funcao atualizar(jogo: JogoArkanoid) -> JogoArkanoid {
+    seja mutavel j: JogoArkanoid = jogo;
+    seja enter_agora: logico = Teclado.tecla_pressionada(Teclado.TECLA_ENTER) || Teclado.tecla_pressionada(Teclado.TECLA_ESPACO);
+    seja enter_disparado: logico = enter_agora && !j.enter_estava;
+    j.enter_estava = enter_agora;
+
+    escolha j.estado {
+        caso EstadoArkanoid::Menu => {
+            se (enter_disparado) {
+                j = criar_jogo(EstadoArkanoid::Jogando);
+                j.enter_estava = verdadeiro;
+            }
+            retorne j;
+        }
+        caso EstadoArkanoid::Vitoria => {
+            se (enter_disparado) {
+                j = criar_jogo(EstadoArkanoid::Jogando);
+                j.enter_estava = verdadeiro;
+            }
+            retorne j;
+        }
+        caso EstadoArkanoid::Derrota => {
+            se (enter_disparado) {
+                j = criar_jogo(EstadoArkanoid::Jogando);
+                j.enter_estava = verdadeiro;
+            }
+            retorne j;
+        }
+        caso EstadoArkanoid::Jogando => {}
+    }
+
+    // Movimento do bastão
+    seja vel_bastao: real = 7.5;
+    se (Teclado.tecla_pressionada(Teclado.TECLA_SETA_ESQUERDA) || Teclado.tecla_pressionada(Teclado.TECLA_A)) {
+        j.bastao_x -= vel_bastao;
+    }
+    se (Teclado.tecla_pressionada(Teclado.TECLA_SETA_DIREITA) || Teclado.tecla_pressionada(Teclado.TECLA_D)) {
+        j.bastao_x += vel_bastao;
+    }
+
+    seja limite_dir: real = 785.0 - Tipos.inteiro_para_real(j.bastao_largura);
+    se (j.bastao_x < 15.0) {
+        j.bastao_x = 15.0;
+    }
+    se (j.bastao_x > limite_dir) {
+        j.bastao_x = limite_dir;
+    }
+
+    se (j.bola_presa) {
+        j.bola_x = j.bastao_x + Tipos.inteiro_para_real(j.bastao_largura) / 2.0;
+        j.bola_y = j.bastao_y - Tipos.inteiro_para_real(j.bola_raio) - 2.0;
+        se (enter_disparado) {
+            j.bola_presa = falso;
+            j.bola_vx = 4.2;
+            j.bola_vy = -5.4;
+        }
+        retorne j;
+    }
+
+    // Atualiza posição da bolinha
+    j.bola_x += j.bola_vx;
+    j.bola_y += j.bola_vy;
+
+    seja r: real = Tipos.inteiro_para_real(j.bola_raio);
+
+    // Paredes laterais e teto
+    se (j.bola_x - r <= 15.0) {
+        j.bola_x = 15.0 + r;
+        j.bola_vx = Matematica.valor_absoluto(j.bola_vx);
+    } senao se (j.bola_x + r >= 785.0) {
+        j.bola_x = 785.0 - r;
+        j.bola_vx = -Matematica.valor_absoluto(j.bola_vx);
+    }
+
+    se (j.bola_y - r <= 56.0) {
+        j.bola_y = 56.0 + r;
+        j.bola_vy = Matematica.valor_absoluto(j.bola_vy);
+    }
+
+    // Colisão com o bastão
+    seja bastao_dir: real = j.bastao_x + Tipos.inteiro_para_real(j.bastao_largura);
+    seja bastao_base: real = j.bastao_y + Tipos.inteiro_para_real(j.bastao_altura);
+    se (j.bola_vy > 0.0 && j.bola_x + r >= j.bastao_x && j.bola_x - r <= bastao_dir && j.bola_y + r >= j.bastao_y && j.bola_y - r <= bastao_base) {
+        seja centro_bastao: real = j.bastao_x + Tipos.inteiro_para_real(j.bastao_largura) / 2.0;
+        seja deslocamento: real = (j.bola_x - centro_bastao) / (Tipos.inteiro_para_real(j.bastao_largura) / 2.0);
+        j.bola_vx = deslocamento * 7.0;
+        se (Matematica.valor_absoluto(j.bola_vx) < 1.5) {
+            se (j.bola_vx < 0.0) {
+                j.bola_vx = -2.0;
+            } senao {
+                j.bola_vx = 2.0;
+            }
+        }
+        j.bola_vy = -Matematica.valor_absoluto(j.bola_vy);
+        j.bola_y = j.bastao_y - r - 1.0;
+    }
+
+    // Colisão com blocos (grade 5x10)
+    seja mutavel blocos: vetor < inteiro > = j.blocos;
+    seja mutavel atingiu_bloco: logico = falso;
+    seja margem_x: inteiro = 30;
+    seja margem_y: inteiro = 82;
+    seja bloco_l: inteiro = 70;
+    seja bloco_a: inteiro = 24;
+    seja espaco: inteiro = 4;
+
+    para (seja mutavel linha = 0; linha < 5; linha += 1) {
+        para (seja mutavel col = 0; col < 10; col += 1) {
+            seja idx: inteiro = linha * 10 + col;
+            se (!atingiu_bloco && blocos[idx] > 0) {
+                seja bx: real = Tipos.inteiro_para_real(margem_x + col * (bloco_l + espaco));
+                seja by: real = Tipos.inteiro_para_real(margem_y + linha * (bloco_a + espaco));
+                seja bdir: real = bx + Tipos.inteiro_para_real(bloco_l);
+                seja bbase: real = by + Tipos.inteiro_para_real(bloco_a);
+
+                se (j.bola_x + r >= bx && j.bola_x - r <= bdir && j.bola_y + r >= by && j.bola_y - r <= bbase) {
+                    j.pontuacao += blocos[idx] * 20;
+                    blocos[idx] = 0;
+                    j.blocos_restantes -= 1;
+                    j.bola_vy = -j.bola_vy;
+                    atingiu_bloco = verdadeiro;
+                }
+            }
+        }
+    }
+    j.blocos = blocos;
+
+    se (j.blocos_restantes <= 0) {
+        j.estado = EstadoArkanoid::Vitoria;
+        retorne j;
+    }
+
+    // Bolinha caiu pela parte inferior
+    se (j.bola_y - r > 600.0) {
+        j.vidas -= 1;
+        se (j.vidas <= 0) {
+            j.estado = EstadoArkanoid::Derrota;
+        } senao {
+            j.bola_presa = verdadeiro;
+        }
+    }
+
+    retorne j;
+}
+
+funcao desenhar(jogo: JogoArkanoid) {
+    Graficos.definir_cor(cor_rgb(18, 22, 34));
+    Graficos.limpar();
+
+    // Painel superior (HUD)
+    Graficos.definir_cor(cor_rgb(28, 34, 50));
+    Graficos.desenhar_retangulo(0, 0, 800, 48, falso, verdadeiro);
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.definir_tamanho_texto(16.0);
+    Graficos.desenhar_texto(20, 14, "ARKANOID");
+    Graficos.definir_cor(cor_rgb(255, 210, 70));
+    Graficos.desenhar_texto(260, 14, "Pontos: " + Tipos.inteiro_para_cadeia(jogo.pontuacao));
+    Graficos.definir_cor(cor_rgb(120, 220, 255));
+    Graficos.desenhar_texto(470, 14, "Blocos: " + Tipos.inteiro_para_cadeia(jogo.blocos_restantes));
+    Graficos.definir_cor(cor_rgb(255, 110, 120));
+    Graficos.desenhar_texto(650, 14, "Vidas: " + Tipos.inteiro_para_cadeia(jogo.vidas));
+
+    // Borda da quadra
+    Graficos.definir_cor(cor_rgb(70, 82, 112));
+    Graficos.desenhar_retangulo(15, 56, 770, 534, falso, falso);
+
+    // Blocos
+    seja blocos: vetor < inteiro > = jogo.blocos;
+    seja margem_x: inteiro = 30;
+    seja margem_y: inteiro = 82;
+    seja bloco_l: inteiro = 70;
+    seja bloco_a: inteiro = 24;
+    seja espaco: inteiro = 4;
+
+    para (seja mutavel linha = 0; linha < 5; linha += 1) {
+        para (seja mutavel col = 0; col < 10; col += 1) {
+            seja nivel: inteiro = blocos[linha * 10 + col];
+            se (nivel > 0) {
+                seja bx: inteiro = margem_x + col * (bloco_l + espaco);
+                seja by: inteiro = margem_y + linha * (bloco_a + espaco);
+                Graficos.definir_cor(cor_bloco(nivel));
+                Graficos.desenhar_retangulo(bx, by, bloco_l, bloco_a, verdadeiro, verdadeiro);
+                Graficos.definir_cor(cor_rgb(255, 255, 255));
+                Graficos.desenhar_retangulo(bx + 3, by + 3, bloco_l - 6, 4, falso, verdadeiro);
+            }
+        }
+    }
+
+    // Bastão
+    seja bx_int: inteiro = Tipos.real_para_inteiro(jogo.bastao_x);
+    seja by_int: inteiro = Tipos.real_para_inteiro(jogo.bastao_y);
+    Graficos.definir_cor(cor_rgb(80, 195, 255));
+    Graficos.desenhar_retangulo(bx_int, by_int, jogo.bastao_largura, jogo.bastao_altura, verdadeiro, verdadeiro);
+    Graficos.definir_cor(Graficos.COR_BRANCO);
+    Graficos.desenhar_retangulo(bx_int + 12, by_int + 2, jogo.bastao_largura - 24, 3, falso, verdadeiro);
+
+    // Bolinha
+    seja bola_xi: inteiro = Tipos.real_para_inteiro(jogo.bola_x);
+    seja bola_yi: inteiro = Tipos.real_para_inteiro(jogo.bola_y);
+    Graficos.definir_cor(cor_rgb(255, 235, 110));
+    Graficos.desenhar_elipse(bola_xi - jogo.bola_raio, bola_yi - jogo.bola_raio, jogo.bola_raio * 2, jogo.bola_raio * 2, verdadeiro);
+
+    se (jogo.bola_presa) {
+        escolha jogo.estado {
+            caso EstadoArkanoid::Jogando => {
+                Graficos.definir_cor(cor_rgb(210, 220, 235));
+                Graficos.definir_tamanho_texto(14.0);
+                Graficos.desenhar_texto(240, 490, "Pressione [ESPACO] ou [ENTER] para lancar a bolinha");
+            }
+            caso _ => {}
+        }
+    }
+
+    // Sobreposições de estado
+    escolha jogo.estado {
+        caso EstadoArkanoid::Menu => {
+            Graficos.definir_cor(cor_rgb(12, 16, 28));
+            Graficos.desenhar_retangulo(180, 230, 440, 170, verdadeiro, verdadeiro);
+            Graficos.definir_cor(cor_rgb(80, 195, 255));
+            Graficos.desenhar_retangulo(180, 230, 440, 170, verdadeiro, falso);
+            Graficos.definir_tamanho_texto(32.0);
+            Graficos.desenhar_texto(305, 258, "ARKANOID");
+            Graficos.definir_cor(Graficos.COR_BRANCO);
+            Graficos.definir_tamanho_texto(15.0);
+            Graficos.desenhar_texto(236, 314, "Use [Setas] ou [A/D] para mover o bastao");
+            Graficos.definir_cor(cor_rgb(255, 210, 70));
+            Graficos.desenhar_texto(245, 352, "Pressione [ENTER] para iniciar");
+        }
+        caso EstadoArkanoid::Vitoria => {
+            Graficos.definir_cor(cor_rgb(16, 42, 30));
+            Graficos.desenhar_retangulo(190, 240, 420, 150, verdadeiro, verdadeiro);
+            Graficos.definir_cor(cor_rgb(100, 240, 140));
+            Graficos.definir_tamanho_texto(28.0);
+            Graficos.desenhar_texto(285, 268, "VITORIA TOTAL!");
+            Graficos.definir_cor(Graficos.COR_BRANCO);
+            Graficos.definir_tamanho_texto(16.0);
+            Graficos.desenhar_texto(278, 314, "Pontuacao final: " + Tipos.inteiro_para_cadeia(jogo.pontuacao));
+            Graficos.desenhar_texto(245, 348, "Pressione [ENTER] para jogar novamente");
+        }
+        caso EstadoArkanoid::Derrota => {
+            Graficos.definir_cor(cor_rgb(48, 18, 24));
+            Graficos.desenhar_retangulo(190, 240, 420, 150, verdadeiro, verdadeiro);
+            Graficos.definir_cor(cor_rgb(255, 110, 110));
+            Graficos.definir_tamanho_texto(28.0);
+            Graficos.desenhar_texto(295, 268, "FIM DE JOGO");
+            Graficos.definir_cor(Graficos.COR_BRANCO);
+            Graficos.definir_tamanho_texto(16.0);
+            Graficos.desenhar_texto(278, 314, "Pontuacao final: " + Tipos.inteiro_para_cadeia(jogo.pontuacao));
+            Graficos.desenhar_texto(245, 348, "Pressione [ENTER] para tentar novamente");
+        }
+        caso EstadoArkanoid::Jogando => {}
+    }
+
+    Graficos.renderizar();
+}
+
+funcao inicio() {
+    Graficos.iniciar_modo_grafico(verdadeiro);
+    Graficos.definir_dimensoes_janela(800, 600);
+    Graficos.definir_titulo_janela("Arkanoid - Ferro");
+
+    seja mutavel jogo: JogoArkanoid = criar_jogo(EstadoArkanoid::Menu);
+
+    enquanto (!Teclado.tecla_pressionada(Teclado.TECLA_ESC)) {
+        jogo = atualizar(jogo);
+        desenhar(jogo);
+        Util.aguarde(16);
+    }
+
+    Graficos.encerrar_modo_grafico();
+}

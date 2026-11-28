@@ -101,7 +101,7 @@ fn registro_de_dados_ausente_explica_de_onde_vem() {
     let diagnostics = lower_with(&without, &screen()).unwrap_err();
     let missing = diagnostics
         .iter()
-        .find(|d| d.code == "pors.external-type-missing")
+        .find(|d| d.code == "ferro.external-type-missing")
         .expect("diagnóstico");
     assert!(missing.message.contains("`Conta`"), "{}", missing.message);
     assert!(
@@ -116,7 +116,9 @@ fn aluno_nao_pode_redeclarar_o_tipo_da_janela() {
     let redeclared = format!("{CODE_BEHIND}\nregistro JanelaPrincipal {{\n    x: inteiro\n}}\n");
     let diagnostics = lower_with(&redeclared, &screen()).unwrap_err();
     assert!(
-        diagnostics.iter().any(|d| d.code == "pors.type-redeclared"),
+        diagnostics
+            .iter()
+            .any(|d| d.code == "ferro.type-redeclared"),
         "{diagnostics:?}"
     );
 }
@@ -125,7 +127,7 @@ fn aluno_nao_pode_redeclarar_o_tipo_da_janela() {
 fn programa_comum_continua_exigindo_inicio() {
     let diagnostics = lower("funcao f() {\n}\n").unwrap_err();
     assert!(
-        diagnostics.iter().any(|d| d.code == "pors.entry-function"),
+        diagnostics.iter().any(|d| d.code == "ferro.entry-function"),
         "{diagnostics:?}"
     );
     let with_entry = LowerOptions {

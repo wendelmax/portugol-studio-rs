@@ -2,37 +2,37 @@
 
 ## Direção vigente
 
-O produto Rust + Tauri ensinará a linguagem autoral Portugol-RS (`.pors`) e
-permitirá avançar para Rust real (`.rs`/Cargo). O Portugol Studio original
-continua sendo o destino de arquivos e materiais `.por`/`.pex`. `portugol-studio-next`
+O produto Rust + Tauri ensinará a linguagem autoral Ferro (`.fer`) e
+permitirá avançar para Rust real (`.rs`/Cargo). O Ferro Studio original
+continua sendo o destino de arquivos e materiais `.por`/`.pex`. `ferro-studio-next`
 e seus documentos são referências de design e requisitos; não há renomeação do
-produto. Ver [ADR 0016](../adr/0016-pors-como-linguagem-autoral-e-retirada-do-por.md)
-e [plano de migração](pors-only-migration.md).
+produto. Ver [ADR 0016](../adr/0016-ferro-como-linguagem-autoral-e-retirada-do-por.md)
+e [plano de migração](ferro-only-migration.md).
 
 ## Estado-base
 
 - `main` está no commit `660a779` (PR #95); os PRs #93–#95 fecharam os eventos
   obsoletos, ampliaram testes diferenciais e cobriram spans UTF-16 de erros
-  semânticos PORS.
+  semânticos FERRO.
 - Tag continua `v0.1.0`; manter a linha `v0.x`.
-- PORS tem tipos primitivos, mutabilidade explícita, expressões, entrada/saída,
+- FERRO tem tipos primitivos, mutabilidade explícita, expressões, entrada/saída,
   condicionais, loops, geração de Rust, source maps e primeira fatia de
   debugger VM.
-- Ainda faltam funções definidas pelo aluno, coleções, bibliotecas, CLI PORS,
-  formato de exercícios PORS e muito conteúdo PORS/Rust.
-- A VM permanece necessária ao debugger PORS e não será removida junto ao
+- Ainda faltam funções definidas pelo aluno, coleções, bibliotecas, CLI FERRO,
+  formato de exercícios FERRO e muito conteúdo FERRO/Rust.
+- A VM permanece necessária ao debugger FERRO e não será removida junto ao
   compilador clássico.
 - Ownership continua uma simulação editorial verificada; não é análise do
   buffer do aluno nem trace de execução Rust.
-- O inventário histórico do Portugol Java permanece em `docs/PARIDADE.md`; não
-  é gate visual nem afirma paridade de linguagem PORS.
+- O inventário histórico do Ferro Java permanece em `docs/PARIDADE.md`; não
+  é gate visual nem afirma paridade de linguagem FERRO.
 
 ## Ordem de trabalho
 
 1. **Inventário de migração:** fechar a matriz por capacidade, evidência, risco,
    backend, aceite e licença. Não remover `.por` enquanto existirem linhas sem
    destino.
-2. **Linguagem PORS:** ampliar HIR, parser, semântica, geração Rust e debugger
+2. **Linguagem FERRO:** ampliar HIR, parser, semântica, geração Rust e debugger
    em PRs pequenos: funções, coleções, controles e tipos compostos.
 3. **Conceitos Rust verificáveis:** moves, empréstimos, ownership, `Option`,
    `Result`, structs/enums e ferramentas reais `rustc`/Cargo, comparando
@@ -41,10 +41,10 @@ e [plano de migração](pors-only-migration.md).
    segurança, limites e testes VM/Rust; manter shell, temas e experiência
    visual atuais, evoluindo UI apenas para servir esses fluxos.
 5. **Aprendizagem:** trocar exemplos, ajuda, currículo e exercícios clássicos
-   por conteúdo PORS/Rust original e verificável. Progresso somente após
+   por conteúdo FERRO/Rust original e verificável. Progresso somente após
    aprovação em testes reais.
-6. **PORS por padrão:** CLI, arquivos, workspace, diálogos e associações passam
-   a `.pors`/`.rs`; extensão desconhecida não cai para o parser clássico.
+6. **FERRO por padrão:** CLI, arquivos, workspace, diálogos e associações passam
+   a `.fer`/`.rs`; extensão desconhecida não cai para o parser clássico.
 7. **Corte final:** depois de todos os gates, remover rotas `.por`/`.pex`,
    parser/semântica/compiler classic-only, catálogo, formatos e associações;
    preservar a VM compartilhada. Atualizar instalação, README, créditos e notas
@@ -53,7 +53,7 @@ e [plano de migração](pors-only-migration.md).
 ## Critérios transversais
 
 - Não alterar nem apagar arquivos antigos do usuário.
-- PORS é linguagem educacional autoral; não prometer que seja todo o Rust.
+- FERRO é linguagem educacional autoral; não prometer que seja todo o Rust.
 - Execução normal e debugger concordam nas capacidades equivalentes; toda
   diferença de backend é explícita e testada.
 - Manter Rust + Tauri desktop, supervisão de processos, limites, consentimento
@@ -66,8 +66,8 @@ e [plano de migração](pors-only-migration.md).
 
 ## Próxima fatia
 
-Completar e revisar `docs/research/PORS_MIGRATION_MATRIX.md` contra o inventário
-de `docs/PARIDADE.md` e os contratos existentes em `docs/portugol-studio-next/`.
+Completar e revisar `docs/research/ferro_MIGRATION_MATRIX.md` contra o inventário
+de `docs/PARIDADE.md` e os contratos existentes em `docs/ferro-studio-next/`.
 O primeiro incremento de linguagem será escolhido a partir das lacunas com
-maior valor pedagógico e dependências mais claras; nenhuma feature PORS deve
+maior valor pedagógico e dependências mais claras; nenhuma feature FERRO deve
 ser tratada como equivalente só por compilar no Rust gerado.

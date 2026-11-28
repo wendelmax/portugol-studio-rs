@@ -40,7 +40,7 @@ export function createExerciseTabOpener(dependencies: ExerciseTabDependencies) {
       }
     }
 
-    const template = exerciseDocument.pors?.starter_code ?? dependencies.template;
+    const template = exerciseDocument.ferro?.starter_code ?? dependencies.template;
     const source = `/*\n${exerciseDocument.exercise.statement.replaceAll("*/", "* /")}\n*/\n\n${template}`;
     const current = dependencies.activeTab();
     const tabs = dependencies.tabs();
@@ -54,7 +54,7 @@ export function createExerciseTabOpener(dependencies: ExerciseTabDependencies) {
       exerciseDocument.name,
       undefined,
       exerciseDocument,
-      "portugol-rs",
+      "ferro-rust",
     );
     if (!workspaceExercise) return;
 

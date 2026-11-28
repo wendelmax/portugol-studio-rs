@@ -14,7 +14,7 @@
 
 - O resultado continua sendo um único `.rs` autônomo e compilável.
 - O comportamento observável de programas suportados permanece igual.
-- O suporte emitido pelo gerador não contém `PORS`/`pors`, `Portugol` nem identificadores da marca antiga; nomes e strings escritos pelo usuário são preservados.
+- O suporte emitido pelo gerador não contém `FERRO`/`ferro`, `Ferro` nem identificadores da marca antiga; nomes e strings escritos pelo usuário são preservados.
 - Helpers e runtimes necessários para recursos realmente usados permanecem disponíveis.
 - O escopo não renomeia APIs internas não exibidas pelo código gerado.
 
@@ -33,7 +33,7 @@
 **Arquivos:**
 - Modificar: `crates/ferro-rust/src/lib.rs`
 - Modificar: `crates/ferro-rust/src/codegen/{mod.rs,expr.rs,stmt.rs,types.rs,runtime.rs}`
-- Modificar: `crates/ferro-service/src/{pors_run.rs,lib.rs}`
+- Modificar: `crates/ferro-service/src/{ferro_run.rs,lib.rs}`
 - Modificar: `apps/desktop/src/learning-context.ts`
 - Atualizar expectativas existentes: `crates/ferro-rust/src/lib.rs`, `crates/ferro-service/src/lib.rs` e `apps/desktop/tests/learning-context.test.mjs`
 
@@ -42,7 +42,7 @@
 - O serviço deverá reconhecer os novos nomes de protocolo e marcador de entrada; os runtimes de biblioteca usarão nomes de variáveis `FERRO_*`.
 - A IDE deverá reconhecer os novos rótulos de laço nos trechos de Rust.
 
-- [ ] Renomear no texto gerado todos os helpers, módulos, rótulos de laço, nomes de protocolo, mensagens de ambiente e User-Agent que hoje expõem Portugol/PORS.
+- [ ] Renomear no texto gerado todos os helpers, módulos, rótulos de laço, nomes de protocolo, mensagens de ambiente e User-Agent que hoje expõem Ferro/FERRO.
 - [ ] Atualizar o serviço e a IDE para consumir os novos nomes sem alterar o fluxo de entrada.
 - [ ] Atualizar expectativas de testes existentes para os novos nomes; não criar casos de teste novos nesta tarefa.
 
@@ -69,4 +69,4 @@
 
 - [ ] Confirmar por inspeção que o corpo simples não inclui helpers de operações ausentes e que recursos especiais continuam incluindo suporte.
 - [ ] Rodar `cargo check -p ferro-rust -p ferro-service` e `git diff --check`.
-- [ ] Buscar `PORS|pors|PORTUGOL|portugol` no Rust gerado a partir das strings do codegen e confirmar ausência nos nomes emitidos.
+- [ ] Buscar `FERRO|ferro|FERRO|ferro` no Rust gerado a partir das strings do codegen e confirmar ausência nos nomes emitidos.

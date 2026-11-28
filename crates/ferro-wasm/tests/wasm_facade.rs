@@ -4,9 +4,9 @@ use ferro_bytecode::{Function, LocalInfo, Module, NativeRef, Op, ValueType};
 use ferro_hir::Span;
 use ferro_vm::ui::UiBudget;
 use ferro_wasm::{
-    RunBudget, SessionStore, export_rust_pors_json, format_pors_json, pors_alloc, pors_dealloc,
-    pors_export_rust, pors_format, pors_result_len, pors_result_ptr, pors_run, pors_ui_close,
-    pors_ui_start, pors_validate, run_pors_json, validate_pors_json,
+    RunBudget, SessionStore, export_rust_ferro_json, ferro_alloc, ferro_dealloc, ferro_export_rust,
+    ferro_format, ferro_result_len, ferro_result_ptr, ferro_run, ferro_ui_close, ferro_ui_start,
+    ferro_validate, format_ferro_json, run_ferro_json, validate_ferro_json,
 };
 
 fn local(name: &str, ty: ValueType) -> LocalInfo {
@@ -15,7 +15,7 @@ fn local(name: &str, ty: ValueType) -> LocalInfo {
         ty,
         dims: 0,
         by_ref: false,
-        pors_debug: None,
+        ferro_debug: None,
     }
 }
 
@@ -140,31 +140,31 @@ fn build_counter_ui_module() -> Module {
 }
 
 #[test]
-fn validates_and_formats_pors_sources_with_structured_json() {
+fn validates_and_formats_ferro_sources_with_structured_json() {
     let valid = "funcao inicio() {\n    seja x: inteiro = 1;\n    escreva(x);\n}\n";
     assert_eq!(
-        validate_pors_json(valid),
+        validate_ferro_json(valid),
         "{\"ok\":true,\"diagnostics\":[]}"
     );
 
-    let formatted_already = format_pors_json(valid);
+    let formatted_already = format_ferro_json(valid);
     assert!(formatted_already.contains("\"ok\":true"));
     assert!(formatted_already.contains("\"changed\":false"));
 
     let compact = "funcao inicio(){escreva(\"olá 🦀\");seja x:inteiro=2+3;escreva(x);}";
-    let formatted = format_pors_json(compact);
+    let formatted = format_ferro_json(compact);
     assert!(formatted.contains("\"ok\":true"));
     assert!(formatted.contains("\"changed\":true"));
     assert!(formatted.contains("seja x: inteiro = 2 + 3;"));
 
     let invalid = "funcao inicio() { escreva(desconhecido); }";
-    let invalid_json = validate_pors_json(invalid);
+    let invalid_json = validate_ferro_json(invalid);
     assert!(invalid_json.contains("\"ok\":false"));
-    assert!(invalid_json.contains("pors.unknown-name"));
+    assert!(invalid_json.contains("ferro.unknown-name"));
 }
 
 #[test]
-fn executes_pors_with_input_vectors_and_escapes_json_stdout() {
+fn executes_ferro_with_input_vectors_and_escapes_json_stdout() {
     let source = r#"
 funcao somar(itens: vetor<inteiro>) -> inteiro {
     seja mutavel total: inteiro = 0;
@@ -183,7 +183,7 @@ funcao inicio() {
     escreva("Aluno \"", nome, "\": ", somar(notas) + bonus);
 }
 "#;
-    let json = run_pors_json(source, "Ada\n12\n", RunBudget::default());
+    let json = run_ferro_json(source, "Ada\n12\n", RunBudget::default());
     assert_eq!(
         json,
         "{\"ok\":true,\"stdout\":\"Aluno \\\"Ada\\\": 42\",\"diagnostics\":[]}"
@@ -191,9 +191,9 @@ funcao inicio() {
 }
 
 #[test]
-fn enforces_step_string_memory_and_output_budgets_in_run_pors() {
+fn enforces_step_string_memory_and_output_budgets_in_run_ferro() {
     let infinite_loop = "funcao inicio() { enquanto (verdadeiro) {} }";
-    let step_err = run_pors_json(
+    let step_err = run_ferro_json(
         infinite_loop,
         "",
         RunBudget {
@@ -206,7 +206,7 @@ fn enforces_step_string_memory_and_output_budgets_in_run_pors() {
 
     let string_growth =
         "funcao inicio() { seja mutavel s: cadeia = \"a\"; enquanto (verdadeiro) { s += s; } }";
-    let mem_err = run_pors_json(
+    let mem_err = run_ferro_json(
         string_growth,
         "",
         RunBudget {
@@ -219,7 +219,7 @@ fn enforces_step_string_memory_and_output_budgets_in_run_pors() {
     assert!(mem_err.contains("\"limit\":\"string_memory\""));
 
     let output_flood = "funcao inicio() { enquanto (verdadeiro) { escreva(\"0123456789\"); } }";
-    let out_err = run_pors_json(
+    let out_err = run_ferro_json(
         output_flood,
         "",
         RunBudget {
@@ -277,7 +277,7 @@ fn drives_owned_mvu_ui_session_lifecycle_and_serializes_tree_json() {
 fn exercises_exported_c_abi_memory_and_result_buffer() {
     let source = "funcao inicio() { escreva(20 + 22); }";
     let src_bytes = source.as_bytes();
-    let ptr = pors_alloc(src_bytes.len());
+    let ptr = ferro_alloc(src_bytes.len());
     assert!(!ptr.is_null());
 
     // SAFETY: `ptr` foi alocado com exatamente `src_bytes.len()` bytes.
@@ -285,46 +285,46 @@ fn exercises_exported_c_abi_memory_and_result_buffer() {
         std::ptr::copy_nonoverlapping(src_bytes.as_ptr(), ptr, src_bytes.len());
     }
 
-    let validate_len = unsafe { pors_validate(ptr, src_bytes.len()) };
-    assert_eq!(validate_len, pors_result_len());
-    let validate_out = unsafe { slice::from_raw_parts(pors_result_ptr(), validate_len) };
+    let validate_len = unsafe { ferro_validate(ptr, src_bytes.len()) };
+    assert_eq!(validate_len, ferro_result_len());
+    let validate_out = unsafe { slice::from_raw_parts(ferro_result_ptr(), validate_len) };
     assert_eq!(
         std::str::from_utf8(validate_out).unwrap(),
         "{\"ok\":true,\"diagnostics\":[]}"
     );
 
-    let format_len = unsafe { pors_format(ptr, src_bytes.len()) };
-    let format_out = unsafe { slice::from_raw_parts(pors_result_ptr(), format_len) };
+    let format_len = unsafe { ferro_format(ptr, src_bytes.len()) };
+    let format_out = unsafe { slice::from_raw_parts(ferro_result_ptr(), format_len) };
     assert!(
         std::str::from_utf8(format_out)
             .unwrap()
             .contains("\"changed\":true")
     );
 
-    let run_len = unsafe { pors_run(ptr, src_bytes.len(), std::ptr::null(), 0, 0, 0, 0) };
-    let run_out = unsafe { slice::from_raw_parts(pors_result_ptr(), run_len) };
+    let run_len = unsafe { ferro_run(ptr, src_bytes.len(), std::ptr::null(), 0, 0, 0, 0) };
+    let run_out = unsafe { slice::from_raw_parts(ferro_result_ptr(), run_len) };
     assert_eq!(
         std::str::from_utf8(run_out).unwrap(),
         "{\"ok\":true,\"stdout\":\"42\",\"diagnostics\":[]}"
     );
 
     // Um programa comum sem iniciar/atualizar/visualizar devolve erro estruturado.
-    let ui_len = unsafe { pors_ui_start(ptr, src_bytes.len(), 0, 0, 0) };
-    let ui_out = unsafe { slice::from_raw_parts(pors_result_ptr(), ui_len) };
+    let ui_len = unsafe { ferro_ui_start(ptr, src_bytes.len(), 0, 0, 0) };
+    let ui_out = unsafe { slice::from_raw_parts(ferro_result_ptr(), ui_len) };
     assert!(
         std::str::from_utf8(ui_out)
             .unwrap()
             .contains("\"code\":\"missing_function\"")
     );
-    assert_eq!(pors_ui_close(999), 0);
+    assert_eq!(ferro_ui_close(999), 0);
 
     unsafe {
-        pors_dealloc(ptr, src_bytes.len());
+        ferro_dealloc(ptr, src_bytes.len());
     }
 }
 
 #[test]
-fn runs_pors_source_mvu_app_end_to_end_through_wasm_session_store() {
+fn runs_ferro_source_mvu_app_end_to_end_through_wasm_session_store() {
     let source = r#"
 registro Estado {
     contagem: inteiro,
@@ -354,7 +354,7 @@ funcao visualizar(estado: Estado) -> inteiro {
 }
 "#;
     let mut store = SessionStore::new();
-    let started = store.start_pors(source, UiBudget::default());
+    let started = store.start_ferro(source, UiBudget::default());
     assert!(started.contains("\"ok\":true"), "{started}");
     assert!(started.contains("\"session\":1"));
     assert!(started.contains("\"content\":\"Contador (): 0\""));
@@ -374,7 +374,7 @@ funcao visualizar(estado: Estado) -> inteiro {
 }
 
 #[test]
-fn executes_pors_core_libraries_in_zero_dep_wasm_facade() {
+fn executes_ferro_core_libraries_in_zero_dep_wasm_facade() {
     let source = r#"
 funcao dobro_parse(texto: cadeia) -> Resultado<inteiro, cadeia> {
     seja n: inteiro = Tipos.para_inteiro(Texto.aparar(texto))?;
@@ -388,12 +388,12 @@ funcao inicio() {
     }
 }
 "#;
-    let json = run_pors_json(source, "", RunBudget::default());
+    let json = run_ferro_json(source, "", RunBudget::default());
     assert_eq!(json, "{\"ok\":true,\"stdout\":\"0042\",\"diagnostics\":[]}");
 }
 
 #[test]
-fn executes_pors_util_and_calendario_in_zero_dep_wasm_facade() {
+fn executes_ferro_util_and_calendario_in_zero_dep_wasm_facade() {
     let source = r#"
 funcao inicio() {
     Util.definir_semente(7);
@@ -404,7 +404,7 @@ funcao inicio() {
     }
 }
 "#;
-    let json = run_pors_json(source, "", RunBudget::default());
+    let json = run_ferro_json(source, "", RunBudget::default());
     assert_eq!(
         json,
         "{\"ok\":true,\"stdout\":\"29|verdadeiro|verdadeiro\",\"diagnostics\":[]}"
@@ -412,11 +412,11 @@ funcao inicio() {
 }
 
 #[test]
-fn executes_pors_json_in_zero_dep_wasm_facade() {
+fn executes_ferro_json_in_zero_dep_wasm_facade() {
     let source = r#"
 funcao resumo() -> Resultado<cadeia, cadeia> {
     seja mutavel doc: cadeia = "{}";
-    doc = Json.definir_cadeia(doc, "curso", "PORS")?;
+    doc = Json.definir_cadeia(doc, "curso", "FERRO")?;
     doc = Json.definir_inteiro(doc, "versao", 2)?;
     doc = Json.definir_json(doc, "modulos", "[\"Texto\",\"Json\"]")?;
     seja curso: cadeia = Json.obter_cadeia(doc, "curso")?;
@@ -432,15 +432,15 @@ funcao inicio() {
     }
 }
 "#;
-    let json = run_pors_json(source, "", RunBudget::default());
+    let json = run_ferro_json(source, "", RunBudget::default());
     assert_eq!(
         json,
-        "{\"ok\":true,\"stdout\":\"PORS-2:Json|verdadeiro\",\"diagnostics\":[]}"
+        "{\"ok\":true,\"stdout\":\"FERRO-2:Json|verdadeiro\",\"diagnostics\":[]}"
     );
 }
 
 #[test]
-fn returns_typed_error_for_pors_internet_in_wasm_facade() {
+fn returns_typed_error_for_ferro_internet_in_wasm_facade() {
     let source = r#"
 funcao inicio() {
     Internet.definir_tempo_limite(1000);
@@ -450,7 +450,7 @@ funcao inicio() {
     }
 }
 "#;
-    let json = run_pors_json(source, "", RunBudget::default());
+    let json = run_ferro_json(source, "", RunBudget::default());
     assert_eq!(
         json,
         "{\"ok\":true,\"stdout\":\"WASM_ERR\",\"diagnostics\":[]}"
@@ -458,35 +458,35 @@ funcao inicio() {
 }
 
 #[test]
-fn exports_pors_to_rust_through_wasm_facade_and_ffi() {
+fn exports_ferro_to_rust_through_wasm_facade_and_ffi() {
     let source = "funcao inicio() { seja idade: inteiro = 18; escreva(idade); }";
-    let json = export_rust_pors_json(source);
+    let json = export_rust_ferro_json(source);
     assert!(json.starts_with("{\"ok\":true,\"code\":\""), "{json}");
     assert!(json.contains("fn main()"), "{json}");
     assert!(json.contains("pt_idade: i32 = 18_i32"), "{json}");
 
-    let invalid = export_rust_pors_json("funcao inicio() { seja idade: inteiro = ; }");
+    let invalid = export_rust_ferro_json("funcao inicio() { seja idade: inteiro = ; }");
     assert!(invalid.starts_with("{\"ok\":false,"), "{invalid}");
     assert!(invalid.contains("\"code\":\"diagnostics\""), "{invalid}");
 
     let bytes = source.as_bytes();
-    let ptr = pors_alloc(bytes.len());
+    let ptr = ferro_alloc(bytes.len());
     assert!(!ptr.is_null());
     unsafe {
         std::ptr::copy_nonoverlapping(bytes.as_ptr(), ptr, bytes.len());
-        let len = pors_export_rust(ptr, bytes.len());
-        assert_eq!(len, pors_result_len());
-        let out = std::str::from_utf8(slice::from_raw_parts(pors_result_ptr(), len)).unwrap();
+        let len = ferro_export_rust(ptr, bytes.len());
+        assert_eq!(len, ferro_result_len());
+        let out = std::str::from_utf8(slice::from_raw_parts(ferro_result_ptr(), len)).unwrap();
         assert!(out.contains("\"ok\":true"), "{out}");
         assert!(out.contains("fn main()"), "{out}");
-        pors_dealloc(ptr, bytes.len());
+        ferro_dealloc(ptr, bytes.len());
     }
 }
 
 #[test]
 fn executes_canonical_syntax_evolution_program_through_wasm_facade() {
-    let source = include_str!("../../../tests/fixtures/pors-syntax-evolution.fer");
-    let json = run_pors_json(source, "Ada\n", RunBudget::default());
+    let source = include_str!("../../../tests/fixtures/ferro-syntax-evolution.fer");
+    let json = run_ferro_json(source, "Ada\n", RunBudget::default());
     assert_eq!(
         json,
         "{\"ok\":true,\"stdout\":\"Olá, Ada!\\n\",\"diagnostics\":[]}"

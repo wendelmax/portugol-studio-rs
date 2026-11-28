@@ -13,7 +13,7 @@ function fixture({ copyText } = {}) {
   const form = { hidden: false, handler: null, addEventListener(name, handler) { assert.equal(name, "submit"); this.handler = handler; } };
   const input = { value: "resposta" };
   let runId = 7;
-  let language = "portugol-rs";
+  let language = "ferro-rust";
   mountRunToolbar({
     button: (id) => buttons.get(id),
     form,
@@ -21,7 +21,7 @@ function fixture({ copyText } = {}) {
     runId: () => runId,
     activeLanguage: () => language,
     runOrContinue: () => events.push(["run"]),
-    stepOrStart: () => events.push(["debug"]),
+    stepDebugOrStart: () => events.push(["debug"]),
     stop: () => events.push(["stop"]),
     pause: (id) => events.push(["pause", id]),
     continueDebug: () => events.push(["continue"]),
@@ -43,7 +43,7 @@ function fixture({ copyText } = {}) {
   };
 }
 
-test("run and debugger buttons dispatch their commands for PORS, but not Rust", () => {
+test("run and debugger buttons dispatch their commands for FERRO, but not Rust", () => {
   const f = fixture();
 
   f.buttons.get("btn-run").onclick();

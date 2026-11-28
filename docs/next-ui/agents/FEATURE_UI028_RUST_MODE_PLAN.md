@@ -8,7 +8,7 @@
 
 **Tech Stack:** TypeScript, CodeMirror 6, Tauri 2, Node `node:test`.
 
-**Spec:** `docs/portugol-studio-next-integration/docs/agents/FEATURE_UI028_RUST_MODE_DESIGN.md`.
+**Spec:** `docs/ferro-studio-next-integration/docs/agents/FEATURE_UI028_RUST_MODE_DESIGN.md`.
 
 ## Restrições globais
 
@@ -20,7 +20,7 @@
 ## Foco de revisão
 
 - Valor persistido `rust` com toolchain ausente: selector deve recuar para modo utilizável, sem alegar execução.
-- Alternar modo com arquivo Portugol ativo: buffer e linguagem não mudam.
+- Alternar modo com arquivo Ferro ativo: buffer e linguagem não mudam.
 - Conceito ownership: laboratório continua rotulado como simulação didática.
 - Arquivo Rust ativo: caminho de consentimento e comandos de execução continuam intactos.
 - Storage inacessível/corrompido: app mantém fallback Beginner sem quebrar boot.
@@ -30,7 +30,7 @@
 - Modificar `apps/desktop/src/learning-mode.ts` e `tests/learning-mode.test.mjs` para reconhecer/persistir o terceiro valor.
 - Modificar `apps/desktop/src/learning-content.ts` e `tests/learning-content.test.mjs` para definir conceitos por nível.
 - Modificar `apps/desktop/index.html`, `src/main.ts` e `tests/learning-mode.test.mjs` para estado de disponibilidade, descrição, visibilidade do conteúdo e preservação do documento.
-- Atualizar `docs/PARIDADE.md`, `docs/portugol-studio-next-integration/docs/agents/IMPLEMENTATION_GAP_REPORT.md`, `docs/portugol-studio-next-integration/docs/quality/TRACEABILITY_MATRIX.yaml` e relatório de feature.
+- Atualizar `docs/PARIDADE.md`, `docs/ferro-studio-next-integration/docs/agents/IMPLEMENTATION_GAP_REPORT.md`, `docs/ferro-studio-next-integration/docs/quality/TRACEABILITY_MATRIX.yaml` e relatório de feature.
 
 ## Tarefas
 

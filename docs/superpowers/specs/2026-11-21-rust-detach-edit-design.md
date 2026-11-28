@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Completar a ponte de aprendizagem permitindo que o aluno transforme a prévia gerada em um documento Rust editável, sem alterar o programa de origem. O projeto mantém `.por` para Portugol clássico e `.pors` para Portugol-RS; Rust real usa `.rs`.
+Completar a ponte de aprendizagem permitindo que o aluno transforme a prévia gerada em um documento Rust editável, sem alterar o programa de origem. O projeto mantém `.por` para pseudocódigo clássico e `.fer` para Ferro; Rust real usa `.rs`.
 
 ## Experiência
 
@@ -11,7 +11,7 @@ Completar a ponte de aprendizagem permitindo que o aluno transforme a prévia ge
 - A aba `.rs` é independente. Traduções posteriores não modificam seu conteúdo.
 - Arquivos `.rs` podem ser abertos, editados, salvos, criados, renomeados e excluídos no Explorador.
 - O editor usa realce de sintaxe Rust e oferece salvar como `.rs`.
-- Rust ainda não é executado, depurado, inspecionado como Portugol nem traduzido novamente. Os controles incompatíveis ficam desabilitados com explicação acessível.
+- Rust ainda não é executado, depurado, inspecionado como Ferro nem traduzido novamente. Os controles incompatíveis ficam desabilitados com explicação acessível.
 
 ## Alternativas
 
@@ -21,11 +21,11 @@ Completar a ponte de aprendizagem permitindo que o aluno transforme a prévia ge
 
 ## Regras e estados
 
-- `.por`, `.pors` e `.pex` mantêm os comportamentos atuais.
-- `.rs` nunca passa pelo interpretador Portugol nem pelo inspetor/formatador/completador Portugol.
+- `.por`, `.fer` e `.pex` mantêm os comportamentos atuais.
+- `.rs` nunca passa pelo interpretador Ferro nem pelo inspetor/formatador/completador Ferro.
 - Desvincular sem código gerado disponível fica indisponível.
 - Cancelar salvar como não altera caminho, linguagem ou estado salvo.
-- A prévia só deve ser oferecida quando a aba ativa for Portugol ou Portugol-RS.
+- A prévia só deve ser oferecida quando a aba ativa for Ferro ou Ferro.
 - Workspace aceita `.rs` nas operações já existentes para fontes suportadas, com a mesma restrição de caminhos e operações exclusivas existente.
 
 ## Validação

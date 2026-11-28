@@ -5,7 +5,7 @@
 
 ## Contexto
 
-O design do Portugol Studio Next pede que as proporções de painéis sejam persistidas por workspace. A implementação atual salva as proporções das divisórias explorador, painel inferior e utilitários sob uma única chave global `portugol.pane-layout.v1`.
+O design do Ferro Studio Next pede que as proporções de painéis sejam persistidas por workspace. A implementação atual salva as proporções das divisórias explorador, painel inferior e utilitários sob uma única chave global `ferro.pane-layout.v1`.
 
 ## Decisão
 

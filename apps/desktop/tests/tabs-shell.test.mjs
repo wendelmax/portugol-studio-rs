@@ -59,7 +59,7 @@ function fixture() {
 
 test("tab shell creates and activates tabs and checks dirty state against the active editor", () => {
   const f = fixture();
-  const tab = f.shell.newTab("salvo", "aula.pors");
+  const tab = f.shell.newTab("salvo", "aula.fer");
   f.setCurrentText("salvo");
 
   assert.equal(tab.id, 1);
@@ -72,15 +72,15 @@ test("tab shell creates and activates tabs and checks dirty state against the ac
 
 test("tab shell renders cursor and tab strip, and closes dirty tabs only after confirmation", async () => {
   const f = fixture();
-  const tab = f.shell.newTab("um\ndois", "aula.pors");
+  const tab = f.shell.newTab("um\ndois", "aula.fer");
   f.setCurrentText("um\ndois");
   f.setEditorState(EditorState.create({ doc: "um\ndois", selection: { anchor: 5 } }));
   f.shell.renderCursor();
   f.shell.renderTabs();
 
   assert.deepEqual(f.prompts[0], ["cursor", "Linha 2, coluna 3"]);
-  assert.equal(f.document.title, "aula.pors — Ferro Studio");
-  assert.equal(f.container.children[1].children[0].textContent, "aula.pors");
+  assert.equal(f.document.title, "aula.fer — Ferro Studio");
+  assert.equal(f.container.children[1].children[0].textContent, "aula.fer");
 
   f.setCurrentText("alterado");
   assert.equal(await f.shell.closeTab(tab.id), false);

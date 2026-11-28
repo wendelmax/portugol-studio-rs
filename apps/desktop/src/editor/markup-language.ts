@@ -1,4 +1,4 @@
-// Realce da marcação dos projetos desktop PORS (ADR 0018): o pseudo-XAML dos
+// Realce da marcação dos projetos desktop FERRO (ADR 0018): o pseudo-XAML dos
 // arquivos .design e o manifesto .ferproj. O realce é só apresentação; a
 // validade do documento vem dos diagnósticos do backend.
 
@@ -47,7 +47,7 @@ function readValue(stream: StringStream, state: MarkupState): string {
 }
 
 export const markupStreamParser = {
-  name: "pors-markup",
+  name: "ferro-markup",
   startState: (): MarkupState => ({ inTag: false, expectTagName: false, inComment: false, quote: null }),
   copyState: (state: MarkupState): MarkupState => ({ ...state }),
   token(stream: StringStream, state: MarkupState): string | null {

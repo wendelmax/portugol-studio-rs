@@ -38,7 +38,7 @@ const fields = {
 } as const;
 
 const colorKeys = [...THEME_COLOR_FIELDS];
-const storeKey = "portugol.customThemes";
+const storeKey = "ferro.customThemes";
 const validColor = (value: unknown): value is string => typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value);
 const key = (name: string) => `custom:${name}`;
 

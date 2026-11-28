@@ -6,11 +6,11 @@ Funcionalidade: Execução observável e cancelável
   Para ver resultados verdadeiros, erros e progresso
 
   Cenário: execução bem-sucedida
-    Dado que o motor Portugol está disponível
+    Dado que o motor Ferro está disponível
     E o documento ativo válido está na revisão 7
     Quando pressiono F5
     Então a execução captura a revisão 7
-    E a saída identifica o motor Portugol
+    E a saída identifica o motor Ferro
     E o botão de parar fica disponível durante a execução
     Quando chega o evento de término com código 0
     Então a execução é marcada como concluída com sucesso
