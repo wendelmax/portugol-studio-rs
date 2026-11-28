@@ -162,6 +162,14 @@ pub(crate) fn new_project(args: &[String]) -> ExitCode {
     }
 }
 
+/// `ferro novo --jogo <pasta> [--nome "Nome do jogo"]`
+pub(crate) fn new_game_project() -> ExitCode {
+    eprintln!(
+        "`ferro novo --jogo` ainda não está disponível neste build: o validador .ferproj atual só aceita projetos desktop."
+    );
+    ExitCode::FAILURE
+}
+
 /// Formata um `.design` ou `.ferproj`.
 pub(crate) fn format_markup(path: &Path, source: &str, check_only: bool) -> ExitCode {
     let file = path.display();

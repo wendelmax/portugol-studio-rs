@@ -10,6 +10,22 @@ Os instaladores do **Ferro Studio** são gerados pelo workflow
 | Linux (x86_64 e ARM64) | `.deb`, `.rpm`, `.AppImage` e `.pkg.tar.zst` (Arch Linux) |
 | macOS (Apple Silicon ARM64 e Intel x86_64) | `.dmg` e `.app` |
 
+O executável de terminal `ferro` é incluído nos instaladores: pacotes Linux
+instalam `/usr/bin/ferro`; os instaladores Windows adicionam a pasta do CLI ao
+`PATH` do usuário. No macOS, depois de copiar Ferro Studio para Aplicativos,
+execute `install-ferro-cli.command` dentro dos recursos do app para instalar
+`~/.local/bin/ferro` e registrar esse diretório no `~/.zprofile`. O AppImage é
+portátil e não altera o `PATH`; extraia e instale o CLI com:
+
+```bash
+./Ferro-Studio.AppImage --appimage-extract
+install -Dm755 squashfs-root/usr/bin/ferro "$HOME/.local/bin/ferro"
+```
+
+Se `~/.local/bin` ainda não estiver no `PATH`, adicione
+`export PATH="$HOME/.local/bin:$PATH"` ao arquivo de inicialização do seu
+shell e abra um novo terminal.
+
 No **Arch Linux** (`x86_64` e `aarch64`), os pacotes `.pkg.tar.zst` são gerados automaticamente pelo grupo `linux_arch` em [`.github/workflows/release.yml`](../.github/workflows/release.yml) usando [`packaging/arch/PKGBUILD`](../packaging/arch/PKGBUILD) e [`packaging/arch/build-package.sh`](../packaging/arch/build-package.sh). Para instalar um pacote baixado: `sudo pacman -U ferro-studio-*.pkg.tar.zst`. Para gerar localmente: `bash packaging/arch/build-package.sh`.
 
 ## Como publicar uma versão
@@ -150,6 +166,11 @@ checksum de cada arquivo aparece na página do release.
 Programas **Ferro (`.fer`)** e exercícios **`.licao`** executam e
 depuram diretamente na máquina virtual embutida na IDE, sem precisar instalar
 nada além do instalador.
+
+O CLI instalado executa programas `.fer` com `ferro programa.fer`; a validação
+usa `ferro valida [arquivo-ou-pasta]`. Ele não precisa da toolchain Rust para
+executar Ferro. Para desenvolver no repositório, `cargo run -p ferro-cli --`
+continua sendo uma forma de iniciar o mesmo binário.
 
 Os instaladores não incluem nem instalam `rustc`. A toolchain Rust
 ([rustup.rs](https://rustup.rs)) só é necessária para executar arquivos `.rs`,

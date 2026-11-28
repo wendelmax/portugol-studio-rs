@@ -28,6 +28,10 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "resources": {
+      "binaries/ferro": "binaries/ferro",
+      "scripts/install-ferro-cli.command": "install-ferro-cli.command"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -76,12 +80,27 @@
         "installMode": "currentUser"
       },
       "wix": {
-        "language": "pt-BR"
+        "language": "pt-BR",
+        "fragmentPaths": ["windows/fragments/ferro-cli-path.wxs"],
+        "componentRefs": ["FerroCliPath"]
       }
     },
     "linux": {
       "deb": {
-        "section": "education"
+        "section": "education",
+        "files": {
+          "/usr/bin/ferro": "src-tauri/binaries/ferro"
+        }
+      },
+      "rpm": {
+        "files": {
+          "/usr/bin/ferro": "src-tauri/binaries/ferro"
+        }
+      },
+      "appimage": {
+        "files": {
+          "/usr/bin/ferro": "src-tauri/binaries/ferro"
+        }
       }
     },
     "macOS": {

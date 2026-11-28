@@ -41,7 +41,7 @@ fn creates_validates_formats_exports_and_executes_ferro_files() {
     assert!(!duplicate.status.success());
 
     // Valida modelo criado.
-    let checked = cli().arg(&starter).output().unwrap();
+    let checked = cli().args(["valida"]).arg(&starter).output().unwrap();
     assert!(checked.status.success(), "{checked:?}");
 
     // Modelo já está formatado.
@@ -74,6 +74,60 @@ fn creates_validates_formats_exports_and_executes_ferro_files() {
         .unwrap();
     assert!(exported.status.success(), "{exported:?}");
     assert!(String::from_utf8_lossy(&exported.stdout).contains("fn main()"));
+}
+
+#[test]
+fn direct_file_runs_and_validation_has_an_explicit_command() {
+    let dir = TempDir::new();
+    let starter = dir.0.join("ola.fer");
+    fs::write(&starter, "funcao inicio() { escreva(42); }\n").unwrap();
+
+    let executed = cli().arg(&starter).output().unwrap();
+    assert!(executed.status.success(), "{executed:?}");
+    assert_eq!(String::from_utf8_lossy(&executed.stdout), "42");
+
+    let checked = cli().args(["valida"]).arg(&starter).output().unwrap();
+    assert!(checked.status.success(), "{checked:?}");
+    assert!(String::from_utf8_lossy(&checked.stdout).contains("1 arquivo(s)"));
+
+    let current_dir_check = cli().current_dir(&dir.0).args(["valida"]).output().unwrap();
+    assert!(current_dir_check.status.success(), "{current_dir_check:?}");
+    assert!(String::from_utf8_lossy(&current_dir_check.stdout).contains("1 arquivo(s)"));
+}
+
+#[test]
+fn cli_has_portuguese_help_syntax_and_version_commands() {
+    let help = cli().arg("ajuda").output().unwrap();
+    assert!(help.status.success(), "{help:?}");
+    assert!(String::from_utf8_lossy(&help.stdout).contains("ferro valida"));
+
+    let command_help = cli().args(["ajuda", "executar"]).output().unwrap();
+    assert!(command_help.status.success(), "{command_help:?}");
+    assert!(String::from_utf8_lossy(&command_help.stdout).contains("ferro executar"));
+
+    let syntax = cli().arg("sintaxe").output().unwrap();
+    assert!(syntax.status.success(), "{syntax:?}");
+    let syntax = String::from_utf8_lossy(&syntax.stdout);
+    assert!(syntax.contains("funcao"));
+    assert!(syntax.contains("seja"));
+
+    let version = cli().arg("--version").output().unwrap();
+    assert!(version.status.success(), "{version:?}");
+    assert!(String::from_utf8_lossy(&version.stdout).starts_with("ferro "));
+}
+
+#[test]
+fn game_project_creation_reports_that_manifest_type_is_not_supported_yet() {
+    let dir = TempDir::new();
+    let target = dir.0.join("meu-jogo");
+    let result = cli()
+        .args(["novo", "--jogo"])
+        .arg(&target)
+        .output()
+        .unwrap();
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("só aceita projetos desktop"));
+    assert!(!target.exists());
 }
 
 #[test]
@@ -355,12 +409,12 @@ fn validates_screen_code_behind_with_the_types_from_the_design() {
         "funcao btnOk_clicar(tela: JanelaPrincipal) -> JanelaPrincipal {\n    seja mutavel t: JanelaPrincipal = tela;\n    t.btnOk.texto = \"Clicado\";\n    t.titulo = \"Pronto\";\n    retorne t;\n}\n",
     )
     .unwrap();
-    let checked = cli().arg(&code).output().unwrap();
+    let checked = cli().args(["valida"]).arg(&code).output().unwrap();
     assert!(checked.status.success(), "{checked:?}");
 
     // Sem o .design ao lado, o mesmo código não conhece JanelaPrincipal.
     fs::remove_file(&design).unwrap();
-    let alone = cli().arg(&code).output().unwrap();
+    let alone = cli().args(["valida"]).arg(&code).output().unwrap();
     assert!(!alone.status.success());
 }
 
@@ -373,7 +427,7 @@ fn ui_obsoleto_aparece_como_aviso_sem_falhar() {
         "funcao iniciar() -> inteiro {\n    retorne 0;\n}\n\nfuncao atualizar(estado: inteiro, tipo: cadeia, alvo: cadeia) -> inteiro {\n    retorne estado;\n}\n\nfuncao visualizar(estado: inteiro) -> inteiro {\n    retorne UI.texto(\"oi\");\n}\n",
     )
     .unwrap();
-    let checked = cli().arg(&file).output().unwrap();
+    let checked = cli().args(["valida"]).arg(&file).output().unwrap();
     assert!(checked.status.success(), "{checked:?}");
     let stdout = String::from_utf8_lossy(&checked.stdout);
     assert!(stdout.contains("1 aviso(s)"), "{stdout}");
