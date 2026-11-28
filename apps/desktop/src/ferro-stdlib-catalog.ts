@@ -38,6 +38,8 @@ export const FERRO_STDLIB_MODULES = [
   "Calendario",
   "Arquivos",
   "Dialogo",
+  "AreaTransferencia",
+  "Notificacao",
   "Json",
   "Internet",
   "Graficos",
@@ -326,6 +328,37 @@ export const FERRO_STDLIB_CATALOG: readonly FerroStdlibModule[] = [
       fn("confirmar", "Dialogo.confirmar(texto: cadeia) -> logico", "Pergunta com Sim e Não; devolve `verdadeiro` para Sim."),
       fn("abrir_arquivo", "Dialogo.abrir_arquivo(dialogo: DialogoArquivo) -> Opcao<cadeia>", "Escolhe um arquivo para abrir com o título e o filtro do `<DialogoArquivo>` da tela (`t.dlgAbrir`); `Opcao::Nenhum` se o usuário cancelar."),
       fn("salvar_arquivo", "Dialogo.salvar_arquivo(dialogo: DialogoArquivo) -> Opcao<cadeia>", "Escolhe onde salvar, com o título e o filtro do `<DialogoArquivo>` da tela; `Opcao::Nenhum` se o usuário cancelar."),
+    ],
+  },
+  {
+    id: "ferro-lib:AreaTransferencia",
+    module: "AreaTransferencia",
+    name: "FERRO: AreaTransferencia",
+    group: "visual",
+    description: "Copiar e colar texto pela área de transferência do sistema, nas funções de uma tela desktop.",
+    example: {
+      title: "Copiando um resultado (numa função de tela)",
+      fileName: "exemplo-area-transferencia.fer",
+      source: `funcao inicio() {\n    AreaTransferencia.copiar("42");\n    escolha AreaTransferencia.colar() {\n        caso Opcao::Algum(texto) => { escreva(texto); }\n        caso Opcao::Nenhum => { escreva("Nada para colar"); }\n    }\n}\n`,
+    },
+    items: [
+      fn("copiar", "AreaTransferencia.copiar(texto: cadeia) -> vazio", "Põe o texto na área de transferência do sistema."),
+      fn("colar", "AreaTransferencia.colar() -> Opcao<cadeia>", "Texto da área de transferência; `Opcao::Nenhum` se ela estiver vazia ou sem texto."),
+    ],
+  },
+  {
+    id: "ferro-lib:Notificacao",
+    module: "Notificacao",
+    name: "FERRO: Notificacao",
+    group: "visual",
+    description: "Aviso do sistema, fora da janela, para as telas desktop (por exemplo, ao terminar uma tarefa).",
+    example: {
+      title: "Avisando que terminou (numa função de tela)",
+      fileName: "exemplo-notificacao.fer",
+      source: `funcao inicio() {\n    Notificacao.mostrar("Backup", "As notas foram salvas.");\n}\n`,
+    },
+    items: [
+      fn("mostrar", "Notificacao.mostrar(titulo: cadeia, texto: cadeia) -> vazio", "Mostra uma notificação do sistema; com título vazio, usa o título da janela."),
     ],
   },
   {

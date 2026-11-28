@@ -322,6 +322,11 @@ impl Parser {
             ("Arquivos", "remover") => Some((&[S], RetRes(B))),
             ("Arquivos", "listar") => Some((&[S], RetRes(hir::Type::VectorString))),
 
+            ("AreaTransferencia", "copiar") => Some((&[S], Ret(hir::Type::Unit))),
+            ("AreaTransferencia", "colar") => Some((&[], RetOpt(S))),
+
+            ("Notificacao", "mostrar") => Some((&[S, S], Ret(hir::Type::Unit))),
+
             ("Json", "valido") => Some((&[S], Ret(B))),
             ("Json", "formatar") => Some((&[S], RetRes(S))),
             ("Json", "minificar") => Some((&[S], RetRes(S))),

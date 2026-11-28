@@ -221,6 +221,8 @@ impl Parser {
                         | "Calendario"
                         | "Arquivos"
                         | "Dialogo"
+                        | "AreaTransferencia"
+                        | "Notificacao"
                         | "Json"
                         | "Internet"
                         | "Graficos"

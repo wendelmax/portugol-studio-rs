@@ -10,11 +10,13 @@
 mod arquivos;
 mod calendario;
 #[cfg(feature = "stdlib")]
-pub(crate) mod dialogo;
+mod dialogo;
 mod internet;
 mod json;
 mod matematica;
 mod multimedia;
+#[cfg(feature = "stdlib")]
+pub(crate) mod servicos;
 mod texto;
 mod tipos;
 mod util;
