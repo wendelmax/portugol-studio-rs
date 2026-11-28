@@ -62,7 +62,7 @@ test("maps exact conditionals and loops to their learning concepts", () => {
     {
       conceptId: "loops",
       source: countedSource,
-      rust: `{\n    let mut pt_i: i32 = 0_i32;\n    'pors_for_${countedSource.indexOf("para")}: while pt_i < 3_i32 {\n        println!("{pt_i}");\n        pt_i = (pt_i).wrapping_add(1_i32);\n    }\n}`,
+      rust: `{\n    let mut pt_i: i32 = 0_i32;\n    'ferro_for_${countedSource.indexOf("para")}: while pt_i < 3_i32 {\n        println!("{pt_i}");\n        pt_i = (pt_i).wrapping_add(1_i32);\n    }\n}`,
     },
   ];
 

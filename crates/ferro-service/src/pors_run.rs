@@ -600,7 +600,7 @@ fn compile_and_run_generated(
     configure_process_tree(&mut executable);
     if on_input.is_some() {
         executable
-            .env("PORTUGOL_STUDIO_INPUT_PROTOCOL", "1")
+            .env("FERRO_STUDIO_INPUT_PROTOCOL", "1")
             .stdin(Stdio::piped());
     }
     let execution = executable
@@ -1056,7 +1056,7 @@ fn send_pipe_line(
     captured: &AtomicUsize,
     exceeded: &AtomicBool,
 ) -> Result<(), ()> {
-    const INPUT_PREFIX: &[u8] = b"\x1ePORTUGOL_INPUT:";
+    const INPUT_PREFIX: &[u8] = b"\x1eFERRO_INPUT:";
     if detect_input_requests
         && let Some(start) = bytes
             .windows(INPUT_PREFIX.len())

@@ -72,7 +72,7 @@ pub(super) fn render_statements(
                 }
                 if ty == Type::String && *op == AssignOp::Add {
                     if pors {
-                        output.push_str(&format!("{indent}{name} = __pors_concat(&{name}, "));
+                        output.push_str(&format!("{indent}{name} = __ferro_concat(&{name}, "));
                         push_expr(output, mappings, value, program, false, pors);
                         output.push_str(".as_str());\n");
                     } else {
@@ -145,7 +145,7 @@ pub(super) fn render_statements(
                     }
                 }
                 if field_ty == Type::String && *op == AssignOp::Add && pors {
-                    output.push_str(&format!("{indent}{place} = __pors_concat(&{place}, "));
+                    output.push_str(&format!("{indent}{place} = __ferro_concat(&{place}, "));
                     push_expr(output, mappings, value, program, false, pors);
                     output.push_str(".as_str());\n");
                 } else {
@@ -171,8 +171,8 @@ pub(super) fn render_statements(
                 value,
             } => {
                 let name = rust_ident(&binding_info(program, *binding).source_name);
-                let checked_index = format!("__pors_index_{}", statement.span.start);
-                output.push_str(&format!("{indent}let {checked_index} = __pors_index("));
+                let checked_index = format!("__ferro_index_{}", statement.span.start);
+                output.push_str(&format!("{indent}let {checked_index} = __ferro_index("));
                 push_expr(output, mappings, index, program, false, pors);
                 output.push_str(&format!(
                     ", {name}.len());\n{indent}{name}[{checked_index}] = "
@@ -194,7 +194,7 @@ pub(super) fn render_statements(
                 let temps: Vec<String> = values
                     .iter()
                     .enumerate()
-                    .map(|(index, _)| format!("__portugol_write_{index}"))
+                    .map(|(index, _)| format!("__ferro_write_{index}"))
                     .collect();
                 for (temp, value) in temps.iter().zip(values) {
                     output.push_str(&format!("{indent}let {temp} = "));
@@ -206,7 +206,7 @@ pub(super) fn render_statements(
                         Type::Boolean => {
                             format!("if {temp} {{ \"verdadeiro\" }} else {{ \"falso\" }}")
                         }
-                        Type::Real => format!("__portugol_java_double({temp})"),
+                        Type::Real => format!("__ferro_java_double({temp})"),
                         _ => temp.clone(),
                     };
                     output.push_str(&format!("{indent}print!(\"{{}}\", {expression});\n"));
@@ -216,7 +216,7 @@ pub(super) fn render_statements(
             StmtKind::Read { binding, .. } => {
                 let declaration = binding_info(program, *binding);
                 let name = rust_ident(&declaration.source_name);
-                let input = format!("__portugol_input_{}", statement.span.start);
+                let input = format!("__ferro_input_{}", statement.span.start);
                 let label = match declaration.ty {
                     Type::Integer => "inteiro",
                     Type::Real => "real",
@@ -234,12 +234,12 @@ pub(super) fn render_statements(
                     Type::Enum(_) => unreachable!("leitura de enum ainda não suportada"),
                 };
                 output.push_str(&format!(
-                    "{indent}let {input} = __portugol_read_line(\"{label}\");\n"
+                    "{indent}let {input} = __ferro_read_line(\"{label}\");\n"
                 ));
                 match declaration.ty {
-                    Type::String if pors => output.push_str(&format!("{indent}{name} = __pors_string(&{input});\n")),
+                    Type::String if pors => output.push_str(&format!("{indent}{name} = __ferro_string(&{input});\n")),
                     Type::Boolean => output.push_str(&format!("{indent}{name} = match {input}.trim() {{ \"verdadeiro\" | \"true\" => true, \"falso\" | \"false\" => false, _ => {{ eprintln!(\"Entrada inválida: esperado lógico.\"); std::process::exit(1); }} }};\n")),
-                    _ => output.push_str(&format!("{indent}{name} = __portugol_parse::<{}>(&{input}, \"{label}\");\n", rust_type(declaration.ty, program))),
+                    _ => output.push_str(&format!("{indent}{name} = __ferro_parse::<{}>(&{input}, \"{label}\");\n", rust_type(declaration.ty, program))),
                 }
             }
             StmtKind::Call {
@@ -378,7 +378,7 @@ pub(super) fn render_statements(
                 output.push_str(&format!("{indent}}}\n"));
             }
             StmtKind::DoWhile { body, condition } => {
-                let flag = format!("__pors_do_{}", statement.span.start);
+                let flag = format!("__ferro_do_{}", statement.span.start);
                 output.push_str(&format!("{indent}let mut {flag} = true;\n"));
                 output.push_str(&format!("{indent}while {flag} || ("));
                 push_expr(output, mappings, condition, program, false, pors);
@@ -405,11 +405,11 @@ pub(super) fn render_statements(
                     None,
                 );
                 let loop_indent = "    ".repeat(depth + 1);
-                output.push_str(&format!("{loop_indent}'pors_for_{label}: while "));
+                output.push_str(&format!("{loop_indent}'ferro_for_{label}: while "));
                 push_expr(output, mappings, condition, program, false, pors);
                 output.push_str(" {\n");
                 let body_scope_indent = "    ".repeat(depth + 2);
-                output.push_str(&format!("{body_scope_indent}'pors_body_{label}: {{\n"));
+                output.push_str(&format!("{body_scope_indent}'ferro_body_{label}: {{\n"));
                 render_statements(
                     body,
                     program,
@@ -434,13 +434,13 @@ pub(super) fn render_statements(
             StmtKind::LoopControl { control } => {
                 if *control == LoopControl::Continue {
                     if let Some(label) = for_label {
-                        output.push_str(&format!("{indent}break 'pors_body_{label};\n"));
+                        output.push_str(&format!("{indent}break 'ferro_body_{label};\n"));
                     } else {
                         output.push_str(&format!("{indent}continue;\n"));
                     }
                 } else {
                     if let Some(label) = for_label {
-                        output.push_str(&format!("{indent}break 'pors_for_{label};\n"));
+                        output.push_str(&format!("{indent}break 'ferro_for_{label};\n"));
                     } else {
                         output.push_str(&format!("{indent}break;\n"));
                     }

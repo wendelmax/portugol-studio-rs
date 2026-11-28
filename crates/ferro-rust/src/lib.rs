@@ -77,7 +77,7 @@ pub fn export_portugol_rs_cargo_project(
 ) -> Result<ExportedCargoProject, Vec<Diagnostic>> {
     let generated = export_portugol_rs_with_map(source)?;
     let package_name = sanitize_cargo_package_name(requested_name);
-    let is_visual = generated.code.contains("mod __pors_ui");
+    let is_visual = generated.code.contains("mod __ferro_ui");
     let cargo_toml =
         format!("[package]\nname = \"{package_name}\"\nversion = \"0.1.0\"\nedition = \"2024\"\n");
     let readme_md = if is_visual {
@@ -307,7 +307,7 @@ fn format_real(value: f64) -> String {
     }
 }
 
-const JAVA_DOUBLE_HELPER: &str = r#"fn __portugol_java_double(value: f64) -> String {
+const JAVA_DOUBLE_HELPER: &str = r#"fn __ferro_java_double(value: f64) -> String {
     if value.is_nan() { return "NaN".to_owned(); }
     if value.is_infinite() { return if value > 0.0 { "Infinity" } else { "-Infinity" }.to_owned(); }
     if value == 0.0 { return if value.is_sign_negative() { "-0.0" } else { "0.0" }.to_owned(); }
@@ -424,7 +424,7 @@ mod tests {
             [mapping.generated.start as usize..mapping.generated.end as usize]
             .trim_start();
         assert!(generated_loop.starts_with("{\n"));
-        assert!(generated_loop.contains("'pors_for_"));
+        assert!(generated_loop.contains("'ferro_for_"));
         assert!(generated_loop.contains(": while "));
         assert_rust_output(generated.code, "012");
     }
@@ -435,8 +435,8 @@ mod tests {
         let generated = export_portugol_rs_with_map(source).unwrap();
         let loop_label = source.find("para").unwrap();
         for (keyword, generated_control) in [
-            ("continue;", format!("break 'pors_body_{loop_label};")),
-            ("pare;", format!("break 'pors_for_{loop_label};")),
+            ("continue;", format!("break 'ferro_body_{loop_label};")),
+            ("pare;", format!("break 'ferro_for_{loop_label};")),
         ] {
             let start = source.find(keyword).unwrap() as u32;
             let end = start + keyword.len() as u32;
@@ -547,8 +547,7 @@ mod tests {
     #[test]
     fn adds_string_budget_to_portugol_rs_codegen() {
         let pors = export_portugol_rs("funcao inicio() { escreva(\"olá\"); }").unwrap();
-        assert!(pors.contains("__pors_account"));
-        assert!(pors.contains("__pors_concat"));
+        assert!(pors.contains("__ferro_account"));
     }
 
     #[test]
@@ -854,19 +853,19 @@ funcao inicio() {
 }
 "#;
         let generated = export_portugol_rs(source).unwrap();
-        assert!(generated.contains("mod __pors_matematica"));
-        assert!(generated.contains("mod __pors_texto"));
-        assert!(generated.contains("mod __pors_tipos"));
-        assert!(!generated.contains("mod __pors_ui"));
+        assert!(generated.contains("mod __ferro_matematica"));
+        assert!(generated.contains("mod __ferro_texto"));
+        assert!(generated.contains("mod __ferro_tipos"));
+        assert!(!generated.contains("mod __ferro_ui"));
         assert_rust_output(
             generated,
             "3.14|8.0|9.0|7|9|5|OLÁ 🦀|oi 🦀|00042|🦀|4|olá|ERR|42|ERR|2.5|FF|verdadeiro|verdadeiro",
         );
 
         let minimal = export_portugol_rs("funcao inicio() { escreva(1); }").unwrap();
-        assert!(!minimal.contains("mod __pors_matematica"));
-        assert!(!minimal.contains("mod __pors_texto"));
-        assert!(!minimal.contains("mod __pors_tipos"));
+        assert!(!minimal.contains("mod __ferro_matematica"));
+        assert!(!minimal.contains("mod __ferro_texto"));
+        assert!(!minimal.contains("mod __ferro_tipos"));
     }
 
     #[test]
@@ -920,7 +919,7 @@ funcao inicio() {
         assert!(generated.contains(".push("));
         assert!(generated.contains(".pop()"));
         assert!(generated.contains(".get("));
-        assert!(generated.contains("__pors_texto::dividir("));
+        assert!(generated.contains("__ferro_texto::dividir("));
         assert_rust_output(generated, "0|3|30|2|N|N|7|3|dois|2|🦀");
     }
 
@@ -975,9 +974,9 @@ funcao inicio() {
 }
 "#;
         let generated = export_portugol_rs(source).unwrap();
-        assert!(generated.contains("mod __pors_clock"));
-        assert!(generated.contains("mod __pors_util"));
-        assert!(generated.contains("mod __pors_calendario"));
+        assert!(generated.contains("mod __ferro_clock"));
+        assert!(generated.contains("mod __ferro_util"));
+        assert!(generated.contains("mod __ferro_calendario"));
 
         let dir = std::env::temp_dir().join(format!("ferro-rust-util-cal-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
@@ -997,7 +996,7 @@ funcao inicio() {
             String::from_utf8_lossy(&compilation.stderr)
         );
         let output = Command::new(&binary)
-            .env("PORTUGOL_PORS_SIMULATED_EPOCH_MS", "1700000000500")
+            .env("FERRO_SIMULATED_EPOCH_MS", "1700000000500")
             .output()
             .unwrap();
         assert!(output.status.success());
@@ -1047,7 +1046,7 @@ funcao inicio() {
 }
 "#;
         let generated = export_portugol_rs(source).unwrap();
-        assert!(generated.contains("mod __pors_arquivos"));
+        assert!(generated.contains("mod __ferro_arquivos"));
 
         let dir = std::env::temp_dir().join(format!("ferro-rust-arquivos-{}", std::process::id()));
         let ws = dir.join("workspace");
@@ -1069,7 +1068,7 @@ funcao inicio() {
             String::from_utf8_lossy(&compilation.stderr)
         );
         let output = Command::new(&binary)
-            .env("PORTUGOL_PORS_WORKSPACE_DIR", &ws)
+            .env("FERRO_WORKSPACE_DIR", &ws)
             .output()
             .unwrap();
         assert!(output.status.success());
@@ -1141,7 +1140,7 @@ funcao inicio() {
 }
 "#;
         let generated = export_portugol_rs(source).unwrap();
-        assert!(generated.contains("mod __pors_json"));
+        assert!(generated.contains("mod __ferro_json"));
         assert_rust_output(
             generated,
             "Ada \"Lovelace\"|1843|9.5|verdadeiro|rust|40|\u{1F600}|7|falso|{\"a\":1,\"b\":[true,null]}|\"a\\\"b\"|verdadeiro|falso|INT_ERR|falso",
@@ -1271,7 +1270,7 @@ funcao inicio() {{
 "#
         );
         let generated = export_portugol_rs(&source).unwrap();
-        assert!(generated.contains("mod __pors_internet"));
+        assert!(generated.contains("mod __ferro_internet"));
 
         let dir = std::env::temp_dir().join(format!("ferro-rust-internet-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
@@ -1292,9 +1291,9 @@ funcao inicio() {{
             String::from_utf8_lossy(&compilation.stderr)
         );
 
-        // Sem PORTUGOL_PORS_ALLOW_NETWORK=1 deve recusar acesso.
+        // Sem FERRO_ALLOW_NETWORK=1 deve recusar acesso.
         let denied = Command::new(&binary)
-            .env_remove("PORTUGOL_PORS_ALLOW_NETWORK")
+            .env_remove("FERRO_ALLOW_NETWORK")
             .output()
             .unwrap();
         assert!(denied.status.success());
@@ -1304,9 +1303,9 @@ funcao inicio() {{
                 .starts_with("ERR:Acesso à rede bloqueado")
         );
 
-        // Com PORTUGOL_PORS_ALLOW_NETWORK=1 executa GET, POST e HEAD localmente.
+        // Com FERRO_ALLOW_NETWORK=1 executa GET, POST e HEAD localmente.
         let allowed = Command::new(&binary)
-            .env("PORTUGOL_PORS_ALLOW_NETWORK", "1")
+            .env("FERRO_ALLOW_NETWORK", "1")
             .output()
             .unwrap();
         assert!(allowed.status.success());

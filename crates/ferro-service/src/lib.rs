@@ -418,7 +418,7 @@ mod portugol_rs_service {
         let code = result.code.as_ref().unwrap();
         let source_start_bytes = source.find("escreva").unwrap();
         let source_start_utf16 = source[..source_start_bytes].encode_utf16().count() as u32;
-        let generated_start_bytes = code.find("let __portugol_write_0").unwrap();
+        let generated_start_bytes = code.find("let __ferro_write_0").unwrap();
         let generated_line_start_bytes = code[..generated_start_bytes]
             .rfind('\n')
             .map_or(0, |newline| newline + 1);
