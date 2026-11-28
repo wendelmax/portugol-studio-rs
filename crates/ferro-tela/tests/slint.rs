@@ -172,3 +172,34 @@ fn grade_e_encaixe_viram_layouts() {
         "chave literal vira chave comum no Slint: {out}"
     );
 }
+
+#[test]
+fn botoes_de_opcao_do_mesmo_grupo_se_desmarcam() {
+    let design = r#"<Janela Nome="J" Titulo="T" Largura="300" Altura="200">
+    <BotaoOpcao Nome="opA" X="8" Y="8" Texto="A" Grupo="g" Marcado="verdadeiro" AoAlterar="opA_alterar" />
+    <BotaoOpcao X="8" Y="40" Texto="B" Grupo="g" />
+    <BotaoOpcao Nome="opC" X="8" Y="72" Texto="C" Grupo="outro" />
+</Janela>
+"#;
+    let out = slint(design, None);
+    assert!(out.contains("opA := CheckBox {"), "{out}");
+    assert!(
+        out.contains("opcao-1 := CheckBox {"),
+        "botão sem nome ganha id: {out}"
+    );
+    assert!(
+        out.contains(
+            "if self.checked { opcao-1.checked = false; }\n            root.opA_alterar();"
+        ),
+        "{out}"
+    );
+    assert!(
+        out.contains("if self.checked { opA.checked = false; }"),
+        "{out}"
+    );
+    assert!(
+        !out.contains("opC.checked = false"),
+        "outro grupo não muda: {out}"
+    );
+    assert!(out.contains("callback opA_alterar();"), "{out}");
+}

@@ -155,6 +155,33 @@ struct Writer<'a> {
     out: String,
     screen: &'a ScreenType,
     callbacks: Vec<String>,
+    /// Os botões de opção, com o id no Slint e o `Grupo` de cada um.
+    radios: Vec<(*const Element, String, String)>,
+}
+
+/// Id Slint de cada `BotaoOpcao`: o `Nome`, ou um gerado (`opcao-1`), para
+/// os outros do grupo poderem desmarcá-lo.
+fn radio_ids(document: &Document) -> Vec<(*const Element, String, String)> {
+    let mut unnamed = 0;
+    document
+        .descendants()
+        .into_iter()
+        .filter(|element| element.name.text == "BotaoOpcao")
+        .map(|element| {
+            let id = match element.control_name() {
+                Some(name) => name.value.clone(),
+                None => {
+                    unnamed += 1;
+                    format!("opcao-{unnamed}")
+                }
+            };
+            let group = element
+                .attribute("Grupo")
+                .map(|a| a.value.clone())
+                .unwrap_or_default();
+            (element as *const Element, id, group)
+        })
+        .collect()
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -351,10 +378,18 @@ impl Writer<'_> {
 
     fn element(&mut self, element: &Element, parent: Parent, depth: usize) {
         let tag = element.name.text.as_str();
-        let id = element
-            .control_name()
-            .map(|n| format!("{} := ", n.value))
-            .unwrap_or_default();
+        let radio = self
+            .radios
+            .iter()
+            .find(|(pointer, _, _)| std::ptr::eq(*pointer, element))
+            .cloned();
+        let id = match &radio {
+            Some((_, id, _)) => format!("{id} := "),
+            None => element
+                .control_name()
+                .map(|n| format!("{} := ", n.value))
+                .unwrap_or_default(),
+        };
         match tag {
             "Rotulo" => {
                 self.push_line(depth, format!("{id}Text {{"));
@@ -384,15 +419,52 @@ impl Writer<'_> {
                 self.common(element, depth + 1);
                 self.callback(element, "AoAlterar", "edited(text)", depth + 1);
             }
-            "CaixaSelecao" | "BotaoOpcao" => {
-                // O Slint não tem botão de opção nos widgets padrão: os dois
-                // viram CheckBox; o grupo é mantido pelo adaptador.
+            "CaixaSelecao" => {
                 self.push_line(depth, format!("{id}CheckBox {{"));
                 self.geometry(element, parent, depth + 1);
                 self.text(element, "Texto", "text", depth + 1);
                 self.two_way(element, "Marcado", "checked", depth + 1);
                 self.common(element, depth + 1);
                 self.callback(element, "AoAlterar", "toggled", depth + 1);
+            }
+            "BotaoOpcao" => {
+                // O Slint não tem botão de opção nos widgets padrão: vira
+                // CheckBox, e marcar um desmarca os outros do mesmo `Grupo`,
+                // como na IDE.
+                self.push_line(depth, format!("{id}CheckBox {{"));
+                self.geometry(element, parent, depth + 1);
+                self.text(element, "Texto", "text", depth + 1);
+                self.two_way(element, "Marcado", "checked", depth + 1);
+                self.common(element, depth + 1);
+                let (_, own, group) = radio.expect("botão de opção registrado");
+                let others: Vec<String> = self
+                    .radios
+                    .iter()
+                    .filter(|(_, id, other)| *other == group && *id != own)
+                    .map(|(_, id, _)| format!("{id}.checked = false;"))
+                    .collect();
+                let handler = element
+                    .attribute("AoAlterar")
+                    .map(|a| a.value.trim().to_owned())
+                    .filter(|h| !h.is_empty());
+                if let Some(handler) = &handler
+                    && !self.callbacks.contains(handler)
+                {
+                    self.callbacks.push(handler.clone());
+                }
+                if !others.is_empty() || handler.is_some() {
+                    self.push_line(depth + 1, "toggled => {".into());
+                    if !others.is_empty() {
+                        self.push_line(
+                            depth + 2,
+                            format!("if self.checked {{ {} }}", others.join(" ")),
+                        );
+                    }
+                    if let Some(handler) = handler {
+                        self.push_line(depth + 2, format!("root.{handler}();"));
+                    }
+                    self.push_line(depth + 1, "}".into());
+                }
             }
             "Combo" => {
                 self.push_line(depth, format!("{id}ComboBox {{"));
@@ -803,6 +875,7 @@ pub fn export_screen(
         out: String::new(),
         screen,
         callbacks: Vec::new(),
+        radios: radio_ids(document),
     };
     writer.push_line(0, format!("export component {window} inherits Window {{"));
     if root.attribute("Titulo").is_some() {
