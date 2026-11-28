@@ -16,6 +16,7 @@ cp apps/web-playground/index.html \
    apps/web-playground/style.css \
    apps/web-playground/app.mjs \
    apps/web-playground/playground-core.mjs \
+   apps/web-playground/ferro-language.mjs \
    "$dist_dir/"
 
 echo "Web Playground pronto em $dist_dir"
