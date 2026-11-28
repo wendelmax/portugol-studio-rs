@@ -941,6 +941,7 @@ fn ferro_vm_module(module: &str) -> &str {
         "Dialogo" => "FerroDialogo",
         "AreaTransferencia" => "FerroAreaTransferencia",
         "Notificacao" => "FerroNotificacao",
+        "Telas" => "FerroTelas",
         "Json" => "FerroJson",
         "Internet" => "FerroInternet",
         "Graficos" => "FerroGraficos",

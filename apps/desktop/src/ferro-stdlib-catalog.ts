@@ -39,6 +39,7 @@ export const FERRO_STDLIB_MODULES = [
   "Dialogo",
   "AreaTransferencia",
   "Notificacao",
+  "Telas",
   "Json",
   "Internet",
   "Graficos",
@@ -332,7 +333,7 @@ export const FERRO_STDLIB_CATALOG: readonly FerroStdlibModule[] = [
   {
     id: "ferro-lib:AreaTransferencia",
     module: "AreaTransferencia",
-    name: "FERRO: AreaTransferencia",
+    name: "AreaTransferencia",
     group: "visual",
     description: "Copiar e colar texto pela área de transferência do sistema, nas funções de uma tela desktop.",
     example: {
@@ -348,7 +349,7 @@ export const FERRO_STDLIB_CATALOG: readonly FerroStdlibModule[] = [
   {
     id: "ferro-lib:Notificacao",
     module: "Notificacao",
-    name: "FERRO: Notificacao",
+    name: "Notificacao",
     group: "visual",
     description: "Aviso do sistema, fora da janela, para as telas desktop (por exemplo, ao terminar uma tarefa).",
     example: {
@@ -358,6 +359,23 @@ export const FERRO_STDLIB_CATALOG: readonly FerroStdlibModule[] = [
     },
     items: [
       fn("mostrar", "Notificacao.mostrar(titulo: cadeia, texto: cadeia) -> vazio", "Mostra uma notificação do sistema; com título vazio, usa o título da janela."),
+    ],
+  },
+  {
+    id: "ferro-lib:Telas",
+    module: "Telas",
+    name: "Telas",
+    group: "visual",
+    description: "Abrir outra tela do projeto por cima da atual, entregar dados e receber a resposta numa função de retorno.",
+    example: {
+      title: "Editando a conta em outra tela (numa função de tela)",
+      fileName: "exemplo-telas.fer",
+      source: `registro Conta {\n    nome: cadeia\n}\n\nfuncao editar(tela: Conta) -> Conta {\n    Telas.abrir("EditarConta", tela, "edicao_terminou");\n    retorne tela;\n}\n\nfuncao edicao_terminou(tela: Conta, resposta: Opcao<Conta>) -> Conta {\n    escolha resposta {\n        caso Opcao::Algum(conta) => { retorne conta; }\n        caso Opcao::Nenhum => { retorne tela; }\n    }\n}\n\nfuncao inicio() {\n    seja c: Conta = Conta { nome: "Ana" };\n    escreva(editar(c).nome);\n}\n`,
+    },
+    items: [
+      fn("abrir", "Telas.abrir(tela: cadeia, dados: Dados, retorno: cadeia) -> vazio", "Abre a tela do projeto com esse nome por cima desta; `Telas.abrir(\"Sobre\")` abre sem dados e sem resposta. Com dados, eles viram o `dados` da outra tela, e a função de retorno `f(tela: J, resposta: Opcao<Dados>) -> J` é chamada quando ela fechar."),
+      fn("concluir", "Telas.concluir() -> vazio", "Fecha esta tela quando a função terminar; quem a abriu recebe `Opcao::Algum` com os `dados` dela."),
+      fn("fechar", "Telas.fechar() -> vazio", "Fecha esta tela sem resposta (`Opcao::Nenhum`). Na janela inicial, encerra o programa."),
     ],
   },
   {

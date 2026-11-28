@@ -1,5 +1,5 @@
 //! Serviços do sistema das telas desktop (ADR 0018, Fase 5): `Dialogo`,
-//! `AreaTransferencia` e `Notificacao`. Quem fala com o sistema é o host;
+//! `AreaTransferencia`, `Notificacao` e `Telas` (Emenda 5). Quem fala com o sistema é o host;
 //! fora de uma tela, cada função devolve um erro que explica onde funciona.
 
 use std::rc::Rc;
@@ -36,6 +36,31 @@ pub(crate) fn call(
             let title = text(args, 0, "Notificacao.mostrar")?;
             let body = text(args, 1, "Notificacao.mostrar")?;
             ctx.host.notify(&title, &body)?;
+            Ok(Value::Void)
+        }
+        ("FerroTelas", "abrir") => {
+            let screen = text(args, 0, "Telas.abrir")?;
+            let (data, callback) = match args.len() {
+                1 => (None, None),
+                _ => (
+                    Some((
+                        args.get(1).cloned().unwrap_or(Value::Void),
+                        text(args, 3, "Telas.abrir")?,
+                    )),
+                    Some(text(args, 2, "Telas.abrir")?),
+                ),
+            };
+            ctx.host.screen_request(crate::host::ScreenRequest::Open {
+                screen,
+                data,
+                callback,
+            })?;
+            Ok(Value::Void)
+        }
+        ("FerroTelas", "concluir" | "fechar") => {
+            ctx.host.screen_request(crate::host::ScreenRequest::Close {
+                accept: name == "concluir",
+            })?;
             Ok(Value::Void)
         }
         (library, name) => Err(format!(
