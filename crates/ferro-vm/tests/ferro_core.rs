@@ -646,7 +646,7 @@ fn executes_consented_ferro_internet_and_cancels_stalled_requests_in_minimal_vm(
             let first = head.lines().next().unwrap_or("");
             if first.starts_with("GET /ola ") {
                 let _ = stream.write_all(
-                    b"HTTP/1.1 200 OK\r\nContent-Length: 9\r\nConnection: close\r\n\r\nOla FERRO!",
+                    b"HTTP/1.1 200 OK\r\nContent-Length: 10\r\nConnection: close\r\n\r\nOla FERRO!",
                 );
             } else if first.starts_with("POST /eco ") {
                 let body = &raw[body_start..raw.len().min(body_start + content_len)];
@@ -658,7 +658,7 @@ fn executes_consented_ferro_internet_and_cancels_stalled_requests_in_minimal_vm(
                 let _ = stream.write_all(resp.as_bytes());
             } else if first.starts_with("HEAD /ola ") {
                 let _ = stream.write_all(
-                    b"HTTP/1.1 200 OK\r\nContent-Length: 9\r\nConnection: close\r\n\r\n",
+                    b"HTTP/1.1 200 OK\r\nContent-Length: 10\r\nConnection: close\r\n\r\n",
                 );
             } else {
                 let _ = stream.write_all(
