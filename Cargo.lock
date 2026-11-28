@@ -1261,6 +1261,7 @@ version = "0.7.0"
 dependencies = [
  "ferro-frontend",
  "ferro-hir",
+ "ferro-tela",
 ]
 
 [[package]]

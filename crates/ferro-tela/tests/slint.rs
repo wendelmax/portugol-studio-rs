@@ -34,8 +34,22 @@ fn contador_vira_componente_com_dados_e_callback() {
         out.contains("export component JanelaPrincipal inherits Window {"),
         "{out}"
     );
-    assert!(out.contains("    title: \"Contador\";"), "{out}");
-    assert!(out.contains("    width: 260px;"), "{out}");
+    assert!(
+        out.contains("    title: root.JanelaPrincipal-titulo;"),
+        "{out}"
+    );
+    assert!(
+        out.contains("    in-out property <string> JanelaPrincipal-titulo: \"Contador\";"),
+        "{out}"
+    );
+    assert!(
+        out.contains("    width: root.JanelaPrincipal-largura * 1px;"),
+        "{out}"
+    );
+    assert!(
+        out.contains("    in-out property <int> JanelaPrincipal-largura: 260;"),
+        "{out}"
+    );
     assert!(out.contains("    in-out property <Estado> dados;"), "{out}");
     assert!(out.contains("    callback btnInc_clicar();"), "{out}");
     assert!(out.contains("VerticalLayout {"), "{out}");
@@ -53,8 +67,13 @@ fn contador_vira_componente_com_dados_e_callback() {
         !out.contains("DadosExemplo") && !out.contains("contagem: 3"),
         "exemplos do designer não são exportados"
     );
-    // O rótulo vinculado não ganha propriedade própria de texto.
-    assert!(!out.contains("lblContagem-texto"), "{out}");
+    // O texto vinculado do rótulo é só lido pelo adaptador.
+    assert!(
+        out.contains(
+            "out property <string> lblContagem-texto: \"Contagem: \\{root.dados.contagem}\";"
+        ),
+        "{out}"
+    );
     assert!(
         out.contains("in-out property <bool> btnInc-habilitado: true;"),
         "{out}"

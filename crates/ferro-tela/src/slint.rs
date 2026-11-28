@@ -678,9 +678,112 @@ fn initial(element: &Element, field: &crate::codebehind::FieldDef) -> Option<Str
     }
 }
 
+/// Uma propriedade da raiz do componente: um campo da janela ou de um
+/// controle nomeado. O `.slint` a declara e o adaptador Rust a lê e escreve.
+#[derive(Debug, Clone)]
+struct Property {
+    /// Nome no Slint (`txtA-texto`, `JanelaPrincipal-titulo`).
+    slint: String,
+    ty: FieldType,
+    /// Expressão de um atributo vinculado (`out`, só lida); `None` é livre
+    /// (`in-out`, com o valor inicial do `.design`).
+    bound: Option<String>,
+    initial: Option<String>,
+}
+
+impl Property {
+    /// Nome Rust do getter e do setter gerados pelo Slint, sem o prefixo.
+    fn rust(&self) -> String {
+        self.slint.replace('-', "_")
+    }
+}
+
+fn property(owner: &str, element: &Element, field: &crate::codebehind::FieldDef) -> Property {
+    let slint = control_property(owner, &field.name);
+    let bound = match field.source {
+        FieldSource::Attribute(attribute) => element
+            .attribute(attribute)
+            .filter(|a| value::text_parts(&a.raw, 0).is_ok_and(|p| value::has_binding(&p)))
+            .map(|a| match field.ty {
+                FieldType::Integer | FieldType::Bool => {
+                    single_binding(&a.raw).unwrap_or_else(|| text_expression(&a.raw))
+                }
+                _ => text_expression(&a.raw),
+            }),
+        _ => None,
+    };
+    let initial = if bound.is_some() {
+        None
+    } else {
+        initial(element, field)
+    };
+    Property {
+        slint,
+        ty: field.ty.clone(),
+        bound,
+        initial,
+    }
+}
+
+/// As propriedades da janela e dos controles nomeados, na ordem do registro
+/// da janela.
+fn properties(root: &Element, screen: &ScreenType) -> Vec<(Option<String>, Vec<Property>)> {
+    let window = &screen.window.name;
+    let mut out = Vec::new();
+    let own: Vec<Property> = screen
+        .window
+        .fields
+        .iter()
+        .filter(|field| matches!(field.source, FieldSource::Attribute(_)))
+        .map(|field| property(window, root, field))
+        .collect();
+    out.push((None, own));
+    for field in &screen.window.fields {
+        let (FieldSource::Control(path), FieldType::Named(tag)) = (&field.source, &field.ty) else {
+            continue;
+        };
+        let (Some(element), Some(definition)) = (
+            element_at(root, path),
+            screen.controls.iter().find(|c| c.name == *tag),
+        ) else {
+            continue;
+        };
+        let fields = definition
+            .fields
+            .iter()
+            .map(|control_field| property(&field.name, element, control_field))
+            .collect();
+        out.push((Some(field.name.clone()), fields));
+    }
+    out
+}
+
+/// Resultado da tradução de uma tela.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SlintScreen {
+    /// O componente `.slint`.
+    pub slint: String,
+    /// Os callbacks declarados (os handlers ligados), na ordem da tela.
+    pub callbacks: Vec<String>,
+    /// Handler do `AoAbrir` da janela, chamado antes de mostrar a janela.
+    pub on_open: Option<String>,
+    /// Arquivos de `Imagem`, relativos à pasta da tela, para copiar ao lado
+    /// do `.slint`.
+    pub images: Vec<String>,
+}
+
 /// Componente `.slint` da tela. `data` traz o registro de `Dados` com os tipos
 /// lidos do code-behind; sem ele, a janela não tem a propriedade `dados`.
 pub fn export(document: &Document, screen: &ScreenType, data: Option<&DataRecord>) -> String {
+    export_screen(document, screen, data).slint
+}
+
+/// Como [`export`], com o que o adaptador Rust precisa saber.
+pub fn export_screen(
+    document: &Document,
+    screen: &ScreenType,
+    data: Option<&DataRecord>,
+) -> SlintScreen {
     let root = &document.root;
     let window = &screen.window.name;
     let mut header = format!(
@@ -702,66 +805,79 @@ pub fn export(document: &Document, screen: &ScreenType, data: Option<&DataRecord
         callbacks: Vec::new(),
     };
     writer.push_line(0, format!("export component {window} inherits Window {{"));
-    if let Some(title) = root.attribute("Titulo") {
-        let title = text_expression(&title.raw);
-        writer.push_line(1, format!("title: {title};"));
+    if root.attribute("Titulo").is_some() {
+        writer.push_line(
+            1,
+            format!("title: root.{};", control_property(window, "titulo")),
+        );
     }
-    for (attribute, slint) in [("Largura", "width"), ("Altura", "height")] {
-        if let Some(value) = root
-            .attribute(attribute)
-            .and_then(|a| a.value.trim().parse::<i64>().ok())
-        {
-            writer.push_line(1, format!("{slint}: {value}px;"));
+    let resizable = root
+        .attribute("Redimensionavel")
+        .is_some_and(|a| a.value.trim() == "verdadeiro");
+    for (attribute, slint, field) in [
+        ("Largura", "width", "largura"),
+        ("Altura", "height", "altura"),
+    ] {
+        if root.attribute(attribute).is_some() {
+            let slint = if resizable {
+                format!("preferred-{slint}")
+            } else {
+                slint.to_owned()
+            };
+            writer.push_line(
+                1,
+                format!("{slint}: root.{} * 1px;", control_property(window, field)),
+            );
         }
     }
     if let Some(data) = data {
         writer.push_line(1, format!("in-out property <{}> dados;", data.name));
     }
 
-    // Propriedades dos controles nomeados, lidas e escritas pelo adaptador.
-    let mut properties = Vec::new();
-    for field in &screen.window.fields {
-        let (FieldSource::Control(path), FieldType::Named(tag)) = (&field.source, &field.ty) else {
-            continue;
-        };
-        let Some(element) = element_at(root, path) else {
-            continue;
-        };
-        let Some(definition) = screen.controls.iter().find(|c| c.name == *tag) else {
-            continue;
-        };
-        for control_field in &definition.fields {
-            if let FieldSource::Attribute(attribute) = control_field.source
-                && element.attribute(attribute).is_some_and(|a| {
-                    value::text_parts(&a.raw, 0).is_ok_and(|p| value::has_binding(&p))
-                })
-            {
-                continue;
-            }
-            let ty = field_type(&control_field.ty);
-            let name = control_property(&field.name, &control_field.name);
-            let text = match initial(element, control_field) {
-                Some(value) => format!("in-out property <{ty}> {name}: {value};"),
-                None => format!("in-out property <{ty}> {name};"),
+    // Propriedades da janela e dos controles nomeados, lidas e escritas pelo
+    // adaptador; as vinculadas são só lidas.
+    for (owner, fields) in properties(root, screen) {
+        for property in &fields {
+            let ty = field_type(&property.ty);
+            let name = &property.slint;
+            let text = match (&property.bound, &property.initial) {
+                (Some(expression), _) => format!("out property <{ty}> {name}: {expression};"),
+                (None, Some(value)) => format!("in-out property <{ty}> {name}: {value};"),
+                (None, None) => format!("in-out property <{ty}> {name};"),
             };
-            properties.push(text);
+            writer.push_line(1, text);
         }
-        if tag == "Lista" {
-            properties.push(format!(
-                "in-out property <[StandardListViewItem]> {};",
-                control_property(&field.name, "itens-lista")
-            ));
+        if let Some(owner) = owner
+            && fields
+                .iter()
+                .any(|p| p.slint == control_property(&owner, "itens"))
+            && control_tag(root, screen, &owner) == Some("Lista")
+        {
+            writer.push_line(
+                1,
+                format!(
+                    "in-out property <[StandardListViewItem]> {};",
+                    control_property(&owner, "itens-lista")
+                ),
+            );
         }
-    }
-    for property in properties {
-        writer.push_line(1, property);
     }
 
     let body_start = writer.out.len();
     writer.children_free(root, 1);
     writer.timers(root, 1);
     let body = writer.out.split_off(body_start);
-    for callback in writer.callbacks.clone() {
+    let on_open = root
+        .attribute("AoAbrir")
+        .map(|a| a.value.trim().to_owned())
+        .filter(|h| !h.is_empty());
+    let mut callbacks = writer.callbacks.clone();
+    if let Some(handler) = &on_open
+        && !callbacks.contains(handler)
+    {
+        callbacks.push(handler.clone());
+    }
+    for callback in &callbacks {
         writer.push_line(1, format!("callback {callback}();"));
     }
     writer.out.push('\n');
@@ -770,7 +886,42 @@ pub fn export(document: &Document, screen: &ScreenType, data: Option<&DataRecord
 
     header.push('\n');
     header.push_str(&writer.out);
-    header
+    let mut images = Vec::new();
+    collect_images(root, &mut images);
+    SlintScreen {
+        slint: header,
+        callbacks,
+        on_open,
+        images,
+    }
+}
+
+fn control_tag<'a>(root: &'a Element, screen: &ScreenType, name: &str) -> Option<&'a str> {
+    screen
+        .window
+        .fields
+        .iter()
+        .find_map(|field| match &field.source {
+            FieldSource::Control(path) if field.name == name => {
+                element_at(root, path).map(|element| element.name.text.as_str())
+            }
+            _ => None,
+        })
+}
+
+fn collect_images(element: &Element, out: &mut Vec<String>) {
+    for child in element.elements() {
+        if child.name.text == "Imagem"
+            && let Some(path) = child
+                .attribute("Arquivo")
+                .map(|a| a.value.trim().to_owned())
+            && !path.is_empty()
+            && !out.contains(&path)
+        {
+            out.push(path);
+        }
+        collect_images(child, out);
+    }
 }
 
 fn element_at<'a>(root: &'a Element, path: &[usize]) -> Option<&'a Element> {
@@ -779,4 +930,281 @@ fn element_at<'a>(root: &'a Element, path: &[usize]) -> Option<&'a Element> {
         element = element.elements().nth(index)?;
     }
     Some(element)
+}
+
+/// Valor de um campo de controle lido da UI (`ui.get_x()`), no tipo Rust do
+/// código exportado.
+fn read_control(property: &Property) -> String {
+    let get = format!("ui.get_{}()", property.rust());
+    match property.ty {
+        FieldType::Integer | FieldType::Bool => get,
+        FieldType::TextList => format!("{get}.iter().map(|item| item.to_string()).collect()"),
+        _ => format!("{get}.to_string()"),
+    }
+}
+
+/// `ui.set_x(...)` a partir do campo `value` do código exportado.
+fn write_control(property: &Property, value: &str) -> String {
+    let set = format!("ui.set_{}", property.rust());
+    match property.ty {
+        FieldType::Integer | FieldType::Bool => format!("{set}({value});"),
+        FieldType::TextList => format!(
+            "{set}(slint::ModelRc::new(slint::VecModel::from({value}.iter().map(|item| slint::SharedString::from(item.as_str())).collect::<Vec<_>>())));"
+        ),
+        _ => format!("{set}(slint::SharedString::from({value}.as_str()));"),
+    }
+}
+
+/// Converte `value` (um valor do Slint) para o tipo Rust do código exportado.
+fn data_in(value: &str, ty: &DataType) -> String {
+    match ty {
+        DataType::Int | DataType::Bool => value.to_owned(),
+        DataType::Float => format!("({value} as f64)"),
+        DataType::String => format!("{value}.to_string()"),
+        DataType::Struct(name, _) => format!("__de_slint_{name}(&{value})"),
+        DataType::List(inner) => format!(
+            "{value}.iter().map(|item| {}).collect()",
+            data_in("item", inner)
+        ),
+    }
+}
+
+/// Converte `value` (do código exportado) para o tipo do Slint.
+fn data_out(value: &str, ty: &DataType) -> String {
+    match ty {
+        DataType::Int | DataType::Bool => value.to_owned(),
+        DataType::Float => format!("({value} as f32)"),
+        DataType::String => format!("slint::SharedString::from({value}.as_str())"),
+        DataType::Struct(name, _) => format!("__para_slint_{name}(&{value})"),
+        DataType::List(inner) => format!(
+            "slint::ModelRc::new(slint::VecModel::from({value}.iter().map(|item| {}).collect::<Vec<_>>()))",
+            data_out("(*item)", inner)
+        ),
+    }
+}
+
+fn data_conversions(
+    fields: &[DataField],
+    name: &str,
+    rust_name: &dyn Fn(&str) -> String,
+    out: &mut String,
+    done: &mut Vec<String>,
+) {
+    for field in fields {
+        let mut ty = &field.ty;
+        while let DataType::List(inner) = ty {
+            ty = inner;
+        }
+        if let DataType::Struct(inner_name, inner_fields) = ty {
+            data_conversions(inner_fields, inner_name, rust_name, out, done);
+        }
+    }
+    if done.iter().any(|existing| existing == name) {
+        return;
+    }
+    done.push(name.to_owned());
+    let ferro = rust_name(name);
+    let _ = writeln!(
+        out,
+        "\nfn __de_slint_{name}(value: &{name}) -> {ferro} {{\n{INDENT}{ferro} {{"
+    );
+    for field in fields {
+        let slint = field.name.clone();
+        let _ = writeln!(
+            out,
+            "{INDENT}{INDENT}{}: {},",
+            rust_name(&field.name),
+            data_in(&format!("value.{slint}"), &field.ty)
+        );
+    }
+    let _ = writeln!(out, "{INDENT}}}\n}}");
+    let _ = writeln!(
+        out,
+        "\nfn __para_slint_{name}(value: &{ferro}) -> {name} {{\n{INDENT}{name} {{"
+    );
+    for field in fields {
+        let _ = writeln!(
+            out,
+            "{INDENT}{INDENT}{}: {},",
+            field.name,
+            data_out(&format!("value.{}", rust_name(&field.name)), &field.ty)
+        );
+    }
+    let _ = writeln!(out, "{INDENT}}}\n}}");
+}
+
+/// Adaptador Rust entre o componente Slint e o code-behind exportado: lê a
+/// janela da UI, chama o handler e escreve o resultado de volta, como a VM faz
+/// na IDE. `rust_name` dá o nome que o gerador Rust usa para registros,
+/// campos e funções FERRO. O texto inclui o `main`.
+pub fn rust_adapter(
+    document: &Document,
+    screen: &ScreenType,
+    data: Option<&DataRecord>,
+    exported: &SlintScreen,
+    rust_name: &dyn Fn(&str) -> String,
+) -> String {
+    let root = &document.root;
+    let window = &screen.window.name;
+    let ferro_window = rust_name(window);
+    let groups = properties(root, screen);
+    let mut out = String::from(
+        "\n// Adaptador gerado pelo Ferro Studio: liga os callbacks do Slint às\n// funções da tela.\nslint::include_modules!();\n#[allow(unused_imports)]\nuse slint::Model as _;\n",
+    );
+    if let Some(data) = data {
+        data_conversions(
+            &data.fields,
+            &data.name,
+            rust_name,
+            &mut out,
+            &mut Vec::new(),
+        );
+    }
+
+    // ler: a janela como o code-behind a recebe.
+    let _ = writeln!(
+        out,
+        "\nfn __ler_tela(ui: &{window}) -> {ferro_window} {{\n{INDENT}{ferro_window} {{"
+    );
+    let own = &groups[0].1;
+    let mut own_index = 0;
+    for field in &screen.window.fields {
+        let name = rust_name(&field.name);
+        match (&field.source, &field.ty) {
+            (FieldSource::Attribute(_), _) => {
+                let _ = writeln!(
+                    out,
+                    "{INDENT}{INDENT}{name}: {},",
+                    read_control(&own[own_index])
+                );
+                own_index += 1;
+            }
+            (FieldSource::Control(_), FieldType::Named(tag)) => {
+                let Some((_, fields)) = groups
+                    .iter()
+                    .find(|(o, _)| o.as_deref() == Some(&field.name))
+                else {
+                    continue;
+                };
+                let definition = screen.controls.iter().find(|c| c.name == *tag);
+                let _ = writeln!(out, "{INDENT}{INDENT}{name}: {} {{", rust_name(tag));
+                for (property, control_field) in fields
+                    .iter()
+                    .zip(definition.map(|d| d.fields.as_slice()).unwrap_or_default())
+                {
+                    let _ = writeln!(
+                        out,
+                        "{INDENT}{INDENT}{INDENT}{}: {},",
+                        rust_name(&control_field.name),
+                        read_control(property)
+                    );
+                }
+                let _ = writeln!(out, "{INDENT}{INDENT}}},");
+            }
+            (FieldSource::Data, _) => {
+                if let Some(data) = data {
+                    let _ = writeln!(
+                        out,
+                        "{INDENT}{INDENT}{name}: __de_slint_{}(&ui.get_dados()),",
+                        data.name
+                    );
+                }
+            }
+            _ => {}
+        }
+    }
+    let _ = writeln!(out, "{INDENT}}}\n}}");
+
+    // escrever: o resultado do handler de volta na UI.
+    let _ = writeln!(
+        out,
+        "\nfn __escrever_tela(ui: &{window}, tela: &{ferro_window}) {{"
+    );
+    let mut own_index = 0;
+    for field in &screen.window.fields {
+        let name = rust_name(&field.name);
+        match (&field.source, &field.ty) {
+            (FieldSource::Attribute(_), _) => {
+                let property = &own[own_index];
+                own_index += 1;
+                if property.bound.is_none() {
+                    let _ = writeln!(
+                        out,
+                        "{INDENT}{}",
+                        write_control(property, &format!("tela.{name}"))
+                    );
+                }
+            }
+            (FieldSource::Control(_), FieldType::Named(tag)) => {
+                let Some((_, fields)) = groups
+                    .iter()
+                    .find(|(o, _)| o.as_deref() == Some(&field.name))
+                else {
+                    continue;
+                };
+                let definition = screen.controls.iter().find(|c| c.name == *tag);
+                for (property, control_field) in fields
+                    .iter()
+                    .zip(definition.map(|d| d.fields.as_slice()).unwrap_or_default())
+                {
+                    if property.bound.is_some() {
+                        continue;
+                    }
+                    let value = format!("tela.{name}.{}", rust_name(&control_field.name));
+                    let _ = writeln!(out, "{INDENT}{}", write_control(property, &value));
+                    if tag == "Lista" && control_field.name == "itens" {
+                        let _ = writeln!(
+                            out,
+                            "{INDENT}ui.set_{}(slint::ModelRc::new(slint::VecModel::from({value}.iter().map(|item| slint::StandardListViewItem::from(item.as_str())).collect::<Vec<_>>())));",
+                            control_property(&field.name, "itens-lista").replace('-', "_")
+                        );
+                    }
+                }
+            }
+            (FieldSource::Data, _) => {
+                if let Some(data) = data {
+                    let _ = writeln!(
+                        out,
+                        "{INDENT}ui.set_dados(__para_slint_{}(&tela.{name}));",
+                        data.name
+                    );
+                }
+            }
+            _ => {}
+        }
+    }
+    let _ = writeln!(out, "}}");
+
+    let _ = writeln!(
+        out,
+        "\nfn main() -> Result<(), slint::PlatformError> {{\n{INDENT}let ui = {window}::new()?;"
+    );
+    // As listas começam com os itens do .design.
+    for (owner, fields) in &groups {
+        if let Some(owner) = owner
+            && control_tag(root, screen, owner) == Some("Lista")
+            && fields
+                .iter()
+                .any(|p| p.slint == control_property(owner, "itens"))
+        {
+            let _ = writeln!(
+                out,
+                "{INDENT}ui.set_{}(slint::ModelRc::new(slint::VecModel::from(ui.get_{}().iter().map(slint::StandardListViewItem::from).collect::<Vec<_>>())));",
+                control_property(owner, "itens-lista").replace('-', "_"),
+                control_property(owner, "itens").replace('-', "_"),
+            );
+        }
+    }
+    for handler in &exported.callbacks {
+        let function = rust_name(handler);
+        let _ = writeln!(
+            out,
+            "{INDENT}let fraca = ui.as_weak();\n{INDENT}ui.on_{handler}(move || {{\n{INDENT}{INDENT}let Some(ui) = fraca.upgrade() else {{ return }};\n{INDENT}{INDENT}let tela = {function}(__ler_tela(&ui));\n{INDENT}{INDENT}__escrever_tela(&ui, &tela);\n{INDENT}}});"
+        );
+    }
+    if let Some(handler) = &exported.on_open {
+        let _ = writeln!(out, "{INDENT}ui.invoke_{handler}();");
+    }
+    let _ = writeln!(out, "{INDENT}ui.run()\n}}");
+    out
 }

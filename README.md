@@ -147,6 +147,7 @@ cargo run -p ferro-cli -- novo exercicio.fer                 # cria um arquivo i
 cargo run -p ferro-cli -- formatar programa.fer              # formata (--check só confere)
 cargo run -p ferro-cli -- exportar-rust programa.fer         # imprime o Rust gerado
 cargo run -p ferro-cli -- exportar-cargo programa.fer pasta  # gera um projeto Cargo
+cargo run -p ferro-cli -- exportar-cargo App/JanelaPrincipal.design pasta  # tela desktop em Slint
 cargo run -p ferro-cli -- novo --desktop "Meu App"            # cria um projeto desktop Ferro
 cargo run -p ferro-cli -- "Meu App"                           # valida .fer, .design e .ferproj
 ```
