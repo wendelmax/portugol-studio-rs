@@ -69,7 +69,7 @@ import { mountDesignerShell, textChange } from "./designer/designer-shell";
 import { mountCanvasInteractions } from "./designer/interactions";
 import { mountSidePanel } from "./designer/side-panel";
 import { renderToolbox } from "./designer/toolbox";
-import { inspectMarkupFile, inspectSource, isScreenFile, screenCodeFor, screenFileSource, type ScreenFilesHost } from "./designer/screen-files";
+import { inspectMarkupFile, inspectSource, isScreenFile, screenCodeFor, screenFileSource, formatSource, type ScreenFilesHost } from "./designer/screen-files";
 import { createScreenExecution } from "./designer/screen-execution";
 import { createEditorActionsShell } from "./editor/actions-shell";
 import {
@@ -687,6 +687,7 @@ const editorActions = createEditorActionsShell({
   runId: () => runState.runId,
   runTabId: () => runState.runTabId,
   rustfmtAvailable: () => toolchainState.rustfmtAvailable() === true,
+  formatFerroRust: (source) => formatSource(screenFiles, api, source, activeTab()),
   centerSelection: () => view.dispatch({ effects: EditorView.scrollIntoView(view.state.selection.main.head, { y: "center" }) }),
   toggleCenterSource: () => centerSource.toggle(),
 });

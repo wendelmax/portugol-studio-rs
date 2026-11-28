@@ -96,7 +96,20 @@ pub struct TextEdit {
 
 /// Formata código Ferro (`.fer`) preservando comentários e literais.
 pub fn format_ferro_rs(source: &str) -> Option<Vec<TextEdit>> {
-    ferro_frontend::format(source).map(|edits| {
+    edits_of(ferro_frontend::format(source))
+}
+
+/// Formata o code-behind de uma tela, que só analisa com os tipos do
+/// `.design` dela.
+pub fn format_code_behind(source: &str, design_source: &str) -> Option<Vec<TextEdit>> {
+    edits_of(ferro_frontend::format_with(
+        source,
+        &designer::code_behind_options(design_source),
+    ))
+}
+
+fn edits_of(edits: Option<Vec<ferro_frontend::WhitespaceEdit>>) -> Option<Vec<TextEdit>> {
+    edits.map(|edits| {
         edits
             .into_iter()
             .map(|edit| TextEdit {

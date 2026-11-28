@@ -692,3 +692,19 @@ mod ui_obsolete_tests {
         );
     }
 }
+
+#[cfg(test)]
+mod format_code_behind_tests {
+    const DESIGN: &str = "<Janela Nome=\"J\" Titulo=\"T\" Largura=\"200\" Altura=\"100\">\n    <Botao Nome=\"btnOk\" Texto=\"OK\" X=\"8\" Y=\"8\" AoClicar=\"btnOk_clicar\" />\n</Janela>\n";
+    const MESSY: &str = "funcao btnOk_clicar(tela: J) -> J {\nseja mutavel t: J = tela;\n        t.titulo=\"x\";\n    retorne t;\n}\n";
+
+    #[test]
+    fn codigo_da_tela_formata_com_os_tipos_do_design() {
+        assert!(
+            crate::format_ferro_rs(MESSY).is_none(),
+            "sem o .design o código não analisa"
+        );
+        let edits = crate::format_code_behind(MESSY, DESIGN).expect("formata com os tipos da tela");
+        assert!(!edits.is_empty());
+    }
+}

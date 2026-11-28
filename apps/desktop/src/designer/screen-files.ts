@@ -71,3 +71,23 @@ export async function inspectMarkupFile(host: ScreenFilesHost, inspectors: Scree
   const codeSource = code ? await screenFileSource(host, tab.workspaceId, code) : null;
   return inspectors.inspectMarkup(source, path, true, codeSource);
 }
+
+type FormatChange = { from: number; to: number; insert: string };
+
+/** Formatação de código-fonte: o code-behind de uma tela usa os tipos do `.design`. */
+export async function formatSource(
+  host: ScreenFilesHost,
+  formatters: {
+    formatFerroRust: (source: string) => Promise<FormatChange[] | null>;
+    formatCodeBehind: (source: string, designSource: string) => Promise<FormatChange[] | null>;
+  },
+  source: string,
+  tab: Tab | undefined,
+): Promise<FormatChange[] | null> {
+  const design = screenDesignFor(host, tab);
+  if (tab?.workspaceId && design) {
+    const designSource = await screenFileSource(host, tab.workspaceId, design);
+    if (designSource !== null) return formatters.formatCodeBehind(source, designSource);
+  }
+  return formatters.formatFerroRust(source);
+}

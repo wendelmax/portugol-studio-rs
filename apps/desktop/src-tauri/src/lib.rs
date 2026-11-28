@@ -612,6 +612,15 @@ fn format_ferro_rs(source: String) -> Option<Vec<ferro_service::TextEdit>> {
     ferro_service::format_ferro_rs(&source)
 }
 
+/// Formata o code-behind de uma tela com os tipos do `.design` dela.
+#[tauri::command]
+fn format_code_behind(
+    source: String,
+    design_source: String,
+) -> Option<Vec<ferro_service::TextEdit>> {
+    ferro_service::format_code_behind(&source, &design_source)
+}
+
 #[tauri::command]
 fn rename_target_ferro_rs(
     source: String,
@@ -992,6 +1001,7 @@ pub fn run_app() {
             check_cargo_project,
             test_cargo_project,
             format_ferro_rs,
+            format_code_behind,
             ferro_ui_start,
             ferro_ui_dispatch,
             ferro_ui_cancel,
