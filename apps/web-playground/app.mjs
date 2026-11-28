@@ -3,6 +3,7 @@ import {
   loadPlaygroundRuntime,
   renderUiNodeTree,
 } from "./playground-core.mjs";
+import { completeFerro, wordRangeAt } from "./ferro-language.mjs";
 
 const byId = (id) => document.getElementById(id);
 
@@ -11,6 +12,7 @@ const statusTextEl = byId("pg-status-text");
 const themeButton = byId("pg-theme");
 const exampleSelect = byId("pg-example");
 const editorEl = byId("pg-editor");
+const completionsEl = byId("pg-completions");
 const highlightEl = byId("pg-highlight");
 const stdinEl = byId("pg-stdin");
 const outputEl = byId("pg-output");
@@ -30,6 +32,7 @@ const btnExportRust = byId("pg-export-rust");
 
 let runtime = null;
 let activeUiSession = null;
+let completionState = null;
 
 const THEME_STORAGE_KEY = "pg-theme";
 const TOKEN_NAMES = ["comment", "string", "interpolation", "number", "keyword", "type", "builtin"];
@@ -130,6 +133,50 @@ function setEditorValue(value) {
   renderHighlight(value);
 }
 
+function closeCompletions() {
+  completionState = null;
+  completionsEl.replaceChildren();
+  completionsEl.hidden = true;
+}
+
+function renderCompletions(entries, activeIndex, range) {
+  completionState = { entries, activeIndex, range };
+  const fragment = document.createDocumentFragment();
+  entries.forEach((entry, index) => {
+    const item = document.createElement("li");
+    item.className = "pg-completion-item";
+    item.setAttribute("role", "option");
+    item.setAttribute("aria-selected", String(index === activeIndex));
+    item.textContent = entry.label;
+    item.addEventListener("click", () => applyCompletion(index));
+    fragment.append(item);
+  });
+  completionsEl.replaceChildren(fragment);
+  completionsEl.hidden = false;
+}
+
+function applyCompletion(index) {
+  const state = completionState;
+  const entry = state?.entries[index];
+  if (!entry) return;
+  const { start, end } = state.range;
+  const caret = start + entry.insertText.length;
+  setEditorValue(`${editorEl.value.slice(0, start)}${entry.insertText}${editorEl.value.slice(end)}`);
+  editorEl.selectionStart = editorEl.selectionEnd = caret;
+  closeCompletions();
+  editorEl.focus();
+}
+
+function updateCompletions() {
+  const caret = editorEl.selectionStart ?? editorEl.value.length;
+  const entries = completeFerro(editorEl.value, caret);
+  if (entries.length === 0) {
+    closeCompletions();
+    return;
+  }
+  renderCompletions(entries, 0, wordRangeAt(editorEl.value, caret));
+}
+
 function syncOutput(text) {
   const value = text ?? "";
   outputEl.textContent = value;
@@ -179,6 +226,7 @@ function loadExample(id) {
   const example = PLAYGROUND_EXAMPLES.find((item) => item.id === id) ?? PLAYGROUND_EXAMPLES[0];
   if (!example) return;
   closeActiveUi();
+  closeCompletions();
   setEditorValue(example.source);
   stdinEl.value = example.input;
   syncOutput("");
@@ -205,6 +253,7 @@ function runValidate() {
 
 function runFormat() {
   if (!runtime) return;
+  closeCompletions();
   const result = runtime.format(editorEl.value);
   if (result.ok) {
     setEditorValue(result.formatted);
@@ -313,10 +362,15 @@ btnCopyRust.addEventListener("click", async () => {
   }
 });
 
-editorEl.addEventListener("input", () => renderHighlight(editorEl.value));
+editorEl.addEventListener("input", () => {
+  renderHighlight(editorEl.value);
+  updateCompletions();
+});
 editorEl.addEventListener("scroll", syncHighlightScroll);
+editorEl.addEventListener("blur", closeCompletions);
 editorEl.addEventListener("keydown", (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+    closeCompletions();
     event.preventDefault();
     const current = PLAYGROUND_EXAMPLES.find((item) => item.id === exampleSelect.value);
     if (current?.mode === "ui" || editorEl.value.includes("funcao visualizar(")) {
@@ -324,6 +378,24 @@ editorEl.addEventListener("keydown", (event) => {
     } else {
       runConsole();
     }
+    return;
+  }
+  const state = completionState;
+  if (!state) return;
+  if (event.key === "Escape") {
+    event.preventDefault();
+    closeCompletions();
+  } else if (event.key === "ArrowDown") {
+    event.preventDefault();
+    const next = (state.activeIndex + 1) % state.entries.length;
+    renderCompletions(state.entries, next, state.range);
+  } else if (event.key === "ArrowUp") {
+    event.preventDefault();
+    const next = (state.activeIndex - 1 + state.entries.length) % state.entries.length;
+    renderCompletions(state.entries, next, state.range);
+  } else if (event.key === "Enter" || event.key === "Tab") {
+    event.preventDefault();
+    applyCompletion(state.activeIndex);
   }
 });
 

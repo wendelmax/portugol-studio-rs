@@ -469,6 +469,36 @@ button:disabled {
   font-style: italic;
 }
 
+.pg-completions {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  left: 16px;
+  z-index: 3;
+  max-height: min(220px, 45%);
+  margin: 0;
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid var(--pg-border-strong);
+  border-radius: 10px;
+  background: var(--pg-surface);
+  box-shadow: var(--pg-shadow);
+  font-family: var(--pg-code-font);
+  font-size: 0.82rem;
+  list-style: none;
+}
+
+.pg-completion-item {
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.pg-completion-item[aria-selected="true"] {
+  background: var(--pg-accent-soft);
+  color: var(--pg-accent);
+}
+
 .pg-stdin-label {
   display: flex;
   flex-direction: column;
@@ -736,6 +766,16 @@ textarea.pg-stdin {
 
   .pg-editor {
     color: CanvasText;
+  }
+
+  .pg-completions {
+    border: 1px solid CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+
+  .pg-completion-item[aria-selected="true"] {
+    outline: 1px solid Highlight;
   }
 }
 

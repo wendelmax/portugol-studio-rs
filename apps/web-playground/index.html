@@ -74,7 +74,10 @@
                 class="pg-editor"
                 spellcheck="false"
                 aria-label="Editor de código Ferro"
+                aria-autocomplete="list"
+                aria-controls="pg-completions"
               ></textarea>
+              <ul id="pg-completions" class="pg-completions" role="listbox" aria-label="Sugestões de sintaxe Ferro" hidden></ul>
             </div>
             <label class="pg-stdin-label" for="pg-stdin">
               <span class="pg-stdin-title">Entrada padrão <small>uma linha por leitura (<code>leia</code>)</small></span>
