@@ -105,8 +105,7 @@ pub const FORMATS: &[Format] = &[
     },
 ];
 
-/// Extensões do Portugol Studio clássico, que não são abertas nem
-/// convertidas (ADR 0016).
+/// Extensões legadas que não são abertas nem convertidas (ADR 0016).
 pub const RETIRED: &[&str] = &["por", "pex"];
 
 /// Formato de um tipo.
@@ -219,7 +218,7 @@ pub fn canonical_path(path: &Path) -> Option<std::path::PathBuf> {
     Some(path.with_file_name(new_name))
 }
 
-/// Extensão do Portugol Studio clássico (`.por`, `.pex`).
+/// Extensão legada (`.por`, `.pex`).
 pub fn is_retired(path: &str) -> bool {
     let name = file_name(path);
     RETIRED.iter().any(|extension| has_suffix(name, extension))

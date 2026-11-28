@@ -1,8 +1,7 @@
 # Ferro Studio
 
 Ambiente educacional para programar em português, criar apps desktop e jogos 2D
-e evoluir para Rust real, construído em Rust a partir da inspiração do
-[Portugol Studio](https://github.com/UNIVALI-LITE/Portugol-Studio) da UNIVALI
+e evoluir para Rust real, construído em Rust
 (repositório `portugol-studio-rs`, conforme o
 [ADR 0023](docs/adr/0023-identidade-e-marca-ferro-studio.md)).
 
@@ -17,10 +16,8 @@ profissionalmente.
 
 > **Arquivos `.por` e `.pex` legados:** conforme o
 > [ADR 0016](docs/adr/0016-pors-como-linguagem-autoral-e-retirada-do-por.md), o
-> suporte ao Portugol clássico (`.por`/`.pex`) foi retirado. O Ferro Studio não
-> abre nem converte arquivos `.por`/`.pex` automaticamente; para projetos e
-> exercícios nesse formato legado, utilize o
-> [Portugol Studio original](https://github.com/UNIVALI-LITE/Portugol-Studio).
+> Ferro Studio não abre nem converte esses formatos automaticamente. Use
+> arquivos `.fer` e exercícios `.licao`.
 
 > **Extensões antigas do Ferro:** `.pors` e `.pors.json` não são mais abertas
 > como código ou lições. Renomeie manualmente arquivos de código para `.fer` e
@@ -240,7 +237,7 @@ diretamente.
 - [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md): estrutura do compilador, da VM
   e da IDE.
 - [`docs/PARIDADE.md`](docs/PARIDADE.md): inventário histórico de comparação
-  com o Portugol Studio original.
+  com recursos clássicos de programação educacional.
 - [`docs/PORTUGOL-RUST.md`](docs/PORTUGOL-RUST.md): exportação para Rust,
   execução de `.rs` e projetos Cargo, limites de execução.
 - [`docs/DISTRIBUICAO.md`](docs/DISTRIBUICAO.md): como gerar e assinar os
@@ -258,6 +255,5 @@ primeira execução; rode apenas código em que você confia.
 
 ## Licença
 
-O Portugol Studio original é distribuído sob a LGPL-3.0. Este projeto é uma obra
-derivada e usa a mesma licença (`LGPL-3.0-only`); o texto completo está em
-[`LICENSE`](LICENSE).
+O Ferro Studio é distribuído sob a licença LGPL-3.0 (`LGPL-3.0-only`); o texto
+completo está em [`LICENSE`](LICENSE).

@@ -784,7 +784,7 @@ fn validate_standalone_file_path<'a>(
     let path = std::path::Path::new(raw_path);
     if ferro_formatos::is_retired_path(path) {
         return Err(format!(
-            "Arquivos legados .por e .pex não são suportados no Ferro Studio. Use o Portugol Studio original para abri-los ou utilize arquivos {}.",
+            "Arquivos legados .por e .pex não são suportados no Ferro Studio. Utilize arquivos {}.",
             ferro_formatos::describe(&[
                 ferro_formatos::Kind::Source,
                 ferro_formatos::Kind::Rust,
@@ -800,7 +800,7 @@ fn validate_standalone_file_path<'a>(
     Ok(path)
 }
 
-/// Os exemplos históricos do Portugol Studio estão em ISO-8859-1; aceitamos
+/// Os exemplos clássicos estão em ISO-8859-1; aceitamos
 /// UTF-8 (com ou sem BOM) e caímos para Latin-1 quando necessário.
 #[tauri::command]
 fn read_file(path: String) -> Result<String, String> {
@@ -1105,12 +1105,12 @@ mod rust_source_run_tests {
         assert!(
             super::read_file(legacy_por.display().to_string())
                 .unwrap_err()
-                .contains("Portugol Studio original")
+                .contains("não são suportados")
         );
         assert!(
             super::read_file(legacy_pex.display().to_string())
                 .unwrap_err()
-                .contains("Portugol Studio original")
+                .contains("não são suportados")
         );
         assert!(super::write_file(legacy_por.display().to_string(), "programa {}".into()).is_err());
         assert!(super::read_file(secret.display().to_string()).is_err());

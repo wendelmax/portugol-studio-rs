@@ -156,6 +156,4 @@ Os instaladores não incluem nem instalam `rustc`. A toolchain Rust
 projetos Cargo, a verificação real com `rustc` no Laboratório de Ownership e a
 opção **Executar como Rust**.
 
-Arquivos legados `.por` e `.pex` não são suportados nesta versão (ADR 0016);
-para projetos nesse formato, utilize o
-[Portugol Studio original](https://github.com/UNIVALI-LITE/Portugol-Studio).
+Arquivos legados `.por` e `.pex` não são suportados nesta versão (ADR 0016).

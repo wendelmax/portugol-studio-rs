@@ -36,7 +36,7 @@
       "icons/icon.ico"
     ],
     "publisher": "Ferro Studio",
-    "copyright": "Baseado no Portugol Studio (UNIVALI). LGPL-3.0.",
+    "copyright": "Ferro Studio. LGPL-3.0.",
     "category": "Education",
     "shortDescription": "Ferro Studio — Programe em português, crie apps e jogos e evolua para Rust",
     "longDescription": "Ferro Studio: ambiente educacional em Rust para programar em português, criar apps desktop e jogos 2D e evoluir para Rust real (.rs), com editor, análise, depurador, designer visual e exercícios automáticos.",

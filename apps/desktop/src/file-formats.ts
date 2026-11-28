@@ -74,7 +74,7 @@ export function isMarkupKind(kind: FileKind | null): kind is "design" | "manifes
   return kind === "design" || kind === "manifest";
 }
 
-/** Extensão do Portugol Studio clássico (`.por`, `.pex`), retirada no ADR 0016. */
+/** Extensão legada (`.por`, `.pex`), retirada no ADR 0016. */
 export function isRetiredFile(path: string): boolean {
   const name = fileName(path);
   return RETIRED_EXTENSIONS.some((extension) => hasSuffix(name, extension));

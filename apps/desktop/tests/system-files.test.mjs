@@ -34,7 +34,7 @@ test("warns when requested and no incoming path has a supported extension", asyn
 
   assert.deepEqual(events, [
     ["status", "Escolha um arquivo .fer, .rs ou .licao.", "error"],
-    ["status", "Arquivos legados .por e .pex não são suportados no Ferro Studio. Use o Portugol Studio original para abri-los, ou escolha um arquivo .fer, .rs ou .licao.", "error"],
+    ["status", "Arquivos legados .por e .pex não são suportados no Ferro Studio. Escolha um arquivo .fer, .rs ou .licao.", "error"],
     ["file", "programa.fer"],
   ]);
 });

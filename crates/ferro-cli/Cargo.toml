@@ -3,7 +3,7 @@ name = "ferro-cli"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "CLI do Portugol Studio RS: criação, validação, formatação, exportação Rust/Cargo, execução e depuração de programas .pors"
+description = "CLI do Ferro Studio: criação, validação, formatação, exportação Rust/Cargo, execução e depuração de programas .fer"
 
 [[bin]]
 name = "portugol"

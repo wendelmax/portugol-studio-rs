@@ -4,7 +4,7 @@
 
 ### Contexto
 
-O Portugol Studio é uma IDE com:
+O Ferro Studio é uma IDE com:
 
 - editor de código com syntax highlighting, autocomplete e erros inline;
 - abas e árvore de arquivos;
@@ -282,6 +282,5 @@ Paridade funcional completa: **6–9 meses**.
 
 ## 8. Licença
 
-O Portugol Studio original é LGPL-3.0 (`LICENSE.md` no repositório original).
-O port é obra derivada e usa a mesma licença (`LGPL-3.0-only`), com atribuição
-ao projeto original.
+O Ferro Studio é distribuído sob a licença LGPL-3.0 (`LGPL-3.0-only`). O texto
+completo está no arquivo [`LICENSE`](../LICENSE).
