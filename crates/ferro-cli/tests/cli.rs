@@ -149,7 +149,7 @@ fn rejects_legacy_por_with_guidance_and_unknown_extensions() {
 }
 
 #[test]
-fn exports_visual_pors_mvu_app_to_rust_and_cargo_project() {
+fn exports_visual_mvu_app_to_rust_and_cargo_project() {
     let dir = TempDir::new();
     let app = dir.0.join("contador.fer");
     fs::write(
@@ -170,7 +170,7 @@ funcao visualizar(estado: Estado) -> inteiro {
     let rust = cli().args(["exportar-rust"]).arg(&app).output().unwrap();
     assert!(rust.status.success(), "{rust:?}");
     let rust_code = String::from_utf8_lossy(&rust.stdout);
-    assert!(rust_code.contains("mod __pors_ui"));
+    assert!(rust_code.contains("mod __ferro_ui"));
     assert!(rust_code.contains("fn main()"));
 
     let cargo_dir = dir.0.join("contador-cargo");
