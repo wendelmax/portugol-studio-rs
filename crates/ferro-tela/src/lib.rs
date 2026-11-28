@@ -23,6 +23,7 @@ mod format;
 mod parser;
 pub mod project;
 pub mod schema;
+pub mod slint;
 mod validate;
 pub mod value;
 
