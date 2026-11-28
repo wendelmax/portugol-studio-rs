@@ -34,6 +34,9 @@ pub(super) struct Parser {
     next_type_id: u32,
     external_records: Vec<crate::lower::ExternalRecord>,
     require_entry: bool,
+    /// Avisos que não impedem o programa de rodar (por exemplo, `UI.*`
+    /// obsoleto, ADR 0021).
+    warnings: Vec<Diagnostic>,
 }
 
 #[derive(Clone)]
@@ -83,6 +86,7 @@ impl Parser {
             next_type_id: 0,
             external_records: Vec::new(),
             require_entry: true,
+            warnings: Vec::new(),
         }
     }
 
@@ -92,7 +96,15 @@ impl Parser {
         self
     }
 
-    pub(super) fn program(mut self) -> Result<hir::Program, Vec<Diagnostic>> {
+    /// Programa e os avisos encontrados ao lê-lo.
+    pub(super) fn program_with_warnings(
+        mut self,
+    ) -> Result<(hir::Program, Vec<Diagnostic>), Vec<Diagnostic>> {
+        let program = self.program_inner()?;
+        Ok((program, std::mem::take(&mut self.warnings)))
+    }
+
+    fn program_inner(&mut self) -> Result<hir::Program, Vec<Diagnostic>> {
         let mut diagnostics = self.collect_signatures();
         let start = self.current().span.start;
         let mut bindings = None;

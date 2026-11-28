@@ -46,6 +46,7 @@ test("FERRO help covers loops and typed functions alongside core topics", () => 
     "ferro:opcao-resultado",
     "ferro:colecoes-tipos-compostos",
     "ferro:ui-mvu",
+    "ferro:telas",
   ]) {
     assert.ok(topicIds.includes(id), `esperava tópico ${id} na ajuda FERRO`);
   }

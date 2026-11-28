@@ -87,7 +87,7 @@ const FERRO_TOP_LEVEL_DOCS: Record<string, FerroDocEntry> = {
   registro: { label: "registro", kind: "keyword", signature: "registro Nome { campo: Tipo }", description: "Declara um tipo composto nominal com campos tipados (equivale a `struct` em Rust)." },
   enum: { label: "enum", kind: "keyword", signature: "enum Nome { Variante, ComPayload(Tipo) }", description: "Declara uma enumeração nominal com variantes simples ou com payload tipado (equivale a `enum` em Rust)." },
   escolha: { label: "escolha", kind: "keyword", signature: "escolha valor { caso Tipo::Variante => { ... } }", description: "Despacho exaustivo sobre variantes de um `enum`, `Opcao<T>` ou `Resultado<T, E>` (equivale a `match` em Rust)." },
-  UI: { label: "UI", kind: "namespace", signature: "modulo UI", description: "Biblioteca declarativa de interface gráfica MVU (`UI.coluna`, `UI.linha`, `UI.lista`, `UI.texto`, `UI.botao`, `UI.entrada`)." },
+  UI: { label: "UI", kind: "namespace", signature: "modulo UI (obsoleto)", description: "Obsoleto (ADR 0021): o `UI.*` vai sair da linguagem. Crie a interface como uma tela (`.design` + código) num projeto desktop." },
   Matematica: { label: "Matematica", kind: "namespace", signature: "modulo Matematica", description: "Constantes (`PI`, `E`) e funções matemáticas tipadas de Ferro." },
   Texto: { label: "Texto", kind: "namespace", signature: "modulo Texto", description: "Manipulação segura de cadeias Unicode (`char`), busca opcional (`Opcao`), fatiamento (`Resultado`) e orçamento de memória." },
   Tipos: { label: "Tipos", kind: "namespace", signature: "modulo Tipos", description: "Conversões explícitas e validação entre tipos, com `Resultado<T, cadeia>` para conversões falíveis." },

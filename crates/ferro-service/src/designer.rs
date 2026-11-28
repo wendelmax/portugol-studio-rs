@@ -676,3 +676,19 @@ mod binding_tests {
         );
     }
 }
+
+#[cfg(test)]
+mod ui_obsolete_tests {
+    #[test]
+    fn inspecao_mostra_o_aviso_do_ui() {
+        let source = "funcao iniciar() -> inteiro {\n    retorne 0;\n}\n\nfuncao atualizar(estado: inteiro, tipo: cadeia, alvo: cadeia) -> inteiro {\n    retorne estado;\n}\n\nfuncao visualizar(estado: inteiro) -> inteiro {\n    retorne UI.texto(\"oi\");\n}\n";
+        let inspection = crate::inspect_ferro_rs(source);
+        assert_eq!(inspection.diagnostics.len(), 1);
+        assert_eq!(inspection.diagnostics[0].code, "ferro.ui-obsoleto");
+        assert_eq!(inspection.diagnostics[0].severity, crate::Level::Warning);
+        assert!(
+            !inspection.symbols.is_empty(),
+            "a estrutura continua aparecendo"
+        );
+    }
+}

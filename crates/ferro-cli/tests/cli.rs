@@ -363,3 +363,18 @@ fn validates_screen_code_behind_with_the_types_from_the_design() {
     let alone = cli().arg(&code).output().unwrap();
     assert!(!alone.status.success());
 }
+
+#[test]
+fn ui_obsoleto_aparece_como_aviso_sem_falhar() {
+    let dir = TempDir::new();
+    let file = dir.0.join("contador.fer");
+    fs::write(
+        &file,
+        "funcao iniciar() -> inteiro {\n    retorne 0;\n}\n\nfuncao atualizar(estado: inteiro, tipo: cadeia, alvo: cadeia) -> inteiro {\n    retorne estado;\n}\n\nfuncao visualizar(estado: inteiro) -> inteiro {\n    retorne UI.texto(\"oi\");\n}\n",
+    )
+    .unwrap();
+    let checked = cli().arg(&file).output().unwrap();
+    assert!(checked.status.success(), "{checked:?}");
+    let stdout = String::from_utf8_lossy(&checked.stdout);
+    assert!(stdout.contains("1 aviso(s)"), "{stdout}");
+}

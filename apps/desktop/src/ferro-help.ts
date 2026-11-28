@@ -111,15 +111,26 @@ export const FERRO_HELP_TOPICS: readonly FerroHelpTopic[] = [
     },
   },
   {
-    id: "ferro:ui-mvu",
-    title: "UI visual declarativa (MVU)",
-    summary: "Aplicativos interativos com `iniciar()`, `atualizar()` e `visualizar()` usando `UI.*`.",
+    id: "ferro:telas",
+    title: "Telas: interfaces com designer",
+    summary: "Uma tela é um `.design` (o desenho, em pseudo-XAML) mais o código dela (`.fer`), num projeto desktop.",
     paragraphs: [
-      "Programas visuais em Ferro declaram `iniciar() -> Estado`, `atualizar(estado, tipo, alvo, valor) -> Estado` e `visualizar(estado) -> inteiro`.",
-      "A visualização compõe nós imutáveis com `UI.coluna`, `UI.linha`, `UI.lista`, `UI.texto`, `UI.botao` e `UI.entrada`, executáveis na prévia visual da IDE, em WebAssembly e em projetos Cargo standalone.",
+      "Crie um projeto com \"Novo projeto desktop\". A tela `JanelaPrincipal` abre no modo visual: arraste controles da caixa de ferramentas, ajuste o painel de propriedades e veja a marcação na vista Dividido.",
+      "Dê duplo clique num controle para criar a função do evento no código da tela. Cada função recebe a janela e devolve a janela atualizada: `funcao btnSomar_clicar(tela: JanelaPrincipal) -> JanelaPrincipal`.",
+      "Para mostrar o estado, declare `Dados=\"Conta\"` na janela e use `{dados.campo}` nos atributos. Nos campos de entrada, o vínculo é de mão dupla: o que o usuário digita vai para `dados`.",
+      "Clique em Executar (Shift+F6) para rodar a tela numa janela própria.",
+    ],
+  },
+  {
+    id: "ferro:ui-mvu",
+    title: "UI.* (obsoleto)",
+    summary: "O `UI.*` vai sair da linguagem (ADR 0021). Programas antigos ainda rodam, com o aviso `ferro.ui-obsoleto`; para interfaces novas, use telas.",
+    paragraphs: [
+      "O `UI.*` montava a interface em código, com `iniciar`, `atualizar` e `visualizar` e eventos identificados por cadeias. As telas fazem o mesmo com um designer visual e eventos verificados.",
+      "Equivalências: `UI.coluna` → `<Pilha>`; `UI.linha` → `<Pilha Orientacao=\"Horizontal\">`; `UI.texto` → `<Rotulo>` (com `{dados.campo}`); `UI.botao(\"inc\", \"+1\")` → `<Botao Nome=\"btnInc\" Texto=\"+1\" AoClicar=\"btnInc_clicar\" />`; `UI.entrada` → `<CaixaTexto>`; `UI.lista` → `<Lista>`. Em vez de `atualizar(estado, alvo)` com `se (alvo == ...)`, uma função para cada evento.",
     ],
     example: {
-      title: "Contador MVU declarativo",
+      title: "Contador com UI.* (obsoleto)",
       fileName: "guia-ferro-ui.fer",
       source: `funcao iniciar() -> inteiro {\n    retorne 0;\n}\n\nfuncao atualizar(estado: inteiro, tipo: cadeia, alvo: cadeia) -> inteiro {\n    se (tipo == "clique" && alvo == "inc") {\n        retorne estado + 1;\n    }\n    retorne estado;\n}\n\nfuncao visualizar(estado: inteiro) -> inteiro {\n    retorne UI.coluna([\n        UI.texto("Contagem: ", estado),\n        UI.botao("inc", "+1")\n    ]);\n}\n`,
     },

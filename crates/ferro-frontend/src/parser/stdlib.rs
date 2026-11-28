@@ -9,6 +9,10 @@ impl Parser {
     pub(super) fn ui_host_call(&mut self, start: Span) -> Result<hir::Expr, Vec<Diagnostic>> {
         self.advance(); // '.'
         let (component, component_span) = self.identifier()?;
+        if !self.warnings.iter().any(|w| w.code == "ferro.ui-obsoleto") {
+            self.warnings
+                .push(ui_obsolete_warning(start.join(component_span)));
+        }
         self.expect(Kind::LParen, "Esperado `(` após componente de UI")?;
         let mut arguments = Vec::new();
         if !matches!(self.current().kind, Kind::RParen) {
@@ -606,4 +610,21 @@ fn dialogo_expr(name: String, arguments: Vec<hir::Expr>, ty: hir::Type, span: Sp
         ty,
         span: to_hir_span(span),
     }
+}
+
+/// Aviso do ADR 0021 (Etapa B): o `UI.*` ainda roda, mas vai sair da
+/// linguagem; a ajuda traz a tabela de equivalência com as telas.
+fn ui_obsolete_warning(span: Span) -> Diagnostic {
+    Diagnostic::warning(
+        "ferro.ui-obsoleto",
+        "`UI.*` está obsoleto e vai sair da linguagem: crie a interface como uma tela (`.design` + código)",
+        span,
+    )
+    .with_help(
+        "Crie um projeto desktop (\"Novo projeto desktop\") e desenhe a tela no designer. \
+         Equivalências: `UI.coluna` → `<Pilha>`, `UI.linha` → `<Pilha Orientacao=\"Horizontal\">`, \
+         `UI.texto` → `<Rotulo>` (com `{dados.campo}` para valores), `UI.botao` → `<Botao>` com `AoClicar`, \
+         `UI.entrada` → `<CaixaTexto>`, `UI.lista` → `<Lista>`; em vez de `atualizar(estado, alvo)`, \
+         uma função para cada evento.",
+    )
 }
