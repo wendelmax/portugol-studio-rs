@@ -230,8 +230,16 @@ fn inspect_markup(
 
 /// Code-behind de uma tela, analisado com os tipos do `.design` dela.
 #[tauri::command]
-fn inspect_code_behind(source: String, design_source: String) -> ferro_service::Inspection {
-    ferro_service::inspect_code_behind(&source, &design_source)
+fn inspect_code_behind(
+    source: String,
+    design_source: String,
+    manifest_source: Option<String>,
+) -> ferro_service::Inspection {
+    ferro_service::inspect_code_behind_in_project(
+        &source,
+        &design_source,
+        manifest_source.as_deref(),
+    )
 }
 
 #[tauri::command]

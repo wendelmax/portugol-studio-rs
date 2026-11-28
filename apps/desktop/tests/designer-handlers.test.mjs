@@ -45,6 +45,7 @@ function host({ tabs = [], files = [], disk = {} } = {}) {
     tabs: () => tabs,
     tabSource: (tab) => tab.text,
     hasFile: (_ws, path) => files.includes(path),
+    filesIn: (_ws, folder) => files.filter((path) => path.slice(0, Math.max(0, path.lastIndexOf("/"))) === folder),
     readFile: async (_ws, path) => disk[path],
   };
 }
@@ -62,7 +63,7 @@ test("code-behind usa os tipos do .design; programa solto continua comum", async
   const calls = [];
   const inspectors = {
     inspectFerroRust: async (source) => (calls.push(["ferro", source]), { diagnostics: [], symbols: [] }),
-    inspectCodeBehind: async (source, design) => (calls.push(["tela", source, design]), { diagnostics: [], symbols: [] }),
+    inspectCodeBehind: async (source, design, manifest) => (calls.push(["tela", source, design, manifest]), { diagnostics: [], symbols: [] }),
     inspectMarkup: async (...args) => (calls.push(["marcacao", ...args]), { diagnostics: [], symbols: [] }),
   };
   const h = host({ files: ["App/J.design", "App/J.fer"], disk: { "App/J.design": "<Janela />", "App/J.fer": "codigo" } });
@@ -72,7 +73,7 @@ test("code-behind usa os tipos do .design; programa solto continua comum", async
   await inspectMarkupFile(h, inspectors, "<Janela />", { id: 4, workspaceId: "w", workspacePath: "App/J.design" });
   await inspectMarkupFile(h, inspectors, "<Projeto />", { id: 5, workspaceId: "w", workspacePath: "App/app.ferproj" });
   assert.deepEqual(calls, [
-    ["tela", "codigo", "<Janela />"],
+    ["tela", "codigo", "<Janela />", null],
     ["ferro", "solto"],
     ["marcacao", "<Janela />", "App/J.design", true, "codigo"],
     ["marcacao", "<Projeto />", "App/app.ferproj"],
@@ -105,4 +106,17 @@ test("formatar o código de uma tela usa o .design; programa solto usa o formata
   await formatSource(h, formatters, "solto", { id: 2, workspaceId: "w", workspacePath: "App/outro.fer" });
   await formatSource(h, formatters, "sem aba", undefined);
   assert.deepEqual(calls, [["tela", "codigo", "<Janela />"], ["comum", "solto"], ["comum", "sem aba"]]);
+});
+
+test("code-behind num projeto leva o .ferproj da pasta", async () => {
+  const calls = [];
+  const inspectors = {
+    inspectFerroRust: async () => ({ diagnostics: [], symbols: [] }),
+    inspectCodeBehind: async (...args) => (calls.push(args), { diagnostics: [], symbols: [] }),
+    inspectMarkup: async () => ({ diagnostics: [], symbols: [] }),
+  };
+  const files = ["App/J.design", "App/J.fer", "App/b.ferproj", "App/a.ferproj", "outro.ferproj"];
+  const disk = { "App/J.design": "<Janela />", "App/a.ferproj": "<Projeto Permissoes=\"Dialogo\" />" };
+  await inspectSource(host({ files, disk }), inspectors, "codigo", { id: 2, workspaceId: "w", workspacePath: "App/J.fer" });
+  assert.deepEqual(calls, [["codigo", "<Janela />", "<Projeto Permissoes=\"Dialogo\" />"]]);
 });

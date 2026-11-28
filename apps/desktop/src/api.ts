@@ -206,8 +206,9 @@ export const listenScreenOutput = (handler: (output: { label: string; text: stri
 export const inspectMarkup = (source: string, path: string, checkCode = false, codeSource: string | null = null) =>
   invoke<Inspection>("inspect_markup", { source, path, checkCode, codeSource });
 /** Code-behind de uma tela, analisado com os tipos do `.design` dela (ADR 0018). */
-export const inspectCodeBehind = (source: string, designSource: string) =>
-  invoke<Inspection>("inspect_code_behind", { source, designSource });
+/** Com o `.ferproj` da pasta, o uso de um serviço sem permissão vira aviso. */
+export const inspectCodeBehind = (source: string, designSource: string, manifestSource: string | null = null) =>
+  invoke<Inspection>("inspect_code_behind", { source, designSource, manifestSource });
 /** Formata um `.design` ou `.ferproj`; `null` quando há erro de sintaxe. */
 export const formatMarkup = (source: string) =>
   invoke<{ from: number; to: number; insert: string }[] | null>("format_markup", { source });
